@@ -1,0 +1,37 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Stats</title>
+<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+<style>
+    .error {
+        color: red;
+    }
+    .success {
+        color: white;
+        background-color: #006400; 
+    }
+</style>
+</head>
+  <body>
+
+
+<form action="#" th:action="@{/insertSong}" th:object="${songForm}" method="post">
+  Artist: <input type="text" th:field="*{artist}" /><p th:if="${#fields.hasErrors('artist')}" th:errorclass="error" th:errors="*{artist}" /><br/>
+  Song: <input type="text" th:field="*{song}" /><p th:if="${#fields.hasErrors('song')}" th:errorclass="error" th:errors="*{song}" /><br/>
+  Album: <input type="text" th:field="*{album}" /><p th:if="${#fields.hasErrors('album')}" th:errorclass="error" th:errors="*{album}" /><br/>
+  Sex: <input type="text" th:field="*{sex}" /><p th:if="${#fields.hasErrors('sex')}" th:errorclass="error" th:errors="*{sex}" /><br/>
+  Genre: <input type="text" th:field="*{genre}" /><p th:if="${#fields.hasErrors('genre')}" th:errorclass="error" th:errors="*{genre}" /><br/>
+  Year: <input type="text" th:field="*{year}" /><p th:if="${#fields.hasErrors('year')}" th:errorclass="error" th:errors="*{year}" /><br/>
+  Language: <input type="text" th:field="*{language}" /><p th:if="${#fields.hasErrors('language')}" th:errorclass="error" th:errors="*{language}" /><br/>
+  Duration in seconds: <input type="text" th:field="*{duration}" /><p th:if="${#fields.hasErrors('duration')}" th:errorclass="error" th:errors="*{duration}" /><br/>
+  
+  <input type="submit" />
+</form>
+
+<p th:if="${success != null}" class="success">Success! Record inserted!</p></br>
+
+<a href="/songsLastFmButNotItunes">Return to Songs on LastFM but not iTunes</a><br/>
+
+</body>
+
+</html>

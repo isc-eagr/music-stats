@@ -1,0 +1,22 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Stats</title>
+<script
+	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+</head>
+  <body>
+
+
+Songs in itunes but not in lastfm: <span th:text="${listSongs.size}">.</span> <br/>
+<table>
+	<tr><th>Artist</th><th>Song</th><th>Album</th></tr>
+	<tr th:each="song : ${listSongs}">
+		<td th:text="${song.artist}"/>
+		<td th:text="${song.song}"/>
+		<td th:text="${song.album}"/>
+	</tr>
+</table>
+
+</body>
+
+</html>

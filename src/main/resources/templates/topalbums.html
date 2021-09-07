@@ -1,0 +1,111 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Top Albums</title>
+<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+<script type="text/javascript">
+	function filterTable(value){
+		
+		var table = document.getElementById("albumsTable");
+		var inputs = document.getElementsByTagName("input");
+		
+		for (let row of table.rows) {
+			if(row.rowIndex > 0){
+        		row.style.display = 'none';
+			}
+		}
+		
+		var genres = new Array();
+		var sexes = new Array();
+		var languages = new Array();
+		var years = new Array();
+		
+		for(let input of inputs){
+			if(input.type=='checkbox' && input.checked){
+				switch(input.value.split(',')[1]){
+				   case "Genre": 
+					   genres.push(input.value.split(',')[0]);
+					   break;
+				   case "Sex": 
+					   sexes.push(input.value.split(',')[0]);
+					   break;
+				   case "Language": 
+					   languages.push(input.value.split(',')[0]);
+					   break;
+				   case "Year": 
+					   years.push(input.value.split(',')[0]);
+					   break;
+			   	}
+			}
+		}
+		var enabledCells = 0;		
+		for (let row of table.rows) {
+        	var colGenre = htmlDecode(row.cells[5].innerHTML);
+        	var colSex = row.cells[6].innerHTML;
+        	var colLanguage = row.cells[7].innerHTML;
+        	var colYear = row.cells[8].innerHTML;
+        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
+        			(sexes.length <= 0 || sexes.includes(colSex)) && 
+        			(languages<=0 || languages.includes(colLanguage)) && 
+        			(years <=0 || years.includes(colYear))){
+        		row.style.display = '';
+        		enabledCells++;
+        		row.cells[0].innerHTML = enabledCells;
+        		
+        	}
+		}
+		
+		document.getElementById("numRecords").innerHTML = enabledCells;
+		
+	}
+	
+	function htmlDecode(input){
+		  var e = document.createElement('textarea');
+		  e.innerHTML = input;
+		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+		}
+	
+	window.onload = function(){
+		document.getElementById("numRecords").innerHTML = document.getElementById("albumsTable").rows.length-1;
+	}
+</script>
+</head>
+  <body>
+
+<form th:action="@{/topAlbums}">
+Only the top <input type="text" th:name="limit"/> albums 
+<input type="submit"/> 
+</form>
+
+<table th:each="topAlbumsGroup : ${topAlbumsGroupList}">
+	<tr><th/><th th:text="${topAlbumsGroup.criteria}"/><th>Number of Albums</th><th>Percentage of Albums</th><th>Playtime</th></tr>
+	<tr th:each="listCount : ${topAlbumsGroup.listCounts}">
+		<td><input type="checkbox" th:value="${listCount.element+','+topAlbumsGroup.criteria}" onclick="filterTable(this.value)"/></td>
+		<td th:text="${listCount.element}"/>
+		<td th:text="${listCount.count}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.playtimeString}"/>
+		
+	</tr>
+</table>
+
+
+Number of records: <span id="numRecords"></span>
+<table id="albumsTable">
+	<tr><th>Position</th><th>Overall Position</th><th>Artist</th><th>Album</th><th>Plays</th><th>Genre</th><th>Sex</th><th>Language</th><th>Year</th><th>Playtime</th></tr>
+	<tr th:each="topAlbum, stat : ${topAlbums}">
+		<td th:text="${stat.index+1}"/>
+		<td th:text="${stat.index+1}"/>
+		<td th:text="${topAlbum.artist}"/>
+		<td th:text="${topAlbum.album}"/>
+		<td th:text="${topAlbum.count}"/>
+		<td th:text="${topAlbum.genre}"/>
+		<td th:text="${topAlbum.sex}"/>
+		<td th:text="${topAlbum.language}"/>
+		<td th:text="${topAlbum.year}"/>
+		<td th:text="${topAlbum.playtimeString}"/>
+	</tr>
+</table>
+
+</body>
+
+</html>

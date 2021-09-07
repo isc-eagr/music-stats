@@ -1,0 +1,100 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Top Artists</title>
+<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+<script type="text/javascript">
+	function filterTable(value){
+		
+		var table = document.getElementById("artistsTable");
+		var inputs = document.getElementsByTagName("input");
+		
+		for (let row of table.rows) {
+			if(row.rowIndex > 0){
+        		row.style.display = 'none';
+			}
+		}
+		
+		var genres = new Array();
+		var sexes = new Array();
+		var languages = new Array();
+		
+		for(let input of inputs){
+			if(input.type=='checkbox' && input.checked){
+				switch(input.value.split(',')[1]){
+				   case "Genre": 
+					   genres.push(input.value.split(',')[0]);
+					   break;
+				   case "Sex": 
+					   sexes.push(input.value.split(',')[0]);
+					   break;
+				   case "Language": 
+					   languages.push(input.value.split(',')[0]);
+					   break;
+			   	}
+			}
+		}
+		var enabledCells = 0;
+		for (let row of table.rows) {
+        	var colGenre = htmlDecode(row.cells[4].innerHTML);
+        	var colSex = row.cells[5].innerHTML;
+        	var colLanguage = row.cells[6].innerHTML;
+        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
+        			(sexes.length <= 0 || sexes.includes(colSex)) && 
+        			(languages<=0 || languages.includes(colLanguage))  
+        			){
+        		row.style.display = '';
+        		enabledCells++;
+        		row.cells[0].innerHTML = enabledCells;
+        	}
+		}
+		document.getElementById("numRecords").innerHTML = enabledCells;
+	}
+	
+	function htmlDecode(input){
+		  var e = document.createElement('textarea');
+		  e.innerHTML = input;
+		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+		}
+	window.onload = function(){
+		document.getElementById("numRecords").innerHTML = document.getElementById("artistsTable").rows.length-1;
+	}
+</script>
+</head>
+  <body>
+
+<form th:action="@{/topArtists}">
+Only the top <input type="text" th:name="limit"/> artists 
+<input type="submit"/> 
+</form>
+
+<table th:each="topArtistsGroup : ${topArtistsGroupList}">
+	<tr><th th:text="${topArtistsGroup.criteria}"/><th>Number of Artists</th><th>Percentage of Artists</th><th>Playtime</th></tr>
+	<tr th:each="listCount : ${topArtistsGroup.listCounts}">
+		<td><input type="checkbox" th:value="${listCount.element+','+topArtistsGroup.criteria}" onclick="filterTable(this.value)"/></td>
+		<td th:text="${listCount.element}"/>
+		<td th:text="${listCount.count}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.playtimeString}"/>
+		
+	</tr>
+</table>
+
+
+Number of records: <span id="numRecords"></span>
+<table id="artistsTable">
+	<tr><th>Position</th><th>Overall Position</th><th>Artist</th><th>Plays</th><th>Genre</th><th>Sex</th><th>Language</th><th>Playtime</th></tr>
+	<tr th:each="topArtist, stat : ${topArtists}">
+		<td th:text="${stat.index+1}"/>
+		<td th:text="${stat.index+1}"/>
+		<td th:text="${topArtist.artist}"/>
+		<td th:text="${topArtist.count}"/>
+		<td th:text="${topArtist.genre}"/>
+		<td th:text="${topArtist.sex}"/>
+		<td th:text="${topArtist.language}"/>
+		<td th:text="${topArtist.playtimeString}"/>
+	</tr>
+</table>
+
+</body>
+
+</html>

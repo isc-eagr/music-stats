@@ -1,0 +1,106 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Stats</title>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+<script src='js/utils.js'></script>
+</head>
+  <body>
+  	<a href="/insertItunesInfo">Load Itunes (Do first)</a><br/>
+  	<a href="/insertScrobbles">Load Scrobbles (Do second)</a><br/>
+  	<a href="/topArtists">Top Artists</a><br/>
+  	<a href="/topAlbums">Top Albums</a><br/>
+  	<a href="/topSongs">Top Songs</a><br/>
+  	<a href="/whatWonEachDay">What won each day</a><br/>
+  	<a href="/songsLastFmButNotItunes">Songs on lastfm but not itunes</a><br/>
+  	<a href="/songsItunesButNotLastfm">Songs on itunes but not lastfm</a><br/>
+  	
+  	<form th:action="@{/}">
+		Start date (yyyy-mm-dd)<input type="text" th:name="start"/>
+		End date (yyyy-mm-dd)<input type="text" th:name="end"/> 
+		<input type="submit"/> 
+	</form>
+  
+	Total Songs: <span th:text="${totalSongs}">Total Songs</span> <br/>
+	Total Plays: <span th:text="${totalPlays}">Total Plays</span> <br/>
+	Total Playtime: <span th:text="${totalPlayTimeGlobalString}">Total Playtime</span> <br/>
+	
+	
+	<div th:each="dataForGraphsList : ${dataMap}">
+		<div th:each="dataForGraphs : ${dataForGraphsList.value}" style='display: inline-block; width: 400px; height: 400px;'>
+			<canvas th:id="${'myChart'+dataForGraphsList.key+dataForGraphs.metric}" width='400px'
+				height='400px'></canvas>
+		
+		<script th:inline="javascript">
+		/*<![CDATA[*/
+                var ctx = document.getElementById(/*[[${'myChart'+dataForGraphsList.key+dataForGraphs.metric}]]*/'').getContext('2d');
+		
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [ /*[(${dataForGraphs.labels})]*/ ],
+                        datasets: [{
+                            label: 'Male',
+							data: [ /*[(${dataForGraphs.dataMale})]*/ ],
+                            backgroundColor: 'rgba(55, 99, 132, 0.8)',
+                            borderWidth: 1
+                        },{
+                            label: 'Others',
+                            data: [ /*[(${dataForGraphs.dataOthers})]*/ ],
+                            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                           borderWidth: 1
+                        }]
+                    },
+                    options: {
+                     scales: {
+                		xAxes: [{
+                			stacked: true,
+                		}],
+                		yAxes: [{
+                			stacked: true
+                		}]
+                	},
+                       title: {
+                       display: true,
+                     text: /*[[${dataForGraphs.metric +'by' +dataForGraphsList.key}]]*/'' 
+                    },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, data) {
+                               		var totalCount =0;
+                                    var thisDatasetCount = 0;
+                       				for(var i=0; i<data.datasets.length; i++){
+                						for(var j=0; j<data.datasets[i].data.length; j++){
+                							totalCount+= data.datasets[i].data[j];
+                                            if(tooltipItem.index == j){
+                       							thisDatasetCount += data.datasets[i].data[j];
+                							}
+                						}
+                					}
+                                    var label = data.datasets[tooltipItem.datasetIndex].label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+		                             var percentageInTotal = tooltipItem.yLabel/totalCount * 100;
+		                             var percentageInTotalString = percentageInTotal.toFixed(3);
+		                             var percentageOfBarInTotal = thisDatasetCount/totalCount * 100;
+		                             var percentageOfBarInTotalString = percentageOfBarInTotal.toFixed(3);
+		                             var percentageInDataset = tooltipItem.yLabel/thisDatasetCount * 100;
+		                       	     var percentageInDatasetString = percentageInDataset.toFixed(3);
+		                       	  	 var metric = /*[[${dataForGraphs.metric}]]*/'';
+		                       	  	 return metric.includes("Playtime") ? 
+		                       	  			 [label + secondsToString(tooltipItem.yLabel),percentageInTotalString+'%, '+percentageOfBarInTotalString+'%, '+percentageInDatasetString+'%']:
+		                       	  			 label + tooltipItem.yLabel + ', '+percentageInTotalString+'%, '+percentageOfBarInTotalString+'%, '+percentageInDatasetString+'%';
+                                }
+                            }
+                        }
+                    }
+                });
+                /*]]>*/
+                </script>
+                </div>
+
+	</div>
+	
+</body>
+
+</html>
