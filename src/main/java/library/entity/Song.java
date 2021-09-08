@@ -23,6 +23,7 @@ genre varchar(60),
 duration integer,
 sex varchar(30),
 cloud_status varchar(60),
+source varchar(30),
 created date,
 updated date
 ); 
