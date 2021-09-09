@@ -74,7 +74,7 @@ Only the top <input type="text" th:name="limit"/> songs
 </form>
 
 <table th:each="topSongsGroup : ${topSongsGroupList}">
-	<tr><th th:text="${topSongsGroup.criteria}"/><th>Number of Songs</th><th>Percentage of Songs</th><th>Playtime</th></tr>
+	<tr><th/><th th:text="${topSongsGroup.criteria}"/><th>Number of Songs</th><th>Percentage of Songs</th><th>Playtime</th></tr>
 	<tr th:each="listCount : ${topSongsGroup.listCounts}">
 		<td><input type="checkbox" th:value="${listCount.element+','+topSongsGroup.criteria}" onclick="filterTable(this.value)"/></td>
 		<td th:text="${listCount.element}"/>
