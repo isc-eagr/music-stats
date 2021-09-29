@@ -77,19 +77,19 @@
                 						}
                 					}
                                     var label = data.datasets[tooltipItem.datasetIndex].label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-		                             var percentageInTotal = tooltipItem.yLabel/totalCount * 100;
-		                             var percentageInTotalString = percentageInTotal.toFixed(3);
-		                             var percentageOfBarInTotal = thisDatasetCount/totalCount * 100;
-		                             var percentageOfBarInTotalString = percentageOfBarInTotal.toFixed(3);
-		                             var percentageInDataset = tooltipItem.yLabel/thisDatasetCount * 100;
-		                       	     var percentageInDatasetString = percentageInDataset.toFixed(3);
-		                       	  	 var metric = /*[[${dataForGraphs.metric}]]*/'';
+ 	                             	var percentageInTotal = tooltipItem.yLabel/totalCount * 100;
+		                            var percentageInTotalString = percentageInTotal.toFixed(3);
+		                            var percentageOfBarInTotal = thisDatasetCount/totalCount * 100;
+		                            var percentageOfBarInTotalString = percentageOfBarInTotal.toFixed(3);
+		                            var percentageInDataset = tooltipItem.yLabel/thisDatasetCount * 100;
+		                       	    var percentageInDatasetString = percentageInDataset.toFixed(3);
+		                       	    
+		                       	  	var metric = /*[[${dataForGraphs.metric}]]*/'';
+		                       	  	var metricToDisplay = metric.includes("Playtime")?"Playtime":(metric.includes("Songs")?"Songs":"Plays");
+		                       	  	
 		                       	  	 return metric.includes("Playtime") ? 
-		                       	  			 [label + secondsToString(tooltipItem.yLabel),percentageInTotalString+'%, '+percentageOfBarInTotalString+'%, '+percentageInDatasetString+'%']:
-		                       	  			 label + tooltipItem.yLabel + ', '+percentageInTotalString+'%, '+percentageOfBarInTotalString+'%, '+percentageInDatasetString+'%';
+		                       	  			 [tooltipItem.xLabel+" "+metricToDisplay+": "+secondsToString(thisDatasetCount),tooltipItem.xLabel+" "+metricToDisplay+" that is "+label+": " + secondsToString(tooltipItem.yLabel),'Percentage of '+tooltipItem.xLabel+': '+percentageOfBarInTotalString+'%','Percentage of '+tooltipItem.xLabel+' that is '+label+': '+percentageInDatasetString+'%']:
+		                       	  			 [tooltipItem.xLabel+" "+metricToDisplay+": "+thisDatasetCount,tooltipItem.xLabel+" "+metricToDisplay+" that are "+label +": "+ tooltipItem.yLabel, "Percentage of "+tooltipItem.xLabel+" in total: "+percentageOfBarInTotalString+'%',"Percentage of "+tooltipItem.xLabel+" that is "+label+": "+percentageInDatasetString+'%'];
                                 }
                             }
                         }
