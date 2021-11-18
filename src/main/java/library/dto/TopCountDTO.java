@@ -1,13 +1,7 @@
 package library.dto;
 
 import library.util.Utils;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TopCountDTO {
 	
 	private String element;
@@ -21,5 +15,46 @@ public class TopCountDTO {
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
 	}
+
+	public String getElement() {
+		return element;
+	}
+
+	public void setElement(String element) {
+		this.element = element;
+	}
+
+	public int getCount() {
+		return count;
+	}
+
+	public void setCount(int count) {
+		this.count = count;
+	}
+
+	public double getPercentage() {
+		return percentage;
+	}
+
+	public void setPercentage(double percentage) {
+		this.percentage = percentage;
+	}
+
+	public long getPlaytime() {
+		return playtime;
+	}
+
+	public void setPlaytime(long playtime) {
+		this.playtime = playtime;
+	}
+
+	public TopCountDTO(String element, int count, double percentage, long playtime) {
+		super();
+		this.element = element;
+		this.count = count;
+		this.percentage = percentage;
+		this.playtime = playtime;
+	}
+	
 	
 }

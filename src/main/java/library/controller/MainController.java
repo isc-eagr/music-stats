@@ -524,7 +524,6 @@ public class MainController {
 		songForm.setSource("Manual");
 		songForm.setCloudStatus("Deleted");
 		songRepository.save(songForm);
-		//System.out.println(songForm.getId());
 		scrobbleRepositoryImpl.updateSongIds(songForm.getId(), songForm.getArtist(), songForm.getSong(), songForm.getAlbum());
 		songForm = new Song();
 		model.addAttribute("success",true);
