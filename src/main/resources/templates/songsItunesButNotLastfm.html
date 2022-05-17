@@ -1,21 +1,26 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 <title>Stats</title>
-<script
-	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+	<script src="js/sortable-0.8.0/js/sortable.min.js"></script>
+	<link rel="stylesheet" href="js/sortable-0.8.0/css/sortable-theme-finder.css"/>
 </head>
-  <body>
+<body>
 
 
-Songs in itunes but not in lastfm: <span th:text="${listSongs.size}">.</span> <br/>
-<table>
-	<tr><th>Artist</th><th>Song</th><th>Album</th></tr>
-	<tr th:each="song : ${listSongs}">
-		<td th:text="${song.artist}"/>
-		<td th:text="${song.song}"/>
-		<td th:text="${song.album}"/>
-	</tr>
-</table>
+	Songs in itunes but not in lastfm: <span th:text="${listSongs.size}">.</span> <br/>
+	<table class="sortable-theme-finder" data-sortable>
+		<thead>
+			<tr><th>Artist</th><th>Song</th><th>Album</th></tr>
+		</thead>
+		<tbody>
+			<tr th:each="song : ${listSongs}">
+				<td th:text="${song.artist}"/>
+				<td th:text="${song.song}"/>
+				<td th:text="${song.album}"/>
+			</tr>
+		</tbody>
+	</table>
 
 </body>
 

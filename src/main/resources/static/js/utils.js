@@ -2,7 +2,7 @@
  * 
  */
  
-function secondsToString(seconds){
+	function secondsToString(seconds){
 		var secondsInADay = 24*60*60;
 		var secondsInAnHour = 60 * 60;
 	
@@ -17,3 +17,11 @@ function secondsToString(seconds){
 		var finalSeconds = Math.trunc(remainingSecondsAfterHours - (60*finalMinutes));
 		return finalDays+" days, "+ finalHours+" hours, "+finalMinutes+" minutes, "+finalSeconds+" seconds.";
 	}
+	
+	function htmlDecode(input) {
+		  var e = document.createElement('textarea');
+		  e.innerHTML = input;
+		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+	}
+	
+	

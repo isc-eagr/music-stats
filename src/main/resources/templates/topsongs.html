@@ -1,72 +1,72 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 <title>Top Songs</title>
-<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
-<script type="text/javascript">
-	function filterTable(value){
-		
-		var table = document.getElementById("songsTable");
-		var inputs = document.getElementsByTagName("input");
-		
-		for (let row of table.rows) {
-			if(row.rowIndex > 0){
-        		row.style.display = 'none';
+	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+	<script src='js/utils.js'></script>
+	<script src="js/sortable-0.8.0/js/sortable.min.js"></script>
+	<link rel="stylesheet" href="js/sortable-0.8.0/css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		function filterTable(value){
+			
+			var table = document.getElementById("songsTable");
+			var inputs = document.getElementsByTagName("input");
+			
+			for (let row of table.rows) {
+				if(row.rowIndex > 0){
+	        		row.style.display = 'none';
+				}
 			}
-		}
-		
-		var genres = new Array();
-		var sexes = new Array();
-		var languages = new Array();
-		var years = new Array();
-		
-		for(let input of inputs){
-			if(input.type=='checkbox' && input.checked){
-				switch(input.value.split(',')[1]){
-				   case "Genre": 
-					   genres.push(input.value.split(',')[0]);
-					   break;
-				   case "Sex": 
-					   sexes.push(input.value.split(',')[0]);
-					   break;
-				   case "Language": 
-					   languages.push(input.value.split(',')[0]);
-					   break;
-				   case "Year": 
-					   years.push(input.value.split(',')[0]);
-					   break;
-			   	}
+			
+			var genres = new Array();
+			var sexes = new Array();
+			var languages = new Array();
+			var years = new Array();
+			
+			for(let input of inputs){
+				if(input.type=='checkbox' && input.checked){
+					switch(input.value.split(',')[1]){
+					   case "Genre": 
+						   genres.push(input.value.split(',')[0]);
+						   break;
+					   case "Sex": 
+						   sexes.push(input.value.split(',')[0]);
+						   break;
+					   case "Language": 
+						   languages.push(input.value.split(',')[0]);
+						   break;
+					   case "Year": 
+						   years.push(input.value.split(',')[0]);
+						   break;
+				   	}
+				}
 			}
+			var enabledCells = 0;
+			for (let row of table.rows) {
+	        	var colGenre = htmlDecode(row.cells[6].innerHTML);
+	        	var colSex = row.cells[7].innerHTML;
+	        	var colLanguage = row.cells[8].innerHTML;
+	        	var colYear = row.cells[9].innerHTML;
+	        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
+	        			(sexes.length <= 0 || sexes.includes(colSex)) && 
+	        			(languages<=0 || languages.includes(colLanguage)) && 
+	        			(years <=0 || years.includes(colYear))){
+	        		row.style.display = '';
+	        		enabledCells++;
+	        		row.cells[0].innerHTML = enabledCells;
+	        	}
+			}
+			document.getElementById("numRecords").innerHTML = enabledCells;
+			Sortable.init();
+			
 		}
-		var enabledCells = 0;
-		for (let row of table.rows) {
-        	var colGenre = htmlDecode(row.cells[6].innerHTML);
-        	var colSex = row.cells[7].innerHTML;
-        	var colLanguage = row.cells[8].innerHTML;
-        	var colYear = row.cells[9].innerHTML;
-        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
-        			(sexes.length <= 0 || sexes.includes(colSex)) && 
-        			(languages<=0 || languages.includes(colLanguage)) && 
-        			(years <=0 || years.includes(colYear))){
-        		row.style.display = '';
-        		enabledCells++;
-        		row.cells[0].innerHTML = enabledCells;
-        	}
-		}
-		document.getElementById("numRecords").innerHTML = enabledCells;
 		
-	}
-	
-	function htmlDecode(input){
-		  var e = document.createElement('textarea');
-		  e.innerHTML = input;
-		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+		window.onload = function(){
+			document.getElementById("numRecords").innerHTML = document.getElementById("songsTable").rows.length-1;
+			Sortable.init();
 		}
-	window.onload = function(){
-		document.getElementById("numRecords").innerHTML = document.getElementById("songsTable").rows.length-1;
-	}
-</script>
+	</script>
 </head>
-  <body>
+<body>
 
 <form th:action="@{/topSongs}">
 Only the top <input type="text" th:name="limit"/> songs 
@@ -87,21 +87,25 @@ Only the top <input type="text" th:name="limit"/> songs
 
 
 Number of records: <span id="numRecords"></span>
-<table id="songsTable">
-	<tr><th>Position</th><th>Overall Position</th><th>Artist</th><th>Song</th><th>Album</th><th>Plays</th><th>Genre</th><th>Sex</th><th>Language</th><th>Year</th><th>Playtime</th></tr>
-	<tr th:each="topSong, stat : ${topSongs}">
-		<td th:text="${stat.index+1}"/>
-		<td th:text="${stat.index+1}"/>
-		<td th:text="${topSong.artist}"/>
-		<td th:text="${topSong.song}"/>
-		<td th:text="${topSong.album}"/>
-		<td th:text="${topSong.count}"/>
-		<td th:text="${topSong.genre}"/>
-		<td th:text="${topSong.sex}"/>
-		<td th:text="${topSong.language}"/>
-		<td th:text="${topSong.year}"/>
-		<td th:text="${topSong.playtimeString}"/>
-	</tr>
+<table id="songsTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr><th>Position</th><th>Overall Position</th><th>Artist</th><th>Song</th><th>Album</th><th>Plays</th><th>Genre</th><th>Sex</th><th>Language</th><th>Year</th><th>Playtime</th></tr>
+	</thead>
+	<tbody>
+		<tr th:each="topSong, stat : ${topSongs}">
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${topSong.artist}"/>
+			<td th:text="${topSong.song}"/>
+			<td th:text="${topSong.album}"/>
+			<td th:text="${topSong.count}"/>
+			<td th:text="${topSong.genre}"/>
+			<td th:text="${topSong.sex}"/>
+			<td th:text="${topSong.language}"/>
+			<td th:text="${topSong.year}"/>
+			<td th:text="${topSong.playtimeString}"/>
+		</tr>
+	</tbody>
 </table>
 
 </body>
