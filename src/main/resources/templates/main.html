@@ -1,8 +1,18 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<title>Stats</title>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
-<script src='js/utils.js'></script>
+	<title>Stats</title>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
+	<script src='js/utils.js'></script>
+	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script type="text/javascript">
+		window.onload = function(){
+			flatpickr("#dateStart", dateConfig);
+			flatpickr("#dateEnd", dateConfig);
+		}
+	</script>
+	
+	
 </head>
   <body>
   	<a href="/insertItunesInfo">Load Itunes (Do first)</a><br/>
@@ -15,8 +25,8 @@
   	<a href="/songsItunesButNotLastfm">Songs on itunes but not lastfm</a><br/>
   	
   	<form th:action="@{/}">
-		Start date (yyyy-mm-dd)<input type="text" th:name="start"/>
-		End date (yyyy-mm-dd)<input type="text" th:name="end"/> 
+		Start date <input type="text" th:name="start" id="dateStart"/>
+		End date <input type="text" th:name="end" id="dateEnd"/> 
 		<input type="submit"/> 
 	</form>
   
@@ -34,7 +44,8 @@
 		/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'myChart'+dataForGraphsList.key+dataForGraphs.metric}]]*/'').getContext('2d');
 		
-                var myChart = new Chart(ctx, {
+                var myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/ 
+                = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: [ /*[(${dataForGraphs.labels})]*/ ],
@@ -47,54 +58,73 @@
                             label: 'Others',
                             data: [ /*[(${dataForGraphs.dataOthers})]*/ ],
                             backgroundColor: 'rgba(255, 99, 132, 0.8)',
-                           borderWidth: 1
+                            borderWidth: 1
                         }]
                     },
                     options: {
-                     scales: {
-                		xAxes: [{
-                			stacked: true,
-                		}],
-                		yAxes: [{
-                			stacked: true
-                		}]
-                	},
-                       title: {
-                       display: true,
-                     text: /*[[${dataForGraphs.metric +'by' +dataForGraphsList.key}]]*/'' 
-                    },
-                        tooltips: {
-                            callbacks: {
-                                label: function(tooltipItem, data) {
-                               		var totalCount =0;
-                                    var thisDatasetCount = 0;
-                       				for(var i=0; i<data.datasets.length; i++){
-                						for(var j=0; j<data.datasets[i].data.length; j++){
-                							totalCount+= data.datasets[i].data[j];
-                                            if(tooltipItem.index == j){
-                       							thisDatasetCount += data.datasets[i].data[j];
-                							}
-                						}
-                					}
-                                    var label = data.datasets[tooltipItem.datasetIndex].label || '';
- 	                             	var percentageInTotal = tooltipItem.yLabel/totalCount * 100;
-		                            var percentageInTotalString = percentageInTotal.toFixed(3);
-		                            var percentageOfBarInTotal = thisDatasetCount/totalCount * 100;
-		                            var percentageOfBarInTotalString = percentageOfBarInTotal.toFixed(3);
-		                            var percentageInDataset = tooltipItem.yLabel/thisDatasetCount * 100;
-		                       	    var percentageInDatasetString = percentageInDataset.toFixed(3);
-		                       	    
-		                       	  	var metric = /*[[${dataForGraphs.metric}]]*/'';
-		                       	  	var metricToDisplay = metric.includes("Playtime")?"Playtime":(metric.includes("Songs")?"Songs":"Plays");
-		                       	  	
-		                       	  	 return metric.includes("Playtime") ? 
-		                       	  			 [tooltipItem.xLabel+" "+metricToDisplay+": "+secondsToString(thisDatasetCount),tooltipItem.xLabel+" "+metricToDisplay+" that is "+label+": " + secondsToString(tooltipItem.yLabel),'Percentage of '+tooltipItem.xLabel+': '+percentageOfBarInTotalString+'%','Percentage of '+tooltipItem.xLabel+' that is '+label+': '+percentageInDatasetString+'%']:
-		                       	  			 [tooltipItem.xLabel+" "+metricToDisplay+": "+thisDatasetCount,tooltipItem.xLabel+" "+metricToDisplay+" that are "+label +": "+ tooltipItem.yLabel, "Percentage of "+tooltipItem.xLabel+" in total: "+percentageOfBarInTotalString+'%',"Percentage of "+tooltipItem.xLabel+" that is "+label+": "+percentageInDatasetString+'%'];
-                                }
-                            }
-                        }
+                       scales: {
+		                		x: {
+		                			stacked: true
+		                		},
+		                		y: {
+		                			stacked: true
+		                		}
+	                		},
+                    	plugins:{
+							title: {
+		                       display: true,
+		                       text: /*[[${dataForGraphs.metric +'by' +dataForGraphsList.key}]]*/'' 
+	                    	},
+							tooltip: {
+	                            callbacks: {
+	                                label: function(context) {
+	                               		var totalCount =0;
+	                                    var thisDatasetCount = 0;
+	                                    var myChart = myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/;
+	                       				for(var i=0; i<myChart.data.datasets.length; i++){
+	                						for(var j=0; j<myChart.data.datasets[i].data.length; j++){
+	                							totalCount+= myChart.data.datasets[i].data[j];
+	                                            if(context.dataIndex == j){
+	                       							thisDatasetCount += myChart.data.datasets[i].data[j];
+	                							}//if
+	                						}//for
+	                					}//for
+	                                    var label = context.dataset.label || '';
+	 	                             	var percentageInTotal = context.raw/totalCount * 100;
+			                            var percentageInTotalString = percentageInTotal.toFixed(3);
+			                            var percentageOfBarInTotal = thisDatasetCount/totalCount * 100;
+			                            var percentageOfBarInTotalString = percentageOfBarInTotal.toFixed(3);
+			                            var percentageInDataset = context.raw/thisDatasetCount * 100;
+			                       	    var percentageInDatasetString = percentageInDataset.toFixed(3);
+			                       	    
+			                       	  	var metric = /*[[${dataForGraphs.metric}]]*/'';
+			                       	  	var metricToDisplay = metric.includes("Playtime")?"Playtime":(metric.includes("Songs")?"Songs":"Plays");
+			                       	  	
+			                       	  	 return metric.includes("Playtime") ? 
+			                       	  			 [context.label+" "+metricToDisplay+": "+secondsToString(thisDatasetCount),
+			                       	  			 	context.label+" "+metricToDisplay+" that is "+label+": " + secondsToString(context.raw),
+			                       	  			 	'Percentage of '+context.label+': '+percentageOfBarInTotalString+'%',
+			                       	  			 	'Percentage of '+context.label+' that is '+label+': '+percentageInDatasetString+'%']:
+			                       	  			 [context.label+" "+metricToDisplay+": "+thisDatasetCount,
+			                       	  			 	context.label+" "+metricToDisplay+" that are "+label +": "+ context.raw, 
+			                       	  			 	"Percentage of "+context.label+" in total: "+percentageOfBarInTotalString+'%',
+			                       	  			 	"Percentage of "+context.label+" that is "+label+": "+percentageInDatasetString+'%'];
+	                                }//label
+	                            }//callbacks
+                        	}//tooltips
+						}//plugins
                     }
                 });
+                
+                if(/*[[${dataForGraphs.metric}]]*/'' 
+                	==="Playtime"){
+					myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/
+					.options.scales.y.ticks.callback = function(value, index, ticks) {
+					                        return secondsToDays(value)+' days';
+					                    };
+					myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/
+					.update();                    
+				}
                 /*]]>*/
                 </script>
                 </div>

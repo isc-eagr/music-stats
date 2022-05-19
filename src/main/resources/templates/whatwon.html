@@ -1,13 +1,21 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<title>What Won Each Day</title>
-<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+	<title>What Won Each Day</title>
+	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<script src='js/utils.js'></script>
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script type="text/javascript">
+		window.onload = function(){
+			flatpickr("#dateStart", dateConfig);
+			flatpickr("#dateEnd", dateConfig);
+		}
+	</script>
 </head>
   <body>
   
   <form th:action="@{/whatWonEachDay}">
-		Start date (yyyy-mm-dd)<input type="text" th:name="start"/>
-		End date (yyyy-mm-dd)<input type="text" th:name="end"/> 
+		Start date <input type="text" th:name="start" id="dateStart"/>
+		End date <input type="text" th:name="end" id="dateEnd"/> 
 		<input type="submit"/> 
 	</form>
 

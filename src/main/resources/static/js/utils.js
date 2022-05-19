@@ -1,7 +1,3 @@
-/**
- * 
- */
- 
 	function secondsToString(seconds){
 		var secondsInADay = 24*60*60;
 		var secondsInAnHour = 60 * 60;
@@ -18,10 +14,26 @@
 		return finalDays+" days, "+ finalHours+" hours, "+finalMinutes+" minutes, "+finalSeconds+" seconds.";
 	}
 	
+	function secondsToDays(seconds){
+		var secondsInADay = 24*60*60;
+		
+		return Math.trunc(seconds/secondsInADay);
+	}
+	
 	function htmlDecode(input) {
 		  var e = document.createElement('textarea');
 		  e.innerHTML = input;
 		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+	}
+	
+	var dateConfig= 
+		{minDate: "2010-01-01"};
+	
+	window.onload = function(){
+		
+		
+		flatpickr("#dateStart", dateConfig);
+		flatpickr("#dateEnd", dateConfig);
 	}
 	
 	
