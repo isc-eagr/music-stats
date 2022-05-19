@@ -119,7 +119,7 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topAlbum.sex}"/>
 			<td th:text="${topAlbum.language}"/>
 			<td th:text="${topAlbum.year}"/>
-			<td th:text="${topAlbum.playtimeString}"/>
+			<td th:text="${topAlbum.playtimeString}" th:data-value="${topAlbum.playtime}"/>
 		</tr>
 	</tbody>
 </table>

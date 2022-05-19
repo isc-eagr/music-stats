@@ -94,7 +94,7 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topArtist.genre}"/>
 			<td th:text="${topArtist.sex}"/>
 			<td th:text="${topArtist.language}"/>
-			<td th:text="${topArtist.playtimeString}"/>
+			<td th:text="${topArtist.playtimeString}" th:data-value="${topArtist.playtime}"/>
 		</tr>
 	</tbody>
 </table>
