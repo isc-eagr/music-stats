@@ -35,10 +35,10 @@
 	Total Playtime: <span th:text="${totalPlayTimeGlobalString}">Total Playtime</span> <br/>
 	
 	
-	<div th:each="dataForGraphsList : ${dataMap}">
-		<div th:each="dataForGraphs : ${dataForGraphsList.value}" style='display: inline-block; width: 400px; height: 400px;'>
-			<canvas th:id="${'myChart'+dataForGraphsList.key+dataForGraphs.metric}" width='400px'
-				height='400px'></canvas>
+	<div th:each="dataForGraphsList : ${dataMap}" style='white-space: nowrap;'> <!--Genre, Sex, Language etc.-->
+		<div th:each="dataForGraphs : ${dataForGraphsList.value}" style='display: inline-block; width: 500px; height: 500px; white-space: nowrap;'> <!--Number of songs, number of plays, playtime-->
+			<canvas th:id="${'myChart'+dataForGraphsList.key+dataForGraphs.metric}" width='500px'
+				height='500px'></canvas>
 		
 		<script th:inline="javascript">
 		/*<![CDATA[*/
@@ -73,7 +73,7 @@
                     	plugins:{
 							title: {
 		                       display: true,
-		                       text: /*[[${dataForGraphs.metric +'by' +dataForGraphsList.key}]]*/'' 
+		                       text: /*[[${dataForGraphs.metric +'By' +dataForGraphsList.key}]]*/''
 	                    	},
 							tooltip: {
 	                            callbacks: {
@@ -116,15 +116,20 @@
                     }
                 });
                 
+                var chrt = myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/;
+                var displayText = chrt.options.plugins.title.text;
+                
+                chrt.options.plugins.title.text=displayText.replace(/[A-Z]/g, ' $&').trim();
+                 
                 if(/*[[${dataForGraphs.metric}]]*/'' 
                 	==="Playtime"){
-					myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/
-					.options.scales.y.ticks.callback = function(value, index, ticks) {
+					chrt.options.scales.y.ticks.callback = function(value, index, ticks) {
 					                        return secondsToDays(value)+' days';
 					                    };
-					myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/
-					.update();                    
+					                 
 				}
+				myChart/*[(${dataForGraphsList.key+dataForGraphs.metric})]*/
+					.update(); 
                 /*]]>*/
                 </script>
                 </div>

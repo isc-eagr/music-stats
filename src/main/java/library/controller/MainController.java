@@ -296,10 +296,10 @@ public class MainController {
 				playtimeLabels += ("'"+e.getKey()+"',");
 			}
 			DataForGraphs dataNumberSongs = new DataForGraphs(numberOfSongsDataMale.substring(0,numberOfSongsDataMale.length()-1), 
-					numberOfSongsDataOthers.substring(0,numberOfSongsDataOthers.length()-1), numberOfSongsLabels.substring(0,numberOfSongsLabels.length()-1), "NumberSongs");
+					numberOfSongsDataOthers.substring(0,numberOfSongsDataOthers.length()-1), numberOfSongsLabels.substring(0,numberOfSongsLabels.length()-1), "NumberOfSongs");
 			
 			DataForGraphs dataNumberPlays = new DataForGraphs(numberOfPlaysDataMale.substring(0,numberOfPlaysDataMale.length()-1), 
-					numberOfPlaysDataOthers.substring(0,numberOfPlaysDataOthers.length()-1), numberOfPlaysLabels.substring(0,numberOfPlaysLabels.length()-1), "NumberPlays");
+					numberOfPlaysDataOthers.substring(0,numberOfPlaysDataOthers.length()-1), numberOfPlaysLabels.substring(0,numberOfPlaysLabels.length()-1), "NumberOfPlays");
 			
 			DataForGraphs dataPlaytime = new DataForGraphs(playtimeDataMale.substring(0,playtimeDataMale.length()-1), 
 					playtimeDataOthers.substring(0,playtimeDataOthers.length()-1), playtimeLabels.substring(0,playtimeLabels.length()-1), "Playtime");
