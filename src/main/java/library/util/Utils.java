@@ -1,9 +1,15 @@
 package library.util;
 
+import java.time.Duration;
+
 public class Utils {
 	
 	public static String secondsToString(long seconds) {
-		long secondsInADay = 24 * 60 * 60;
+		Duration d = Duration.ofSeconds(seconds);
+		
+		return d.toDaysPart()+" days, "+d.toHoursPart()+" hours, "+d.toMinutesPart()+" minutes, "+d.toSecondsPart()+" seconds.";
+		
+		/*long secondsInADay = 24 * 60 * 60;
 		long secondsInAnHour = 60 * 60;
 
 		long totalMinutes = seconds / 60;
@@ -19,22 +25,14 @@ public class Utils {
 		long finalSeconds = remainingSecondsAfterHours - (60 * finalMinutes);
 
 		return finalDays + " days, " + finalHours + " hours, " + finalMinutes + " minutes, " + finalSeconds
-				+ " seconds.";
+				+ " seconds.";*/
 	}
 	
 	public static String secondsToStringHours(long seconds) {
-		long secondsInAnHour = 60 * 60;
 
-		long totalMinutes = seconds / 60;
-		long finalHours = totalMinutes / 60;
-
-		long remainingSecondsAfterHours = seconds - (secondsInAnHour * finalHours);
-		long finalMinutes = remainingSecondsAfterHours / 60;
-
-		long finalSeconds = remainingSecondsAfterHours - (60 * finalMinutes);
-
-		return finalHours + " hours, " + finalMinutes + " minutes, " + finalSeconds
-				+ " seconds.";
+		Duration d = Duration.ofSeconds(seconds);
+		
+		return d.toHoursPart()+" hours, "+d.toMinutesPart()+" minutes, "+d.toSecondsPart()+" seconds.";
 	}
 
 }

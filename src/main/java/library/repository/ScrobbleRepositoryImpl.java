@@ -17,15 +17,23 @@ public class ScrobbleRepositoryImpl{
 		this.template = template;
 
 	}
+
+    private static final String SONGS_LASTFM_BUT_NOT_ITUNES = """
+    		select sc.artist, sc.song, sc.album, count(*) count 
+			from scrobble sc left join song so 
+			on so.id = sc.song_id 
+			where so.artist is null 
+			group by sc.artist, sc.song, sc.album 
+			order by count desc, sc.artist asc, sc.album asc, sc.song asc
+			""";			           
 	
-	private static final String SONGS_LASTFM_BUT_NOT_ITUNES = "select sc.artist, sc.song, sc.album, count(*) count "
-			+ "			   from scrobble sc left join song so "
-			+ "            on so.id = sc.song_id "
-			+ "            where so.artist is null "
-			+ "            group by sc.artist, sc.song, sc.album "
-			+ "            order by count desc, sc.artist asc, sc.album asc, sc.song asc";
-	
-	private static final String UPDATE_SONG_IDS_QUERY = "update scrobble set song_id = ? where artist = ? and song = ? and album = ?";
+	private static final String UPDATE_SONG_IDS_QUERY = """
+			update scrobble 
+			set song_id = ? 
+			where artist = ? 
+			and song = ? 
+			and album = ?
+			""";
 	
 
 	
