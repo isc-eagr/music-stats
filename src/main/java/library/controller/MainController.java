@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -40,6 +41,7 @@ import library.dto.TopCountDTO;
 import library.dto.AllSongsExtendedDTO;
 import library.dto.Criterion;
 import library.dto.DataForGraphs;
+import library.dto.SaveAlbumDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopGroupDTO;
@@ -124,6 +126,11 @@ public class MainController {
             Element song = (Element)nodeList3.item(i);
             NodeList details = song.getChildNodes();
             Song songObject = new Song();
+            
+            LocalDateTime now = LocalDateTime.now();
+    		
+    		songObject.setCreated(java.sql.Timestamp.valueOf(now));
+    		songObject.setUpdated(java.sql.Timestamp.valueOf(now));
             
             boolean ignore=false;
             for (int j=0;j<details.getLength();j++){
@@ -523,11 +530,58 @@ public class MainController {
 		
 		songForm.setSource("Manual");
 		songForm.setCloudStatus("Deleted");
+		
+		String duration[] = songForm.getDurationString().split(":");
+		songForm.setDuration(Integer.parseInt(duration[0])*60+Integer.parseInt(duration[1]));
+		
+		LocalDateTime now = LocalDateTime.now();
+		
+		songForm.setCreated(java.sql.Timestamp.valueOf(now));
+		songForm.setUpdated(java.sql.Timestamp.valueOf(now));
+		
 		songRepository.save(songForm);
 		scrobbleRepositoryImpl.updateSongIds(songForm.getId(), songForm.getArtist(), songForm.getSong(), songForm.getAlbum());
 		songForm = new Song();
 		model.addAttribute("success",true);
 		return "insertsongform";
+	}
+	
+	@RequestMapping({"/insertAlbumForm/{artist}","/insertAlbumForm/{artist}/{album}"})
+	public String insertAlbumForm(Model model, 
+			@PathVariable(required=false) String artist,
+			@PathVariable(required=false) String album) {
+		
+		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album == null?"":album);
+		
+		SaveAlbumDTO form = new SaveAlbumDTO();
+		form.setSongs(songsList);
+
+		model.addAttribute("form",form);
+		
+		return "insertalbumform";
+	}
+	
+	@RequestMapping("/insertAlbum")
+	public String insertAlbum(@ModelAttribute(value="form") SaveAlbumDTO form, Model model) {
+		
+		for(Song s : form.getSongs()) {
+			s.setSource("Manual");
+			s.setCloudStatus("Deleted");
+			String duration[] = s.getDurationString().split(":");
+			s.setDuration(Integer.parseInt(duration[0])*60+Integer.parseInt(duration[1]));
+			
+			LocalDateTime now = LocalDateTime.now();
+			
+			s.setCreated(java.sql.Timestamp.valueOf(now));
+			s.setUpdated(java.sql.Timestamp.valueOf(now));
+			
+			songRepository.save(s);
+			scrobbleRepositoryImpl.updateSongIds(s.getId(), s.getArtist(), s.getSong(), s.getAlbum());
+		}
+		
+	
+		model.addAttribute("success",true);
+		return "insertalbumform";
 	}
 
 }

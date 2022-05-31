@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import library.dto.SongsInLastfmButNotItunesDTO;
+import library.entity.Song;
 
 @Repository
 public class ScrobbleRepositoryImpl{
@@ -35,6 +36,14 @@ public class ScrobbleRepositoryImpl{
 			and album = ?
 			""";
 	
+	private static final String SONGS_FROM_ALBUM = """
+			select distinct sc.artist, sc.album, sc.song 
+			from scrobble sc left outer join song so on sc.song_id=so.id
+			where sc.artist = '%s' 
+			and sc.album = '%s'
+            and so.id is null
+			""";
+	
 
 	
 	public List<SongsInLastfmButNotItunesDTO> songsInLastFmButNotItunes() {
@@ -44,5 +53,9 @@ public class ScrobbleRepositoryImpl{
 	public int updateSongIds(int songId, String artist, String song, String album) {
         return template.update(UPDATE_SONG_IDS_QUERY,songId,artist,song,album);
     }
+	
+	public List<Song> songsFromAlbum(String artist, String album) {
+		return template.query(SONGS_FROM_ALBUM.formatted(artist,album), new BeanPropertyRowMapper<>(Song.class));
+	}
 	
 }

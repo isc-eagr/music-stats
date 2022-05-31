@@ -1,0 +1,65 @@
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<title>Stats</title>
+		<style>
+		    .error {
+		        color: red;
+		    }
+		    .success {
+		        color: white;
+		        background-color: #006400; 
+		    }
+		</style>
+		<script type="text/javascript">
+		
+		function fill(id){
+			
+			var input = document.getElementById(id);
+			var value = input.value;
+			var searchParam = id.split('.')[1];
+			
+			var inputs = document.getElementsByTagName("input");
+			for ( var i = 0; i < inputs.length; i++) {
+				if(inputs[i].id.includes(searchParam)){
+					inputs[i].value=value;
+				}
+			}
+		}
+
+		</script>
+		
+	</head>
+	<body>
+	
+	
+	<form action="#" th:action="@{/insertAlbum}" th:object="${form}" method="post">
+		<table style='width: 100%;'>
+			<thead>
+				<tr><th>Number</th><th>Sex</th><th/><th>Genre</th><th/><th>Year</th><th/><th>Language</th><th/><th>Duration (mm:ss)</th><th>Artist</th><th>Song</th><th>Album</th></tr>
+			</thead>
+			<tbody>
+				<tr th:each="song, itemStat : *{songs}">
+						<td th:text="${itemStat.index+1}"></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].sex}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.sex'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].genre}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.genre'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].year}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.year'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].language}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.language'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].durationString}"/></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].artist}"/></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].song}"/></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].album}"/></td>
+					
+				</tr>
+			</tbody>
+		</table>
+	 
+	  <input type="submit" />
+	</form>
+	
+	<p th:if="${success != null}" class="success">Success! Records inserted!</p></br>
+	
+	<a href="/songsLastFmButNotItunes">Return to Songs on LastFM but not iTunes</a><br/>
+	
+	</body>
+
+</html>

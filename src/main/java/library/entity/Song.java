@@ -1,33 +1,36 @@
 package library.entity;
 
+import java.sql.Timestamp;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity
 @Table (name="song", schema="stats")
 public class Song {
     
-/*
- create table song (
-id integer auto_increment primary key,
-artist varchar(2000),
-song varchar(2000),
-album varchar(2000),
-year integer,
-language varchar(60),
-genre varchar(60),
-duration integer,
-sex varchar(30),
-cloud_status varchar(60),
-source varchar(30),
-created date,
-updated date
-); 
- */
+	/*
+	create table song (
+		id integer auto_increment primary key,
+		artist varchar(2000),
+		song varchar(2000),
+		album varchar(2000),
+		year integer,
+		language varchar(60),
+		genre varchar(60),
+		duration integer,
+		sex varchar(30),
+		cloud_status varchar(60),
+		source varchar(30),
+		created timestamp,
+		updated timestamp
+	 ); 
+	 */
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
@@ -65,10 +68,13 @@ updated date
     private String cloudStatus;
 	
 	@Column (name="created")
-    private String created;
+    private Timestamp created;
 	
 	@Column (name="updated")
-    private String updated;
+    private Timestamp updated;
+	
+	@Transient
+	private String durationString;
 
 	public String toString() {
     	return this.artist+" - "+this.song+" - "+this.album+" - "+this.genre+" - "+" - "+this.sex;
@@ -154,19 +160,19 @@ updated date
 		this.cloudStatus = cloudStatus;
 	}
 
-	public String getCreated() {
+	public Timestamp getCreated() {
 		return created;
 	}
 
-	public void setCreated(String created) {
+	public void setCreated(Timestamp created) {
 		this.created = created;
 	}
 
-	public String getUpdated() {
+	public Timestamp getUpdated() {
 		return updated;
 	}
 
-	public void setUpdated(String updated) {
+	public void setUpdated(Timestamp updated) {
 		this.updated = updated;
 	}
 
@@ -176,6 +182,14 @@ updated date
 
 	public void setSource(String source) {
 		this.source = source;
+	}
+
+	public String getDurationString() {
+		return durationString;
+	}
+
+	public void setDurationString(String durationString) {
+		this.durationString = durationString;
 	}
 	
 }

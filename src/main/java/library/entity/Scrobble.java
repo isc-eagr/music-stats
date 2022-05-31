@@ -1,5 +1,9 @@
 package library.entity;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -66,13 +70,10 @@ public class Scrobble {
 	}
 
 	public void setScrobbleDate(String scrobbleDate) {
-		String [] csvFields = scrobbleDate.split(" ");
-		String year =  csvFields[2].substring(0,4);
+		ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(scrobbleDate+" UTC",DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm VV"));
+		ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
 		
-		this.scrobbleDate = (year.equals("1970")?"2010":year)+"-"
-		+convertMonthStringToNumber(csvFields[1])+"-"
-		+csvFields[0]+" "
-		+csvFields[3];
+		this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 	}
 
 	public String getArtist() {
@@ -115,26 +116,6 @@ public class Scrobble {
 		this.songId = songId;
 	}
 
-	public String convertMonthStringToNumber(String monthString) {
-		String numberMonth = "00";
-		switch(monthString) {
-		case "Jan": numberMonth = "01"; break;
-		case "Feb": numberMonth = "02"; break;
-		case "Mar": numberMonth = "03"; break;
-		case "Apr": numberMonth = "04"; break;
-		case "May": numberMonth = "05"; break;
-		case "Jun": numberMonth = "06"; break;
-		case "Jul": numberMonth = "07"; break;
-		case "Aug": numberMonth = "08"; break;
-		case "Sep": numberMonth = "09"; break;
-		case "Oct": numberMonth = "10"; break;
-		case "Nov": numberMonth = "11"; break;
-		case "Dec": numberMonth = "12"; break;
-		
-		}
-		return numberMonth;
-	}
-	
 	public String toString() {
 		return this.getArtist()+" - "+this.getSong()+" - "+this.getAlbum()+" - "
 				+this.getScrobbleDate()+" - " + this.getId();

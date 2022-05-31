@@ -10,7 +10,7 @@
 	Songs in lastfm but not in itunes: <span th:text="${listSongs.size}">.</span> <br/>
 	<table class="sortable-theme-finder" data-sortable>
 	<thead>
-		<tr><th>Artist</th><th>Song</th><th>Album</th><th>Plays</th><th data-sortable="false">Insert</th></tr>
+		<tr><th>Artist</th><th>Song</th><th>Album</th><th>Plays</th><th data-sortable="false">Insert Song</th><th data-sortable="false">Insert Album</th></tr>
 	</thead>
 	<tbody>
 		<tr th:each="song : ${listSongs}">
@@ -20,7 +20,10 @@
 				<td th:text="${song.album}"/>
 				<td th:text="${song.count}"/>
 				<td>
-					<a th:href="@{'/insertSongForm/'+${song.artist}+'/'+${song.song}+'/'+${song.album}}">Insert</a>
+					<a th:href="@{'/insertSongForm/'+${song.artist}+'/'+${song.song}+'/'+${song.album}}">Insert Song</a>
+				</td>
+				<td>
+					<a th:href="@{'/insertAlbumForm/'+${song.artist}+'/'+${song.album}}">Insert Album</a>
 				</td>
 			
 		</tr>

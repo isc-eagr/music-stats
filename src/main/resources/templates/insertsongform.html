@@ -23,7 +23,7 @@
   Genre: <input type="text" th:field="*{genre}" /><p th:if="${#fields.hasErrors('genre')}" th:errorclass="error" th:errors="*{genre}" /><br/>
   Year: <input type="text" th:field="*{year}" /><p th:if="${#fields.hasErrors('year')}" th:errorclass="error" th:errors="*{year}" /><br/>
   Language: <input type="text" th:field="*{language}" /><p th:if="${#fields.hasErrors('language')}" th:errorclass="error" th:errors="*{language}" /><br/>
-  Duration in seconds: <input type="text" th:field="*{duration}" /><p th:if="${#fields.hasErrors('duration')}" th:errorclass="error" th:errors="*{duration}" /><br/>
+  Duration (mm:ss): <input type="text" th:field="*{durationString}" /><p th:if="${#fields.hasErrors('durationString')}" th:errorclass="error" th:errors="*{durationString}" /><br/>
   
   <input type="submit" />
 </form>
