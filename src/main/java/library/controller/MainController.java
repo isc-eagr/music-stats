@@ -87,16 +87,13 @@ public class MainController {
         List<Song> everySong = songRepository.findAll();
         
         Song emptySong = new Song();
-        List<Scrobble> scrobblesWithSongId = scrobbles.stream().map(scrobble -> {
-        	scrobble.setSongId(everySong.stream().filter(song -> 
-        				song.getArtist().equalsIgnoreCase(scrobble.getArtist()) &&
-        				song.getSong().equalsIgnoreCase(scrobble.getSong()) &&
-        				String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(scrobble.getAlbum()))
-        			).findFirst().orElse(emptySong).getId());
-        	return scrobble;
-        	}).collect(Collectors.toList());
+        scrobbles.stream().parallel().forEach(sc -> sc.setSongId(everySong.stream().parallel().filter(song -> 
+						song.getArtist().equalsIgnoreCase(sc.getArtist()) &&
+						song.getSong().equalsIgnoreCase(sc.getSong()) &&
+						String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum()))
+        		).findFirst().orElse(emptySong).getId()));
         
-        scrobbleRepository.saveAll(scrobblesWithSongId);
+        scrobbleRepository.saveAll(scrobbles);
         
         file.close();
 
@@ -235,12 +232,12 @@ public class MainController {
 		List<AllSongsExtendedDTO> allSongsExtended = songRepositoryImpl.getAllSongsExtended(start, end);
 		
 		model.addAttribute("totalSongs", allSongsExtended.size());
-		model.addAttribute("totalPlays", allSongsExtended.stream()
+		model.addAttribute("totalPlays", allSongsExtended.stream().parallel()
 				.mapToInt(allSongsExtendedDto -> allSongsExtendedDto.getPlays())
 				.sum()
 				);
 		model.addAttribute("totalPlayTimeGlobalString", 
-				Utils.secondsToString(allSongsExtended.stream()
+				Utils.secondsToString(allSongsExtended.stream().parallel()
 				.mapToInt(allSongsExtendedDto -> allSongsExtendedDto.getPlaytime())
 				.sum())
 				);
@@ -261,7 +258,7 @@ public class MainController {
 			//Number of songs, number of plays, playtime, and playtime difference
 			List<DataForGraphs> data = new ArrayList<>();
 	
-			Map<String,List<AllSongsExtendedDTO>> classifiedMap= allSongsExtended.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+			Map<String,List<AllSongsExtendedDTO>> classifiedMap= allSongsExtended.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
 			
 			if(classifiedMap == null || classifiedMap.keySet() == null || classifiedMap.keySet().size()==0) {
 				break;
@@ -339,7 +336,7 @@ public class MainController {
 		List<TopGroupDTO> topSongsGroupList = new ArrayList<>(); 
 		
 		for (Criterion<TopSongsDTO> criterion : criteria) {
-			Map<String,List<TopSongsDTO>> classifiedMap= topSongs.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+			Map<String,List<TopSongsDTO>> classifiedMap= topSongs.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
 			
 			List<TopCountDTO> counts = new ArrayList<>();
 			
