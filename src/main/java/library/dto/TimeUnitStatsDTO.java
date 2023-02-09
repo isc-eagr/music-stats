@@ -2,7 +2,7 @@ package library.dto;
 
 import library.util.Utils;
 
-public class WhatWonDTO {
+public class TimeUnitStatsDTO {
 	
 	private String genre;
 	private String dateGenre;
@@ -12,13 +12,19 @@ public class WhatWonDTO {
 	private String dateSex;
 	private int durationSex;
 	private int countSex;
+	private int totalDuration;
+	private int totalCount;
+	
+	public String getTotalDurationText() {
+		return Utils.secondsToString(this.totalDuration);
+	}
 	
 	public String getDurationGenreText() {
-		return Utils.secondsToStringHours(this.durationGenre);
+		return Utils.secondsToString(this.durationGenre);
 	}
 
 	public String getDurationSexText() {
-		return Utils.secondsToStringHours(this.durationSex);
+		return Utils.secondsToString(this.durationSex);
 	}
 
 	public String getGenre() {
@@ -84,7 +90,21 @@ public class WhatWonDTO {
 	public void setCountSex(int countSex) {
 		this.countSex = countSex;
 	}
-	
-	
-	
+
+	public int getTotalDuration() {
+		return totalDuration;
+	}
+
+	public void setTotalDuration(int totalDuration) {
+		this.totalDuration = totalDuration;
+	}
+
+	public int getTotalCount() {
+		return totalCount;
+	}
+
+	public void setTotalCount(int totalCount) {
+		this.totalCount = totalCount;
+	}
+
 }

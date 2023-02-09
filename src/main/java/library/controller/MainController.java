@@ -46,7 +46,7 @@ import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopGroupDTO;
 import library.dto.TopSongsDTO;
-import library.dto.WhatWonDTO;
+import library.dto.TimeUnitStatsDTO;
 import library.entity.Scrobble;
 import library.entity.Song;
 import library.repository.ScrobbleRepository;
@@ -456,48 +456,49 @@ public class MainController {
 		
 	}
 	
-	@RequestMapping("/whatWonEachDay")
-	public String whatWonEachDay(Model model, @RequestParam(defaultValue="1970-01-01") String start, @RequestParam(defaultValue="2400-12-31") String end) {
-		List<WhatWonDTO> whatWon = songRepositoryImpl.whatWonEachDay(start, end);
-		model.addAttribute("whatWon", whatWon);
+	@RequestMapping("/timeUnit")
+	public String timeUnit(Model model, 
+			@RequestParam(defaultValue="1970-01-01") String start, 
+			@RequestParam(defaultValue="2400-12-31") String end,
+			@RequestParam String unit) {
+		List<TimeUnitStatsDTO> timeUnits = songRepositoryImpl.timeUnitStats(start, end, unit);
 		
-		List<TopGroupDTO> whatWonGroupList = new ArrayList<>();
+		/*for(TimeUnitStatsDTO timeUnit : timeUnits) {
+			timeUnit.setPercentCountGenre(timeUnit.getCountGenre()/timeUnit.getTotalCount());
+			timeUnit.setPercentDurationGenre(timeUnit.getDurationGenre()/timeUnit.getTotalDuration());
+			timeUnit.setPercentCountSex(timeUnit.getCountSex()/timeUnit.getTotalCount());
+			timeUnit.setPercentDurationSex(timeUnit.getDurationSex()/timeUnit.getTotalDuration());
+		}*/
+		
+		model.addAttribute("timeUnits", timeUnits);
+		
+		List<TopGroupDTO> timeUnitGroupList = new ArrayList<>();
 		List<TopCountDTO> counts = new ArrayList<>();
 		
-		Map<String,List<WhatWonDTO>> mapGenre = whatWon.stream().collect(Collectors.groupingBy(ww -> ww.getGenre()));
+		Map<String,List<TimeUnitStatsDTO>> mapGenre = timeUnits.stream().collect(Collectors.groupingBy(ww -> ww.getGenre()));
 		
-		List<Entry<String, List<WhatWonDTO>>> sortedGenreList = new ArrayList<>(mapGenre.entrySet());
-		Collections.sort(sortedGenreList, new Comparator<Map.Entry<String, List<WhatWonDTO>>>() {
-            public int compare(Map.Entry<String, List<WhatWonDTO>> o1,
-                               Map.Entry<String, List<WhatWonDTO>> o2) {
-                return (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1);
-            }
-        });
+		List<Entry<String, List<TimeUnitStatsDTO>>> sortedGenreList = new ArrayList<>(mapGenre.entrySet());
+		Collections.sort(sortedGenreList, (o1,o2)-> ((o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)));
 		
-		for(Entry<String, List<WhatWonDTO>> e : sortedGenreList) {
-			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)whatWon.size()*100,0));
+		for(Entry<String, List<TimeUnitStatsDTO>> e : sortedGenreList) {
+			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0));
 		}
-		whatWonGroupList.add(new TopGroupDTO("Genre",counts));
+		timeUnitGroupList.add(new TopGroupDTO("Genre",counts));
 		
 		counts = new ArrayList<>();
-		Map<String,List<WhatWonDTO>> mapSex = whatWon.stream().collect(Collectors.groupingBy(ww -> ww.getSex()));
+		Map<String,List<TimeUnitStatsDTO>> mapSex = timeUnits.stream().collect(Collectors.groupingBy(ww -> ww.getSex()));
 		
-		List<Entry<String, List<WhatWonDTO>>> sortedSexList = new ArrayList<>(mapSex.entrySet());
-		Collections.sort(sortedSexList, new Comparator<Map.Entry<String, List<WhatWonDTO>>>() {
-            public int compare(Map.Entry<String, List<WhatWonDTO>> o1,
-                               Map.Entry<String, List<WhatWonDTO>> o2) {
-                return (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1);
-            }
-        });
+		List<Entry<String, List<TimeUnitStatsDTO>>> sortedSexList = new ArrayList<>(mapSex.entrySet());
+		Collections.sort(sortedSexList, (o1,o2)->(o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		
-		for(Entry<String, List<WhatWonDTO>> e : sortedSexList) {
-			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)whatWon.size()*100,0));
+		for(Entry<String, List<TimeUnitStatsDTO>> e : sortedSexList) {
+			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0));
 		}
 		
-		whatWonGroupList.add(new TopGroupDTO("Sex",counts));
+		timeUnitGroupList.add(new TopGroupDTO("Sex",counts));
 		
-		model.addAttribute("whatWonGroupList", whatWonGroupList);
-		return "whatwon";
+		model.addAttribute("timeUnitGroupList", timeUnitGroupList);
+		return "timeunit";
 		
 	}
 	

@@ -1,0 +1,61 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<title>What Won Each Day</title>
+	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src='js/utils.js'></script>
+	<script src="js/sortable.min.js"></script>
+	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			flatpickr("#dateStart", dateConfig);
+			flatpickr("#dateEnd", dateConfig);
+			Sortable.init();
+		}
+	</script>
+</head>
+  <body>
+  
+  <form th:action="@{/timeUnit}">
+		Start date <input type="text" th:name="start" id="dateStart"/>
+		End date <input type="text" th:name="end" id="dateEnd"/>
+		<input type="hidden" th:name="unit" id="unit"/> 
+		<input type="submit"/> 
+	</form>
+
+<table th:each="timeUnitGroup : ${timeUnitGroupList}">
+	<tr><th th:text="${timeUnitGroup.criteria}"/><th>Number</th><th>Percentage</th></tr>
+	<tr th:each="listCount : ${timeUnitGroup.listCounts}">
+		<td th:text="${listCount.element}"/>
+		<td th:text="${listCount.count}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		
+	</tr>
+</table>
+
+<table id="timeUnitTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr><th>Date</th><th>Total playtime</th><th>Total plays</th><th>Most played Genre</th><th>Playtime of most played genre</th><th>% Playtime Genre</th><th>Plays of most played genre</th><th>% Plays Genre</th><th>Most played sex</th><th>Playtime of most played sex</th><th>% Playtime Sex</th><th>Plays of most played sex</th><th>% Plays Sex</th></tr>
+	</thead>
+	<tbody>
+		<tr th:each="timeUnit : ${timeUnits}">
+			<td th:text="${timeUnit.dateGenre}"/>
+			<td th:text="${timeUnit.totalDurationText}" th:data-value="${timeUnit.totalDuration}"/>
+			<td th:text="${timeUnit.totalCount}"/>
+			<td th:text="${timeUnit.genre}"/>
+			<td th:text="${timeUnit.durationGenreText}" th:data-value="${timeUnit.durationGenre}"/>
+			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.durationGenre)/(0.0+timeUnit.totalDuration), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+			<td th:text="${timeUnit.countGenre}"/>
+			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.countGenre)/(0.0+timeUnit.totalCount), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+			<td th:text="${timeUnit.sex}"/>
+			<td th:text="${timeUnit.durationSexText}" th:data-value="${timeUnit.durationSex}"/>
+			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.durationSex)/(0.0+timeUnit.totalDuration), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+			<td th:text="${timeUnit.countSex}"/>
+			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.countSex)/(0.0+timeUnit.totalCount), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		</tr>
+	</tbody>
+</table>
+
+</body>
+
+</html>

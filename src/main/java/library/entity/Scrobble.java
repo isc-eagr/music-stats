@@ -73,6 +73,10 @@ public class Scrobble {
 		ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(scrobbleDate+" UTC",DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm VV"));
 		ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
 		
+		if(utcScrobbleDate.getYear()==1970)
+			mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
+		
+		
 		this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 	}
 
