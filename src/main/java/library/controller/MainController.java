@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +39,8 @@ import org.xml.sax.SAXException;
 import com.opencsv.bean.CsvToBeanBuilder;
 
 import library.dto.TopCountDTO;
+import library.dto.AlbumDTO;
+import library.dto.AlbumSongsQueryDTO;
 import library.dto.AllSongsExtendedDTO;
 import library.dto.ArtistAlbumsQueryDTO;
 import library.dto.ArtistDTO;
@@ -52,6 +55,7 @@ import library.dto.TopSongsDTO;
 import library.dto.TimeUnitStatsDTO;
 import library.entity.Scrobble;
 import library.entity.Song;
+import library.repository.AlbumRepository;
 import library.repository.ArtistRepository;
 import library.repository.ScrobbleRepository;
 import library.repository.ScrobbleRepositoryImpl;
@@ -77,6 +81,9 @@ public class MainController {
 	@Autowired
 	private ArtistRepository artistRepository;
 	
+	@Autowired
+	private AlbumRepository albumRepository;
+	
 	@RequestMapping("/insertScrobbles")
 	@ResponseBody
 	public String insertScrobbles(Model model) throws FileNotFoundException, IOException{
@@ -96,7 +103,7 @@ public class MainController {
         Song emptySong = new Song();
         scrobbles.stream().parallel().forEach(sc -> sc.setSongId(everySong.stream().parallel().filter(song -> 
 						song.getArtist().equalsIgnoreCase(sc.getArtist()) &&
-						song.getSong().equalsIgnoreCase(sc.getSong()) &&
+						song.getSong().replace("????","").equalsIgnoreCase(sc.getSong().replace("????", "")) &&
 						String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum()))
         		).findFirst().orElse(emptySong).getId()));
         
@@ -590,7 +597,7 @@ public class MainController {
 	}
 	
 	@RequestMapping("/artist/{artist}")
-	public String insertAlbumForm(Model model, @PathVariable(required=true) String artist) {
+	public String artist(Model model, @PathVariable(required=true) String artist) {
 		
 		List<ArtistSongsQueryDTO> artistSongsList = artistRepository.songsByArtist(artist);
 		List<ArtistAlbumsQueryDTO> artistAlbumsList = artistRepository.albumsByArtist(artist);
@@ -615,6 +622,35 @@ public class MainController {
 		model.addAttribute("artistInfo",artistInfo);
 		
 		return "artist";
+	}
+	
+	@GetMapping("/album/{artist}/{album}")
+	public String song(Model model, @PathVariable(required=true) String artist,
+									@PathVariable(required=true) String album) {
+		
+		List<AlbumSongsQueryDTO> albumSongsList = albumRepository.albumSongs(artist, album);
+		
+		int numberOfSongs = albumSongsList.size();
+		int totalPlays = albumSongsList.stream().mapToInt(s -> s.getTotalPlays()).sum();
+		int sumOfTrackLengths = albumSongsList.stream().mapToInt(s -> s.getTrackLength()).sum();
+		int averagePlaysPerSong = totalPlays/numberOfSongs;
+		String totalPlaytime = Utils.secondsToString(albumSongsList.stream().mapToInt(s ->s.getTotalPlays()*s.getTrackLength()).sum());
+		String averageSongLength = Utils.secondsToStringColon(sumOfTrackLengths/numberOfSongs);
+		
+		AlbumSongsQueryDTO firstSong = albumSongsList.stream().min((s1, s2) -> s1.getFirstPlay().compareTo(s2.getFirstPlay())).orElse(new AlbumSongsQueryDTO());
+		AlbumSongsQueryDTO lastSong = albumSongsList.stream().max((s1, s2) -> s1.getLastPlay().compareTo(s2.getLastPlay())).orElse(new AlbumSongsQueryDTO());
+		
+		String firstSongPlayed = firstSong.getSong() + " - " +firstSong.getFirstPlay();
+		String lastSongPlayed = lastSong.getSong() + " - " +lastSong.getLastPlay();;
+		
+		AlbumDTO albumInfo = new AlbumDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
+											averageSongLength,averagePlaysPerSong, numberOfSongs, Utils.secondsToStringColon(sumOfTrackLengths));
+
+		model.addAttribute("artist",artist);
+		model.addAttribute("album",album);
+		model.addAttribute("albumInfo",albumInfo);
+		
+		return "album";
 	}
 	
 	

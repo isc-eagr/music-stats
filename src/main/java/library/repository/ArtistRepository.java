@@ -20,7 +20,7 @@ public class ArtistRepository{
 	}
 
     private static final String ARTIST_SONGS_QUERY = """
-    		select so.artist, so.song, so.album, so.duration track_length, count(*) total_plays, min(sc.scrobble_date) first_play,max(sc.scrobble_date) last_play
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, count(*) total_plays, min(sc.scrobble_date) first_play,max(sc.scrobble_date) last_play
     		from song so inner join scrobble sc on so.id=sc.song_id
     		where LOWER(sc.artist)=LOWER(?)
     		group by so.artist, so.song, so.album
@@ -29,10 +29,10 @@ public class ArtistRepository{
     
     private static final String ARTIST_ALBUMS_QUERY = """
     		select interna.*, 
-    		 		(select count(duration) from song where artist = interna.artist and IFNULL(album,'')=interna.album) number_of_tracks,
-    		 		(select sum(duration) from song where artist = interna.artist and IFNULL(album,'')=interna.album) album_length,
-                (select sum(duration) from song inner join scrobble on song.id = scrobble.song_id where song.artist = interna.artist AND IFNULL(song.album,'') = interna.album) total_playtime
-                from (select so.artist artist, IFNULL(so.album,'') album, count(*) total_plays, min(sc.scrobble_date) first_play,max(sc.scrobble_date) last_play
+    		 		(select count(duration) from song where artist = interna.artist and IFNULL(album,'(single)')=interna.album) number_of_tracks,
+    		 		(select sum(duration) from song where artist = interna.artist and IFNULL(album,'(single)')=interna.album) album_length,
+                (select sum(duration) from song inner join scrobble on song.id = scrobble.song_id where song.artist = interna.artist AND IFNULL(song.album,'(single)') = interna.album) total_playtime
+                from (select so.artist artist, IFNULL(so.album,'(single)') album, count(*) total_plays, min(sc.scrobble_date) first_play,max(sc.scrobble_date) last_play
     		from song so inner join scrobble sc on so.id=sc.song_id
     		where LOWER(sc.artist)=LOWER(?)
     		group by so.artist, so.album

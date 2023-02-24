@@ -24,14 +24,14 @@ public class SongRepositoryImpl{
 	}
 	
 	private static final String ALL_SONGS_EXTENDED_QUERY = """
-			select so.artist, so.song, so.album, so.genre, so.sex, so.language, count(*)  plays, duration, sum(duration) playtime 
+			select so.artist, so.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, count(*)  plays, duration, sum(duration) playtime 
 			from song so inner join scrobble sc on so.id=sc.song_id 
 			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			group by so.artist,so.song,so.album
 			""";
 	
 	private static final String TOP_ALBUMS_QUERY = """
-			select sc.artist, sc.album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+			select sc.artist, IFNULL(sc.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
 			from scrobble sc inner join song so on so.id=sc.song_id 
 			where sc.album is not null and sc.album <> '' 
 			group by sc.artist, sc.album 
@@ -40,7 +40,7 @@ public class SongRepositoryImpl{
 			""";
 	
 	private static final String TOP_SONGS_QUERY = """
-				select sc.artist, sc.song, sc.album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+				select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
 				from scrobble sc inner join song so on so.id=sc.song_id 
 				group by sc.artist, sc.song 
 				order by count desc 

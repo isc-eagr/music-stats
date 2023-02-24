@@ -97,7 +97,7 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/artist/{artist}(artist=${topSong.artist})}" th:text="${topSong.artist}"></td>
 			<td th:text="${topSong.song}"/>
-			<td th:text="${topSong.album}"/>
+			<td><a th:href="@{/album/{artist}/{album}(artist=${topSong.artist},album=${topSong.album})}" th:text="${topSong.album}"></td>
 			<td th:text="${topSong.count}"/>
 			<td th:text="${topSong.genre}"/>
 			<td th:text="${topSong.sex}"/>
