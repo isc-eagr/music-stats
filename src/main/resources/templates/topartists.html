@@ -1,7 +1,6 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 	<title>Top Artists</title>
-	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
 	<script src='js/utils.js'></script>
 	<script src="js/sortable.min.js"></script>
 	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
@@ -89,12 +88,14 @@ Number of records: <span id="numRecords"></span>
 		<tr th:each="topArtist, stat : ${topArtists}">
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${stat.index+1}"/>
-			<td th:text="${topArtist.artist}"/>
+			<td><a th:href="@{/artist/{artist}(artist=${topArtist.artist})}" th:text="${topArtist.artist}"></td>
 			<td th:text="${topArtist.count}"/>
 			<td th:text="${topArtist.genre}"/>
 			<td th:text="${topArtist.sex}"/>
 			<td th:text="${topArtist.language}"/>
 			<td th:text="${topArtist.playtimeString}" th:data-value="${topArtist.playtime}"/>
+			<!--<td th:text="${topArtist.averageSongLengthString}" th:data-value="${topArtist.averageSongLength}"/>
+			<td th:text="${topArtist.averagePlaysPerSong}"/>-->
 		</tr>
 	</tbody>
 </table>

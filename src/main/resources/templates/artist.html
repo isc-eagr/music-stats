@@ -1,0 +1,64 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<title th:text="${artist}"/>
+	<script src='../js/utils.js'></script>
+	<script src="../js/sortable.min.js"></script>
+	<link rel="stylesheet" href="../css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			Sortable.init();
+		}
+	</script>
+</head>
+<body>
+
+Number Of Songs: <span th:text="${artistInfo.numberOfSongs}"/> <br/>
+Total Plays: <span th:text="${artistInfo.totalPlays}"/><br/>
+Total Playtime: <span th:text="${artistInfo.totalPlaytime}"/><br/>
+First Song Played: <span th:text="${artistInfo.firstSongPlayed}"/><br/>
+Last Song Played: <span th:text="${artistInfo.lastSongPlayed}"/><br/>
+Average Song Length: <span th:text="${artistInfo.averageSongLength}"/><br/>
+Average Plays Per Song: <span th:text="${artistInfo.averagePlaysPerSong}"/><br/>
+
+<table id="artistTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr><th>Position</th><th>Album</th><th>Number of Tracks in Library</th><th>Total Plays</th><th>Album Length</th><th>Total Playtime</th><th>First Play</th><th>Last Play</th></tr>
+	</thead>
+	<tbody>
+		<tr th:each="album, stat : ${artistInfo.albums}">
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${album.album}"/>
+			<td th:text="${album.numberOfTracks}"/>
+			<td th:text="${album.totalPlays}"/>
+			<td th:text="${album.albumLengthString}" th:data-value="${album.albumLength}"/>
+			<td th:text="${album.totalPlaytimeString}" th:data-value="${album.totalPlaytime}"/>
+			<td th:text="${album.firstPlay}"/>
+			<td th:text="${album.lastPlay}"/>
+		</tr>
+	</tbody>
+</table>
+
+<br/>
+<br/>
+<table id="artistTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr><th>Position</th><th>Song</th><th>Album</th><th>Total Plays</th><th>Track Length</th><th>Total Playtime</th><th>First Play</th><th>Last Play</th></tr>
+	</thead>
+	<tbody>
+		<tr th:each="song, stat : ${artistInfo.songs}">
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${song.song}"/>
+			<td th:text="${song.album}"/>
+			<td th:text="${song.totalPlays}"/>
+			<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}"/>
+			<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}"/>
+			<td th:text="${song.firstPlay}"/>
+			<td th:text="${song.lastPlay}"/>
+		</tr>
+	</tbody>
+</table>
+
+
+</body>
+
+</html>

@@ -39,8 +39,8 @@ public class ScrobbleRepositoryImpl{
 	private static final String SONGS_FROM_ALBUM = """
 			select distinct sc.artist, sc.album, sc.song 
 			from scrobble sc left outer join song so on sc.song_id=so.id
-			where sc.artist = '%s' 
-			and sc.album = '%s'
+			where sc.artist = ?
+			and sc.album = ?
             and so.id is null
 			""";
 	
@@ -55,7 +55,7 @@ public class ScrobbleRepositoryImpl{
     }
 	
 	public List<Song> songsFromAlbum(String artist, String album) {
-		return template.query(SONGS_FROM_ALBUM.formatted(artist,album), new BeanPropertyRowMapper<>(Song.class));
+		return template.query(SONGS_FROM_ALBUM, new BeanPropertyRowMapper<>(Song.class), artist, album);
 	}
 	
 }

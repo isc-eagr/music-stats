@@ -112,7 +112,7 @@ Number of records: <span id="numRecords"></span>
 		<tr th:each="topAlbum, stat : ${topAlbums}">
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${stat.index+1}"/>
-			<td th:text="${topAlbum.artist}"/>
+			<td><a th:href="@{/artist/{artist}(artist=${topAlbum.artist})}" th:text="${topAlbum.artist}"></td>
 			<td th:text="${topAlbum.album}"/>
 			<td th:text="${topAlbum.count}"/>
 			<td th:text="${topAlbum.genre}"/>

@@ -19,15 +19,25 @@ public class Utils {
 		
 		String fullText = daysString + hoursString + minutesString + secondsString; 
 		
-		return fullText.substring(0,fullText.length()-2);
+		return fullText.isBlank()?"":fullText.substring(0,fullText.length()-2);
 		
-}
+	}
 	
-	public static String secondsToStringHours(long seconds) {
-
+	public static String secondsToStringColon(long seconds) {
 		Duration d = Duration.ofSeconds(seconds);
 		
-		return d.toHoursPart()+" hours, "+d.toMinutesPart()+" minutes, "+d.toSecondsPart()+" seconds.";
+		long hoursPart = d.toHoursPart();
+		long minutesPart = d.toMinutesPart();
+		long secondsPart = d.toSecondsPart();
+		
+		String hoursString = hoursPart == 0 ? "" : hoursPart+":";
+		String minutesString = minutesPart+":";
+		String secondsString = ""+secondsPart;
+		secondsString = secondsString.length()==1 ? "0"+secondsString : secondsString;
+		
+		String fullText = hoursString + minutesString + secondsString; 
+		
+		return fullText;
+		
 	}
-
 }

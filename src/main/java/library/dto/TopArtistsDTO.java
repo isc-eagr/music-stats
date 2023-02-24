@@ -16,6 +16,10 @@ public class TopArtistsDTO {
 	
 	private long playtime;
 	
+	private int averageSongLength;
+	
+	private int averagePlaysPerSong;
+	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
 	}
@@ -67,7 +71,25 @@ public class TopArtistsDTO {
 	public void setPlaytime(long playtime) {
 		this.playtime = playtime;
 	}
+
+	public int getAverageSongLength() {
+		return averageSongLength;
+	}
+
+	public void setAverageSongLength(int averageSongLength) {
+		this.averageSongLength = averageSongLength;
+	}
+
+	public int getAveragePlaysPerSong() {
+		return averagePlaysPerSong;
+	}
+
+	public void setAveragePlaysPerSong(int averagePlaysPerSong) {
+		this.averagePlaysPerSong = averagePlaysPerSong;
+	}
 	
-	
+	public String getAverageSongLengthString() {
+		return Utils.secondsToStringColon(averageSongLength);
+	}
 	
 }

@@ -26,7 +26,7 @@ public class SongRepositoryImpl{
 	private static final String ALL_SONGS_EXTENDED_QUERY = """
 			select so.artist, so.song, so.album, so.genre, so.sex, so.language, count(*)  plays, duration, sum(duration) playtime 
 			from song so inner join scrobble sc on so.id=sc.song_id 
-			where date(sc.scrobble_date) >= '%s' and date(sc.scrobble_date) <= '%s' 
+			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			group by so.artist,so.song,so.album
 			""";
 	
@@ -36,15 +36,15 @@ public class SongRepositoryImpl{
 			where sc.album is not null and sc.album <> '' 
 			group by sc.artist, sc.album 
 			order by count desc 
-			limit %s
+			limit ?
 			""";
 	
 	private static final String TOP_SONGS_QUERY = """
-			select sc.artist, sc.song, sc.album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+				select sc.artist, sc.song, sc.album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
 				from scrobble sc inner join song so on so.id=sc.song_id 
 				group by sc.artist, sc.song 
 				order by count desc 
-				limit %s
+				limit ?
 				""";
 	
 	private static final String TOP_ARTISTS_QUERY = """
@@ -52,7 +52,7 @@ public class SongRepositoryImpl{
 				from scrobble sc inner join song so on so.id=sc.song_id 
 				group by sc.artist 
 				order by count desc 
-				limit %s
+				limit ?
 				""";
 	
 	private static final String SONGS_ITUNES_BUT_NOT_LASTFM = """
@@ -78,19 +78,19 @@ public class SongRepositoryImpl{
 	private static final String TIME_UNIT_QUERY = """
 			select * from 
 				(select a.genre, a.date date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count
-					from (select so.genre, %s date, sum(duration) duration, count(*) count 
+					from (select so.genre, ? date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
-						where date(sc.scrobble_date) >= '%s' and date(sc.scrobble_date) <= '%s' 
-						group by so.genre, %s 
-						order by %s desc, sum(duration) desc) a 
+						where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
+						group by so.genre, ? 
+						order by ? desc, sum(duration) desc) a 
 					group by a.date) genre 
 				inner join 
 				(select a.sex,a.date date_sex, max(a.duration) duration_sex, a.count count_sex 
-		            from (select so.sex, %s date, sum(duration) duration, count(*) count 
+		            from (select so.sex, ? date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
-						where date(sc.scrobble_date) >= '%s' and date(sc.scrobble_date) <= '%s' 
-						group by so.sex, %s 
-						order by %s desc, sum(duration) desc) a 
+						where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
+						group by so.sex, ? 
+						order by ? desc, sum(duration) desc) a 
 					group by a.date) sex 
 			on genre.date_genre = sex.date_sex
 			""";
@@ -99,7 +99,7 @@ public class SongRepositoryImpl{
 			select * from (select a.genre, MIN(minDate) date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count 
 			from (select so.genre, YEARWEEK(sc.scrobble_date,1) date, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			where date(sc.scrobble_date) >= '%s' and date(sc.scrobble_date) <= '%s' 
+			where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
 			group by so.genre, YEARWEEK(sc.scrobble_date,1) 
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
 			group by a.date) genre 
@@ -107,28 +107,32 @@ public class SongRepositoryImpl{
 			(select a.sex, MIN(minDate) date_sex, max(a.duration) duration_sex, a.count count_sex 
             from (select so.sex, YEARWEEK(sc.scrobble_date,1) date, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			where date(sc.scrobble_date) >= '%s' and date(sc.scrobble_date) <= '%s' 
+			where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
 			group by so.sex, YEARWEEK(sc.scrobble_date,1) 
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
 			group by a.date) sex 
 			on genre.date_genre = sex.date_sex 
 			""";
 	
+	private static final String AVG_SONG_DURATION_BY_ARTIST = """
+			select avg(duration) from song
+            where LOWER(artist)=LOWER(?)
+			""";
 		
 	public List<AllSongsExtendedDTO> getAllSongsExtended(String start, String end) {
-		return template.query(ALL_SONGS_EXTENDED_QUERY.formatted(start,end), new BeanPropertyRowMapper<>(AllSongsExtendedDTO.class));
+		return template.query(ALL_SONGS_EXTENDED_QUERY, new BeanPropertyRowMapper<>(AllSongsExtendedDTO.class), start, end);
 	}
 	
 	public List<TopAlbumsDTO> getTopAlbums(int limit) {
-		return template.query(TOP_ALBUMS_QUERY.formatted(limit), new BeanPropertyRowMapper<>(TopAlbumsDTO.class));
+		return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
 	}
 	
 	public List<TopSongsDTO> getTopSongs(int limit) {
-		return template.query(TOP_SONGS_QUERY.formatted(limit), new BeanPropertyRowMapper<>(TopSongsDTO.class));
+		return template.query(TOP_SONGS_QUERY, new BeanPropertyRowMapper<>(TopSongsDTO.class),limit);
 	}
 	
 	public List<TopArtistsDTO> getTopArtists(int limit) {
-		return template.query(TOP_ARTISTS_QUERY.formatted(limit), new BeanPropertyRowMapper<>(TopArtistsDTO.class));
+		return template.query(TOP_ARTISTS_QUERY, new BeanPropertyRowMapper<>(TopArtistsDTO.class),limit);
 	}
 	
 	public List<SongsInItunesButNotLastfmDTO> songsItunesButNotLastfm() {
@@ -138,7 +142,7 @@ public class SongRepositoryImpl{
 	public List<TimeUnitStatsDTO> timeUnitStats(String start, String end, String unit) {
 
 		if(unit.equals("week"))
-			return template.query(WEEK_QUERY.formatted(start, end, start, end), new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class));
+			return template.query(WEEK_QUERY, new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class), start, end, start, end);
 		else {
 			String unitForQuery;
 			String sortForQuery;
@@ -152,8 +156,12 @@ public class SongRepositoryImpl{
 			};
 			
 			
-			return template.query(TIME_UNIT_QUERY.formatted(unitForQuery, start, end, unitForQuery, sortForQuery, unitForQuery, start, end, unitForQuery, sortForQuery), new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class));
+			return template.query(TIME_UNIT_QUERY, new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class),unitForQuery, start, end, unitForQuery, sortForQuery, unitForQuery, start, end, unitForQuery, sortForQuery);
 		}
 
+	}
+	
+	public int averageSongDurationByArtist(String artist) {
+		return template.queryForObject(AVG_SONG_DURATION_BY_ARTIST, Integer.class,artist);
 	}
 }

@@ -34,9 +34,9 @@
 		<input type="submit"/> 
 	</form>
   
-	Total Songs: <span th:text="${totalSongs}">Total Songs</span> <br/>
-	Total Plays: <span th:text="${totalPlays}">Total Plays</span> <br/>
-	Total Playtime: <span th:text="${totalPlayTimeGlobalString}">Total Playtime</span> <br/>
+	Total Songs: <span th:text="${totalSongs}"/><br/>
+	Total Plays: <span th:text="${totalPlays}"/><br/>
+	Total Playtime: <span th:text="${totalPlayTimeGlobalString}"/><br/>
 	
 	
 	<div th:each="dataForGraphsList : ${dataMap}" style='white-space: nowrap;'> <!--Genre, Sex, Language etc.-->

@@ -39,6 +39,9 @@ import com.opencsv.bean.CsvToBeanBuilder;
 
 import library.dto.TopCountDTO;
 import library.dto.AllSongsExtendedDTO;
+import library.dto.ArtistAlbumsQueryDTO;
+import library.dto.ArtistDTO;
+import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
 import library.dto.DataForGraphs;
 import library.dto.SaveAlbumDTO;
@@ -49,6 +52,7 @@ import library.dto.TopSongsDTO;
 import library.dto.TimeUnitStatsDTO;
 import library.entity.Scrobble;
 import library.entity.Song;
+import library.repository.ArtistRepository;
 import library.repository.ScrobbleRepository;
 import library.repository.ScrobbleRepositoryImpl;
 import library.repository.SongRepository;
@@ -69,6 +73,9 @@ public class MainController {
 	
 	@Autowired
 	private ScrobbleRepositoryImpl scrobbleRepositoryImpl;
+	
+	@Autowired
+	private ArtistRepository artistRepository;
 	
 	@RequestMapping("/insertScrobbles")
 	@ResponseBody
@@ -365,6 +372,14 @@ public class MainController {
 	public String topArtists(Model model, @RequestParam(defaultValue="10000000") int limit) {
 		
 		List<TopArtistsDTO> topArtists = songRepositoryImpl.getTopArtists(limit);
+		
+		//TODO this is taking a really long time. Optimize?
+		/*topArtists.stream().forEach(a -> 
+		{
+			a.setAverageSongLength(songRepositoryImpl.averageSongDurationByArtist(a.getArtist()));
+			a.setAveragePlaysPerSong(artistRepository.averageSongDurationByArtist(a.getArtist()));
+		}
+		);*/
 		model.addAttribute("topArtists", topArtists);
 		
 		List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex()),
@@ -462,13 +477,6 @@ public class MainController {
 			@RequestParam(defaultValue="2400-12-31") String end,
 			@RequestParam String unit) {
 		List<TimeUnitStatsDTO> timeUnits = songRepositoryImpl.timeUnitStats(start, end, unit);
-		
-		/*for(TimeUnitStatsDTO timeUnit : timeUnits) {
-			timeUnit.setPercentCountGenre(timeUnit.getCountGenre()/timeUnit.getTotalCount());
-			timeUnit.setPercentDurationGenre(timeUnit.getDurationGenre()/timeUnit.getTotalDuration());
-			timeUnit.setPercentCountSex(timeUnit.getCountSex()/timeUnit.getTotalCount());
-			timeUnit.setPercentDurationSex(timeUnit.getDurationSex()/timeUnit.getTotalDuration());
-		}*/
 		
 		model.addAttribute("timeUnits", timeUnits);
 		
@@ -576,10 +584,39 @@ public class MainController {
 			songRepository.save(s);
 			scrobbleRepositoryImpl.updateSongIds(s.getId(), s.getArtist(), s.getSong(), s.getAlbum());
 		}
-		
 	
 		model.addAttribute("success",true);
 		return "insertalbumform";
 	}
+	
+	@RequestMapping("/artist/{artist}")
+	public String insertAlbumForm(Model model, @PathVariable(required=true) String artist) {
+		
+		List<ArtistSongsQueryDTO> artistSongsList = artistRepository.songsByArtist(artist);
+		List<ArtistAlbumsQueryDTO> artistAlbumsList = artistRepository.albumsByArtist(artist);
+		
+		int numberOfSongs = artistSongsList.size();
+		int totalPlays = artistSongsList.stream().mapToInt(s -> s.getTotalPlays()).sum();
+		int sumOfTrackLengths = artistSongsList.stream().mapToInt(s -> s.getTrackLength()).sum();
+		int averagePlaysPerSong = totalPlays/numberOfSongs;
+		String totalPlaytime = Utils.secondsToString(artistSongsList.stream().mapToInt(s ->s.getTotalPlays()*s.getTrackLength()).sum());
+		String averageSongLength = Utils.secondsToStringColon(sumOfTrackLengths/numberOfSongs);
+		
+		ArtistSongsQueryDTO firstSong = artistSongsList.stream().min((s1, s2) -> s1.getFirstPlay().compareTo(s2.getFirstPlay())).orElse(new ArtistSongsQueryDTO());
+		ArtistSongsQueryDTO lastSong = artistSongsList.stream().max((s1, s2) -> s1.getLastPlay().compareTo(s2.getLastPlay())).orElse(new ArtistSongsQueryDTO());
+		
+		String firstSongPlayed = firstSong.getSong() + " - " +firstSong.getFirstPlay();
+		String lastSongPlayed = lastSong.getSong() + " - " +lastSong.getLastPlay();;
+		
+		ArtistDTO artistInfo = new ArtistDTO(artistSongsList, artistAlbumsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
+											averageSongLength,averagePlaysPerSong, numberOfSongs);
+
+		model.addAttribute("artist",artist);
+		model.addAttribute("artistInfo",artistInfo);
+		
+		return "artist";
+	}
+	
+	
 
 }
