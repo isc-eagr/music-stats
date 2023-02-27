@@ -78,19 +78,19 @@ public class SongRepositoryImpl{
 	private static final String TIME_UNIT_QUERY = """
 			select * from 
 				(select a.genre, a.date date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count
-					from (select so.genre, ? date, sum(duration) duration, count(*) count 
+					from (select so.genre, %s date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
-						where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
-						group by so.genre, ? 
-						order by ? desc, sum(duration) desc) a 
+						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
+						group by so.genre, %s 
+						order by %s desc, sum(duration) desc) a 
 					group by a.date) genre 
 				inner join 
 				(select a.sex,a.date date_sex, max(a.duration) duration_sex, a.count count_sex 
-		            from (select so.sex, ? date, sum(duration) duration, count(*) count 
+		            from (select so.sex, %s date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
-						where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
-						group by so.sex, ? 
-						order by ? desc, sum(duration) desc) a 
+						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
+						group by so.sex, %s 
+						order by %s desc, sum(duration) desc) a 
 					group by a.date) sex 
 			on genre.date_genre = sex.date_sex
 			""";
@@ -99,7 +99,7 @@ public class SongRepositoryImpl{
 			select * from (select a.genre, MIN(minDate) date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count 
 			from (select so.genre, YEARWEEK(sc.scrobble_date,1) date, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
+			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			group by so.genre, YEARWEEK(sc.scrobble_date,1) 
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
 			group by a.date) genre 
@@ -107,7 +107,7 @@ public class SongRepositoryImpl{
 			(select a.sex, MIN(minDate) date_sex, max(a.duration) duration_sex, a.count count_sex 
             from (select so.sex, YEARWEEK(sc.scrobble_date,1) date, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			where date(sc.scrobble_date) >= '?' and date(sc.scrobble_date) <= '?' 
+			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			group by so.sex, YEARWEEK(sc.scrobble_date,1) 
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
 			group by a.date) sex 
@@ -156,7 +156,7 @@ public class SongRepositoryImpl{
 			};
 			
 			
-			return template.query(TIME_UNIT_QUERY, new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class),unitForQuery, start, end, unitForQuery, sortForQuery, unitForQuery, start, end, unitForQuery, sortForQuery);
+			return template.query(TIME_UNIT_QUERY.formatted(unitForQuery, unitForQuery, sortForQuery, unitForQuery, unitForQuery, sortForQuery), new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class), start, end, start, end);
 		}
 
 	}
