@@ -30,7 +30,7 @@ Average Plays Per Song: <span th:text="${albumInfo.averagePlaysPerSong}"/><br/>
 	<tbody>
 		<tr th:each="song, stat : ${albumInfo.songs}">
 			<td th:text="${stat.index+1}"/>
-			<td th:text="${song.song}"/>
+			<td><a th:href="@{/song/{artist}/{album}/{song}(artist=${song.artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
 			<td th:text="${song.album}"/>
 			<td th:text="${song.totalPlays}"/>
 			<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}"/>

@@ -28,7 +28,8 @@ public class Song {
 		cloud_status varchar(60),
 		source varchar(30),
 		created timestamp,
-		updated timestamp
+		updated timestamp,
+		release_date timestamp
 	 ); 
 	 */
 
@@ -72,6 +73,9 @@ public class Song {
 	
 	@Column (name="updated")
     private Timestamp updated;
+	
+	@Column (name="release_date")
+    private Timestamp releaseDate;
 	
 	@Transient
 	private String durationString;
@@ -190,6 +194,14 @@ public class Song {
 
 	public void setDurationString(String durationString) {
 		this.durationString = durationString;
+	}
+
+	public Timestamp getReleaseDate() {
+		return releaseDate;
+	}
+
+	public void setReleaseDate(Timestamp releaseDate) {
+		this.releaseDate = releaseDate;
 	}
 	
 }

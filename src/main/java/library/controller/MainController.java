@@ -4,10 +4,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +52,7 @@ import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
 import library.dto.DataForGraphs;
 import library.dto.SaveAlbumDTO;
+import library.dto.SongsQueryDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopGroupDTO;
@@ -116,7 +121,7 @@ public class MainController {
 	
 	@RequestMapping("/insertItunesInfo")
 	@ResponseBody
-	public String insertItunesInfo(Model model) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException{
+	public String insertItunesInfo(Model model) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException, ParseException{
 		
 		File file = new File("c:\\Library.xml");
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -182,6 +187,13 @@ public class MainController {
                             break;
                         case "Comments":
                             songObject.setSex(value);
+                            break;
+                        case "Release Date":
+                        	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                            Date parsedDate = dateFormat.parse(value==null || value.length()<10?"1920-01-01":value.substring(0,9));
+                            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
+                        	
+                            songObject.setReleaseDate(timestamp);
                             break;
                             
                         case "Kind":
@@ -625,7 +637,7 @@ public class MainController {
 	}
 	
 	@GetMapping("/album/{artist}/{album}")
-	public String song(Model model, @PathVariable(required=true) String artist,
+	public String album(Model model, @PathVariable(required=true) String artist,
 									@PathVariable(required=true) String album) {
 		
 		List<AlbumSongsQueryDTO> albumSongsList = albumRepository.albumSongs(artist, album);
@@ -651,6 +663,19 @@ public class MainController {
 		model.addAttribute("albumInfo",albumInfo);
 		
 		return "album";
+	}
+	
+	@GetMapping("/song/{artist}/{album}/{song}")
+	public String song(Model model, @PathVariable(required=true) String artist,
+									@PathVariable(required=true) String album,
+									@PathVariable(required=true) String song) {
+		
+		List<SongsQueryDTO> albumSongsList = songRepositoryImpl.songsPage(artist, album, song);
+		SongsQueryDTO songQuery = albumSongsList.stream().findFirst().orElse(new SongsQueryDTO());
+		
+		model.addAttribute("song",songQuery);
+		
+		return "song";
 	}
 	
 	

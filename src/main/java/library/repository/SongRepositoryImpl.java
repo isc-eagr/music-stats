@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import library.dto.AllSongsExtendedDTO;
 import library.dto.SongsInItunesButNotLastfmDTO;
+import library.dto.SongsQueryDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopSongsDTO;
@@ -118,6 +119,16 @@ public class SongRepositoryImpl{
 			select avg(duration) from song
             where LOWER(artist)=LOWER(?)
 			""";
+	
+	private static final String SONGS_PAGE_QUERY = """
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, count(*) total_plays, min(sc.scrobble_date) first_play,max(sc.scrobble_date) last_play
+    		from song so inner join scrobble sc on so.id=sc.song_id
+    		where LOWER(sc.artist)=LOWER(?)
+            and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
+            and LOWER(so.song) = LOWER(?)
+    		group by so.artist, so.song, so.album
+    		order by total_plays desc, so.song asc
+			""";
 		
 	public List<AllSongsExtendedDTO> getAllSongsExtended(String start, String end) {
 		return template.query(ALL_SONGS_EXTENDED_QUERY, new BeanPropertyRowMapper<>(AllSongsExtendedDTO.class), start, end);
@@ -163,5 +174,9 @@ public class SongRepositoryImpl{
 	
 	public int averageSongDurationByArtist(String artist) {
 		return template.queryForObject(AVG_SONG_DURATION_BY_ARTIST, Integer.class,artist);
+	}
+	
+	public List<SongsQueryDTO> songsPage(String artist, String album, String song) {
+		return template.query(SONGS_PAGE_QUERY, new BeanPropertyRowMapper<>(SongsQueryDTO.class), artist, album, song);
 	}
 }

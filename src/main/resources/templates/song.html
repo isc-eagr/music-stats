@@ -1,0 +1,21 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<title th:text="${artist+' - '}+album"/>
+	<script src='../../../js/utils.js'></script>
+	<script src="../../../js/sortable.min.js"></script>
+	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			Sortable.init();
+		}
+	</script>
+</head>
+<body>
+	Song length: <span th:text="${song.trackLengthString}"/> <br/>
+	Total Plays: <span th:text="${song.totalPlays}"/><br/>
+	Total Playtime: <span th:text="${song.totalPlaytimeString}"/><br/>
+	First Play: <span th:text="${song.firstPlay}"/><br/>
+	Last Play: <span th:text="${song.lastPlay}"/><br/>
+</body>
+
+</html>

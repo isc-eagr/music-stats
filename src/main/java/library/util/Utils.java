@@ -31,8 +31,8 @@ public class Utils {
 		long secondsPart = d.toSecondsPart();
 		
 		String hoursString = hoursPart == 0 ? "" : hoursPart+":";
-		String minutesString = minutesPart+":";
-		String secondsString = ""+secondsPart;
+		String minutesString = hoursPart==0? minutesPart+":" : (minutesPart<10?"0"+minutesPart+":":minutesPart+":");
+		String secondsString = secondsPart<10?"0"+secondsPart:""+secondsPart;
 		secondsString = secondsString.length()==1 ? "0"+secondsString : secondsString;
 		
 		String fullText = hoursString + minutesString + secondsString; 
