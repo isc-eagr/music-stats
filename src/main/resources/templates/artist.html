@@ -19,10 +19,25 @@ First Song Played: <span th:text="${artistInfo.firstSongPlayed}"/><br/>
 Last Song Played: <span th:text="${artistInfo.lastSongPlayed}"/><br/>
 Average Song Length: <span th:text="${artistInfo.averageSongLength}"/><br/>
 Average Plays Per Song: <span th:text="${artistInfo.averagePlaysPerSong}"/><br/>
+Days artist has been played: <span th:text="${artistInfo.daysArtistWasPlayed}"/><br/>
+Months artist has been played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><br/>
 
 <table id="artistTable" class="sortable-theme-finder" data-sortable>
 	<thead>
-		<tr><th>Position</th><th>Album</th><th>Number of Tracks in Library</th><th>Total Plays</th><th>Album Length</th><th>Total Playtime</th><th>First Play</th><th>Last Play</th></tr>
+		<tr>
+			<th>Position</th>
+			<th>Album</th>
+			<th>Number of Tracks in Library</th>
+			<th>Total Plays</th>
+			<th>Album Length</th>
+			<th>Total Playtime</th>
+			<th>First Play</th>
+			<th>Last Play</th>
+			<th>Average Song Length</th>
+			<th>Average Plays Per Song</th>
+			<th>Days album was played</th>
+			<th>Months album was played</th>
+		</tr>
 	</thead>
 	<tbody>
 		<tr th:each="album, stat : ${artistInfo.albums}">
@@ -34,6 +49,10 @@ Average Plays Per Song: <span th:text="${artistInfo.averagePlaysPerSong}"/><br/>
 			<td th:text="${album.totalPlaytimeString}" th:data-value="${album.totalPlaytime}"/>
 			<td th:text="${album.firstPlay}"/>
 			<td th:text="${album.lastPlay}"/>
+			<td th:text="${album.averageSongLengthString}" th:data-value="${album.averageSongLength}"/>
+			<td th:text="${album.averagePlaysPerSong}"/>
+			<td th:text="${album.daysAlbumWasPlayed}"/>
+			<td th:text="${album.monthsAlbumWasPlayed}"/>
 		</tr>
 	</tbody>
 </table>
@@ -42,7 +61,18 @@ Average Plays Per Song: <span th:text="${artistInfo.averagePlaysPerSong}"/><br/>
 <br/>
 <table id="artistTable" class="sortable-theme-finder" data-sortable>
 	<thead>
-		<tr><th>Position</th><th>Song</th><th>Album</th><th>Total Plays</th><th>Track Length</th><th>Total Playtime</th><th>First Play</th><th>Last Play</th></tr>
+		<tr>
+			<th>Position</th>
+			<th>Song</th>
+			<th>Album</th>
+			<th>Total Plays</th>
+			<th>Track Length</th>
+			<th>Total Playtime</th>
+			<th>First Play</th>
+			<th>Last Play</th>
+			<th>Days song was played</th>
+			<th>Months song was played</th>
+		</tr>
 	</thead>
 	<tbody>
 		<tr th:each="song, stat : ${artistInfo.songs}">
@@ -54,6 +84,8 @@ Average Plays Per Song: <span th:text="${artistInfo.averagePlaysPerSong}"/><br/>
 			<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}"/>
 			<td th:text="${song.firstPlay}"/>
 			<td th:text="${song.lastPlay}"/>
+			<td th:text="${song.daysSongWasPlayed}"/>
+			<td th:text="${song.monthsSongWasPlayed}"/>
 		</tr>
 	</tbody>
 </table>

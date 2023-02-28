@@ -13,6 +13,9 @@ public class ArtistDTO {
 	String averageSongLength;
 	int averagePlaysPerSong;
 	int numberOfSongs;
+	int daysArtistWasPlayed;
+	int monthsArtistWasPlayed;
+	
 	public List<ArtistSongsQueryDTO> getSongs() {
 		return songs;
 	}
@@ -67,9 +70,21 @@ public class ArtistDTO {
 	public void setNumberOfSongs(int numberOfSongs) {
 		this.numberOfSongs = numberOfSongs;
 	}
+	public int getDaysArtistWasPlayed() {
+		return daysArtistWasPlayed;
+	}
+	public void setDaysArtistWasPlayed(int daysArtistWasPlayed) {
+		this.daysArtistWasPlayed = daysArtistWasPlayed;
+	}
+	public int getMonthsArtistWasPlayed() {
+		return monthsArtistWasPlayed;
+	}
+	public void setMonthsArtistWasPlayed(int monthsArtistWasPlayed) {
+		this.monthsArtistWasPlayed = monthsArtistWasPlayed;
+	}
 	public ArtistDTO(List<ArtistSongsQueryDTO> songs, List<ArtistAlbumsQueryDTO> albums, String firstSongPlayed,
 			String lastSongPlayed, int totalPlays, String totalPlaytime, String averageSongLength,
-			int averagePlaysPerSong, int numberOfSongs) {
+			int averagePlaysPerSong, int numberOfSongs, int daysArtistWasPlayed, int monthsArtistWasPlayed) {
 		super();
 		this.songs = songs;
 		this.albums = albums;
@@ -80,6 +95,9 @@ public class ArtistDTO {
 		this.averageSongLength = averageSongLength;
 		this.averagePlaysPerSong = averagePlaysPerSong;
 		this.numberOfSongs = numberOfSongs;
+		this.daysArtistWasPlayed = daysArtistWasPlayed;
+		this.monthsArtistWasPlayed = monthsArtistWasPlayed;
 	}
+	
 
 }

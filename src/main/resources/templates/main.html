@@ -37,6 +37,8 @@
 	Total Songs: <span th:text="${totalSongs}"/><br/>
 	Total Plays: <span th:text="${totalPlays}"/><br/>
 	Total Playtime: <span th:text="${totalPlayTimeGlobalString}"/><br/>
+	Average Song Length: <span th:text="${averageSongLength}"/><br/>
+	Average Plays Per Song: <span th:text="${averagePlaysPerSong}"/><br/>
 	
 	
 	<div th:each="dataForGraphsList : ${dataMap}" style='white-space: nowrap;'> <!--Genre, Sex, Language etc.-->

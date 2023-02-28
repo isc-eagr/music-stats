@@ -11,6 +11,8 @@ public class ArtistSongsQueryDTO {
 	int totalPlays;
 	String firstPlay;
 	String lastPlay;
+	int daysSongWasPlayed;
+	int monthsSongWasPlayed;
 	
 	public String getArtist() {
 		return artist;
@@ -53,6 +55,18 @@ public class ArtistSongsQueryDTO {
 	}
 	public void setLastPlay(String lastPlay) {
 		this.lastPlay = lastPlay;
+	}
+	public int getDaysSongWasPlayed() {
+		return daysSongWasPlayed;
+	}
+	public void setDaysSongWasPlayed(int daysSongWasPlayed) {
+		this.daysSongWasPlayed = daysSongWasPlayed;
+	}
+	public int getMonthsSongWasPlayed() {
+		return monthsSongWasPlayed;
+	}
+	public void setMonthsSongWasPlayed(int monthsSongWasPlayed) {
+		this.monthsSongWasPlayed = monthsSongWasPlayed;
 	}
 	public long getTotalPlaytime() {
 		return trackLength*totalPlays;
