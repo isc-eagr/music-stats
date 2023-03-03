@@ -2,7 +2,7 @@ package library.dto;
 
 import java.util.List;
 
-public class AlbumDTO {
+public class AlbumPageDTO {
 	
 	List<AlbumSongsQueryDTO> songs;
 	String firstSongPlayed;
@@ -14,6 +14,7 @@ public class AlbumDTO {
 	int numberOfSongs;
 	String albumLength;
 	int daysAlbumWasPlayed;
+	int weeksAlbumWasPlayed;
 	int monthsAlbumWasPlayed;
 	
 	
@@ -72,12 +73,18 @@ public class AlbumDTO {
 		this.albumLength = albumLength;
 	}
 	
-	
 	public int getDaysAlbumWasPlayed() {
 		return daysAlbumWasPlayed;
 	}
 	public void setDaysAlbumWasPlayed(int daysAlbumWasPlayed) {
 		this.daysAlbumWasPlayed = daysAlbumWasPlayed;
+	}
+	
+	public int getWeeksAlbumWasPlayed() {
+		return weeksAlbumWasPlayed;
+	}
+	public void setWeeksAlbumWasPlayed(int weeksAlbumWasPlayed) {
+		this.weeksAlbumWasPlayed = weeksAlbumWasPlayed;
 	}
 	public int getMonthsAlbumWasPlayed() {
 		return monthsAlbumWasPlayed;
@@ -85,9 +92,9 @@ public class AlbumDTO {
 	public void setMonthsAlbumWasPlayed(int monthsAlbumWasPlayed) {
 		this.monthsAlbumWasPlayed = monthsAlbumWasPlayed;
 	}
-	public AlbumDTO(List<AlbumSongsQueryDTO> songs, String firstSongPlayed, String lastSongPlayed, int totalPlays,
+	public AlbumPageDTO(List<AlbumSongsQueryDTO> songs, String firstSongPlayed, String lastSongPlayed, int totalPlays,
 			String totalPlaytime, String averageSongLength, int averagePlaysPerSong, int numberOfSongs,
-			String albumLength, int daysAlbumWasPlayed, int monthsAlbumWasPlayed) {
+			String albumLength, int daysAlbumWasPlayed, int weeksAlbumWasPlayed, int monthsAlbumWasPlayed) {
 		super();
 		this.songs = songs;
 		this.firstSongPlayed = firstSongPlayed;
@@ -99,9 +106,9 @@ public class AlbumDTO {
 		this.numberOfSongs = numberOfSongs;
 		this.albumLength = albumLength;
 		this.daysAlbumWasPlayed = daysAlbumWasPlayed;
+		this.weeksAlbumWasPlayed = weeksAlbumWasPlayed;
 		this.monthsAlbumWasPlayed = monthsAlbumWasPlayed;
 	}
-	
 	
 
 }

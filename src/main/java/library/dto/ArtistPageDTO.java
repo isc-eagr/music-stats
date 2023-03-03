@@ -2,7 +2,7 @@ package library.dto;
 
 import java.util.List;
 
-public class ArtistDTO {
+public class ArtistPageDTO {
 	
 	List<ArtistSongsQueryDTO> songs;
 	List<ArtistAlbumsQueryDTO> albums;
@@ -14,6 +14,7 @@ public class ArtistDTO {
 	int averagePlaysPerSong;
 	int numberOfSongs;
 	int daysArtistWasPlayed;
+	int weeksArtistWasPlayed;
 	int monthsArtistWasPlayed;
 	
 	public List<ArtistSongsQueryDTO> getSongs() {
@@ -76,15 +77,22 @@ public class ArtistDTO {
 	public void setDaysArtistWasPlayed(int daysArtistWasPlayed) {
 		this.daysArtistWasPlayed = daysArtistWasPlayed;
 	}
+	public int getWeeksArtistWasPlayed() {
+		return weeksArtistWasPlayed;
+	}
+	public void setWeeksArtistWasPlayed(int weeksArtistWasPlayed) {
+		this.weeksArtistWasPlayed = weeksArtistWasPlayed;
+	}
 	public int getMonthsArtistWasPlayed() {
 		return monthsArtistWasPlayed;
 	}
 	public void setMonthsArtistWasPlayed(int monthsArtistWasPlayed) {
 		this.monthsArtistWasPlayed = monthsArtistWasPlayed;
 	}
-	public ArtistDTO(List<ArtistSongsQueryDTO> songs, List<ArtistAlbumsQueryDTO> albums, String firstSongPlayed,
+	public ArtistPageDTO(List<ArtistSongsQueryDTO> songs, List<ArtistAlbumsQueryDTO> albums, String firstSongPlayed,
 			String lastSongPlayed, int totalPlays, String totalPlaytime, String averageSongLength,
-			int averagePlaysPerSong, int numberOfSongs, int daysArtistWasPlayed, int monthsArtistWasPlayed) {
+			int averagePlaysPerSong, int numberOfSongs, int daysArtistWasPlayed, int weeksArtistWasPlayed,
+			int monthsArtistWasPlayed) {
 		super();
 		this.songs = songs;
 		this.albums = albums;
@@ -96,8 +104,8 @@ public class ArtistDTO {
 		this.averagePlaysPerSong = averagePlaysPerSong;
 		this.numberOfSongs = numberOfSongs;
 		this.daysArtistWasPlayed = daysArtistWasPlayed;
+		this.weeksArtistWasPlayed = weeksArtistWasPlayed;
 		this.monthsArtistWasPlayed = monthsArtistWasPlayed;
 	}
 	
-
 }

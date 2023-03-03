@@ -4,6 +4,9 @@ import java.time.Duration;
 
 public class Utils {
 	
+	public static final int SECONDS_IN_A_DAY = 60*60*24;
+	public static final int SECONDS_IN_A_WEEK = SECONDS_IN_A_DAY * 7;
+	
 	public static String secondsToString(long seconds) {
 		Duration d = Duration.ofSeconds(seconds);
 		
@@ -39,5 +42,59 @@ public class Utils {
 		
 		return fullText;
 		
+	}
+	
+	public static int daysInAMonth(String month, int year) {
+		return switch (month) {
+	        case "January", "March", "May", "July", "August", "October", "December"-> {yield 31;}
+	        case "April", "June", "September", "November"-> {yield 30;}
+	        case "Feb"->{
+	            if ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0))) {
+	                yield 29;
+	            } else {
+	                yield 28;
+	            }
+	        }
+	        default-> {yield 0;}
+            
+		};
+	
+	}
+	
+	public static boolean isLeapYear(int year) {
+		if ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0))) {
+            return true;
+        } else {
+            return false;
+        }
+	}
+	
+	public static int daysInAYear(int year) {
+         if (isLeapYear(year)) {
+             return 366;
+         } else {
+             return 365;
+         }
+	}
+	
+	public static int leapYearsInADecade(int decadeStart) {
+		int leapYears = 0;
+        for(int year = decadeStart; year<(decadeStart+10); year++) {
+        	if(isLeapYear(year))
+        		leapYears++;
+        }
+        return leapYears;
+	}
+	
+	public static int secondsInAMonth(String month, int year) {
+		return SECONDS_IN_A_DAY * daysInAMonth(month, year);
+	}
+	
+	public static int secondsInAYear(int year) {
+		return SECONDS_IN_A_DAY * daysInAYear(year);
+	}
+	
+	public static int secondsInADecade(int decadeStart) {
+		return SECONDS_IN_A_DAY * (3650+leapYearsInADecade(decadeStart));
 	}
 }

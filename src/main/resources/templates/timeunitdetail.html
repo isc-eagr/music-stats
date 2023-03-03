@@ -1,0 +1,41 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<title>What Won Each Day</title>
+	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src='js/utils.js'></script>
+	<script src="js/sortable.min.js"></script>
+	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			flatpickr("#dateStart", dateConfig);
+			flatpickr("#dateEnd", dateConfig);
+			Sortable.init();
+		}
+	</script>
+</head>
+<body>
+Total Plays: <span th:text="${timeUnitDetail.totalPlays}"/><br/>
+Total Playtime: <span th:text="${timeUnitDetail.totalPlaytimeString}"/><br/>
+Most Played Artist: <span th:text="${timeUnitDetail.mostPlayedArtist}"/><br/>
+Most Played Album: <span th:text="${timeUnitDetail.mostPlayedAlbum}"/><br/>
+Most Played Song: <span th:text="${timeUnitDetail.mostPlayedSong}"/><br/>
+Unique Artists Played: <span th:text="${timeUnitDetail.uniqueArtistsPlayed}"/><br/>
+Unique Albums Played: <span th:text="${timeUnitDetail.uniqueAlbumsPlayed}"/><br/>
+Unique Songs Played: <span th:text="${timeUnitDetail.uniqueSongsPlayed}"/><br/>
+Percentage of unit where music was played: <span th:text="${#numbers.formatDecimal(timeUnitDetail.percentageofUnitWhereMusicWasPlayed, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/><br/>
+  
+<table th:each="timeUnitGroup : ${timeUnitGroupList}">
+	<tr><th th:text="${timeUnitGroup.criteria}"/><th th:text="Number"/><th th:text="Percentage"/><th>Playtime</th><th>Playtime %</th></tr>
+	<tr th:each="listCount : ${timeUnitGroup.listCounts}">
+		<td th:text="${listCount.element}"/>
+		<td th:text="${listCount.count}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.playtimeString}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
+	</tr>
+</table>
+
+</body>
+
+</html>

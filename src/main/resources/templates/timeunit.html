@@ -39,7 +39,7 @@
 	</thead>
 	<tbody>
 		<tr th:each="timeUnit : ${timeUnits}">
-			<td th:text="${timeUnit.dateGenre}"/>
+			<td><a th:href="@{/timeUnitDetail/{unit}/{unitValue}(unit=${unit},unitValue=${timeUnit.queryDateGenre})}" th:text="${timeUnit.displayDateGenre}"></td>
 			<td th:text="${timeUnit.totalDurationText}" th:data-value="${timeUnit.totalDuration}"/>
 			<td th:text="${timeUnit.totalCount}"/>
 			<td th:text="${timeUnit.genre}"/>

@@ -4,14 +4,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,17 +39,18 @@ import org.xml.sax.SAXException;
 import com.opencsv.bean.CsvToBeanBuilder;
 
 import library.dto.TopCountDTO;
-import library.dto.AlbumDTO;
+import library.dto.AlbumPageDTO;
 import library.dto.AlbumSongsQueryDTO;
 import library.dto.AllSongsExtendedDTO;
 import library.dto.ArtistAlbumsQueryDTO;
-import library.dto.ArtistDTO;
-import library.dto.ArtistScrobblesDTO;
+import library.dto.ArtistPageDTO;
+import library.dto.ScrobbleDTO;
 import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
 import library.dto.DataForGraphs;
 import library.dto.SaveAlbumDTO;
-import library.dto.SongsQueryDTO;
+import library.dto.SongPageDTO;
+import library.dto.TimeUnitDetailDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopGroupDTO;
@@ -66,6 +63,7 @@ import library.repository.ScrobbleRepository;
 import library.repository.ScrobbleRepositoryImpl;
 import library.repository.SongRepository;
 import library.repository.SongRepositoryImpl;
+import library.repository.TimeUnitRepository;
 import library.util.Utils;
 
 @Controller
@@ -85,6 +83,9 @@ public class MainController {
 	
 	@Autowired
 	private ArtistRepository artistRepository;
+	
+	@Autowired
+	private TimeUnitRepository timeUnitRepository;
 	
 	@RequestMapping("/insertScrobbles")
 	@ResponseBody
@@ -185,13 +186,6 @@ public class MainController {
                         case "Comments":
                             songObject.setSex(value);
                             break;
-                        case "Release Date":
-                        	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                            Date parsedDate = dateFormat.parse(value==null || value.length()<10?"1920-01-01":value.substring(0,9));
-                            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
-                        	
-                            songObject.setReleaseDate(timestamp);
-                            break;
                             
                         case "Kind":
                         switch (value) {
@@ -265,8 +259,8 @@ public class MainController {
 				.sum())
 				);
 		//model.addAttribute("averagePlaysPerDay"); TODO
-		model.addAttribute("averageSongLength", Utils.secondsToStringColon((int)allSongsExtended.stream().mapToInt(s->s.getDuration()).average().getAsDouble()));
-		model.addAttribute("averagePlaysPerSong",(int)allSongsExtended.stream().mapToInt(s->s.getPlays()).average().getAsDouble());
+		model.addAttribute("averageSongLength", Utils.secondsToStringColon((int)allSongsExtended.stream().mapToInt(s->s.getDuration()).average().orElse(0.0)));
+		model.addAttribute("averagePlaysPerSong",(int)allSongsExtended.stream().mapToInt(s->s.getPlays()).average().orElse(0.0));
 		
 		//For the main criteria Sex and Genre
 		//We need a map with Criteria name (Sex or Genre) as key, and a list with every graph
@@ -304,12 +298,7 @@ public class MainController {
 
 			List<Entry<String, List<AllSongsExtendedDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			
-			Collections.sort(sortedList, new Comparator<Map.Entry<String, List<AllSongsExtendedDTO>>>() {
-	            public int compare(Map.Entry<String, List<AllSongsExtendedDTO>> o1,
-	                               Map.Entry<String, List<AllSongsExtendedDTO>> o2) {
-	                return (o1.getValue()).size()>(o2.getValue()).size()?-1:1;
-	            }
-	        });
+			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
 			//This loop iterates through every secondary criteria (R&B Reggaeton etc)
 			for(Entry<String, List<AllSongsExtendedDTO>> e : sortedList) {
@@ -367,15 +356,16 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			List<Entry<String, List<TopSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, new Comparator<Map.Entry<String, List<TopSongsDTO>>>() {
-	            public int compare(Map.Entry<String, List<TopSongsDTO>> o1,
-	                               Map.Entry<String, List<TopSongsDTO>> o2) {
-	            	return (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1);
-	            }
-	        });
+			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
 			for(Entry<String, List<TopSongsDTO>> e : sortedList) {
-				counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)topSongs.size()*100, e.getValue().stream().mapToLong(topSong -> topSong.getPlaytime()).sum()));
+				long playtime = e.getValue().stream().mapToLong(topSong -> topSong.getPlaytime()).sum();
+				counts.add(new TopCountDTO(
+						e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topSongs.size()*100, 
+						playtime,
+						(double)playtime*100/topSongs.stream().mapToDouble(a->a.getPlaytime()).sum()));
 			}
 			
 			topSongsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
@@ -415,15 +405,16 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			List<Entry<String, List<TopArtistsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, new Comparator<Map.Entry<String, List<TopArtistsDTO>>>() {
-	            public int compare(Map.Entry<String, List<TopArtistsDTO>> o1,
-	                               Map.Entry<String, List<TopArtistsDTO>> o2) {
-	            	return (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1);
-	            }
-	        });
+			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
 			for(Entry<String, List<TopArtistsDTO>> e : sortedList) {
-				counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)topArtists.size()*100,e.getValue().stream().mapToLong(topArtist -> topArtist.getPlaytime()).sum()));
+				long playtime = e.getValue().stream().mapToLong(topArtist -> topArtist.getPlaytime()).sum();
+				counts.add(new TopCountDTO(
+						e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topArtists.size()*100,
+						playtime,
+						(double)playtime*100/topArtists.stream().mapToDouble(a->a.getPlaytime()).sum()));
 			}
 			
 			topArtistsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
@@ -456,15 +447,16 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, new Comparator<Map.Entry<String, List<TopAlbumsDTO>>>() {
-	            public int compare(Map.Entry<String, List<TopAlbumsDTO>> o1,
-	                               Map.Entry<String, List<TopAlbumsDTO>> o2) {
-	                return (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1);
-	            }
-	        });
+			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
 			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
-				counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)topAlbums.size()*100,e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum()));
+				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
+				counts.add(new TopCountDTO(e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topAlbums.size()*100,
+						playtime,
+						(double)playtime*100/topAlbums.stream().mapToDouble(a->a.getPlaytime()).sum()
+						));
 			}
 			
 			topAlbumsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
@@ -508,7 +500,7 @@ public class MainController {
 		Collections.sort(sortedGenreList, (o1,o2)-> ((o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)));
 		
 		for(Entry<String, List<TimeUnitStatsDTO>> e : sortedGenreList) {
-			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0));
+			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0,0));
 		}
 		timeUnitGroupList.add(new TopGroupDTO("Genre",counts));
 		
@@ -519,13 +511,99 @@ public class MainController {
 		Collections.sort(sortedSexList, (o1,o2)->(o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		
 		for(Entry<String, List<TimeUnitStatsDTO>> e : sortedSexList) {
-			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0));
+			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0,0));
 		}
 		
 		timeUnitGroupList.add(new TopGroupDTO("Sex",counts));
 		
 		model.addAttribute("timeUnitGroupList", timeUnitGroupList);
+		model.addAttribute("unit", unit);
 		return "timeunit";
+		
+	}
+	
+	@RequestMapping("/timeUnitDetail/{unit}/{unitValue}")
+	public String timeUnitDetail(Model model, 
+			@PathVariable String unit,
+			@PathVariable String unitValue) {
+		
+		List<ScrobbleDTO> scrobbles = switch(unit) {
+			case "day" -> timeUnitRepository.dayScrobbles(unitValue);
+			case "week" -> timeUnitRepository.weekScrobbles(unitValue);
+			case "month" -> timeUnitRepository.monthScrobbles(unitValue);
+			case "year" -> timeUnitRepository.yearScrobbles(unitValue);
+			case "decade" -> timeUnitRepository.decadeScrobbles(unitValue);
+			default -> new ArrayList<>();
+		};
+		
+		TimeUnitDetailDTO timeUnitDetailDTO = new TimeUnitDetailDTO();
+		timeUnitDetailDTO.setTotalPlays(scrobbles.size());
+		timeUnitDetailDTO.setTotalPlaytime(scrobbles.stream().mapToInt(s->s.getTrackLength()).sum());
+		
+		timeUnitDetailDTO.setPercentageofUnitWhereMusicWasPlayed(
+					switch(unit) {
+					case "day" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.SECONDS_IN_A_DAY;
+					case "week" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.SECONDS_IN_A_WEEK;
+					case "month" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInAMonth(unitValue.split("-")[1],Integer.parseInt(unitValue.split("-")[0]));
+					case "year" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInAYear(Integer.parseInt(unitValue));
+					case "decade" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInADecade(Integer.parseInt(unitValue.substring(0,4)));
+					default -> 0.0;
+					}
+				);
+		
+		Map<String, List<ScrobbleDTO>> map = scrobbles.stream().collect(Collectors.groupingBy(s->s.getArtist()));
+		List<Entry<String, List<ScrobbleDTO>>> sortedList = new ArrayList<>(map.entrySet());
+		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+	
+		timeUnitDetailDTO.setMostPlayedArtist(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		timeUnitDetailDTO.setUniqueArtistsPlayed(map.entrySet().size());
+		
+		map = scrobbles.stream().filter(s->!s.getAlbum().equals("(single)")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
+		sortedList = new ArrayList<>(map.entrySet());
+		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+		timeUnitDetailDTO.setMostPlayedAlbum(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		timeUnitDetailDTO.setUniqueAlbumsPlayed(map.entrySet().size());
+		
+		map = scrobbles.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
+		sortedList = new ArrayList<>(map.entrySet());
+		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+		timeUnitDetailDTO.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		timeUnitDetailDTO.setUniqueSongsPlayed(map.entrySet().size());
+		
+		List<Criterion<ScrobbleDTO>> criteria = List.of(new Criterion<>("Sex", scrobble -> scrobble.getSex()),
+				new Criterion<>("Genre", scrobble -> scrobble.getGenre()),
+				new Criterion<>("Language", scrobble -> scrobble.getLanguage())
+				);
+		
+		
+		List<TopGroupDTO> timeUnitGroupList = new ArrayList<>(); 
+		
+		for (Criterion<ScrobbleDTO> criterion : criteria) {
+			Map<String,List<ScrobbleDTO>> classifiedMap= scrobbles.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+			
+			List<TopCountDTO> counts = new ArrayList<>();
+			
+			sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			
+			for(Entry<String, List<ScrobbleDTO>> e : sortedList) {
+				long playtime = e.getValue().stream().mapToInt(scrobble -> scrobble.getTrackLength()).sum();
+				counts.add(new TopCountDTO(
+						e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)scrobbles.size()*100,
+						playtime,
+						(double)playtime*100/(double)timeUnitDetailDTO.getTotalPlaytime()));
+			}
+			
+			timeUnitGroupList.add(new TopGroupDTO(criterion.getName(),counts));
+		}
+		
+		model.addAttribute("timeUnitGroupList", timeUnitGroupList);
+		model.addAttribute("timeUnitDetail",timeUnitDetailDTO);
+		model.addAttribute("unit",unit);
+		
+		return "timeunitdetail";
 		
 	}
 	
@@ -611,13 +689,13 @@ public class MainController {
 	@RequestMapping("/artist/{artist}")
 	public String artist(Model model, @PathVariable(required=true) String artist) {
 		
-		List<ArtistScrobblesDTO> scrobbles = artistRepository.artistScrobbles(artist);
+		List<ScrobbleDTO> scrobbles = artistRepository.artistScrobbles(artist);
 		List<ArtistSongsQueryDTO> artistSongsList = new ArrayList<>();
 		List<ArtistAlbumsQueryDTO> artistAlbumsList = new ArrayList<>();
 		
-		Map<String, List<ArtistScrobblesDTO>> songGrouping = scrobbles.stream().collect(Collectors.groupingBy(ArtistScrobblesDTO::getSong));
+		Map<String, List<ScrobbleDTO>> songGrouping = scrobbles.stream().collect(Collectors.groupingBy(ScrobbleDTO::getSong));
 		for(String song : songGrouping.keySet()) {
-			List<ArtistScrobblesDTO> sorted = songGrouping.get(song).stream()
+			List<ScrobbleDTO> sorted = songGrouping.get(song).stream()
 					.sorted((sc1, sc2)->sc1.getScrobbleDate().compareTo(sc2.getScrobbleDate()))
 					.collect(Collectors.toList());
 			
@@ -630,19 +708,19 @@ public class MainController {
 			artistSong.setTotalPlays(songGrouping.get(song).size());
 			artistSong.setTrackLength(sorted.get(sorted.size()-1).getTrackLength());
 			artistSong.setDaysSongWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());
-			//artistSong.setWeeksSongWasPlayed(); //TODO
+			artistSong.setWeeksSongWasPlayed((int)sorted.stream().map(s->s.getWeek()).distinct().count()); 
 			artistSong.setMonthsSongWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count());
 			artistSongsList.add(artistSong);
 		}
 		artistSongsList.sort((s1,s2)->s1.getTotalPlays()<s2.getTotalPlays()?1:s1.getTotalPlays()==s2.getTotalPlays()?0:-1);
 		
-		Map<String, List<ArtistScrobblesDTO>> albumGrouping = scrobbles.stream().collect(Collectors.groupingBy(ArtistScrobblesDTO::getAlbum));
+		Map<String, List<ScrobbleDTO>> albumGrouping = scrobbles.stream().collect(Collectors.groupingBy(ScrobbleDTO::getAlbum));
 		for(String album : albumGrouping.keySet()) {
-			List<ArtistScrobblesDTO> sorted = albumGrouping.get(album).stream()
+			List<ScrobbleDTO> sorted = albumGrouping.get(album).stream()
 					.sorted((sc1, sc2)->sc1.getScrobbleDate().compareTo(sc2.getScrobbleDate()))
 					.collect(Collectors.toList());
 			
-			List<ArtistScrobblesDTO> distinct = sorted.stream().distinct().collect(Collectors.toList());
+			List<ScrobbleDTO> distinct = sorted.stream().distinct().collect(Collectors.toList());
 			
 			ArtistAlbumsQueryDTO artistAlbum = new ArtistAlbumsQueryDTO();
 			artistAlbum.setArtist(artist);
@@ -656,7 +734,7 @@ public class MainController {
 			artistAlbum.setAverageSongLength((int)distinct.stream().mapToInt(s->s.getTrackLength()).average().orElse(0.0));
 			artistAlbum.setAveragePlaysPerSong(artistAlbum.getTotalPlays()/artistAlbum.getNumberOfTracks());
 			artistAlbum.setDaysAlbumWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());
-			//artistSong.setWeeksSongWasPlayed(); //TODO
+			artistAlbum.setWeeksAlbumWasPlayed((int)sorted.stream().map(s->s.getWeek()).distinct().count());
 			artistAlbum.setMonthsAlbumWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count());
 			artistAlbumsList.add(artistAlbum);
 		}
@@ -676,11 +754,11 @@ public class MainController {
 		String lastSongPlayed = lastSong.getSong() + " - " +lastSong.getLastPlay();
 		
 		int daysArtistWasPlayed = (int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count();
-		//int weeksArtistWasPlayed; //TODO 
+		int weeksArtistWasPlayed = (int)scrobbles.stream().map(s->s.getWeek()).distinct().count();  
 		int monthsArtistWasPlayed = (int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count();
 		
-		ArtistDTO artistInfo = new ArtistDTO(artistSongsList, artistAlbumsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
-											averageSongLength,averagePlaysPerSong, numberOfSongs, daysArtistWasPlayed, monthsArtistWasPlayed);
+		ArtistPageDTO artistInfo = new ArtistPageDTO(artistSongsList, artistAlbumsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
+											averageSongLength,averagePlaysPerSong, numberOfSongs, daysArtistWasPlayed, weeksArtistWasPlayed, monthsArtistWasPlayed);
 
 		model.addAttribute("artist",artist);
 		model.addAttribute("artistInfo",artistInfo);
@@ -692,12 +770,12 @@ public class MainController {
 	public String album(Model model, @PathVariable(required=true) String artist,
 									@PathVariable(required=true) String album) {
 		
-		List<ArtistScrobblesDTO> scrobbles = artistRepository.albumScrobbles(artist, album);
+		List<ScrobbleDTO> scrobbles = artistRepository.albumScrobbles(artist, album);
 		List<AlbumSongsQueryDTO> albumSongsList = new ArrayList<>();
 		
-		Map<String, List<ArtistScrobblesDTO>> songGrouping = scrobbles.stream().collect(Collectors.groupingBy(ArtistScrobblesDTO::getSong));
+		Map<String, List<ScrobbleDTO>> songGrouping = scrobbles.stream().collect(Collectors.groupingBy(ScrobbleDTO::getSong));
 		for(String song : songGrouping.keySet()) {
-			List<ArtistScrobblesDTO> sorted = songGrouping.get(song).stream()
+			List<ScrobbleDTO> sorted = songGrouping.get(song).stream()
 					.sorted((sc1, sc2)->sc1.getScrobbleDate().compareTo(sc2.getScrobbleDate()))
 					.collect(Collectors.toList());
 			
@@ -710,7 +788,7 @@ public class MainController {
 			albumSong.setTotalPlays(songGrouping.get(song).size());
 			albumSong.setTrackLength(sorted.get(sorted.size()-1).getTrackLength());
 			albumSong.setDaysSongWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());
-			//artistSong.setWeeksSongWasPlayed(); //TODO
+			albumSong.setWeeksSongWasPlayed((int)sorted.stream().map(s->s.getWeek()).distinct().count());
 			albumSong.setMonthsSongWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count());
 			albumSongsList.add(albumSong);
 		}
@@ -730,12 +808,12 @@ public class MainController {
 		String lastSongPlayed = lastSong.getSong() + " - " +lastSong.getLastPlay();
 		
 		int daysAlbumWasPlayed = (int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count();
-		//int weeksArtistWasPlayed; //TODO 
+		int weeksArtistWasPlayed = (int)scrobbles.stream().map(s->s.getWeek()).distinct().count();  
 		int monthsAlbumWasPlayed = (int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count();
 		
-		AlbumDTO albumInfo = new AlbumDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
+		AlbumPageDTO albumInfo = new AlbumPageDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
 											averageSongLength,averagePlaysPerSong, numberOfSongs, Utils.secondsToStringColon(sumOfTrackLengths),
-											daysAlbumWasPlayed, monthsAlbumWasPlayed);
+											daysAlbumWasPlayed, weeksArtistWasPlayed, monthsAlbumWasPlayed);
 
 		model.addAttribute("artist",artist);
 		model.addAttribute("album",album);
@@ -749,10 +827,23 @@ public class MainController {
 									@PathVariable(required=true) String album,
 									@PathVariable(required=true) String song) {
 		
-		List<SongsQueryDTO> albumSongsList = songRepositoryImpl.songsPage(artist, album, song);
-		SongsQueryDTO songQuery = albumSongsList.stream().findFirst().orElse(new SongsQueryDTO());
+		List<ScrobbleDTO> scrobbles = artistRepository.songScrobbles(artist, album, song);
+		//List<SongsQueryDTO> albumSongsList = songRepositoryImpl.songsPage(artist, album, song);
 		
-		model.addAttribute("song",songQuery);
+	
+		SongPageDTO songPage = new SongPageDTO();
+		songPage.setArtist(artist);
+		songPage.setAlbum(album);
+		songPage.setSong(song);
+		songPage.setFirstPlay(scrobbles.stream().map(s->s.getScrobbleDate()).min((s1, s2) -> s1.compareTo(s2)).orElse(""));
+		songPage.setLastPlay(scrobbles.stream().map(s->s.getScrobbleDate()).max((s1, s2) -> s1.compareTo(s2)).orElse(""));
+		songPage.setTotalPlays(scrobbles.size());
+		songPage.setTrackLength(scrobbles.stream().findFirst().orElse(new ScrobbleDTO()).getTrackLength());
+		songPage.setDaysSongWasPlayed((int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());
+		songPage.setWeeksSongWasPlayed((int)scrobbles.stream().map(s->s.getWeek()).distinct().count());
+		songPage.setMonthsSongWasPlayed((int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count());
+		
+		model.addAttribute("song",songPage);
 		
 		return "song";
 	}

@@ -12,6 +12,7 @@ public class ArtistSongsQueryDTO {
 	String firstPlay;
 	String lastPlay;
 	int daysSongWasPlayed;
+	int weeksSongWasPlayed;
 	int monthsSongWasPlayed;
 	
 	public String getArtist() {
@@ -61,6 +62,12 @@ public class ArtistSongsQueryDTO {
 	}
 	public void setDaysSongWasPlayed(int daysSongWasPlayed) {
 		this.daysSongWasPlayed = daysSongWasPlayed;
+	}
+	public int getWeeksSongWasPlayed() {
+		return weeksSongWasPlayed;
+	}
+	public void setWeeksSongWasPlayed(int weeksSongWasPlayed) {
+		this.weeksSongWasPlayed = weeksSongWasPlayed;
 	}
 	public int getMonthsSongWasPlayed() {
 		return monthsSongWasPlayed;

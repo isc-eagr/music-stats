@@ -15,6 +15,7 @@ public class ArtistAlbumsQueryDTO {
 	int averageSongLength;
 	int averagePlaysPerSong;
 	int daysAlbumWasPlayed;
+	int weeksAlbumWasPlayed;
 	int monthsAlbumWasPlayed;
 
 
@@ -115,9 +116,17 @@ public class ArtistAlbumsQueryDTO {
 		return daysAlbumWasPlayed;
 	}
 
-
 	public void setDaysAlbumWasPlayed(int daysAlbumWasPlayed) {
 		this.daysAlbumWasPlayed = daysAlbumWasPlayed;
+	}
+	
+	public int getWeeksAlbumWasPlayed() {
+		return weeksAlbumWasPlayed;
+	}
+
+
+	public void setWeeksAlbumWasPlayed(int weeksAlbumWasPlayed) {
+		this.weeksAlbumWasPlayed = weeksAlbumWasPlayed;
 	}
 
 

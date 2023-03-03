@@ -5,7 +5,8 @@ import library.util.Utils;
 public class TimeUnitStatsDTO {
 	
 	private String genre;
-	private String dateGenre;
+	private String displayDateGenre;
+	private String queryDateGenre;
 	private int durationGenre;
 	private int countGenre;
 	private String sex;
@@ -35,12 +36,20 @@ public class TimeUnitStatsDTO {
 		this.genre = genre;
 	}
 
-	public String getDateGenre() {
-		return dateGenre;
+	public String getDisplayDateGenre() {
+		return displayDateGenre;
 	}
 
-	public void setDateGenre(String dateGenre) {
-		this.dateGenre = dateGenre;
+	public void setDisplayDateGenre(String displayDateGenre) {
+		this.displayDateGenre = displayDateGenre;
+	}
+	
+	public String getQueryDateGenre() {
+		return queryDateGenre;
+	}
+
+	public void setQueryDateGenre(String queryDateGenre) {
+		this.queryDateGenre = queryDateGenre;
 	}
 
 	public int getDurationGenre() {

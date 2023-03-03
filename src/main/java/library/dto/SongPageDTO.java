@@ -2,7 +2,7 @@ package library.dto;
 
 import library.util.Utils;
 
-public class SongsQueryDTO {
+public class SongPageDTO {
 	
 	String artist;
 	String song;
@@ -11,6 +11,9 @@ public class SongsQueryDTO {
 	int totalPlays;
 	String firstPlay;
 	String lastPlay;
+	int daysSongWasPlayed;
+	int weeksSongWasPlayed;
+	int monthsSongWasPlayed;
 
 
 	public String getArtist() {
@@ -83,6 +86,34 @@ public class SongsQueryDTO {
 	public int getTotalPlaytime() {
 		return trackLength*totalPlays;
 	}
+	
+	public int getDaysSongWasPlayed() {
+		return daysSongWasPlayed;
+	}
+
+	public void setDaysSongWasPlayed(int daysSongWasPlayed) {
+		this.daysSongWasPlayed = daysSongWasPlayed;
+	}
+	
+	public int getWeeksSongWasPlayed() {
+		return weeksSongWasPlayed;
+	}
+
+
+	public void setWeeksSongWasPlayed(int weeksSongWasPlayed) {
+		this.weeksSongWasPlayed = weeksSongWasPlayed;
+	}
+
+
+	public int getMonthsSongWasPlayed() {
+		return monthsSongWasPlayed;
+	}
+
+
+	public void setMonthsSongWasPlayed(int monthsSongWasPlayed) {
+		this.monthsSongWasPlayed = monthsSongWasPlayed;
+	}
+
 
 	public String getTrackLengthString() {
 		return Utils.secondsToStringColon(trackLength);
@@ -93,7 +124,7 @@ public class SongsQueryDTO {
 	}
 
 
-	public SongsQueryDTO(String artist, String song, String album, int trackLength, int totalPlays, String firstPlay,
+	public SongPageDTO(String artist, String song, String album, int trackLength, int totalPlays, String firstPlay,
 			String lastPlay) {
 		super();
 		this.artist = artist;
@@ -106,7 +137,7 @@ public class SongsQueryDTO {
 	}
 
 
-	public SongsQueryDTO() {
+	public SongPageDTO() {
 
 	}
 	

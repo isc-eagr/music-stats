@@ -2,7 +2,7 @@ package library.dto;
 
 import java.util.Objects;
 
-public class ArtistScrobblesDTO {
+public class ScrobbleDTO {
 	
 	private String artist;
 	private String album;
@@ -13,6 +13,8 @@ public class ArtistScrobblesDTO {
 	private int year;
 	private String language;
 	private String sex;
+	private String week;
+	
 	public String getArtist() {
 		return artist;
 	}
@@ -67,6 +69,12 @@ public class ArtistScrobblesDTO {
 	public void setSex(String sex) {
 		this.sex = sex;
 	}
+	public String getWeek() {
+		return week;
+	}
+	public void setWeek(String week) {
+		this.week = week;
+	}
 	@Override
 	public String toString() {
 		return "ArtistScrobblesDTO [artist=" + artist + ", album=" + album + ", song=" + song + ", trackLength="
@@ -84,7 +92,7 @@ public class ArtistScrobblesDTO {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ArtistScrobblesDTO other = (ArtistScrobblesDTO) obj;
+		ScrobbleDTO other = (ScrobbleDTO) obj;
 		return Objects.equals(album, other.album) && Objects.equals(artist, other.artist)
 				&& Objects.equals(genre, other.genre) && Objects.equals(language, other.language)
 				&& Objects.equals(sex, other.sex) && Objects.equals(song, other.song)

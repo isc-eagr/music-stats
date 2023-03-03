@@ -13,6 +13,7 @@ public class AlbumSongsQueryDTO {
 	String lastPlay;
 	int numberOfTracks;
 	int daysSongWasPlayed;
+	int weeksSongWasPlayed;
 	int monthsSongWasPlayed;
 
 
@@ -100,9 +101,17 @@ public class AlbumSongsQueryDTO {
 		return daysSongWasPlayed;
 	}
 
-
 	public void setDaysSongWasPlayed(int daysSongWasPlayed) {
 		this.daysSongWasPlayed = daysSongWasPlayed;
+	}
+
+	public int getWeeksSongWasPlayed() {
+		return weeksSongWasPlayed;
+	}
+
+
+	public void setWeeksSongWasPlayed(int weeksSongWasPlayed) {
+		this.weeksSongWasPlayed = weeksSongWasPlayed;
 	}
 
 

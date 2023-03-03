@@ -12,6 +12,8 @@ public class TopCountDTO {
 	
 	private long playtime;
 	
+	private double percentagePlaytime;
+	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
 	}
@@ -47,14 +49,22 @@ public class TopCountDTO {
 	public void setPlaytime(long playtime) {
 		this.playtime = playtime;
 	}
+	
+	public double getPercentagePlaytime() {
+		return percentagePlaytime;
+	}
 
-	public TopCountDTO(String element, int count, double percentage, long playtime) {
+	public void setPercentagePlaytime(double percentagePlaytime) {
+		this.percentagePlaytime = percentagePlaytime;
+	}
+
+	public TopCountDTO(String element, int count, double percentage, long playtime, double percentagePlaytime) {
 		super();
 		this.element = element;
 		this.count = count;
 		this.percentage = percentage;
 		this.playtime = playtime;
+		this.percentagePlaytime = percentagePlaytime;
 	}
-	
-	
+
 }

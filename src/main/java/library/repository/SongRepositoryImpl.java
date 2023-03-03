@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import library.dto.AllSongsExtendedDTO;
 import library.dto.SongsInItunesButNotLastfmDTO;
-import library.dto.SongsQueryDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopSongsDTO;
@@ -78,7 +77,7 @@ public class SongRepositoryImpl{
 	
 	private static final String TIME_UNIT_QUERY = """
 			select * from 
-				(select a.genre, a.date date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count
+				(select a.genre, a.date display_date_genre, a.date query_date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count
 					from (select so.genre, %s date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
 						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
@@ -86,50 +85,36 @@ public class SongRepositoryImpl{
 						order by %s desc, sum(duration) desc) a 
 					group by a.date) genre 
 				inner join 
-				(select a.sex,a.date date_sex, max(a.duration) duration_sex, a.count count_sex 
+				(select a.sex,a.date display_date_sex, max(a.duration) duration_sex, a.count count_sex 
 		            from (select so.sex, %s date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
 						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 						group by so.sex, %s 
 						order by %s desc, sum(duration) desc) a 
 					group by a.date) sex 
-			on genre.date_genre = sex.date_sex
+			on genre.display_date_genre = sex.display_date_sex
 			""";
 	
 	private static final String WEEK_QUERY = """
-			select * from (select a.genre, MIN(minDate) date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count 
-			from (select so.genre, YEARWEEK(sc.scrobble_date,1) date, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
+			select * from (select a.genre, MIN(minDate) display_date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count, a.yearweek query_date_genre
+			from (select so.genre, YEARWEEK(sc.scrobble_date,1) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
 			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			group by so.genre, YEARWEEK(sc.scrobble_date,1) 
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
-			group by a.date) genre 
+			group by a.yearweek) genre 
 			inner join 
-			(select a.sex, MIN(minDate) date_sex, max(a.duration) duration_sex, a.count count_sex 
-            from (select so.sex, YEARWEEK(sc.scrobble_date,1) date, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
+			(select a.sex, MIN(minDate) display_date_sex, max(a.duration) duration_sex, a.count count_sex 
+            from (select so.sex, YEARWEEK(sc.scrobble_date,1) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
 			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			group by so.sex, YEARWEEK(sc.scrobble_date,1) 
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
-			group by a.date) sex 
-			on genre.date_genre = sex.date_sex 
+			group by a.yearweek) sex 
+			on genre.display_date_genre = sex.display_date_sex 
 			""";
 	
-	private static final String AVG_SONG_DURATION_BY_ARTIST = """
-			select avg(duration) from song
-            where LOWER(artist)=LOWER(?)
-			""";
 	
-	private static final String SONGS_PAGE_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, count(*) total_plays, min(sc.scrobble_date) first_play,max(sc.scrobble_date) last_play
-    		from song so inner join scrobble sc on so.id=sc.song_id
-    		where LOWER(sc.artist)=LOWER(?)
-            and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
-            and LOWER(so.song) = LOWER(?)
-    		group by so.artist, so.song, so.album
-    		order by total_plays desc, so.song asc
-			""";
-		
 	public List<AllSongsExtendedDTO> getAllSongsExtended(String start, String end) {
 		return template.query(ALL_SONGS_EXTENDED_QUERY, new BeanPropertyRowMapper<>(AllSongsExtendedDTO.class), start, end);
 	}
@@ -172,11 +157,4 @@ public class SongRepositoryImpl{
 
 	}
 	
-	public int averageSongDurationByArtist(String artist) {
-		return template.queryForObject(AVG_SONG_DURATION_BY_ARTIST, Integer.class,artist);
-	}
-	
-	public List<SongsQueryDTO> songsPage(String artist, String album, String song) {
-		return template.query(SONGS_PAGE_QUERY, new BeanPropertyRowMapper<>(SongsQueryDTO.class), artist, album, song);
-	}
 }

@@ -21,6 +21,7 @@ Last Song Played: <span th:text="${albumInfo.lastSongPlayed}"/><br/>
 Average Song Length: <span th:text="${albumInfo.averageSongLength}"/><br/>
 Average Plays Per Song: <span th:text="${albumInfo.averagePlaysPerSong}"/><br/>
 Days album was played: <span th:text="${albumInfo.daysAlbumWasPlayed}"/><br/>
+Weeks album was played: <span th:text="${albumInfo.weeksAlbumWasPlayed}"/><br/>
 Months album was played: <span th:text="${albumInfo.monthsAlbumWasPlayed}"/><br/>
 
 
@@ -38,6 +39,7 @@ Months album was played: <span th:text="${albumInfo.monthsAlbumWasPlayed}"/><br/
 			<th>First Play</th>
 			<th>Last Play</th>
 			<th>Days song was played</th>
+			<th>Weeks song was played</th>
 			<th>Months song was played</th>
 		</tr>
 	</thead>
@@ -52,6 +54,7 @@ Months album was played: <span th:text="${albumInfo.monthsAlbumWasPlayed}"/><br/
 			<td th:text="${song.firstPlay}"/>
 			<td th:text="${song.lastPlay}"/>
 			<td th:text="${song.daysSongWasPlayed}"/>
+			<td th:text="${song.weeksSongWasPlayed}"/>
 			<td th:text="${song.monthsSongWasPlayed}"/>
 		</tr>
 	</tbody>
