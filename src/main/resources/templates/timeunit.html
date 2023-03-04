@@ -28,7 +28,7 @@
 	<tr th:each="listCount : ${timeUnitGroup.listCounts}">
 		<td th:text="${listCount.element}"/>
 		<td th:text="${listCount.count}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		
 	</tr>
 </table>
@@ -42,7 +42,7 @@
 			<td><a th:href="@{/timeUnitDetail/{unit}/{unitValue}(unit=${unit},unitValue=${timeUnit.queryDateGenre})}" th:text="${timeUnit.displayDateGenre}"></td>
 			<td th:text="${timeUnit.totalDurationText}" th:data-value="${timeUnit.totalDuration}"/>
 			<td th:text="${timeUnit.totalCount}"/>
-			<td th:text="${timeUnit.genre}"/>
+			<td><a th:href="@{/genre/{genre}(genre=${timeUnit.genre})}" th:text="${timeUnit.genre}"></td>
 			<td th:text="${timeUnit.durationGenreText}" th:data-value="${timeUnit.durationGenre}"/>
 			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.durationGenre)/(0.0+timeUnit.totalDuration), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 			<td th:text="${timeUnit.countGenre}"/>

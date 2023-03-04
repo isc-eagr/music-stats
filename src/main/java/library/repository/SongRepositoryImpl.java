@@ -10,6 +10,7 @@ import library.dto.AllSongsExtendedDTO;
 import library.dto.SongsInItunesButNotLastfmDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
+import library.dto.TopGenresDTO;
 import library.dto.TopSongsDTO;
 import library.dto.TimeUnitStatsDTO;
 
@@ -54,6 +55,14 @@ public class SongRepositoryImpl{
 				order by count desc 
 				limit ?
 				""";
+	
+	private static final String TOP_GENRES_QUERY = """
+			select so.genre, count(*) count, sum(duration) playtime 
+			from scrobble sc inner join song so on so.id=sc.song_id 
+			group by so.genre 
+			order by count desc 
+			limit ?
+			""";
 	
 	private static final String SONGS_ITUNES_BUT_NOT_LASTFM = """
 				select so.artist, so.song, so.album, so.genre, so.sex, so.language, count(*)  plays, duration, sum(duration) playtime 
@@ -129,6 +138,9 @@ public class SongRepositoryImpl{
 	
 	public List<TopArtistsDTO> getTopArtists(int limit) {
 		return template.query(TOP_ARTISTS_QUERY, new BeanPropertyRowMapper<>(TopArtistsDTO.class),limit);
+	}
+	public List<TopGenresDTO> getTopGenres(int limit) {
+		return template.query(TOP_GENRES_QUERY, new BeanPropertyRowMapper<>(TopGenresDTO.class),limit);
 	}
 	
 	public List<SongsInItunesButNotLastfmDTO> songsItunesButNotLastfm() {

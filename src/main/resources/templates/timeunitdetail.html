@@ -26,11 +26,13 @@ Unique Songs Played: <span th:text="${timeUnitDetail.uniqueSongsPlayed}"/><br/>
 Percentage of unit where music was played: <span th:text="${#numbers.formatDecimal(timeUnitDetail.percentageofUnitWhereMusicWasPlayed, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/><br/>
   
 <table th:each="timeUnitGroup : ${timeUnitGroupList}">
-	<tr><th th:text="${timeUnitGroup.criteria}"/><th th:text="Number"/><th th:text="Percentage"/><th>Playtime</th><th>Playtime %</th></tr>
+	<tr><th th:text="${timeUnitGroup.criteria}"/><th th:text="${'Number of songs'}"/><th th:text="${'Percentage of songs'}"/><th>Number of Plays</th><th>Percentage of Plays</th><th>Playtime</th><th>Playtime %</th></tr>
 	<tr th:each="listCount : ${timeUnitGroup.listCounts}">
 		<td th:text="${listCount.element}"/>
 		<td th:text="${listCount.count}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.plays}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		<td th:text="${listCount.playtimeString}"/>
 		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
 	</tr>

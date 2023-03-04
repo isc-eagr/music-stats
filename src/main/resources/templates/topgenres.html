@@ -1,0 +1,48 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<title>Top Genres</title>
+	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+	<script src='js/utils.js'></script>
+	<script src="js/sortable.min.js"></script>
+	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			document.getElementById("numRecords").innerHTML = document.getElementById("genresTable").rows.length-1;
+			Sortable.init();
+		}
+	</script>
+</head>
+<body>
+
+<form th:action="@{/topGenres}">
+Only the top <input type="text" th:name="limit"/> genres 
+<input type="submit"/> 
+</form>
+
+
+
+Number of records: <span id="numRecords"></span>
+<table id="genresTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr>
+			<th>Position</th>
+			<th>Overall Position</th>
+			<th>Plays</th>
+			<th>Genre</th>
+			<th>Playtime</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr th:each="topGenre, stat : ${topGenres}">
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${topGenre.count}"/>
+			<td><a th:href="@{/genre/{genre}(genre=${topGenre.genre})}" th:text="${topGenre.genre}"></td>
+			<td th:text="${topGenre.playtimeString}" th:data-value="${topGenre.playtime}"/>
+		</tr>
+	</tbody>
+</table>
+
+</body>
+
+</html>

@@ -74,12 +74,14 @@ Only the top <input type="text" th:name="limit"/> songs
 </form>
 
 <table th:each="topSongsGroup : ${topSongsGroupList}">
-	<tr><th/><th th:text="${topSongsGroup.criteria}"/><th>Number of Songs</th><th>Percentage of Songs</th><th>Playtime</th><th>Playtime %</th></tr>
+	<tr><th/><th th:text="${topSongsGroup.criteria}"/><th>Number of Songs</th><th>Percentage of Songs</th><th>Number of Plays</th><th>Percentage of Plays</th><th>Playtime</th><th>Playtime %</th></tr>
 	<tr th:each="listCount : ${topSongsGroup.listCounts}">
 		<td><input type="checkbox" th:value="${listCount.element+','+topSongsGroup.criteria}" onclick="filterTable(this.value)"/></td>
 		<td th:text="${listCount.element}"/>
 		<td th:text="${listCount.count}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentage, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.plays}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		<td th:text="${listCount.playtimeString}"/>
 		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		
@@ -100,7 +102,7 @@ Number of records: <span id="numRecords"></span>
 			<td><a th:href="@{/song/{artist}/{album}/{song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}" th:text="${topSong.song}"></td>
 			<td><a th:href="@{/album/{artist}/{album}(artist=${topSong.artist},album=${topSong.album})}" th:text="${topSong.album}"></td>
 			<td th:text="${topSong.count}"/>
-			<td th:text="${topSong.genre}"/>
+			<td><a th:href="@{/genre/{genre}(genre=${topSong.genre})}" th:text="${topSong.genre}"></td>
 			<td th:text="${topSong.sex}"/>
 			<td th:text="${topSong.language}"/>
 			<td th:text="${topSong.year}"/>

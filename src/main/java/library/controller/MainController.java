@@ -39,6 +39,7 @@ import org.xml.sax.SAXException;
 import com.opencsv.bean.CsvToBeanBuilder;
 
 import library.dto.TopCountDTO;
+import library.dto.TopGenresDTO;
 import library.dto.AlbumPageDTO;
 import library.dto.AlbumSongsQueryDTO;
 import library.dto.AllSongsExtendedDTO;
@@ -48,6 +49,7 @@ import library.dto.ScrobbleDTO;
 import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
 import library.dto.DataForGraphs;
+import library.dto.GenrePageDTO;
 import library.dto.SaveAlbumDTO;
 import library.dto.SongPageDTO;
 import library.dto.TimeUnitDetailDTO;
@@ -358,12 +360,16 @@ public class MainController {
 			List<Entry<String, List<TopSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
+			//TODO need to add plays and playsPercentage
 			for(Entry<String, List<TopSongsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
 				long playtime = e.getValue().stream().mapToLong(topSong -> topSong.getPlaytime()).sum();
 				counts.add(new TopCountDTO(
 						e.getKey(), 
 						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topSongs.size()*100, 
+						(double)e.getValue().size()/(double)topSongs.size()*100,
+						plays,
+						(double)plays*100/topSongs.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
 						playtime,
 						(double)playtime*100/topSongs.stream().mapToDouble(a->a.getPlaytime()).sum()));
 			}
@@ -407,12 +413,16 @@ public class MainController {
 			List<Entry<String, List<TopArtistsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
+			//TODO add plays and playsPercentage
 			for(Entry<String, List<TopArtistsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
 				long playtime = e.getValue().stream().mapToLong(topArtist -> topArtist.getPlaytime()).sum();
 				counts.add(new TopCountDTO(
 						e.getKey(), 
 						e.getValue().size(), 
 						(double)e.getValue().size()/(double)topArtists.size()*100,
+						plays,
+						(double)plays*100/topArtists.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
 						playtime,
 						(double)playtime*100/topArtists.stream().mapToDouble(a->a.getPlaytime()).sum()));
 			}
@@ -449,11 +459,15 @@ public class MainController {
 			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
+			//TODO add plays and playsPercent
 			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
 				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
 				counts.add(new TopCountDTO(e.getKey(), 
 						e.getValue().size(), 
 						(double)e.getValue().size()/(double)topAlbums.size()*100,
+						plays,
+						(double)plays*100/topAlbums.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
 						playtime,
 						(double)playtime*100/topAlbums.stream().mapToDouble(a->a.getPlaytime()).sum()
 						));
@@ -465,6 +479,15 @@ public class MainController {
 		model.addAttribute("topAlbumsGroupList", topAlbumsGroupList);
 		
 		return "topalbums";
+		
+	}
+	
+	@RequestMapping("/topGenres")
+	public String topGenres(Model model, @RequestParam(defaultValue="10000000") int limit) {
+		List<TopGenresDTO> topGenres = songRepositoryImpl.getTopGenres(limit);
+		model.addAttribute("topGenres", topGenres);
+		
+		return "topGenres";
 		
 	}
 	
@@ -500,7 +523,7 @@ public class MainController {
 		Collections.sort(sortedGenreList, (o1,o2)-> ((o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)));
 		
 		for(Entry<String, List<TimeUnitStatsDTO>> e : sortedGenreList) {
-			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0,0));
+			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0,0,0,0));
 		}
 		timeUnitGroupList.add(new TopGroupDTO("Genre",counts));
 		
@@ -511,7 +534,7 @@ public class MainController {
 		Collections.sort(sortedSexList, (o1,o2)->(o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		
 		for(Entry<String, List<TimeUnitStatsDTO>> e : sortedSexList) {
-			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0,0));
+			counts.add(new TopCountDTO(e.getKey(), e.getValue().size(), (double)e.getValue().size()/(double)timeUnits.size()*100,0,0,0,0));
 		}
 		
 		timeUnitGroupList.add(new TopGroupDTO("Sex",counts));
@@ -587,9 +610,12 @@ public class MainController {
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
 			for(Entry<String, List<ScrobbleDTO>> e : sortedList) {
+				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
 				long playtime = e.getValue().stream().mapToInt(scrobble -> scrobble.getTrackLength()).sum();
 				counts.add(new TopCountDTO(
 						e.getKey(), 
+						uniqueSongs,
+						(double)uniqueSongs/(double)timeUnitDetailDTO.getUniqueSongsPlayed()*100,
 						e.getValue().size(), 
 						(double)e.getValue().size()/(double)scrobbles.size()*100,
 						playtime,
@@ -697,7 +723,7 @@ public class MainController {
 		for(String song : songGrouping.keySet()) {
 			List<ScrobbleDTO> sorted = songGrouping.get(song).stream()
 					.sorted((sc1, sc2)->sc1.getScrobbleDate().compareTo(sc2.getScrobbleDate()))
-					.collect(Collectors.toList());
+					.toList();
 			
 			ArtistSongsQueryDTO artistSong = new ArtistSongsQueryDTO();
 			artistSong.setArtist(artist);
@@ -718,9 +744,9 @@ public class MainController {
 		for(String album : albumGrouping.keySet()) {
 			List<ScrobbleDTO> sorted = albumGrouping.get(album).stream()
 					.sorted((sc1, sc2)->sc1.getScrobbleDate().compareTo(sc2.getScrobbleDate()))
-					.collect(Collectors.toList());
+					.toList();
 			
-			List<ScrobbleDTO> distinct = sorted.stream().distinct().collect(Collectors.toList());
+			List<ScrobbleDTO> distinct = sorted.stream().distinct().toList();
 			
 			ArtistAlbumsQueryDTO artistAlbum = new ArtistAlbumsQueryDTO();
 			artistAlbum.setArtist(artist);
@@ -777,7 +803,7 @@ public class MainController {
 		for(String song : songGrouping.keySet()) {
 			List<ScrobbleDTO> sorted = songGrouping.get(song).stream()
 					.sorted((sc1, sc2)->sc1.getScrobbleDate().compareTo(sc2.getScrobbleDate()))
-					.collect(Collectors.toList());
+					.toList();
 			
 			AlbumSongsQueryDTO albumSong = new AlbumSongsQueryDTO();
 			albumSong.setArtist(artist);
@@ -828,8 +854,6 @@ public class MainController {
 									@PathVariable(required=true) String song) {
 		
 		List<ScrobbleDTO> scrobbles = artistRepository.songScrobbles(artist, album, song);
-		//List<SongsQueryDTO> albumSongsList = songRepositoryImpl.songsPage(artist, album, song);
-		
 	
 		SongPageDTO songPage = new SongPageDTO();
 		songPage.setArtist(artist);
@@ -848,6 +872,77 @@ public class MainController {
 		return "song";
 	}
 	
+	@GetMapping("/genre/{genre}")
+	public String song(Model model, @PathVariable(required=true) String genre) {
+		
+		List<ScrobbleDTO> scrobbles = artistRepository.genreScrobbles(genre);
+		List<ScrobbleDTO> sorted = scrobbles.stream().sorted((s1,s2)->s1.getScrobbleDate().compareTo(s2.getScrobbleDate())).toList();
+		
+		GenrePageDTO genrePage = new GenrePageDTO();
+		genrePage.setFirstPlay(sorted.get(0).getArtist()+" - "+sorted.get(0).getAlbum()+" - "+sorted.get(0).getSong()+" - "+sorted.get(0).getScrobbleDate());
+		genrePage.setLastPlay(sorted.get(sorted.size()-1).getArtist()+" - "+sorted.get(sorted.size()-1).getAlbum()+" - "+sorted.get(sorted.size()-1).getSong()+" - "+sorted.get(sorted.size()-1).getScrobbleDate());
+		genrePage.setTotalPlays(scrobbles.size());
+		genrePage.setTotalPlaytime(scrobbles.stream().mapToInt(s->s.getTrackLength()).sum());
+		genrePage.setDaysGenreWasPlayed((int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());
+		genrePage.setWeeksGenreWasPlayed((int)scrobbles.stream().map(s->s.getWeek()).distinct().count());
+		genrePage.setMonthsGenreWasPlayed((int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count());
+		
+		//Breakdowns
+		Map<String, List<ScrobbleDTO>> map = scrobbles.stream().collect(Collectors.groupingBy(s->s.getArtist()));
+		List<Entry<String, List<ScrobbleDTO>>> sortedList = new ArrayList<>(map.entrySet());
+		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 	
+		genrePage.setMostPlayedArtist(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		genrePage.setNumberOfArtists(map.entrySet().size());
+		
+		map = scrobbles.stream().filter(s->!s.getAlbum().equals("(single)")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
+		sortedList = new ArrayList<>(map.entrySet());
+		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+		genrePage.setMostPlayedAlbum(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		genrePage.setNumberOfAlbums(map.entrySet().size());
+		
+		map = scrobbles.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
+		sortedList = new ArrayList<>(map.entrySet());
+		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+		genrePage.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		genrePage.setNumberOfSongs(map.entrySet().size());
+		
+		List<Criterion<ScrobbleDTO>> criteria = List.of(new Criterion<>("Sex", scrobble -> scrobble.getSex()),
+				new Criterion<>("Year", scrobble -> String.valueOf(scrobble.getYear())),
+				new Criterion<>("Language", scrobble -> scrobble.getLanguage())
+				);
+		
+		
+		List<TopGroupDTO> genreGroupList = new ArrayList<>(); 
+		
+		for (Criterion<ScrobbleDTO> criterion : criteria) {
+			Map<String,List<ScrobbleDTO>> classifiedMap= scrobbles.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+			
+			List<TopCountDTO> counts = new ArrayList<>();
+			
+			sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			
+			for(Entry<String, List<ScrobbleDTO>> e : sortedList) {
+				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
+				long playtime = e.getValue().stream().mapToInt(scrobble -> scrobble.getTrackLength()).sum();
+				counts.add(new TopCountDTO(
+						e.getKey(), 
+						uniqueSongs,
+						(double)uniqueSongs/(double)genrePage.getNumberOfSongs()*100,
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)scrobbles.size()*100,
+						playtime,
+						(double)playtime*100/(double)genrePage.getTotalPlaytime()));
+			}
+			
+			genreGroupList.add(new TopGroupDTO(criterion.getName(),counts));
+		}
+		
+		model.addAttribute("genre",genrePage);
+		model.addAttribute("genreGroupList", genreGroupList);
+		
+		return "genre";
+	}
 
 }

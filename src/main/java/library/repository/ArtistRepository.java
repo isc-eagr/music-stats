@@ -39,6 +39,12 @@ public class ArtistRepository{
             and LOWER(so.song) = LOWER(?)
 			""";
     
+    private static final String GENRE_SCROBBLES_QUERY = """
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.scrobble_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+            from scrobble sc inner join song so on sc.song_id = so.id
+            where LOWER(so.genre)=LOWER(?)
+			""";
+    
 	public List<ScrobbleDTO> artistScrobbles(String artist) {
 		return template.query(ARTIST_SCROBBLES_QUERY, new BeanPropertyRowMapper<>(ScrobbleDTO.class), artist);
 	}
@@ -49,6 +55,10 @@ public class ArtistRepository{
 	
 	public List<ScrobbleDTO> songScrobbles(String artist, String album, String song) {
 		return template.query(SONG_SCROBBLES_QUERY, new BeanPropertyRowMapper<>(ScrobbleDTO.class), artist, album, song);
+	}
+	
+	public List<ScrobbleDTO> genreScrobbles(String genre) {
+		return template.query(GENRE_SCROBBLES_QUERY, new BeanPropertyRowMapper<>(ScrobbleDTO.class), genre);
 	}
 	
 }

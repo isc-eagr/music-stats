@@ -8,7 +8,11 @@ public class TopCountDTO {
 	
 	private int count;
 	
-	private double percentage;
+	private double percentageCount;
+	
+	private int plays;
+	
+	private double percentagePlays;
 	
 	private long playtime;
 	
@@ -24,22 +28,6 @@ public class TopCountDTO {
 
 	public void setElement(String element) {
 		this.element = element;
-	}
-
-	public int getCount() {
-		return count;
-	}
-
-	public void setCount(int count) {
-		this.count = count;
-	}
-
-	public double getPercentage() {
-		return percentage;
-	}
-
-	public void setPercentage(double percentage) {
-		this.percentage = percentage;
 	}
 
 	public long getPlaytime() {
@@ -58,13 +46,50 @@ public class TopCountDTO {
 		this.percentagePlaytime = percentagePlaytime;
 	}
 
-	public TopCountDTO(String element, int count, double percentage, long playtime, double percentagePlaytime) {
+	public int getPlays() {
+		return plays;
+	}
+
+	public void setPlays(int plays) {
+		this.plays = plays;
+	}
+
+	public double getPercentagePlays() {
+		return percentagePlays;
+	}
+
+	public void setPercentagePlays(double percentagePlays) {
+		this.percentagePlays = percentagePlays;
+	}
+
+	public int getCount() {
+		return count;
+	}
+
+	public void setCount(int count) {
+		this.count = count;
+	}
+
+	public double getPercentageCount() {
+		return percentageCount;
+	}
+
+	public void setPercentageCount(double percentageCount) {
+		this.percentageCount = percentageCount;
+	}
+
+	public TopCountDTO(String element, int count, double percentageCount, int plays, double percentagePlays,
+			long playtime, double percentagePlaytime) {
 		super();
 		this.element = element;
 		this.count = count;
-		this.percentage = percentage;
+		this.percentageCount = percentageCount;
+		this.plays = plays;
+		this.percentagePlays = percentagePlays;
 		this.playtime = playtime;
 		this.percentagePlaytime = percentagePlaytime;
 	}
+
+
 
 }

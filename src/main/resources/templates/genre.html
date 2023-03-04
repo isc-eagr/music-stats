@@ -1,0 +1,49 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<title>What Won Each Day</title>
+	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src='js/utils.js'></script>
+	<script src="js/sortable.min.js"></script>
+	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			flatpickr("#dateStart", dateConfig);
+			flatpickr("#dateEnd", dateConfig);
+			Sortable.init();
+		}
+	</script>
+</head>
+<body>
+Total Plays: <span th:text="${genre.totalPlays}"/><br/>
+Total Playtime: <span th:text="${genre.totalPlaytimeString}"/><br/>
+Most Played Artist: <span th:text="${genre.mostPlayedArtist}"/><br/>
+Most Played Album: <span th:text="${genre.mostPlayedAlbum}"/><br/>
+Most Played Song: <span th:text="${genre.mostPlayedSong}"/><br/>
+Number of artists: <span th:text="${genre.numberOfArtists}"/><br/>
+Number of albums: <span th:text="${genre.numberOfAlbums}"/><br/>
+Number of songs: <span th:text="${genre.numberOfSongs}"/><br/>
+First Play: <span th:text="${genre.firstPlay}"/><br/>
+Last Play: <span th:text="${genre.lastPlay}"/><br/>
+Days Genre Was Played: <span th:text="${genre.daysGenreWasPlayed}"/><br/>
+Weeks Genre Was Played: <span th:text="${genre.weeksGenreWasPlayed}"/><br/>
+Months Genre Was Played: <span th:text="${genre.monthsGenreWasPlayed}"/><br/>
+Average Song Length: <span th:text="${genre.averageSongLength}"/><br/>
+Average Plays Per Song: <span th:text="${genre.averagePlaysPerSong}"/><br/>
+  
+<table th:each="genreGroup : ${genreGroupList}">
+	<tr><th th:text="${genreGroup.criteria}"/><th th:text="${'Number of songs'}"/><th th:text="${'Percentage of songs'}"/><th th:text="${'Plays'}"/><th th:text="${'Percentage of Plays'}"/><th>Playtime</th><th>Playtime %</th></tr>
+	<tr th:each="listCount : ${genreGroup.listCounts}">
+		<td th:text="${listCount.element}"/>
+		<td th:text="${listCount.count}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.plays}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${listCount.playtimeString}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
+	</tr>
+</table>
+
+</body>
+
+</html>
