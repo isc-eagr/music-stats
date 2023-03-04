@@ -360,7 +360,6 @@ public class MainController {
 			List<Entry<String, List<TopSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
-			//TODO need to add plays and playsPercentage
 			for(Entry<String, List<TopSongsDTO>> e : sortedList) {
 				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
 				long playtime = e.getValue().stream().mapToLong(topSong -> topSong.getPlaytime()).sum();
@@ -413,7 +412,6 @@ public class MainController {
 			List<Entry<String, List<TopArtistsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
-			//TODO add plays and playsPercentage
 			for(Entry<String, List<TopArtistsDTO>> e : sortedList) {
 				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
 				long playtime = e.getValue().stream().mapToLong(topArtist -> topArtist.getPlaytime()).sum();
@@ -459,7 +457,6 @@ public class MainController {
 			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 			
-			//TODO add plays and playsPercent
 			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
 				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
 				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
