@@ -79,7 +79,15 @@ Only the top <input type="text" th:name="limit"/> albums
 
 <table th:each="topAlbumsGroup : ${topAlbumsGroupList}">
 	<thead>
-		<tr><th/><th th:text="${topAlbumsGroup.criteria}"/><th>Number of Albums</th><th>Percentage of Albums</th><th>Number of Plays</th><th>Percentage of Plays</th><th>Playtime</th><th>Playtime %</th></tr>
+		<tr>
+			<th th:text="${topAlbumsGroup.criteria}"/>
+			<th>Number of Albums</th>
+			<th>Percentage of Albums</th>
+			<th>Number of Plays</th>
+			<th>Percentage of Plays</th>
+			<th>Playtime</th>
+			<th>Playtime %</th>
+		</tr>
 	</thead>
 	<tr th:each="listCount : ${topAlbumsGroup.listCounts}">
 		<td><input type="checkbox" th:value="${listCount.element+','+topAlbumsGroup.criteria}" onclick="filterTable(this.value)"/></td>
@@ -109,6 +117,12 @@ Number of records: <span id="numRecords"></span>
 			<th>Language</th>
 			<th>Year</th>
 			<th>Playtime</th>
+			<th>Average Song Length</th>
+			<th>Average Plays Per Song</th>
+			<th>Number of Songs</th>
+			<th>Days Album Was Played</th>
+			<th>Weeks Album Was Played</th>
+			<th>Months Album Was Played</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -123,6 +137,12 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topAlbum.language}"/>
 			<td th:text="${topAlbum.year}"/>
 			<td th:text="${topAlbum.playtimeString}" th:data-value="${topAlbum.playtime}"/>
+			<td th:text="${topAlbum.averageLengthString}" th:data-value="${topAlbum.averageLength}"/>
+			<td th:text="${topAlbum.averagePlays}"/>
+			<td th:text="${topAlbum.numberOfSongs}"/>
+			<td th:text="${topAlbum.scrobbleDays}"/>
+			<td th:text="${topAlbum.scrobbleWeeks}"/>
+			<td th:text="${topAlbum.scrobbleMonths}"/>
 		</tr>
 	</tbody>
 </table>

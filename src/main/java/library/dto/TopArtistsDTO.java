@@ -16,9 +16,19 @@ public class TopArtistsDTO {
 	
 	private long playtime;
 	
-	private int averageSongLength;
+	private int averageLength;
 	
-	private int averagePlaysPerSong;
+	private int averagePlays;
+	
+	private int numberOfAlbums;
+	
+	private int numberOfSongs;
+	
+	private int scrobbleDays;
+	
+	private int scrobbleWeeks;
+	
+	private int scrobbleMonths;
 	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
@@ -72,24 +82,64 @@ public class TopArtistsDTO {
 		this.playtime = playtime;
 	}
 
-	public int getAverageSongLength() {
-		return averageSongLength;
+	public int getAverageLength() {
+		return averageLength;
 	}
 
-	public void setAverageSongLength(int averageSongLength) {
-		this.averageSongLength = averageSongLength;
+	public void setAverageLength(int averageLength) {
+		this.averageLength = averageLength;
 	}
 
-	public int getAveragePlaysPerSong() {
-		return averagePlaysPerSong;
+	public int getAveragePlays() {
+		return averagePlays;
 	}
 
-	public void setAveragePlaysPerSong(int averagePlaysPerSong) {
-		this.averagePlaysPerSong = averagePlaysPerSong;
+	public void setAveragePlays(int averagePlays) {
+		this.averagePlays = averagePlays;
+	}
+
+	public int getNumberOfAlbums() {
+		return numberOfAlbums;
+	}
+
+	public void setNumberOfAlbums(int numberOfAlbums) {
+		this.numberOfAlbums = numberOfAlbums;
+	}
+
+	public int getNumberOfSongs() {
+		return numberOfSongs;
+	}
+
+	public void setNumberOfSongs(int numberOfSongs) {
+		this.numberOfSongs = numberOfSongs;
 	}
 	
-	public String getAverageSongLengthString() {
-		return Utils.secondsToStringColon(averageSongLength);
+	public int getScrobbleDays() {
+		return scrobbleDays;
+	}
+
+	public void setScrobbleDays(int scrobbleDays) {
+		this.scrobbleDays = scrobbleDays;
+	}
+
+	public int getScrobbleWeeks() {
+		return scrobbleWeeks;
+	}
+
+	public void setScrobbleWeeks(int scrobbleWeeks) {
+		this.scrobbleWeeks = scrobbleWeeks;
+	}
+
+	public int getScrobbleMonths() {
+		return scrobbleMonths;
+	}
+
+	public void setScrobbleMonths(int scrobbleMonths) {
+		this.scrobbleMonths = scrobbleMonths;
+	}
+
+	public String getAverageLengthString() {
+		return Utils.secondsToStringColon(averageLength);
 	}
 	
 }

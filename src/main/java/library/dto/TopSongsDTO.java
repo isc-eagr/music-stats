@@ -22,6 +22,12 @@ public class TopSongsDTO {
 	
 	private long playtime;
 	
+	private int scrobbleDays;
+	
+	private int scrobbleWeeks;
+	
+	private int scrobbleMonths;
+	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
 	}
@@ -92,6 +98,30 @@ public class TopSongsDTO {
 
 	public long getPlaytime() {
 		return playtime;
+	}
+	
+	public int getScrobbleDays() {
+		return scrobbleDays;
+	}
+
+	public void setScrobbleDays(int scrobbleDays) {
+		this.scrobbleDays = scrobbleDays;
+	}
+
+	public int getScrobbleWeeks() {
+		return scrobbleWeeks;
+	}
+
+	public void setScrobbleWeeks(int scrobbleWeeks) {
+		this.scrobbleWeeks = scrobbleWeeks;
+	}
+
+	public int getScrobbleMonths() {
+		return scrobbleMonths;
+	}
+
+	public void setScrobbleMonths(int scrobbleMonths) {
+		this.scrobbleMonths = scrobbleMonths;
 	}
 
 	public void setPlaytime(long playtime) {

@@ -24,6 +24,7 @@
   	<a href="/timeUnit?unit=day">Days</a><br/>
   	<a href="/timeUnit?unit=week">Weeks</a><br/>
   	<a href="/timeUnit?unit=month">Months</a><br/>
+  	<a href="/timeUnit?unit=season">Seasons</a><br/>
   	<a href="/timeUnit?unit=year">Years</a><br/>
   	<a href="/timeUnit?unit=decade">Decades</a><br/>
   	<a href="/songsLastFmButNotItunes">Songs on lastfm but not itunes</a><br/>
@@ -40,6 +41,9 @@
 	Total Playtime: <span th:text="${totalPlayTimeGlobalString}"/><br/>
 	Average Song Length: <span th:text="${averageSongLength}"/><br/>
 	Average Plays Per Song: <span th:text="${averagePlaysPerSong}"/><br/>
+	Average Plays Per Day: <span th:text="${averagePlaysPerDay}"/><br/>
+	First Scrobble On: <span th:text="${firstScrobbleOn}"/><br/>
+	Days Elapsed Since First Scrobble: <span th:text="${daysElapsedSinceFirstScrobble}"/><br/>
 	
 	
 	<div th:each="dataForGraphsList : ${dataMap}" style='white-space: nowrap;'> <!--Genre, Sex, Language etc.-->

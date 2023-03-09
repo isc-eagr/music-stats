@@ -84,7 +84,23 @@ Only the top <input type="text" th:name="limit"/> artists
 Number of records: <span id="numRecords"></span>
 <table id="artistsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
-		<tr><th>Position</th><th>Overall Position</th><th>Artist</th><th>Plays</th><th>Genre</th><th>Sex</th><th>Language</th><th>Playtime</th></tr>
+		<tr>
+			<th>Position</th>
+			<th>Overall Position</th>
+			<th>Artist</th>
+			<th>Plays</th>
+			<th>Genre</th>
+			<th>Sex</th>
+			<th>Language</th>
+			<th>Playtime</th>
+			<th>Average Song Length</th>
+			<th>Average Plays Per Song</th>
+			<th>Number of Albums</th>
+			<th>Number of Songs</th>
+			<th>Days Artist Was Played</th>
+			<th>Weeks Artist Was Played</th>
+			<th>Months Artist Was Played</th>
+		</tr>
 	</thead>
 	<tbody>
 		<tr th:each="topArtist, stat : ${topArtists}">
@@ -96,8 +112,13 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topArtist.sex}"/>
 			<td th:text="${topArtist.language}"/>
 			<td th:text="${topArtist.playtimeString}" th:data-value="${topArtist.playtime}"/>
-			<!--<td th:text="${topArtist.averageSongLengthString}" th:data-value="${topArtist.averageSongLength}"/>
-			<td th:text="${topArtist.averagePlaysPerSong}"/>-->
+			<td th:text="${topArtist.averageLengthString}" th:data-value="${topArtist.averageLength}"/>
+			<td th:text="${topArtist.averagePlays}"/>
+			<td th:text="${topArtist.numberOfAlbums}"/>
+			<td th:text="${topArtist.numberOfSongs}"/>
+			<td th:text="${topArtist.scrobbleDays}"/>
+			<td th:text="${topArtist.scrobbleWeeks}"/>
+			<td th:text="${topArtist.scrobbleMonths}"/>
 		</tr>
 	</tbody>
 </table>

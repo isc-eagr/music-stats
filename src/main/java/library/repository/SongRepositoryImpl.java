@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import library.dto.AllSongsExtendedDTO;
 import library.dto.SongsInItunesButNotLastfmDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
@@ -24,43 +23,88 @@ public class SongRepositoryImpl{
 
 	}
 	
-	private static final String ALL_SONGS_EXTENDED_QUERY = """
-			select so.artist, so.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, count(*)  plays, duration, sum(duration) playtime 
-			from song so inner join scrobble sc on so.id=sc.song_id 
-			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
-			group by so.artist,so.song,so.album
-			""";
 	
 	private static final String TOP_ALBUMS_QUERY = """
-			select sc.artist, IFNULL(sc.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+			select * from 
+			(select artist, album, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
+							sum(duration*count) playtime, count(distinct album,song) number_of_songs,
+				            genre, sex, language, year
+							from
+							(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
+							so.genre, so.sex, so.language, so.year
+							from scrobble sc inner join song so on so.id=sc.song_id 
+			                where sc.album is not null and sc.album <> ''
+							group by so.artist, album, so.song) local
+				            group by artist, album) loc1
+			inner join 
+			        (select sc.artist, IFNULL(sc.album,'(single)') album,
+			                count(distinct date(sc.scrobble_date)) scrobble_days, 
+			                count(distinct YEARWEEK(sc.scrobble_date,1)) scrobble_weeks, 
+			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) scrobble_months
+			                from scrobble sc
+			                where sc.album is not null and sc.album <> ''
+			                group by sc.artist, sc.album) loc2 
+			on loc1.artist=loc2.artist and loc1.album=loc2.album
+			order by count desc
+			limit ?
+			""";
+	//Taking way too long, optimize TODO
+	/*private static final String TOP_SONGS_QUERY = """
+				select * from 
+				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+								from scrobble sc inner join song so on so.id=sc.song_id 
+								group by sc.artist, sc.song ) loc1
+				inner join 
+				        (select sc.artist, sc.album, sc.song,
+				                count(distinct date(sc.scrobble_date)) scrobble_days, 
+				                count(distinct YEARWEEK(sc.scrobble_date,1)) scrobble_weeks, 
+				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) scrobble_months
+				                from scrobble sc
+				                group by sc.artist, sc.album, sc.song) loc2 
+				on (loc1.artist=loc2.artist and loc1.album=loc2.album and loc1.song=loc2.song)
+				""";*/
+	
+	private static final String TOP_SONGS_QUERY = """
+			select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
 			from scrobble sc inner join song so on so.id=sc.song_id 
-			where sc.album is not null and sc.album <> '' 
-			group by sc.artist, sc.album 
+			group by sc.artist, sc.song 
 			order by count desc 
 			limit ?
 			""";
 	
-	private static final String TOP_SONGS_QUERY = """
-				select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
-				from scrobble sc inner join song so on so.id=sc.song_id 
-				group by sc.artist, sc.song 
-				order by count desc 
-				limit ?
-				""";
-	
+	//TODO this is counting (single)s, find a way to exclude them
 	private static final String TOP_ARTISTS_QUERY = """
-				select sc.artist, so.genre, so.sex, so.language, count(*) count, sum(duration) playtime 
-				from scrobble sc inner join song so on so.id=sc.song_id 
-				group by sc.artist 
-				order by count desc 
+				select * from 
+				(select artist, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
+								sum(duration*count) playtime, count(distinct album) number_of_albums, count(distinct album,song) number_of_songs,
+					            genre, sex, language
+								from
+								(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
+								so.genre, so.sex, so.language
+								from scrobble sc inner join song so on so.id=sc.song_id 
+								group by so.artist, album, so.song) local
+					            group by artist) loc1
+				inner join 
+				        (select sc.artist, 
+				                count(distinct date(sc.scrobble_date)) scrobble_days, 
+				                count(distinct YEARWEEK(sc.scrobble_date,1)) scrobble_weeks, 
+				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) scrobble_months
+				                from scrobble sc
+				                group by sc.artist) loc2 
+				on loc1.artist=loc2.artist
+				order by count desc
 				limit ?
 				""";
-	
+	//TODO the album<>'(single)' part could be problematic, validate
 	private static final String TOP_GENRES_QUERY = """
-			select so.genre, count(*) count, sum(duration) playtime 
+			select genre, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
+			sum(duration*count) playtime, count(distinct artist) number_of_artists, count(distinct artist,album<>'(single)') number_of_albums, count(distinct artist,album,song) number_of_songs
+			from
+			(select so.genre, so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count
 			from scrobble sc inner join song so on so.id=sc.song_id 
-			group by so.genre 
-			order by count desc 
+			group by so.genre, so.artist, album, so.song) local
+            group by genre
+            order by count desc
 			limit ?
 			""";
 	
@@ -77,6 +121,16 @@ public class SongRepositoryImpl{
 	
 	private static final String MONTH_UNIT="date_format(sc.scrobble_date,'%Y-%M')";
 	private static final String MONTH_SORT_UNIT="date_format(sc.scrobble_date,'%Y-%m')";
+	
+	private static final String SEASON_UNIT="""
+			case when MONTH(sc.scrobble_date) between 3 and 5 then CONCAT(YEAR(sc.scrobble_date),'Spring')
+			         when MONTH(sc.scrobble_date) between 6 and 8 then CONCAT(YEAR(sc.scrobble_date),'Summer')
+			         when MONTH(sc.scrobble_date) between 9 and 11 then CONCAT(YEAR(sc.scrobble_date),'Fall')
+			         when MONTH(sc.scrobble_date) = 12 then CONCAT(YEAR(sc.scrobble_date)+1,'Winter')
+			         when MONTH(sc.scrobble_date) between 1 and 2 then CONCAT(YEAR(sc.scrobble_date),'Winter')
+			end
+			""";
+	private static final String SEASON_SORT_UNIT="date_format(sc.scrobble_date,'%Y-%m')";
 	
 	private static final String YEAR_UNIT="date_format(sc.scrobble_date,'%Y')";
 	private static final String YEAR_SORT_UNIT="date_format(sc.scrobble_date,'%Y')";
@@ -124,16 +178,13 @@ public class SongRepositoryImpl{
 			""";
 	
 	
-	public List<AllSongsExtendedDTO> getAllSongsExtended(String start, String end) {
-		return template.query(ALL_SONGS_EXTENDED_QUERY, new BeanPropertyRowMapper<>(AllSongsExtendedDTO.class), start, end);
-	}
 	
 	public List<TopAlbumsDTO> getTopAlbums(int limit) {
 		return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
 	}
 	
 	public List<TopSongsDTO> getTopSongs(int limit) {
-		return template.query(TOP_SONGS_QUERY, new BeanPropertyRowMapper<>(TopSongsDTO.class),limit);
+		return template.query(TOP_SONGS_QUERY, new BeanPropertyRowMapper<>(TopSongsDTO.class), limit);
 	}
 	
 	public List<TopArtistsDTO> getTopArtists(int limit) {
@@ -158,6 +209,7 @@ public class SongRepositoryImpl{
 			switch(unit) {
 				case "day": unitForQuery = DAY_UNIT; sortForQuery = DAY_SORT_UNIT; break;
 				case "month": unitForQuery = MONTH_UNIT; sortForQuery = MONTH_SORT_UNIT; break;
+				case "season": unitForQuery = SEASON_UNIT; sortForQuery = SEASON_SORT_UNIT; break;
 				case "year": unitForQuery = YEAR_UNIT; sortForQuery = YEAR_SORT_UNIT; break;
 				case "decade": unitForQuery = DECADE_UNIT; sortForQuery = DECADE_SORT_UNIT; break;
 				default: unitForQuery = null; sortForQuery = null; break;

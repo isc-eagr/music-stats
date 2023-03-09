@@ -23,12 +23,10 @@ Most Played Song: <span th:text="${genre.mostPlayedSong}"/><br/>
 Number of artists: <span th:text="${genre.numberOfArtists}"/><br/>
 Number of albums: <span th:text="${genre.numberOfAlbums}"/><br/>
 Number of songs: <span th:text="${genre.numberOfSongs}"/><br/>
-First Play: <span th:text="${genre.firstPlay}"/><br/>
-Last Play: <span th:text="${genre.lastPlay}"/><br/>
 Days Genre Was Played: <span th:text="${genre.daysGenreWasPlayed}"/><br/>
 Weeks Genre Was Played: <span th:text="${genre.weeksGenreWasPlayed}"/><br/>
 Months Genre Was Played: <span th:text="${genre.monthsGenreWasPlayed}"/><br/>
-Average Song Length: <span th:text="${genre.averageSongLength}"/><br/>
+Average Song Length: <span th:text="${genre.averageSongLengthString}"/><br/>
 Average Plays Per Song: <span th:text="${genre.averagePlaysPerSong}"/><br/>
   
 <table th:each="genreGroup : ${genreGroupList}">

@@ -49,7 +49,7 @@ public class Utils {
 	        case "January", "March", "May", "July", "August", "October", "December"-> {yield 31;}
 	        case "April", "June", "September", "November"-> {yield 30;}
 	        case "Feb"->{
-	            if ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0))) {
+	            if (isLeapYear(year)) {
 	                yield 29;
 	            } else {
 	                yield 28;
@@ -58,7 +58,22 @@ public class Utils {
 	        default-> {yield 0;}
             
 		};
+	}
 	
+	public static int daysInASeason(String season, int year) {
+		return switch (season) {
+	        case "Spring", "Summer"-> {yield 92;}
+	        case "Fall"-> {yield 91;}
+	        case "Winter"->{
+	            if (isLeapYear(year)) {
+	                yield 91;
+	            } else {
+	                yield 90;
+	            }
+	        }
+	        default-> {yield 0;}
+            
+		};
 	}
 	
 	public static boolean isLeapYear(int year) {
@@ -90,6 +105,10 @@ public class Utils {
 		return SECONDS_IN_A_DAY * daysInAMonth(month, year);
 	}
 	
+	public static int secondsInASeason(String season, int year) {
+		return SECONDS_IN_A_DAY * daysInASeason(season, year);
+	}
+	
 	public static int secondsInAYear(int year) {
 		return SECONDS_IN_A_DAY * daysInAYear(year);
 	}
@@ -97,4 +116,5 @@ public class Utils {
 	public static int secondsInADecade(int decadeStart) {
 		return SECONDS_IN_A_DAY * (3650+leapYearsInADecade(decadeStart));
 	}
+	
 }

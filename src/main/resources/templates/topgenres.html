@@ -30,6 +30,11 @@ Number of records: <span id="numRecords"></span>
 			<th>Plays</th>
 			<th>Genre</th>
 			<th>Playtime</th>
+			<th>Average Plays Per Song</th>
+			<th>Average Song Length</th>
+			<th>Number of Artists</th>
+			<th>Number of Albums</th>
+			<th>Number of Songs</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -39,6 +44,11 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topGenre.count}"/>
 			<td><a th:href="@{/genre/{genre}(genre=${topGenre.genre})}" th:text="${topGenre.genre}"></td>
 			<td th:text="${topGenre.playtimeString}" th:data-value="${topGenre.playtime}"/>
+			<td th:text="${topGenre.averagePlays}"/>
+			<td th:text="${topGenre.averageLengthString}"/>
+			<td th:text="${topGenre.numberOfArtists}"/>
+			<td th:text="${topGenre.numberOfAlbums}"/>
+			<td th:text="${topGenre.numberOfSongs}"/>
 		</tr>
 	</tbody>
 </table>

@@ -19,6 +19,18 @@ public class TopAlbumsDTO {
 	private String year;
 	
 	private long playtime;
+	
+	private int averageLength;
+	
+	private int averagePlays;
+	
+	private int numberOfSongs;
+	
+	private int scrobbleDays;
+	
+	private int scrobbleWeeks;
+	
+	private int scrobbleMonths;
 
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
@@ -87,7 +99,58 @@ public class TopAlbumsDTO {
 	public void setPlaytime(long playtime) {
 		this.playtime = playtime;
 	}
+
+	public int getAverageLength() {
+		return averageLength;
+	}
+
+	public void setAverageLength(int averageLength) {
+		this.averageLength = averageLength;
+	}
+
+	public int getAveragePlays() {
+		return averagePlays;
+	}
+
+	public void setAveragePlays(int averagePlays) {
+		this.averagePlays = averagePlays;
+	}
+
+	public int getNumberOfSongs() {
+		return numberOfSongs;
+	}
+
+	public void setNumberOfSongs(int numberOfSongs) {
+		this.numberOfSongs = numberOfSongs;
+	}
 	
+	public int getScrobbleDays() {
+		return scrobbleDays;
+	}
+
+	public void setScrobbleDays(int scrobbleDays) {
+		this.scrobbleDays = scrobbleDays;
+	}
+
+	public int getScrobbleWeeks() {
+		return scrobbleWeeks;
+	}
+
+	public void setScrobbleWeeks(int scrobbleWeeks) {
+		this.scrobbleWeeks = scrobbleWeeks;
+	}
+
+	public int getScrobbleMonths() {
+		return scrobbleMonths;
+	}
+
+	public void setScrobbleMonths(int scrobbleMonths) {
+		this.scrobbleMonths = scrobbleMonths;
+	}
+
+	public String getAverageLengthString() {
+		return Utils.secondsToStringColon(averageLength);
+	}
 	
 
 }

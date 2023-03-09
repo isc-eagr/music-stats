@@ -92,7 +92,22 @@ Only the top <input type="text" th:name="limit"/> songs
 Number of records: <span id="numRecords"></span>
 <table id="songsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
-		<tr><th>Position</th><th>Overall Position</th><th>Artist</th><th>Song</th><th>Album</th><th>Plays</th><th>Genre</th><th>Sex</th><th>Language</th><th>Year</th><th>Playtime</th></tr>
+		<tr>
+			<th>Position</th>
+			<th>Overall Position</th>
+			<th>Artist</th>
+			<th>Song</th>
+			<th>Album</th>
+			<th>Plays</th>
+			<th>Genre</th>
+			<th>Sex</th>
+			<th>Language</th>
+			<th>Year</th>
+			<th>Playtime</th>
+			<th>Days Song Was Played</th>
+			<th>Weeks Song Was Played</th>
+			<th>Months Song Was Played</th>
+		</tr>
 	</thead>
 	<tbody>
 		<tr th:each="topSong, stat : ${topSongs}">
@@ -107,6 +122,9 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topSong.language}"/>
 			<td th:text="${topSong.year}"/>
 			<td th:text="${topSong.playtimeString}" th:data-value="${topSong.playtime}"/>
+			<td th:text="${topSong.scrobbleDays}"/>
+			<td th:text="${topSong.scrobbleWeeks}"/>
+			<td th:text="${topSong.scrobbleMonths}"/>
 		</tr>
 	</tbody>
 </table>

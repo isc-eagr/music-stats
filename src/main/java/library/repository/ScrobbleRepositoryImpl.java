@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import library.dto.ScrobbleDTO;
 import library.dto.SongsInLastfmButNotItunesDTO;
 import library.entity.Song;
 
@@ -44,7 +45,12 @@ public class ScrobbleRepositoryImpl{
             and so.id is null
 			""";
 	
-
+	private static final String GET_SCROBBLES_BY_DATE_RANGE_QUERY = """
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.scrobble_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+            from scrobble sc inner join song so on sc.song_id = so.id
+            where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
+			""";
+	
 	
 	public List<SongsInLastfmButNotItunesDTO> songsInLastFmButNotItunes() {
 		return template.query(SONGS_LASTFM_BUT_NOT_ITUNES, new BeanPropertyRowMapper<>(SongsInLastfmButNotItunesDTO.class));
@@ -56,6 +62,10 @@ public class ScrobbleRepositoryImpl{
 	
 	public List<Song> songsFromAlbum(String artist, String album) {
 		return template.query(SONGS_FROM_ALBUM, new BeanPropertyRowMapper<>(Song.class), artist, album);
+	}
+	
+	public List<ScrobbleDTO> getScrobblesByDateRange(String start, String end) {
+		return template.query(GET_SCROBBLES_BY_DATE_RANGE_QUERY, new BeanPropertyRowMapper<>(ScrobbleDTO.class), start, end);
 	}
 	
 }

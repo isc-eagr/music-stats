@@ -172,6 +172,9 @@ public class GenrePageDTO {
 		return Utils.secondsToString(totalPlaytime);
 	}
 
+	public String getAverageSongLengthString() {
+		return Utils.secondsToStringColon(averageSongLength);
+	}
 
 	public GenrePageDTO(int totalPlays, int totalPlaytime, int averageSongLength, int averagePlaysPerSong,
 			int numberOfSongs, String firstPlay, String lastPlay, int daysGenreWasPlayed, int weeksGenreWasPlayed,
