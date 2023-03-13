@@ -2,6 +2,7 @@
 <head>
 	<title>What Won Each Day</title>
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 	<script src='js/utils.js'></script>
 	<script src="js/sortable.min.js"></script>
@@ -28,9 +29,19 @@ Weeks Genre Was Played: <span th:text="${genre.weeksGenreWasPlayed}"/><br/>
 Months Genre Was Played: <span th:text="${genre.monthsGenreWasPlayed}"/><br/>
 Average Song Length: <span th:text="${genre.averageSongLengthString}"/><br/>
 Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
-  
-<table th:each="genreGroup : ${genreGroupList}">
-	<tr><th th:text="${genreGroup.criteria}"/><th th:text="${'Number of songs'}"/><th th:text="${'Percentage of songs'}"/><th th:text="${'Plays'}"/><th th:text="${'Percentage of Plays'}"/><th>Playtime</th><th>Playtime %</th></tr>
+
+<div th:each="genreGroup, count : ${genreGroupList}">
+<div>  
+<table th:id="${genreGroup.criteria}">
+	<tr>
+		<th th:text="${genreGroup.criteria}"/>
+		<th th:text="${'Number of songs'}"/>
+		<th th:text="${'Percentage of songs'}"/>
+		<th th:text="${'Plays'}"/>
+		<th th:text="${'Percentage of Plays'}"/>
+		<th>Playtime</th>
+		<th>Playtime %</th>
+	</tr>
 	<tr th:each="listCount : ${genreGroup.listCounts}">
 		<td th:text="${listCount.element}"/>
 		<td th:text="${listCount.count}"/>
@@ -40,8 +51,76 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 		<td th:text="${listCount.playtimeString}"/>
 		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
 	</tr>
-</table>
+</table></div>
 
+<div style="width:500px; height:500px;">
+<canvas th:id="${'plays'+count.index}" 
+th:if="${!#strings.contains(genreGroup.criteria,'Year')}"></canvas>
+		<script th:inline="javascript">
+		/*<![CDATA[*/
+                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+                
+                var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+                var labelsArray=[];
+                var percentagesSongs=[];
+                var percentagesPlays=[]; 
+                var percentagesPlaytime=[];   
+                for (let row of table.rows) {
+					if(row === table.rows[0]){continue;}
+					labelsArray.push(row.cells[0].innerHTML);
+		        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
+		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+				}
+                
+                var myChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+					  labels: labelsArray,
+					  datasets: [
+					    {
+					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+					      data: percentagesSongs
+					    },
+					    {
+					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+					      data: percentagesPlays
+					    },
+					    {
+					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+					      data: percentagesPlaytime
+					    }
+					  ]
+					},
+                    options:{
+						responsive:true,
+						plugins: {
+					      tooltip: {
+					        callbacks: {
+					          label: function(context) {
+								  
+								  var metric = "";
+								  
+								  switch(context.datasetIndex){
+									  case 0: metric = "Percentage of songs"; break;
+									  case 1: metric = "Percentage of plays"; break;
+									  case 2: metric = "Percentage of playtime"; break;
+									  default: metric = ""; break;
+								  }
+					            return context.label + ': ' + context.formattedValue+': '+metric;
+					          }
+					        }
+					      }
+					    }
+					}
+					
+                });
+
+				myChart.update(); 
+                /*]]>*/
+                </script>
+	</div>
+</div>
 </body>
 
 </html>

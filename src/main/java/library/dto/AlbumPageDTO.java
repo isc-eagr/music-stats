@@ -16,6 +16,8 @@ public class AlbumPageDTO {
 	int daysAlbumWasPlayed;
 	int weeksAlbumWasPlayed;
 	int monthsAlbumWasPlayed;
+	String chartLabels;
+	String chartValues;
 	
 	
 	public List<AlbumSongsQueryDTO> getSongs() {
@@ -92,9 +94,22 @@ public class AlbumPageDTO {
 	public void setMonthsAlbumWasPlayed(int monthsAlbumWasPlayed) {
 		this.monthsAlbumWasPlayed = monthsAlbumWasPlayed;
 	}
+	public String getChartLabels() {
+		return chartLabels;
+	}
+	public void setChartLabels(String chartLabels) {
+		this.chartLabels = chartLabels;
+	}
+	public String getChartValues() {
+		return chartValues;
+	}
+	public void setChartValues(String chartValues) {
+		this.chartValues = chartValues;
+	}
 	public AlbumPageDTO(List<AlbumSongsQueryDTO> songs, String firstSongPlayed, String lastSongPlayed, int totalPlays,
 			String totalPlaytime, String averageSongLength, double averagePlaysPerSong, int numberOfSongs,
-			String albumLength, int daysAlbumWasPlayed, int weeksAlbumWasPlayed, int monthsAlbumWasPlayed) {
+			String albumLength, int daysAlbumWasPlayed, int weeksAlbumWasPlayed, int monthsAlbumWasPlayed,
+			String chartLabels, String chartValues) {
 		super();
 		this.songs = songs;
 		this.firstSongPlayed = firstSongPlayed;
@@ -108,7 +123,8 @@ public class AlbumPageDTO {
 		this.daysAlbumWasPlayed = daysAlbumWasPlayed;
 		this.weeksAlbumWasPlayed = weeksAlbumWasPlayed;
 		this.monthsAlbumWasPlayed = monthsAlbumWasPlayed;
+		this.chartLabels = chartLabels;
+		this.chartValues = chartValues;
 	}
-	
 
 }

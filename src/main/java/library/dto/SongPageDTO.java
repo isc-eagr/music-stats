@@ -14,6 +14,8 @@ public class SongPageDTO {
 	int daysSongWasPlayed;
 	int weeksSongWasPlayed;
 	int monthsSongWasPlayed;
+	String chartLabels;
+	String chartValues;
 
 
 	public String getArtist() {
@@ -109,9 +111,25 @@ public class SongPageDTO {
 		return monthsSongWasPlayed;
 	}
 
-
 	public void setMonthsSongWasPlayed(int monthsSongWasPlayed) {
 		this.monthsSongWasPlayed = monthsSongWasPlayed;
+	}
+	
+	public String getChartLabels() {
+		return chartLabels;
+	}
+
+	public void setChartLabels(String chartLabels) {
+		this.chartLabels = chartLabels;
+	}
+
+	public String getChartValues() {
+		return chartValues;
+	}
+
+
+	public void setChartValues(String chartValues) {
+		this.chartValues = chartValues;
 	}
 
 

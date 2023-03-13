@@ -1,6 +1,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 	<title th:text="${artist}"/>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src='../js/utils.js'></script>
 	<script src="../js/sortable.min.js"></script>
 	<link rel="stylesheet" href="../css/sortable-theme-finder.css"/>
@@ -95,6 +96,34 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 	</tbody>
 </table>
 
+<div>
+	<canvas th:id="${'plays'}"></canvas>
+		
+		<script th:inline="javascript">
+		/*<![CDATA[*/
+                var ctx = document.getElementById('plays').getContext('2d');
+                var myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [ /*[(${artistInfo.chartLabels})]*/ ],
+                        datasets: [{
+                            label: 'Plays',
+							data: [ /*[(${artistInfo.chartValues})]*/ ],
+                            fill: false,
+                            borderColor: 'rgb(75, 192, 192)',
+                            pointBackgroundColor: 'rgb(212, 25, 66)',
+                            pointStyle: 'rect'
+                        }]
+                    },
+                    options:{
+						responsive:true
+					}
+                });
+
+				myChart.update(); 
+                /*]]>*/
+                </script>
+	</div>
 
 </body>
 
