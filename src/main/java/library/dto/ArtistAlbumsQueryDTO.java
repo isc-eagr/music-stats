@@ -13,7 +13,7 @@ public class ArtistAlbumsQueryDTO {
 	String lastPlay;
 	int numberOfTracks;
 	int averageSongLength;
-	int averagePlaysPerSong;
+	double averagePlaysPerSong;
 	int daysAlbumWasPlayed;
 	int weeksAlbumWasPlayed;
 	int monthsAlbumWasPlayed;
@@ -103,12 +103,11 @@ public class ArtistAlbumsQueryDTO {
 		this.averageSongLength = averageSongLength;
 	}
 
-	public int getAveragePlaysPerSong() {
+	public double getAveragePlaysPerSong() {
 		return averagePlaysPerSong;
 	}
 
-
-	public void setAveragePlaysPerSong(int averagePlaysPerSong) {
+	public void setAveragePlaysPerSong(double averagePlaysPerSong) {
 		this.averagePlaysPerSong = averagePlaysPerSong;
 	}
 	
@@ -149,7 +148,7 @@ public class ArtistAlbumsQueryDTO {
 	}
 	
 	public String getAverageSongLengthString() {
-		return Utils.secondsToString(averageSongLength);
+		return Utils.secondsToStringColon(averageSongLength);
 	}
 
 

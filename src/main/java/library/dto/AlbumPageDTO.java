@@ -10,7 +10,7 @@ public class AlbumPageDTO {
 	int totalPlays;
 	String totalPlaytime;
 	String averageSongLength;
-	int averagePlaysPerSong;
+	double averagePlaysPerSong;
 	int numberOfSongs;
 	String albumLength;
 	int daysAlbumWasPlayed;
@@ -54,10 +54,10 @@ public class AlbumPageDTO {
 	public void setAverageSongLength(String averageSongLength) {
 		this.averageSongLength = averageSongLength;
 	}
-	public int getAveragePlaysPerSong() {
+	public double getAveragePlaysPerSong() {
 		return averagePlaysPerSong;
 	}
-	public void setAveragePlaysPerSong(int averagePlaysPerSong) {
+	public void setAveragePlaysPerSong(double averagePlaysPerSong) {
 		this.averagePlaysPerSong = averagePlaysPerSong;
 	}
 	public int getNumberOfSongs() {
@@ -93,7 +93,7 @@ public class AlbumPageDTO {
 		this.monthsAlbumWasPlayed = monthsAlbumWasPlayed;
 	}
 	public AlbumPageDTO(List<AlbumSongsQueryDTO> songs, String firstSongPlayed, String lastSongPlayed, int totalPlays,
-			String totalPlaytime, String averageSongLength, int averagePlaysPerSong, int numberOfSongs,
+			String totalPlaytime, String averageSongLength, double averagePlaysPerSong, int numberOfSongs,
 			String albumLength, int daysAlbumWasPlayed, int weeksAlbumWasPlayed, int monthsAlbumWasPlayed) {
 		super();
 		this.songs = songs;

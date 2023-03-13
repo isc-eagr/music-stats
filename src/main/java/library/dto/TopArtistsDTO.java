@@ -18,7 +18,7 @@ public class TopArtistsDTO {
 	
 	private int averageLength;
 	
-	private int averagePlays;
+	private double averagePlays;
 	
 	private int numberOfAlbums;
 	
@@ -90,11 +90,11 @@ public class TopArtistsDTO {
 		this.averageLength = averageLength;
 	}
 
-	public int getAveragePlays() {
+	public double getAveragePlays() {
 		return averagePlays;
 	}
 
-	public void setAveragePlays(int averagePlays) {
+	public void setAveragePlays(double averagePlays) {
 		this.averagePlays = averagePlays;
 	}
 

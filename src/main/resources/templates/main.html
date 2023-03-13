@@ -40,8 +40,8 @@
 	Total Plays: <span th:text="${totalPlays}"/><br/>
 	Total Playtime: <span th:text="${totalPlayTimeGlobalString}"/><br/>
 	Average Song Length: <span th:text="${averageSongLength}"/><br/>
-	Average Plays Per Song: <span th:text="${averagePlaysPerSong}"/><br/>
-	Average Plays Per Day: <span th:text="${averagePlaysPerDay}"/><br/>
+	Average Plays Per Song: <span th:text="${#numbers.formatDecimal(averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
+	Average Plays Per Day: <span th:text="${#numbers.formatDecimal(averagePlaysPerDay, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
 	First Scrobble On: <span th:text="${firstScrobbleOn}"/><br/>
 	Days Elapsed Since First Scrobble: <span th:text="${daysElapsedSinceFirstScrobble}"/><br/>
 	

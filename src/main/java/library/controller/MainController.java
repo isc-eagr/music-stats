@@ -268,9 +268,9 @@ public class MainController {
 				.mapToInt(ScrobbleDTO::getTrackLength)
 				.sum())
 				);
-		model.addAttribute("averagePlaysPerDay", (int)(allScrobbles.size()/daysElapsedSinceFirstScrobble));//TODO
+		model.addAttribute("averagePlaysPerDay", (allScrobbles.size()/daysElapsedSinceFirstScrobble));
 		model.addAttribute("averageSongLength", Utils.secondsToStringColon((int)mapScrobblesBySong.values().stream().mapToInt(s->s.get(0).getTrackLength()).average().orElse(0.0)));
-		model.addAttribute("averagePlaysPerSong",(int)mapScrobblesBySong.values().stream().mapToInt(s->s.size()).average().orElse(0.0));
+		model.addAttribute("averagePlaysPerSong",mapScrobblesBySong.values().stream().mapToInt(s->s.size()).average().orElse(0.0));
 		
 		model.addAttribute("firstScrobbleOn", firstScrobbleOn);
 		model.addAttribute("daysElapsedSinceFirstScrobble", (int)daysElapsedSinceFirstScrobble);
@@ -763,7 +763,7 @@ public class MainController {
 			artistAlbum.setAlbumLength(distinct.stream().mapToInt(s->s.getTrackLength()).sum());
 			artistAlbum.setNumberOfTracks(distinct.size());
 			artistAlbum.setAverageSongLength((int)distinct.stream().mapToInt(s->s.getTrackLength()).average().orElse(0.0));
-			artistAlbum.setAveragePlaysPerSong(artistAlbum.getTotalPlays()/artistAlbum.getNumberOfTracks());
+			artistAlbum.setAveragePlaysPerSong((double)artistAlbum.getTotalPlays()/artistAlbum.getNumberOfTracks());
 			artistAlbum.setDaysAlbumWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());
 			artistAlbum.setWeeksAlbumWasPlayed((int)sorted.stream().map(s->s.getWeek()).distinct().count());
 			artistAlbum.setMonthsAlbumWasPlayed((int)sorted.stream().map(s->s.getScrobbleDate().substring(0, 7)).distinct().count());
@@ -774,7 +774,7 @@ public class MainController {
 		int numberOfSongs = artistSongsList.size();
 		int totalPlays = artistSongsList.stream().mapToInt(s -> s.getTotalPlays()).sum();
 		int sumOfTrackLengths = artistSongsList.stream().mapToInt(s -> s.getTrackLength()).sum();
-		int averagePlaysPerSong = totalPlays/numberOfSongs;
+		double averagePlaysPerSong = (double)totalPlays/numberOfSongs;
 		String totalPlaytime = Utils.secondsToString(artistSongsList.stream().mapToInt(s ->s.getTotalPlays()*s.getTrackLength()).sum());
 		String averageSongLength = Utils.secondsToStringColon(sumOfTrackLengths/numberOfSongs);
 		
@@ -828,7 +828,7 @@ public class MainController {
 		int numberOfSongs = albumSongsList.size();
 		int totalPlays = albumSongsList.stream().mapToInt(s -> s.getTotalPlays()).sum();
 		int sumOfTrackLengths = albumSongsList.stream().mapToInt(s -> s.getTrackLength()).sum();
-		int averagePlaysPerSong = totalPlays/numberOfSongs;
+		double averagePlaysPerSong = (double)totalPlays/numberOfSongs;
 		String totalPlaytime = Utils.secondsToString(albumSongsList.stream().mapToInt(s ->s.getTotalPlays()*s.getTrackLength()).sum());
 		String averageSongLength = Utils.secondsToStringColon(sumOfTrackLengths/numberOfSongs);
 		
@@ -908,7 +908,7 @@ public class MainController {
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		genrePage.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		genrePage.setNumberOfSongs(map.entrySet().size());
-		genrePage.setAveragePlaysPerSong(genrePage.getTotalPlays()/genrePage.getNumberOfSongs());
+		genrePage.setAveragePlaysPerSong((double)genrePage.getTotalPlays()/genrePage.getNumberOfSongs());
 		genrePage.setAverageSongLength(sortedList.stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/genrePage.getNumberOfSongs());
 		
 		List<Criterion<ScrobbleDTO>> criteria = List.of(new Criterion<>("Sex", scrobble -> scrobble.getSex()),

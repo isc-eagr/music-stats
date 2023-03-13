@@ -22,7 +22,7 @@ public class TopAlbumsDTO {
 	
 	private int averageLength;
 	
-	private int averagePlays;
+	private double averagePlays;
 	
 	private int numberOfSongs;
 	
@@ -108,11 +108,11 @@ public class TopAlbumsDTO {
 		this.averageLength = averageLength;
 	}
 
-	public int getAveragePlays() {
+	public double getAveragePlays() {
 		return averagePlays;
 	}
 
-	public void setAveragePlays(int averagePlays) {
+	public void setAveragePlays(double averagePlays) {
 		this.averagePlays = averagePlays;
 	}
 

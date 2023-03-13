@@ -10,7 +10,7 @@ public class TopGenresDTO {
 	
 	private long playtime;
 	
-	private int averagePlays;
+	private double averagePlays;
 	
 	private int averageLength;
 	
@@ -48,11 +48,11 @@ public class TopGenresDTO {
 		this.playtime = playtime;
 	}
 
-	public int getAveragePlays() {
+	public double getAveragePlays() {
 		return averagePlays;
 	}
 
-	public void setAveragePlays(int averagePlays) {
+	public void setAveragePlays(double averagePlays) {
 		this.averagePlays = averagePlays;
 	}
 

@@ -7,7 +7,7 @@ public class GenrePageDTO {
 	int totalPlays;
 	int totalPlaytime;
 	int averageSongLength;
-	int averagePlaysPerSong;
+	double averagePlaysPerSong;
 	int numberOfSongs;
 	int numberOfAlbums;
 	int numberOfArtists;
@@ -50,12 +50,12 @@ public class GenrePageDTO {
 	}
 
 
-	public int getAveragePlaysPerSong() {
+	public double getAveragePlaysPerSong() {
 		return averagePlaysPerSong;
 	}
 
 
-	public void setAveragePlaysPerSong(int averagePlaysPerSong) {
+	public void setAveragePlaysPerSong(double averagePlaysPerSong) {
 		this.averagePlaysPerSong = averagePlaysPerSong;
 	}
 
@@ -176,7 +176,7 @@ public class GenrePageDTO {
 		return Utils.secondsToStringColon(averageSongLength);
 	}
 
-	public GenrePageDTO(int totalPlays, int totalPlaytime, int averageSongLength, int averagePlaysPerSong,
+	public GenrePageDTO(int totalPlays, int totalPlaytime, int averageSongLength, double averagePlaysPerSong,
 			int numberOfSongs, String firstPlay, String lastPlay, int daysGenreWasPlayed, int weeksGenreWasPlayed,
 			int monthsGenreWasPlayed, String mostPlayedArtist, String mostPlayedAlbum, String mostPlayedSong) {
 		super();

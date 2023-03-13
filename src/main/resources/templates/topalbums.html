@@ -138,7 +138,7 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${topAlbum.year}"/>
 			<td th:text="${topAlbum.playtimeString}" th:data-value="${topAlbum.playtime}"/>
 			<td th:text="${topAlbum.averageLengthString}" th:data-value="${topAlbum.averageLength}"/>
-			<td th:text="${topAlbum.averagePlays}"/>
+			<td th:text="${#numbers.formatDecimal(topAlbum.averagePlays, 1, 'DEFAULT', 2, 'DEFAULT')}"/>
 			<td th:text="${topAlbum.numberOfSongs}"/>
 			<td th:text="${topAlbum.scrobbleDays}"/>
 			<td th:text="${topAlbum.scrobbleWeeks}"/>

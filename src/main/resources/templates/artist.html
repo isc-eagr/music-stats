@@ -18,7 +18,7 @@ Total Playtime: <span th:text="${artistInfo.totalPlaytime}"/><br/>
 First Song Played: <span th:text="${artistInfo.firstSongPlayed}"/><br/>
 Last Song Played: <span th:text="${artistInfo.lastSongPlayed}"/><br/>
 Average Song Length: <span th:text="${artistInfo.averageSongLength}"/><br/>
-Average Plays Per Song: <span th:text="${artistInfo.averagePlaysPerSong}"/><br/>
+Average Plays Per Song: <span th:text="${#numbers.formatDecimal(artistInfo.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
 Days artist was played: <span th:text="${artistInfo.daysArtistWasPlayed}"/><br/>
 Weeks artist was played: <span th:text="${artistInfo.weeksArtistWasPlayed}"/><br/>
 Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><br/>
@@ -52,7 +52,7 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 			<td th:text="${album.firstPlay}"/>
 			<td th:text="${album.lastPlay}"/>
 			<td th:text="${album.averageSongLengthString}" th:data-value="${album.averageSongLength}"/>
-			<td th:text="${album.averagePlaysPerSong}"/>
+			<td th:text="${#numbers.formatDecimal(album.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/>
 			<td th:text="${album.daysAlbumWasPlayed}"/>
 			<td th:text="${album.weeksAlbumWasPlayed}"/>
 			<td th:text="${album.monthsAlbumWasPlayed}"/>
