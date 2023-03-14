@@ -19,6 +19,7 @@ public class GenrePageDTO {
 	String mostPlayedArtist;
 	String mostPlayedAlbum;
 	String mostPlayedSong;
+	String genre;
 	
 	public int getTotalPlays() {
 		return totalPlays;
@@ -168,6 +169,16 @@ public class GenrePageDTO {
 		this.mostPlayedSong = mostPlayedSong;
 	}
 	
+	public String getGenre() {
+		return genre;
+	}
+
+
+	public void setGenre(String genre) {
+		this.genre = genre;
+	}
+
+
 	public String getTotalPlaytimeString() {
 		return Utils.secondsToString(totalPlaytime);
 	}
@@ -175,16 +186,21 @@ public class GenrePageDTO {
 	public String getAverageSongLengthString() {
 		return Utils.secondsToStringColon(averageSongLength);
 	}
+	
+	
 
 	public GenrePageDTO(int totalPlays, int totalPlaytime, int averageSongLength, double averagePlaysPerSong,
-			int numberOfSongs, String firstPlay, String lastPlay, int daysGenreWasPlayed, int weeksGenreWasPlayed,
-			int monthsGenreWasPlayed, String mostPlayedArtist, String mostPlayedAlbum, String mostPlayedSong) {
+			int numberOfSongs, int numberOfAlbums, int numberOfArtists, String firstPlay, String lastPlay,
+			int daysGenreWasPlayed, int weeksGenreWasPlayed, int monthsGenreWasPlayed, String mostPlayedArtist,
+			String mostPlayedAlbum, String mostPlayedSong, String genre) {
 		super();
 		this.totalPlays = totalPlays;
 		this.totalPlaytime = totalPlaytime;
 		this.averageSongLength = averageSongLength;
 		this.averagePlaysPerSong = averagePlaysPerSong;
 		this.numberOfSongs = numberOfSongs;
+		this.numberOfAlbums = numberOfAlbums;
+		this.numberOfArtists = numberOfArtists;
 		this.firstPlay = firstPlay;
 		this.lastPlay = lastPlay;
 		this.daysGenreWasPlayed = daysGenreWasPlayed;
@@ -193,6 +209,7 @@ public class GenrePageDTO {
 		this.mostPlayedArtist = mostPlayedArtist;
 		this.mostPlayedAlbum = mostPlayedAlbum;
 		this.mostPlayedSong = mostPlayedSong;
+		this.genre = genre;
 	}
 
 

@@ -933,6 +933,7 @@ public class MainController {
 		List<ScrobbleDTO> scrobbles = artistRepository.genreScrobbles(genre);
 		
 		GenrePageDTO genrePage = new GenrePageDTO();
+		genrePage.setGenre(genre);
 		genrePage.setTotalPlays(scrobbles.size());
 		genrePage.setTotalPlaytime(scrobbles.stream().mapToInt(s->s.getTrackLength()).sum());
 		genrePage.setDaysGenreWasPlayed((int)scrobbles.stream().map(s->s.getScrobbleDate().substring(0, 10)).distinct().count());

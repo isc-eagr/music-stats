@@ -1,19 +1,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-	<title>What Won Each Day</title>
+	<title th:text="${genre.genre}"></title>
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 	<script src='js/utils.js'></script>
-	<script src="js/sortable.min.js"></script>
-	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
-	<script type="text/javascript">
-		window.onload = function(){
-			flatpickr("#dateStart", dateConfig);
-			flatpickr("#dateEnd", dateConfig);
-			Sortable.init();
-		}
-	</script>
 </head>
 <body>
 Total Plays: <span th:text="${genre.totalPlays}"/><br/>
@@ -53,10 +44,11 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 	</tr>
 </table></div>
 
-<div style="width:500px; height:500px;">
-<canvas th:id="${'plays'+count.index}" 
-th:if="${!#strings.contains(genreGroup.criteria,'Year')}"></canvas>
-		<script th:inline="javascript">
+<div style="height:500px;">
+<canvas th:id="${'plays'+count.index}"></canvas>
+		
+		<script th:inline="javascript" th:if="${!#strings.contains(genreGroup.criteria,'Year')}">
+		//Sex and Language
 		/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
@@ -79,21 +71,25 @@ th:if="${!#strings.contains(genreGroup.criteria,'Year')}"></canvas>
 					  labels: labelsArray,
 					  datasets: [
 					    {
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+						  label: "Percentage of songs",
+					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
 					      data: percentagesSongs
 					    },
 					    {
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+						  label: "Percentage of plays",
+					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
 					      data: percentagesPlays
 					    },
 					    {
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+						  label: "Percentage of playtime",
+					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
 					      data: percentagesPlaytime
 					    }
 					  ]
 					},
                     options:{
 						responsive:true,
+						maintainAspectRatio: false,
 						plugins: {
 					      tooltip: {
 					        callbacks: {
@@ -108,6 +104,193 @@ th:if="${!#strings.contains(genreGroup.criteria,'Year')}"></canvas>
 									  default: metric = ""; break;
 								  }
 					            return context.label + ': ' + context.formattedValue+': '+metric;
+					          }
+					        }
+					      }
+					    }
+					}
+					
+                });
+
+				myChart.update(); 
+                /*]]>*/
+                </script>
+                
+                
+                <script th:inline="javascript" th:if="${#strings.contains(genreGroup.criteria,'Release')}">
+                //Release Year
+				/*<![CDATA[*/
+                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+                
+                var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+                var yearsStruct = [];
+                
+                for (var i=0;i<table.rows.length;i++) {
+					if(i === 0){continue;}
+					var yearsElement = [];
+					yearsElement.push(table.rows[i].cells[0].innerHTML);
+					yearsElement.push(i);
+					yearsStruct.push(yearsElement);
+				}
+                yearsStruct.sort();
+                
+                var labelsArray=[];
+                var percentagesSongs=[];
+                var percentagesPlays=[]; 
+                var percentagesPlaytime=[];   
+                for (var i=0;i<yearsStruct.length;i++) {
+					var row = table.rows[yearsStruct[i][1]];
+					labelsArray.push(row.cells[0].innerHTML);
+		        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
+		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+				}
+                
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+					  labels: labelsArray,
+					  datasets: [
+					    {
+					      label: 'Percentage of songs',
+					      backgroundColor: 'rgba(55, 99, 132, 0.8)',
+					      data: percentagesSongs
+					    },
+					    {
+					      label: 'Percentage of plays',
+					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+					      data: percentagesPlays
+					    },
+					    {
+					      label: 'Percentage of playtime',
+					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
+					      data: percentagesPlaytime
+					    }
+					  ]
+					},
+                    options:{
+						responsive:true,
+						maintainAspectRatio: false,
+						plugins: {
+					      tooltip: {
+					        callbacks: {
+					          label: function(context) {
+								  
+								var genre = /*[[${genre.genre}]]*/''; 
+								var totalSongs = /*[[${genre.numberOfSongs}]]*/'';
+								var totalPlays = /*[[${genre.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${genre.totalPlaytimeString}]]*/'';
+								
+								var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+				                var yearsStruct = [];
+				                
+				                for (var i=0;i<table.rows.length;i++) {
+									if(i === 0){continue;}
+									var yearsElement = [];
+									yearsElement.push(table.rows[i].cells[0].innerHTML);
+									yearsElement.push(i);
+									yearsStruct.push(yearsElement);
+								}
+				                yearsStruct.sort();
+								
+								var thisSongs = table.rows[yearsStruct[context.dataIndex][1]].cells[1].innerHTML;
+								var thisPlays = table.rows[yearsStruct[context.dataIndex][1]].cells[3].innerHTML;
+								var thisPlaytime = table.rows[yearsStruct[context.dataIndex][1]].cells[5].innerHTML;
+								
+								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+genre+" songs were released in "+context.label:
+											(context.datasetIndex === 1? context.formattedValue+"% of all "+genre+" plays are from songs released in "+context.label:
+											context.formattedValue+"% of all "+genre+" playtime is from songs released in "+context.label);
+								var second = context.datasetIndex === 0 ? "which is "+thisSongs+" songs out of "+totalSongs:
+											(context.datasetIndex === 1? "which is "+thisPlays+" plays out of "+totalPlays:
+											"which is "+thisPlaytime+" out of "+totalPlaytime);
+					            return [first,second];
+					          }
+					        }
+					      }
+					    }
+					}
+					
+                });
+
+				myChart.update(); 
+                /*]]>*/
+                </script>
+                
+                <script th:inline="javascript" th:if="${#strings.contains(genreGroup.criteria,'Scrobble')}">
+                //Scrobble Year
+				/*<![CDATA[*/
+                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+                
+                var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+                var yearsStruct = [];
+                
+                for (var i=0;i<table.rows.length;i++) {
+					if(i === 0){continue;}
+					var yearsElement = [];
+					yearsElement.push(table.rows[i].cells[0].innerHTML);
+					yearsElement.push(i);
+					yearsStruct.push(yearsElement);
+				}
+                yearsStruct.sort();
+                
+                var labelsArray=[];
+                var percentagesPlays=[]; 
+                var percentagesPlaytime=[];   
+                for (var i=0;i<yearsStruct.length;i++) {
+					var row = table.rows[yearsStruct[i][1]];
+					labelsArray.push(row.cells[0].innerHTML);
+		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+				}
+                
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+					  labels: labelsArray,
+					  datasets: [
+					    {
+					      label: 'Percentage of plays',
+					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+					      data: percentagesPlays
+					    },
+					    {
+					      label: 'Percentage of playtime',
+					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
+					      data: percentagesPlaytime
+					    }
+					  ]
+					},
+                    options:{
+						responsive:true,
+						maintainAspectRatio: false,
+						plugins: {
+					      tooltip: {
+					        callbacks: {
+					          label: function(context) {
+					            var genre = /*[[${genre.genre}]]*/''; 
+								var totalPlays = /*[[${genre.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${genre.totalPlaytimeString}]]*/'';
+								
+								var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+				                var yearsStruct = [];
+				                
+				                for (var i=0;i<table.rows.length;i++) {
+									if(i === 0){continue;}
+									var yearsElement = [];
+									yearsElement.push(table.rows[i].cells[0].innerHTML);
+									yearsElement.push(i);
+									yearsStruct.push(yearsElement);
+								}
+				                yearsStruct.sort();
+								
+								var thisPlays = table.rows[yearsStruct[context.dataIndex][1]].cells[3].innerHTML;
+								var thisPlaytime = table.rows[yearsStruct[context.dataIndex][1]].cells[5].innerHTML;
+								
+								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+genre+" plays happened in "+context.label:
+											context.formattedValue+"% of all "+genre+" playtime happened in "+context.label;
+								var second = context.datasetIndex === 0? "which is "+thisPlays+" plays out of "+totalPlays:
+											"which is "+thisPlaytime+" out of "+totalPlaytime;
+					            return [first,second];
 					          }
 					        }
 					      }
