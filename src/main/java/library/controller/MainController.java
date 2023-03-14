@@ -634,6 +634,7 @@ public class MainController {
 		model.addAttribute("timeUnitGroupList", timeUnitGroupList);
 		model.addAttribute("timeUnitDetail",timeUnitDetailDTO);
 		model.addAttribute("unit",unit);
+		model.addAttribute("unitValue",unitValue);
 		
 		return "timeunitdetail";
 		
