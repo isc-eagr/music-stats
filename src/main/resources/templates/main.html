@@ -42,8 +42,8 @@
 	Average Song Length: <span th:text="${averageSongLength}"/><br/>
 	Average Plays Per Song: <span th:text="${#numbers.formatDecimal(averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
 	Average Plays Per Day: <span th:text="${#numbers.formatDecimal(averagePlaysPerDay, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
-	First Scrobble On: <span th:text="${firstScrobbleOn}"/><br/>
-	Days Elapsed Since First Scrobble: <span th:text="${daysElapsedSinceFirstScrobble}"/><br/>
+	First Played On: <span th:text="${firstPlayOn}"/><br/>
+	Days Elapsed Since First Play: <span th:text="${daysElapsedSinceFirstPlay}"/><br/>
 	
 	
 	<div th:each="dataForGraphsList : ${dataMap}" style='white-space: nowrap;'> <!--Genre, Sex, Language etc.-->
@@ -145,6 +145,35 @@
                 </script>
                 </div>
 
+	</div>
+	
+	<div>
+	<canvas th:id="${'plays'}"></canvas>
+		
+		<script th:inline="javascript">
+		/*<![CDATA[*/
+                var ctx = document.getElementById('plays').getContext('2d');
+                var myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [ /*[(${chartLabels})]*/ ],
+                        datasets: [{
+                            label: 'Plays',
+							data: [ /*[(${chartValues})]*/ ],
+                            fill: false,
+                            borderColor: 'rgb(75, 192, 192)',
+                            pointBackgroundColor: 'rgb(212, 25, 66)',
+                            pointStyle: 'rect'
+                        }]
+                    },
+                    options:{
+						responsive:true
+					}
+                });
+
+				myChart.update(); 
+                /*]]>*/
+                </script>
 	</div>
 	
 </body>

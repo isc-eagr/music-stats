@@ -45,7 +45,7 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 	<tbody>
 		<tr th:each="album, stat : ${artistInfo.albums}">
 			<td th:text="${stat.index+1}"/>
-			<td><a th:href="@{/album/{artist}/{album}(artist=${artist},album=${album.album})}" th:text="${album.album}"></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${album.album})}" th:text="${album.album}"></td>
 			<td th:text="${album.numberOfTracks}"/>
 			<td th:text="${album.totalPlays}"/>
 			<td th:text="${album.albumLengthString}" th:data-value="${album.albumLength}"/>

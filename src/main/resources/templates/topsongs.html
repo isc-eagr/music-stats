@@ -98,11 +98,12 @@ Number of records: <span id="numRecords"></span>
 			<th>Artist</th>
 			<th>Song</th>
 			<th>Album</th>
-			<th>Plays</th>
 			<th>Genre</th>
 			<th>Sex</th>
 			<th>Language</th>
 			<th>Year</th>
+			<th>Length</th>
+			<th>Plays</th>
 			<th>Playtime</th>
 			<th>Days Song Was Played</th>
 			<th>Weeks Song Was Played</th>
@@ -113,18 +114,19 @@ Number of records: <span id="numRecords"></span>
 		<tr th:each="topSong, stat : ${topSongs}">
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${stat.index+1}"/>
-			<td><a th:href="@{/artist/{artist}(artist=${topSong.artist})}" th:text="${topSong.artist}"></td>
-			<td><a th:href="@{/song/{artist}/{album}/{song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}" th:text="${topSong.song}"></td>
-			<td><a th:href="@{/album/{artist}/{album}(artist=${topSong.artist},album=${topSong.album})}" th:text="${topSong.album}"></td>
-			<td th:text="${topSong.count}"/>
-			<td><a th:href="@{/genre/{genre}(genre=${topSong.genre})}" th:text="${topSong.genre}"></td>
+			<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}"></td>
+			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}" th:text="${topSong.song}"></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topSong.artist},album=${topSong.album})}" th:text="${topSong.album}"></td>
+			<td><a th:href="@{/genre?genre={genre}(genre=${topSong.genre})}" th:text="${topSong.genre}"></td>
 			<td th:text="${topSong.sex}"/>
 			<td th:text="${topSong.language}"/>
 			<td th:text="${topSong.year}"/>
+			<td th:text="${topSong.lengthString}" th:data-value="${topSong.length}"/>
+			<td th:text="${topSong.count}"/>
 			<td th:text="${topSong.playtimeString}" th:data-value="${topSong.playtime}"/>
-			<td th:text="${topSong.scrobbleDays}"/>
-			<td th:text="${topSong.scrobbleWeeks}"/>
-			<td th:text="${topSong.scrobbleMonths}"/>
+			<td th:text="${topSong.playDays}"/>
+			<td th:text="${topSong.playWeeks}"/>
+			<td th:text="${topSong.playMonths}"/>
 		</tr>
 	</tbody>
 </table>

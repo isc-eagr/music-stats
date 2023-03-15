@@ -2,13 +2,13 @@ package library.dto;
 
 import java.util.Objects;
 
-public class ScrobbleDTO {
+public class PlayDTO {
 	
 	private String artist;
 	private String album;
 	private String song;
 	private int trackLength;
-	private String scrobbleDate;
+	private String playDate;
 	private String genre;
 	private int year;
 	private String language;
@@ -39,11 +39,12 @@ public class ScrobbleDTO {
 	public void setTrackLength(int trackLength) {
 		this.trackLength = trackLength;
 	}
-	public String getScrobbleDate() {
-		return scrobbleDate;
+	
+	public String getPlayDate() {
+		return playDate;
 	}
-	public void setScrobbleDate(String scrobbleDate) {
-		this.scrobbleDate = scrobbleDate;
+	public void setPlayDate(String playDate) {
+		this.playDate = playDate;
 	}
 	public String getGenre() {
 		return genre;
@@ -77,8 +78,9 @@ public class ScrobbleDTO {
 	}
 	@Override
 	public String toString() {
-		return "ArtistScrobblesDTO [artist=" + artist + ", album=" + album + ", song=" + song + ", trackLength="
-				+ trackLength + ", genre=" + genre + ", year=" + year + ", language=" + language + ", sex=" + sex + "]";
+		return "PlayDTO [artist=" + artist + ", album=" + album + ", song=" + song + ", trackLength=" + trackLength
+				+ ", playDate=" + playDate + ", genre=" + genre + ", year=" + year + ", language=" + language + ", sex="
+				+ sex + ", week=" + week + "]";
 	}
 	@Override
 	public int hashCode() {
@@ -92,7 +94,7 @@ public class ScrobbleDTO {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ScrobbleDTO other = (ScrobbleDTO) obj;
+		PlayDTO other = (PlayDTO) obj;
 		return Objects.equals(album, other.album) && Objects.equals(artist, other.artist)
 				&& Objects.equals(genre, other.genre) && Objects.equals(language, other.language)
 				&& Objects.equals(sex, other.sex) && Objects.equals(song, other.song)

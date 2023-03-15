@@ -42,7 +42,7 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${topGenre.count}"/>
-			<td><a th:href="@{/genre/{genre}(genre=${topGenre.genre})}" th:text="${topGenre.genre}"></td>
+			<td><a th:href="@{/genre?genre={genre}(genre=${topGenre.genre})}" th:text="${topGenre.genre}"></td>
 			<td th:text="${topGenre.playtimeString}" th:data-value="${topGenre.playtime}"/>
 			<td th:text="${#numbers.formatDecimal(topGenre.averagePlays, 1, 'DEFAULT', 2, 'DEFAULT')}"/>
 			<td th:text="${topGenre.averageLengthString}"/>

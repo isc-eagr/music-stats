@@ -215,8 +215,8 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
                 /*]]>*/
                 </script>
                 
-                <script th:inline="javascript" th:if="${#strings.contains(genreGroup.criteria,'Scrobble')}">
-                //Scrobble Year
+                <script th:inline="javascript" th:if="${#strings.contains(genreGroup.criteria,'Play')}">
+                //Play Year
 				/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 

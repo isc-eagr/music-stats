@@ -27,7 +27,7 @@ public class SongRepositoryImpl{
 	private static final String TOP_ALBUMS_QUERY = """
 			select * from 
 			(select artist, album, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
-							sum(duration*count) playtime, count(distinct album,song) number_of_songs,
+							sum(duration*count) playtime, sum(duration) length, count(distinct album,song) number_of_songs,
 				            genre, sex, language, year
 							from
 							(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
@@ -38,9 +38,9 @@ public class SongRepositoryImpl{
 				            group by artist, album) loc1
 			inner join 
 			        (select sc.artist, IFNULL(sc.album,'(single)') album,
-			                count(distinct date(sc.scrobble_date)) scrobble_days, 
-			                count(distinct YEARWEEK(sc.scrobble_date,1)) scrobble_weeks, 
-			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) scrobble_months
+			                count(distinct date(sc.scrobble_date)) play_days, 
+			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
+			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
 			                from scrobble sc
 			                where sc.album is not null and sc.album <> ''
 			                group by sc.artist, sc.album) loc2 
@@ -65,7 +65,8 @@ public class SongRepositoryImpl{
 				""";*/
 	
 	private static final String TOP_SONGS_QUERY = """
-			select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+			select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, 
+				so.language, so.year, count(*) count, sum(so.duration) playtime, so.duration length 
 			from scrobble sc inner join song so on so.id=sc.song_id 
 			group by sc.artist, sc.song 
 			order by count desc 
@@ -86,9 +87,9 @@ public class SongRepositoryImpl{
 					            group by artist) loc1
 				inner join 
 				        (select sc.artist, 
-				                count(distinct date(sc.scrobble_date)) scrobble_days, 
-				                count(distinct YEARWEEK(sc.scrobble_date,1)) scrobble_weeks, 
-				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) scrobble_months
+				                count(distinct date(sc.scrobble_date)) play_days, 
+				                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
+				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
 				                from scrobble sc
 				                group by sc.artist) loc2 
 				on loc1.artist=loc2.artist

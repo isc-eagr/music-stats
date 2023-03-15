@@ -20,13 +20,15 @@ public class TopSongsDTO {
 	
 	private String year;
 	
+	private int length;
+	
 	private long playtime;
 	
-	private int scrobbleDays;
+	private int playDays;
 	
-	private int scrobbleWeeks;
+	private int playWeeks;
 	
-	private int scrobbleMonths;
+	private int playMonths;
 	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
@@ -100,33 +102,44 @@ public class TopSongsDTO {
 		return playtime;
 	}
 	
-	public int getScrobbleDays() {
-		return scrobbleDays;
-	}
-
-	public void setScrobbleDays(int scrobbleDays) {
-		this.scrobbleDays = scrobbleDays;
-	}
-
-	public int getScrobbleWeeks() {
-		return scrobbleWeeks;
-	}
-
-	public void setScrobbleWeeks(int scrobbleWeeks) {
-		this.scrobbleWeeks = scrobbleWeeks;
-	}
-
-	public int getScrobbleMonths() {
-		return scrobbleMonths;
-	}
-
-	public void setScrobbleMonths(int scrobbleMonths) {
-		this.scrobbleMonths = scrobbleMonths;
-	}
-
 	public void setPlaytime(long playtime) {
 		this.playtime = playtime;
 	}
 	
+	public int getPlayDays() {
+		return playDays;
+	}
+
+	public void setPlayDays(int playDays) {
+		this.playDays = playDays;
+	}
+
+	public int getPlayWeeks() {
+		return playWeeks;
+	}
+
+	public void setPlayWeeks(int playWeeks) {
+		this.playWeeks = playWeeks;
+	}
+
+	public int getPlayMonths() {
+		return playMonths;
+	}
+
+	public void setPlayMonths(int playMonths) {
+		this.playMonths = playMonths;
+	}
+
+	public int getLength() {
+		return length;
+	}
+
+	public void setLength(int length) {
+		this.length = length;
+	}
+	
+	public String getLengthString() {
+		return Utils.secondsToStringColon(length);
+	}
 	
 }
