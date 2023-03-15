@@ -57,11 +57,12 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
                 var percentagesPlays=[]; 
                 var percentagesPlaytime=[];   
                 for (let row of table.rows) {
-					if(row === table.rows[0]){continue;}
-					labelsArray.push(row.cells[0].innerHTML);
-		        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
-		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+					if(row.rowIndex > 0){
+						labelsArray.push(row.cells[0].innerHTML);
+			        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
+			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+		        	}
 				}
                 
                 var myChart = new Chart(ctx, {
@@ -122,27 +123,18 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
                 var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
-                var yearsStruct = [];
-                
-                for (var i=0;i<table.rows.length;i++) {
-					if(i === 0){continue;}
-					var yearsElement = [];
-					yearsElement.push(table.rows[i].cells[0].innerHTML);
-					yearsElement.push(i);
-					yearsStruct.push(yearsElement);
-				}
-                yearsStruct.sort();
                 
                 var labelsArray=[];
                 var percentagesSongs=[];
                 var percentagesPlays=[]; 
                 var percentagesPlaytime=[];   
-                for (var i=0;i<yearsStruct.length;i++) {
-					var row = table.rows[yearsStruct[i][1]];
-					labelsArray.push(row.cells[0].innerHTML);
-		        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
-		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+                for (let row of table.rows) {
+					if(row.rowIndex > 0){
+						labelsArray.push(row.cells[0].innerHTML);
+			        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
+			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+		        	}
 				}
                 
                 var myChart = new Chart(ctx, {
@@ -181,20 +173,10 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 								var totalPlaytime = /*[[${genre.totalPlaytimeString}]]*/'';
 								
 								var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
-				                var yearsStruct = [];
-				                
-				                for (var i=0;i<table.rows.length;i++) {
-									if(i === 0){continue;}
-									var yearsElement = [];
-									yearsElement.push(table.rows[i].cells[0].innerHTML);
-									yearsElement.push(i);
-									yearsStruct.push(yearsElement);
-								}
-				                yearsStruct.sort();
 								
-								var thisSongs = table.rows[yearsStruct[context.dataIndex][1]].cells[1].innerHTML;
-								var thisPlays = table.rows[yearsStruct[context.dataIndex][1]].cells[3].innerHTML;
-								var thisPlaytime = table.rows[yearsStruct[context.dataIndex][1]].cells[5].innerHTML;
+								var thisSongs = table.rows[context.dataIndex+1].cells[1].innerHTML;
+								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
+								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
 								
 								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+genre+" songs were released in "+context.label:
 											(context.datasetIndex === 1? context.formattedValue+"% of all "+genre+" plays are from songs released in "+context.label:
@@ -221,25 +203,16 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
                 var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
-                var yearsStruct = [];
-                
-                for (var i=0;i<table.rows.length;i++) {
-					if(i === 0){continue;}
-					var yearsElement = [];
-					yearsElement.push(table.rows[i].cells[0].innerHTML);
-					yearsElement.push(i);
-					yearsStruct.push(yearsElement);
-				}
-                yearsStruct.sort();
                 
                 var labelsArray=[];
                 var percentagesPlays=[]; 
                 var percentagesPlaytime=[];   
-                for (var i=0;i<yearsStruct.length;i++) {
-					var row = table.rows[yearsStruct[i][1]];
-					labelsArray.push(row.cells[0].innerHTML);
-		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+                for (let row of table.rows) {
+					if(row.rowIndex > 0){
+						labelsArray.push(row.cells[0].innerHTML);
+			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+		        	}
 				}
                 
                 var myChart = new Chart(ctx, {
@@ -271,19 +244,9 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 								var totalPlaytime = /*[[${genre.totalPlaytimeString}]]*/'';
 								
 								var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
-				                var yearsStruct = [];
-				                
-				                for (var i=0;i<table.rows.length;i++) {
-									if(i === 0){continue;}
-									var yearsElement = [];
-									yearsElement.push(table.rows[i].cells[0].innerHTML);
-									yearsElement.push(i);
-									yearsStruct.push(yearsElement);
-								}
-				                yearsStruct.sort();
 								
-								var thisPlays = table.rows[yearsStruct[context.dataIndex][1]].cells[3].innerHTML;
-								var thisPlaytime = table.rows[yearsStruct[context.dataIndex][1]].cells[5].innerHTML;
+								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
+								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
 								
 								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+genre+" plays happened in "+context.label:
 											context.formattedValue+"% of all "+genre+" playtime happened in "+context.label;

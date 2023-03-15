@@ -34,7 +34,7 @@
 					   case "Language": 
 						   languages.push(input.value.split(',')[0]);
 						   break;
-					   case "Year": 
+					   case "Release Year": 
 						   years.push(input.value.split(',')[0]);
 						   break;
 				   	}
@@ -42,14 +42,14 @@
 			}
 			var enabledCells = 0;		
 			for (let row of table.rows) {
-	        	var colGenre = htmlDecode(row.cells[5].innerHTML);
-	        	var colSex = row.cells[6].innerHTML;
-	        	var colLanguage = row.cells[7].innerHTML;
-	        	var colYear = row.cells[8].innerHTML;
+	        	var colGenre = htmlDecode(row.cells[4].firstChild.innerHTML);
+	        	var colSex = row.cells[5].innerHTML;
+	        	var colLanguage = row.cells[6].innerHTML;
+	        	var colYear = row.cells[7].firstChild.innerHTML;
 	        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
 	        			(sexes.length <= 0 || sexes.includes(colSex)) && 
-	        			(languages<=0 || languages.includes(colLanguage)) && 
-	        			(years <=0 || years.includes(colYear))){
+	        			(languages.length<=0 || languages.includes(colLanguage)) && 
+	        			(years.length <=0 || years.includes(colYear))){
 	        		row.style.display = '';
 	        		enabledCells++;
 	        		row.cells[0].innerHTML = enabledCells;
@@ -64,6 +64,21 @@
 		
 		window.onload = function(){
 			document.getElementById("numRecords").innerHTML = document.getElementById("albumsTable").rows.length-1;
+			
+			table = document.getElementById('albumsTable');
+			
+			sortFunction = function(event){
+				var enabledCells = 0;
+				for (let row of table.rows) {
+					if(row.rowIndex > 0 && row.style.display != 'none'){
+						enabledCells++;
+		        		row.cells[0].innerHTML = enabledCells;
+	        		}
+				}
+			};
+			
+			table.addEventListener('Sortable.sorted', sortFunction);
+			
 			Sortable.init();
 		}
 	</script>
@@ -107,13 +122,13 @@ Number of records: <span id="numRecords"></span>
 <table id="albumsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
 		<tr>
-			<th>Position</th>
+			<th data-sortable="false">Position</th>
 			<th>Overall Position</th>
 			<th>Artist</th>
 			<th>Album</th>
-			<th>Genre</th>
-			<th>Sex</th>
-			<th>Language</th>
+			<th data-sortable="false">Genre</th>
+			<th data-sortable="false">Sex</th>
+			<th data-sortable="false">Language</th>
 			<th>Year</th>
 			<th>Length</th>
 			<th>Plays</th>
@@ -130,12 +145,12 @@ Number of records: <span id="numRecords"></span>
 		<tr th:each="topAlbum, stat : ${topAlbums}">
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${stat.index+1}"/>
-			<td><a th:href="@{/artist?artist={artist}(artist=${topAlbum.artist})}" th:text="${topAlbum.artist}"></td>
-			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topAlbum.artist},album=${topAlbum.album})}" th:text="${topAlbum.album}"></td>
-			<td><a th:href="@{/genre?genre={genre}(genre=${topAlbum.genre})}" th:text="${topAlbum.genre}"></td>
+			<td><a th:href="@{/artist?artist={artist}(artist=${topAlbum.artist})}" th:text="${topAlbum.artist}"/></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topAlbum.artist},album=${topAlbum.album})}" th:text="${topAlbum.album}"/></td>
+			<td><a th:href="@{/genre?genre={genre}(genre=${topAlbum.genre})}" th:text="${topAlbum.genre}"/></td>
 			<td th:text="${topAlbum.sex}"/>
 			<td th:text="${topAlbum.language}"/>
-			<td th:text="${topAlbum.year}"/>
+			<td><a th:href="@{/timeUnitDetail/year/{year}(year=${topAlbum.year})}" th:text="${topAlbum.year}"/></td>
 			<td th:text="${topAlbum.lengthString}" th:data-value="${topAlbum.length}"/>
 			<td th:text="${topAlbum.count}"/>
 			<td th:text="${topAlbum.playtimeString}" th:data-value="${topAlbum.playtime}"/>

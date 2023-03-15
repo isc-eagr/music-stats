@@ -125,30 +125,18 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
                 
                 var table = document.getElementById(/*[[${timeUnitGroup.criteria}]]*/'');
                 var criteria = /*[[${timeUnitGroup.criteria}]]*/'';
-                var yearsStruct = [];
-                
-                for (var i=0;i<table.rows.length;i++) {
-					if(i === 0){continue;}
-					var yearsElement = [];
-					yearsElement.push(table.rows[i].cells[0].innerHTML);
-					yearsElement.push(i);
-					yearsStruct.push(yearsElement);
-				}
-                
-                if(criteria.includes("Release")){
-					yearsStruct.sort();
-				}
-                
+                                
                 var labelsArray=[];
                 var percentagesSongs=[];
                 var percentagesPlays=[]; 
                 var percentagesPlaytime=[];   
-                for (var i=0;i<yearsStruct.length;i++) {
-					var row = table.rows[yearsStruct[i][1]];
-					labelsArray.push(htmlDecode(row.cells[0].innerHTML));
-		        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
-		        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-		        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+                for (let row of table.rows) {
+					if(row.rowIndex > 0){
+						labelsArray.push(htmlDecode(row.cells[0].innerHTML));
+			        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
+			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+		        	}
 				}
                 
                 var myChart = new Chart(ctx, {
@@ -188,22 +176,10 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 								var criteria = /*[[${timeUnitGroup.criteria}]]*/'';
 								
 								var table = document.getElementById(/*[[${timeUnitGroup.criteria}]]*/'');
-				                var yearsStruct = [];
-				                
-				                for (var i=0;i<table.rows.length;i++) {
-									if(i === 0){continue;}
-									var yearsElement = [];
-									yearsElement.push(table.rows[i].cells[0].innerHTML);
-									yearsElement.push(i);
-									yearsStruct.push(yearsElement);
-								}
-				                if(criteria.includes("Release")){
-									yearsStruct.sort();
-								}
-								
-								var thisSongs = table.rows[yearsStruct[context.dataIndex][1]].cells[1].innerHTML;
-								var thisPlays = table.rows[yearsStruct[context.dataIndex][1]].cells[3].innerHTML;
-								var thisPlaytime = table.rows[yearsStruct[context.dataIndex][1]].cells[5].innerHTML;
+							
+								var thisSongs = table.rows[context.dataIndex+1].cells[1].innerHTML;
+								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
+								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
 								
 								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+unit+" songs were released in "+context.label:
 											(context.datasetIndex === 1? context.formattedValue+"% of all "+unit+" plays are from songs released in "+context.label:

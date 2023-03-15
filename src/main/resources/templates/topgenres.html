@@ -8,6 +8,20 @@
 	<script type="text/javascript">
 		window.onload = function(){
 			document.getElementById("numRecords").innerHTML = document.getElementById("genresTable").rows.length-1;
+			
+			table = document.getElementById('genresTable');
+			
+			sortFunction = function(event){
+				var enabledCells = 0;
+				for (let row of table.rows) {
+					if(row.rowIndex > 0 && row.style.display != 'none'){
+						enabledCells++;
+		        		row.cells[0].innerHTML = enabledCells;
+	        		}
+				}
+			};
+			
+			table.addEventListener('Sortable.sorted', sortFunction);
 			Sortable.init();
 		}
 	</script>

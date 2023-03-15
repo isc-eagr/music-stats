@@ -281,9 +281,12 @@ public class MainController {
 		//in that criteria
 		Map<String, List<DataForGraphs>> dataMap = new LinkedHashMap<>();
 
-		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex()),
-				new Criterion<>("Genre", song -> song.getGenre()),
-				new Criterion<>("Language", song -> song.getLanguage())
+		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(), 
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", song -> song.getGenre(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", song -> song.getLanguage(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1))
 				);
 				
 		for (Criterion<PlayDTO> criterion : criteria) {
@@ -311,7 +314,7 @@ public class MainController {
 
 			List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
 			
-			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			Collections.sort(sortedList, criterion.getSortBy());
 			
 			//This loop iterates through every secondary criteria (R&B Reggaeton etc)
 			for(Entry<String, List<PlayDTO>> e : sortedList) {
@@ -373,10 +376,14 @@ public class MainController {
 		List<TopSongsDTO> topSongs = songRepositoryImpl.getTopSongs(limit);
 		model.addAttribute("topSongs", topSongs);
 		
-		List<Criterion<TopSongsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex()),
-				new Criterion<>("Genre", song -> song.getGenre()),
-				new Criterion<>("Language", song -> song.getLanguage()),
-				new Criterion<>("Release Year", song -> song.getYear())
+		List<Criterion<TopSongsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", song -> song.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", song -> song.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", song -> song.getYear(),
+						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
 				);
 		
 		
@@ -388,7 +395,7 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			List<Entry<String, List<TopSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			Collections.sort(sortedList, criterion.getSortBy());
 			
 			for(Entry<String, List<TopSongsDTO>> e : sortedList) {
 				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
@@ -419,9 +426,12 @@ public class MainController {
 		
 		model.addAttribute("topArtists", topArtists);
 		
-		List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", artist -> artist.getSex()),
-				new Criterion<>("Genre", artist -> artist.getGenre()),
-				new Criterion<>("Language", artist -> artist.getLanguage())
+		List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", artist -> artist.getSex(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", artist -> artist.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", artist -> artist.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1))
 				);
 		
 		
@@ -433,7 +443,7 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			List<Entry<String, List<TopArtistsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			Collections.sort(sortedList, criterion.getSortBy());
 			
 			for(Entry<String, List<TopArtistsDTO>> e : sortedList) {
 				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
@@ -463,10 +473,14 @@ public class MainController {
 		List<TopAlbumsDTO> topAlbums = songRepositoryImpl.getTopAlbums(limit);
 		model.addAttribute("topAlbums", topAlbums);
 		
-		List<Criterion<TopAlbumsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex()),
-				new Criterion<>("Genre", song -> song.getGenre()),
-				new Criterion<>("Language", song -> song.getLanguage()),
-				new Criterion<>("Release Year", song -> song.getYear())
+		List<Criterion<TopAlbumsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", song -> song.getGenre(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", song -> song.getLanguage(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", song -> song.getYear(),
+							(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
 				);
 		
 		
@@ -478,7 +492,7 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			Collections.sort(sortedList, criterion.getSortBy());
 			
 			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
 				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
@@ -615,10 +629,14 @@ public class MainController {
 		timeUnitDetailDTO.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		timeUnitDetailDTO.setUniqueSongsPlayed(map.entrySet().size());
 		
-		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", play -> play.getSex()),
-				new Criterion<>("Genre", play -> play.getGenre()),
-				new Criterion<>("Language", play -> play.getLanguage()),
-				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()))
+		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", play -> play.getSex(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", play -> play.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", play -> play.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
+						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 		
 		
@@ -630,7 +648,7 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			Collections.sort(sortedList, criterion.getSortBy());
 			
 			for(Entry<String, List<PlayDTO>> e : sortedList) {
 				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
@@ -980,10 +998,15 @@ public class MainController {
 		genrePage.setAveragePlaysPerSong((double)genrePage.getTotalPlays()/genrePage.getNumberOfSongs());
 		genrePage.setAverageSongLength(sortedList.stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/genrePage.getNumberOfSongs());
 		
-		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", play -> play.getSex()),
-				new Criterion<>("Language", play -> play.getLanguage()),
-				new Criterion<>("Release Year", play -> String.valueOf(play.getYear())),
-				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4))
+		List<Criterion<PlayDTO>> criteria = List.of(
+				new Criterion<>("Sex", play -> play.getSex(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", play -> play.getLanguage(),
+							(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
+							(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
+				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
+							(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 		
 		
@@ -995,7 +1018,7 @@ public class MainController {
 			List<TopCountDTO> counts = new ArrayList<>();
 			
 			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
+			Collections.sort(sortedList, criterion.getSortBy());
 			
 			for(Entry<String, List<PlayDTO>> e : sortedList) {
 				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
