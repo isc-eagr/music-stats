@@ -590,14 +590,24 @@ public class MainController {
 		
 		model.addAttribute("timeUnitGroupList", timeUnitGroupList);
 		model.addAttribute("unit", unit);
+		model.addAttribute("top", switch(unit) {
+			case "day" -> 5;
+			case "week" -> 10;
+			case "month" -> 50;
+			case "season" -> 100;
+			case "year" -> 250;
+			case "decade" -> 500;
+			default -> 5;
+		});
 		return "timeunit";
 		
 	}
 	
-	@RequestMapping("/timeUnitDetail/{unit}/{unitValue}")
+	@RequestMapping("/timeUnitDetail/{unit}/{unitValue}/{top}")
 	public String timeUnitDetail(Model model, 
 			@PathVariable String unit,
-			@PathVariable String unitValue) {
+			@PathVariable String unitValue,
+			@PathVariable Integer top) {
 		
 		List<PlayDTO> plays = switch(unit) {
 			case "day" -> timeUnitRepository.dayPlays(unitValue);
@@ -644,7 +654,7 @@ public class MainController {
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		timeUnitDetailDTO.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		
-		timeUnitDetailDTO.setMostPlayedSongs(sortedList.stream().limit(100).map(e->{
+		timeUnitDetailDTO.setMostPlayedSongs(sortedList.stream().limit(top).map(e->{
 			AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
 			song.setArtist(e.getValue().get(0).getArtist());
 			song.setAlbum(e.getValue().get(0).getAlbum());

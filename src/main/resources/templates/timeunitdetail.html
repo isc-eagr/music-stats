@@ -226,10 +226,10 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 	<tbody>
 		<tr th:each="song, stat : ${timeUnitDetail.mostPlayedSongs}">
 			<td th:text="${stat.index+1}"/>
-			<td th:text="${song.artist}"/>
-			<td th:text="${song.album}"/>
+			<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}" th:text="${song.album}"></td>
 			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
-			<td th:text="${song.genre}"/>
+			<td><a th:href="@{/genre?genre={genre}(genre=${song.genre})}" th:text="${song.genre}"/></td>
 			<td th:text="${song.year}"/>
 			<td th:text="${song.totalPlays}"/>
 		</tr>
