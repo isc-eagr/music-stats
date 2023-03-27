@@ -4,6 +4,13 @@
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src="../../../js/sortable.min.js"></script>
+	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		window.onload = function(){
+			Sortable.init();
+		}
+	</script>
 </head>
 <body>
 Total Plays: <span th:text="${timeUnitDetail.totalPlays}"/><br/>
@@ -202,6 +209,32 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
                 
 	</div>
 </div>
+<br/>
+
+<table id="albumSongsTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr>
+			<th>Position</th>
+			<th>Artist</th>
+			<th>Album</th>
+			<th>Song</th>
+			<th>Genre</th>
+			<th>Year</th>
+			<th>Total Plays</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr th:each="song, stat : ${timeUnitDetail.mostPlayedSongs}">
+			<td th:text="${stat.index+1}"/>
+			<td th:text="${song.artist}"/>
+			<td th:text="${song.album}"/>
+			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
+			<td th:text="${song.genre}"/>
+			<td th:text="${song.year}"/>
+			<td th:text="${song.totalPlays}"/>
+		</tr>
+	</tbody>
+</table>
 
 </body>
 

@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 import library.util.Utils;
 
 public class TimeUnitDetailDTO {
@@ -13,6 +15,7 @@ public class TimeUnitDetailDTO {
 	private int uniqueAlbumsPlayed;
 	private int uniqueSongsPlayed;
 	private double percentageofUnitWhereMusicWasPlayed;
+	private List<AlbumSongsQueryDTO> mostPlayedSongs;
 	
 	public int getTotalPlays() {
 		return totalPlays;
@@ -62,6 +65,12 @@ public class TimeUnitDetailDTO {
 	}
 	public void setUniqueSongsPlayed(int uniqueSongsPlayed) {
 		this.uniqueSongsPlayed = uniqueSongsPlayed;
+	}
+	public List<AlbumSongsQueryDTO> getMostPlayedSongs() {
+		return mostPlayedSongs;
+	}
+	public void setMostPlayedSongs(List<AlbumSongsQueryDTO> mostPlayedSongs) {
+		this.mostPlayedSongs = mostPlayedSongs;
 	}
 	public String getTotalPlaytimeString() {
 		return Utils.secondsToString(totalPlaytime);

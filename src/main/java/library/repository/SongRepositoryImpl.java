@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import library.dto.SongsInItunesButNotLastfmDTO;
+import library.dto.SongsLocalButNotLastfmDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
 import library.dto.TopGenresDTO;
@@ -109,8 +109,8 @@ public class SongRepositoryImpl{
 			limit ?
 			""";
 	
-	private static final String SONGS_ITUNES_BUT_NOT_LASTFM = """
-				select so.artist, so.song, so.album, so.genre, so.sex, so.language, count(*)  plays, duration, sum(duration) playtime 
+	private static final String SONGS_LOCAL_BUT_NOT_LASTFM = """
+				select so.artist, so.song, so.album, so.source 
 				from song so left join scrobble sc on so.id=sc.song_id 
 			 	where sc.artist is null 
 				group by so.artist,so.song,so.album 
@@ -195,8 +195,8 @@ public class SongRepositoryImpl{
 		return template.query(TOP_GENRES_QUERY, new BeanPropertyRowMapper<>(TopGenresDTO.class),limit);
 	}
 	
-	public List<SongsInItunesButNotLastfmDTO> songsItunesButNotLastfm() {
-		return template.query(SONGS_ITUNES_BUT_NOT_LASTFM, new BeanPropertyRowMapper<>(SongsInItunesButNotLastfmDTO.class));
+	public List<SongsLocalButNotLastfmDTO> songsLocalButNotLastfm() {
+		return template.query(SONGS_LOCAL_BUT_NOT_LASTFM, new BeanPropertyRowMapper<>(SongsLocalButNotLastfmDTO.class));
 	}
 	
 	public List<TimeUnitStatsDTO> timeUnitStats(String start, String end, String unit) {

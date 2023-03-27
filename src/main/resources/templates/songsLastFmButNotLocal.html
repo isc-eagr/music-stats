@@ -7,10 +7,17 @@
 </head>
 <body>
 
-	Songs in lastfm but not in itunes: <span th:text="${listSongs.size}">.</span> <br/>
+	Songs in lastfm but not locally: <span th:text="${listSongs.size}">.</span> <br/>
 	<table class="sortable-theme-finder" data-sortable>
 	<thead>
-		<tr><th>Artist</th><th>Song</th><th>Album</th><th>Plays</th><th data-sortable="false">Insert Song</th><th data-sortable="false">Insert Album</th></tr>
+		<tr>
+			<th>Artist</th>
+			<th>Song</th>
+			<th>Album</th>
+			<th>Plays</th>
+			<th data-sortable="false">Insert Song</th>
+			<th data-sortable="false">Insert Album</th>
+		</tr>
 	</thead>
 	<tbody>
 		<tr th:each="song : ${listSongs}">

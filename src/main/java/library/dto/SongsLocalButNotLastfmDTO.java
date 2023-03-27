@@ -1,6 +1,6 @@
 package library.dto;
 
-public class SongsInLastfmButNotItunesDTO {
+public class SongsLocalButNotLastfmDTO {
 	
 	private String artist;
 	
@@ -8,7 +8,7 @@ public class SongsInLastfmButNotItunesDTO {
 	
 	private String album;
 	
-	private int count;
+	private String source;
 
 	public String getArtist() {
 		return artist;
@@ -34,12 +34,14 @@ public class SongsInLastfmButNotItunesDTO {
 		this.album = album;
 	}
 
-	public int getCount() {
-		return count;
+	public String getSource() {
+		return source;
 	}
 
-	public void setCount(int count) {
-		this.count = count;
+	public void setSource(String source) {
+		this.source = source;
 	}
+	
+	
 	
 }

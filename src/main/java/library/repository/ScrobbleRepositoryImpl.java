@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import library.dto.PlayDTO;
-import library.dto.SongsInLastfmButNotItunesDTO;
+import library.dto.SongsInLastfmButNotLocalDTO;
 import library.entity.Song;
 
 @Repository
@@ -20,7 +20,7 @@ public class ScrobbleRepositoryImpl{
 
 	}
 
-    private static final String SONGS_LASTFM_BUT_NOT_ITUNES = """
+    private static final String SONGS_LASTFM_BUT_NOT_LOCAL = """
     		select sc.artist, sc.song, sc.album, count(*) count 
 			from scrobble sc left join song so 
 			on so.id = sc.song_id 
@@ -52,8 +52,8 @@ public class ScrobbleRepositoryImpl{
 			""";
 	
 	
-	public List<SongsInLastfmButNotItunesDTO> songsInLastFmButNotItunes() {
-		return template.query(SONGS_LASTFM_BUT_NOT_ITUNES, new BeanPropertyRowMapper<>(SongsInLastfmButNotItunesDTO.class));
+	public List<SongsInLastfmButNotLocalDTO> songsInLastFmButNotLocal() {
+		return template.query(SONGS_LASTFM_BUT_NOT_LOCAL, new BeanPropertyRowMapper<>(SongsInLastfmButNotLocalDTO.class));
 	}
 	
 	public int updateSongIds(int songId, String artist, String song, String album) {

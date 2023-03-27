@@ -316,22 +316,36 @@ public class MainController {
 			
 			Collections.sort(sortedList, criterion.getSortBy());
 			
-			//This loop iterates through every secondary criteria (R&B Reggaeton etc)
+			//These loops iterate through every secondary criteria (R&B Reggaeton etc)
 			for(Entry<String, List<PlayDTO>> e : sortedList) {
 				Map<Boolean, List<PlayDTO>> partitionedByMale= e.getValue().stream().collect(Collectors.partitioningBy(s->s.getSex().equals("Male")));
-				
-				numberOfSongsDataMale += partitionedByMale.get(Boolean.TRUE).stream().map(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()).distinct().count()+",";
-				numberOfSongsDataOthers += partitionedByMale.get(Boolean.FALSE).stream().map(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()).distinct().count()+",";
-				numberOfSongsLabels += ("'"+e.getKey()+"',");
-				
 				numberOfPlaysDataMale += partitionedByMale.get(Boolean.TRUE).size()+",";
 				numberOfPlaysDataOthers += partitionedByMale.get(Boolean.FALSE).size()+",";
 				numberOfPlaysLabels += ("'"+e.getKey()+"',");
-				
+			}
+			
+			Collections.sort(sortedList, (o1, o2) -> 
+						o1.getValue().stream().map(p->p.getArtist()+"::"+p.getAlbum()+"::"+p.getSong()).distinct().count()>
+						o2.getValue().stream().map(p->p.getArtist()+"::"+p.getAlbum()+"::"+p.getSong()).distinct().count()?-1:1
+					);
+			for(Entry<String, List<PlayDTO>> e : sortedList) {
+				Map<Boolean, List<PlayDTO>> partitionedByMale= e.getValue().stream().collect(Collectors.partitioningBy(s->s.getSex().equals("Male")));
+				numberOfSongsDataMale += partitionedByMale.get(Boolean.TRUE).stream().map(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()).distinct().count()+",";
+				numberOfSongsDataOthers += partitionedByMale.get(Boolean.FALSE).stream().map(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()).distinct().count()+",";
+				numberOfSongsLabels += ("'"+e.getKey()+"',");
+			}
+			
+			Collections.sort(sortedList, (o1, o2) -> 
+			o1.getValue().stream().mapToLong(p->p.getTrackLength()).sum()>
+			o2.getValue().stream().mapToLong(p->p.getTrackLength()).sum()?-1:1
+			);
+			for(Entry<String, List<PlayDTO>> e : sortedList) {
+				Map<Boolean, List<PlayDTO>> partitionedByMale= e.getValue().stream().collect(Collectors.partitioningBy(s->s.getSex().equals("Male")));
 				playtimeDataMale += partitionedByMale.get(Boolean.TRUE).stream().mapToLong(s->s.getTrackLength()).sum()+",";
 				playtimeDataOthers += partitionedByMale.get(Boolean.FALSE).stream().mapToLong(s->s.getTrackLength()).sum()+",";
-				playtimeLabels += ("'"+e.getKey()+"',");
+				playtimeLabels += ("'"+e.getKey()+"',");	
 			}
+			
 			DataForGraphs dataNumberSongs = new DataForGraphs(numberOfSongsDataMale.substring(0,numberOfSongsDataMale.length()-1), 
 					numberOfSongsDataOthers.substring(0,numberOfSongsDataOthers.length()-1), numberOfSongsLabels.substring(0,numberOfSongsLabels.length()-1), "NumberOfSongs");
 			
@@ -349,8 +363,9 @@ public class MainController {
 			dataMap.put(criterion.getName(), data);
 		}
 		
-		String firstPlayedYear = allPlays.stream().map(s->s.getPlayDate()).min((s1, s2) -> s1.compareTo(s2)).orElse("").substring(0, 4);
-		List<Integer> years = IntStream.rangeClosed(Integer.parseInt(firstPlayedYear), LocalDate.now().getYear()).boxed().toList();
+		String firstPlayedYear = allPlays.stream().map(s->s.getPlayDate()).min((s1, s2) -> s1.compareTo(s2)).orElse("");
+		firstPlayedYear = firstPlayedYear.isBlank() ? "" : firstPlayedYear.substring(0, 4);
+		List<Integer> years = firstPlayedYear.isBlank()? List.of() : IntStream.rangeClosed(Integer.parseInt(firstPlayedYear), LocalDate.now().getYear()).boxed().toList();
 		
 		Map<String,Long> playsByYearForChart = allPlays.stream().collect(Collectors.groupingBy(s->s.getPlayDate().substring(0,4),Collectors.counting()));
 		for(Integer year : years) {
@@ -525,17 +540,17 @@ public class MainController {
 		
 	}
 	
-	@RequestMapping("/songsLastFmButNotItunes")
-	public String songsLastFmButNotItunes(Model model) {
-		model.addAttribute("listSongs", scrobbleRepositoryImpl.songsInLastFmButNotItunes());
-		return "songsLastFmButNotItunes";
+	@RequestMapping("/songsLastFmButNotLocal")
+	public String songsLastFmButNotLocal(Model model) {
+		model.addAttribute("listSongs", scrobbleRepositoryImpl.songsInLastFmButNotLocal());
+		return "songsLastFmButNotLocal";
 		
 	}
 	
-	@RequestMapping("/songsItunesButNotLastfm")
-	public String songsItunesButNotLastFm(Model model) {
-		model.addAttribute("listSongs", songRepositoryImpl.songsItunesButNotLastfm());
-		return "songsItunesButNotLastfm";
+	@RequestMapping("/songsLocalButNotLastfm")
+	public String songsLocalButNotLastFm(Model model) {
+		model.addAttribute("listSongs", songRepositoryImpl.songsLocalButNotLastfm());
+		return "songsLocalButNotLastfm";
 		
 	}
 	
@@ -623,10 +638,23 @@ public class MainController {
 		timeUnitDetailDTO.setMostPlayedAlbum(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		timeUnitDetailDTO.setUniqueAlbumsPlayed(map.entrySet().size());
 		
+		//Group by song and sort by most played
 		map = plays.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
 		sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		timeUnitDetailDTO.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		
+		timeUnitDetailDTO.setMostPlayedSongs(sortedList.stream().limit(100).map(e->{
+			AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
+			song.setArtist(e.getValue().get(0).getArtist());
+			song.setAlbum(e.getValue().get(0).getAlbum());
+			song.setSong(e.getValue().get(0).getSong());
+			song.setGenre(e.getValue().get(0).getGenre());
+			song.setYear(e.getValue().get(0).getYear());
+			song.setTotalPlays(e.getValue().size());
+			return song;
+		}).toList());
+		
 		timeUnitDetailDTO.setUniqueSongsPlayed(map.entrySet().size());
 		
 		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", play -> play.getSex(),

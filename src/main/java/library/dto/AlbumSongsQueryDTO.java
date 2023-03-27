@@ -7,6 +7,8 @@ public class AlbumSongsQueryDTO {
 	String artist;
 	String song;
 	String album;
+	String genre;
+	int year;
 	int trackLength;
 	int totalPlays;
 	String firstPlay;
@@ -33,6 +35,26 @@ public class AlbumSongsQueryDTO {
 
 	public void setSong(String song) {
 		this.song = song;
+	}
+
+
+	public String getGenre() {
+		return genre;
+	}
+
+
+	public void setGenre(String genre) {
+		this.genre = genre;
+	}
+
+
+	public int getYear() {
+		return year;
+	}
+
+
+	public void setYear(int year) {
+		this.year = year;
 	}
 
 
