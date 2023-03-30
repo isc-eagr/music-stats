@@ -19,30 +19,37 @@ public class ArtistRepository{
 	}
 
     private static final String ARTIST_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, 
+    		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
 			""";
     
     private static final String ALBUM_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, 
+    		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
             and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
 			""";
     
     private static final String SONG_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
             and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
             and LOWER(so.song) = LOWER(?)
 			""";
     
-    private static final String GENRE_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+    private static final String CATEGORY_PLAYS_QUERY = """
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
+    		 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where LOWER(so.genre)=LOWER(?)
+            where LOWER(so.%s)=LOWER(?)
 			""";
     
 	public List<PlayDTO> artistPlays(String artist) {
@@ -57,8 +64,8 @@ public class ArtistRepository{
 		return template.query(SONG_PLAYS_QUERY, new BeanPropertyRowMapper<>(PlayDTO.class), artist, album, song);
 	}
 	
-	public List<PlayDTO> genrePlays(String genre) {
-		return template.query(GENRE_PLAYS_QUERY, new BeanPropertyRowMapper<>(PlayDTO.class), genre);
+	public List<PlayDTO> categoryPlays(String category, String value) {
+		return template.query(String.format(CATEGORY_PLAYS_QUERY, category), new BeanPropertyRowMapper<>(PlayDTO.class), value);
 	}
 	
 }

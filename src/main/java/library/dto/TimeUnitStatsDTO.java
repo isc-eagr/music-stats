@@ -13,6 +13,10 @@ public class TimeUnitStatsDTO {
 	private String dateSex;
 	private int durationSex;
 	private int countSex;
+	private String race;
+	private String dateRace;
+	private int durationRace;
+	private int countRace;
 	private int totalDuration;
 	private int totalCount;
 	
@@ -26,6 +30,10 @@ public class TimeUnitStatsDTO {
 
 	public String getDurationSexText() {
 		return Utils.secondsToString(this.durationSex);
+	}
+	
+	public String getDurationRaceText() {
+		return Utils.secondsToString(this.durationRace);
 	}
 
 	public String getGenre() {
@@ -83,7 +91,7 @@ public class TimeUnitStatsDTO {
 	public void setDateSex(String dateSex) {
 		this.dateSex = dateSex;
 	}
-
+	
 	public int getDurationSex() {
 		return durationSex;
 	}
@@ -98,6 +106,38 @@ public class TimeUnitStatsDTO {
 
 	public void setCountSex(int countSex) {
 		this.countSex = countSex;
+	}
+	
+	public String getRace() {
+		return race;
+	}
+
+	public void setRace(String race) {
+		this.race = race;
+	}
+
+	public String getDateRace() {
+		return dateRace;
+	}
+
+	public void setDateRace(String dateRace) {
+		this.dateRace = dateRace;
+	}
+
+	public int getDurationRace() {
+		return durationRace;
+	}
+
+	public void setDurationRace(int durationRace) {
+		this.durationRace = durationRace;
+	}
+
+	public int getCountRace() {
+		return countRace;
+	}
+
+	public void setCountRace(int countRace) {
+		this.countRace = countRace;
 	}
 
 	public int getTotalDuration() {

@@ -8,6 +8,8 @@ public class TopArtistsDTO {
 	
 	private String genre;
 	
+	private String race;
+	
 	private String sex;
 	
 	private String language;
@@ -48,6 +50,14 @@ public class TopArtistsDTO {
 
 	public void setGenre(String genre) {
 		this.genre = genre;
+	}
+
+	public String getRace() {
+		return race;
+	}
+
+	public void setRace(String race) {
+		this.race = race;
 	}
 
 	public String getSex() {

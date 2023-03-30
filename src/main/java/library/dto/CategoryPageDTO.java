@@ -2,7 +2,7 @@ package library.dto;
 
 import library.util.Utils;
 
-public class GenrePageDTO {
+public class CategoryPageDTO {
 	
 	int totalPlays;
 	int totalPlaytime;
@@ -13,13 +13,13 @@ public class GenrePageDTO {
 	int numberOfArtists;
 	String firstPlay;
 	String lastPlay;
-	int daysGenreWasPlayed;
-	int weeksGenreWasPlayed;
-	int monthsGenreWasPlayed;
+	int daysCategoryWasPlayed;
+	int weeksCategoryWasPlayed;
+	int monthsCategoryWasPlayed;
 	String mostPlayedArtist;
 	String mostPlayedAlbum;
 	String mostPlayedSong;
-	String genre;
+	String categoryValue;
 	
 	public int getTotalPlays() {
 		return totalPlays;
@@ -108,38 +108,7 @@ public class GenrePageDTO {
 	public void setLastPlay(String lastPlay) {
 		this.lastPlay = lastPlay;
 	}
-
-
-	public int getDaysGenreWasPlayed() {
-		return daysGenreWasPlayed;
-	}
-
-
-	public void setDaysGenreWasPlayed(int daysGenreWasPlayed) {
-		this.daysGenreWasPlayed = daysGenreWasPlayed;
-	}
-
-
-	public int getWeeksGenreWasPlayed() {
-		return weeksGenreWasPlayed;
-	}
-
-
-	public void setWeeksGenreWasPlayed(int weeksGenreWasPlayed) {
-		this.weeksGenreWasPlayed = weeksGenreWasPlayed;
-	}
-
-
-	public int getMonthsGenreWasPlayed() {
-		return monthsGenreWasPlayed;
-	}
-
-
-	public void setMonthsGenreWasPlayed(int monthsGenreWasPlayed) {
-		this.monthsGenreWasPlayed = monthsGenreWasPlayed;
-	}
-
-
+	
 	public String getMostPlayedArtist() {
 		return mostPlayedArtist;
 	}
@@ -169,16 +138,6 @@ public class GenrePageDTO {
 		this.mostPlayedSong = mostPlayedSong;
 	}
 	
-	public String getGenre() {
-		return genre;
-	}
-
-
-	public void setGenre(String genre) {
-		this.genre = genre;
-	}
-
-
 	public String getTotalPlaytimeString() {
 		return Utils.secondsToString(totalPlaytime);
 	}
@@ -187,12 +146,55 @@ public class GenrePageDTO {
 		return Utils.secondsToStringColon(averageSongLength);
 	}
 	
-	
+	public int getDaysCategoryWasPlayed() {
+		return daysCategoryWasPlayed;
+	}
 
-	public GenrePageDTO(int totalPlays, int totalPlaytime, int averageSongLength, double averagePlaysPerSong,
+
+	public void setDaysCategoryWasPlayed(int daysCategoryWasPlayed) {
+		this.daysCategoryWasPlayed = daysCategoryWasPlayed;
+	}
+
+
+	public int getWeeksCategoryWasPlayed() {
+		return weeksCategoryWasPlayed;
+	}
+
+
+	public void setWeeksCategoryWasPlayed(int weeksCategoryWasPlayed) {
+		this.weeksCategoryWasPlayed = weeksCategoryWasPlayed;
+	}
+
+
+	public int getMonthsCategoryWasPlayed() {
+		return monthsCategoryWasPlayed;
+	}
+
+
+	public void setMonthsCategoryWasPlayed(int monthsCategoryWasPlayed) {
+		this.monthsCategoryWasPlayed = monthsCategoryWasPlayed;
+	}
+
+
+	public String getCategoryValue() {
+		return categoryValue;
+	}
+
+
+	public void setCategoryValue(String categoryValue) {
+		this.categoryValue = categoryValue;
+	}
+
+
+	public CategoryPageDTO() {
+
+	}
+
+
+	public CategoryPageDTO(int totalPlays, int totalPlaytime, int averageSongLength, double averagePlaysPerSong,
 			int numberOfSongs, int numberOfAlbums, int numberOfArtists, String firstPlay, String lastPlay,
-			int daysGenreWasPlayed, int weeksGenreWasPlayed, int monthsGenreWasPlayed, String mostPlayedArtist,
-			String mostPlayedAlbum, String mostPlayedSong, String genre) {
+			int daysCategoryWasPlayed, int weeksCategoryWasPlayed, int monthsCategoryWasPlayed, String mostPlayedArtist,
+			String mostPlayedAlbum, String mostPlayedSong, String categoryValue) {
 		super();
 		this.totalPlays = totalPlays;
 		this.totalPlaytime = totalPlaytime;
@@ -203,18 +205,13 @@ public class GenrePageDTO {
 		this.numberOfArtists = numberOfArtists;
 		this.firstPlay = firstPlay;
 		this.lastPlay = lastPlay;
-		this.daysGenreWasPlayed = daysGenreWasPlayed;
-		this.weeksGenreWasPlayed = weeksGenreWasPlayed;
-		this.monthsGenreWasPlayed = monthsGenreWasPlayed;
+		this.daysCategoryWasPlayed = daysCategoryWasPlayed;
+		this.weeksCategoryWasPlayed = weeksCategoryWasPlayed;
+		this.monthsCategoryWasPlayed = monthsCategoryWasPlayed;
 		this.mostPlayedArtist = mostPlayedArtist;
 		this.mostPlayedAlbum = mostPlayedAlbum;
 		this.mostPlayedSong = mostPlayedSong;
-		this.genre = genre;
-	}
-
-
-	public GenrePageDTO() {
-
+		this.categoryValue = categoryValue;
 	}
 	
 

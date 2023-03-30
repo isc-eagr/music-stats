@@ -15,6 +15,12 @@
 	
 </head>
   <body>
+  	<form th:action="@{/}">
+		Start date <input type="text" th:name="start" id="dateStart"/>
+		End date <input type="text" th:name="end" id="dateEnd"/> 
+		<input type="submit"/> 
+	</form>
+  
   	<a href="/insertItunesInfo">Load Itunes (Do first)</a><br/>
   	<a href="/insertScrobbles">Load Scrobbles (Do second)</a><br/>
   	<a href="/topArtists">Top Artists</a><br/>
@@ -30,12 +36,6 @@
   	<a href="/songsLastFmButNotLocal">Songs on lastfm but not locally</a><br/>
   	<a href="/songsLocalButNotLastfm">Songs locally but not lastfm</a><br/>
   	
-  	<form th:action="@{/}">
-		Start date <input type="text" th:name="start" id="dateStart"/>
-		End date <input type="text" th:name="end" id="dateEnd"/> 
-		<input type="submit"/> 
-	</form>
-  
 	Total Songs: <span th:text="${totalSongs}"/><br/>
 	Total Plays: <span th:text="${totalPlays}"/><br/>
 	Total Playtime: <span th:text="${totalPlayTimeGlobalString}"/><br/>

@@ -23,6 +23,7 @@ public class Song {
 		year integer,
 		language varchar(60),
 		genre varchar(60),
+		race varchar(60),
 		duration integer,
 		sex varchar(30),
 		cloud_status varchar(60),
@@ -54,6 +55,9 @@ public class Song {
 	
 	@Column (name="genre")
     private String genre;
+	
+	@Column (name="race")
+    private String race;
 	
 	@Column (name="source")
 	private String source;
@@ -134,6 +138,15 @@ public class Song {
 
 	public void setGenre(String genre) {
 		this.genre = genre;
+	}
+	
+
+	public String getRace() {
+		return race;
+	}
+
+	public void setRace(String race) {
+		this.race = race;
 	}
 
 	public int getDuration() {

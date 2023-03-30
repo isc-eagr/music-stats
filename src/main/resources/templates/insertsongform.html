@@ -21,6 +21,7 @@
   Album: <input type="text" th:field="*{album}" /><p th:if="${#fields.hasErrors('album')}" th:errorclass="error" th:errors="*{album}" /><br/>
   Sex: <input type="text" th:field="*{sex}" /><p th:if="${#fields.hasErrors('sex')}" th:errorclass="error" th:errors="*{sex}" /><br/>
   Genre: <input type="text" th:field="*{genre}" /><p th:if="${#fields.hasErrors('genre')}" th:errorclass="error" th:errors="*{genre}" /><br/>
+  Race: <input type="text" th:field="*{race}" /><p th:if="${#fields.hasErrors('race')}" th:errorclass="error" th:errors="*{race}" /><br/>
   Year: <input type="text" th:field="*{year}" /><p th:if="${#fields.hasErrors('year')}" th:errorclass="error" th:errors="*{year}" /><br/>
   Language: <input type="text" th:field="*{language}" /><p th:if="${#fields.hasErrors('language')}" th:errorclass="error" th:errors="*{language}" /><br/>
   Duration (mm:ss): <input type="text" th:field="*{durationString}" /><p th:if="${#fields.hasErrors('durationString')}" th:errorclass="error" th:errors="*{durationString}" /><br/>

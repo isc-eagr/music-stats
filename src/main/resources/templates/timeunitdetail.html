@@ -49,7 +49,9 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 <div style="height:500px;">
 <canvas th:id="${'plays'+count.index}"></canvas>
 		
-		<script th:inline="javascript" th:if="${#strings.contains(timeUnitGroup.criteria,'Sex') or #strings.contains(timeUnitGroup.criteria,'Language')}">
+		<script th:inline="javascript" th:if="${#strings.contains(timeUnitGroup.criteria,'Sex') 
+		or #strings.contains(timeUnitGroup.criteria,'Language')
+		or #strings.contains(timeUnitGroup.criteria,'Race') }">
 		//Sex and Language
 		/*<![CDATA[*/
 		function htmlDecode(input){
@@ -125,7 +127,8 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
                 </script>
                 
                 
-                <script th:inline="javascript" th:if="${#strings.contains(timeUnitGroup.criteria,'Release') or #strings.contains(timeUnitGroup.criteria,'Genre')}">
+                <script th:inline="javascript" th:if="${#strings.contains(timeUnitGroup.criteria,'Release') 
+                or #strings.contains(timeUnitGroup.criteria,'Genre')}">
                 //Release Year and Genre
 				/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
@@ -216,9 +219,12 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 		<tr>
 			<th>Position</th>
 			<th>Artist</th>
-			<th>Album</th>
 			<th>Song</th>
+			<th>Album</th>
 			<th>Genre</th>
+			<th>Sex</th>
+			<th>Language</th>
+			<th>Race</th>
 			<th>Year</th>
 			<th>Total Plays</th>
 		</tr>
@@ -227,9 +233,12 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 		<tr th:each="song, stat : ${timeUnitDetail.mostPlayedSongs}">
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
-			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}" th:text="${song.album}"></td>
 			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
-			<td><a th:href="@{/genre?genre={genre}(genre=${song.genre})}" th:text="${song.genre}"/></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}" th:text="${song.album}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${song.genre},category=${'genre'})}" th:text="${song.genre}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${song.sex},category=${'sex'})}" th:text="${song.sex}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${song.language},category=${'language'})}" th:text="${song.language}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${song.race},category=${'race'})}" th:text="${song.race}"></td>
 			<td th:text="${song.year}"/>
 			<td th:text="${song.totalPlays}"/>
 		</tr>

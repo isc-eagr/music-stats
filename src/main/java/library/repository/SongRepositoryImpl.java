@@ -28,10 +28,10 @@ public class SongRepositoryImpl{
 			select * from 
 			(select artist, album, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
 							sum(duration*count) playtime, sum(duration) length, count(distinct album,song) number_of_songs,
-				            genre, sex, language, year
+				            genre, sex, language, year, race
 							from
 							(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
-							so.genre, so.sex, so.language, so.year
+							so.genre, so.sex, so.language, so.year, so.race
 							from scrobble sc inner join song so on so.id=sc.song_id 
 			                where sc.album is not null and sc.album <> ''
 							group by so.artist, album, so.song) local
@@ -48,40 +48,35 @@ public class SongRepositoryImpl{
 			order by count desc
 			limit ?
 			""";
-	//Taking way too long, optimize TODO
-	/*private static final String TOP_SONGS_QUERY = """
+
+	private static final String TOP_SONGS_QUERY = """
 				select * from 
-				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, so.language, so.year, count(*) count, sum(duration) playtime 
+				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  
+								so.genre, so.sex, so.language, so.year, so.race, 
+								count(*) count, sum(duration) playtime 
 								from scrobble sc inner join song so on so.id=sc.song_id 
 								group by sc.artist, sc.song ) loc1
 				inner join 
-				        (select sc.artist, sc.album, sc.song,
-				                count(distinct date(sc.scrobble_date)) scrobble_days, 
-				                count(distinct YEARWEEK(sc.scrobble_date,1)) scrobble_weeks, 
-				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) scrobble_months
+				        (select sc.artist, IFNULL(sc.album,'(single)') album, sc.song,
+				                count(distinct date(sc.scrobble_date)) play_days, 
+				                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
+				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
 				                from scrobble sc
 				                group by sc.artist, sc.album, sc.song) loc2 
-				on (loc1.artist=loc2.artist and loc1.album=loc2.album and loc1.song=loc2.song)
-				""";*/
-	
-	private static final String TOP_SONGS_QUERY = """
-			select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.genre, so.sex, 
-				so.language, so.year, count(*) count, sum(so.duration) playtime, so.duration length 
-			from scrobble sc inner join song so on so.id=sc.song_id 
-			group by sc.artist, sc.song 
-			order by count desc 
-			limit ?
-			""";
+				on (loc1.artist=loc2.artist and loc1.album=loc2.album and loc1.song=loc2.song) 
+				order by count desc 
+				limit ?
+				""";
 	
 	//TODO this is counting (single)s, find a way to exclude them
 	private static final String TOP_ARTISTS_QUERY = """
 				select * from 
 				(select artist, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
 								sum(duration*count) playtime, count(distinct album) number_of_albums, count(distinct album,song) number_of_songs,
-					            genre, sex, language
+					            genre, sex, language, race
 								from
 								(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
-								so.genre, so.sex, so.language
+								so.genre, so.sex, so.language, so.race
 								from scrobble sc inner join song so on so.id=sc.song_id 
 								group by so.artist, album, so.song) local
 					            group by artist) loc1
@@ -141,7 +136,8 @@ public class SongRepositoryImpl{
 	
 	private static final String TIME_UNIT_QUERY = """
 			select * from 
-				(select a.genre, a.date display_date_genre, a.date query_date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count
+				(select a.genre, a.date display_date_genre, a.date query_date_genre, max(a.duration) duration_genre, 
+				sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count
 					from (select so.genre, %s date, sum(duration) duration, count(*) count 
 						from song so inner join scrobble sc on so.id = sc.song_id 
 						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
@@ -155,8 +151,16 @@ public class SongRepositoryImpl{
 						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 						group by so.sex, %s 
 						order by %s desc, sum(duration) desc) a 
-					group by a.date) sex 
-			on genre.display_date_genre = sex.display_date_sex
+					group by a.date) sex on genre.display_date_genre = sex.display_date_sex 
+				inner join
+				(select a.race,a.date display_date_race, max(a.duration) duration_race, a.count count_race 
+		            from (select so.race, %s date, sum(duration) duration, count(*) count 
+						from song so inner join scrobble sc on so.id = sc.song_id 
+						where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
+						group by so.race, %s 
+						order by %s desc, sum(duration) desc) a 
+					group by a.date) race
+			on sex.display_date_sex = race.display_date_race
 			""";
 	
 	private static final String WEEK_QUERY = """
@@ -176,6 +180,15 @@ public class SongRepositoryImpl{
 			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
 			group by a.yearweek) sex 
 			on genre.display_date_genre = sex.display_date_sex 
+			inner join 
+			(select a.race, MIN(minDate) display_date_race, max(a.duration) duration_race, a.count count_race 
+            from (select so.race, YEARWEEK(sc.scrobble_date,1) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
+			from song so inner join scrobble sc on so.id = sc.song_id 
+			where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
+			group by so.race, YEARWEEK(sc.scrobble_date,1) 
+			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
+			group by a.yearweek) race 
+			on sex.display_date_sex = race.display_date_race
 			""";
 	
 	
@@ -202,7 +215,7 @@ public class SongRepositoryImpl{
 	public List<TimeUnitStatsDTO> timeUnitStats(String start, String end, String unit) {
 
 		if(unit.equals("week"))
-			return template.query(WEEK_QUERY, new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class), start, end, start, end);
+			return template.query(WEEK_QUERY, new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class), start, end, start, end, start, end);
 		else {
 			String unitForQuery;
 			String sortForQuery;
@@ -217,7 +230,8 @@ public class SongRepositoryImpl{
 			};
 			
 			
-			return template.query(TIME_UNIT_QUERY.formatted(unitForQuery, unitForQuery, sortForQuery, unitForQuery, unitForQuery, sortForQuery), new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class), start, end, start, end);
+			return template.query(TIME_UNIT_QUERY.formatted(unitForQuery, unitForQuery, sortForQuery, unitForQuery, unitForQuery, sortForQuery, unitForQuery, unitForQuery, sortForQuery), 
+					new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class), start, end, start, end, start, end);
 		}
 
 	}

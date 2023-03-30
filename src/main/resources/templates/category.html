@@ -1,30 +1,32 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-	<title th:text="${genre.genre}"></title>
+	<title th:text="${category.categoryValue}"></title>
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body>
-Total Plays: <span th:text="${genre.totalPlays}"/><br/>
-Total Playtime: <span th:text="${genre.totalPlaytimeString}"/><br/>
-Most Played Artist: <span th:text="${genre.mostPlayedArtist}"/><br/>
-Most Played Album: <span th:text="${genre.mostPlayedAlbum}"/><br/>
-Most Played Song: <span th:text="${genre.mostPlayedSong}"/><br/>
-Number of artists: <span th:text="${genre.numberOfArtists}"/><br/>
-Number of albums: <span th:text="${genre.numberOfAlbums}"/><br/>
-Number of songs: <span th:text="${genre.numberOfSongs}"/><br/>
-Days Genre Was Played: <span th:text="${genre.daysGenreWasPlayed}"/><br/>
-Weeks Genre Was Played: <span th:text="${genre.weeksGenreWasPlayed}"/><br/>
-Months Genre Was Played: <span th:text="${genre.monthsGenreWasPlayed}"/><br/>
-Average Song Length: <span th:text="${genre.averageSongLengthString}"/><br/>
-Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
+<h1 th:text="${category.categoryValue}"></h1>
 
-<div th:each="genreGroup, count : ${genreGroupList}">
+Total Plays: <span th:text="${category.totalPlays}"/><br/>
+Total Playtime: <span th:text="${category.totalPlaytimeString}"/><br/>
+Most Played Artist: <span th:text="${category.mostPlayedArtist}"/><br/>
+Most Played Album: <span th:text="${category.mostPlayedAlbum}"/><br/>
+Most Played Song: <span th:text="${category.mostPlayedSong}"/><br/>
+Number of artists: <span th:text="${category.numberOfArtists}"/><br/>
+Number of albums: <span th:text="${category.numberOfAlbums}"/><br/>
+Number of songs: <span th:text="${category.numberOfSongs}"/><br/>
+<span th:text="${'Days '+category.categoryValue+' Was Played:'}"/> <span th:text="${category.daysCategoryWasPlayed+'/'+daysElapsedSinceFirstPlay}"/><br/>
+<span th:text="${'Weeks '+category.categoryValue+' Was Played:'}"/> <span th:text="${category.weeksCategoryWasPlayed}"/><br/>
+<span th:text="${'Months '+category.categoryValue+' Was Played:'}"/> <span th:text="${category.monthsCategoryWasPlayed}"/><br/>
+Average Song Length: <span th:text="${category.averageSongLengthString}"/><br/>
+Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
+
+<div th:each="categoryGroup, count : ${categoryGroupList}">
 <div>  
-<table th:id="${genreGroup.criteria}">
+<table th:id="${categoryGroup.criteria}" th:if="${!#strings.equalsIgnoreCase(categoryGroup.criteria, categoryName)}">
 	<tr>
-		<th th:text="${genreGroup.criteria}"/>
+		<th th:text="${categoryGroup.criteria}"/>
 		<th th:text="${'Number of songs'}"/>
 		<th th:text="${'Percentage of songs'}"/>
 		<th th:text="${'Plays'}"/>
@@ -32,7 +34,7 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 		<th>Playtime</th>
 		<th>Playtime %</th>
 	</tr>
-	<tr th:each="listCount : ${genreGroup.listCounts}">
+	<tr th:each="listCount : ${categoryGroup.listCounts}">
 		<td th:text="${listCount.element}"/>
 		<td th:text="${listCount.count}"/>
 		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
@@ -43,15 +45,15 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 	</tr>
 </table></div>
 
-<div style="height:500px;">
+<div style="height:500px;" th:if="${!#strings.equalsIgnoreCase(categoryGroup.criteria, categoryName)}">
 <canvas th:id="${'plays'+count.index}"></canvas>
 		
-		<script th:inline="javascript" th:if="${!#strings.contains(genreGroup.criteria,'Year')}">
-		//Sex and Language
+		<script th:inline="javascript" th:if="${!#strings.contains(categoryGroup.criteria,'Year')}">
+		//Sex, Genre, Language and Race
 		/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
-                var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+                var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
                 var labelsArray=[];
                 var percentagesSongs=[];
                 var percentagesPlays=[]; 
@@ -117,12 +119,12 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
                 </script>
                 
                 
-                <script th:inline="javascript" th:if="${#strings.contains(genreGroup.criteria,'Release')}">
+                <script th:inline="javascript" th:if="${#strings.contains(categoryGroup.criteria,'Release')}">
                 //Release Year
 				/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
-                var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+                var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
                 
                 var labelsArray=[];
                 var percentagesSongs=[];
@@ -167,20 +169,20 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 					        callbacks: {
 					          label: function(context) {
 								  
-								var genre = /*[[${genre.genre}]]*/''; 
-								var totalSongs = /*[[${genre.numberOfSongs}]]*/'';
-								var totalPlays = /*[[${genre.totalPlays}]]*/'';
-								var totalPlaytime = /*[[${genre.totalPlaytimeString}]]*/'';
+								var category = /*[[${category.categoryValue}]]*/''; 
+								var totalSongs = /*[[${category.numberOfSongs}]]*/'';
+								var totalPlays = /*[[${category.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${category.totalPlaytimeString}]]*/'';
 								
-								var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+								var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
 								
 								var thisSongs = table.rows[context.dataIndex+1].cells[1].innerHTML;
 								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
 								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
 								
-								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+genre+" songs were released in "+context.label:
-											(context.datasetIndex === 1? context.formattedValue+"% of all "+genre+" plays are from songs released in "+context.label:
-											context.formattedValue+"% of all "+genre+" playtime is from songs released in "+context.label);
+								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+category+" songs were released in "+context.label:
+											(context.datasetIndex === 1? context.formattedValue+"% of all "+category+" plays are from songs released in "+context.label:
+											context.formattedValue+"% of all "+category+" playtime is from songs released in "+context.label);
 								var second = context.datasetIndex === 0 ? "which is "+thisSongs+" songs out of "+totalSongs:
 											(context.datasetIndex === 1? "which is "+thisPlays+" plays out of "+totalPlays:
 											"which is "+thisPlaytime+" out of "+totalPlaytime);
@@ -197,12 +199,12 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
                 /*]]>*/
                 </script>
                 
-                <script th:inline="javascript" th:if="${#strings.contains(genreGroup.criteria,'Play')}">
+                <script th:inline="javascript" th:if="${#strings.contains(categoryGroup.criteria,'Play')}">
                 //Play Year
 				/*<![CDATA[*/
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
-                var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+                var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
                 
                 var labelsArray=[];
                 var percentagesPlays=[]; 
@@ -239,17 +241,17 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(genre.averagePla
 					      tooltip: {
 					        callbacks: {
 					          label: function(context) {
-					            var genre = /*[[${genre.genre}]]*/''; 
-								var totalPlays = /*[[${genre.totalPlays}]]*/'';
-								var totalPlaytime = /*[[${genre.totalPlaytimeString}]]*/'';
+					            var category = /*[[${category.categoryValue}]]*/''; 
+								var totalPlays = /*[[${category.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${category.totalPlaytimeString}]]*/'';
 								
-								var table = document.getElementById(/*[[${genreGroup.criteria}]]*/'');
+								var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
 								
 								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
 								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
 								
-								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+genre+" plays happened in "+context.label:
-											context.formattedValue+"% of all "+genre+" playtime happened in "+context.label;
+								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+category+" plays happened in "+context.label:
+											context.formattedValue+"% of all "+category+" playtime happened in "+context.label;
 								var second = context.datasetIndex === 0? "which is "+thisPlays+" plays out of "+totalPlays:
 											"which is "+thisPlaytime+" out of "+totalPlaytime;
 					            return [first,second];

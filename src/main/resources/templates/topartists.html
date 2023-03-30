@@ -19,6 +19,7 @@
 			var genres = new Array();
 			var sexes = new Array();
 			var languages = new Array();
+			var races = new Array();
 			
 			for(let input of inputs){
 				if(input.type=='checkbox' && input.checked){
@@ -32,6 +33,9 @@
 					   case "Language": 
 						   languages.push(input.value.split(',')[0]);
 						   break;
+					   case "Race": 
+						   races.push(input.value.split(',')[0]);
+						   break;
 				   	}
 				}
 			}
@@ -40,10 +44,12 @@
 			for (let row of table.rows) {
 	        	var colGenre = htmlDecode(row.cells[4].firstChild.innerHTML);
 	        	var colSex = row.cells[5].innerHTML;
-	        	var colLanguage = row.cells[6].innerHTML;
+	        	var colLanguage = row.cells[6].firstChild.innerHTML;
+	        	var colRace = row.cells[7].firstChild.innerHTML;
 	        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
 	        			(sexes.length <= 0 || sexes.includes(colSex)) && 
-	        			(languages.length<=0 || languages.includes(colLanguage))  
+	        			(languages.length<=0 || languages.includes(colLanguage)) &&
+	        			(races.length<=0 || races.includes(colRace))  
 	        			){
 	        		row.style.display = '';
 	        		enabledCells++;
@@ -106,6 +112,7 @@ Number of records: <span id="numRecords"></span>
 			<th data-sortable="false">Genre</th>
 			<th data-sortable="false">Sex</th>
 			<th data-sortable="false">Language</th>
+			<th data-sortable="false">Race</th>
 			<th>Playtime</th>
 			<th>Average Song Length</th>
 			<th>Average Plays Per Song</th>
@@ -122,9 +129,10 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/artist?artist={artist}(artist=${topArtist.artist})}" th:text="${topArtist.artist}"/></td>
 			<td th:text="${topArtist.count}"/>
-			<td><a th:href="@{/genre?genre={genre}(genre=${topArtist.genre})}" th:text="${topArtist.genre}"/></td>
-			<td th:text="${topArtist.sex}"/>
-			<td th:text="${topArtist.language}"/>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.genre},category=${'genre'})}" th:text="${topArtist.genre}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.sex},category=${'sex'})}" th:text="${topArtist.sex}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.language},category=${'language'})}" th:text="${topArtist.language}"></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.race},category=${'race'})}" th:text="${topArtist.race}"></td>
 			<td th:text="${topArtist.playtimeString}" th:data-value="${topArtist.playtime}"/>
 			<td th:text="${topArtist.averageLengthString}" th:data-value="${topArtist.averageLength}"/>
 			<td th:text="${#numbers.formatDecimal(topArtist.averagePlays, 1, 'DEFAULT', 2, 'DEFAULT')}"/>

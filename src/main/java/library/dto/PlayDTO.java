@@ -10,6 +10,7 @@ public class PlayDTO {
 	private int trackLength;
 	private String playDate;
 	private String genre;
+	private String race;
 	private int year;
 	private String language;
 	private String sex;
@@ -52,6 +53,12 @@ public class PlayDTO {
 	public void setGenre(String genre) {
 		this.genre = genre;
 	}
+	public String getRace() {
+		return race;
+	}
+	public void setRace(String race) {
+		this.race = race;
+	}
 	public int getYear() {
 		return year;
 	}
@@ -79,12 +86,12 @@ public class PlayDTO {
 	@Override
 	public String toString() {
 		return "PlayDTO [artist=" + artist + ", album=" + album + ", song=" + song + ", trackLength=" + trackLength
-				+ ", playDate=" + playDate + ", genre=" + genre + ", year=" + year + ", language=" + language + ", sex="
-				+ sex + ", week=" + week + "]";
+				+ ", playDate=" + playDate + ", genre=" + genre + ", race=" + race + ", year=" + year + ", language="
+				+ language + ", sex=" + sex + ", week=" + week + "]";
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(album, artist, genre, language, sex, song, trackLength, year);
+		return Objects.hash(album, artist, genre, language, race, sex, song, trackLength);
 	}
 	@Override
 	public boolean equals(Object obj) {
@@ -97,10 +104,10 @@ public class PlayDTO {
 		PlayDTO other = (PlayDTO) obj;
 		return Objects.equals(album, other.album) && Objects.equals(artist, other.artist)
 				&& Objects.equals(genre, other.genre) && Objects.equals(language, other.language)
+				&& Objects.equals(race, other.race)
 				&& Objects.equals(sex, other.sex) && Objects.equals(song, other.song)
-				&& trackLength == other.trackLength && year == other.year;
+				&& trackLength == other.trackLength;
 	}
 	
-
 
 }

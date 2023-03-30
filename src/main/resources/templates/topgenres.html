@@ -41,8 +41,8 @@ Number of records: <span id="numRecords"></span>
 		<tr>
 			<th>Position</th>
 			<th>Overall Position</th>
-			<th>Plays</th>
 			<th>Genre</th>
+			<th>Plays</th>
 			<th>Playtime</th>
 			<th>Average Plays Per Song</th>
 			<th>Average Song Length</th>
@@ -55,8 +55,8 @@ Number of records: <span id="numRecords"></span>
 		<tr th:each="topGenre, stat : ${topGenres}">
 			<td th:text="${stat.index+1}"/>
 			<td th:text="${stat.index+1}"/>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${topGenre.genre},category=${'genre'})}" th:text="${topGenre.genre}"></td>
 			<td th:text="${topGenre.count}"/>
-			<td><a th:href="@{/genre?genre={genre}(genre=${topGenre.genre})}" th:text="${topGenre.genre}"></td>
 			<td th:text="${topGenre.playtimeString}" th:data-value="${topGenre.playtime}"/>
 			<td th:text="${#numbers.formatDecimal(topGenre.averagePlays, 1, 'DEFAULT', 2, 'DEFAULT')}"/>
 			<td th:text="${topGenre.averageLengthString}"/>
