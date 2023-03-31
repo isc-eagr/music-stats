@@ -804,7 +804,7 @@ public class MainController {
 			@PathVariable(required=false) String artist,
 			@PathVariable(required=false) String album) {
 		
-		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album == null?"":album);
+		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album == null ? "" : album);
 		
 		SaveAlbumDTO form = new SaveAlbumDTO();
 		form.setSongs(songsList);

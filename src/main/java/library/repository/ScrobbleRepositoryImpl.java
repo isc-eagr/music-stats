@@ -38,11 +38,12 @@ public class ScrobbleRepositoryImpl{
 			""";
 	
 	private static final String SONGS_FROM_ALBUM = """
-			select distinct sc.artist, sc.album, sc.song 
+			select sc.artist, sc.album, sc.song, count(*) plays
 			from scrobble sc left outer join song so on sc.song_id=so.id
-			where sc.artist = ?
-			and sc.album = ?
-            and so.id is null
+			where sc.artist = ? 
+			and sc.album = ? 
+            and so.id is null 
+            group by sc.artist, sc.album, sc.song
 			""";
 	
 	private static final String GET_PLAYS_BY_DATE_RANGE_QUERY = """

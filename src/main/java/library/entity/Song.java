@@ -78,6 +78,9 @@ public class Song {
     private Timestamp updated;
 	
 	@Transient
+	private int plays;
+	
+	@Transient
 	private String durationString;
 
 	public String toString() {
@@ -187,6 +190,15 @@ public class Song {
 
 	public void setUpdated(Timestamp updated) {
 		this.updated = updated;
+	}
+	
+
+	public int getPlays() {
+		return plays;
+	}
+
+	public void setPlays(int plays) {
+		this.plays = plays;
 	}
 
 	public String getSource() {
