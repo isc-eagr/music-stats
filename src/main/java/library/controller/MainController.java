@@ -288,7 +288,7 @@ public class MainController {
 				.mapToInt(PlayDTO::getTrackLength)
 				.sum())
 				);
-		model.addAttribute("averagePlaysPerDay", (allPlays.size()/daysElapsedSinceFirstPlay));
+		model.addAttribute("averagePlaysPerDay", (allPlays.size()/(double)daysElapsedSinceFirstPlay));
 		model.addAttribute("averageSongLength", Utils.secondsToStringColon((int)mapPlaysBySong.values().stream().mapToInt(s->s.get(0).getTrackLength()).average().orElse(0.0)));
 		model.addAttribute("averagePlaysPerSong",mapPlaysBySong.values().stream().mapToInt(s->s.size()).average().orElse(0.0));
 		
