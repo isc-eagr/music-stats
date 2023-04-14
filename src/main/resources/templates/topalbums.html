@@ -102,6 +102,7 @@ Only the top <input type="text" th:name="limit"/> albums
 <table th:each="topAlbumsGroup : ${topAlbumsGroupList}">
 	<thead>
 		<tr>
+			<th/>
 			<th th:text="${topAlbumsGroup.criteria}"/>
 			<th>Number of Albums</th>
 			<th>Percentage of Albums</th>
