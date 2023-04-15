@@ -28,20 +28,32 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 	<tr>
 		<th th:text="${categoryGroup.criteria}"/>
 		<th th:text="${'Number of songs'}"/>
+		<th th:text="${'Number of songs male'}"/>
 		<th th:text="${'Percentage of songs'}"/>
+		<th th:text="${'Percentage of songs male'}"/>
 		<th th:text="${'Plays'}"/>
+		<th th:text="${'Plays male'}"/>
 		<th th:text="${'Percentage of Plays'}"/>
+		<th th:text="${'Percentage of Plays male'}"/>
 		<th>Playtime</th>
+		<th>Playtime male</th>
 		<th>Playtime %</th>
+		<th>Playtime % male</th>
 	</tr>
 	<tr th:each="listCount : ${categoryGroup.listCounts}">
 		<td th:text="${listCount.element}"/>
 		<td th:text="${listCount.count}"/>
+		<td th:text="${listCount.countMale}"/>
 		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentageCountMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		<td th:text="${listCount.plays}"/>
+		<td th:text="${listCount.playsMale}"/>
 		<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaysMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		<td th:text="${listCount.playtimeString}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
+		<td th:text="${listCount.playtimeStringMale}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytimeMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
 	</tr>
 </table></div>
 
@@ -61,9 +73,9 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
                 for (let row of table.rows) {
 					if(row.rowIndex > 0){
 						labelsArray.push(row.cells[0].innerHTML);
-			        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
-			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+			        	percentagesSongs.push(row.cells[3].innerHTML.replace("%",""));
+			        	percentagesPlays.push(row.cells[7].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[11].innerHTML.replace("%",""));
 		        	}
 				}
                 
@@ -74,17 +86,17 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 					  datasets: [
 					    {
 						  label: "Percentage of songs",
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
+					      backgroundColor: ['rgba(30, 42, 168, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
 					      data: percentagesSongs
 					    },
 					    {
 						  label: "Percentage of plays",
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
+					      backgroundColor: ['rgba(81, 94, 237, 0.8)', 'rgba(224, 88, 245, 0.8)', 'rgba(152, 255, 152, 0.8)'],
 					      data: percentagesPlays
 					    },
 					    {
 						  label: "Percentage of playtime",
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(152, 255, 152, 0.8)'],
+					      backgroundColor: ['rgba(61, 154, 219, 0.8)', 'rgba(250, 125, 237, 0.8)', 'rgba(152, 255, 152, 0.8)'],
 					      data: percentagesPlaytime
 					    }
 					  ]
@@ -105,7 +117,7 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 									  case 2: metric = "Percentage of playtime"; break;
 									  default: metric = ""; break;
 								  }
-					            return context.label + ': ' + context.formattedValue+': '+metric;
+					            return context.label + ': ' + context.formattedValue+'%: '+metric;
 					          }
 					        }
 					      }
@@ -133,9 +145,9 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
                 for (let row of table.rows) {
 					if(row.rowIndex > 0){
 						labelsArray.push(row.cells[0].innerHTML);
-			        	percentagesSongs.push(row.cells[2].innerHTML.replace("%",""));
-			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+			        	percentagesSongs.push(row.cells[3].innerHTML.replace("%",""));
+			        	percentagesPlays.push(row.cells[7].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[11].innerHTML.replace("%",""));
 		        	}
 				}
                 
@@ -177,8 +189,8 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 								var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
 								
 								var thisSongs = table.rows[context.dataIndex+1].cells[1].innerHTML;
-								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
-								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
+								var thisPlays = table.rows[context.dataIndex+1].cells[5].innerHTML;
+								var thisPlaytime = table.rows[context.dataIndex+1].cells[9].innerHTML;
 								
 								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+category+" songs were released in "+context.label:
 											(context.datasetIndex === 1? context.formattedValue+"% of all "+category+" plays are from songs released in "+context.label:
@@ -212,8 +224,8 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
                 for (let row of table.rows) {
 					if(row.rowIndex > 0){
 						labelsArray.push(row.cells[0].innerHTML);
-			        	percentagesPlays.push(row.cells[4].innerHTML.replace("%",""));
-			        	percentagesPlaytime.push(row.cells[6].innerHTML.replace("%",""));
+			        	percentagesPlays.push(row.cells[7].innerHTML.replace("%",""));
+			        	percentagesPlaytime.push(row.cells[11].innerHTML.replace("%",""));
 		        	}
 				}
                 
@@ -247,8 +259,8 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 								
 								var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
 								
-								var thisPlays = table.rows[context.dataIndex+1].cells[3].innerHTML;
-								var thisPlaytime = table.rows[context.dataIndex+1].cells[5].innerHTML;
+								var thisPlays = table.rows[context.dataIndex+1].cells[5].innerHTML;
+								var thisPlaytime = table.rows[context.dataIndex+1].cells[9].innerHTML;
 								
 								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+category+" plays happened in "+context.label:
 											context.formattedValue+"% of all "+category+" playtime happened in "+context.label;

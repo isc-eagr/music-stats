@@ -734,17 +734,25 @@ public class MainController {
 			
 			for(Entry<String, List<PlayDTO>> e : sortedList) {
 				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
+				int uniqueSongsMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
+				int playsMale = (int)e.getValue().stream().filter(s->s.getSex().equals("Male")).count();
 				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
+				long playtimeMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).mapToInt(play -> play.getTrackLength()).sum();
 				counts.add(new TopCountDTO(
 						e.getKey(), 
 						uniqueSongs,
+						uniqueSongsMale,//numberSongsMale
 						(double)uniqueSongs/(double)timeUnitDetailDTO.getUniqueSongsPlayed()*100,
+						(double)uniqueSongsMale/(double)uniqueSongs*100,//percentageSongsMale
 						e.getValue().size(), 
+						playsMale,//playsMale
 						(double)e.getValue().size()/(double)plays.size()*100,
+						(double)playsMale/(double)e.getValue().size()*100,//percentagePlaysMale
 						playtime,
-						(double)playtime*100/(double)timeUnitDetailDTO.getTotalPlaytime()));
+						playtimeMale,//playtimeMale
+						(double)playtime*100/(double)timeUnitDetailDTO.getTotalPlaytime(),
+						(double)playtimeMale/(double)playtime*100));//percentagePlaytimeMale
 			}
-			
 			timeUnitGroupList.add(new TopGroupDTO(criterion.getName(),counts));
 		}
 		
@@ -1108,15 +1116,25 @@ public class MainController {
 			
 			for(Entry<String, List<PlayDTO>> e : sortedList) {
 				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
+				int uniqueSongsMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
+				int playsMale = (int)e.getValue().stream().filter(s->s.getSex().equals("Male")).count();
 				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
+				long playtimeMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).mapToInt(play -> play.getTrackLength()).sum();
 				counts.add(new TopCountDTO(
 						e.getKey(), 
 						uniqueSongs, //number of songs
+						uniqueSongsMale,//number of songs male
 						(double)uniqueSongs/(double)categoryPage.getNumberOfSongs()*100, //percentage of songs
+						(double)uniqueSongsMale/(double)uniqueSongs*100, //percentage of songs male
 						e.getValue().size(), //plays
+						playsMale,//playsMale
 						(double)e.getValue().size()/(double)plays.size()*100, //percentage of plays
+						(double)playsMale/(double)e.getValue().size()*100,//percentagePlaysMale
 						playtime, //playtime
-						(double)playtime*100/(double)categoryPage.getTotalPlaytime())); //percentage of playtime
+						playtimeMale,//playtimeMale
+						(double)playtime*100/(double)categoryPage.getTotalPlaytime(),//percentage of playtime
+						(double)playtimeMale/(double)playtime*100));//percentagePlaytimeMale 
+
 			}
 			
 			genreGroupList.add(new TopGroupDTO(criterion.getName(),counts));
