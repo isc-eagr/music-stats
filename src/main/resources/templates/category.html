@@ -9,7 +9,7 @@
 <h1 th:text="${category.categoryValue}"></h1>
 <br/>
 <a th:href="@{/timeUnitDetail/year/{year}/250(year=${category.categoryValue})}" 
-	th:if="${#strings.equalsIgnoreCase(categoryName, 'year')}"
+	th:if="${#strings.equalsIgnoreCase(categoryName, 'year') and T(Integer).parseInt(category.categoryValue) >= 2010}"
 	th:text="${'Check '+category.categoryValue+' by Play Date'}"
 	/>
 <br/>
