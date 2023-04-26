@@ -7,7 +7,13 @@
 </head>
 <body>
 <h1 th:text="${category.categoryValue}"></h1>
-
+<br/>
+<a th:href="@{/timeUnitDetail/year/{year}/250(year=${category.categoryValue})}" 
+	th:if="${#strings.equalsIgnoreCase(categoryName, 'year')}"
+	th:text="${'Check '+category.categoryValue+' by Play Date'}"
+	/>
+<br/>
+<br/>
 Total Plays: <span th:text="${category.totalPlays}"/><br/>
 Total Playtime: <span th:text="${category.totalPlaytimeString}"/><br/>
 Most Played Artist: <span th:text="${category.mostPlayedArtist}"/><br/>
@@ -24,7 +30,7 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 
 <div th:each="categoryGroup, count : ${categoryGroupList}">
 <div>  
-<table th:id="${categoryGroup.criteria}" th:if="${!#strings.equalsIgnoreCase(categoryGroup.criteria, categoryName)}">
+<table th:id="${categoryGroup.criteria}" th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
 	<tr>
 		<th th:text="${categoryGroup.criteria}"/>
 		<th th:text="${'Number of songs'}"/>
@@ -57,7 +63,7 @@ Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.average
 	</tr>
 </table></div>
 
-<div style="height:500px;" th:if="${!#strings.equalsIgnoreCase(categoryGroup.criteria, categoryName)}">
+<div style="height:500px;" th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
 <canvas th:id="${'plays'+count.index}"></canvas>
 		
 		<script th:inline="javascript" th:if="${!#strings.contains(categoryGroup.criteria,'Year')}">

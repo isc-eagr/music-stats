@@ -7,6 +7,7 @@ public class AlbumSongsQueryDTO {
 	String artist;
 	String song;
 	String album;
+	Integer releaseYear;
 	String genre;
 	String race;
 	String sex;
@@ -98,6 +99,17 @@ public class AlbumSongsQueryDTO {
 		this.album = album;
 	}
 	
+	
+	public Integer getReleaseYear() {
+		return releaseYear;
+	}
+
+
+	public void setReleaseYear(Integer releaseYear) {
+		this.releaseYear = releaseYear;
+	}
+
+
 	public int getTrackLength() {
 		return trackLength;
 	}

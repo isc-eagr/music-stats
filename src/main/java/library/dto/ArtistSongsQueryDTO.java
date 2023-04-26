@@ -7,6 +7,7 @@ public class ArtistSongsQueryDTO {
 	String artist;
 	String song;
 	String album;
+	int releaseYear;
 	int trackLength;
 	int totalPlays;
 	String firstPlay;
@@ -74,6 +75,12 @@ public class ArtistSongsQueryDTO {
 	}
 	public void setMonthsSongWasPlayed(int monthsSongWasPlayed) {
 		this.monthsSongWasPlayed = monthsSongWasPlayed;
+	}
+	public int getReleaseYear() {
+		return releaseYear;
+	}
+	public void setReleaseYear(int releaseYear) {
+		this.releaseYear = releaseYear;
 	}
 	public long getTotalPlaytime() {
 		return trackLength*totalPlays;

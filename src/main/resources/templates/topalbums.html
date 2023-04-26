@@ -159,7 +159,7 @@ Number of records: <span id="numRecords"></span>
 			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.genre},category=${'genre'})}" th:text="${topAlbum.genre}"></td>
 			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.sex},category=${'sex'})}" th:text="${topAlbum.sex}"></td>
 			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.language},category=${'language'})}" th:text="${topAlbum.language}"></td>
-			<td><a th:href="@{/timeUnitDetail/year/{year}(year=${topAlbum.year})}" th:text="${topAlbum.year}"/></td>
+			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.year},category=${'year'})}" th:text="${topAlbum.year}"/></td>
 			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.race},category=${'race'})}" th:text="${topAlbum.race}"></td>
 			<td th:text="${topAlbum.lengthString}" th:data-value="${topAlbum.length}"/>
 			<td th:text="${topAlbum.count}"/>

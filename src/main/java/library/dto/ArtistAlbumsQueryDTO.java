@@ -6,6 +6,7 @@ public class ArtistAlbumsQueryDTO {
 	
 	String artist;
 	String album;
+	int releaseYear;
 	int albumLength;
 	int totalPlays;
 	int totalPlaytime;
@@ -121,6 +122,16 @@ public class ArtistAlbumsQueryDTO {
 	
 	public int getWeeksAlbumWasPlayed() {
 		return weeksAlbumWasPlayed;
+	}
+
+
+	public int getReleaseYear() {
+		return releaseYear;
+	}
+
+
+	public void setReleaseYear(int releaseYear) {
+		this.releaseYear = releaseYear;
 	}
 
 

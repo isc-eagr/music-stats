@@ -13,6 +13,12 @@
 	</script>
 </head>
 <body>
+<a th:href="@{/category?category={category}&value={value}(value=${unitValue},category=${'year'})}" 
+	th:if="${#strings.equalsIgnoreCase(unit, 'year')}"
+	th:text="${'Check '+unitValue+' by Release Date'}"
+	/>
+<br/>
+<br/>
 Total Plays: <span th:text="${timeUnitDetail.totalPlays}"/><br/>
 Total Playtime: <span th:text="${timeUnitDetail.totalPlaytimeString}"/><br/>
 Most Played Artist: <span th:text="${timeUnitDetail.mostPlayedArtist}"/><br/>

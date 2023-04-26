@@ -859,8 +859,9 @@ public class MainController {
 			
 			ArtistSongsQueryDTO artistSong = new ArtistSongsQueryDTO();
 			artistSong.setArtist(artist);
-			artistSong.setAlbum(sorted.get(sorted.size()-1).getAlbum());
+			artistSong.setAlbum(sorted.get(0).getAlbum());
 			artistSong.setSong(song);
+			artistSong.setReleaseYear(sorted.stream().mapToInt(s->s.getYear()).max().getAsInt());
 			artistSong.setFirstPlay(sorted.get(0).getPlayDate());
 			artistSong.setLastPlay(sorted.get(sorted.size()-1).getPlayDate());
 			artistSong.setTotalPlays(songGrouping.get(song).size());
@@ -883,6 +884,8 @@ public class MainController {
 			ArtistAlbumsQueryDTO artistAlbum = new ArtistAlbumsQueryDTO();
 			artistAlbum.setArtist(artist);
 			artistAlbum.setAlbum(album);
+			//Gets the release year with most ocurrences, as some albums have songs with different release years if a song was a single before being on the album
+			artistAlbum.setReleaseYear(sorted.stream().collect(Collectors.groupingBy(s->s.getYear(),Collectors.counting())).entrySet().stream().sorted((e1,e2)->-e1.getValue().compareTo(e2.getValue())).findFirst().get().getKey());
 			artistAlbum.setFirstPlay(sorted.get(0).getPlayDate());
 			artistAlbum.setLastPlay(sorted.get(sorted.size()-1).getPlayDate());
 			artistAlbum.setTotalPlays(albumGrouping.get(album).size());
@@ -956,6 +959,7 @@ public class MainController {
 			AlbumSongsQueryDTO albumSong = new AlbumSongsQueryDTO();
 			albumSong.setArtist(artist);
 			albumSong.setAlbum(sorted.get(sorted.size()-1).getAlbum());
+			albumSong.setReleaseYear(sorted.stream().mapToInt(s->s.getYear()).max().getAsInt());
 			albumSong.setSong(song);
 			albumSong.setFirstPlay(sorted.get(0).getPlayDate());
 			albumSong.setLastPlay(sorted.get(sorted.size()-1).getPlayDate());
