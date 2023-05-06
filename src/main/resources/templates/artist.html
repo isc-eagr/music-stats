@@ -6,6 +6,21 @@
 	<script src="../js/sortable.min.js"></script>
 	<link rel="stylesheet" href="../css/sortable-theme-finder.css"/>
 	<script type="text/javascript">
+         
+        var labelsArray=[];
+        var plays=[];
+        var percentagesPlays=[];
+        var playtime=[];
+        var percentagesPlaytime=[];
+        
+        var releaseLabelsArray=[];
+		var releaseSongs=[];
+		var releasePercentagesSongs=[];
+		var releasePlays=[];
+		var releasePercentagesPlays=[];
+		var releasePlaytime=[];
+		var releasePercentagesPlaytime=[];
+          
 		window.onload = function(){
 			Sortable.init();
 		}
@@ -100,28 +115,139 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 	</tbody>
 </table>
 
-<div>
-	<canvas th:id="${'plays'}"></canvas>
-		
-		<script th:inline="javascript">
-		/*<![CDATA[*/
-                var ctx = document.getElementById('plays').getContext('2d');
+<script th:inline="javascript" th:each="listCount : ${artistGroupList.get(0).listCounts}">
+	releaseLabelsArray.push(/*[[${listCount.element}]]*/'');
+	releaseSongs.push(/*[[${listCount.count}]]*/'');
+	releasePercentagesSongs.push(/*[[${listCount.percentageCount}]]*/'');
+	releasePlays.push(/*[[${listCount.plays}]]*/'');
+	releasePercentagesPlays.push(/*[[${listCount.percentagePlays}]]*/'');
+	releasePlaytime.push(/*[[${listCount.playtimeString}]]*/'');
+	releasePercentagesPlaytime.push(/*[[${listCount.percentagePlaytime}]]*/'');
+</script>
+<script th:inline="javascript" th:each="listCount : ${artistGroupList.get(1).listCounts}">
+	labelsArray.push(/*[[${listCount.element}]]*/'');
+	plays.push(/*[[${listCount.plays}]]*/'');
+	percentagesPlays.push(/*[[${listCount.percentagePlays}]]*/'');
+	playtime.push(/*[[${listCount.playtimeString}]]*/'');
+	percentagesPlaytime.push(/*[[${listCount.percentagePlaytime}]]*/'');
+</script>
+<div style="height:400px;" th:each="artistGroup, count : ${artistGroupList}">
+
+
+	<canvas th:id="${'plays'+count.index}"></canvas>
+	
+	<script th:inline="javascript" th:if="${#strings.contains(artistGroup.criteria,'Release')}">
+                //Release Year
+				/*<![CDATA[*/
+                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+               
                 var myChart = new Chart(ctx, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
-                        labels: [ /*[(${artistInfo.chartLabels})]*/ ],
-                        datasets: [{
-                            label: 'Plays',
-							data: [ /*[(${artistInfo.chartValues})]*/ ],
-                            fill: false,
-                            borderColor: 'rgb(75, 192, 192)',
-                            pointBackgroundColor: 'rgb(212, 25, 66)',
-                            pointStyle: 'rect'
-                        }]
-                    },
+					  labels: releaseLabelsArray,
+					  datasets: [
+					    {
+					      label: 'Percentage of songs',
+					      backgroundColor: 'rgba(55, 99, 132, 0.8)',
+					      data: releasePercentagesSongs
+					    },
+					    {
+					      label: 'Percentage of plays',
+					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+					      data: releasePercentagesPlays
+					    },
+					    {
+					      label: 'Percentage of playtime',
+					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
+					      data: releasePercentagesPlaytime
+					    }
+					  ]
+					},
                     options:{
-						responsive:true
+						responsive:true,
+						maintainAspectRatio: false,
+						plugins: {
+					      tooltip: {
+					        callbacks: {
+					          label: function(context) {
+								  
+								var category = /*[[${artist}]]*/'';  
+								var totalSongs = /*[[${artistInfo.numberOfSongs}]]*/'';
+								var totalPlays = /*[[${artistInfo.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${artistInfo.totalPlaytime}]]*/'';
+								
+								var thisSongs = releaseSongs[context.dataIndex];
+								var thisPlays = releasePlays[context.dataIndex];
+								var thisPlaytime = releasePlaytime[context.dataIndex];
+								
+								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+category+" songs were released in "+context.label:
+											(context.datasetIndex === 1? context.formattedValue+"% of all "+category+" plays are from songs released in "+context.label:
+											context.formattedValue+"% of all "+category+" playtime is from songs released in "+context.label);
+								var second = context.datasetIndex === 0 ? "which is "+thisSongs+" songs out of "+totalSongs:
+											(context.datasetIndex === 1? "which is "+thisPlays+" plays out of "+totalPlays:
+											"which is "+thisPlaytime+" out of "+totalPlaytime);
+					            return [first,second];
+					          }
+					        }
+					      }
+					    }
 					}
+					
+                });
+
+				myChart.update(); 
+                /*]]>*/
+                </script>
+	
+	
+		<script th:inline="javascript" th:if="${#strings.contains(artistGroup.criteria,'Play')}">
+                //Play Year
+				/*<![CDATA[*/
+                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+                
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+					  labels: labelsArray,
+					  datasets: [
+					    {
+					      label: 'Percentage of plays',
+					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+					      data: percentagesPlays
+					    },
+					    {
+					      label: 'Percentage of playtime',
+					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
+					      data: percentagesPlaytime
+					    }
+					  ]
+					},
+                    options:{
+						responsive:true,
+						maintainAspectRatio: false,
+						plugins: {
+					      tooltip: {
+					        callbacks: {
+					          label: function(context) {
+					            var category = /*[[${artist}]]*/''; 
+								var totalPlays = /*[[${artistInfo.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${artistInfo.totalPlaytime}]]*/'';
+								
+								var thisPlays = plays[context.dataIndex];
+								var thisPlaytime = playtime[context.dataIndex];
+								
+								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+category+" plays happened in "+context.label:
+											context.formattedValue+"% of all "+category+" playtime happened in "+context.label;
+								var second = context.datasetIndex === 0? "which is "+thisPlays+" plays out of "+totalPlays:
+											"which is "+thisPlaytime+" out of "+totalPlaytime;
+					            return [first,second];
+					            return ['',''];
+					          }
+					        }
+					      }
+					    }
+					}
+					
                 });
 
 				myChart.update(); 

@@ -6,6 +6,11 @@
 	<script src="../../../js/sortable.min.js"></script>
 	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css"/>
 	<script type="text/javascript">
+		var labelsArray=[];
+        var percentagesPlays=[]; 
+        var percentagesPlaytime=[];
+        var plays=[];
+        var playtime=[];  
 		window.onload = function(){
 			Sortable.init();
 		}
@@ -21,34 +26,71 @@
 	Weeks song was played: <span th:text="${song.weeksSongWasPlayed}"/><br/>
 	Months song was played: <span th:text="${song.monthsSongWasPlayed}"/><br/>
 	
-	<div>
+<div style="height:400px;" th:each="songGroup, count : ${songGroupList}">
+<script th:inline="javascript" th:each="listCount : ${songGroup.listCounts}">
+
+	labelsArray.push(/*[[${listCount.element}]]*/'');
+	plays.push(/*[[${listCount.plays}]]*/'');
+	percentagesPlays.push(/*[[${listCount.percentagePlays}]]*/'');
+	playtime.push(/*[[${listCount.playtimeString}]]*/'');
+	percentagesPlaytime.push(/*[[${listCount.percentagePlaytime}]]*/'');
+
+</script>
+
 	<canvas th:id="${'plays'}"></canvas>
-		
 		<script th:inline="javascript">
-		/*<![CDATA[*/
+                //Play Year
+				/*<![CDATA[*/
                 var ctx = document.getElementById('plays').getContext('2d');
+                
                 var myChart = new Chart(ctx, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
-                        labels: [ /*[(${song.chartLabels})]*/ ],
-                        datasets: [{
-                            label: 'Plays',
-							data: [ /*[(${song.chartValues})]*/ ],
-                            fill: false,
-                            borderColor: 'rgb(75, 192, 192)',
-                            pointBackgroundColor: 'rgb(212, 25, 66)',
-                            pointStyle: 'rect'
-                        }]
-                    },
+					  labels: labelsArray,
+					  datasets: [
+					    {
+					      label: 'Percentage of plays',
+					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+					      data: percentagesPlays
+					    },
+					    {
+					      label: 'Percentage of playtime',
+					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
+					      data: percentagesPlaytime
+					    }
+					  ]
+					},
                     options:{
-						responsive:true
+						responsive:true,
+						maintainAspectRatio: false,
+						plugins: {
+					      tooltip: {
+					        callbacks: {
+					          label: function(context) {
+					            var category = /*[[${song.song}]]*/''; 
+								var totalPlays = /*[[${song.totalPlays}]]*/'';
+								var totalPlaytime = /*[[${song.totalPlaytime}]]*/'';
+								
+								var thisPlays = plays[context.dataIndex];
+								var thisPlaytime = playtime[context.dataIndex];
+								
+								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+category+" plays happened in "+context.label:
+											context.formattedValue+"% of all "+category+" playtime happened in "+context.label;
+								var second = context.datasetIndex === 0? "which is "+thisPlays+" plays out of "+totalPlays:
+											"which is "+thisPlaytime+" out of "+totalPlaytime;
+					            return [first,second];
+					            return ['',''];
+					          }
+					        }
+					      }
+					    }
 					}
+					
                 });
 
 				myChart.update(); 
                 /*]]>*/
                 </script>
 	</div>
-</body>
 
 </html>

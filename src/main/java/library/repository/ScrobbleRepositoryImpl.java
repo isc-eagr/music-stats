@@ -44,6 +44,7 @@ public class ScrobbleRepositoryImpl{
 			and sc.album = ? 
             and so.id is null 
             group by sc.artist, sc.album, sc.song
+            order by sc.scrobble_date
 			""";
 	
 	private static final String GET_PLAYS_BY_DATE_RANGE_QUERY = """
