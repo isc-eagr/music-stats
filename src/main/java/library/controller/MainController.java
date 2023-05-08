@@ -996,23 +996,32 @@ public class MainController {
 
 		return "song";
 	}
-
+	
+	@GetMapping({"/categorySearch"})
+	public String categorySearch(Model model) {
+		
+		return "categorysearchform";
+		
+	}
 	
 	@GetMapping({"/category/{category1}/{value1}",
 		"/category/{category1}/{value1}/{category2}/{value2}",
 		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
-		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}"})
-	public String song(Model model, 
+		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}",
+		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}"})
+	public String category(Model model, 
 			@PathVariable(required=true)String category1, @PathVariable(required=true) String value1,
 			@PathVariable(required=false)String category2, @PathVariable(required=false)String value2,
 			@PathVariable(required=false)String category3, @PathVariable(required=false)String value3,
-			@PathVariable(required=false)String category4, @PathVariable(required=false)String value4) {
+			@PathVariable(required=false)String category4, @PathVariable(required=false)String value4,
+			@PathVariable(required=false)String category5, @PathVariable(required=false)String value5) {
 		
 		List<String> categories = new ArrayList<>();
 		categories.add(category1);
 		categories.add(category2);
 		categories.add(category3);
 		categories.add(category4);
+		categories.add(category5);
 		categories = categories.stream().filter(c->c!=null).toList();
 		
 		
@@ -1021,6 +1030,7 @@ public class MainController {
 		values.add(value2);
 		values.add(value3);
 		values.add(value4);
+		values.add(value5);
 		values = values.stream().filter(v->v!=null).toList();
 
 		List<PlayDTO> plays = category1.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll()
@@ -1054,6 +1064,25 @@ public class MainController {
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		categoryPage.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		categoryPage.setNumberOfSongs(map.entrySet().size());
+		
+		if(!category1.equals("ALL")) {
+			//Group by song and sort by most played
+			categoryPage.setMostPlayedSongs(sortedList.stream().limit(100).map(e->{
+				AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
+				song.setArtist(e.getValue().get(0).getArtist());
+				song.setAlbum(e.getValue().get(0).getAlbum());
+				song.setSong(e.getValue().get(0).getSong());
+				song.setGenre(e.getValue().get(0).getGenre());
+				song.setRace(e.getValue().get(0).getRace());
+				song.setSex(e.getValue().get(0).getSex());
+				song.setLanguage(e.getValue().get(0).getLanguage());
+				song.setYear(e.getValue().get(0).getYear());
+				song.setTotalPlays(e.getValue().size());
+				return song;
+			}).toList());
+		}
+		
+		
 		categoryPage.setAveragePlaysPerSong((double)categoryPage.getTotalPlays()/categoryPage.getNumberOfSongs());
 		categoryPage.setAverageSongLength(sortedList.stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/categoryPage.getNumberOfSongs());
 		

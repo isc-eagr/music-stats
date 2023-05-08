@@ -1,0 +1,31 @@
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<title>Stats</title>
+		<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+		<script type="text/javascript">
+			function goToCategory(){
+				
+				var url="category";
+				
+				if(document.getElementById("sex").value != '' ){url += "/Sex/"+document.getElementById("sex").value}
+				if(document.getElementById("genre").value != ''){url += "/Genre/"+document.getElementById("genre").value}
+				if(document.getElementById("race").value != ''){url += "/Race/"+document.getElementById("race").value}
+				if(document.getElementById("language").value != ''){url += "/Language/"+document.getElementById("language").value}
+				if(document.getElementById("releaseYear").value != ''){url += "/Year/"+document.getElementById("releaseYear").value}
+				
+				window.open(url);
+			}
+		</script>
+	
+	</head>
+	<body>
+	  Sex: <input type="text" id="sex" /><br/>
+	  Genre: <input type="text" id="genre"/><br/>
+	  Race: <input type="text" id="race" /><br/>
+	  Language: <input type="text" id="language" /><br/>
+	  Release Year: <input type="text" id="releaseYear"/><br/>
+	  
+	  <input type="button" id="goToCategory" onclick="goToCategory()" value="Search"/>
+	
+	</body>
+</html>

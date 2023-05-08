@@ -3,8 +3,15 @@
 <head>
 	<title th:text="${category.categoryValue}"></title>
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+	<link rel="stylesheet" href="http://localhost:8080/css/sortable-theme-finder.css"/>
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src="http://localhost:8080/js/sortable.min.js"></script>
+	<script type="text/javascript">
+		window.onload = function(){
+			Sortable.init();
+		}
+	</script>
 </head>
 
 <body>
@@ -225,6 +232,36 @@
 			</script>
 		</div>
 	</div>
+	<table id="albumSongsTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr>
+			<th>Position</th>
+			<th>Artist</th>
+			<th>Song</th>
+			<th>Album</th>
+			<th>Genre</th>
+			<th>Sex</th>
+			<th>Language</th>
+			<th>Race</th>
+			<th>Year</th>
+			<th>Total Plays</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr th:each="song, stat : ${category.mostPlayedSongs}">
+			<td th:text="${stat.index+1}"/>
+			<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
+			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}" th:text="${song.album}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.genre},category=${'Genre'})}" th:text="${song.genre}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.sex},category=${'Sex'})}" th:text="${song.sex}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.language},category=${'Language'})}" th:text="${song.language}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.race},category=${'Race'})}" th:text="${song.race}"></td>
+			<td th:text="${song.year}"/>
+			<td th:text="${song.totalPlays}"/>
+		</tr>
+	</tbody>
+</table>
 </body>
 
 </html>

@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 import library.util.Utils;
 
 public class CategoryPageDTO {
@@ -20,6 +22,7 @@ public class CategoryPageDTO {
 	String mostPlayedAlbum;
 	String mostPlayedSong;
 	String categoryValue;
+	private List<AlbumSongsQueryDTO> mostPlayedSongs;
 	
 	public int getTotalPlays() {
 		return totalPlays;
@@ -188,6 +191,15 @@ public class CategoryPageDTO {
 
 	public CategoryPageDTO() {
 
+	}
+	
+	public List<AlbumSongsQueryDTO> getMostPlayedSongs() {
+		return mostPlayedSongs;
+	}
+
+
+	public void setMostPlayedSongs(List<AlbumSongsQueryDTO> mostPlayedSongs) {
+		this.mostPlayedSongs = mostPlayedSongs;
 	}
 
 
