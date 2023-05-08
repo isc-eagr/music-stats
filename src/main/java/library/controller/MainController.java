@@ -5,18 +5,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -51,7 +46,6 @@ import library.dto.ArtistPageDTO;
 import library.dto.PlayDTO;
 import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
-import library.dto.DataForGraphs;
 import library.dto.CategoryPageDTO;
 import library.dto.SaveAlbumDTO;
 import library.dto.SongPageDTO;
@@ -269,140 +263,6 @@ public class MainController {
 
 	@RequestMapping("/")
 	public String index(Model model, @RequestParam(defaultValue="1970-01-01") String start, @RequestParam(defaultValue="2400-12-31") String end) {
-
-		List<PlayDTO> allPlays = scrobbleRepositoryImpl.getPlaysByDateRange(start, end);
-		Map<String, List<PlayDTO>> mapPlaysBySong = allPlays.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
-
-
-		String firstPlayOn = allPlays.stream().min((s1,s2)->s1.getPlayDate().substring(0,10).compareTo(s2.getPlayDate().substring(0,10))).orElse(new PlayDTO()).getPlayDate();
-		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-		LocalDate startDate = firstPlayOn == null ? LocalDate.now() : LocalDate.parse(firstPlayOn.substring(0,10), dtf);
-		LocalDate today = LocalDate.now();
-		daysElapsedSinceFirstPlay = (int)ChronoUnit.DAYS.between(startDate, today)+1;
-
-		model.addAttribute("totalSongs", mapPlaysBySong.entrySet().size());
-		model.addAttribute("totalPlays", allPlays.size());
-		model.addAttribute("totalPlayTimeGlobalString", 
-				Utils.secondsToString(allPlays.stream().parallel()
-						.mapToInt(PlayDTO::getTrackLength)
-						.sum())
-				);
-		model.addAttribute("averagePlaysPerDay", (allPlays.size()/(double)daysElapsedSinceFirstPlay));
-		model.addAttribute("averageSongLength", Utils.secondsToStringColon((int)mapPlaysBySong.values().stream().mapToInt(s->s.get(0).getTrackLength()).average().orElse(0.0)));
-		model.addAttribute("averagePlaysPerSong",mapPlaysBySong.values().stream().mapToInt(s->s.size()).average().orElse(0.0));
-
-		model.addAttribute("firstPlayOn", firstPlayOn);
-		model.addAttribute("daysElapsedSinceFirstPlay", (int)daysElapsedSinceFirstPlay);
-
-		//For the main criteria Sex and Genre
-		//We need a map with Criteria name (Sex or Genre) as key, and a list with every graph
-		//in that criteria
-		Map<String, List<DataForGraphs>> dataMap = new LinkedHashMap<>();
-
-		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(), 
-				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Genre", song -> song.getGenre(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Race", song -> song.getRace(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Language", song -> song.getLanguage(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1))
-				);
-
-		for (Criterion<PlayDTO> criterion : criteria) {
-
-			//Each element in this list, represents a graph
-			List<DataForGraphs> data = new ArrayList<>();
-
-			Map<String,List<PlayDTO>> classifiedMap= allPlays.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			if(classifiedMap == null || classifiedMap.keySet() == null || classifiedMap.keySet().size()==0) {
-				break;
-			}
-
-			String numberOfSongsDataMale = "";
-			String numberOfSongsLabels = "";
-			String numberOfSongsDataOthers = "";
-
-			String numberOfPlaysDataMale = "";
-			String numberOfPlaysLabels = "";
-			String numberOfPlaysDataOthers = "";
-
-			String playtimeDataMale = "";
-			String playtimeLabels = "";
-			String playtimeDataOthers = "";
-
-			List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			//These loops iterate through every secondary criteria (R&B Reggaeton etc)
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				Map<Boolean, List<PlayDTO>> partitionedByMale= e.getValue().stream().collect(Collectors.partitioningBy(s->s.getSex().equals("Male")));
-				numberOfPlaysDataMale += partitionedByMale.get(Boolean.TRUE).size()+",";
-				numberOfPlaysDataOthers += partitionedByMale.get(Boolean.FALSE).size()+",";
-				numberOfPlaysLabels += ("'"+e.getKey()+"',");
-			}
-
-			Collections.sort(sortedList, (o1, o2) -> 
-			o1.getValue().stream().map(p->p.getArtist()+"::"+p.getAlbum()+"::"+p.getSong()).distinct().count()>
-			o2.getValue().stream().map(p->p.getArtist()+"::"+p.getAlbum()+"::"+p.getSong()).distinct().count()?-1:1
-					);
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				Map<Boolean, List<PlayDTO>> partitionedByMale= e.getValue().stream().collect(Collectors.partitioningBy(s->s.getSex().equals("Male")));
-				numberOfSongsDataMale += partitionedByMale.get(Boolean.TRUE).stream().map(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()).distinct().count()+",";
-				numberOfSongsDataOthers += partitionedByMale.get(Boolean.FALSE).stream().map(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()).distinct().count()+",";
-				numberOfSongsLabels += ("'"+e.getKey()+"',");
-			}
-
-			Collections.sort(sortedList, (o1, o2) -> 
-			o1.getValue().stream().mapToLong(p->p.getTrackLength()).sum()>
-			o2.getValue().stream().mapToLong(p->p.getTrackLength()).sum()?-1:1
-					);
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				Map<Boolean, List<PlayDTO>> partitionedByMale= e.getValue().stream().collect(Collectors.partitioningBy(s->s.getSex().equals("Male")));
-				playtimeDataMale += partitionedByMale.get(Boolean.TRUE).stream().mapToLong(s->s.getTrackLength()).sum()+",";
-				playtimeDataOthers += partitionedByMale.get(Boolean.FALSE).stream().mapToLong(s->s.getTrackLength()).sum()+",";
-				playtimeLabels += ("'"+e.getKey()+"',");	
-			}
-
-			DataForGraphs dataNumberSongs = new DataForGraphs(numberOfSongsDataMale.substring(0,numberOfSongsDataMale.length()-1), 
-					numberOfSongsDataOthers.substring(0,numberOfSongsDataOthers.length()-1), numberOfSongsLabels.substring(0,numberOfSongsLabels.length()-1), "NumberOfSongs");
-
-			DataForGraphs dataNumberPlays = new DataForGraphs(numberOfPlaysDataMale.substring(0,numberOfPlaysDataMale.length()-1), 
-					numberOfPlaysDataOthers.substring(0,numberOfPlaysDataOthers.length()-1), numberOfPlaysLabels.substring(0,numberOfPlaysLabels.length()-1), "NumberOfPlays");
-
-			DataForGraphs dataPlaytime = new DataForGraphs(playtimeDataMale.substring(0,playtimeDataMale.length()-1), 
-					playtimeDataOthers.substring(0,playtimeDataOthers.length()-1), playtimeLabels.substring(0,playtimeLabels.length()-1), "Playtime");
-
-			data.add(dataNumberSongs);
-			data.add(dataNumberPlays);
-			data.add(dataPlaytime);
-
-			//Each element in the map is a criteria (Genre, Sex, Year etc.)
-			dataMap.put(criterion.getName(), data);
-		}
-
-		String firstPlayedYear = allPlays.stream().map(s->s.getPlayDate()).min((s1, s2) -> s1.compareTo(s2)).orElse("");
-		firstPlayedYear = firstPlayedYear.isBlank() ? "" : firstPlayedYear.substring(0, 4);
-		List<Integer> years = firstPlayedYear.isBlank()? List.of() : IntStream.rangeClosed(Integer.parseInt(firstPlayedYear), LocalDate.now().getYear()).boxed().toList();
-
-		Map<String,Long> playsByYearForChart = allPlays.stream().collect(Collectors.groupingBy(s->s.getPlayDate().substring(0,4),Collectors.counting()));
-		for(Integer year : years) {
-			if(!playsByYearForChart.containsKey(String.valueOf(year))) {
-				playsByYearForChart.put(String.valueOf(year), 0L);
-			}
-		}
-		List<Entry<String, Long>> sortedList = new ArrayList<>(playsByYearForChart.entrySet());
-		Collections.sort(sortedList, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
-
-		String chartLabels=sortedList.stream().map(e->e.getKey()).collect(Collectors.joining(","));
-		String chartValues=sortedList.stream().map(e->String.valueOf(e.getValue())).collect(Collectors.joining(","));
-
-		model.addAttribute("dataMap",dataMap);
-		model.addAttribute("chartLabels",chartLabels);
-		model.addAttribute("chartValues",chartValues);
 		return "main";
 	}// method
 

@@ -74,13 +74,23 @@
 				var table = document.getElementById(/*[[${songGroup.criteria}]]*/'');
 
 				var labelsArray = [];
-				var percentagesPlays = [];
-				var percentagesPlaytime = [];
+				var percentagesPlaysMale = [];
+				var percentagesPlaysOther = [];
+				var percentagesPlaytimeMale = [];
+				var percentagesPlaytimeOther = [];
 				for (let row of table.rows) {
 					if (row.rowIndex > 0) {
 						labelsArray.push(row.cells[0].innerHTML);
-						percentagesPlays.push(row.cells[7].innerHTML.replace("%", ""));
-						percentagesPlaytime.push(row.cells[11].innerHTML.replace("%", ""));
+						
+						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "")*row.cells[8].innerHTML.replace("%", "")/100;
+						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "")-percentagePlaysMale; 
+						percentagesPlaysMale.push(percentagePlaysMale);
+						percentagesPlaysOther.push(percentagePlaysOther);
+						
+						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "")*row.cells[12].innerHTML.replace("%", "")/100;
+						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "")-percentagePlaytimeMale; 
+						percentagesPlaytimeMale.push(percentagePlaytimeMale);
+						percentagesPlaytimeOther.push(percentagePlaytimeOther);
 					}
 				}
 
@@ -90,21 +100,46 @@
 						labels: labelsArray,
 						datasets: [
 							{
-								label: 'Percentage of plays',
-								backgroundColor: 'rgba(255, 99, 132, 0.8)',
-								data: percentagesPlays
+								label: 'Percentage of plays Male',
+								backgroundColor: 'rgba(51, 86, 170, 0.9)',
+								data: percentagesPlaysMale,
+								stack: 'plays'
 							},
 							{
-								label: 'Percentage of playtime',
-								backgroundColor: 'rgba(152, 255, 152, 0.8)',
-								data: percentagesPlaytime
+								label: 'Percentage of plays Other',
+								backgroundColor: 'rgba(253, 108, 158, 0.9)',
+								data: percentagesPlaysOther,
+								stack: 'plays'
+							},
+							{
+								label: 'Percentage of playtime Male',
+								backgroundColor: 'rgba(0, 0, 139, 0.9)',
+								data: percentagesPlaytimeMale,
+								stack: 'playtime'
+							},
+							{
+								label: 'Percentage of playtime Others',
+								backgroundColor: 'rgba(255, 20, 147, 0.9)',
+								data: percentagesPlaytimeOther,
+								stack: 'playtime'
 							}
 						]
 					},
 					options: {
 						responsive: true,
 						maintainAspectRatio: false,
+						scales: {
+		                		x: {
+		                			stacked: true
+		                		},
+		                		y: {
+		                			stacked: true
+		                		}
+	                		},
 						plugins: {
+							legend: {
+        						display: false
+    						},
 							tooltip: {
 								callbacks: {
 									label: function (context) {
@@ -114,14 +149,37 @@
 
 										var table = document.getElementById(/*[[${songGroup.criteria}]]*/'');
 
-										var thisPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
-										var thisPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
+										var allPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
+										var allPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
+										
+										var malePlays = table.rows[context.dataIndex + 1].cells[6].innerHTML;
+										var malePlaytime = table.rows[context.dataIndex + 1].cells[10].innerHTML;
+										
+										var otherPlays = allPlays-malePlays;
+										var otherPlaytime = "TODO";
+										
+										var percentagePlays = table.rows[context.dataIndex + 1].cells[7].innerHTML.replace("%", "");
+										var percentagePlaytime = table.rows[context.dataIndex + 1].cells[11].innerHTML.replace("%", "");
+										
+										var malePercentagePlays = table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "");
+										var malePercentagePlaytime = table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "");
+										
+										var otherPercentagePlays = (100-table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
+										var otherPercentagePlaytime = (100-table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
+										
+										var sex = context.datasetIndex % 2 === 0?"Male":"Others";
+										var metric = context.datasetIndex === 0 || context.datasetIndex === 1 ? "Plays" : "Playtime";
 
-										var first = context.datasetIndex === 0 ? context.formattedValue + "% of all " + category + " plays happened in " + context.label :
-											context.formattedValue + "% of all " + category + " playtime happened in " + context.label;
-										var second = context.datasetIndex === 0 ? "which is " + thisPlays + " plays out of " + totalPlays :
-											"which is " + thisPlaytime + " out of " + totalPlaytime;
-										return [first, second];
+										var first = context.datasetIndex === 0 || context.datasetIndex === 1 ? percentagePlays + "% of all " + category + " plays happened in " + context.label :
+											percentagePlaytime + "% of all " + category + " playtime happened in " + context.label;
+										var second = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + allPlays + " plays out of " + totalPlays :
+											"which is " + allPlaytime + " out of " + totalPlaytime;
+										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex=="Male"?malePercentagePlays:otherPercentagePlays) + "% of those " +allPlays+" plays are "+sex:
+											(sex=="Male"?malePercentagePlaytime:otherPercentagePlaytime) + "% of that " +allPlaytime+" playtime is "+sex;
+										var fourth = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + (sex=="Male"?malePlays:otherPlays) + " plays":
+											"which is " + (sex=="Male"?malePlaytime:otherPlaytime);
+									
+										return [first, second, third, fourth];
 									}
 								}
 							}
