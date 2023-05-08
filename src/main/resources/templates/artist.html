@@ -47,7 +47,7 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 		<tr th:each="album, stat : ${artistInfo.albums}">
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${album.album})}" th:text="${album.album}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${album.releaseYear},category=${'year'})}" th:text="${album.releaseYear}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${album.releaseYear},category=${'Year'})}" th:text="${album.releaseYear}"/></td>
 			<td th:text="${album.numberOfTracks}"/>
 			<td th:text="${album.totalPlays}"/>
 			<td th:text="${album.albumLengthString}" th:data-value="${album.albumLength}"/>
@@ -87,7 +87,7 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
 			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${song.album})}" th:text="${song.album}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${song.releaseYear},category=${'year'})}" th:text="${song.releaseYear}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.releaseYear},category=${'Year'})}" th:text="${song.releaseYear}"/></td>
 			<td th:text="${song.totalPlays}"/>
 			<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}"/>
 			<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}"/>

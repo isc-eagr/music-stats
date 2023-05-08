@@ -61,17 +61,17 @@
 			<td><a th:href="@{/timeUnitDetail/{unit}/{unitValue}/{top}(unit=${unit},unitValue=${timeUnit.queryDateGenre}, top=${top})}" th:text="${timeUnit.displayDateGenre}"></td>
 			<td th:text="${timeUnit.totalDurationText}" th:data-value="${timeUnit.totalDuration}"/>
 			<td th:text="${timeUnit.totalCount}"/>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${timeUnit.genre},category=${'genre'})}" th:text="${timeUnit.genre}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${timeUnit.genre},category=${'Genre'})}" th:text="${timeUnit.genre}"></td>
 			<td th:text="${timeUnit.durationGenreText}" th:data-value="${timeUnit.durationGenre}"/>
 			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.durationGenre)/(0.0+timeUnit.totalDuration), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 			<td th:text="${timeUnit.countGenre}"/>
 			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.countGenre)/(0.0+timeUnit.totalCount), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${timeUnit.sex},category=${'sex'})}" th:text="${timeUnit.sex}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${timeUnit.sex},category=${'Sex'})}" th:text="${timeUnit.sex}"></td>
 			<td th:text="${timeUnit.durationSexText}" th:data-value="${timeUnit.durationSex}"/>
 			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.durationSex)/(0.0+timeUnit.totalDuration), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 			<td th:text="${timeUnit.countSex}"/>
 			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.countSex)/(0.0+timeUnit.totalCount), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${timeUnit.race},category=${'race'})}" th:text="${timeUnit.race}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${timeUnit.race},category=${'Race'})}" th:text="${timeUnit.race}"></td>
 			<td th:text="${timeUnit.durationRaceText}" th:data-value="${timeUnit.durationRace}"/>
 			<td th:text="${#numbers.formatDecimal((100.0*timeUnit.durationRace)/(0.0+timeUnit.totalDuration), 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 			<td th:text="${timeUnit.countRace}"/>

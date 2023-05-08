@@ -138,10 +138,10 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/artist?artist={artist}(artist=${topArtist.artist})}" th:text="${topArtist.artist}"/></td>
 			<td th:text="${topArtist.count}"/>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.genre},category=${'genre'})}" th:text="${topArtist.genre}"/></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.sex},category=${'sex'})}" th:text="${topArtist.sex}"/></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.language},category=${'language'})}" th:text="${topArtist.language}"/></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topArtist.race},category=${'race'})}" th:text="${topArtist.race}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.genre},category=${'Genre'})}" th:text="${topArtist.genre}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.sex},category=${'Sex'})}" th:text="${topArtist.sex}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.language},category=${'Language'})}" th:text="${topArtist.language}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.race},category=${'Race'})}" th:text="${topArtist.race}"/></td>
 			<td th:text="${topArtist.playtimeString}" th:data-value="${topArtist.playtime}"/>
 			<td th:text="${topArtist.averageLengthString}" th:data-value="${topArtist.averageLength}"/>
 			<td th:text="${#numbers.formatDecimal(topArtist.averagePlays, 1, 'DEFAULT', 2, 'DEFAULT')}"/>

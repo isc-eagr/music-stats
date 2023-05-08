@@ -1,5 +1,7 @@
 package library.repository;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -71,8 +73,21 @@ public class ArtistRepository{
 		return template.query(SONG_PLAYS_QUERY, new BeanPropertyRowMapper<>(PlayDTO.class), artist, album, song);
 	}
 	
-	public List<PlayDTO> categoryPlays(String category, String value) {
-		return template.query(String.format(CATEGORY_PLAYS_QUERY, category), new BeanPropertyRowMapper<>(PlayDTO.class), value);
+	public List<PlayDTO> categoryPlays(String[] categories, String[] values) {
+
+		if(categories.length != values.length) {
+			throw new IllegalArgumentException("Categories and values have a different size");
+		}
+		
+		String query = CATEGORY_PLAYS_QUERY;
+		
+		if(categories.length > 1) {
+			for(int i=1 ; i < categories.length ; i++) {
+				query += "and LOWER(so.%s)=LOWER(?) ";
+			}
+		}
+		
+		return template.query(String.format(query, categories), new BeanPropertyRowMapper<>(PlayDTO.class), values);
 	}
 	
 	public List<PlayDTO> categoryPlaysAll() {

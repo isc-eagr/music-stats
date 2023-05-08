@@ -8,11 +8,7 @@
 </head>
 
 <body>
-	<h1 th:text="${category.categoryValue}"></h1>
-	<br />
-	<a th:href="@{/timeUnitDetail/year/{year}/250(year=${category.categoryValue})}"
-		th:if="${#strings.equalsIgnoreCase(categoryName, 'year') and T(Integer).parseInt(category.categoryValue) >= 2010}"
-		th:text="${'Check '+category.categoryValue+' by Play Date'}" />
+	<h1 th:text="${category.categoryValue}"/>
 	<br />
 	<br />
 	Total Plays: <span th:text="${category.totalPlays}" /><br />
@@ -36,7 +32,7 @@
 	<div th:each="categoryGroup, count : ${categoryGroupList}">
 		<div>
 			<table th:id="${categoryGroup.criteria}"
-				th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
+				th:if="${!#lists.contains(categories, #strings.replace(categoryGroup.criteria,'Release Year','Year'))}">
 				<tr>
 					<th th:text="${categoryGroup.criteria}" />
 					<th th:text="${'Number of songs'}" />
@@ -77,7 +73,7 @@
 		</div>
 
 		<div style="height:500px;"
-			th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
+			th:if="${!#lists.contains(categories, #strings.replace(categoryGroup.criteria,'Release Year','Year'))}">
 			<canvas th:id="${'plays'+count.index}"></canvas>
 
 			<script th:inline="javascript" th:if="${!#strings.contains(categoryGroup.criteria,'Play')}">

@@ -997,14 +997,38 @@ public class MainController {
 		return "song";
 	}
 
-	@GetMapping({"/category"})
-	public String song(Model model, @RequestParam(required=true) String category, @RequestParam(required=true) String value) {
+	
+	@GetMapping({"/category/{category1}/{value1}",
+		"/category/{category1}/{value1}/{category2}/{value2}",
+		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
+		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}"})
+	public String song(Model model, 
+			@PathVariable(required=true)String category1, @PathVariable(required=true) String value1,
+			@PathVariable(required=false)String category2, @PathVariable(required=false)String value2,
+			@PathVariable(required=false)String category3, @PathVariable(required=false)String value3,
+			@PathVariable(required=false)String category4, @PathVariable(required=false)String value4) {
+		
+		List<String> categories = new ArrayList<>();
+		categories.add(category1);
+		categories.add(category2);
+		categories.add(category3);
+		categories.add(category4);
+		categories = categories.stream().filter(c->c!=null).toList();
+		
+		
+		List<String> values = new ArrayList<>();
+		values.add(value1);
+		values.add(value2);
+		values.add(value3);
+		values.add(value4);
+		values = values.stream().filter(v->v!=null).toList();
 
-		List<PlayDTO> plays = category.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll()
-				:artistRepository.categoryPlays(category, value);
+		List<PlayDTO> plays = category1.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll()
+				:artistRepository.categoryPlays(categories.toArray(String[]::new),
+						values.toArray(String[]::new));
 
 		CategoryPageDTO categoryPage = new CategoryPageDTO();
-		categoryPage.setCategoryValue(value);
+		categoryPage.setCategoryValue(values.stream().collect(Collectors.joining(" ")));
 		categoryPage.setTotalPlays(plays.size());
 		categoryPage.setTotalPlaytime(plays.stream().mapToInt(s->s.getTrackLength()).sum());
 		categoryPage.setDaysCategoryWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 10)).distinct().count());
@@ -1048,7 +1072,7 @@ public class MainController {
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 
-		model.addAttribute("categoryName",category);
+		model.addAttribute("categories",categories);
 		model.addAttribute("category",categoryPage);
 		model.addAttribute("categoryGroupList", Utils.generateChartData(criteria, plays, categoryPage.getNumberOfSongs(), categoryPage.getTotalPlaytime()));
 		model.addAttribute("daysElapsedSinceFirstPlay", daysElapsedSinceFirstPlay);

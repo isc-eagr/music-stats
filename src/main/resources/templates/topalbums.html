@@ -156,11 +156,11 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/artist?artist={artist}(artist=${topAlbum.artist})}" th:text="${topAlbum.artist}"/></td>
 			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topAlbum.artist},album=${topAlbum.album})}" th:text="${topAlbum.album}"/></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.genre},category=${'genre'})}" th:text="${topAlbum.genre}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.sex},category=${'sex'})}" th:text="${topAlbum.sex}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.language},category=${'language'})}" th:text="${topAlbum.language}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.year},category=${'year'})}" th:text="${topAlbum.year}"/></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${topAlbum.race},category=${'race'})}" th:text="${topAlbum.race}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topAlbum.genre},category=${'Genre'})}" th:text="${topAlbum.genre}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topAlbum.sex},category=${'Sex'})}" th:text="${topAlbum.sex}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topAlbum.language},category=${'Language'})}" th:text="${topAlbum.language}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topAlbum.year},category=${'Year'})}" th:text="${topAlbum.year}"/></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${topAlbum.race},category=${'Race'})}" th:text="${topAlbum.race}"></td>
 			<td th:text="${topAlbum.lengthString}" th:data-value="${topAlbum.length}"/>
 			<td th:text="${topAlbum.count}"/>
 			<td th:text="${topAlbum.playtimeString}" th:data-value="${topAlbum.playtime}"/>

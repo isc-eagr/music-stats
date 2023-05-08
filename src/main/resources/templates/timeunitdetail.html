@@ -13,7 +13,9 @@
 	</script>
 </head>
 <body>
-<a th:href="@{/category?category={category}&value={value}(value=${unitValue},category=${'year'})}" 
+<h1 th:text="${unitValue}"/>
+<br />
+<a th:href="@{/category/{category}/{value}(value=${unitValue},category=${'Year'})}" 
 	th:if="${#strings.equalsIgnoreCase(unit, 'year')}"
 	th:text="${'Check '+unitValue+' by Release Date'}"
 	/>
@@ -180,10 +182,10 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 			<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
 			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
 			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}" th:text="${song.album}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${song.genre},category=${'genre'})}" th:text="${song.genre}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${song.sex},category=${'sex'})}" th:text="${song.sex}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${song.language},category=${'language'})}" th:text="${song.language}"></td>
-			<td><a th:href="@{/category?category={category}&value={value}(value=${song.race},category=${'race'})}" th:text="${song.race}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.genre},category=${'Genre'})}" th:text="${song.genre}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.sex},category=${'Sex'})}" th:text="${song.sex}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.language},category=${'Language'})}" th:text="${song.language}"></td>
+			<td><a th:href="@{/category/{category}/{value}(value=${song.race},category=${'Race'})}" th:text="${song.race}"></td>
 			<td th:text="${song.year}"/>
 			<td th:text="${song.totalPlays}"/>
 		</tr>
