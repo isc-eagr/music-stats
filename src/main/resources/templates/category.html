@@ -1,220 +1,234 @@
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
 	<title th:text="${category.categoryValue}"></title>
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
+
 <body>
-<h1 th:text="${category.categoryValue}"></h1>
-<br/>
-<a th:href="@{/timeUnitDetail/year/{year}/250(year=${category.categoryValue})}" 
-	th:if="${#strings.equalsIgnoreCase(categoryName, 'year') and T(Integer).parseInt(category.categoryValue) >= 2010}"
-	th:text="${'Check '+category.categoryValue+' by Play Date'}"
-	/>
-<br/>
-<br/>
-Total Plays: <span th:text="${category.totalPlays}"/><br/>
-Total Playtime: <span th:text="${category.totalPlaytimeString}"/><br/>
-Most Played Artist: <span th:text="${category.mostPlayedArtist}"/><br/>
-Most Played Album: <span th:text="${category.mostPlayedAlbum}"/><br/>
-Most Played Song: <span th:text="${category.mostPlayedSong}"/><br/>
-Number of artists: <span th:text="${category.numberOfArtists}"/><br/>
-Number of albums: <span th:text="${category.numberOfAlbums}"/><br/>
-Number of songs: <span th:text="${category.numberOfSongs}"/><br/>
-<span th:text="${'Days '+category.categoryValue+' Was Played:'}"/> <span th:text="${category.daysCategoryWasPlayed+'/'+daysElapsedSinceFirstPlay}"/><br/>
-<span th:text="${'Weeks '+category.categoryValue+' Was Played:'}"/> <span th:text="${category.weeksCategoryWasPlayed}"/><br/>
-<span th:text="${'Months '+category.categoryValue+' Was Played:'}"/> <span th:text="${category.monthsCategoryWasPlayed}"/><br/>
-Average Song Length: <span th:text="${category.averageSongLengthString}"/><br/>
-Average Plays Per Song: <span th:text="${#numbers.formatDecimal(category.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
+	<h1 th:text="${category.categoryValue}"></h1>
+	<br />
+	<a th:href="@{/timeUnitDetail/year/{year}/250(year=${category.categoryValue})}"
+		th:if="${#strings.equalsIgnoreCase(categoryName, 'year') and T(Integer).parseInt(category.categoryValue) >= 2010}"
+		th:text="${'Check '+category.categoryValue+' by Play Date'}" />
+	<br />
+	<br />
+	Total Plays: <span th:text="${category.totalPlays}" /><br />
+	Total Playtime: <span th:text="${category.totalPlaytimeString}" /><br />
+	Most Played Artist: <span th:text="${category.mostPlayedArtist}" /><br />
+	Most Played Album: <span th:text="${category.mostPlayedAlbum}" /><br />
+	Most Played Song: <span th:text="${category.mostPlayedSong}" /><br />
+	Number of artists: <span th:text="${category.numberOfArtists}" /><br />
+	Number of albums: <span th:text="${category.numberOfAlbums}" /><br />
+	Number of songs: <span th:text="${category.numberOfSongs}" /><br />
+	<span th:text="${'Days '+category.categoryValue+' Was Played:'}" /> <span
+		th:text="${category.daysCategoryWasPlayed+'/'+daysElapsedSinceFirstPlay}" /><br />
+	<span th:text="${'Weeks '+category.categoryValue+' Was Played:'}" /> <span
+		th:text="${category.weeksCategoryWasPlayed}" /><br />
+	<span th:text="${'Months '+category.categoryValue+' Was Played:'}" /> <span
+		th:text="${category.monthsCategoryWasPlayed}" /><br />
+	Average Song Length: <span th:text="${category.averageSongLengthString}" /><br />
+	Average Plays Per Song: <span
+		th:text="${#numbers.formatDecimal(category.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}" /><br />
 
-<div th:each="categoryGroup, count : ${categoryGroupList}">
-<div>  
-<table th:id="${categoryGroup.criteria}" th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
-	<tr>
-		<th th:text="${categoryGroup.criteria}"/>
-		<th th:text="${'Number of songs'}"/>
-		<th th:text="${'Number of songs male'}"/>
-		<th th:text="${'Percentage of songs'}"/>
-		<th th:text="${'Percentage of songs male'}"/>
-		<th th:text="${'Plays'}"/>
-		<th th:text="${'Plays male'}"/>
-		<th th:text="${'Percentage of Plays'}"/>
-		<th th:text="${'Percentage of Plays male'}"/>
-		<th>Playtime</th>
-		<th>Playtime male</th>
-		<th>Playtime %</th>
-		<th>Playtime % male</th>
-	</tr>
-	<tr th:each="listCount : ${categoryGroup.listCounts}">
-		<td th:text="${listCount.element}"/>
-		<td th:text="${listCount.count}"/>
-		<td th:text="${listCount.countMale}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentageCountMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-		<td th:text="${listCount.plays}"/>
-		<td th:text="${listCount.playsMale}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaysMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-		<td th:text="${listCount.playtimeString}"/>
-		<td th:text="${listCount.playtimeStringMale}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-		<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytimeMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>		
-	</tr>
-</table></div>
+	<div th:each="categoryGroup, count : ${categoryGroupList}">
+		<div>
+			<table th:id="${categoryGroup.criteria}"
+				th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
+				<tr>
+					<th th:text="${categoryGroup.criteria}" />
+					<th th:text="${'Number of songs'}" />
+					<th th:text="${'Number of songs male'}" />
+					<th th:text="${'Percentage of songs'}" />
+					<th th:text="${'Percentage of songs male'}" />
+					<th th:text="${'Plays'}" />
+					<th th:text="${'Plays male'}" />
+					<th th:text="${'Percentage of Plays'}" />
+					<th th:text="${'Percentage of Plays male'}" />
+					<th>Playtime</th>
+					<th>Playtime male</th>
+					<th>Playtime %</th>
+					<th>Playtime % male</th>
+				</tr>
+				<tr th:each="listCount : ${categoryGroup.listCounts}">
+					<td th:text="${listCount.element}" />
+					<td th:text="${listCount.count}" />
+					<td th:text="${listCount.countMale}" />
+					<td
+						th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}" />
+					<td
+						th:text="${#numbers.formatDecimal(listCount.percentageCountMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}" />
+					<td th:text="${listCount.plays}" />
+					<td th:text="${listCount.playsMale}" />
+					<td
+						th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}" />
+					<td
+						th:text="${#numbers.formatDecimal(listCount.percentagePlaysMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}" />
+					<td th:text="${listCount.playtimeString}" />
+					<td th:text="${listCount.playtimeStringMale}" />
+					<td
+						th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}" />
+					<td
+						th:text="${#numbers.formatDecimal(listCount.percentagePlaytimeMale, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}" />
+				</tr>
+			</table>
+		</div>
 
-<div style="height:500px;" th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
-<canvas th:id="${'plays'+count.index}"></canvas>
-		
-                <script th:inline="javascript" th:if="${!#strings.contains(categoryGroup.criteria,'Play')}">
-                //Sex, Genre, Race, Language, Release Year
+		<div style="height:500px;"
+			th:if="${!#strings.equalsIgnoreCase(#strings.replace(categoryGroup.criteria,'Release Year','Year'), categoryName)}">
+			<canvas th:id="${'plays'+count.index}"></canvas>
+
+			<script th:inline="javascript" th:if="${!#strings.contains(categoryGroup.criteria,'Play')}">
+				//Sex, Genre, Race, Language, Release Year
 				/*<![CDATA[*/
-                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
-                
-                var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
-                
-                var labelsArray=[];
-                var percentagesSongs=[];
-                var percentagesPlays=[]; 
-                var percentagesPlaytime=[];   
-                for (let row of table.rows) {
-					if(row.rowIndex > 0){
+				var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+
+				var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
+
+				var labelsArray = [];
+				var percentagesSongs = [];
+				var percentagesPlays = [];
+				var percentagesPlaytime = [];
+				for (let row of table.rows) {
+					if (row.rowIndex > 0) {
 						labelsArray.push(row.cells[0].innerHTML);
-			        	percentagesSongs.push(row.cells[3].innerHTML.replace("%",""));
-			        	percentagesPlays.push(row.cells[7].innerHTML.replace("%",""));
-			        	percentagesPlaytime.push(row.cells[11].innerHTML.replace("%",""));
-		        	}
+						percentagesSongs.push(row.cells[3].innerHTML.replace("%", ""));
+						percentagesPlays.push(row.cells[7].innerHTML.replace("%", ""));
+						percentagesPlaytime.push(row.cells[11].innerHTML.replace("%", ""));
+					}
 				}
-                
-                var myChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-					  labels: labelsArray,
-					  datasets: [
-					    {
-					      label: 'Percentage of songs',
-					      backgroundColor: 'rgba(55, 99, 132, 0.8)',
-					      data: percentagesSongs
-					    },
-					    {
-					      label: 'Percentage of plays',
-					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
-					      data: percentagesPlays
-					    },
-					    {
-					      label: 'Percentage of playtime',
-					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
-					      data: percentagesPlaytime
-					    }
-					  ]
+
+				var myChart = new Chart(ctx, {
+					type: 'bar',
+					data: {
+						labels: labelsArray,
+						datasets: [
+							{
+								label: 'Percentage of songs',
+								backgroundColor: 'rgba(55, 99, 132, 0.8)',
+								data: percentagesSongs
+							},
+							{
+								label: 'Percentage of plays',
+								backgroundColor: 'rgba(255, 99, 132, 0.8)',
+								data: percentagesPlays
+							},
+							{
+								label: 'Percentage of playtime',
+								backgroundColor: 'rgba(152, 255, 152, 0.8)',
+								data: percentagesPlaytime
+							}
+						]
 					},
-                    options:{
-						responsive:true,
+					options: {
+						responsive: true,
 						maintainAspectRatio: false,
 						plugins: {
-					      tooltip: {
-					        callbacks: {
-					          label: function(context) {
-								  
-								var category = /*[[${category.categoryValue}]]*/''; 
-								var totalSongs = /*[[${category.numberOfSongs}]]*/'';
-								var totalPlays = /*[[${category.totalPlays}]]*/'';
-								var totalPlaytime = /*[[${category.totalPlaytimeString}]]*/'';
-								
-								var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
-								
-								var thisSongs = table.rows[context.dataIndex+1].cells[1].innerHTML;
-								var thisPlays = table.rows[context.dataIndex+1].cells[5].innerHTML;
-								var thisPlaytime = table.rows[context.dataIndex+1].cells[9].innerHTML;
-								
-								var first = context.datasetIndex === 0 ? context.formattedValue+"% of all "+category+" songs were released in "+context.label:
-											(context.datasetIndex === 1? context.formattedValue+"% of all "+category+" plays are from songs released in "+context.label:
-											context.formattedValue+"% of all "+category+" playtime is from songs released in "+context.label);
-								var second = context.datasetIndex === 0 ? "which is "+thisSongs+" songs out of "+totalSongs:
-											(context.datasetIndex === 1? "which is "+thisPlays+" plays out of "+totalPlays:
-											"which is "+thisPlaytime+" out of "+totalPlaytime);
-					            return [first,second];
-					          }
-					        }
-					      }
-					    }
-					}
-					
-                });
+							tooltip: {
+								callbacks: {
+									label: function (context) {
 
-				myChart.update(); 
+										var category = /*[[${category.categoryValue}]]*/'';
+										var totalSongs = /*[[${category.numberOfSongs}]]*/'';
+										var totalPlays = /*[[${category.totalPlays}]]*/'';
+										var totalPlaytime = /*[[${category.totalPlaytimeString}]]*/'';
+
+										var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
+
+										var thisSongs = table.rows[context.dataIndex + 1].cells[1].innerHTML;
+										var thisPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
+										var thisPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
+
+										var first = context.datasetIndex === 0 ? context.formattedValue + "% of all " + category + " songs were released in " + context.label :
+											(context.datasetIndex === 1 ? context.formattedValue + "% of all " + category + " plays are from songs released in " + context.label :
+												context.formattedValue + "% of all " + category + " playtime is from songs released in " + context.label);
+										var second = context.datasetIndex === 0 ? "which is " + thisSongs + " songs out of " + totalSongs :
+											(context.datasetIndex === 1 ? "which is " + thisPlays + " plays out of " + totalPlays :
+												"which is " + thisPlaytime + " out of " + totalPlaytime);
+										return [first, second];
+									}
+								}
+							}
+						}
+					}
+
+				});
+
+				myChart.update();
                 /*]]>*/
-                </script>
-                
-                <script th:inline="javascript" th:if="${#strings.contains(categoryGroup.criteria,'Play')}">
-                //Play Year
+			</script>
+
+			<script th:inline="javascript" th:if="${#strings.contains(categoryGroup.criteria,'Play')}">
+				//Play Year
 				/*<![CDATA[*/
-                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
-                
-                var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
-                
-                var labelsArray=[];
-                var percentagesPlays=[]; 
-                var percentagesPlaytime=[];   
-                for (let row of table.rows) {
-					if(row.rowIndex > 0){
+				var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
+
+				var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
+
+				var labelsArray = [];
+				var percentagesPlays = [];
+				var percentagesPlaytime = [];
+				for (let row of table.rows) {
+					if (row.rowIndex > 0) {
 						labelsArray.push(row.cells[0].innerHTML);
-			        	percentagesPlays.push(row.cells[7].innerHTML.replace("%",""));
-			        	percentagesPlaytime.push(row.cells[11].innerHTML.replace("%",""));
-		        	}
+						percentagesPlays.push(row.cells[7].innerHTML.replace("%", ""));
+						percentagesPlaytime.push(row.cells[11].innerHTML.replace("%", ""));
+					}
 				}
-                
-                var myChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-					  labels: labelsArray,
-					  datasets: [
-					    {
-					      label: 'Percentage of plays',
-					      backgroundColor: 'rgba(255, 99, 132, 0.8)',
-					      data: percentagesPlays
-					    },
-					    {
-					      label: 'Percentage of playtime',
-					      backgroundColor: 'rgba(152, 255, 152, 0.8)',
-					      data: percentagesPlaytime
-					    }
-					  ]
+
+				var myChart = new Chart(ctx, {
+					type: 'bar',
+					data: {
+						labels: labelsArray,
+						datasets: [
+							{
+								label: 'Percentage of plays',
+								backgroundColor: 'rgba(255, 99, 132, 0.8)',
+								data: percentagesPlays
+							},
+							{
+								label: 'Percentage of playtime',
+								backgroundColor: 'rgba(152, 255, 152, 0.8)',
+								data: percentagesPlaytime
+							}
+						]
 					},
-                    options:{
-						responsive:true,
+					options: {
+						responsive: true,
 						maintainAspectRatio: false,
 						plugins: {
-					      tooltip: {
-					        callbacks: {
-					          label: function(context) {
-					            var category = /*[[${category.categoryValue}]]*/''; 
-								var totalPlays = /*[[${category.totalPlays}]]*/'';
-								var totalPlaytime = /*[[${category.totalPlaytimeString}]]*/'';
-								
-								var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
-								
-								var thisPlays = table.rows[context.dataIndex+1].cells[5].innerHTML;
-								var thisPlaytime = table.rows[context.dataIndex+1].cells[9].innerHTML;
-								
-								var first = context.datasetIndex === 0? context.formattedValue+"% of all "+category+" plays happened in "+context.label:
-											context.formattedValue+"% of all "+category+" playtime happened in "+context.label;
-								var second = context.datasetIndex === 0? "which is "+thisPlays+" plays out of "+totalPlays:
-											"which is "+thisPlaytime+" out of "+totalPlaytime;
-					            return [first,second];
-					          }
-					        }
-					      }
-					    }
-					}
-					
-                });
+							tooltip: {
+								callbacks: {
+									label: function (context) {
+										var category = /*[[${category.categoryValue}]]*/'';
+										var totalPlays = /*[[${category.totalPlays}]]*/'';
+										var totalPlaytime = /*[[${category.totalPlaytimeString}]]*/'';
 
-				myChart.update(); 
+										var table = document.getElementById(/*[[${categoryGroup.criteria}]]*/'');
+
+										var thisPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
+										var thisPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
+
+										var first = context.datasetIndex === 0 ? context.formattedValue + "% of all " + category + " plays happened in " + context.label :
+											context.formattedValue + "% of all " + category + " playtime happened in " + context.label;
+										var second = context.datasetIndex === 0 ? "which is " + thisPlays + " plays out of " + totalPlays :
+											"which is " + thisPlaytime + " out of " + totalPlaytime;
+										return [first, second];
+									}
+								}
+							}
+						}
+					}
+
+				});
+
+				myChart.update();
                 /*]]>*/
-                </script>
+			</script>
+		</div>
 	</div>
-</div>
 </body>
 
 </html>

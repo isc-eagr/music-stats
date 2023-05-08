@@ -67,88 +67,15 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 <div style="height:500px;">
 <canvas th:id="${'plays'+count.index}"></canvas>
 		
-		<script th:inline="javascript" th:if="${#strings.contains(timeUnitGroup.criteria,'Sex') 
-		or #strings.contains(timeUnitGroup.criteria,'Language')
-		or #strings.contains(timeUnitGroup.criteria,'Race') }">
-		//Sex and Language
-		/*<![CDATA[*/
-		function htmlDecode(input){
-		  var e = document.createElement('textarea');
-		  e.innerHTML = input;
-		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
-		}
-		
-                var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
-                
-                var table = document.getElementById(/*[[${timeUnitGroup.criteria}]]*/'');
-                var labelsArray=[];
-                var percentagesSongs=[];
-                var percentagesPlays=[]; 
-                var percentagesPlaytime=[];   
-                for (let row of table.rows) {
-					if(row === table.rows[0]){continue;}
-					labelsArray.push(row.cells[0].innerHTML);
-		        	percentagesSongs.push(row.cells[3].innerHTML.replace("%",""));
-		        	percentagesPlays.push(row.cells[7].innerHTML.replace("%",""));
-		        	percentagesPlaytime.push(row.cells[11].innerHTML.replace("%",""));
-				}
-                
-                var myChart = new Chart(ctx, {
-                    type: 'pie',
-                    data: {
-					  labels: labelsArray,
-					  datasets: [
-					    {
-						  label: "Percentage of songs",
-					      backgroundColor: ['rgba(55, 99, 132, 0.8)','rgba(255, 99, 132, 0.8)' , 'rgba(152, 255, 152, 0.8)','rgba(255, 252, 127, 0.8)'],
-					      data: percentagesSongs
-					    },
-					    {
-						  label: "Percentage of plays",
-					      backgroundColor: ['rgba(81, 94, 237, 0.8)', 'rgba(224, 88, 245, 0.8)', 'rgba(152, 255, 152, 0.8)','rgba(255, 252, 127, 0.8)'],
-					      data: percentagesPlays
-					    },
-					    {
-						  label: "Percentage of playtime",
-					      backgroundColor: ['rgba(61, 154, 219, 0.8)', 'rgba(250, 125, 237, 0.8)', 'rgba(152, 255, 152, 0.8)','rgba(255, 252, 127, 0.8)'],
-					      data: percentagesPlaytime
-					    }
-					  ]
-					},
-                    options:{
-						responsive:true,
-						maintainAspectRatio: false,
-						plugins: {
-					      tooltip: {
-					        callbacks: {
-					          label: function(context) {
-								  
-								  var metric = "";
-								  
-								  switch(context.datasetIndex){
-									  case 0: metric = "Percentage of songs"; break;
-									  case 1: metric = "Percentage of plays"; break;
-									  case 2: metric = "Percentage of playtime"; break;
-									  default: metric = ""; break;
-								  }
-					            return context.label + ': ' + context.formattedValue+': '+metric;
-					          }
-					        }
-					      }
-					    }
-					}
-					
-                });
-
-				myChart.update(); 
-                /*]]>*/
-                </script>
-                
-                
-                <script th:inline="javascript" th:if="${#strings.contains(timeUnitGroup.criteria,'Release') 
-                or #strings.contains(timeUnitGroup.criteria,'Genre')}">
+                <script th:inline="javascript">
                 //Release Year and Genre
 				/*<![CDATA[*/
+				function htmlDecode(input){
+				  var e = document.createElement('textarea');
+				  e.innerHTML = input;
+				  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+				}
+				
                 var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
                 
                 var table = document.getElementById(/*[[${timeUnitGroup.criteria}]]*/'');
