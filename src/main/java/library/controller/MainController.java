@@ -722,41 +722,7 @@ public class MainController {
 				);
 
 
-		List<TopGroupDTO> timeUnitGroupList = new ArrayList<>(); 
-
-		for (Criterion<PlayDTO> criterion : criteria) {
-			Map<String,List<PlayDTO>> classifiedMap= plays.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
-				int uniqueSongsMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
-				int playsMale = (int)e.getValue().stream().filter(s->s.getSex().equals("Male")).count();
-				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
-				long playtimeMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).mapToInt(play -> play.getTrackLength()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						uniqueSongs,
-						uniqueSongsMale,//numberSongsMale
-						(double)uniqueSongs/(double)timeUnitDetailDTO.getUniqueSongsPlayed()*100,
-						(double)uniqueSongsMale/(double)uniqueSongs*100,//percentageSongsMale
-						e.getValue().size(), 
-						playsMale,//playsMale
-						(double)e.getValue().size()/(double)plays.size()*100,
-						(double)playsMale/(double)e.getValue().size()*100,//percentagePlaysMale
-						playtime,
-						playtimeMale,//playtimeMale
-						(double)playtime*100/(double)timeUnitDetailDTO.getTotalPlaytime(),
-						(double)playtimeMale/(double)playtime*100));//percentagePlaytimeMale
-			}
-			timeUnitGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
-		model.addAttribute("timeUnitGroupList", timeUnitGroupList);
+		model.addAttribute("timeUnitGroupList", Utils.generateChartData(criteria, plays, timeUnitDetailDTO.getUniqueSongsPlayed(), (int)timeUnitDetailDTO.getTotalPlaytime()));
 		model.addAttribute("timeUnitDetail",timeUnitDetailDTO);
 		model.addAttribute("unit",unit);
 		model.addAttribute("unitValue",unitValue);
@@ -919,10 +885,6 @@ public class MainController {
 		int weeksArtistWasPlayed = (int)plays.stream().map(s->s.getWeek()).distinct().count();  
 		int monthsArtistWasPlayed = (int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count();
 
-
-		//Charts
-		List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>();
-
 		List<Criterion<PlayDTO>> criteria = List.of(
 				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
@@ -930,45 +892,13 @@ public class MainController {
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 
-		List<TopGroupDTO> artistGroupList = new ArrayList<>(); 
-
-		for (Criterion<PlayDTO> criterion : criteria) {
-			Map<String,List<PlayDTO>> classifiedMap= plays.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
-				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						uniqueSongs, //number of songs
-						0,//number of songs male
-						(double)uniqueSongs/(double)numberOfSongs*100, //percentage of songs
-						0.0, //percentage of songs male
-						e.getValue().size(), //plays
-						0,//playsMale
-						(double)e.getValue().size()/(double)plays.size()*100, //percentage of plays
-						0.0,//percentagePlaysMale
-						playtime, //playtime
-						0,//playtimeMale
-						(double)playtime*100/(double)totalPlaytimeInt,//percentage of playtime
-						0.0));//percentagePlaytimeMale 
-
-			}
-
-			artistGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
 
 		ArtistPageDTO artistInfo = new ArtistPageDTO(artistSongsList, artistAlbumsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
 				averageSongLength,averagePlaysPerSong, numberOfSongs, daysArtistWasPlayed, weeksArtistWasPlayed, monthsArtistWasPlayed);
 
 		model.addAttribute("artist",artist);
 		model.addAttribute("artistInfo",artistInfo);
-		model.addAttribute("artistGroupList", artistGroupList);
+		model.addAttribute("artistGroupList", Utils.generateChartData(criteria, plays, numberOfSongs, totalPlaytimeInt));
 
 		return "artist";
 	}
@@ -1020,45 +950,10 @@ public class MainController {
 		int weeksArtistWasPlayed = (int)plays.stream().map(s->s.getWeek()).distinct().count();  
 		int monthsAlbumWasPlayed = (int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count();
 
-		//Charts
-		List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>();
-
 		List<Criterion<PlayDTO>> criteria = List.of(
 				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
-
-		List<TopGroupDTO> albumGroupList = new ArrayList<>(); 
-
-		for (Criterion<PlayDTO> criterion : criteria) {
-			Map<String,List<PlayDTO>> classifiedMap= plays.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						0, //number of songs
-						0,//number of songs male
-						0.0, //percentage of songs
-						0.0, //percentage of songs male
-						e.getValue().size(), //plays
-						0,//playsMale
-						(double)e.getValue().size()/(double)plays.size()*100, //percentage of plays
-						0.0,//percentagePlaysMale
-						playtime, //playtime
-						0,//playtimeMale
-						(double)playtime*100/(double)totalPlaytimeInt,//percentage of playtime
-						0.0));//percentagePlaytimeMale 
-
-			}
-
-			albumGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
 
 		AlbumPageDTO albumInfo = new AlbumPageDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
 				averageSongLength,averagePlaysPerSong, numberOfSongs, Utils.secondsToStringColon(sumOfTrackLengths),
@@ -1067,7 +962,7 @@ public class MainController {
 		model.addAttribute("artist",artist);
 		model.addAttribute("album",album);
 		model.addAttribute("albumInfo",albumInfo);
-		model.addAttribute("albumGroupList", albumGroupList);
+		model.addAttribute("albumGroupList", Utils.generateChartData(criteria, plays, numberOfSongs, totalPlaytimeInt));
 
 		return "album";
 	}
@@ -1091,48 +986,13 @@ public class MainController {
 		songPage.setWeeksSongWasPlayed((int)plays.stream().map(s->s.getWeek()).distinct().count());
 		songPage.setMonthsSongWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count());
 
-		//Charts
-		List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>();
-
 		List<Criterion<PlayDTO>> criteria = List.of(
 				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 
-		List<TopGroupDTO> songGroupList = new ArrayList<>(); 
-
-		for (Criterion<PlayDTO> criterion : criteria) {
-			Map<String,List<PlayDTO>> classifiedMap= plays.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						0, //number of songs
-						0,//number of songs male
-						0.0, //percentage of songs
-						0.0, //percentage of songs male
-						e.getValue().size(), //plays
-						0,//playsMale
-						(double)e.getValue().size()/(double)plays.size()*100, //percentage of plays
-						0.0,//percentagePlaysMale
-						playtime, //playtime
-						0,//playtimeMale
-						(double)playtime*100/(double)songPage.getTotalPlaytime(),//percentage of playtime
-						0.0));//percentagePlaytimeMale 
-
-			}
-
-			songGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
 		model.addAttribute("song",songPage);
-		model.addAttribute("songGroupList", songGroupList);
+		model.addAttribute("songGroupList", Utils.generateChartData(criteria, plays, 1, songPage.getTotalPlaytime()));
 
 		return "song";
 	}
@@ -1172,7 +1032,7 @@ public class MainController {
 		categoryPage.setNumberOfSongs(map.entrySet().size());
 		categoryPage.setAveragePlaysPerSong((double)categoryPage.getTotalPlays()/categoryPage.getNumberOfSongs());
 		categoryPage.setAverageSongLength(sortedList.stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/categoryPage.getNumberOfSongs());
-
+		
 		List<Criterion<PlayDTO>> criteria = List.of(
 				new Criterion<>("Sex", play -> play.getSex(),
 						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
@@ -1188,46 +1048,9 @@ public class MainController {
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 
-
-		List<TopGroupDTO> categoryGroupList = new ArrayList<>(); 
-
-		for (Criterion<PlayDTO> criterion : criteria) {
-			Map<String,List<PlayDTO>> classifiedMap= plays.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<PlayDTO>> e : sortedList) {
-				int uniqueSongs = e.getValue().stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
-				int uniqueSongsMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong())).entrySet().size();
-				int playsMale = (int)e.getValue().stream().filter(s->s.getSex().equals("Male")).count();
-				long playtime = e.getValue().stream().mapToInt(play -> play.getTrackLength()).sum();
-				long playtimeMale = e.getValue().stream().filter(s->s.getSex().equals("Male")).mapToInt(play -> play.getTrackLength()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						uniqueSongs, //number of songs
-						uniqueSongsMale,//number of songs male
-						(double)uniqueSongs/(double)categoryPage.getNumberOfSongs()*100, //percentage of songs
-						(double)uniqueSongsMale/(double)uniqueSongs*100, //percentage of songs male
-						e.getValue().size(), //plays
-						playsMale,//playsMale
-						(double)e.getValue().size()/(double)plays.size()*100, //percentage of plays
-						(double)playsMale/(double)e.getValue().size()*100,//percentagePlaysMale
-						playtime, //playtime
-						playtimeMale,//playtimeMale
-						(double)playtime*100/(double)categoryPage.getTotalPlaytime(),//percentage of playtime
-						(double)playtimeMale/(double)playtime*100));//percentagePlaytimeMale 
-
-			}
-
-			categoryGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
 		model.addAttribute("categoryName",category);
 		model.addAttribute("category",categoryPage);
-		model.addAttribute("categoryGroupList", categoryGroupList);
+		model.addAttribute("categoryGroupList", Utils.generateChartData(criteria, plays, categoryPage.getNumberOfSongs(), categoryPage.getTotalPlaytime()));
 		model.addAttribute("daysElapsedSinceFirstPlay", daysElapsedSinceFirstPlay);
 
 		return "category";

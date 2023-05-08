@@ -24,7 +24,7 @@
 	Number of albums: <span th:text="${category.numberOfAlbums}" /><br />
 	Number of songs: <span th:text="${category.numberOfSongs}" /><br />
 	<span th:text="${'Days '+category.categoryValue+' Was Played:'}" /> <span
-		th:text="${category.daysCategoryWasPlayed+'/'+daysElapsedSinceFirstPlay}" /><br />
+		th:text="${category.daysCategoryWasPlayed}" /><br />
 	<span th:text="${'Weeks '+category.categoryValue+' Was Played:'}" /> <span
 		th:text="${category.weeksCategoryWasPlayed}" /><br />
 	<span th:text="${'Months '+category.categoryValue+' Was Played:'}" /> <span
