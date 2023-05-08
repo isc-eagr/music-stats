@@ -1140,7 +1140,8 @@ public class MainController {
 	@GetMapping({"/category"})
 	public String song(Model model, @RequestParam(required=true) String category, @RequestParam(required=true) String value) {
 
-		List<PlayDTO> plays = artistRepository.categoryPlays(category, value);
+		List<PlayDTO> plays = category.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll()
+				:artistRepository.categoryPlays(category, value);
 
 		CategoryPageDTO categoryPage = new CategoryPageDTO();
 		categoryPage.setCategoryValue(value);

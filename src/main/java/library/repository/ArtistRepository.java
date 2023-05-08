@@ -52,6 +52,13 @@ public class ArtistRepository{
             where LOWER(so.%s)=LOWER(?)
 			""";
     
+    private static final String CATEGORY_PLAYS_ALL = """
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
+    		 		YEARWEEK(sc.scrobble_date,1) week
+            from scrobble sc inner join song so on sc.song_id = so.id
+			""";
+    
 	public List<PlayDTO> artistPlays(String artist) {
 		return template.query(ARTIST_PLAYS_QUERY, new BeanPropertyRowMapper<>(PlayDTO.class), artist);
 	}
@@ -66,6 +73,10 @@ public class ArtistRepository{
 	
 	public List<PlayDTO> categoryPlays(String category, String value) {
 		return template.query(String.format(CATEGORY_PLAYS_QUERY, category), new BeanPropertyRowMapper<>(PlayDTO.class), value);
+	}
+	
+	public List<PlayDTO> categoryPlaysAll() {
+		return template.query(String.format(CATEGORY_PLAYS_ALL), new BeanPropertyRowMapper<>(PlayDTO.class));
 	}
 	
 }
