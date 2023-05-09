@@ -1,7 +1,5 @@
 package library.repository;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -84,7 +82,7 @@ public class ArtistRepository{
 		
 		query += " and date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ?";
 		
-		return template.query(String.format(query, categories), new BeanPropertyRowMapper<>(PlayDTO.class), values);
+		return template.query(String.format(query, (Object[])categories), new BeanPropertyRowMapper<>(PlayDTO.class), (Object[])values);
 	}
 	
 	public List<PlayDTO> categoryPlaysAll(String start, String end) {
