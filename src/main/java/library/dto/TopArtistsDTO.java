@@ -16,6 +16,10 @@ public class TopArtistsDTO {
 	
 	private String count;
 	
+	private String firstPlay;
+	
+	private String lastPlay;
+	
 	private long playtime;
 	
 	private int averageLength;
@@ -82,6 +86,22 @@ public class TopArtistsDTO {
 
 	public void setCount(String count) {
 		this.count = count;
+	}
+	
+	public String getFirstPlay() {
+		return firstPlay;
+	}
+
+	public void setFirstPlay(String firstPlay) {
+		this.firstPlay = firstPlay;
+	}
+
+	public String getLastPlay() {
+		return lastPlay;
+	}
+
+	public void setLastPlay(String lastPlay) {
+		this.lastPlay = lastPlay;
 	}
 
 	public long getPlaytime() {

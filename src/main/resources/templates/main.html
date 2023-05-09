@@ -1,44 +1,35 @@
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
 	<title>Stats</title>
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src='js/utils.js'></script>
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-	<script type="text/javascript">
-		window.onload = function(){
-			flatpickr("#dateStart", dateConfig);
-			flatpickr("#dateEnd", dateConfig);
-		}
-	</script>
-	
-	
+
 </head>
-  <body>
-  	<form th:action="@{/}">
-		Start date <input type="text" th:name="start" id="dateStart"/>
-		End date <input type="text" th:name="end" id="dateEnd"/> 
-		<input type="submit"/> 
-	</form>
-  
-  	<a href="/insertItunesInfo">Load Itunes (Do first)</a><br/>
-  	<a href="/insertScrobbles">Load Scrobbles (Do second)</a><br/>
-  	<a href="/category/ALL/ALL">General Overview</a><br/>
-  	<a href="/categorySearch">Category Search</a><br/>
-  	<a href="/topArtists">Top Artists</a><br/>
-  	<a href="/topAlbums">Top Albums</a><br/>
-  	<a href="/topSongs">Top Songs</a><br/>
-  	<a href="/topGenres">Top Genres</a><br/>
-  	<a href="/timeUnit?unit=day">Days</a><br/>
-  	<a href="/timeUnit?unit=week">Weeks</a><br/>
-  	<a href="/timeUnit?unit=month">Months</a><br/>
-  	<a href="/timeUnit?unit=season">Seasons</a><br/>
-  	<a href="/timeUnit?unit=year">Years</a><br/>
-  	<a href="/timeUnit?unit=decade">Decades</a><br/>
-  	<a href="/songsLastFmButNotLocal">Songs on lastfm but not locally</a><br/>
-  	<a href="/songsLocalButNotLastfm">Songs locally but not lastfm</a><br/>
-  	
-		
+
+<body>
+	
+
+	<a href="/insertItunesInfo">Load Itunes (Do first)</a><br />
+	<a href="/insertScrobbles">Load Scrobbles (Do second)</a><br />
+	<a href="/category/100/ALL/ALL">General Overview</a><br />
+	<a href="/categorySearch">Category Search</a><br />
+	<a href="/topArtists">Top Artists</a><br />
+	<a href="/topAlbums">Top Albums</a><br />
+	<a href="/topSongs">Top Songs</a><br />
+	<a href="/topGenres">Top Genres</a><br />
+	<a href="/timeUnit?unit=day">Days</a><br />
+	<a href="/timeUnit?unit=week">Weeks</a><br />
+	<a href="/timeUnit?unit=month">Months</a><br />
+	<a href="/timeUnit?unit=season">Seasons</a><br />
+	<a href="/timeUnit?unit=year">Years</a><br />
+	<a href="/timeUnit?unit=decade">Decades</a><br />
+	<a href="/songsLastFmButNotLocal">Songs on lastfm but not locally</a><br />
+	<a href="/songsLocalButNotLastfm">Songs locally but not lastfm</a><br />
+
+
 </body>
 
 </html>

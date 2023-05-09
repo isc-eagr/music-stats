@@ -58,7 +58,8 @@ public class ArtistRepository{
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
     		 		YEARWEEK(sc.scrobble_date,1) week
-            from scrobble sc inner join song so on sc.song_id = so.id
+            from scrobble sc inner join song so on sc.song_id = so.id 
+            where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			""";
     
 	public List<PlayDTO> artistPlays(String artist) {
@@ -74,24 +75,20 @@ public class ArtistRepository{
 	}
 	
 	public List<PlayDTO> categoryPlays(String[] categories, String[] values) {
-
-		if(categories.length != values.length) {
-			throw new IllegalArgumentException("Categories and values have a different size");
-		}
-		
 		String query = CATEGORY_PLAYS_QUERY;
-		
 		if(categories.length > 1) {
 			for(int i=1 ; i < categories.length ; i++) {
 				query += "and LOWER(so.%s)=LOWER(?) ";
 			}
 		}
 		
+		query += " and date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ?";
+		
 		return template.query(String.format(query, categories), new BeanPropertyRowMapper<>(PlayDTO.class), values);
 	}
 	
-	public List<PlayDTO> categoryPlaysAll() {
-		return template.query(String.format(CATEGORY_PLAYS_ALL), new BeanPropertyRowMapper<>(PlayDTO.class));
+	public List<PlayDTO> categoryPlaysAll(String start, String end) {
+		return template.query(String.format(CATEGORY_PLAYS_ALL), new BeanPropertyRowMapper<>(PlayDTO.class), start, end);
 	}
 	
 }

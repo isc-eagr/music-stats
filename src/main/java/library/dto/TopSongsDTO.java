@@ -20,6 +20,10 @@ public class TopSongsDTO {
 	
 	private String count;
 	
+	private String firstPlay;
+	
+	private String lastPlay;
+	
 	private String year;
 	
 	private int length;
@@ -98,6 +102,22 @@ public class TopSongsDTO {
 
 	public void setCount(String count) {
 		this.count = count;
+	}
+	
+	public String getFirstPlay() {
+		return firstPlay;
+	}
+
+	public void setFirstPlay(String firstPlay) {
+		this.firstPlay = firstPlay;
+	}
+
+	public String getLastPlay() {
+		return lastPlay;
+	}
+
+	public void setLastPlay(String lastPlay) {
+		this.lastPlay = lastPlay;
 	}
 
 	public String getYear() {

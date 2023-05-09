@@ -1,27 +1,29 @@
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
-	<title th:text="${song.artist+' - '+song.song}"/>
+	<title th:text="${song.artist+' - '+song.song}" />
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src='../../../js/utils.js'></script>
 	<script src="../../../js/sortable.min.js"></script>
-	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css"/>
+	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css" />
 	<script type="text/javascript">
-		window.onload = function(){
+		window.onload = function () {
 			Sortable.init();
 		}
 	</script>
 </head>
+
 <body>
-	Song length: <span th:text="${song.trackLengthString}"/> <br/>
-	Total Plays: <span th:text="${song.totalPlays}"/><br/>
-	Total Playtime: <span th:text="${song.totalPlaytimeString}"/><br/>
-	First Play: <span th:text="${song.firstPlay}"/><br/>
-	Last Play: <span th:text="${song.lastPlay}"/><br/>
-	Days song was played: <span th:text="${song.daysSongWasPlayed}"/><br/>
-	Weeks song was played: <span th:text="${song.weeksSongWasPlayed}"/><br/>
-	Months song was played: <span th:text="${song.monthsSongWasPlayed}"/><br/>
-	
-<div th:each="songGroup, count : ${songGroupList}" th:if="${album != '(single)'}">
+	Song length: <span th:text="${song.trackLengthString}" /> <br />
+	Total Plays: <span th:text="${song.totalPlays}" /><br />
+	Total Playtime: <span th:text="${song.totalPlaytimeString}" /><br />
+	First Play: <span th:text="${song.firstPlay}" /><br />
+	Last Play: <span th:text="${song.lastPlay}" /><br />
+	Days song was played: <span th:text="${song.daysSongWasPlayed}" /><br />
+	Weeks song was played: <span th:text="${song.weeksSongWasPlayed}" /><br />
+	Months song was played: <span th:text="${song.monthsSongWasPlayed}" /><br />
+
+	<div th:each="songGroup, count : ${songGroupList}" th:if="${album != '(single)'}">
 		<div style='display:none;'>
 			<table th:id="${songGroup.criteria}">
 				<tr>
@@ -81,14 +83,14 @@
 				for (let row of table.rows) {
 					if (row.rowIndex > 0) {
 						labelsArray.push(row.cells[0].innerHTML);
-						
-						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "")*row.cells[8].innerHTML.replace("%", "")/100;
-						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "")-percentagePlaysMale; 
+
+						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "") * row.cells[8].innerHTML.replace("%", "") / 100;
+						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "") - percentagePlaysMale;
 						percentagesPlaysMale.push(percentagePlaysMale);
 						percentagesPlaysOther.push(percentagePlaysOther);
-						
-						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "")*row.cells[12].innerHTML.replace("%", "")/100;
-						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "")-percentagePlaytimeMale; 
+
+						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "") * row.cells[12].innerHTML.replace("%", "") / 100;
+						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "") - percentagePlaytimeMale;
 						percentagesPlaytimeMale.push(percentagePlaytimeMale);
 						percentagesPlaytimeOther.push(percentagePlaytimeOther);
 					}
@@ -129,21 +131,21 @@
 						responsive: true,
 						maintainAspectRatio: false,
 						scales: {
-		                		x: {
-		                			stacked: true
-		                		},
-		                		y: {
-		                			stacked: true
-		                		}
-	                		},
+							x: {
+								stacked: true
+							},
+							y: {
+								stacked: true
+							}
+						},
 						plugins: {
 							legend: {
-        						display: false
-    						},
+								display: false
+							},
 							tooltip: {
 								callbacks: {
 									label: function (context) {
-										var category = /*[[${song.song}]]*/''; 
+										var category = /*[[${song.song}]]*/'';
 										var totalPlays = /*[[${song.totalPlays}]]*/'';
 										var totalPlaytime = /*[[${song.totalPlaytime}]]*/'';
 
@@ -151,34 +153,34 @@
 
 										var allPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
 										var allPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
-										
+
 										var malePlays = table.rows[context.dataIndex + 1].cells[6].innerHTML;
 										var malePlaytime = table.rows[context.dataIndex + 1].cells[10].innerHTML;
-										
-										var otherPlays = allPlays-malePlays;
+
+										var otherPlays = allPlays - malePlays;
 										var otherPlaytime = "TODO";
-										
+
 										var percentagePlays = table.rows[context.dataIndex + 1].cells[7].innerHTML.replace("%", "");
 										var percentagePlaytime = table.rows[context.dataIndex + 1].cells[11].innerHTML.replace("%", "");
-										
+
 										var malePercentagePlays = table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "");
 										var malePercentagePlaytime = table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "");
-										
-										var otherPercentagePlays = (100-table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
-										var otherPercentagePlaytime = (100-table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
-										
-										var sex = context.datasetIndex % 2 === 0?"Male":"Others";
+
+										var otherPercentagePlays = (100 - table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
+										var otherPercentagePlaytime = (100 - table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
+
+										var sex = context.datasetIndex % 2 === 0 ? "Male" : "Others";
 										var metric = context.datasetIndex === 0 || context.datasetIndex === 1 ? "Plays" : "Playtime";
 
 										var first = context.datasetIndex === 0 || context.datasetIndex === 1 ? percentagePlays + "% of all " + category + " plays happened in " + context.label :
 											percentagePlaytime + "% of all " + category + " playtime happened in " + context.label;
-										var second = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + allPlays + " plays out of " + totalPlays :
+										var second = context.datasetIndex === 0 || context.datasetIndex === 1 ? "which is " + allPlays + " plays out of " + totalPlays :
 											"which is " + allPlaytime + " out of " + totalPlaytime;
-										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex=="Male"?malePercentagePlays:otherPercentagePlays) + "% of those " +allPlays+" plays are "+sex:
-											(sex=="Male"?malePercentagePlaytime:otherPercentagePlaytime) + "% of that " +allPlaytime+" playtime is "+sex;
-										var fourth = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + (sex=="Male"?malePlays:otherPlays) + " plays":
-											"which is " + (sex=="Male"?malePlaytime:otherPlaytime);
-									
+										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex == "Male" ? malePercentagePlays : otherPercentagePlays) + "% of those " + allPlays + " plays are " + sex :
+											(sex == "Male" ? malePercentagePlaytime : otherPercentagePlaytime) + "% of that " + allPlaytime + " playtime is " + sex;
+										var fourth = context.datasetIndex === 0 || context.datasetIndex === 1 ? "which is " + (sex == "Male" ? malePlays : otherPlays) + " plays" :
+											"which is " + (sex == "Male" ? malePlaytime : otherPlaytime);
+
 										return [first, second, third, fourth];
 									}
 								}

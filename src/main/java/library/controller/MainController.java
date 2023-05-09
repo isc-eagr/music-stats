@@ -255,16 +255,15 @@ public class MainController {
 			}
 		}
 
-
 		songRepository.saveAll(everySong);
 
 		return "Success! "+everySong.size()+" itunes records inserted!";
 	}
 
 	@RequestMapping("/")
-	public String index(Model model, @RequestParam(defaultValue="1970-01-01") String start, @RequestParam(defaultValue="2400-12-31") String end) {
+	public String index(Model model) {
 		return "main";
-	}// method
+	}
 
 	@RequestMapping("/topSongs")
 	public String topSongs(Model model, @RequestParam(defaultValue="10000000") int limit) {
@@ -442,11 +441,8 @@ public class MainController {
 	}
 
 	@RequestMapping("/timeUnit")
-	public String timeUnit(Model model, 
-			@RequestParam(defaultValue="1970-01-01") String start, 
-			@RequestParam(defaultValue="2400-12-31") String end,
-			@RequestParam String unit) {
-		List<TimeUnitStatsDTO> timeUnits = songRepositoryImpl.timeUnitStats(start, end, unit);
+	public String timeUnit(Model model, @RequestParam String unit) {
+		List<TimeUnitStatsDTO> timeUnits = songRepositoryImpl.timeUnitStats(unit);
 
 		model.addAttribute("timeUnits", timeUnits);
 
@@ -524,13 +520,13 @@ public class MainController {
 
 		timeUnitDetailDTO.setPercentageofUnitWhereMusicWasPlayed(
 				switch(unit) {
-				case "day" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.SECONDS_IN_A_DAY;
-				case "week" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.SECONDS_IN_A_WEEK;
-				case "month" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInAMonth(unitValue.split("-")[1],Integer.parseInt(unitValue.split("-")[0]));
-				case "season" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInASeason(unitValue.substring(4),Integer.parseInt(unitValue.substring(0,4)));
-				case "year" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInAYear(Integer.parseInt(unitValue));
-				case "decade" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInADecade(Integer.parseInt(unitValue.substring(0,4)));
-				default -> 0.0;
+					case "day" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.SECONDS_IN_A_DAY;
+					case "week" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.SECONDS_IN_A_WEEK;
+					case "month" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInAMonth(unitValue.split("-")[1],Integer.parseInt(unitValue.split("-")[0]));
+					case "season" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInASeason(unitValue.substring(4),Integer.parseInt(unitValue.substring(0,4)));
+					case "year" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInAYear(Integer.parseInt(unitValue));
+					case "decade" -> (double)timeUnitDetailDTO.getTotalPlaytime()*100/(double)Utils.secondsInADecade(Integer.parseInt(unitValue.substring(0,4)));
+					default -> 0.0;
 				}
 				);
 
@@ -864,17 +860,18 @@ public class MainController {
 		
 	}
 	
-	@GetMapping({"/category/{category1}/{value1}",
-		"/category/{category1}/{value1}/{category2}/{value2}",
-		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
-		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}",
-		"/category/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}"})
-	public String category(Model model, 
+	@GetMapping({"/category//{limit}/{category1}/{value1}",
+		"/category/{limit}/{category1}/{value1}/{category2}/{value2}",
+		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
+		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}",
+		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}"})
+	public String category(Model model, @PathVariable(required=true)int limit, 
 			@PathVariable(required=true)String category1, @PathVariable(required=true) String value1,
 			@PathVariable(required=false)String category2, @PathVariable(required=false)String value2,
 			@PathVariable(required=false)String category3, @PathVariable(required=false)String value3,
 			@PathVariable(required=false)String category4, @PathVariable(required=false)String value4,
-			@PathVariable(required=false)String category5, @PathVariable(required=false)String value5) {
+			@PathVariable(required=false)String category5, @PathVariable(required=false)String value5,
+			@RequestParam(defaultValue="1970-01-01") String start, @RequestParam(defaultValue="2400-12-31") String end) {
 		
 		List<String> categories = new ArrayList<>();
 		categories.add(category1);
@@ -891,14 +888,16 @@ public class MainController {
 		values.add(value3);
 		values.add(value4);
 		values.add(value5);
+		values.add(start);
+		values.add(end);
 		values = values.stream().filter(v->v!=null).toList();
 
-		List<PlayDTO> plays = category1.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll()
+		List<PlayDTO> plays = category1.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll(start, end)
 				:artistRepository.categoryPlays(categories.toArray(String[]::new),
 						values.toArray(String[]::new));
 
 		CategoryPageDTO categoryPage = new CategoryPageDTO();
-		categoryPage.setCategoryValue(values.stream().collect(Collectors.joining(" ")));
+		categoryPage.setCategoryValue(values.stream().limit(values.size()-2).collect(Collectors.joining(" ")));
 		categoryPage.setTotalPlays(plays.size());
 		categoryPage.setTotalPlaytime(plays.stream().mapToInt(s->s.getTrackLength()).sum());
 		categoryPage.setDaysCategoryWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 10)).distinct().count());
@@ -910,24 +909,24 @@ public class MainController {
 		List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 
-		categoryPage.setMostPlayedArtist(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		categoryPage.setMostPlayedArtist(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfArtists(map.entrySet().size());
 
 		map = plays.stream().filter(s->!s.getAlbum().equals("(single)")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
 		sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
-		categoryPage.setMostPlayedAlbum(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		categoryPage.setMostPlayedAlbum(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfAlbums(map.entrySet().size());
 
 		map = plays.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
 		sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
-		categoryPage.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		categoryPage.setMostPlayedSong(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfSongs(map.entrySet().size());
 		
 		if(!category1.equals("ALL")) {
 			//Group by song and sort by most played
-			categoryPage.setMostPlayedSongs(sortedList.stream().limit(100).map(e->{
+			categoryPage.setMostPlayedSongs(sortedList.stream().limit(limit).map(e->{
 				AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
 				song.setArtist(e.getValue().get(0).getArtist());
 				song.setAlbum(e.getValue().get(0).getAlbum());
@@ -943,8 +942,8 @@ public class MainController {
 		}
 		
 		
-		categoryPage.setAveragePlaysPerSong((double)categoryPage.getTotalPlays()/categoryPage.getNumberOfSongs());
-		categoryPage.setAverageSongLength(sortedList.stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/categoryPage.getNumberOfSongs());
+		categoryPage.setAveragePlaysPerSong(categoryPage.getNumberOfSongs()>0?(double)categoryPage.getTotalPlays()/categoryPage.getNumberOfSongs():0);
+		categoryPage.setAverageSongLength(categoryPage.getNumberOfSongs()>0?sortedList.stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/categoryPage.getNumberOfSongs():0);
 		
 		List<Criterion<PlayDTO>> criteria = List.of(
 				new Criterion<>("Sex", play -> play.getSex(),

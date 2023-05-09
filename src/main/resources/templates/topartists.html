@@ -78,6 +78,14 @@
 			Sortable.init();
 		}
 	</script>
+	<style> 
+		.table_wrapper{
+		   display: block;
+		   overflow-x: auto;
+		   white-space: nowrap;
+		   width: 150%;
+		}
+	</style>
 </head>
 <body>
 
@@ -111,6 +119,7 @@ Only the top <input type="text" th:name="limit"/> artists
 
 
 Number of records: <span id="numRecords"></span>
+<div class="table_wrapper">
 <table id="artistsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
 		<tr>
@@ -125,6 +134,8 @@ Number of records: <span id="numRecords"></span>
 			<th>Playtime</th>
 			<th>Average Song Length</th>
 			<th>Average Plays Per Song</th>
+			<th>First Play</th>
+			<th>Last Play</th>
 			<th>Number of Albums</th>
 			<th>Number of Songs</th>
 			<th>Days Artist Was Played</th>
@@ -138,13 +149,15 @@ Number of records: <span id="numRecords"></span>
 			<td th:text="${stat.index+1}"/>
 			<td><a th:href="@{/artist?artist={artist}(artist=${topArtist.artist})}" th:text="${topArtist.artist}"/></td>
 			<td th:text="${topArtist.count}"/>
-			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.genre},category=${'Genre'})}" th:text="${topArtist.genre}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.sex},category=${'Sex'})}" th:text="${topArtist.sex}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.language},category=${'Language'})}" th:text="${topArtist.language}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topArtist.race},category=${'Race'})}" th:text="${topArtist.race}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.genre},category=${'Genre'})}" th:text="${topArtist.genre}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.sex},category=${'Sex'})}" th:text="${topArtist.sex}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.language},category=${'Language'})}" th:text="${topArtist.language}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.race},category=${'Race'})}" th:text="${topArtist.race}"/></td>
 			<td th:text="${topArtist.playtimeString}" th:data-value="${topArtist.playtime}"/>
 			<td th:text="${topArtist.averageLengthString}" th:data-value="${topArtist.averageLength}"/>
 			<td th:text="${#numbers.formatDecimal(topArtist.averagePlays, 1, 'DEFAULT', 2, 'DEFAULT')}"/>
+			<td th:text="${topArtist.firstPlay}"/>
+			<td th:text="${topArtist.lastPlay}"/>
 			<td th:text="${topArtist.numberOfAlbums}"/>
 			<td th:text="${topArtist.numberOfSongs}"/>
 			<td th:text="${topArtist.playDays}"/>
@@ -153,7 +166,7 @@ Number of records: <span id="numRecords"></span>
 		</tr>
 	</tbody>
 </table>
-
+</div>
 </body>
 
 </html>

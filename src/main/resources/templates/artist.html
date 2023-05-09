@@ -1,106 +1,114 @@
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
-	<title th:text="${artist}"/>
+	<title th:text="${artist}" />
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src='../js/utils.js'></script>
 	<script src="../js/sortable.min.js"></script>
-	<link rel="stylesheet" href="../css/sortable-theme-finder.css"/>
+	<link rel="stylesheet" href="../css/sortable-theme-finder.css" />
 	<script type="text/javascript">
-		window.onload = function(){
+		window.onload = function () {
 			Sortable.init();
 		}
 	</script>
 </head>
+
 <body>
 
-Number Of Songs: <span th:text="${artistInfo.numberOfSongs}"/> <br/>
-Total Plays: <span th:text="${artistInfo.totalPlays}"/><br/>
-Total Playtime: <span th:text="${artistInfo.totalPlaytime}"/><br/>
-First Song Played: <span th:text="${artistInfo.firstSongPlayed}"/><br/>
-Last Song Played: <span th:text="${artistInfo.lastSongPlayed}"/><br/>
-Average Song Length: <span th:text="${artistInfo.averageSongLength}"/><br/>
-Average Plays Per Song: <span th:text="${#numbers.formatDecimal(artistInfo.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/><br/>
-Days artist was played: <span th:text="${artistInfo.daysArtistWasPlayed}"/><br/>
-Weeks artist was played: <span th:text="${artistInfo.weeksArtistWasPlayed}"/><br/>
-Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><br/>
+	Number Of Songs: <span th:text="${artistInfo.numberOfSongs}" /> <br />
+	Total Plays: <span th:text="${artistInfo.totalPlays}" /><br />
+	Total Playtime: <span th:text="${artistInfo.totalPlaytime}" /><br />
+	First Song Played: <span th:text="${artistInfo.firstSongPlayed}" /><br />
+	Last Song Played: <span th:text="${artistInfo.lastSongPlayed}" /><br />
+	Average Song Length: <span th:text="${artistInfo.averageSongLength}" /><br />
+	Average Plays Per Song: <span
+		th:text="${#numbers.formatDecimal(artistInfo.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}" /><br />
+	Days artist was played: <span th:text="${artistInfo.daysArtistWasPlayed}" /><br />
+	Weeks artist was played: <span th:text="${artistInfo.weeksArtistWasPlayed}" /><br />
+	Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}" /><br />
 
-<table id="artistTable" class="sortable-theme-finder" data-sortable>
-	<thead>
-		<tr>
-			<th>Position</th>
-			<th>Album</th>
-			<th>Release Year</th>
-			<th>Number of Tracks in Library</th>
-			<th>Total Plays</th>
-			<th>Album Length</th>
-			<th>Total Playtime</th>
-			<th>First Play</th>
-			<th>Last Play</th>
-			<th>Average Song Length</th>
-			<th>Average Plays Per Song</th>
-			<th>Days album was played</th>
-			<th>Weeks album was played</th>
-			<th>Months album was played</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr th:each="album, stat : ${artistInfo.albums}">
-			<td th:text="${stat.index+1}"/>
-			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${album.album})}" th:text="${album.album}"></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${album.releaseYear},category=${'Year'})}" th:text="${album.releaseYear}"/></td>
-			<td th:text="${album.numberOfTracks}"/>
-			<td th:text="${album.totalPlays}"/>
-			<td th:text="${album.albumLengthString}" th:data-value="${album.albumLength}"/>
-			<td th:text="${album.totalPlaytimeString}" th:data-value="${album.totalPlaytime}"/>
-			<td th:text="${album.firstPlay}"/>
-			<td th:text="${album.lastPlay}"/>
-			<td th:text="${album.averageSongLengthString}" th:data-value="${album.averageSongLength}"/>
-			<td th:text="${#numbers.formatDecimal(album.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"/>
-			<td th:text="${album.daysAlbumWasPlayed}"/>
-			<td th:text="${album.weeksAlbumWasPlayed}"/>
-			<td th:text="${album.monthsAlbumWasPlayed}"/>
-		</tr>
-	</tbody>
-</table>
+	<table id="artistTable" class="sortable-theme-finder" data-sortable>
+		<thead>
+			<tr>
+				<th>Position</th>
+				<th>Album</th>
+				<th>Release Year</th>
+				<th>Number of Tracks in Library</th>
+				<th>Total Plays</th>
+				<th>Album Length</th>
+				<th>Total Playtime</th>
+				<th>First Play</th>
+				<th>Last Play</th>
+				<th>Average Song Length</th>
+				<th>Average Plays Per Song</th>
+				<th>Days album was played</th>
+				<th>Weeks album was played</th>
+				<th>Months album was played</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr th:each="album, stat : ${artistInfo.albums}">
+				<td th:text="${stat.index+1}" />
+				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${album.album})}"
+						th:text="${album.album}"></td>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${album.releaseYear},category=${'Year'})}"
+						th:text="${album.releaseYear}" /></td>
+				<td th:text="${album.numberOfTracks}" />
+				<td th:text="${album.totalPlays}" />
+				<td th:text="${album.albumLengthString}" th:data-value="${album.albumLength}" />
+				<td th:text="${album.totalPlaytimeString}" th:data-value="${album.totalPlaytime}" />
+				<td th:text="${album.firstPlay}" />
+				<td th:text="${album.lastPlay}" />
+				<td th:text="${album.averageSongLengthString}" th:data-value="${album.averageSongLength}" />
+				<td th:text="${#numbers.formatDecimal(album.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}" />
+				<td th:text="${album.daysAlbumWasPlayed}" />
+				<td th:text="${album.weeksAlbumWasPlayed}" />
+				<td th:text="${album.monthsAlbumWasPlayed}" />
+			</tr>
+		</tbody>
+	</table>
 
-<br/>
-<br/>
-<table id="artistTable" class="sortable-theme-finder" data-sortable>
-	<thead>
-		<tr>
-			<th>Position</th>
-			<th>Song</th>
-			<th>Album</th>
-			<th>Release Year</th>
-			<th>Total Plays</th>
-			<th>Track Length</th>
-			<th>Total Playtime</th>
-			<th>First Play</th>
-			<th>Last Play</th>
-			<th>Days song was played</th>
-			<th>Weeks song was played</th>
-			<th>Months song was played</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr th:each="song, stat : ${artistInfo.songs}">
-			<td th:text="${stat.index+1}"/>
-			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}" th:text="${song.song}"></td>
-			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${song.album})}" th:text="${song.album}"></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${song.releaseYear},category=${'Year'})}" th:text="${song.releaseYear}"/></td>
-			<td th:text="${song.totalPlays}"/>
-			<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}"/>
-			<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}"/>
-			<td th:text="${song.firstPlay}"/>
-			<td th:text="${song.lastPlay}"/>
-			<td th:text="${song.daysSongWasPlayed}"/>
-			<td th:text="${song.weeksSongWasPlayed}"/>
-			<td th:text="${song.monthsSongWasPlayed}"/>
-		</tr>
-	</tbody>
-</table>
+	<br />
+	<br />
+	<table id="artistTable" class="sortable-theme-finder" data-sortable>
+		<thead>
+			<tr>
+				<th>Position</th>
+				<th>Song</th>
+				<th>Album</th>
+				<th>Release Year</th>
+				<th>Total Plays</th>
+				<th>Track Length</th>
+				<th>Total Playtime</th>
+				<th>First Play</th>
+				<th>Last Play</th>
+				<th>Days song was played</th>
+				<th>Weeks song was played</th>
+				<th>Months song was played</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr th:each="song, stat : ${artistInfo.songs}">
+				<td th:text="${stat.index+1}" />
+				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}"
+						th:text="${song.song}"></td>
+				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${song.album})}"
+						th:text="${song.album}"></td>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${song.releaseYear},category=${'Year'})}"
+						th:text="${song.releaseYear}" /></td>
+				<td th:text="${song.totalPlays}" />
+				<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}" />
+				<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}" />
+				<td th:text="${song.firstPlay}" />
+				<td th:text="${song.lastPlay}" />
+				<td th:text="${song.daysSongWasPlayed}" />
+				<td th:text="${song.weeksSongWasPlayed}" />
+				<td th:text="${song.monthsSongWasPlayed}" />
+			</tr>
+		</tbody>
+	</table>
 
-<div th:each="artistGroup, count : ${artistGroupList}">
+	<div th:each="artistGroup, count : ${artistGroupList}">
 		<div style='display:none;'>
 			<table th:id="${artistGroup.criteria}">
 				<tr>
@@ -145,7 +153,7 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 		<div style="height:500px;">
 			<canvas th:id="${'plays'+count.index}"></canvas>
 
-		<script th:inline="javascript" th:if="${!#strings.contains(artistGroup.criteria,'Play')}">
+			<script th:inline="javascript" th:if="${!#strings.contains(artistGroup.criteria,'Play')}">
 				//Sex, Genre, Race, Language, Release Year
 				/*<![CDATA[*/
 				var ctx = document.getElementById(/*[[${'plays'+count.index}]]*/'').getContext('2d');
@@ -162,19 +170,19 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 				for (let row of table.rows) {
 					if (row.rowIndex > 0) {
 						labelsArray.push(row.cells[0].innerHTML);
-						
-						percentageSongMale = row.cells[3].innerHTML.replace("%", "")*row.cells[4].innerHTML.replace("%", "")/100;
-						percentageSongOther = row.cells[3].innerHTML.replace("%", "")-percentageSongMale; 
+
+						percentageSongMale = row.cells[3].innerHTML.replace("%", "") * row.cells[4].innerHTML.replace("%", "") / 100;
+						percentageSongOther = row.cells[3].innerHTML.replace("%", "") - percentageSongMale;
 						percentagesSongsMale.push(percentageSongMale);
 						percentagesSongsOther.push(percentageSongOther);
-						
-						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "")*row.cells[8].innerHTML.replace("%", "")/100;
-						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "")-percentagePlaysMale; 
+
+						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "") * row.cells[8].innerHTML.replace("%", "") / 100;
+						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "") - percentagePlaysMale;
 						percentagesPlaysMale.push(percentagePlaysMale);
 						percentagesPlaysOther.push(percentagePlaysOther);
-						
-						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "")*row.cells[12].innerHTML.replace("%", "")/100;
-						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "")-percentagePlaytimeMale; 
+
+						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "") * row.cells[12].innerHTML.replace("%", "") / 100;
+						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "") - percentagePlaytimeMale;
 						percentagesPlaytimeMale.push(percentagePlaytimeMale);
 						percentagesPlaytimeOther.push(percentagePlaytimeOther);
 					}
@@ -227,70 +235,70 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 						responsive: true,
 						maintainAspectRatio: false,
 						scales: {
-		                		x: {
-		                			stacked: true
-		                		},
-		                		y: {
-		                			stacked: true
-		                		}
-	                		},
+							x: {
+								stacked: true
+							},
+							y: {
+								stacked: true
+							}
+						},
 						plugins: {
 							legend: {
-        						display: false
-    						},
+								display: false
+							},
 							tooltip: {
 								callbacks: {
 									label: function (context) {
-										
-										var category = /*[[${artist}]]*/'';  
+
+										var category = /*[[${artist}]]*/'';
 										var totalSongs = /*[[${artistInfo.numberOfSongs}]]*/'';
 										var totalPlays = /*[[${artistInfo.totalPlays}]]*/'';
 										var totalPlaytime = /*[[${artistInfo.totalPlaytime}]]*/'';
 
 										var table = document.getElementById(/*[[${artistGroup.criteria}]]*/'');
-										
+
 
 										var allSongs = table.rows[context.dataIndex + 1].cells[1].innerHTML;
 										var allPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
 										var allPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
-										
+
 										var maleSongs = table.rows[context.dataIndex + 1].cells[2].innerHTML;
 										var malePlays = table.rows[context.dataIndex + 1].cells[6].innerHTML;
 										var malePlaytime = table.rows[context.dataIndex + 1].cells[10].innerHTML;
-										
-										var otherSongs = allSongs-maleSongs;
-										var otherPlays = allPlays-malePlays;
+
+										var otherSongs = allSongs - maleSongs;
+										var otherPlays = allPlays - malePlays;
 										var otherPlaytime = "TODO";
-										
+
 										var percentageSongs = table.rows[context.dataIndex + 1].cells[3].innerHTML.replace("%", "");
 										var percentagePlays = table.rows[context.dataIndex + 1].cells[7].innerHTML.replace("%", "");
 										var percentagePlaytime = table.rows[context.dataIndex + 1].cells[11].innerHTML.replace("%", "");
-										
+
 										var malePercentageSongs = table.rows[context.dataIndex + 1].cells[4].innerHTML.replace("%", "");
 										var malePercentagePlays = table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "");
 										var malePercentagePlaytime = table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "");
-										
-										var otherPercentageSongs = (100-table.rows[context.dataIndex + 1].cells[4].innerHTML.replace("%", "")).toFixed(2);
-										var otherPercentagePlays = (100-table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
-										var otherPercentagePlaytime = (100-table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
-										
-										var sex = context.datasetIndex % 2 === 0?"Male":"Others";
-										var metric = context.datasetIndex === 0 || context.datasetIndex === 1?"Songs":
-													(context.datasetIndex === 2 || context.datasetIndex === 3?"Plays":"Playtime")
+
+										var otherPercentageSongs = (100 - table.rows[context.dataIndex + 1].cells[4].innerHTML.replace("%", "")).toFixed(2);
+										var otherPercentagePlays = (100 - table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
+										var otherPercentagePlaytime = (100 - table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
+
+										var sex = context.datasetIndex % 2 === 0 ? "Male" : "Others";
+										var metric = context.datasetIndex === 0 || context.datasetIndex === 1 ? "Songs" :
+											(context.datasetIndex === 2 || context.datasetIndex === 3 ? "Plays" : "Playtime")
 
 										var first = context.datasetIndex === 0 || context.datasetIndex === 1 ? percentageSongs + "% of all " + category + " songs were released in " + context.label :
 											(context.datasetIndex === 2 || context.datasetIndex === 3 ? percentagePlays + "% of all " + category + " plays are from songs released in " + context.label :
 												percentagePlaytime + "% of all " + category + " playtime is from songs released in " + context.label);
-										var second = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + allSongs + " songs out of " + totalSongs :
+										var second = context.datasetIndex === 0 || context.datasetIndex === 1 ? "which is " + allSongs + " songs out of " + totalSongs :
 											(context.datasetIndex === 2 || context.datasetIndex === 3 ? "which is " + allPlays + " plays out of " + totalPlays :
 												"which is " + allPlaytime + " out of " + totalPlaytime);
-										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex=="Male"?malePercentageSongs:otherPercentageSongs) + "% of those " +allSongs+" songs are "+sex:
-											(context.datasetIndex === 2 || context.datasetIndex === 3 ? (sex=="Male"?malePercentagePlays:otherPercentagePlays) + "% of those " +allPlays+" plays are "+sex:
-												(sex=="Male"?malePercentagePlaytime:otherPercentagePlaytime) + "% of that " +allPlaytime+" playtime is "+sex);
-										var fourth = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + (sex=="Male"?maleSongs:otherSongs) + " songs":
-											(context.datasetIndex === 2 || context.datasetIndex === 3 ? "which is " + (sex=="Male"?malePlays:otherPlays) + " plays":
-												"which is " + (sex=="Male"?malePlaytime:otherPlaytime));
-												
+										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex == "Male" ? malePercentageSongs : otherPercentageSongs) + "% of those " + allSongs + " songs are " + sex :
+											(context.datasetIndex === 2 || context.datasetIndex === 3 ? (sex == "Male" ? malePercentagePlays : otherPercentagePlays) + "% of those " + allPlays + " plays are " + sex :
+												(sex == "Male" ? malePercentagePlaytime : otherPercentagePlaytime) + "% of that " + allPlaytime + " playtime is " + sex);
+										var fourth = context.datasetIndex === 0 || context.datasetIndex === 1 ? "which is " + (sex == "Male" ? maleSongs : otherSongs) + " songs" :
+											(context.datasetIndex === 2 || context.datasetIndex === 3 ? "which is " + (sex == "Male" ? malePlays : otherPlays) + " plays" :
+												"which is " + (sex == "Male" ? malePlaytime : otherPlaytime));
+
 										return [first, second, third, fourth];
 									}
 								}
@@ -319,14 +327,14 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 				for (let row of table.rows) {
 					if (row.rowIndex > 0) {
 						labelsArray.push(row.cells[0].innerHTML);
-						
-						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "")*row.cells[8].innerHTML.replace("%", "")/100;
-						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "")-percentagePlaysMale; 
+
+						percentagePlaysMale = row.cells[7].innerHTML.replace("%", "") * row.cells[8].innerHTML.replace("%", "") / 100;
+						percentagePlaysOther = row.cells[7].innerHTML.replace("%", "") - percentagePlaysMale;
 						percentagesPlaysMale.push(percentagePlaysMale);
 						percentagesPlaysOther.push(percentagePlaysOther);
-						
-						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "")*row.cells[12].innerHTML.replace("%", "")/100;
-						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "")-percentagePlaytimeMale; 
+
+						percentagePlaytimeMale = row.cells[11].innerHTML.replace("%", "") * row.cells[12].innerHTML.replace("%", "") / 100;
+						percentagePlaytimeOther = row.cells[11].innerHTML.replace("%", "") - percentagePlaytimeMale;
 						percentagesPlaytimeMale.push(percentagePlaytimeMale);
 						percentagesPlaytimeOther.push(percentagePlaytimeOther);
 					}
@@ -367,22 +375,22 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 						responsive: true,
 						maintainAspectRatio: false,
 						scales: {
-		                		x: {
-		                			stacked: true
-		                		},
-		                		y: {
-		                			stacked: true
-		                		}
-	                		},
+							x: {
+								stacked: true
+							},
+							y: {
+								stacked: true
+							}
+						},
 						plugins: {
 							legend: {
-        						display: false
-    						},
+								display: false
+							},
 							tooltip: {
 								callbacks: {
 									label: function (context) {
-										
-										var category = /*[[${artist}]]*/'';  
+
+										var category = /*[[${artist}]]*/'';
 										var totalPlays = /*[[${artistInfo.totalPlays}]]*/'';
 										var totalPlaytime = /*[[${artistInfo.totalPlaytime}]]*/'';
 
@@ -390,34 +398,34 @@ Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}"/><
 
 										var allPlays = table.rows[context.dataIndex + 1].cells[5].innerHTML;
 										var allPlaytime = table.rows[context.dataIndex + 1].cells[9].innerHTML;
-										
+
 										var malePlays = table.rows[context.dataIndex + 1].cells[6].innerHTML;
 										var malePlaytime = table.rows[context.dataIndex + 1].cells[10].innerHTML;
-										
-										var otherPlays = allPlays-malePlays;
+
+										var otherPlays = allPlays - malePlays;
 										var otherPlaytime = "TODO";
-										
+
 										var percentagePlays = table.rows[context.dataIndex + 1].cells[7].innerHTML.replace("%", "");
 										var percentagePlaytime = table.rows[context.dataIndex + 1].cells[11].innerHTML.replace("%", "");
-										
+
 										var malePercentagePlays = table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "");
 										var malePercentagePlaytime = table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "");
-										
-										var otherPercentagePlays = (100-table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
-										var otherPercentagePlaytime = (100-table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
-										
-										var sex = context.datasetIndex % 2 === 0?"Male":"Others";
+
+										var otherPercentagePlays = (100 - table.rows[context.dataIndex + 1].cells[8].innerHTML.replace("%", "")).toFixed(2);
+										var otherPercentagePlaytime = (100 - table.rows[context.dataIndex + 1].cells[12].innerHTML.replace("%", "")).toFixed(2);
+
+										var sex = context.datasetIndex % 2 === 0 ? "Male" : "Others";
 										var metric = context.datasetIndex === 0 || context.datasetIndex === 1 ? "Plays" : "Playtime";
 
 										var first = context.datasetIndex === 0 || context.datasetIndex === 1 ? percentagePlays + "% of all " + category + " plays happened in " + context.label :
 											percentagePlaytime + "% of all " + category + " playtime happened in " + context.label;
-										var second = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + allPlays + " plays out of " + totalPlays :
+										var second = context.datasetIndex === 0 || context.datasetIndex === 1 ? "which is " + allPlays + " plays out of " + totalPlays :
 											"which is " + allPlaytime + " out of " + totalPlaytime;
-										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex=="Male"?malePercentagePlays:otherPercentagePlays) + "% of those " +allPlays+" plays are "+sex:
-											(sex=="Male"?malePercentagePlaytime:otherPercentagePlaytime) + "% of that " +allPlaytime+" playtime is "+sex;
-										var fourth = context.datasetIndex === 0 || context.datasetIndex ===1 ? "which is " + (sex=="Male"?malePlays:otherPlays) + " plays":
-											"which is " + (sex=="Male"?malePlaytime:otherPlaytime);
-									
+										var third = context.datasetIndex === 0 || context.datasetIndex === 1 ? (sex == "Male" ? malePercentagePlays : otherPercentagePlays) + "% of those " + allPlays + " plays are " + sex :
+											(sex == "Male" ? malePercentagePlaytime : otherPercentagePlaytime) + "% of that " + allPlaytime + " playtime is " + sex;
+										var fourth = context.datasetIndex === 0 || context.datasetIndex === 1 ? "which is " + (sex == "Male" ? malePlays : otherPlays) + " plays" :
+											"which is " + (sex == "Male" ? malePlaytime : otherPlaytime);
+
 										return [first, second, third, fourth];
 									}
 								}

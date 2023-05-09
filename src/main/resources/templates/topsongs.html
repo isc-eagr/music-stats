@@ -87,6 +87,14 @@
 			Sortable.init();
 		}
 	</script>
+	<style> 
+		.table_wrapper{
+		   display: block;
+		   overflow-x: auto;
+		   white-space: nowrap;
+		   width: 150%;
+		}
+	</style>
 </head>
 <body>
 
@@ -121,6 +129,7 @@ Only the top <input type="text" th:name="limit"/> songs
 
 
 Number of records: <span id="numRecords"></span>
+<div class="table_wrapper">
 <table id="songsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
 		<tr>
@@ -137,6 +146,8 @@ Number of records: <span id="numRecords"></span>
 			<th>Length</th>
 			<th>Plays</th>
 			<th>Playtime</th>
+			<th>First Play</th>
+			<th>Last Play</th>
 			<th>Days Song Was Played</th>
 			<th>Weeks Song Was Played</th>
 			<th>Months Song Was Played</th>
@@ -149,21 +160,23 @@ Number of records: <span id="numRecords"></span>
 			<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}"></td>
 			<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}" th:text="${topSong.song}"/></td>
 			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topSong.artist},album=${topSong.album})}" th:text="${topSong.album}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topSong.genre},category=${'Genre'})}" th:text="${topSong.genre}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topSong.sex},category=${'Sex'})}" th:text="${topSong.sex}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topSong.language},category=${'Language'})}" th:text="${topSong.language}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topSong.year},category=${'Year'})}" th:text="${topSong.year}"/></td>
-			<td><a th:href="@{/category/{category}/{value}(value=${topSong.race},category=${'Race'})}" th:text="${topSong.race}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.genre},category=${'Genre'})}" th:text="${topSong.genre}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.sex},category=${'Sex'})}" th:text="${topSong.sex}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.language},category=${'Language'})}" th:text="${topSong.language}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.year},category=${'Year'})}" th:text="${topSong.year}"/></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.race},category=${'Race'})}" th:text="${topSong.race}"/></td>
 			<td th:text="${topSong.lengthString}" th:data-value="${topSong.length}"/>
 			<td th:text="${topSong.count}"/>
 			<td th:text="${topSong.playtimeString}" th:data-value="${topSong.playtime}"/>
+			<td th:text="${topSong.firstPlay}"/>
+			<td th:text="${topSong.lastPlay}"/>
 			<td th:text="${topSong.playDays}"/>
 			<td th:text="${topSong.playWeeks}"/>
 			<td th:text="${topSong.playMonths}"/>
 		</tr>
 	</tbody>
 </table>
-
+</div>
 </body>
 
 </html>
