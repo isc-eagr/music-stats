@@ -16,6 +16,7 @@ public class TimeUnitDetailDTO {
 	private int uniqueSongsPlayed;
 	private double percentageofUnitWhereMusicWasPlayed;
 	private List<AlbumSongsQueryDTO> mostPlayedSongs;
+	private List<ArtistAlbumsQueryDTO> mostPlayedAlbums;
 	
 	public int getTotalPlays() {
 		return totalPlays;
@@ -71,6 +72,13 @@ public class TimeUnitDetailDTO {
 	}
 	public void setMostPlayedSongs(List<AlbumSongsQueryDTO> mostPlayedSongs) {
 		this.mostPlayedSongs = mostPlayedSongs;
+	}
+	
+	public List<ArtistAlbumsQueryDTO> getMostPlayedAlbums() {
+		return mostPlayedAlbums;
+	}
+	public void setMostPlayedAlbums(List<ArtistAlbumsQueryDTO> mostPlayedAlbums) {
+		this.mostPlayedAlbums = mostPlayedAlbums;
 	}
 	public String getTotalPlaytimeString() {
 		return Utils.secondsToString(totalPlaytime);

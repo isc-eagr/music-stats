@@ -23,6 +23,7 @@ public class CategoryPageDTO {
 	String mostPlayedSong;
 	String categoryValue;
 	private List<AlbumSongsQueryDTO> mostPlayedSongs;
+	private List<ArtistAlbumsQueryDTO> mostPlayedAlbums;
 	
 	public int getTotalPlays() {
 		return totalPlays;
@@ -200,6 +201,16 @@ public class CategoryPageDTO {
 
 	public void setMostPlayedSongs(List<AlbumSongsQueryDTO> mostPlayedSongs) {
 		this.mostPlayedSongs = mostPlayedSongs;
+	}
+	
+
+	public List<ArtistAlbumsQueryDTO> getMostPlayedAlbums() {
+		return mostPlayedAlbums;
+	}
+
+
+	public void setMostPlayedAlbums(List<ArtistAlbumsQueryDTO> mostPlayedAlbums) {
+		this.mostPlayedAlbums = mostPlayedAlbums;
 	}
 
 

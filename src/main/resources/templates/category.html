@@ -373,7 +373,8 @@
 			</script>
 		</div>
 	</div>
-	<table id="albumSongsTable" class="sortable-theme-finder" data-sortable>
+	Top songs
+	<table id="songsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
 		<tr>
 			<th>Position</th>
@@ -400,6 +401,35 @@
 			<td><a th:href="@{/category/100/{category}/{value}(value=${song.race},category=${'Race'})}" th:text="${song.race}"></td>
 			<td th:text="${song.year}"/>
 			<td th:text="${song.totalPlays}"/>
+		</tr>
+	</tbody>
+</table>
+Top albums:
+<table id="songsTable" class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr>
+			<th>Position</th>
+			<th>Artist</th>
+			<th>Album</th>
+			<th>Genre</th>
+			<th>Sex</th>
+			<th>Language</th>
+			<th>Race</th>
+			<th>Year</th>
+			<th>Total Plays</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr th:each="album, stat : ${category.mostPlayedAlbums}">
+			<td th:text="${stat.index+1}"/>
+			<td><a th:href="@{/artist?artist={artist}(artist=${album.artist})}" th:text="${album.artist}"></td>
+			<td><a th:href="@{/album?artist={artist}&album={album}(artist=${album.artist},album=${album.album})}" th:text="${album.album}"></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${album.genre},category=${'Genre'})}" th:text="${album.genre}"></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${album.sex},category=${'Sex'})}" th:text="${album.sex}"></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${album.language},category=${'Language'})}" th:text="${album.language}"></td>
+			<td><a th:href="@{/category/100/{category}/{value}(value=${album.race},category=${'Race'})}" th:text="${album.race}"></td>
+			<td th:text="${album.releaseYear}"/>
+			<td th:text="${album.totalPlays}"/>
 		</tr>
 	</tbody>
 </table>

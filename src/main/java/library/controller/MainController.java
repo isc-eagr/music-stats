@@ -184,7 +184,7 @@ public class MainController {
 						songObject.setArtist(value);
 						break;
 					case "Album":
-						songObject.setAlbum(value);
+						songObject.setAlbum(value == null || value.isBlank()?null:value);
 						break;
 					case "Grouping":
 						songObject.setLanguage(value);
@@ -256,6 +256,7 @@ public class MainController {
 		}
 
 		songRepository.saveAll(everySong);
+		
 
 		return "Success! "+everySong.size()+" itunes records inserted!";
 	}
@@ -537,17 +538,32 @@ public class MainController {
 		timeUnitDetailDTO.setMostPlayedArtist(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		timeUnitDetailDTO.setUniqueArtistsPlayed(map.entrySet().size());
 
-		map = plays.stream().filter(s->!s.getAlbum().equals("(single)")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
+		//Group by album and sort by most played
+		map = plays.stream().filter(s->!s.getAlbum().equals("(single)") && !s.getAlbum().isBlank()).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
 		sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		timeUnitDetailDTO.setMostPlayedAlbum(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
 		timeUnitDetailDTO.setUniqueAlbumsPlayed(map.entrySet().size());
+		
+		timeUnitDetailDTO.setMostPlayedAlbums(sortedList.stream().limit(top).map(e->{
+			ArtistAlbumsQueryDTO song = new ArtistAlbumsQueryDTO();
+			song.setArtist(e.getValue().get(0).getArtist());
+			song.setAlbum(e.getValue().get(0).getAlbum());
+			song.setGenre(e.getValue().get(0).getGenre());
+			song.setRace(e.getValue().get(0).getRace());
+			song.setSex(e.getValue().get(0).getSex());
+			song.setLanguage(e.getValue().get(0).getLanguage());
+			song.setReleaseYear(e.getValue().get(0).getYear());
+			song.setTotalPlays(e.getValue().size());
+			return song;
+		}).toList());
 
 		//Group by song and sort by most played
 		map = plays.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
 		sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		timeUnitDetailDTO.setMostPlayedSong(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size());
+		timeUnitDetailDTO.setUniqueSongsPlayed(map.entrySet().size());
 
 		timeUnitDetailDTO.setMostPlayedSongs(sortedList.stream().limit(top).map(e->{
 			AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
@@ -562,8 +578,6 @@ public class MainController {
 			song.setTotalPlays(e.getValue().size());
 			return song;
 		}).toList());
-
-		timeUnitDetailDTO.setUniqueSongsPlayed(map.entrySet().size());
 
 		List<Criterion<PlayDTO>> criteria = List.of(new Criterion<>("Sex", play -> play.getSex(),
 				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
@@ -912,11 +926,28 @@ public class MainController {
 		categoryPage.setMostPlayedArtist(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfArtists(map.entrySet().size());
 
-		map = plays.stream().filter(s->!s.getAlbum().equals("(single)")).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
+		map = plays.stream().filter(s->!s.getAlbum().equals("(single)") && !s.getAlbum().isBlank()).collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()));
 		sortedList = new ArrayList<>(map.entrySet());
 		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1));
 		categoryPage.setMostPlayedAlbum(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfAlbums(map.entrySet().size());
+		
+		if(!category1.equals("ALL")) {
+		categoryPage.setMostPlayedAlbums(sortedList.stream()
+				.limit(limit)
+				.map(e->{
+					ArtistAlbumsQueryDTO album = new ArtistAlbumsQueryDTO();
+					album.setArtist(e.getValue().get(0).getArtist());
+					album.setAlbum(e.getValue().get(0).getAlbum());
+					album.setGenre(e.getValue().get(0).getGenre());
+					album.setRace(e.getValue().get(0).getRace());
+					album.setSex(e.getValue().get(0).getSex());
+					album.setLanguage(e.getValue().get(0).getLanguage());
+					album.setReleaseYear(e.getValue().get(0).getYear());
+					album.setTotalPlays(e.getValue().size());
+					return album;
+			}).toList());
+		}
 
 		map = plays.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
 		sortedList = new ArrayList<>(map.entrySet());
@@ -925,7 +956,6 @@ public class MainController {
 		categoryPage.setNumberOfSongs(map.entrySet().size());
 		
 		if(!category1.equals("ALL")) {
-			//Group by song and sort by most played
 			categoryPage.setMostPlayedSongs(sortedList.stream().limit(limit).map(e->{
 				AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
 				song.setArtist(e.getValue().get(0).getArtist());

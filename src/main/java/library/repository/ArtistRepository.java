@@ -15,7 +15,6 @@ public class ArtistRepository{
 
 	public ArtistRepository(JdbcTemplate template) {
 		this.template = template;
-
 	}
 
     private static final String ARTIST_PLAYS_QUERY = """

@@ -6,6 +6,10 @@ public class ArtistAlbumsQueryDTO {
 	
 	String artist;
 	String album;
+	String genre;
+	String race;
+	String sex;
+	String language;
 	int releaseYear;
 	int albumLength;
 	int totalPlays;
@@ -37,6 +41,45 @@ public class ArtistAlbumsQueryDTO {
 
 	public void setAlbum(String album) {
 		this.album = album;
+	}
+	
+	public String getGenre() {
+		return genre;
+	}
+
+
+	public void setGenre(String genre) {
+		this.genre = genre;
+	}
+
+
+	public String getRace() {
+		return race;
+	}
+
+
+	public void setRace(String race) {
+		this.race = race;
+	}
+
+
+	public String getSex() {
+		return sex;
+	}
+
+
+	public void setSex(String sex) {
+		this.sex = sex;
+	}
+
+
+	public String getLanguage() {
+		return language;
+	}
+
+
+	public void setLanguage(String language) {
+		this.language = language;
 	}
 
 
