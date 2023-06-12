@@ -107,20 +107,20 @@ public class MainController {
 		Song emptySong = new Song();
 		List<Song> duplicateSongs = new ArrayList<>();
 		scrobbles.stream().parallel().forEach(sc ->{
-
-			List<Song> foundSongs = everySong.stream().parallel().filter(song -> 
-			song.getArtist().equalsIgnoreCase(sc.getArtist()) &&
-			song.getSong().replace("????","").equalsIgnoreCase(sc.getSong().replace("????", "")) &&
-			String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum()))
-					).toList();
-
-			//This determines duplicate entries in song
-			if(foundSongs.size()>1) {
-				duplicateSongs.add(foundSongs.get(0));
-			}
-
-			sc.setSongId(foundSongs.stream().findFirst().orElse(emptySong).getId());
-		}
+						List<Song> foundSongs = everySong.stream().parallel().filter(song -> 
+									song.getArtist().equalsIgnoreCase(sc.getArtist()) &&
+									song.getSong().replace("????","").equalsIgnoreCase(sc.getSong().replace("????", "")) &&
+									String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum()))
+								).toList();
+			
+						//This determines duplicate entries in song
+						if(foundSongs.size()>1) {
+							duplicateSongs.add(foundSongs.get(0));
+						}
+			
+						sc.setSongId(foundSongs.stream().findFirst().orElse(emptySong).getId());
+						sc.setAlbum(sc.getAlbum()==null || sc.getAlbum().isBlank()? null : sc.getAlbum());
+					}
 				);//forEach
 
 		duplicateSongs.stream().map(s->s.getArtist()+" - "+s.getAlbum()+" - "+s.getSong()).distinct().forEach(System.out::println);
@@ -611,7 +611,7 @@ public class MainController {
 			Song s = new Song();
 			s.setArtist(artist);
 			s.setSong(song);
-			s.setAlbum(album);
+			s.setAlbum(album==null || album.isBlank()?null:album);
 			model.addAttribute("songForm",s);
 		}else {
 			model.addAttribute("songForm",new Song());
@@ -648,7 +648,8 @@ public class MainController {
 			@PathVariable(required=false) String artist,
 			@PathVariable(required=false) String album) {
 
-		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album == null ? "" : album);
+		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album == null ? null : album);
+		songsList.forEach(s->s.setAlbum(s.getAlbum()==null || s.getAlbum().isBlank() ? null : s.getAlbum()));
 
 		SaveAlbumDTO form = new SaveAlbumDTO();
 		form.setSongs(songsList);
