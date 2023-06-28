@@ -2,10 +2,12 @@ package library.util;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import library.dto.Criterion;
@@ -167,6 +169,47 @@ public class Utils {
 		}
 		
 		return groupList;
+	}
+	
+	public static Map<String, Integer> generateChartDataCumulative(Criterion<PlayDTO> criterion, List<PlayDTO> plays){
+		
+		Map<String, Integer> data = new TreeMap<>();
+		Map<String,List<PlayDTO>> classifiedMap= plays.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+
+		List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
+		Collections.sort(sortedList, criterion.getSortBy());
+		
+		
+		for(Entry<String, List<PlayDTO>> e : sortedList) {
+			data.put(e.getKey(),e.getValue().size());
+		}
+		
+		int monthFirstPlayed = Integer.parseInt(sortedList.get(0).getKey().substring(5,7));
+		int yearFirstPlayed = Integer.parseInt(sortedList.get(0).getKey().substring(0,4));
+		
+		int currentMonth = Calendar.getInstance().get(Calendar.MONTH);
+		int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+		
+		for (int year = yearFirstPlayed; year<=currentYear;year++) {
+			for(int month=1; month<=12;month++) {
+				
+				if((year == currentYear && month > currentMonth) || (year == yearFirstPlayed && month < monthFirstPlayed))
+					continue;
+				
+				String key = year+"-"+(String.valueOf(month).length()==1?"0"+month:month); 
+				if(!data.containsKey(key))
+					data.put(key, 0);
+			}
+		}
+		
+		int cumulative = 0;
+		for(Entry<String,Integer> entry : data.entrySet()) {
+			cumulative += entry.getValue();
+			entry.setValue(cumulative);
+		}
+		
+		return data;
+		
 	}
 	
 }

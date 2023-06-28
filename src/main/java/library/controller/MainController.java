@@ -758,8 +758,6 @@ public class MainController {
 
 		List<Criterion<PlayDTO>> criteria = List.of(
 				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
-				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 
@@ -770,6 +768,14 @@ public class MainController {
 		model.addAttribute("artist",artist);
 		model.addAttribute("artistInfo",artistInfo);
 		model.addAttribute("artistGroupList", Utils.generateChartData(criteria, plays, numberOfSongs, totalPlaytimeInt));
+		
+		Map<String, Integer> chartDataMap = Utils.generateChartDataCumulative(
+				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,7),
+				(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
+				, plays);
+		
+		model.addAttribute("chartLabels", "'"+chartDataMap.keySet().stream().collect(Collectors.joining("','"))+"'");
+		model.addAttribute("chartData", chartDataMap.values().stream().map(String::valueOf).collect(Collectors.joining(",")));
 
 		return "artist";
 	}
@@ -821,11 +827,6 @@ public class MainController {
 		int weeksArtistWasPlayed = (int)plays.stream().map(s->s.getWeek()).distinct().count();  
 		int monthsAlbumWasPlayed = (int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count();
 
-		List<Criterion<PlayDTO>> criteria = List.of(
-				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
-				);
-
 		AlbumPageDTO albumInfo = new AlbumPageDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
 				averageSongLength,averagePlaysPerSong, numberOfSongs, Utils.secondsToStringColon(sumOfTrackLengths),
 				daysAlbumWasPlayed, weeksArtistWasPlayed, monthsAlbumWasPlayed);
@@ -833,7 +834,15 @@ public class MainController {
 		model.addAttribute("artist",artist);
 		model.addAttribute("album",album);
 		model.addAttribute("albumInfo",albumInfo);
-		model.addAttribute("albumGroupList", Utils.generateChartData(criteria, plays, numberOfSongs, totalPlaytimeInt));
+		
+		Map<String, Integer> chartDataMap = Utils.generateChartDataCumulative(
+				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,7),
+				(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
+				, plays);
+		
+		model.addAttribute("chartLabels", "'"+chartDataMap.keySet().stream().collect(Collectors.joining("','"))+"'");
+		model.addAttribute("chartData", chartDataMap.values().stream().map(String::valueOf).collect(Collectors.joining(",")));
+		
 
 		return "album";
 	}
@@ -857,13 +866,15 @@ public class MainController {
 		songPage.setWeeksSongWasPlayed((int)plays.stream().map(s->s.getWeek()).distinct().count());
 		songPage.setMonthsSongWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count());
 
-		List<Criterion<PlayDTO>> criteria = List.of(
-				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
-				);
-
 		model.addAttribute("song",songPage);
-		model.addAttribute("songGroupList", Utils.generateChartData(criteria, plays, 1, songPage.getTotalPlaytime()));
+		
+		Map<String, Integer> chartDataMap = Utils.generateChartDataCumulative(
+				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,7),
+				(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
+				, plays);
+		
+		model.addAttribute("chartLabels", "'"+chartDataMap.keySet().stream().collect(Collectors.joining("','"))+"'");
+		model.addAttribute("chartData", chartDataMap.values().stream().map(String::valueOf).collect(Collectors.joining(",")));
 
 		return "song";
 	}
