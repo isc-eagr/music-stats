@@ -2,6 +2,9 @@ package library.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -52,21 +55,29 @@ public class SongRepositoryImpl{
 	private static final String TOP_SONGS_QUERY = """
 				select * from 
 				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  
-								so.genre, so.sex, so.language, so.year, so.race, min(sc.scrobble_date) first_play, max(sc.scrobble_date) last_play,  
-								count(*) count, sum(duration) playtime 
-								from scrobble sc inner join song so on so.id=sc.song_id 
-								group by sc.artist, sc.song ) loc1
-				inner join 
-				        (select sc.artist, IFNULL(sc.album,'(single)') album, sc.song,
-				                count(distinct date(sc.scrobble_date)) play_days, 
+								so.genre, so.sex, so.language, so.year, so.race, min(sc.scrobble_date) first_play, 
+								max(sc.scrobble_date) last_play, count(*) count, sum(duration) playtime,
+                                count(distinct date(sc.scrobble_date)) play_days, 
 				                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
 				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
-				                from scrobble sc
-				                group by sc.artist, sc.album, sc.song) loc2 
-				on (loc1.artist=loc2.artist and loc1.album=loc2.album and loc1.song=loc2.song) 
+								from scrobble sc inner join song so on so.id=sc.song_id 
+								group by sc.artist, sc.album, sc.song ) loc1
 				order by count desc 
 				limit ?
+				offset ?
 				""";
+	
+	private static final String TOP_SONGS_COUNT = """
+			select count(*) from 
+			(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  
+							so.genre, so.sex, so.language, so.year, so.race, min(sc.scrobble_date) first_play, 
+							max(sc.scrobble_date) last_play, count(*) count, sum(duration) playtime,
+                            count(distinct date(sc.scrobble_date)) play_days, 
+			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
+			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
+							from scrobble sc inner join song so on so.id=sc.song_id 
+							group by sc.artist, sc.album, sc.song ) loc1
+			""";
 	
 	//TODO this is counting (single)s, find a way to exclude them
 	private static final String TOP_ARTISTS_QUERY = """
@@ -191,8 +202,13 @@ public class SongRepositoryImpl{
 		return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
 	}
 	
-	public List<TopSongsDTO> getTopSongs(int limit) {
-		return template.query(TOP_SONGS_QUERY, new BeanPropertyRowMapper<>(TopSongsDTO.class), limit);
+	public Page<TopSongsDTO> getTopSongs(Pageable page) {
+		
+		int total = template.queryForObject(TOP_SONGS_COUNT, Integer.class);
+		
+		List<TopSongsDTO> songs = template.query(TOP_SONGS_QUERY, new BeanPropertyRowMapper<>(TopSongsDTO.class), page.getPageSize(), page.getOffset());
+		
+		return new PageImpl<TopSongsDTO>(songs, page, total);
 	}
 	
 	public List<TopArtistsDTO> getTopArtists(int limit) {

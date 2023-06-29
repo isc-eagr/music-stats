@@ -12,8 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -267,10 +270,20 @@ public class MainController {
 	}
 
 	@RequestMapping("/topSongs")
-	public String topSongs(Model model, @RequestParam(defaultValue="10000000") int limit) {
+	public String topSongs(Model model, @RequestParam(defaultValue="1") int page, @RequestParam(defaultValue="1000") int pageSize) {
 
-		List<TopSongsDTO> topSongs = songRepositoryImpl.getTopSongs(limit);
+		PageRequest pageable = PageRequest.of(page-1, pageSize);
+		
+		Page<TopSongsDTO> topSongs = songRepositoryImpl.getTopSongs(pageable);
 		model.addAttribute("topSongs", topSongs);
+		
+		int totalPages = topSongs.getTotalPages();
+        if (totalPages > 0) {
+            List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages)
+                .boxed()
+                .collect(Collectors.toList());
+            model.addAttribute("pageNumbers", pageNumbers);
+        }
 
 		List<Criterion<TopSongsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
 				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
@@ -301,7 +314,7 @@ public class MainController {
 				counts.add(new TopCountDTO(
 						e.getKey(), 
 						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topSongs.size()*100,
+						(double)e.getValue().size()/(double)topSongs.getTotalElements()*100,
 						plays,
 						(double)plays*100/topSongs.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
 						playtime,
