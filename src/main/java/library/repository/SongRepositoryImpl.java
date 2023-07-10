@@ -1,14 +1,17 @@
 package library.repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import library.dto.Filter;
 import library.dto.SongsLocalButNotLastfmDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
@@ -52,7 +55,7 @@ public class SongRepositoryImpl{
 			limit ?
 			""";
 
-	private static final String TOP_SONGS_QUERY = """
+	private static final String TOP_SONGS_BASE_QUERY = """
 				select * from 
 				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  
 								so.genre, so.sex, so.language, so.year, so.race, min(sc.scrobble_date) first_play, 
@@ -61,10 +64,8 @@ public class SongRepositoryImpl{
 				                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
 				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
 								from scrobble sc inner join song so on so.id=sc.song_id 
-								group by sc.artist, sc.album, sc.song ) loc1
-				order by count desc 
-				limit ?
-				offset ?
+								group by sc.artist, sc.album, sc.song) loc1
+				where 1=1 
 				""";
 	
 	private static final String TOP_SONGS_COUNT = """
@@ -77,6 +78,7 @@ public class SongRepositoryImpl{
 			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
 							from scrobble sc inner join song so on so.id=sc.song_id 
 							group by sc.artist, sc.album, sc.song ) loc1
+			where 1=1  
 			""";
 	
 	//TODO this is counting (single)s, find a way to exclude them
@@ -196,17 +198,50 @@ public class SongRepositoryImpl{
 			on sex.display_date_sex = race.display_date_race
 			""";
 	
+	private static final String ALL_SEXES = """
+			SELECT DISTINCT(sex) from song order by sex asc;
+			""";
 	
+	private static final String ALL_GENRES = """
+			SELECT DISTINCT(genre) from song order by genre asc;
+			""";
+	
+	private static final String ALL_RACES = """
+			SELECT DISTINCT(race) from song order by race asc;
+			""";
+	
+	private static final String ALL_LANGUAGES = """
+			SELECT DISTINCT(language) from song order by language asc;
+			""";
+		
 	
 	public List<TopAlbumsDTO> getTopAlbums(int limit) {
 		return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
 	}
 	
-	public Page<TopSongsDTO> getTopSongs(Pageable page) {
+	public Page<TopSongsDTO> getTopSongs(Pageable page, Filter filter) {
 		
-		int total = template.queryForObject(TOP_SONGS_COUNT, Integer.class);
 		
-		List<TopSongsDTO> songs = template.query(TOP_SONGS_QUERY, new BeanPropertyRowMapper<>(TopSongsDTO.class), page.getPageSize(), page.getOffset());
+		List<Object> params = new ArrayList<>();
+		
+		String topSongsBuiltQuery = TOP_SONGS_BASE_QUERY;
+		String topSongsCountBuiltQuery = TOP_SONGS_COUNT;
+		
+		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topSongsBuiltQuery += " and artist like ? "; params.add(filter.getArtist());topSongsCountBuiltQuery+=" and artist like ?";}
+		if(filter.getSong()!=null && !filter.getSong().isBlank()) {topSongsBuiltQuery += " and song like ? "; params.add(filter.getSong());topSongsCountBuiltQuery+=" and song like ?";}
+		if(filter.getAlbum()!=null && !filter.getAlbum().isBlank()) {topSongsBuiltQuery += " and album like ? "; params.add(filter.getAlbum());topSongsCountBuiltQuery+=" and album like ?";}
+		if(filter.getSex()!=null && !filter.getSex().isBlank()) {topSongsBuiltQuery += " and sex=? "; params.add(filter.getSex());topSongsCountBuiltQuery+=" and sex=?";}
+		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topSongsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topSongsCountBuiltQuery+=" and genre=?";}
+		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topSongsBuiltQuery += " and race=? "; params.add(filter.getRace());topSongsCountBuiltQuery+=" and race=?";}
+		if(filter.getYear()>0) {topSongsBuiltQuery += " and year=? "; params.add(filter.getYear());topSongsCountBuiltQuery+=" and year=?";}
+		if(filter.getLanguage()!=null && !filter.getLanguage().isBlank()) {topSongsBuiltQuery += " and language=? "; params.add(filter.getLanguage());topSongsCountBuiltQuery+=" and language=?";}
+		
+		int total = template.queryForObject(topSongsCountBuiltQuery, Integer.class, params.toArray());
+		
+		Order order = page.getSort().toList().get(0);		
+		List<TopSongsDTO> songs = template.query(
+				topSongsBuiltQuery+" order by "+order.getProperty()+" "+order.getDirection()+" limit "+page.getPageSize()+" offset "+page.getOffset()
+				, new BeanPropertyRowMapper<>(TopSongsDTO.class), params.toArray());
 		
 		return new PageImpl<TopSongsDTO>(songs, page, total);
 	}
@@ -244,6 +279,22 @@ public class SongRepositoryImpl{
 					new BeanPropertyRowMapper<>(TimeUnitStatsDTO.class));
 		}
 
+	}
+	
+	public List<String> getAllSexes() {
+		return template.queryForList(ALL_SEXES, String.class);
+	}
+	
+	public List<String> getAllGenres() {
+		return template.queryForList(ALL_GENRES, String.class);
+	}
+	
+	public List<String> getAllRaces() {
+		return template.queryForList(ALL_RACES, String.class);
+	}
+	
+	public List<String> getAllLanguages() {
+		return template.queryForList(ALL_LANGUAGES, String.class);
 	}
 	
 }

@@ -19,10 +19,22 @@
 	
 	</head>
 	<body>
-	  Sex: <input type="text" id="sex" /><br/>
-	  Genre: <input type="text" id="genre"/><br/>
-	  Race: <input type="text" id="race" /><br/>
-	  Language: <input type="text" id="language" /><br/>
+	  Sex: <select id="sex">
+			    <option value="">Select...</option>
+			    <option th:each="sex : ${sexes}" th:value="${sex}" th:text="${sex}"></option>
+			 </select><br/>
+	  Genre: <select id="genre">
+			    <option value="">Select...</option>
+			    <option th:each="genre : ${genres}" th:value="${genre}" th:text="${genre}"></option>
+			 </select><br/>
+	  Race: <select id="race">
+			    <option value="">Select...</option>
+			    <option th:each="race : ${races}" th:value="${race}" th:text="${race}"></option>
+			 </select><br/>
+	  Language: <select id="language">
+			    <option value="">Select...</option>
+			    <option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
+			 </select><br/>
 	  Release Year: <input type="text" id="releaseYear"/><br/>
 	  
 	  <input type="button" id="goToCategory" onclick="goToCategory()" value="Search"/>

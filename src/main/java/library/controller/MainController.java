@@ -17,6 +17,7 @@ import java.util.stream.IntStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -49,6 +50,7 @@ import library.dto.ArtistPageDTO;
 import library.dto.PlayDTO;
 import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
+import library.dto.Filter;
 import library.dto.CategoryPageDTO;
 import library.dto.SaveAlbumDTO;
 import library.dto.SongPageDTO;
@@ -270,11 +272,22 @@ public class MainController {
 	}
 
 	@RequestMapping("/topSongs")
-	public String topSongs(Model model, @RequestParam(defaultValue="1") int page, @RequestParam(defaultValue="1000") int pageSize) {
-
-		PageRequest pageable = PageRequest.of(page-1, pageSize);
+	public String topSongs(Model model, 
+			@Valid @ModelAttribute(value="filter") Filter filter) {
 		
-		Page<TopSongsDTO> topSongs = songRepositoryImpl.getTopSongs(pageable);
+		model.addAttribute("sexes", songRepositoryImpl.getAllSexes());
+		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
+		model.addAttribute("races", songRepositoryImpl.getAllRaces());
+		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
+		
+		model.addAttribute("sortField",filter.getSortField());
+		model.addAttribute("sortDir",filter.getSortDir());
+
+		Sort sort = filter.getSortDir().equalsIgnoreCase(Sort.Direction.ASC.name()) ?
+                Sort.by(filter.getSortField()).ascending() : Sort.by(filter.getSortField()).descending();
+		PageRequest pageable = PageRequest.of(filter.getPage()-1, filter.getPageSize(), sort);
+
+		Page<TopSongsDTO> topSongs = songRepositoryImpl.getTopSongs(pageable, filter);
 		model.addAttribute("topSongs", topSongs);
 		
 		int totalPages = topSongs.getTotalPages();
@@ -284,47 +297,6 @@ public class MainController {
                 .collect(Collectors.toList());
             model.addAttribute("pageNumbers", pageNumbers);
         }
-
-		List<Criterion<TopSongsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
-				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Genre", song -> song.getGenre(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Race", song -> song.getRace(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Language", song -> song.getLanguage(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Release Year", song -> song.getYear(),
-						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
-				);
-
-
-		List<TopGroupDTO> topSongsGroupList = new ArrayList<>(); 
-
-		for (Criterion<TopSongsDTO> criterion : criteria) {
-			Map<String,List<TopSongsDTO>> classifiedMap= topSongs.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			List<Entry<String, List<TopSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<TopSongsDTO>> e : sortedList) {
-				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
-				long playtime = e.getValue().stream().mapToLong(topSong -> topSong.getPlaytime()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topSongs.getTotalElements()*100,
-						plays,
-						(double)plays*100/topSongs.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
-						playtime,
-						(double)playtime*100/topSongs.stream().mapToDouble(a->a.getPlaytime()).sum()));
-			}
-
-			topSongsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
-		model.addAttribute("topSongsGroupList", topSongsGroupList);
 
 		return "topsongs";
 
@@ -894,6 +866,10 @@ public class MainController {
 	
 	@GetMapping({"/categorySearch"})
 	public String categorySearch(Model model) {
+		model.addAttribute("sexes", songRepositoryImpl.getAllSexes());
+		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
+		model.addAttribute("races", songRepositoryImpl.getAllRaces());
+		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
 		
 		return "categorysearchform";
 		
