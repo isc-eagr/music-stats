@@ -282,6 +282,7 @@ public class MainController {
 		
 		model.addAttribute("sortField",filter.getSortField());
 		model.addAttribute("sortDir",filter.getSortDir());
+		model.addAttribute("filterMode",filter.getFilterMode());
 
 		Sort sort = filter.getSortDir().equalsIgnoreCase(Sort.Direction.ASC.name()) ?
                 Sort.by(filter.getSortField()).ascending() : Sort.by(filter.getSortField()).descending();
@@ -297,6 +298,47 @@ public class MainController {
                 .collect(Collectors.toList());
             model.addAttribute("pageNumbers", pageNumbers);
         }
+
+		List<Criterion<TopSongsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
+				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", song -> song.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Race", song -> song.getRace(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", song -> song.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", song -> song.getYear(),
+						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
+				);
+
+
+		List<TopGroupDTO> topSongsGroupList = new ArrayList<>(); 
+
+		for (Criterion<TopSongsDTO> criterion : criteria) {
+			Map<String,List<TopSongsDTO>> classifiedMap= topSongs.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
+
+			List<TopCountDTO> counts = new ArrayList<>();
+
+			List<Entry<String, List<TopSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, criterion.getSortBy());
+
+			for(Entry<String, List<TopSongsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
+				long playtime = e.getValue().stream().mapToLong(topSong -> topSong.getPlaytime()).sum();
+				counts.add(new TopCountDTO(
+						e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topSongs.getNumberOfElements()*100,
+						plays,
+						(double)plays*100/topSongs.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
+						playtime,
+						(double)playtime*100/topSongs.stream().mapToDouble(a->a.getPlaytime()).sum()));
+			}
+
+			topSongsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
+		}
+
+		model.addAttribute("topSongsGroupList", topSongsGroupList);
 
 		return "topsongs";
 

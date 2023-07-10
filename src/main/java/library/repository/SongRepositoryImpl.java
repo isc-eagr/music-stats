@@ -220,8 +220,6 @@ public class SongRepositoryImpl{
 	}
 	
 	public Page<TopSongsDTO> getTopSongs(Pageable page, Filter filter) {
-		
-		
 		List<Object> params = new ArrayList<>();
 		
 		String topSongsBuiltQuery = TOP_SONGS_BASE_QUERY;

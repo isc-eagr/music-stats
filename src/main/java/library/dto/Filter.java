@@ -25,6 +25,8 @@ public class Filter {
     private String sortField="count";
     
     private String sortDir="desc";
+    
+    private String filterMode="1";
 
 	public String getArtist() {
 		return artist;
@@ -120,6 +122,14 @@ public class Filter {
 
 	public void setSortDir(String sortDir) {
 		this.sortDir = sortDir;
+	}
+
+	public String getFilterMode() {
+		return filterMode;
+	}
+
+	public void setFilterMode(String filterMode) {
+		this.filterMode = filterMode;
 	}
 	
 }
