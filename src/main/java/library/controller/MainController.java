@@ -682,6 +682,8 @@ public class MainController {
 		form.setSongs(songsList);
 
 		model.addAttribute("form",form);
+		model.addAttribute("artist",artist);
+		model.addAttribute("album",album);
 
 		return "insertalbumform";
 	}
@@ -928,6 +930,7 @@ public class MainController {
 			@PathVariable(required=false)String category3, @PathVariable(required=false)String value3,
 			@PathVariable(required=false)String category4, @PathVariable(required=false)String value4,
 			@PathVariable(required=false)String category5, @PathVariable(required=false)String value5,
+			@PathVariable(required=false)String category6, @PathVariable(required=false)String value6,
 			@RequestParam(defaultValue="1970-01-01") String start, @RequestParam(defaultValue="2400-12-31") String end) {
 		
 		List<String> categories = new ArrayList<>();
@@ -936,6 +939,7 @@ public class MainController {
 		categories.add(category3);
 		categories.add(category4);
 		categories.add(category5);
+		categories.add(category6);
 		categories = categories.stream().filter(c->c!=null).toList();
 		
 		
@@ -945,6 +949,7 @@ public class MainController {
 		values.add(value3);
 		values.add(value4);
 		values.add(value5);
+		values.add(value6);
 		values.add(start);
 		values.add(end);
 		values = values.stream().filter(v->v!=null).toList();
@@ -1029,7 +1034,7 @@ public class MainController {
 						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
 				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
-				new Criterion<>("Play Year", play -> play.getPlayDate().substring(0,4),
+				new Criterion<>("PlayYear", play -> play.getPlayDate().substring(0,4),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey()))
 				);
 

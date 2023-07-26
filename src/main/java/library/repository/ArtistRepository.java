@@ -46,7 +46,7 @@ public class ArtistRepository{
     private static final String CATEGORY_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
+    		 		YEARWEEK(sc.scrobble_date,1) week 
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(so.%s)=LOWER(?)
 			""";
@@ -75,7 +75,15 @@ public class ArtistRepository{
 		String query = CATEGORY_PLAYS_QUERY;
 		if(categories.length > 1) {
 			for(int i=1 ; i < categories.length ; i++) {
-				query += "and LOWER(so.%s)=LOWER(?) ";
+				if(categories[i].equals("PlayYear")) {
+					query += "and YEAR(sc.%s)=? ";
+					categories[i] = "scrobble_date";
+					
+				}
+				else {
+					query += "and LOWER(so.%s)=LOWER(?) ";
+				}
+				
 			}
 		}
 		

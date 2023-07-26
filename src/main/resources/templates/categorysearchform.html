@@ -12,6 +12,7 @@
 				if(document.getElementById("race").value != ''){url += "/Race/"+document.getElementById("race").value}
 				if(document.getElementById("language").value != ''){url += "/Language/"+document.getElementById("language").value}
 				if(document.getElementById("releaseYear").value != ''){url += "/Year/"+document.getElementById("releaseYear").value}
+				if(document.getElementById("playYear").value != ''){url += "/PlayYear/"+document.getElementById("playYear").value}
 				
 				window.open(url);
 			}
@@ -36,6 +37,7 @@
 			    <option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
 			 </select><br/>
 	  Release Year: <input type="text" id="releaseYear"/><br/>
+	  Play Year: <input type="text" id="playYear"/><br/>
 	  
 	  <input type="button" id="goToCategory" onclick="goToCategory()" value="Search"/>
 	
