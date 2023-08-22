@@ -27,10 +27,10 @@
 				<td th:text="${song.album}"/>
 				<td th:text="${song.count}"/>
 				<td>
-					<a th:href="@{'/insertSongForm/'+${song.artist}+'/'+${song.song}+'/'+${song.album}}">Insert Song</a>
+					<a th:href="@{'/insertSongForm/'+${#uris.escapePathSegment(#strings.replace(song.artist,'/','*'))}+'/'+${#uris.escapePathSegment(#strings.replace(song.song,'/','*'))}+'/'+${#uris.escapePathSegment(#strings.replace(song.album,'/','*'))}}">Insert Song</a>
 				</td>
 				<td>
-					<a th:href="@{'/insertAlbumForm/'+${song.artist}+'/'+${song.album}}">Insert Album</a>
+					<a th:href="@{'/insertAlbumForm/'+${song.artist}+'/'+${#uris.escapePathSegment(#strings.replace(song.album,'/','*'))}}">Insert Album</a>
 				</td>
 			
 		</tr>

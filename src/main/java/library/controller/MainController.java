@@ -636,9 +636,9 @@ public class MainController {
 
 		if(artist != null && song != null) {
 			Song s = new Song();
-			s.setArtist(artist);
-			s.setSong(song);
-			s.setAlbum(album==null || album.isBlank()?null:album);
+			s.setArtist(artist.replace("*", "/"));
+			s.setSong(song.replace("*", "/"));
+			s.setAlbum(album==null || album.isBlank()?null:album.replace("*", "/"));
 			model.addAttribute("songForm",s);
 		}else {
 			model.addAttribute("songForm",new Song());
@@ -675,15 +675,15 @@ public class MainController {
 			@PathVariable(required=false) String artist,
 			@PathVariable(required=false) String album) {
 
-		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album == null ? null : album);
+		
+		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album.replace("*", "/"));
 		songsList.forEach(s->s.setAlbum(s.getAlbum()==null || s.getAlbum().isBlank() ? null : s.getAlbum()));
 
 		SaveAlbumDTO form = new SaveAlbumDTO();
 		form.setSongs(songsList);
 
 		model.addAttribute("form",form);
-		model.addAttribute("artist",artist);
-		model.addAttribute("album",album);
+		model.addAttribute("album",album.replace("*", "/"));
 
 		return "insertalbumform";
 	}
@@ -718,6 +718,7 @@ public class MainController {
 		List<ArtistAlbumsQueryDTO> artistAlbumsList = new ArrayList<>();
 
 		Map<String, List<PlayDTO>> songGrouping = plays.stream().collect(Collectors.groupingBy(PlayDTO::getSong));
+		
 		for(String song : songGrouping.keySet()) {
 			List<PlayDTO> sorted = songGrouping.get(song).stream()
 					.sorted((sc1, sc2)->sc1.getPlayDate().compareTo(sc2.getPlayDate()))
@@ -739,6 +740,7 @@ public class MainController {
 		}
 		artistSongsList.sort((s1,s2)->s1.getTotalPlays()<s2.getTotalPlays()?1:s1.getTotalPlays()==s2.getTotalPlays()?0:-1);
 
+		//TODO find a way for the grouping to ignore case, right now Aaa and aaa are considered separate albums
 		Map<String, List<PlayDTO>> albumGrouping = plays.stream().collect(Collectors.groupingBy(PlayDTO::getAlbum));
 		for(String album : albumGrouping.keySet()) {
 			List<PlayDTO> sorted = albumGrouping.get(album).stream()
