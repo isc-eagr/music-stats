@@ -15,6 +15,8 @@ public class Filter {
     private String race;
 	
     private int year;
+    
+    private int playsMoreThan;
 	
     private String language;
     
@@ -82,6 +84,14 @@ public class Filter {
 
 	public void setYear(int year) {
 		this.year = year;
+	}
+	
+	public int getPlaysMoreThan() {
+		return playsMoreThan;
+	}
+
+	public void setPlaysMoreThan(int playsMoreThan) {
+		this.playsMoreThan = playsMoreThan;
 	}
 
 	public String getLanguage() {

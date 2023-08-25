@@ -77,8 +77,8 @@ public class SongRepositoryImpl{
 			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
 			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
 							from scrobble sc inner join song so on so.id=sc.song_id 
-							group by sc.artist, sc.album, sc.song ) loc1
-			where 1=1  
+							group by sc.artist, sc.album, sc.song ) loc1 
+				where 1=1 
 			""";
 	
 	//TODO this is counting (single)s, find a way to exclude them
@@ -232,14 +232,15 @@ public class SongRepositoryImpl{
 		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topSongsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topSongsCountBuiltQuery+=" and genre=?";}
 		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topSongsBuiltQuery += " and race=? "; params.add(filter.getRace());topSongsCountBuiltQuery+=" and race=?";}
 		if(filter.getYear()>0) {topSongsBuiltQuery += " and year=? "; params.add(filter.getYear());topSongsCountBuiltQuery+=" and year=?";}
+		if(filter.getPlaysMoreThan()>0) {topSongsBuiltQuery += " and count>=? "; params.add(filter.getPlaysMoreThan());topSongsCountBuiltQuery+=" and count>=?";}
 		if(filter.getLanguage()!=null && !filter.getLanguage().isBlank()) {topSongsBuiltQuery += " and language=? "; params.add(filter.getLanguage());topSongsCountBuiltQuery+=" and language=?";}
-		
-		int total = template.queryForObject(topSongsCountBuiltQuery, Integer.class, params.toArray());
 		
 		Order order = page.getSort().toList().get(0);		
 		List<TopSongsDTO> songs = template.query(
 				topSongsBuiltQuery+" order by "+order.getProperty()+" "+order.getDirection()+" limit "+page.getPageSize()+" offset "+page.getOffset()
 				, new BeanPropertyRowMapper<>(TopSongsDTO.class), params.toArray());
+		
+		int total = filter.getFilterMode().equals("1") ? template.queryForObject(topSongsCountBuiltQuery, Integer.class, params.toArray()) : songs.size();
 		
 		return new PageImpl<TopSongsDTO>(songs, page, total);
 	}

@@ -26,6 +26,25 @@
 	Days artist was played: <span th:text="${artistInfo.daysArtistWasPlayed}" /><br />
 	Weeks artist was played: <span th:text="${artistInfo.weeksArtistWasPlayed}" /><br />
 	Months artist was played: <span th:text="${artistInfo.monthsArtistWasPlayed}" /><br />
+	
+		<table id="milestonesTable" class="sortable-theme-finder" data-sortable>
+			<thead>
+				<tr>
+					<th>Milestone</th>
+					<th>Date</th>
+					<th>Days it took to achieve it</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr th:each="milestone : ${artistInfo.milestones}">
+					<td th:text="${milestone.plays}"/>
+					<td th:text="${milestone.date}"/>
+					<td th:text="${milestone.days}"/>
+				</tr>
+			</tbody>
+		</table>
+		<br />
+		<br />
 
 	<table id="artistTable" class="sortable-theme-finder" data-sortable>
 		<thead>

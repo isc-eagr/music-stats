@@ -37,11 +37,20 @@ public class ScrobbleRepositoryImpl{
 			and album = ?
 			""";
 	
+	private static final String SONGS_FROM_ARTIST = """
+			select sc.artist, sc.album, sc.song, count(*) plays
+			from scrobble sc left outer join song so on sc.song_id=so.id
+			where sc.artist = ? 
+            and so.id is null 
+            group by sc.artist, sc.album, sc.song
+            order by sc.album, sc.scrobble_date
+			""";
+	
 	private static final String SONGS_FROM_ALBUM = """
 			select sc.artist, sc.album, sc.song, count(*) plays
 			from scrobble sc left outer join song so on sc.song_id=so.id
 			where sc.artist = ? 
-			and sc.album = ? 
+			and IFNULL(sc.album,'') = ? 
             and so.id is null 
             group by sc.artist, sc.album, sc.song
             order by sc.scrobble_date
@@ -64,7 +73,11 @@ public class ScrobbleRepositoryImpl{
         return template.update(UPDATE_SONG_IDS_QUERY,songId,artist,song,album);
     }
 	
-	public List<Song> songsFromAlbum(String artist, String album) {
+	public List<Song> unmatchedSongsFromArtist(String artist) {
+		return template.query(SONGS_FROM_ARTIST, new BeanPropertyRowMapper<>(Song.class), artist);
+	}
+	
+	public List<Song> unmatchedSongsFromAlbum(String artist, String album) {
 		return template.query(SONGS_FROM_ALBUM, new BeanPropertyRowMapper<>(Song.class), artist, album);
 	}
 	

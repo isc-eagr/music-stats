@@ -16,6 +16,23 @@
 	Days song was played: <span th:text="${song.daysSongWasPlayed}" /><br />
 	Weeks song was played: <span th:text="${song.weeksSongWasPlayed}" /><br />
 	Months song was played: <span th:text="${song.monthsSongWasPlayed}" /><br />
+	
+	<table id="milestonesTable" class="sortable-theme-finder" data-sortable>
+		<thead>
+			<tr>
+				<th>Milestone</th>
+				<th>Date</th>
+				<th>Days it took to achieve it</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr th:each="milestone : ${song.milestones}">
+				<td th:text="${milestone.plays}"/>
+				<td th:text="${milestone.date}"/>
+				<td th:text="${milestone.days}"/>
+			</tr>
+		</tbody>
+	</table>
 
 		<div style="width: 50%;">
 			<canvas th:id="${'plays'}" ></canvas>

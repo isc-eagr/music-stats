@@ -1,6 +1,8 @@
 package library.util;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -11,6 +13,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import library.dto.Criterion;
+import library.dto.MilestoneDTO;
 import library.dto.PlayDTO;
 import library.dto.TopCountDTO;
 import library.dto.TopGroupDTO;
@@ -211,5 +214,23 @@ public class Utils {
 		return data;
 		
 	}
+	
+	public static List<MilestoneDTO> generateMilestones(List<PlayDTO> plays, int... milestonePlays){
+		
+		LocalDate firstPlay = LocalDate.parse(plays.get(0).getPlayDate().substring(0, 10));
+		
+		List<MilestoneDTO> milestonesMap = new ArrayList<>();
+		
+		for(int milestone : milestonePlays) {
+			if(milestone -1 <= plays.size()) {
+				PlayDTO play = plays.get(milestone-1);
+				LocalDate milestonePlay = LocalDate.parse(play.getPlayDate().substring(0, 10));
+				milestonesMap.add(new MilestoneDTO(milestone, play.getPlayDate(),ChronoUnit.DAYS.between(firstPlay, milestonePlay)));
+			}
+		}
+		
+		return milestonesMap;
+	}
+	
 	
 }

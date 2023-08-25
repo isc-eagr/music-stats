@@ -23,6 +23,7 @@ public class ArtistRepository{
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
+            order by play_date asc
 			""";
     
     private static final String ALBUM_PLAYS_QUERY = """
@@ -31,7 +32,8 @@ public class ArtistRepository{
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
-            and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
+            and LOWER(IFNULL(so.album,'(single)'))=LOWER(?) 
+            order by play_date asc
 			""";
     
     private static final String SONG_PLAYS_QUERY = """
@@ -41,6 +43,7 @@ public class ArtistRepository{
             where LOWER(sc.artist)=LOWER(?)
             and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
             and LOWER(so.song) = LOWER(?)
+            order by play_date asc
 			""";
     
     private static final String CATEGORY_PLAYS_QUERY = """

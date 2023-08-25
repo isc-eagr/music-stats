@@ -17,6 +17,7 @@
 			<th>Plays</th>
 			<th data-sortable="false">Insert Song</th>
 			<th data-sortable="false">Insert Album</th>
+			<th data-sortable="false">Insert Artist</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -31,6 +32,9 @@
 				</td>
 				<td>
 					<a th:href="@{'/insertAlbumForm/'+${song.artist}+'/'+${#uris.escapePathSegment(#strings.replace(song.album,'/','*'))}}">Insert Album</a>
+				</td>
+				<td>
+					<a th:href="@{'/insertAlbumForm/'+${song.artist}}">Insert Artist</a>
 				</td>
 			
 		</tr>

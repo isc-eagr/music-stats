@@ -31,6 +31,24 @@
 
 	<br />
 	<br />
+		<table id="milestonesTable" class="sortable-theme-finder" data-sortable>
+			<thead>
+				<tr>
+					<th>Milestone</th>
+					<th>Date</th>
+					<th>Days it took to achieve it</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr th:each="milestone : ${albumInfo.milestones}">
+					<td th:text="${milestone.plays}"/>
+					<td th:text="${milestone.date}"/>
+					<td th:text="${milestone.days}"/>
+				</tr>
+			</tbody>
+		</table>
+	<br />
+	<br />
 	<table id="albumSongsTable" class="sortable-theme-finder" data-sortable>
 		<thead>
 			<tr>

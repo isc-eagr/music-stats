@@ -142,6 +142,7 @@
 					    <option value="">Select...</option>
 					    <option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
 				 	</select><br/>
+		  Plays more than or equal: <input type="text" th:field="*{playsMoreThan}" /><br/>
 		  Page Size: <input type="text" th:field="*{pageSize}" /><br/>
 		  <input type="hidden" th:field="*{sortField}" id="sortField1"/>
 		  <input type="hidden" th:field="*{sortDir}" id="sortDir1"/>

@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 import library.util.Utils;
 
 public class SongPageDTO {
@@ -16,6 +18,7 @@ public class SongPageDTO {
 	int monthsSongWasPlayed;
 	String chartLabels;
 	String chartValues;
+	List<MilestoneDTO> milestones;
 
 
 	public String getArtist() {
@@ -127,7 +130,6 @@ public class SongPageDTO {
 		return chartValues;
 	}
 
-
 	public void setChartValues(String chartValues) {
 		this.chartValues = chartValues;
 	}
@@ -140,20 +142,14 @@ public class SongPageDTO {
 	public String getTotalPlaytimeString() {
 		return Utils.secondsToString(trackLength*totalPlays);
 	}
-
-
-	public SongPageDTO(String artist, String song, String album, int trackLength, int totalPlays, String firstPlay,
-			String lastPlay) {
-		super();
-		this.artist = artist;
-		this.song = song;
-		this.album = album;
-		this.trackLength = trackLength;
-		this.totalPlays = totalPlays;
-		this.firstPlay = firstPlay;
-		this.lastPlay = lastPlay;
+	
+	public List<MilestoneDTO> getMilestones() {
+		return milestones;
 	}
 
+	public void setMilestones(List<MilestoneDTO> milestones) {
+		this.milestones = milestones;
+	}
 
 	public SongPageDTO() {
 

@@ -675,15 +675,20 @@ public class MainController {
 			@PathVariable(required=false) String artist,
 			@PathVariable(required=false) String album) {
 
+		List<Song> songsList;
 		
-		List<Song> songsList = scrobbleRepositoryImpl.songsFromAlbum(artist, album.replace("*", "/"));
-		songsList.forEach(s->s.setAlbum(s.getAlbum()==null || s.getAlbum().isBlank() ? null : s.getAlbum()));
-
+		if(album == null) {
+			songsList = scrobbleRepositoryImpl.unmatchedSongsFromArtist(artist);
+		}
+		else {
+			songsList = scrobbleRepositoryImpl.unmatchedSongsFromAlbum(artist, album.equals("null")? "" : album.replace("*", "/"));
+			model.addAttribute("album", album.equals("null")? "(single)" : album.replace("*", "/"));
+		}
+		
 		SaveAlbumDTO form = new SaveAlbumDTO();
 		form.setSongs(songsList);
 
 		model.addAttribute("form",form);
-		model.addAttribute("album",album.replace("*", "/"));
 
 		return "insertalbumform";
 	}
@@ -794,7 +799,8 @@ public class MainController {
 
 
 		ArtistPageDTO artistInfo = new ArtistPageDTO(artistSongsList, artistAlbumsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
-				averageSongLength,averagePlaysPerSong, numberOfSongs, daysArtistWasPlayed, weeksArtistWasPlayed, monthsArtistWasPlayed);
+				averageSongLength,averagePlaysPerSong, numberOfSongs, daysArtistWasPlayed, weeksArtistWasPlayed, monthsArtistWasPlayed,
+				Utils.generateMilestones(plays,100,200,300,400,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000));
 
 		model.addAttribute("artist",artist);
 		model.addAttribute("artistInfo",artistInfo);
@@ -860,7 +866,9 @@ public class MainController {
 
 		AlbumPageDTO albumInfo = new AlbumPageDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays, totalPlaytime, 
 				averageSongLength,averagePlaysPerSong, numberOfSongs, Utils.secondsToStringColon(sumOfTrackLengths),
-				daysAlbumWasPlayed, weeksArtistWasPlayed, monthsAlbumWasPlayed);
+				daysAlbumWasPlayed, weeksArtistWasPlayed, monthsAlbumWasPlayed,
+				Utils.generateMilestones(plays,100,200,300,400,500,1000,1500,2000));
+		
 
 		model.addAttribute("artist",artist);
 		model.addAttribute("album",album);
@@ -896,6 +904,7 @@ public class MainController {
 		songPage.setDaysSongWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 10)).distinct().count());
 		songPage.setWeeksSongWasPlayed((int)plays.stream().map(s->s.getWeek()).distinct().count());
 		songPage.setMonthsSongWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count());
+		songPage.setMilestones(Utils.generateMilestones(plays,30,50,100,200,300,400,500,600,700,800,900,1000));
 
 		model.addAttribute("song",songPage);
 		
