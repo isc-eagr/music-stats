@@ -30,7 +30,7 @@ public class SongRepositoryImpl{
 	}
 	
 	
-	private static final String TOP_ALBUMS_QUERY = """
+	private static final String TOP_ALBUMS_BASE_QUERY = """
 			select * from 
 			(select artist, album, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
 							sum(duration*count) playtime, sum(duration) length, count(distinct album,song) number_of_songs,
@@ -51,8 +51,31 @@ public class SongRepositoryImpl{
 			                where sc.album is not null and sc.album <> ''
 			                group by sc.artist, sc.album) loc2 
 			on loc1.artist=loc2.artist and loc1.album=loc2.album
-			order by count desc
-			limit ?
+			where 1=1 
+			""";
+	
+	private static final String TOP_ALBUMS_COUNT = """
+			select count(*) from 
+			(select artist, album, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
+							sum(duration*count) playtime, sum(duration) length, count(distinct album,song) number_of_songs,
+				            genre, sex, language, year, race, min(first_play) first_play, max(last_play) last_play
+							from
+							(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
+							so.genre, so.sex, so.language, so.year, so.race, min(sc.scrobble_date) first_play, max(sc.scrobble_date) last_play
+							from scrobble sc inner join song so on so.id=sc.song_id 
+			                where sc.album is not null and sc.album <> ''
+							group by so.artist, album, so.song) local
+				            group by artist, album) loc1
+			inner join 
+			        (select sc.artist, IFNULL(sc.album,'(single)') album,
+			                count(distinct date(sc.scrobble_date)) play_days, 
+			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
+			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
+			                from scrobble sc
+			                where sc.album is not null and sc.album <> ''
+			                group by sc.artist, sc.album) loc2 
+			on loc1.artist=loc2.artist and loc1.album=loc2.album
+			where 1=1 
 			""";
 
 	private static final String TOP_SONGS_BASE_QUERY = """
@@ -215,8 +238,31 @@ public class SongRepositoryImpl{
 			""";
 		
 	
-	public List<TopAlbumsDTO> getTopAlbums(int limit) {
-		return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
+	public Page<TopAlbumsDTO> getTopAlbums(Pageable page, Filter filter) {
+		//return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
+		List<Object> params = new ArrayList<>();
+		
+		String topAlbumsBuiltQuery = TOP_ALBUMS_BASE_QUERY;
+		String topAlbumsCountBuiltQuery = TOP_ALBUMS_COUNT;
+		
+		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topAlbumsBuiltQuery += " and artist like ? "; params.add(filter.getArtist());topAlbumsCountBuiltQuery+=" and artist like ?";}
+		if(filter.getSong()!=null && !filter.getSong().isBlank()) {topAlbumsBuiltQuery += " and song like ? "; params.add(filter.getSong());topAlbumsCountBuiltQuery+=" and song like ?";}
+		if(filter.getAlbum()!=null && !filter.getAlbum().isBlank()) {topAlbumsBuiltQuery += " and album like ? "; params.add(filter.getAlbum());topAlbumsCountBuiltQuery+=" and album like ?";}
+		if(filter.getSex()!=null && !filter.getSex().isBlank()) {topAlbumsBuiltQuery += " and sex=? "; params.add(filter.getSex());topAlbumsCountBuiltQuery+=" and sex=?";}
+		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topAlbumsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topAlbumsCountBuiltQuery+=" and genre=?";}
+		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topAlbumsBuiltQuery += " and race=? "; params.add(filter.getRace());topAlbumsCountBuiltQuery+=" and race=?";}
+		if(filter.getYear()>0) {topAlbumsBuiltQuery += " and year=? "; params.add(filter.getYear());topAlbumsCountBuiltQuery+=" and year=?";}
+		if(filter.getPlaysMoreThan()>0) {topAlbumsBuiltQuery += " and count>=? "; params.add(filter.getPlaysMoreThan());topAlbumsCountBuiltQuery+=" and count>=?";}
+		if(filter.getLanguage()!=null && !filter.getLanguage().isBlank()) {topAlbumsBuiltQuery += " and language=? "; params.add(filter.getLanguage());topAlbumsCountBuiltQuery+=" and language=?";}
+		
+		Order order = page.getSort().toList().get(0);		
+		List<TopAlbumsDTO> albums = template.query(
+				topAlbumsBuiltQuery+" order by "+order.getProperty()+" "+order.getDirection()+" limit "+page.getPageSize()+" offset "+page.getOffset()
+				, new BeanPropertyRowMapper<>(TopAlbumsDTO.class), params.toArray());
+		
+		int total = filter.getFilterMode().equals("1") ? template.queryForObject(topAlbumsCountBuiltQuery, Integer.class, params.toArray()) : albums.size();
+		
+		return new PageImpl<TopAlbumsDTO>(albums, page, total);
 	}
 	
 	public Page<TopSongsDTO> getTopSongs(Pageable page, Filter filter) {

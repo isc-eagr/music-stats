@@ -271,6 +271,175 @@ public class MainController {
 		return "main";
 	}
 
+	@RequestMapping("/topArtists")
+	public String topArtists(Model model, @RequestParam(defaultValue="10000000") int limit) {
+
+		List<TopArtistsDTO> topArtists = songRepositoryImpl.getTopArtists(limit);
+
+		model.addAttribute("topArtists", topArtists);
+
+		List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", artist -> artist.getSex(),
+				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", artist -> artist.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Race", artist -> artist.getRace(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", artist -> artist.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1))
+				);
+
+
+		List<TopGroupDTO> topArtistsGroupList = new ArrayList<>(); 
+
+		for (Criterion<TopArtistsDTO> criterion : criteria) {
+			Map<String,List<TopArtistsDTO>> classifiedMap= topArtists.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+
+			List<TopCountDTO> counts = new ArrayList<>();
+
+			List<Entry<String, List<TopArtistsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, criterion.getSortBy());
+
+			for(Entry<String, List<TopArtistsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
+				long playtime = e.getValue().stream().mapToLong(topArtist -> topArtist.getPlaytime()).sum();
+				counts.add(new TopCountDTO(
+						e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topArtists.size()*100,
+						plays,
+						(double)plays*100/topArtists.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
+						playtime,
+						(double)playtime*100/topArtists.stream().mapToDouble(a->a.getPlaytime()).sum()));
+			}
+
+			topArtistsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
+		}
+
+		model.addAttribute("topArtistsGroupList", topArtistsGroupList);
+
+		return "topartists";
+
+	}
+
+	@RequestMapping("/topAlbums")
+	public String topAlbums(Model model, 
+			@Valid @ModelAttribute(value="filter") Filter filter) {
+		
+		model.addAttribute("sexes", songRepositoryImpl.getAllSexes());
+		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
+		model.addAttribute("races", songRepositoryImpl.getAllRaces());
+		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
+		
+		model.addAttribute("sortField",filter.getSortField());
+		model.addAttribute("sortDir",filter.getSortDir());
+		model.addAttribute("filterMode",filter.getFilterMode());
+
+		Sort sort = filter.getSortDir().equalsIgnoreCase(Sort.Direction.ASC.name()) ?
+                Sort.by(filter.getSortField()).ascending() : Sort.by(filter.getSortField()).descending();
+		PageRequest pageable = PageRequest.of(filter.getPage()-1, filter.getPageSize(), sort);
+
+		Page<TopAlbumsDTO> topAlbums = songRepositoryImpl.getTopAlbums(pageable, filter);
+		model.addAttribute("topAlbums", topAlbums);
+		
+		int totalPages = topAlbums.getTotalPages();
+        if (totalPages > 0) {
+            List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages)
+                .boxed()
+                .collect(Collectors.toList());
+            model.addAttribute("pageNumbers", pageNumbers);
+        }
+
+		List<Criterion<TopAlbumsDTO>> criteria = List.of(new Criterion<>("Sex", album -> album.getSex(),
+				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", album -> album.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Race", album -> album.getRace(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", album -> album.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", album -> album.getYear(),
+						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
+				);
+
+
+		List<TopGroupDTO> topAlbumsGroupList = new ArrayList<>(); 
+
+		for (Criterion<TopAlbumsDTO> criterion : criteria) {
+			Map<String,List<TopAlbumsDTO>> classifiedMap= topAlbums.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
+
+			List<TopCountDTO> counts = new ArrayList<>();
+
+			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, criterion.getSortBy());
+
+			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
+				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
+				counts.add(new TopCountDTO(e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topAlbums.getNumberOfElements()*100,
+						plays,
+						(double)plays*100/topAlbums.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
+						playtime,
+						(double)playtime*100/topAlbums.stream().mapToDouble(a->a.getPlaytime()).sum()
+						));
+			}
+
+			topAlbumsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
+		}
+
+		model.addAttribute("topAlbumsGroupList", topAlbumsGroupList);
+
+		return "topalbums";
+
+		/*List<TopAlbumsDTO> topAlbums = songRepositoryImpl.getTopAlbums(limit);
+		model.addAttribute("topAlbums", topAlbums);
+
+		List<Criterion<TopAlbumsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
+				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Genre", song -> song.getGenre(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Race", song -> song.getRace(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Language", song -> song.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
+				new Criterion<>("Release Year", song -> song.getYear(),
+						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
+				);
+
+
+		List<TopGroupDTO> topAlbumsGroupList = new ArrayList<>(); 
+
+		for (Criterion<TopAlbumsDTO> criterion : criteria) {
+			Map<String,List<TopAlbumsDTO>> classifiedMap= topAlbums.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+
+			List<TopCountDTO> counts = new ArrayList<>();
+
+			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, criterion.getSortBy());
+
+			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
+				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
+				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
+				counts.add(new TopCountDTO(e.getKey(), 
+						e.getValue().size(), 
+						(double)e.getValue().size()/(double)topAlbums.size()*100,
+						plays,
+						(double)plays*100/topAlbums.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
+						playtime,
+						(double)playtime*100/topAlbums.stream().mapToDouble(a->a.getPlaytime()).sum()
+						));
+			}
+
+			topAlbumsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
+		}
+
+		model.addAttribute("topAlbumsGroupList", topAlbumsGroupList);
+
+		return "topalbums";*/
+
+	}
+	
 	@RequestMapping("/topSongs")
 	public String topSongs(Model model, 
 			@Valid @ModelAttribute(value="filter") Filter filter) {
@@ -341,107 +510,6 @@ public class MainController {
 		model.addAttribute("topSongsGroupList", topSongsGroupList);
 
 		return "topsongs";
-
-	}
-
-	@RequestMapping("/topArtists")
-	public String topArtists(Model model, @RequestParam(defaultValue="10000000") int limit) {
-
-		List<TopArtistsDTO> topArtists = songRepositoryImpl.getTopArtists(limit);
-
-		model.addAttribute("topArtists", topArtists);
-
-		List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", artist -> artist.getSex(),
-				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Genre", artist -> artist.getGenre(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Race", artist -> artist.getRace(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Language", artist -> artist.getLanguage(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1))
-				);
-
-
-		List<TopGroupDTO> topArtistsGroupList = new ArrayList<>(); 
-
-		for (Criterion<TopArtistsDTO> criterion : criteria) {
-			Map<String,List<TopArtistsDTO>> classifiedMap= topArtists.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			List<Entry<String, List<TopArtistsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<TopArtistsDTO>> e : sortedList) {
-				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
-				long playtime = e.getValue().stream().mapToLong(topArtist -> topArtist.getPlaytime()).sum();
-				counts.add(new TopCountDTO(
-						e.getKey(), 
-						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topArtists.size()*100,
-						plays,
-						(double)plays*100/topArtists.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
-						playtime,
-						(double)playtime*100/topArtists.stream().mapToDouble(a->a.getPlaytime()).sum()));
-			}
-
-			topArtistsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
-		model.addAttribute("topArtistsGroupList", topArtistsGroupList);
-
-		return "topartists";
-
-	}
-
-	@RequestMapping("/topAlbums")
-	public String topAlbums(Model model, @RequestParam(defaultValue="10000000") int limit) {
-
-		List<TopAlbumsDTO> topAlbums = songRepositoryImpl.getTopAlbums(limit);
-		model.addAttribute("topAlbums", topAlbums);
-
-		List<Criterion<TopAlbumsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
-				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Genre", song -> song.getGenre(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Race", song -> song.getRace(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Language", song -> song.getLanguage(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Release Year", song -> song.getYear(),
-						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
-				);
-
-
-		List<TopGroupDTO> topAlbumsGroupList = new ArrayList<>(); 
-
-		for (Criterion<TopAlbumsDTO> criterion : criteria) {
-			Map<String,List<TopAlbumsDTO>> classifiedMap= topAlbums.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
-				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
-				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
-				counts.add(new TopCountDTO(e.getKey(), 
-						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topAlbums.size()*100,
-						plays,
-						(double)plays*100/topAlbums.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
-						playtime,
-						(double)playtime*100/topAlbums.stream().mapToDouble(a->a.getPlaytime()).sum()
-						));
-			}
-
-			topAlbumsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
-		model.addAttribute("topAlbumsGroupList", topAlbumsGroupList);
-
-		return "topalbums";
 
 	}
 
