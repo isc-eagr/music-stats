@@ -51,15 +51,7 @@ public class ArtistRepository{
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
     		 		YEARWEEK(sc.scrobble_date,1) week 
             from scrobble sc inner join song so on sc.song_id = so.id
-            where LOWER(so.%s)=LOWER(?)
-			""";
-    
-    private static final String CATEGORY_PLAYS_ALL = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
-            from scrobble sc inner join song so on sc.song_id = so.id 
-            where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
+            where 1=1
 			""";
     
 	public List<PlayDTO> artistPlays(String artist) {
@@ -76,27 +68,19 @@ public class ArtistRepository{
 	
 	public List<PlayDTO> categoryPlays(String[] categories, String[] values) {
 		String query = CATEGORY_PLAYS_QUERY;
-		if(categories.length > 1) {
-			for(int i=1 ; i < categories.length ; i++) {
-				if(categories[i].equals("PlayYear")) {
-					query += "and YEAR(sc.%s)=? ";
-					categories[i] = "scrobble_date";
-					
-				}
-				else {
-					query += "and LOWER(so.%s)=LOWER(?) ";
-				}
-				
+		for(int i=0 ; i < categories.length ; i++) {
+			if(categories[i].equals("PlayYear")) {
+				query += "and YEAR(sc.%s)=? ";
+				categories[i] = "scrobble_date";
+			}
+			else {
+				query += "and LOWER(so.%s)=LOWER(?) ";
 			}
 		}
-		
+	
 		query += " and date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ?";
 		
 		return template.query(String.format(query, (Object[])categories), new BeanPropertyRowMapper<>(PlayDTO.class), (Object[])values);
-	}
-	
-	public List<PlayDTO> categoryPlaysAll(String start, String end) {
-		return template.query(String.format(CATEGORY_PLAYS_ALL), new BeanPropertyRowMapper<>(PlayDTO.class), start, end);
 	}
 	
 }

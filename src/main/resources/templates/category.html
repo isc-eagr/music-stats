@@ -19,8 +19,8 @@
 
 <body>
 	<form th:action="${#ctx.springRequestContext.requestUri}">
-		Start date <input type="text" th:name="start" id="dateStart" />
-		End date <input type="text" th:name="end" id="dateEnd" />
+		Start date <input type="text" th:name="start" th:value="${start}" id="dateStart" />
+		End date <input type="text" th:name="end" th:value="${end}" id="dateEnd" />
 		<input type="submit" />
 	</form>
 	

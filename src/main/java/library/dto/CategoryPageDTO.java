@@ -22,6 +22,7 @@ public class CategoryPageDTO {
 	String mostPlayedAlbum;
 	String mostPlayedSong;
 	String categoryValue;
+	String categoryValueDisplay;
 	private List<AlbumSongsQueryDTO> mostPlayedSongs;
 	private List<ArtistAlbumsQueryDTO> mostPlayedAlbums;
 	
@@ -214,28 +215,13 @@ public class CategoryPageDTO {
 	}
 
 
-	public CategoryPageDTO(int totalPlays, int totalPlaytime, int averageSongLength, double averagePlaysPerSong,
-			int numberOfSongs, int numberOfAlbums, int numberOfArtists, String firstPlay, String lastPlay,
-			int daysCategoryWasPlayed, int weeksCategoryWasPlayed, int monthsCategoryWasPlayed, String mostPlayedArtist,
-			String mostPlayedAlbum, String mostPlayedSong, String categoryValue) {
-		super();
-		this.totalPlays = totalPlays;
-		this.totalPlaytime = totalPlaytime;
-		this.averageSongLength = averageSongLength;
-		this.averagePlaysPerSong = averagePlaysPerSong;
-		this.numberOfSongs = numberOfSongs;
-		this.numberOfAlbums = numberOfAlbums;
-		this.numberOfArtists = numberOfArtists;
-		this.firstPlay = firstPlay;
-		this.lastPlay = lastPlay;
-		this.daysCategoryWasPlayed = daysCategoryWasPlayed;
-		this.weeksCategoryWasPlayed = weeksCategoryWasPlayed;
-		this.monthsCategoryWasPlayed = monthsCategoryWasPlayed;
-		this.mostPlayedArtist = mostPlayedArtist;
-		this.mostPlayedAlbum = mostPlayedAlbum;
-		this.mostPlayedSong = mostPlayedSong;
-		this.categoryValue = categoryValue;
+	public String getCategoryValueDisplay() {
+		return categoryValueDisplay;
+	}
+
+
+	public void setCategoryValueDisplay(String categoryValueDisplay) {
+		this.categoryValueDisplay = categoryValueDisplay;
 	}
 	
-
 }

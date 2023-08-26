@@ -272,13 +272,33 @@ public class MainController {
 	}
 
 	@RequestMapping("/topArtists")
-	public String topArtists(Model model, @RequestParam(defaultValue="10000000") int limit) {
+	public String topArtists(Model model, 
+			@Valid @ModelAttribute(value="filter") Filter filter) {
+		model.addAttribute("sexes", songRepositoryImpl.getAllSexes());
+		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
+		model.addAttribute("races", songRepositoryImpl.getAllRaces());
+		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
+		
+		model.addAttribute("sortField",filter.getSortField());
+		model.addAttribute("sortDir",filter.getSortDir());
+		model.addAttribute("filterMode",filter.getFilterMode());
 
-		List<TopArtistsDTO> topArtists = songRepositoryImpl.getTopArtists(limit);
+		Sort sort = filter.getSortDir().equalsIgnoreCase(Sort.Direction.ASC.name()) ?
+                Sort.by(filter.getSortField()).ascending() : Sort.by(filter.getSortField()).descending();
+		PageRequest pageable = PageRequest.of(filter.getPage()-1, filter.getPageSize(), sort);
 
+		Page<TopArtistsDTO> topArtists = songRepositoryImpl.getTopArtists(pageable, filter);
 		model.addAttribute("topArtists", topArtists);
+		
+		int totalPages = topArtists.getTotalPages();
+        if (totalPages > 0) {
+            List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages)
+                .boxed()
+                .collect(Collectors.toList());
+            model.addAttribute("pageNumbers", pageNumbers);
+        }
 
-		List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", artist -> artist.getSex(),
+        List<Criterion<TopArtistsDTO>> criteria = List.of(new Criterion<>("Sex", artist -> artist.getSex(),
 				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
 				new Criterion<>("Genre", artist -> artist.getGenre(),
 						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
@@ -292,7 +312,7 @@ public class MainController {
 		List<TopGroupDTO> topArtistsGroupList = new ArrayList<>(); 
 
 		for (Criterion<TopArtistsDTO> criterion : criteria) {
-			Map<String,List<TopArtistsDTO>> classifiedMap= topArtists.stream().collect(Collectors.groupingBy(criterion.groupingBy));
+			Map<String,List<TopArtistsDTO>> classifiedMap= topArtists.stream().parallel().collect(Collectors.groupingBy(criterion.groupingBy));
 
 			List<TopCountDTO> counts = new ArrayList<>();
 
@@ -305,7 +325,7 @@ public class MainController {
 				counts.add(new TopCountDTO(
 						e.getKey(), 
 						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topArtists.size()*100,
+						(double)e.getValue().size()/(double)topArtists.getNumberOfElements()*100,
 						plays,
 						(double)plays*100/topArtists.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
 						playtime,
@@ -391,53 +411,6 @@ public class MainController {
 		model.addAttribute("topAlbumsGroupList", topAlbumsGroupList);
 
 		return "topalbums";
-
-		/*List<TopAlbumsDTO> topAlbums = songRepositoryImpl.getTopAlbums(limit);
-		model.addAttribute("topAlbums", topAlbums);
-
-		List<Criterion<TopAlbumsDTO>> criteria = List.of(new Criterion<>("Sex", song -> song.getSex(),
-				(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Genre", song -> song.getGenre(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Race", song -> song.getRace(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Language", song -> song.getLanguage(),
-						(o1, o2) -> (o1.getValue()).size()>(o2.getValue()).size()?-1:(o1.getValue().size()==o2.getValue().size()?0:1)),
-				new Criterion<>("Release Year", song -> song.getYear(),
-						(o1, o2) -> o2.getKey().compareTo(o1.getKey()))
-				);
-
-
-		List<TopGroupDTO> topAlbumsGroupList = new ArrayList<>(); 
-
-		for (Criterion<TopAlbumsDTO> criterion : criteria) {
-			Map<String,List<TopAlbumsDTO>> classifiedMap= topAlbums.stream().collect(Collectors.groupingBy(criterion.groupingBy));
-
-			List<TopCountDTO> counts = new ArrayList<>();
-
-			List<Entry<String, List<TopAlbumsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
-			Collections.sort(sortedList, criterion.getSortBy());
-
-			for(Entry<String, List<TopAlbumsDTO>> e : sortedList) {
-				int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getCount())).sum();
-				long playtime = e.getValue().stream().mapToLong(topAlbum -> topAlbum.getPlaytime()).sum();
-				counts.add(new TopCountDTO(e.getKey(), 
-						e.getValue().size(), 
-						(double)e.getValue().size()/(double)topAlbums.size()*100,
-						plays,
-						(double)plays*100/topAlbums.stream().mapToDouble(a->Double.parseDouble(a.getCount())).sum(),
-						playtime,
-						(double)playtime*100/topAlbums.stream().mapToDouble(a->a.getPlaytime()).sum()
-						));
-			}
-
-			topAlbumsGroupList.add(new TopGroupDTO(criterion.getName(),counts));
-		}
-
-		model.addAttribute("topAlbumsGroupList", topAlbumsGroupList);
-
-		return "topalbums";*/
-
 	}
 	
 	@RequestMapping("/topSongs")
@@ -972,7 +945,7 @@ public class MainController {
 		songPage.setDaysSongWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 10)).distinct().count());
 		songPage.setWeeksSongWasPlayed((int)plays.stream().map(s->s.getWeek()).distinct().count());
 		songPage.setMonthsSongWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 7)).distinct().count());
-		songPage.setMilestones(Utils.generateMilestones(plays,30,50,100,200,300,400,500,600,700,800,900,1000));
+		songPage.setMilestones(Utils.generateMilestones(plays,10,30,50,100,200,300,400,500,600,700,800,900,1000));
 
 		model.addAttribute("song",songPage);
 		
@@ -998,47 +971,57 @@ public class MainController {
 		
 	}
 	
-	@GetMapping({"/category//{limit}/{category1}/{value1}",
+	@GetMapping({"/category//{limit}",
+		"/category//{limit}/{category1}/{value1}",
 		"/category/{limit}/{category1}/{value1}/{category2}/{value2}",
 		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
 		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}",
-		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}"})
+		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}",
+		"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}"})
 	public String category(Model model, @PathVariable(required=true)int limit, 
-			@PathVariable(required=true)String category1, @PathVariable(required=true) String value1,
+			@PathVariable(required=false)String category1, @PathVariable(required=false) String value1,
 			@PathVariable(required=false)String category2, @PathVariable(required=false)String value2,
 			@PathVariable(required=false)String category3, @PathVariable(required=false)String value3,
 			@PathVariable(required=false)String category4, @PathVariable(required=false)String value4,
 			@PathVariable(required=false)String category5, @PathVariable(required=false)String value5,
 			@PathVariable(required=false)String category6, @PathVariable(required=false)String value6,
 			@RequestParam(defaultValue="1970-01-01") String start, @RequestParam(defaultValue="2400-12-31") String end) {
-		
+
 		List<String> categories = new ArrayList<>();
-		categories.add(category1);
-		categories.add(category2);
-		categories.add(category3);
-		categories.add(category4);
-		categories.add(category5);
-		categories.add(category6);
-		categories = categories.stream().filter(c->c!=null).toList();
-		
-		
 		List<String> values = new ArrayList<>();
-		values.add(value1);
-		values.add(value2);
-		values.add(value3);
-		values.add(value4);
-		values.add(value5);
-		values.add(value6);
+		
+		if(category1 != null) {
+			categories.add(category1);
+			categories.add(category2);
+			categories.add(category3);
+			categories.add(category4);
+			categories.add(category5);
+			categories.add(category6);
+			
+			values.add(value1);
+			values.add(value2);
+			values.add(value3);
+			values.add(value4);
+			values.add(value5);
+			values.add(value6);
+		}
 		values.add(start);
 		values.add(end);
+		categories = categories.stream().filter(c->c!=null).toList();
 		values = values.stream().filter(v->v!=null).toList();
 
-		List<PlayDTO> plays = category1.equalsIgnoreCase("all")?artistRepository.categoryPlaysAll(start, end)
-				:artistRepository.categoryPlays(categories.toArray(String[]::new),
+		List<PlayDTO> plays = artistRepository.categoryPlays(categories.toArray(String[]::new),
 						values.toArray(String[]::new));
 
 		CategoryPageDTO categoryPage = new CategoryPageDTO();
-		categoryPage.setCategoryValue(values.stream().limit(values.size()-2).collect(Collectors.joining(" ")));
+
+		String categoryValueDisplay = "";
+		for(int i=0 ; i<categories.size(); i++) {
+			if(categories.get(i).equals("Year")) {categoryValueDisplay += ("Released "+values.get(i)+" ");}
+			else if(categories.get(i).equals("PlayYear")) {categoryValueDisplay += ("Played "+values.get(i)+" ");}
+			else {categoryValueDisplay += (values.get(i)+" ");}
+		}
+		categoryPage.setCategoryValue(categoryValueDisplay);
 		categoryPage.setTotalPlays(plays.size());
 		categoryPage.setTotalPlaytime(plays.stream().mapToInt(s->s.getTrackLength()).sum());
 		categoryPage.setDaysCategoryWasPlayed((int)plays.stream().map(s->s.getPlayDate().substring(0, 10)).distinct().count());
@@ -1059,7 +1042,6 @@ public class MainController {
 		categoryPage.setMostPlayedAlbum(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfAlbums(map.entrySet().size());
 		
-		if(!category1.equals("ALL")) {
 		categoryPage.setMostPlayedAlbums(sortedList.stream()
 				.limit(limit)
 				.map(e->{
@@ -1074,7 +1056,6 @@ public class MainController {
 					album.setTotalPlays(e.getValue().size());
 					return album;
 			}).toList());
-		}
 
 		map = plays.stream().collect(Collectors.groupingBy(s->s.getArtist()+"::"+s.getAlbum()+"::"+s.getSong()));
 		sortedList = new ArrayList<>(map.entrySet());
@@ -1082,8 +1063,7 @@ public class MainController {
 		categoryPage.setMostPlayedSong(sortedList.size()>0?(sortedList.get(0).getKey()+" - "+sortedList.get(0).getValue().size()):"");
 		categoryPage.setNumberOfSongs(map.entrySet().size());
 		
-		if(!category1.equals("ALL")) {
-			categoryPage.setMostPlayedSongs(sortedList.stream().limit(limit).map(e->{
+		categoryPage.setMostPlayedSongs(sortedList.stream().limit(limit).map(e->{
 				AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
 				song.setArtist(e.getValue().get(0).getArtist());
 				song.setAlbum(e.getValue().get(0).getAlbum());
@@ -1096,7 +1076,6 @@ public class MainController {
 				song.setTotalPlays(e.getValue().size());
 				return song;
 			}).toList());
-		}
 		
 		
 		categoryPage.setAveragePlaysPerSong(categoryPage.getNumberOfSongs()>0?(double)categoryPage.getTotalPlays()/categoryPage.getNumberOfSongs():0);
@@ -1121,6 +1100,8 @@ public class MainController {
 		model.addAttribute("category",categoryPage);
 		model.addAttribute("categoryGroupList", Utils.generateChartData(criteria, plays, categoryPage.getNumberOfSongs(), categoryPage.getTotalPlaytime()));
 		model.addAttribute("daysElapsedSinceFirstPlay", daysElapsedSinceFirstPlay);
+		model.addAttribute("start", start == null || start.isBlank() || start.equals("1970-01-01")?"" : start);
+		model.addAttribute("end", end == null || end.isBlank() || end.equals("2400-12-31")?"" : end);
 
 		return "category";
 	}
