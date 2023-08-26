@@ -29,5 +29,9 @@ public class MilestoneDTO {
 		this.date = date;
 		this.days = days;
 	}
+	public MilestoneDTO() {
+		super();
+	}
+	
 
 }

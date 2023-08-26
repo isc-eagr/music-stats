@@ -12,6 +12,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import library.dto.Filter;
+import library.dto.MilestoneDTO;
+import library.dto.SongMilestonesDTO;
 import library.dto.SongsLocalButNotLastfmDTO;
 import library.dto.TopAlbumsDTO;
 import library.dto.TopArtistsDTO;
@@ -257,10 +259,19 @@ public class SongRepositoryImpl{
 	private static final String ALL_LANGUAGES = """
 			SELECT DISTINCT(language) from song order by language asc;
 			""";
+	
+	private static final String ALL_SONGS_FOR_MILESTONES = """
+			select distinct sc.artist, IFNULL(sc.album,'(single)') album, sc.song from scrobble sc;
+			""";
+	
+	private static final String MILESTONES_FOR_SONGS = """
+			WITH sub AS (select *, row_number() OVER (ORDER BY scrobble_date asc) AS rowNumber from scrobble 
+			where artist = ? and IFNULL(album,'(single)') = ? and song = ?)
+			select scrobble_date date, rowNumber plays from sub where rowNumber in (1,10,30,50,100,200,300,400,500,600,700,800,900,1000);
+			""";
 		
 	
 	public Page<TopAlbumsDTO> getTopAlbums(Pageable page, Filter filter) {
-		//return template.query(TOP_ALBUMS_QUERY, new BeanPropertyRowMapper<>(TopAlbumsDTO.class),limit);
 		List<Object> params = new ArrayList<>();
 		
 		String topAlbumsBuiltQuery = TOP_ALBUMS_BASE_QUERY;
@@ -382,6 +393,20 @@ public class SongRepositoryImpl{
 	
 	public List<String> getAllLanguages() {
 		return template.queryForList(ALL_LANGUAGES, String.class);
+	}
+	
+	//Unused for now, rethink how to implement milestones
+	public List<SongMilestonesDTO> getAllSongsForMilestones(){
+		return template.query(ALL_SONGS_FOR_MILESTONES, 
+				new BeanPropertyRowMapper<>(SongMilestonesDTO.class));
+		
+	}
+	
+	//Unused for now, rethink how to implement milestones
+	public List<MilestoneDTO> getMilestonesForSong(String artist, String album, String song){
+		return template.query(MILESTONES_FOR_SONGS, 
+				new BeanPropertyRowMapper<>(MilestoneDTO.class),artist, album, song);
+		
 	}
 	
 }
