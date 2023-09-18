@@ -277,9 +277,8 @@ public class SongRepositoryImpl{
 		String topAlbumsBuiltQuery = TOP_ALBUMS_BASE_QUERY;
 		String topAlbumsCountBuiltQuery = TOP_ALBUMS_COUNT;
 		
-		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topAlbumsBuiltQuery += " and artist like ? "; params.add(filter.getArtist());topAlbumsCountBuiltQuery+=" and artist like ?";}
-		if(filter.getSong()!=null && !filter.getSong().isBlank()) {topAlbumsBuiltQuery += " and song like ? "; params.add(filter.getSong());topAlbumsCountBuiltQuery+=" and song like ?";}
-		if(filter.getAlbum()!=null && !filter.getAlbum().isBlank()) {topAlbumsBuiltQuery += " and album like ? "; params.add(filter.getAlbum());topAlbumsCountBuiltQuery+=" and album like ?";}
+		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topAlbumsBuiltQuery += " and loc1.artist like ? "; params.add("%"+filter.getArtist()+"%");topAlbumsCountBuiltQuery+=" and loc1.artist like ?";}
+		if(filter.getAlbum()!=null && !filter.getAlbum().isBlank()) {topAlbumsBuiltQuery += " and loc1.album like ? "; params.add("%"+filter.getAlbum()+"%");topAlbumsCountBuiltQuery+=" and loc1.album like ?";}
 		if(filter.getSex()!=null && !filter.getSex().isBlank()) {topAlbumsBuiltQuery += " and sex=? "; params.add(filter.getSex());topAlbumsCountBuiltQuery+=" and sex=?";}
 		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topAlbumsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topAlbumsCountBuiltQuery+=" and genre=?";}
 		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topAlbumsBuiltQuery += " and race=? "; params.add(filter.getRace());topAlbumsCountBuiltQuery+=" and race=?";}
@@ -303,9 +302,9 @@ public class SongRepositoryImpl{
 		String topSongsBuiltQuery = TOP_SONGS_BASE_QUERY;
 		String topSongsCountBuiltQuery = TOP_SONGS_COUNT;
 		
-		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topSongsBuiltQuery += " and artist like ? "; params.add(filter.getArtist());topSongsCountBuiltQuery+=" and artist like ?";}
-		if(filter.getSong()!=null && !filter.getSong().isBlank()) {topSongsBuiltQuery += " and song like ? "; params.add(filter.getSong());topSongsCountBuiltQuery+=" and song like ?";}
-		if(filter.getAlbum()!=null && !filter.getAlbum().isBlank()) {topSongsBuiltQuery += " and album like ? "; params.add(filter.getAlbum());topSongsCountBuiltQuery+=" and album like ?";}
+		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topSongsBuiltQuery += " and loc1.artist like ? "; params.add("%"+filter.getArtist()+"%");topSongsCountBuiltQuery+=" and loc1.artist like ?";}
+		if(filter.getSong()!=null && !filter.getSong().isBlank()) {topSongsBuiltQuery += " and loc1.song like ? "; params.add("%"+filter.getSong()+"%");topSongsCountBuiltQuery+=" and loc1.song like ?";}
+		if(filter.getAlbum()!=null && !filter.getAlbum().isBlank()) {topSongsBuiltQuery += " and loc1.album like ? "; params.add("%"+filter.getAlbum()+"%");topSongsCountBuiltQuery+=" and loc1.album like ?";}
 		if(filter.getSex()!=null && !filter.getSex().isBlank()) {topSongsBuiltQuery += " and sex=? "; params.add(filter.getSex());topSongsCountBuiltQuery+=" and sex=?";}
 		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topSongsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topSongsCountBuiltQuery+=" and genre=?";}
 		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topSongsBuiltQuery += " and race=? "; params.add(filter.getRace());topSongsCountBuiltQuery+=" and race=?";}
@@ -329,7 +328,7 @@ public class SongRepositoryImpl{
 		String topArtistsBuiltQuery = TOP_ARTISTS_BASE_QUERY;
 		String topArtistsCountBuiltQuery = TOP_ARTISTS_COUNT;
 		
-		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topArtistsBuiltQuery += " and artist like ? "; params.add(filter.getArtist());topArtistsCountBuiltQuery+=" and artist like ?";}
+		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topArtistsBuiltQuery += " and loc1.artist like ? "; params.add("%"+filter.getArtist()+"%");topArtistsCountBuiltQuery+=" and loc1.artist like ?";}
 		if(filter.getSex()!=null && !filter.getSex().isBlank()) {topArtistsBuiltQuery += " and sex=? "; params.add(filter.getSex());topArtistsCountBuiltQuery+=" and sex=?";}
 		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topArtistsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topArtistsCountBuiltQuery+=" and genre=?";}
 		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topArtistsBuiltQuery += " and race=? "; params.add(filter.getRace());topArtistsCountBuiltQuery+=" and race=?";}

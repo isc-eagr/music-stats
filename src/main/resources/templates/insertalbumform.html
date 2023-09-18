@@ -43,9 +43,9 @@
 					<th/>
 					<th>Race</th>
 					<th/>
-					<th>Year</th>
-					<th/>
 					<th>Language</th>
+					<th/>
+					<th>Year</th>
 					<th/>
 					<th>Duration (mm:ss)</th>
 					<th>Artist</th>
@@ -60,8 +60,8 @@
 						<td><input th:field="*{songs[__${itemStat.index}__].sex}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.sex'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
 						<td><input th:field="*{songs[__${itemStat.index}__].genre}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.genre'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
 						<td><input th:field="*{songs[__${itemStat.index}__].race}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.race'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
-						<td><input th:field="*{songs[__${itemStat.index}__].year}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.year'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
 						<td><input th:field="*{songs[__${itemStat.index}__].language}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.language'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
+						<td><input th:field="*{songs[__${itemStat.index}__].year}"/></td><td><button type="button" th:data-id="${'songs'+itemStat.index+'.year'}" th:onclick="fill(this.getAttribute('data-id'))">Fill</button></td>
 						<td><input th:field="*{songs[__${itemStat.index}__].durationString}"/></td>
 						<td><input th:field="*{songs[__${itemStat.index}__].artist}"/></td>
 						<td><input th:field="*{songs[__${itemStat.index}__].song}"/></td>

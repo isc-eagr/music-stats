@@ -34,7 +34,7 @@ public class ScrobbleRepositoryImpl{
 			set song_id = ? 
 			where artist = ? 
 			and song = ? 
-			and album = ?
+			and IFNULL(album,'') = ?
 			""";
 	
 	private static final String SONGS_FROM_ARTIST = """
