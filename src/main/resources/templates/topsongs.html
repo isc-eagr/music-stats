@@ -211,6 +211,15 @@
 					<th data-sortable="false">Position</th>
 					<th data-sortable="false">Overall Position</th>
 					<th>
+						<a th:page="${'1'}" th:sortField="${'count'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
+							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
+							Plays
+							<i th:if="${sortField eq 'count'}"
+								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
+							</i>
+						</a>
+					</th>
+					<th>
 						<a th:page="${'1'}" th:sortField="${'artist'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}" 
 							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
 							Artist
@@ -247,15 +256,6 @@
 							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
 							Length
 							<i th:if="${sortField eq 'length'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'count'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Plays
-							<i th:if="${sortField eq 'count'}"
 								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
 							</i>
 						</a>
@@ -320,6 +320,7 @@
 				<tr th:each="topSong, stat : ${topSongs}">
 					<td th:text="${stat.index+topSongs.pageable.offset+1}" />
 					<td th:text="${stat.index+topSongs.pageable.offset+1}"/>
+					<td th:text="${topSong.count}" />
 					<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}">
 					</td>
 					<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}"
@@ -337,7 +338,6 @@
 					<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.race},category=${'Race'})}"
 							th:text="${topSong.race}" /></td>
 					<td th:text="${topSong.lengthString}" th:data-value="${topSong.length}" />
-					<td th:text="${topSong.count}" />
 					<td th:text="${topSong.playtimeString}" th:data-value="${topSong.playtime}" />
 					<td th:text="${topSong.firstPlay}" />
 					<td th:text="${topSong.lastPlay}" />
