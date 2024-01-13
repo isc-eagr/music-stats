@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import library.entity.Song;
 
 @Repository
-public interface SongRepository extends JpaRepository<Song, Long> {
+public interface SongRepository extends JpaRepository<Song, Integer> {
 	
 	public List<Song> findByCreated(String created);
 	

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import library.entity.Scrobble;
 
 @Repository
-public interface ScrobbleRepository extends JpaRepository<Scrobble, Long> {
+public interface ScrobbleRepository extends JpaRepository<Scrobble, Integer> {
 	
 	List<Scrobble> findByArtistAndSongAndAlbum (String artist, String song, String album);
 
