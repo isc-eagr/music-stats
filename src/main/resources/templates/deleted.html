@@ -1,0 +1,61 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Stats</title>
+	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+	<script src="js/sortable.min.js"></script>
+	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+</head>
+<body>
+
+	Songs not in library anymore: <span th:text="${deletedSongs.size}">.</span> <br/>
+	
+	<div id="groupsTable">
+	<table th:each="deletedSongsGroup : ${deletedSongsGroupList}" >
+		<tr>
+			<th th:text="${deletedSongsGroup.criteria}"/>
+			<th>Number of Songs</th>
+			<th>Percentage of Songs</th>
+		</tr>
+		<tr th:each="listCount : ${deletedSongsGroup.listCounts}">
+			<td th:text="${listCount.element}"/>
+			<td th:text="${listCount.count}"/>
+			<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
+		</tr>
+	</table>
+</div>
+	<br />
+	
+	<table class="sortable-theme-finder" data-sortable>
+	<thead>
+		<tr>
+			<th>Artist</th>
+			<th>Song</th>
+			<th>Album</th>
+			<th>Genre</th>
+			<th>Race</th>
+			<th>Sex</th>
+			<th>Language</th>
+			<th>Year</th>
+			<th>Plays</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr th:each="song : ${deletedSongs}">
+			
+				<td th:text="${song.artist}"/>
+				<td th:text="${song.song}"/>
+				<td th:text="${song.album}"/>
+				<td th:text="${song.genre}"/>
+				<td th:text="${song.race}"/>
+				<td th:text="${song.sex}"/>
+				<td th:text="${song.language}"/>
+				<td th:text="${song.year}"/>
+				<td th:text="${song.plays}"/>
+			
+		</tr>
+	</tbody>
+	</table>
+
+</body>
+
+</html>

@@ -22,9 +22,9 @@ public class BLMImageDownloader {
 		String userpass = "vatito2:Tr4ilera";
 		String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
 		
-		for(int i=1614 ; i<= 1615; i++) {
+		for(int i=1617 ; i<= 1624; i++) {
 		
-		String url = "http://bilatinmen.com/members/latin_men_pictures/pictures_09/model"+String.valueOf(i)+"/";
+		String url = "https://bilatinmen.com/members/latin_men_pictures/pictures_09/model"+String.valueOf(i)+"/";
 		
 		String[] urlSegments = url.split("/");
 		String dirName = urlSegments[urlSegments.length-1];
@@ -80,7 +80,7 @@ public class BLMImageDownloader {
 		String userpass = "vatito2:Tr4ilera";
 		String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
 		
-		String baseUrl = "http://bilatinmen.com/members/latin_men_pictures/pictures_05/model231/";
+		String baseUrl = "https://bilatinmen.com/members/latin_men_pictures/pictures_05/model231/";
 		char lastLetter = 'z';
 		int lastZ = 9;
 		

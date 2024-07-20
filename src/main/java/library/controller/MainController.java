@@ -50,6 +50,7 @@ import library.dto.ArtistPageDTO;
 import library.dto.PlayDTO;
 import library.dto.ArtistSongsQueryDTO;
 import library.dto.Criterion;
+import library.dto.DeletedSongsDTO;
 import library.dto.Filter;
 import library.dto.CategoryPageDTO;
 import library.dto.SaveAlbumDTO;
@@ -97,7 +98,7 @@ public class MainController {
 	@ResponseBody
 	public String insertScrobbles(Model model) throws FileNotFoundException, IOException {
 
-		String fileName = "c:\\scrobbles.csv";
+		String fileName = "C:\\scrobbles.csv";
 		FileReader file = new FileReader(fileName);
 
 		List<Scrobble> scrobbles = new CsvToBeanBuilder<Scrobble>(file).withType(Scrobble.class).withSkipLines(1)
@@ -110,7 +111,7 @@ public class MainController {
 		scrobbles.stream().parallel().forEach(sc -> {
 			List<Song> foundSongs = everySong.stream().parallel()
 					.filter(song -> song.getArtist().equalsIgnoreCase(sc.getArtist())
-							&& song.getSong().replace("????", "").equalsIgnoreCase(sc.getSong().replace("????", ""))
+							&& song.getSong().replace("????", "").equalsIgnoreCase(sc.getSong().replace("????", "")) //specifically for Rauw's DIME QUIEN????
 							&& String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum())))
 					.toList();
 
@@ -176,8 +177,7 @@ public class MainController {
 					String value = "null";
 					try {
 						value = valor.getChildNodes().item(0).getNodeValue();
-					} catch (DOMException | NullPointerException e) {
-					}
+					} catch (DOMException | NullPointerException e) {}
 					switch (property) {
 					case "Name":
 						songObject.setSong(value);
@@ -206,7 +206,6 @@ public class MainController {
 					case "Comments":
 						songObject.setSex(value);
 						break;
-
 					case "Kind":
 						switch (value) {
 						case "Matched AAC audio file":
@@ -944,7 +943,7 @@ public class MainController {
 		AlbumPageDTO albumInfo = new AlbumPageDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays,
 				totalPlaytime, averageSongLength, averagePlaysPerSong, numberOfSongs,
 				Utils.secondsToStringColon(sumOfTrackLengths), daysAlbumWasPlayed, weeksArtistWasPlayed,
-				monthsAlbumWasPlayed, Utils.generateMilestones(plays, 100, 200, 300, 400, 500, 1000, 1500, 2000));
+				monthsAlbumWasPlayed, Utils.generateMilestones(plays, 100, 200, 300, 400, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000));
 
 		model.addAttribute("artist", artist);
 		model.addAttribute("album", album);
@@ -1004,6 +1003,56 @@ public class MainController {
 		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
 
 		return "categorysearchform";
+
+	}
+	
+	@GetMapping({ "/deleted" })
+	public String deleted(Model model) {
+		List<DeletedSongsDTO> deletedSongs = songRepositoryImpl.getDeletedSongs();
+		
+		model.addAttribute("deletedSongs", deletedSongs);
+		
+		List<Criterion<DeletedSongsDTO>> criteria = List.of(
+				new Criterion<>("Sex", song -> song.getSex(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+				new Criterion<>("Genre", song -> song.getGenre(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+				new Criterion<>("Race", song -> song.getRace(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+				new Criterion<>("Language", song -> song.getLanguage(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+				new Criterion<>("Release Year", song -> song.getYear(),
+						(o1, o2) -> o2.getKey().compareTo(o1.getKey())));
+
+		List<TopGroupDTO> deletedSongsGroupList = new ArrayList<>();
+
+		for (Criterion<DeletedSongsDTO> criterion : criteria) {
+			Map<String, List<DeletedSongsDTO>> classifiedMap = deletedSongs.stream().parallel()
+					.collect(Collectors.groupingBy(criterion.groupingBy));
+
+			List<TopCountDTO> counts = new ArrayList<>();
+
+			List<Entry<String, List<DeletedSongsDTO>>> sortedList = new ArrayList<>(classifiedMap.entrySet());
+			Collections.sort(sortedList, criterion.getSortBy());
+
+			for (Entry<String, List<DeletedSongsDTO>> e : sortedList) {
+				//int plays = e.getValue().stream().mapToInt(topSong -> Integer.parseInt(topSong.getPlays())).sum();
+				counts.add(new TopCountDTO(e.getKey(), e.getValue().size(),
+						(double) e.getValue().size() / (double) deletedSongs.size() * 100, 0,0,0,0
+						));
+			}
+
+			deletedSongsGroupList.add(new TopGroupDTO(criterion.getName(), counts));
+		}
+
+		model.addAttribute("deletedSongsGroupList", deletedSongsGroupList);
+		
+
+		return "deleted";
 
 	}
 

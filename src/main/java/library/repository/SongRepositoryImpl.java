@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import library.dto.DeletedSongsDTO;
 import library.dto.Filter;
 import library.dto.MilestoneDTO;
 import library.dto.SongMilestonesDTO;
@@ -269,6 +270,14 @@ public class SongRepositoryImpl{
 			where artist = ? and IFNULL(album,'(single)') = ? and song = ?)
 			select scrobble_date date, rowNumber plays from sub where rowNumber in (1,10,30,50,100,200,300,400,500,600,700,800,900,1000);
 			""";
+	
+	private static final String DELETED_SONGS_QUERY = """
+			select so.artist, so.song, so.album, so.year, so.language, so.genre, so.race, so.sex, count(*) plays
+			from song so inner join scrobble sc on so.id=sc.song_id
+			where cloud_status = 'Deleted' 
+			group by so.artist, so.song, so.album
+			order by artist, song, album;
+			""";
 		
 	
 	public Page<TopAlbumsDTO> getTopAlbums(Pageable page, Filter filter) {
@@ -406,6 +415,10 @@ public class SongRepositoryImpl{
 		return template.query(MILESTONES_FOR_SONGS, 
 				new BeanPropertyRowMapper<>(MilestoneDTO.class),artist, album, song);
 		
+	}
+	
+	public List<DeletedSongsDTO> getDeletedSongs() {
+		return template.query(DELETED_SONGS_QUERY, new BeanPropertyRowMapper<>(DeletedSongsDTO.class));
 	}
 	
 }
