@@ -46,7 +46,7 @@
 		<br />
 		<br />
 
-	<table id="artistTable" class="sortable-theme-finder" data-sortable>
+	<table id="albumsTable" class="sortable-theme-finder" data-sortable>
 		<thead>
 			<tr>
 				<th>Position</th>
@@ -89,7 +89,7 @@
 
 	<br />
 	<br />
-	<table id="artistTable" class="sortable-theme-finder" data-sortable>
+	<table id="songsTable" class="sortable-theme-finder" data-sortable>
 		<thead>
 			<tr>
 				<th>Position</th>
@@ -108,7 +108,7 @@
 		</thead>
 		<tbody>
 			<tr th:each="song, stat : ${artistInfo.songs}">
-				<td th:text="${stat.index+1}" />
+				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
 				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}"
 						th:text="${song.song}"></td>
 				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${song.album})}"

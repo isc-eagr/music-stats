@@ -20,7 +20,7 @@ public class TimeUnitRepository{
 	
 	private static final String DAY_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-			 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
+			 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
 			 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where date(sc.scrobble_date)=date(?)
@@ -28,7 +28,7 @@ public class TimeUnitRepository{
     
     private static final String WEEK_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where YEARWEEK(sc.scrobble_date,1)=?
@@ -36,7 +36,7 @@ public class TimeUnitRepository{
     
     private static final String MONTH_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race,  
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where date_format(sc.scrobble_date,'%Y-%M')=?
@@ -44,7 +44,7 @@ public class TimeUnitRepository{
     
     private static final String SEASON_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race,  
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where (case when MONTH(sc.scrobble_date) between 3 and 5 then CONCAT(YEAR(sc.scrobble_date),'Spring')
@@ -57,7 +57,7 @@ public class TimeUnitRepository{
     
     private static final String YEAR_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race,  
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race,  so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where date_format(sc.scrobble_date,'%Y')=?
@@ -65,7 +65,7 @@ public class TimeUnitRepository{
     
     private static final String DECADE_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race,  
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where concat(convert(year(scrobble_date),CHAR(3)),'0','s')=?

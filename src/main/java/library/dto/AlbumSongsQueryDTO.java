@@ -21,6 +21,7 @@ public class AlbumSongsQueryDTO {
 	int daysSongWasPlayed;
 	int weeksSongWasPlayed;
 	int monthsSongWasPlayed;
+	String cloudStatus;
 
 
 	public String getArtist() {
@@ -187,6 +188,16 @@ public class AlbumSongsQueryDTO {
 
 	public void setMonthsSongWasPlayed(int monthsSongWasPlayed) {
 		this.monthsSongWasPlayed = monthsSongWasPlayed;
+	}
+	
+	
+	public String getCloudStatus() {
+		return cloudStatus;
+	}
+
+
+	public void setCloudStatus(String cloudStatus) {
+		this.cloudStatus = cloudStatus;
 	}
 
 

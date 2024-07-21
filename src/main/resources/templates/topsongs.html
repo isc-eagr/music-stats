@@ -318,7 +318,7 @@
 			</thead>
 			<tbody>
 				<tr th:each="topSong, stat : ${topSongs}">
-					<td th:text="${stat.index+topSongs.pageable.offset+1}" />
+					<td th:text="${stat.index+topSongs.pageable.offset+1}" th:style="${topSong.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
 					<td th:text="${stat.index+topSongs.pageable.offset+1}"/>
 					<td th:text="${topSong.count}" />
 					<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}">

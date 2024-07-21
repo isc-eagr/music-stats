@@ -15,6 +15,7 @@ public class PlayDTO {
 	private String language;
 	private String sex;
 	private String week;
+	private String cloudStatus;
 	
 	public String getArtist() {
 		return artist;
@@ -82,6 +83,13 @@ public class PlayDTO {
 	}
 	public void setWeek(String week) {
 		this.week = week;
+	}
+	
+	public String getCloudStatus() {
+		return cloudStatus;
+	}
+	public void setCloudStatus(String cloudStatus) {
+		this.cloudStatus = cloudStatus;
 	}
 	@Override
 	public String toString() {

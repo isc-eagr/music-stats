@@ -222,7 +222,7 @@ public class Utils {
 		List<MilestoneDTO> milestonesMap = new ArrayList<>();
 		
 		for(int milestone : milestonePlays) {
-			if(milestone -1 <= plays.size()) {
+			if(milestone -1 < plays.size()) {
 				PlayDTO play = plays.get(milestone-1);
 				LocalDate milestonePlay = LocalDate.parse(play.getPlayDate().substring(0, 10));
 				milestonesMap.add(new MilestoneDTO(milestone, play.getPlayDate(),ChronoUnit.DAYS.between(firstPlay, milestonePlay)));

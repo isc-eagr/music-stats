@@ -26,6 +26,8 @@ public class TopSongsDTO {
 	
 	private String year;
 	
+	private String cloudStatus;
+	
 	private int length;
 	
 	private long playtime;
@@ -126,6 +128,14 @@ public class TopSongsDTO {
 
 	public void setYear(String year) {
 		this.year = year;
+	}
+	
+	public String getCloudStatus() {
+		return cloudStatus;
+	}
+
+	public void setCloudStatus(String cloudStatus) {
+		this.cloudStatus = cloudStatus;
 	}
 
 	public long getPlaytime() {

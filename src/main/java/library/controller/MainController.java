@@ -211,13 +211,14 @@ public class MainController {
 						case "Matched AAC audio file":
 							songObject.setCloudStatus("Matched");
 							break;
-						case "AAC audio file":
+						case "AAC audio file", "MPEG audio file":
 							songObject.setCloudStatus("Uploaded");
 							break;
 						case "Apple Music AAC audio file":
 							songObject.setCloudStatus("No Longer Available");
 							break;
 						default:
+							songObject.setCloudStatus("Unknown");
 							break;
 						}
 						break;
@@ -659,6 +660,7 @@ public class MainController {
 			song.setLanguage(e.getValue().get(0).getLanguage());
 			song.setYear(e.getValue().get(0).getYear());
 			song.setTotalPlays(e.getValue().size());
+			song.setCloudStatus(e.getValue().get(0).getCloudStatus());
 			return song;
 		}).toList());
 
@@ -676,7 +678,12 @@ public class MainController {
 						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
 								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
 				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey())));
+						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
+				new Criterion<>("Cloud Status", play -> play.getCloudStatus(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1))		
+						
+						);
 
 		model.addAttribute("timeUnitGroupList", Utils.generateChartData(criteria, plays,
 				timeUnitDetailDTO.getUniqueSongsPlayed(), (int) timeUnitDetailDTO.getTotalPlaytime()));
@@ -804,6 +811,7 @@ public class MainController {
 			artistSong.setWeeksSongWasPlayed((int) sorted.stream().map(s -> s.getWeek()).distinct().count());
 			artistSong.setMonthsSongWasPlayed(
 					(int) sorted.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
+			artistSong.setCloudStatus(sorted.get(0).getCloudStatus());
 			artistSongsList.add(artistSong);
 		}
 		artistSongsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
@@ -915,6 +923,7 @@ public class MainController {
 			albumSong.setWeeksSongWasPlayed((int) sorted.stream().map(s -> s.getWeek()).distinct().count());
 			albumSong.setMonthsSongWasPlayed(
 					(int) sorted.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
+			albumSong.setCloudStatus(sorted.get(0).getCloudStatus());
 			albumSongsList.add(albumSong);
 		}
 		albumSongsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
@@ -1174,6 +1183,7 @@ public class MainController {
 			song.setLanguage(e.getValue().get(0).getLanguage());
 			song.setYear(e.getValue().get(0).getYear());
 			song.setTotalPlays(e.getValue().size());
+			song.setCloudStatus(e.getValue().get(0).getCloudStatus());
 			return song;
 		}).toList());
 
@@ -1202,7 +1212,11 @@ public class MainController {
 				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
 				new Criterion<>("PlayYear", play -> play.getPlayDate().substring(0, 4),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey())));
+						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
+				new Criterion<>("Cloud Status", play -> play.getCloudStatus(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1))
+				);
 
 		model.addAttribute("categories", categories);
 		model.addAttribute("category", categoryPage);

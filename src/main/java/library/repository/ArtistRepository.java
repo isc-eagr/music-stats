@@ -19,7 +19,7 @@ public class ArtistRepository{
 
     private static final String ARTIST_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, 
+    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
@@ -28,7 +28,7 @@ public class ArtistRepository{
     
     private static final String ALBUM_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, 
+    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
@@ -48,7 +48,7 @@ public class ArtistRepository{
     
     private static final String CATEGORY_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, 
+    		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week 
             from scrobble sc inner join song so on sc.song_id = so.id
             where 1=1

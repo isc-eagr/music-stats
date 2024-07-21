@@ -68,7 +68,7 @@
 		</thead>
 		<tbody>
 			<tr th:each="song, stat : ${albumInfo.songs}">
-				<td th:text="${stat.index+1}" />
+				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
 				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
 						th:text="${song.song}"></td>
 				<td th:text="${song.album}" />
