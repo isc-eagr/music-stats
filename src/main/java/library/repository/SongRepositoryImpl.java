@@ -107,7 +107,6 @@ public class SongRepositoryImpl{
 				where 1=1 
 			""";
 	
-	//TODO this is counting (single)s, find a way to exclude them
 	private static final String TOP_ARTISTS_BASE_QUERY = """
 				select * from 
 				(select artist, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
@@ -272,8 +271,8 @@ public class SongRepositoryImpl{
 			""";
 	
 	private static final String DELETED_SONGS_QUERY = """
-			select so.artist, so.song, so.album, so.year, so.language, so.genre, so.race, so.sex, count(*) plays
-			from song so inner join scrobble sc on so.id=sc.song_id
+			select so.artist, so.song, IFNULL(so.album,'(single)') album, so.year, so.language, so.genre, so.race, so.sex, count(*) plays, so.duration
+			from song so
 			where cloud_status = 'Deleted' 
 			group by so.artist, so.song, so.album
 			order by artist, song, album;

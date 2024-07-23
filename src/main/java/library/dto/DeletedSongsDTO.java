@@ -1,5 +1,7 @@
 package library.dto;
 
+import library.util.Utils;
+
 public class DeletedSongsDTO {
 	
 	private String artist;
@@ -11,6 +13,8 @@ public class DeletedSongsDTO {
 	private String language;
 	private String plays;
 	private String year;
+	private int duration;
+	
 	public String getArtist() {
 		return artist;
 	}
@@ -64,6 +68,15 @@ public class DeletedSongsDTO {
 	}
 	public void setYear(String year) {
 		this.year = year;
+	}
+	public int getDuration() {
+		return duration;
+	}
+	public void setDuration(int duration) {
+		this.duration = duration;
+	}
+	public String getDurationString() {
+		return Utils.secondsToStringColon(duration);
 	}
 	
 }

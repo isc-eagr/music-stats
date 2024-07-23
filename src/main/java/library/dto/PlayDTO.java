@@ -16,6 +16,7 @@ public class PlayDTO {
 	private String sex;
 	private String week;
 	private String cloudStatus;
+	private String mainOrFeature;
 	
 	public String getArtist() {
 		return artist;
@@ -90,6 +91,12 @@ public class PlayDTO {
 	}
 	public void setCloudStatus(String cloudStatus) {
 		this.cloudStatus = cloudStatus;
+	}
+	public String getMainOrFeature() {
+		return mainOrFeature;
+	}
+	public void setMainOrFeature(String mainOrFeature) {
+		this.mainOrFeature = mainOrFeature;
 	}
 	@Override
 	public String toString() {

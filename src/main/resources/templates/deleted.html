@@ -31,26 +31,36 @@
 			<th>Artist</th>
 			<th>Song</th>
 			<th>Album</th>
+			<th>Plays</th>
+			<th>Length</th>
 			<th>Genre</th>
 			<th>Race</th>
 			<th>Sex</th>
 			<th>Language</th>
 			<th>Year</th>
-			<th>Plays</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr th:each="song : ${deletedSongs}">
 			
-				<td th:text="${song.artist}"/>
-				<td th:text="${song.song}"/>
-				<td th:text="${song.album}"/>
-				<td th:text="${song.genre}"/>
-				<td th:text="${song.race}"/>
-				<td th:text="${song.sex}"/>
-				<td th:text="${song.language}"/>
-				<td th:text="${song.year}"/>
+				<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}">
+								</td>
+				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
+										th:text="${song.song}"></td>
+				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}"
+										th:text="${song.album}"></td>
 				<td th:text="${song.plays}"/>
+				<td th:text="${song.durationString}"/>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${song.genre},category=${'Genre'})}"
+										th:text="${song.genre}" /></td>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${song.race},category=${'Race'})}"
+										th:text="${song.race}" /></td>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${song.sex},category=${'Sex'})}"
+										th:text="${song.sex}" /></td>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${song.language},category=${'Language'})}"
+										th:text="${song.language}" /></td>
+				<td><a th:href="@{/category/100/{category}/{value}(value=${song.year},category=${'Year'})}"
+										th:text="${song.year}" /></td>
 			
 		</tr>
 	</tbody>

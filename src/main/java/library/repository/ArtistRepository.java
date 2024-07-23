@@ -18,11 +18,12 @@ public class ArtistRepository{
 	}
 
     private static final String ARTIST_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, IF(LOWER(sc.artist)=LOWER(?),'Main','Feature') as main_or_feature,
     		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where LOWER(sc.artist)=LOWER(?)
+            where (LOWER(sc.artist)=LOWER(?)
+            <includeFeatures>)
             order by play_date asc
 			""";
     
@@ -54,8 +55,23 @@ public class ArtistRepository{
             where 1=1
 			""";
     
-	public List<PlayDTO> artistPlays(String artist) {
-		return template.query(ARTIST_PLAYS_QUERY, new BeanPropertyRowMapper<>(PlayDTO.class), artist);
+	public List<PlayDTO> artistPlays(String artist, boolean includeFeatures) {
+		
+		String artistPlaysQuery = ARTIST_PLAYS_QUERY;
+		
+		if(includeFeatures) {
+			artistPlaysQuery = artistPlaysQuery.replace("<includeFeatures>", 
+					"or (LOWER(sc.song) like LOWER(?) and (LOWER(sc.song) like '%feat%' or LOWER(sc.song) like '%with%'))");
+			
+			return template.query(artistPlaysQuery, new BeanPropertyRowMapper<>(PlayDTO.class), artist, artist, "%"+artist+"%");
+		}
+		else {
+			artistPlaysQuery = artistPlaysQuery.replace("<includeFeatures>","");
+			
+			return template.query(artistPlaysQuery, new BeanPropertyRowMapper<>(PlayDTO.class), artist, artist);
+		}
+		
+		
 	}
 	
 	public List<PlayDTO> albumPlays(String artist, String album) {
@@ -74,7 +90,7 @@ public class ArtistRepository{
 				categories[i] = "scrobble_date";
 			}
 			else {
-				query += "and LOWER(so.%s)=LOWER(?) ";
+				query += "and so.%s like ? ";
 			}
 		}
 	

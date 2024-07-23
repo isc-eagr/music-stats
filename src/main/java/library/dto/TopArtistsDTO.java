@@ -14,7 +14,7 @@ public class TopArtistsDTO {
 	
 	private String language;
 	
-	private String count;
+	private int count;
 	
 	private String firstPlay;
 	
@@ -30,11 +30,11 @@ public class TopArtistsDTO {
 	
 	private int numberOfSongs;
 	
-	private int playDays;
+	private long playDays;
 	
-	private int playWeeks;
+	private long playWeeks;
 	
-	private int playMonths;
+	private long playMonths;
 	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
@@ -80,11 +80,11 @@ public class TopArtistsDTO {
 		this.language = language;
 	}
 
-	public String getCount() {
+	public int getCount() {
 		return count;
 	}
 
-	public void setCount(String count) {
+	public void setCount(int count) {
 		this.count = count;
 	}
 	
@@ -144,27 +144,27 @@ public class TopArtistsDTO {
 		this.numberOfSongs = numberOfSongs;
 	}
 	
-	public int getPlayDays() {
+	public long getPlayDays() {
 		return playDays;
 	}
 
-	public void setPlayDays(int playDays) {
+	public void setPlayDays(long playDays) {
 		this.playDays = playDays;
 	}
 
-	public int getPlayWeeks() {
+	public long getPlayWeeks() {
 		return playWeeks;
 	}
 
-	public void setPlayWeeks(int playWeeks) {
+	public void setPlayWeeks(long playWeeks) {
 		this.playWeeks = playWeeks;
 	}
 
-	public int getPlayMonths() {
+	public long getPlayMonths() {
 		return playMonths;
 	}
 
-	public void setPlayMonths(int playMonths) {
+	public void setPlayMonths(long playMonths) {
 		this.playMonths = playMonths;
 	}
 

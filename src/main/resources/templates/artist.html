@@ -15,6 +15,7 @@
 
 <body>
 
+	Include Features: <input type="checkbox" th:checked="${includeFeatures}" th:onclick="window.location=[[${'/artist?artist='+artist+'&includeFeatures='}]]+this.checked"/><br />
 	Number Of Songs: <span th:text="${artistInfo.numberOfSongs}" /> <br />
 	Total Plays: <span th:text="${artistInfo.totalPlays}" /><br />
 	Total Playtime: <span th:text="${artistInfo.totalPlaytime}" /><br />
@@ -93,6 +94,7 @@
 		<thead>
 			<tr>
 				<th>Position</th>
+				<th>Artist</th>
 				<th>Song</th>
 				<th>Album</th>
 				<th>Release Year</th>
@@ -109,8 +111,9 @@
 		<tbody>
 			<tr th:each="song, stat : ${artistInfo.songs}">
 				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
+				<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
 				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}"
-						th:text="${song.song}"></td>
+						th:text="${song.song}" th:style="song.mainOrFeature=='Feature' ? 'background-color:#B1F2FF' :''"></td>
 				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${song.album})}"
 						th:text="${song.album}"></td>
 				<td><a th:href="@{/category/100/{category}/{value}(value=${song.releaseYear},category=${'Year'})}"

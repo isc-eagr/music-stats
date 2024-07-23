@@ -22,7 +22,9 @@ public class Filter {
     
     private int page=1;
     
-    private int pageSize=1000;
+    private int pageSize=100000000;
+    
+    private boolean includeFeatures=false;
     
     private String sortField="count";
     
@@ -140,6 +142,14 @@ public class Filter {
 
 	public void setFilterMode(String filterMode) {
 		this.filterMode = filterMode;
+	}
+
+	public boolean isIncludeFeatures() {
+		return includeFeatures;
+	}
+
+	public void setIncludeFeatures(boolean includeFeatures) {
+		this.includeFeatures = includeFeatures;
 	}
 	
 }
