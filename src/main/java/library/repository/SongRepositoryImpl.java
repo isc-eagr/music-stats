@@ -82,7 +82,7 @@ public class SongRepositoryImpl{
 
 	private static final String TOP_SONGS_BASE_QUERY = """
 				select * from 
-				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  
+				(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  so.id, 
 								so.genre, so.sex, so.language, so.year, so.cloud_status, so.race, min(sc.scrobble_date) first_play, 
 								max(sc.scrobble_date) last_play, count(*) count, sum(duration) playtime,
                                 count(distinct date(sc.scrobble_date)) play_days, 

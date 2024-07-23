@@ -18,7 +18,8 @@ public class ArtistRepository{
 	}
 
     private static final String ARTIST_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, IF(LOWER(sc.artist)=LOWER(?),'Main','Feature') as main_or_feature,
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		IF(LOWER(sc.artist)=LOWER(?),'Main','Feature') as main_or_feature, so.id, 
     		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
@@ -29,7 +30,7 @@ public class ArtistRepository{
     
     private static final String ALBUM_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
+    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, so.id, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)

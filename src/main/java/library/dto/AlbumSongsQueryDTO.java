@@ -22,12 +22,11 @@ public class AlbumSongsQueryDTO {
 	int weeksSongWasPlayed;
 	int monthsSongWasPlayed;
 	String cloudStatus;
-
+	int id;
 
 	public String getArtist() {
 		return artist;
 	}
-
 
 	public void setArtist(String artist) {
 		this.artist = artist;
@@ -37,16 +36,13 @@ public class AlbumSongsQueryDTO {
 		return song;
 	}
 
-
 	public void setSong(String song) {
 		this.song = song;
 	}
 
-
 	public String getGenre() {
 		return genre;
 	}
-
 
 	public void setGenre(String genre) {
 		this.genre = genre;
@@ -56,7 +52,6 @@ public class AlbumSongsQueryDTO {
 		return race;
 	}
 
-
 	public void setRace(String race) {
 		this.race = race;
 	}
@@ -65,86 +60,69 @@ public class AlbumSongsQueryDTO {
 		return sex;
 	}
 
-
 	public void setSex(String sex) {
 		this.sex = sex;
 	}
-
 
 	public String getLanguage() {
 		return language;
 	}
 
-
 	public void setLanguage(String language) {
 		this.language = language;
 	}
-
 
 	public int getYear() {
 		return year;
 	}
 
-
 	public void setYear(int year) {
 		this.year = year;
 	}
-
 
 	public String getAlbum() {
 		return album;
 	}
 
-
 	public void setAlbum(String album) {
 		this.album = album;
 	}
-	
 	
 	public Integer getReleaseYear() {
 		return releaseYear;
 	}
 
-
 	public void setReleaseYear(Integer releaseYear) {
 		this.releaseYear = releaseYear;
 	}
-
 
 	public int getTrackLength() {
 		return trackLength;
 	}
 
-
 	public void setTrackLength(int trackLength) {
 		this.trackLength = trackLength;
 	}
-
 
 	public int getTotalPlays() {
 		return totalPlays;
 	}
 
-
 	public void setTotalPlays(int totalPlays) {
 		this.totalPlays = totalPlays;
 	}
-
 
 	public String getFirstPlay() {
 		return firstPlay;
 	}
 
-
 	public void setFirstPlay(String firstPlay) {
 		this.firstPlay = firstPlay;
 	}
 
-
 	public String getLastPlay() {
 		return lastPlay;
 	}
-
 
 	public void setLastPlay(String lastPlay) {
 		this.lastPlay = lastPlay;
@@ -153,7 +131,6 @@ public class AlbumSongsQueryDTO {
 	public int getTotalPlaytime() {
 		return trackLength*totalPlays;
 	}
-
 
 	public int getNumberOfTracks() {
 		return numberOfTracks;
@@ -175,31 +152,33 @@ public class AlbumSongsQueryDTO {
 		return weeksSongWasPlayed;
 	}
 
-
 	public void setWeeksSongWasPlayed(int weeksSongWasPlayed) {
 		this.weeksSongWasPlayed = weeksSongWasPlayed;
 	}
-
 
 	public int getMonthsSongWasPlayed() {
 		return monthsSongWasPlayed;
 	}
 
-
 	public void setMonthsSongWasPlayed(int monthsSongWasPlayed) {
 		this.monthsSongWasPlayed = monthsSongWasPlayed;
 	}
-	
 	
 	public String getCloudStatus() {
 		return cloudStatus;
 	}
 
-
 	public void setCloudStatus(String cloudStatus) {
 		this.cloudStatus = cloudStatus;
 	}
+	
+	public int getId() {
+		return id;
+	}
 
+	public void setId(int id) {
+		this.id = id;
+	}
 
 	public String getTrackLengthString() {
 		return Utils.secondsToStringColon(trackLength);
@@ -208,7 +187,6 @@ public class AlbumSongsQueryDTO {
 	public String getTotalPlaytimeString() {
 		return Utils.secondsToString(trackLength*totalPlays);
 	}
-
 
 	public AlbumSongsQueryDTO(String artist, String song, String album, int trackLength, int totalPlays, String firstPlay,
 			String lastPlay) {
@@ -222,10 +200,8 @@ public class AlbumSongsQueryDTO {
 		this.lastPlay = lastPlay;
 	}
 
-
 	public AlbumSongsQueryDTO() {
 
 	}
-	
 
 }

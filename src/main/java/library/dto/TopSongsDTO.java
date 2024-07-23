@@ -4,6 +4,8 @@ import library.util.Utils;
 
 public class TopSongsDTO {
 	
+	private int id;
+	
 	private String artist;
 	
 	private String song;
@@ -180,6 +182,14 @@ public class TopSongsDTO {
 	
 	public String getLengthString() {
 		return Utils.secondsToStringColon(length);
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
 	}
 	
 }

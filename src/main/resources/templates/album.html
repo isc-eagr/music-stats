@@ -53,6 +53,7 @@
 		<thead>
 			<tr>
 				<th>Position</th>
+				<th>Delete Song</th>
 				<th>Song</th>
 				<th>Album</th>
 				<th>Release Year</th>
@@ -69,6 +70,12 @@
 		<tbody>
 			<tr th:each="song, stat : ${albumInfo.songs}">
 				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
+				<td th:if="${topSong.cloudStatus=='Deleted'}">
+					<a th:href="@{/softUndeleteSong/{id}(id=${topSong.id})}">Undelete Song</a>
+				</td>
+				<td th:if="${topSong.cloudStatus!='Deleted'}">
+					<a th:href="@{/softDeleteSong/{id}(id=${topSong.id})}">Delete Song</a>
+				</td>
 				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
 						th:text="${song.song}"></td>
 				<td th:text="${song.album}" />

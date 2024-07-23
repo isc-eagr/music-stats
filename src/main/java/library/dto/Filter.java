@@ -22,7 +22,7 @@ public class Filter {
     
     private int page=1;
     
-    private int pageSize=100000000;
+    private int pageSize=1000;
     
     private boolean includeFeatures=false;
     

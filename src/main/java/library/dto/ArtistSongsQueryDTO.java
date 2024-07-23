@@ -17,6 +17,7 @@ public class ArtistSongsQueryDTO {
 	int monthsSongWasPlayed;
 	String cloudStatus;
 	String mainOrFeature;
+	int id;
 	
 	public String getArtist() {
 		return artist;
@@ -96,6 +97,12 @@ public class ArtistSongsQueryDTO {
 	}
 	public void setReleaseYear(int releaseYear) {
 		this.releaseYear = releaseYear;
+	}
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
 	}
 	public long getTotalPlaytime() {
 		return trackLength*totalPlays;

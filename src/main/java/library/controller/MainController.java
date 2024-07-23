@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -887,6 +888,7 @@ public class MainController {
 					(int) sorted.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
 			artistSong.setCloudStatus(sorted.get(0).getCloudStatus());
 			artistSong.setMainOrFeature(sorted.get(0).getMainOrFeature());
+			artistSong.setId(sorted.get(0).getId());
 			artistSongsList.add(artistSong);
 		}
 		artistSongsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
@@ -1000,6 +1002,7 @@ public class MainController {
 			albumSong.setMonthsSongWasPlayed(
 					(int) sorted.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
 			albumSong.setCloudStatus(sorted.get(0).getCloudStatus());
+			albumSong.setId(sorted.get(0).getId());
 			albumSongsList.add(albumSong);
 		}
 		albumSongsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
@@ -1303,6 +1306,42 @@ public class MainController {
 		model.addAttribute("end", end == null || end.isBlank() || end.equals("2400-12-31") ? "" : end);
 
 		return "category";
+	}
+	
+	@GetMapping({ "/softDeleteSong/{songId}" })
+	@ResponseBody
+	public String softDeleteSong(Model model, @PathVariable Integer songId) {
+		Optional<Song> songOptional = songRepository.findById(songId);
+		if(songOptional.isPresent()) {
+			Song s = songOptional.get();
+			s.setCloudStatus("Deleted");
+			
+			LocalDateTime now = LocalDateTime.now();
+			s.setUpdated(java.sql.Timestamp.valueOf(now));
+			songRepository.save(s);
+			return "Success!";
+		}
+		else {
+			return "Song not found";
+		}
+	}
+	
+	@GetMapping({ "/softUndeleteSong/{songId}" })
+	@ResponseBody
+	public String softUndeleteSong(Model model, @PathVariable Integer songId) {
+		Optional<Song> songOptional = songRepository.findById(songId);
+		if(songOptional.isPresent()) {
+			Song s = songOptional.get();
+			s.setCloudStatus("Apple Music");
+			
+			LocalDateTime now = LocalDateTime.now();
+			s.setUpdated(java.sql.Timestamp.valueOf(now));
+			songRepository.save(s);
+			return "Success!";
+		}
+		else {
+			return "Song not found";
+		}
 	}
 
 }

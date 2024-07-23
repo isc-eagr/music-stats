@@ -210,6 +210,7 @@
 				<tr>
 					<th data-sortable="false">Position</th>
 					<th data-sortable="false">Overall Position</th>
+					<th data-sortable="false">Delete</th>
 					<th>
 						<a th:page="${'1'}" th:sortField="${'count'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
 							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
@@ -320,6 +321,12 @@
 				<tr th:each="topSong, stat : ${topSongs}">
 					<td th:text="${stat.index+topSongs.pageable.offset+1}" th:style="${topSong.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
 					<td th:text="${stat.index+topSongs.pageable.offset+1}"/>
+					<td th:if="${topSong.cloudStatus=='Deleted'}">
+						<a th:href="@{/softUndeleteSong/{id}(id=${topSong.id})}">Undelete Song</a>
+					</td>
+					<td th:if="${topSong.cloudStatus!='Deleted'}">
+						<a th:href="@{/softDeleteSong/{id}(id=${topSong.id})}">Delete Song</a>
+					</td>
 					<td th:text="${topSong.count}" />
 					<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}">
 					</td>
