@@ -51,6 +51,7 @@
 		<thead>
 			<tr>
 				<th>Position</th>
+				<th>Artist</th>
 				<th>Album</th>
 				<th>Release Year</th>
 				<th>Number of Tracks in Library</th>
@@ -69,7 +70,8 @@
 		<tbody>
 			<tr th:each="album, stat : ${artistInfo.albums}">
 				<td th:text="${stat.index+1}" />
-				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${album.album})}"
+				<td th:style="${album.artist != artist ? 'background-color:#B1F2FF' :''}"><a th:href="@{/artist?artist={artist}(artist=${album.artist})}" th:text="${album.artist}"></td>
+				<td th:style="${album.artist != artist ? 'background-color:#B1F2FF' :''}"><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${album.album})}"
 						th:text="${album.album}"></td>
 				<td><a th:href="@{/category/100/{category}/{value}(value=${album.releaseYear},category=${'Year'})}"
 						th:text="${album.releaseYear}" /></td>
@@ -111,9 +113,10 @@
 		<tbody>
 			<tr th:each="song, stat : ${artistInfo.songs}">
 				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
-				<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
-				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}"
-						th:text="${song.song}" th:style="song.mainOrFeature=='Feature' ? 'background-color:#B1F2FF' :''"></td>
+				<td th:style="${song.mainOrFeature=='Feature' ? 'background-color:#B1F2FF' :''}"><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></td>
+				<td th:style="${song.mainOrFeature=='Feature' ? 'background-color:#B1F2FF' :''}">
+					<a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${artist},album=${song.album},song=${song.song})}"
+						th:text="${song.song}"></td>
 				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${artist},album=${song.album})}"
 						th:text="${song.album}"></td>
 				<td><a th:href="@{/category/100/{category}/{value}(value=${song.releaseYear},category=${'Year'})}"

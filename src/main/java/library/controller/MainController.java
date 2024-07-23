@@ -902,7 +902,7 @@ public class MainController {
 			List<PlayDTO> distinct = sorted.stream().distinct().toList();
 
 			ArtistAlbumsQueryDTO artistAlbum = new ArtistAlbumsQueryDTO();
-			artistAlbum.setArtist(artist);
+			artistAlbum.setArtist(sorted.get(0).getArtist());
 			artistAlbum.setAlbum(album);
 			// Gets the release year with most ocurrences, as some albums have songs with
 			// different release years if a song was a single before being on the album

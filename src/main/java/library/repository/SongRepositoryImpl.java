@@ -17,7 +17,6 @@ import library.dto.MilestoneDTO;
 import library.dto.SongMilestonesDTO;
 import library.dto.SongsLocalButNotLastfmDTO;
 import library.dto.TopAlbumsDTO;
-import library.dto.TopArtistsDTO;
 import library.dto.TopGenresDTO;
 import library.dto.TopSongsDTO;
 import library.dto.TimeUnitStatsDTO;
@@ -106,50 +105,7 @@ public class SongRepositoryImpl{
 							group by sc.artist, sc.album, sc.song ) loc1 
 				where 1=1 
 			""";
-	
-	private static final String TOP_ARTISTS_BASE_QUERY = """
-				select * from 
-				(select artist, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
-								sum(duration*count) playtime, count(distinct album) number_of_albums, count(distinct album,song) number_of_songs,
-					            genre, sex, language, race, min(first_play) first_play, max(last_play) last_play
-								from
-								(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
-								so.genre, so.sex, so.language, so.race, min(sc.scrobble_date) first_play, max(sc.scrobble_date) last_play
-								from scrobble sc inner join song so on so.id=sc.song_id 
-								group by so.artist, album, so.song) local
-					            group by artist) loc1
-				inner join 
-				        (select sc.artist, 
-				                count(distinct date(sc.scrobble_date)) play_days, 
-				                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
-				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
-				                from scrobble sc
-				                group by sc.artist) loc2 
-				on loc1.artist=loc2.artist 
-				where 1=1 
-				""";
-	
-	private static final String TOP_ARTISTS_COUNT = """
-			select count(*) from 
-			(select artist, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
-							sum(duration*count) playtime, count(distinct album) number_of_albums, count(distinct album,song) number_of_songs,
-				            genre, sex, language, race, min(first_play) first_play, max(last_play) last_play
-							from
-							(select so.artist, IFNULL(so.album,'(single)') album, so.duration, so.song, count(*) count, 
-							so.genre, so.sex, so.language, so.race, min(sc.scrobble_date) first_play, max(sc.scrobble_date) last_play
-							from scrobble sc inner join song so on so.id=sc.song_id 
-							group by so.artist, album, so.song) local
-				            group by artist) loc1
-			inner join 
-			        (select sc.artist, 
-			                count(distinct date(sc.scrobble_date)) play_days, 
-			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
-			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
-			                from scrobble sc
-			                group by sc.artist) loc2 
-			on loc1.artist=loc2.artist 
-			where 1=1 
-			""";
+
 	//TODO the album<>'(single)' part could be problematic, validate
 	private static final String TOP_GENRES_QUERY = """
 			select genre, avg(duration) average_length, avg(count) average_plays, sum(count) count, 
@@ -328,30 +284,6 @@ public class SongRepositoryImpl{
 		int total = filter.getFilterMode().equals("1") ? template.queryForObject(topSongsCountBuiltQuery, Integer.class, params.toArray()) : songs.size();
 		
 		return new PageImpl<TopSongsDTO>(songs, page, total);
-	}
-	
-	public Page<TopArtistsDTO> getTopArtists(Pageable page, Filter filter) {
-		List<Object> params = new ArrayList<>();
-		
-		String topArtistsBuiltQuery = TOP_ARTISTS_BASE_QUERY;
-		String topArtistsCountBuiltQuery = TOP_ARTISTS_COUNT;
-		
-		if(filter.getArtist()!=null && !filter.getArtist().isBlank()) {topArtistsBuiltQuery += " and loc1.artist like ? "; params.add("%"+filter.getArtist()+"%");topArtistsCountBuiltQuery+=" and loc1.artist like ?";}
-		if(filter.getSex()!=null && !filter.getSex().isBlank()) {topArtistsBuiltQuery += " and sex=? "; params.add(filter.getSex());topArtistsCountBuiltQuery+=" and sex=?";}
-		if(filter.getGenre()!=null && !filter.getGenre().isBlank()) {topArtistsBuiltQuery += " and genre=? "; params.add(filter.getGenre());topArtistsCountBuiltQuery+=" and genre=?";}
-		if(filter.getRace()!=null && !filter.getRace().isBlank()) {topArtistsBuiltQuery += " and race=? "; params.add(filter.getRace());topArtistsCountBuiltQuery+=" and race=?";}
-		if(filter.getYear()>0) {topArtistsBuiltQuery += " and year=? "; params.add(filter.getYear());topArtistsCountBuiltQuery+=" and year=?";}
-		if(filter.getPlaysMoreThan()>0) {topArtistsBuiltQuery += " and count>=? "; params.add(filter.getPlaysMoreThan());topArtistsCountBuiltQuery+=" and count>=?";}
-		if(filter.getLanguage()!=null && !filter.getLanguage().isBlank()) {topArtistsBuiltQuery += " and language=? "; params.add(filter.getLanguage());topArtistsCountBuiltQuery+=" and language=?";}
-		
-		Order order = page.getSort().toList().get(0);		
-		List<TopArtistsDTO> artists = template.query(
-				topArtistsBuiltQuery+" order by "+order.getProperty()+" "+order.getDirection()+" limit "+page.getPageSize()+" offset "+page.getOffset()
-				, new BeanPropertyRowMapper<>(TopArtistsDTO.class), params.toArray());
-		
-		int total = filter.getFilterMode().equals("1") ? template.queryForObject(topArtistsCountBuiltQuery, Integer.class, params.toArray()) : artists.size();
-		
-		return new PageImpl<TopArtistsDTO>(artists, page, total);
 	}
 	
 	public List<TopGenresDTO> getTopGenres(int limit) {
