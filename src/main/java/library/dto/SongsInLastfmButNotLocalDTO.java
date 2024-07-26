@@ -8,6 +8,8 @@ public class SongsInLastfmButNotLocalDTO {
 	
 	private String album;
 	
+	private String account;
+	
 	private int count;
 
 	public String getArtist() {
@@ -32,6 +34,14 @@ public class SongsInLastfmButNotLocalDTO {
 
 	public void setAlbum(String album) {
 		this.album = album;
+	}
+	
+	public String getAccount() {
+		return account;
+	}
+
+	public void setAccount(String account) {
+		this.account = account;
 	}
 
 	public int getCount() {

@@ -7,6 +7,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 	<script src='/js/utils.js'></script>
 	<link rel="stylesheet" href="/css/sortable-theme-finder.css"/>
+	<link rel="stylesheet" href="/css/global.css" />
 	<script src="/js/sortable.min.js"></script>
 	<script type="text/javascript">
 		window.onload = function(){
@@ -27,7 +28,9 @@
 	<h1 th:text="${category.categoryValue}"/>
 	<br />
 	<br />
-	Total Plays: <span th:text="${category.totalPlays}" /><br />
+	Total Plays: <div class="tooltip">[[${category.totalPlays}]]
+				 	<span class="tooltiptext" th:text="${category.playsByAccount}"/>
+				 </div><br />
 	Total Playtime: <span th:text="${category.totalPlaytimeString}" /><br />
 	Most Played Artist: <span th:text="${category.mostPlayedArtist}" /><br />
 	Most Played Album: <span th:text="${category.mostPlayedAlbum}" /><br />
@@ -400,12 +403,16 @@
 			<td><a th:href="@{/category/100/{category}/{value}(value=${song.language},category=${'Language'})}" th:text="${song.language}"></td>
 			<td><a th:href="@{/category/100/{category}/{value}(value=${song.race},category=${'Race'})}" th:text="${song.race}"></td>
 			<td th:text="${song.year}"/>
-			<td th:text="${song.totalPlays}" />
+			<td>
+				<div class="tooltip">[[${song.totalPlays}]]
+				  <span class="tooltiptext" th:text="${song.playsByAccount}"/>
+				</div>
+			</td>
 		</tr>
 	</tbody>
 </table>
 Top albums:
-<table id="songsTable" class="sortable-theme-finder" data-sortable>
+<table id="albumsTable" class="sortable-theme-finder" data-sortable>
 	<thead>
 		<tr>
 			<th>Position</th>
@@ -429,7 +436,11 @@ Top albums:
 			<td><a th:href="@{/category/100/{category}/{value}(value=${album.language},category=${'Language'})}" th:text="${album.language}"></td>
 			<td><a th:href="@{/category/100/{category}/{value}(value=${album.race},category=${'Race'})}" th:text="${album.race}"></td>
 			<td th:text="${album.releaseYear}"/>
-			<td th:text="${album.totalPlays}"/>
+			<td>
+				<div class="tooltip">[[${album.totalPlays}]]
+				  <span class="tooltiptext" th:text="${album.playsByAccount}"/>
+				</div>
+			</td>
 		</tr>
 	</tbody>
 </table>

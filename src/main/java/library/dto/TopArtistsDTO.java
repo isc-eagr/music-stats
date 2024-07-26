@@ -36,6 +36,8 @@ public class TopArtistsDTO {
 	
 	private long playMonths;
 	
+	private String playsByAccount;
+	
 	public String getPlaytimeString() {
 		return Utils.secondsToString(playtime);
 	}
@@ -166,6 +168,14 @@ public class TopArtistsDTO {
 
 	public void setPlayMonths(long playMonths) {
 		this.playMonths = playMonths;
+	}
+
+	public String getPlaysByAccount() {
+		return playsByAccount;
+	}
+
+	public void setPlaysByAccount(String playsByAccount) {
+		this.playsByAccount = playsByAccount;
 	}
 
 	public String getAverageLengthString() {

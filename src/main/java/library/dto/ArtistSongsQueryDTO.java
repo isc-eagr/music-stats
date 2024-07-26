@@ -18,6 +18,7 @@ public class ArtistSongsQueryDTO {
 	String cloudStatus;
 	String mainOrFeature;
 	int id;
+	String playsByAccount;
 	
 	public String getArtist() {
 		return artist;
@@ -103,6 +104,12 @@ public class ArtistSongsQueryDTO {
 	}
 	public void setId(int id) {
 		this.id = id;
+	}
+	public String getPlaysByAccount() {
+		return playsByAccount;
+	}
+	public void setPlaysByAccount(String playsByAccount) {
+		this.playsByAccount = playsByAccount;
 	}
 	public long getTotalPlaytime() {
 		return trackLength*totalPlays;

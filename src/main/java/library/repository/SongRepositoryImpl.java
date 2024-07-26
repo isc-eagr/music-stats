@@ -216,6 +216,10 @@ public class SongRepositoryImpl{
 			SELECT DISTINCT(language) from song order by language asc;
 			""";
 	
+	private static final String ALL_ACCOUNTS = """
+			SELECT DISTINCT(account) from scrobble order by account asc;
+			""";
+	
 	private static final String ALL_SONGS_FOR_MILESTONES = """
 			select distinct sc.artist, IFNULL(sc.album,'(single)') album, sc.song from scrobble sc;
 			""";
@@ -332,6 +336,10 @@ public class SongRepositoryImpl{
 	
 	public List<String> getAllLanguages() {
 		return template.queryForList(ALL_LANGUAGES, String.class);
+	}
+	
+	public List<String> getAllAccounts() {
+		return template.queryForList(ALL_ACCOUNTS, String.class);
 	}
 	
 	//Unused for now, rethink how to implement milestones

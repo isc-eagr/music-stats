@@ -17,6 +17,7 @@ public class AlbumPageDTO {
 	int weeksAlbumWasPlayed;
 	int monthsAlbumWasPlayed;
 	List<MilestoneDTO> milestones;
+	String playsByAccount;
 	
 	
 	public List<AlbumSongsQueryDTO> getSongs() {
@@ -99,10 +100,16 @@ public class AlbumPageDTO {
 	public void setMilestones(List<MilestoneDTO> milestones) {
 		this.milestones = milestones;
 	}
+	public String getPlaysByAccount() {
+		return playsByAccount;
+	}
+	public void setPlaysByAccount(String playsByAccount) {
+		this.playsByAccount = playsByAccount;
+	}
 	public AlbumPageDTO(List<AlbumSongsQueryDTO> songs, String firstSongPlayed, String lastSongPlayed, int totalPlays,
 			String totalPlaytime, String averageSongLength, double averagePlaysPerSong, int numberOfSongs,
 			String albumLength, int daysAlbumWasPlayed, int weeksAlbumWasPlayed, int monthsAlbumWasPlayed,
-			List<MilestoneDTO> milestones) {
+			List<MilestoneDTO> milestones, String playsByAccount) {
 		super();
 		this.songs = songs;
 		this.firstSongPlayed = firstSongPlayed;
@@ -117,6 +124,7 @@ public class AlbumPageDTO {
 		this.weeksAlbumWasPlayed = weeksAlbumWasPlayed;
 		this.monthsAlbumWasPlayed = monthsAlbumWasPlayed;
 		this.milestones = milestones;
+		this.playsByAccount = playsByAccount;
 	}
 	
 

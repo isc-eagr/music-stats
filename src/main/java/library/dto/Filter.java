@@ -13,6 +13,8 @@ public class Filter {
     private String genre;
 	
     private String race;
+    
+    private String account;
 	
     private int year;
     
@@ -78,6 +80,14 @@ public class Filter {
 
 	public void setRace(String race) {
 		this.race = race;
+	}
+	
+	public String getAccount() {
+		return account;
+	}
+
+	public void setAccount(String account) {
+		this.account = account;
 	}
 
 	public int getYear() {

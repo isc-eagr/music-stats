@@ -18,6 +18,7 @@ public class PlayDTO {
 	private String cloudStatus;
 	private String mainOrFeature;
 	private int id;
+	private String account;
 	
 	public String getArtist() {
 		return artist;
@@ -104,6 +105,12 @@ public class PlayDTO {
 	}
 	public void setId(int id) {
 		this.id = id;
+	}
+	public String getAccount() {
+		return account;
+	}
+	public void setAccount(String account) {
+		this.account = account;
 	}
 	@Override
 	public String toString() {

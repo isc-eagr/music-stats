@@ -100,41 +100,51 @@ public class MainController {
 	@RequestMapping("/insertScrobbles")
 	@ResponseBody
 	public String insertScrobbles(Model model) throws FileNotFoundException, IOException {
+		
+		List<String> accounts = List.of("vatito", "robertlover");
+		String result = "";
 
-		String fileName = "C:\\scrobbles.csv";
-		FileReader file = new FileReader(fileName);
+		for(String account : accounts) {
+			
+			String fileName = String.format("C:\\scrobbles-%s.csv",account);
+			FileReader file = new FileReader(fileName);
+	
+			List<Scrobble> scrobbles = new CsvToBeanBuilder<Scrobble>(file).withType(Scrobble.class).withSkipLines(1)
+					.build().parse();
+	
+			List<Song> everySong = songRepository.findAll();
+	
+			Song emptySong = new Song();
+			List<Song> duplicateSongs = new ArrayList<>();
+			scrobbles.stream().parallel().forEach(sc -> {
+				List<Song> foundSongs = everySong.stream().parallel()
+						.filter(song -> song.getArtist().equalsIgnoreCase(sc.getArtist())
+								&& song.getSong().replace("????", "").equalsIgnoreCase(sc.getSong().replace("????", "")) //specifically for Rauw's DIME QUIEN????
+								&& String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum())))
+						.toList();
+	
+				// This determines duplicate entries in song
+				if (foundSongs.size() > 1) {
+					duplicateSongs.add(foundSongs.get(0));
+				}
+	
+				sc.setSongId(foundSongs.stream().findFirst().orElse(emptySong).getId());
+				sc.setAlbum(sc.getAlbum() == null || sc.getAlbum().isBlank() ? null : sc.getAlbum());
+				sc.setAccount(account);
+			});// forEach
+	
+			duplicateSongs.stream().map(s -> s.getArtist() + " - " + s.getAlbum() + " - " + s.getSong()).distinct()
+					.forEach(System.out::println);
+	
+			scrobbleRepository.saveAll(scrobbles);
+	
+			file.close();
+			
+			result += "Success!" + scrobbles.size() + " scrobbles inserted from "+account+" account!<br/>";
+		
+		}
 
-		List<Scrobble> scrobbles = new CsvToBeanBuilder<Scrobble>(file).withType(Scrobble.class).withSkipLines(1)
-				.build().parse();
-
-		List<Song> everySong = songRepository.findAll();
-
-		Song emptySong = new Song();
-		List<Song> duplicateSongs = new ArrayList<>();
-		scrobbles.stream().parallel().forEach(sc -> {
-			List<Song> foundSongs = everySong.stream().parallel()
-					.filter(song -> song.getArtist().equalsIgnoreCase(sc.getArtist())
-							&& song.getSong().replace("????", "").equalsIgnoreCase(sc.getSong().replace("????", "")) //specifically for Rauw's DIME QUIEN????
-							&& String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum())))
-					.toList();
-
-			// This determines duplicate entries in song
-			if (foundSongs.size() > 1) {
-				duplicateSongs.add(foundSongs.get(0));
-			}
-
-			sc.setSongId(foundSongs.stream().findFirst().orElse(emptySong).getId());
-			sc.setAlbum(sc.getAlbum() == null || sc.getAlbum().isBlank() ? null : sc.getAlbum());
-		});// forEach
-
-		duplicateSongs.stream().map(s -> s.getArtist() + " - " + s.getAlbum() + " - " + s.getSong()).distinct()
-				.forEach(System.out::println);
-
-		scrobbleRepository.saveAll(scrobbles);
-
-		file.close();
-
-		return "Success!" + scrobbles.size() + " scrobbles inserted!";
+		return result;
 	}
 
 	@RequestMapping("/insertItunesInfo")
@@ -276,6 +286,7 @@ public class MainController {
 		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
 		model.addAttribute("races", songRepositoryImpl.getAllRaces());
 		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
+		model.addAttribute("accounts", songRepositoryImpl.getAllAccounts());
 
 		model.addAttribute("sortField", filter.getSortField());
 		model.addAttribute("sortDir", filter.getSortDir());
@@ -305,6 +316,7 @@ public class MainController {
 		if(filter.getRace()!=null && !filter.getRace().isBlank()) {categories.add("race");values.add(filter.getRace());}
 		if(filter.getYear()>0) {categories.add("year");values.add(String.valueOf(filter.getYear()));}
 		if(filter.getLanguage()!=null && !filter.getLanguage().isBlank()) {categories.add("language");values.add(filter.getLanguage());}
+		if(filter.getAccount()!=null && !filter.getAccount().isBlank()) {categories.add("account");values.add(filter.getAccount());}
 		
 		values.add("1930-01-01");
 		values.add("2200-01-01");
@@ -312,7 +324,9 @@ public class MainController {
 		List<TopArtistsDTO> topArtists = new ArrayList<>();
 		
 		List<PlayDTO> plays = artistRepository.categoryPlays(categories.toArray(String[]::new),
-				values.toArray(String[]::new));
+				values.toArray(String[]::new), 0, 10000);
+		
+		List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
 		
 		Map<String, List<PlayDTO>> mapArtists = plays.stream().collect(Collectors.groupingBy(play->play.getArtist()));
 		
@@ -348,6 +362,11 @@ public class MainController {
 			dto.setPlayDays(entryArtist.getValue().stream().map(e->e.getPlayDate().substring(0,10)).distinct().count());
 			dto.setPlayWeeks(entryArtist.getValue().stream().map(e->e.getWeek()).distinct().count());
 			dto.setPlayMonths(entryArtist.getValue().stream().map(e->e.getPlayDate().substring(0,8)).distinct().count());
+			String playsByAccount="";
+			for(String account : accounts) {
+				playsByAccount += account+": "+sorted.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+			}
+			dto.setPlaysByAccount(playsByAccount);
 			
 			Map<String, List<PlayDTO>> mapSongs = sorted.stream().collect(Collectors.groupingBy(s -> s.getArtist() + "::" + s.getAlbum() + "::" + s.getSong()));
 			dto.setAverageLength(mapSongs.entrySet().stream().mapToInt(e->e.getValue().get(0).getTrackLength()).sum()/mapSongs.entrySet().size());
@@ -380,7 +399,8 @@ public class MainController {
 									: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
 					new Criterion<>("Language", artist -> artist.getLanguage(),
 							(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-									: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)));
+									: (o1.getValue().size() == o2.getValue().size() ? 0 : 1))
+					);
 
 			List<TopGroupDTO> topArtistsGroupList = new ArrayList<>();
 
@@ -867,6 +887,7 @@ public class MainController {
 		List<ArtistAlbumsQueryDTO> artistAlbumsList = new ArrayList<>();
 
 		Map<String, List<PlayDTO>> songGrouping = plays.stream().collect(Collectors.groupingBy(PlayDTO::getSong));
+		List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
 
 		for (String song : songGrouping.keySet()) {
 			List<PlayDTO> sorted = songGrouping.get(song).stream()
@@ -889,6 +910,11 @@ public class MainController {
 			artistSong.setCloudStatus(sorted.get(0).getCloudStatus());
 			artistSong.setMainOrFeature(sorted.get(0).getMainOrFeature());
 			artistSong.setId(sorted.get(0).getId());
+			String playsByAccount="";
+			for(String account : accounts) {
+				playsByAccount += account+": "+sorted.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+			}
+			artistSong.setPlaysByAccount(playsByAccount);
 			artistSongsList.add(artistSong);
 		}
 		artistSongsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
@@ -925,13 +951,24 @@ public class MainController {
 			artistAlbum.setWeeksAlbumWasPlayed((int) sorted.stream().map(s -> s.getWeek()).distinct().count());
 			artistAlbum.setMonthsAlbumWasPlayed(
 					(int) sorted.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
+			String playsByAccount="";
+			for(String account : accounts) {
+				playsByAccount += account+": "+sorted.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+			}
+			artistAlbum.setPlaysByAccount(playsByAccount);
 			artistAlbumsList.add(artistAlbum);
 		}
 		artistAlbumsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
 				: s1.getTotalPlays() == s2.getTotalPlays() ? 0 : -1);
 
 		int numberOfSongs = artistSongsList.size();
-		int totalPlays = artistSongsList.stream().mapToInt(s -> s.getTotalPlays()).sum();
+		int totalPlays = plays.size();
+		
+		String playsByAccount="";
+		for(String account : accounts) {
+			playsByAccount += account+": "+plays.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+		}
+		
 		int sumOfTrackLengths = artistSongsList.stream().mapToInt(s -> s.getTrackLength()).sum();
 		double averagePlaysPerSong = (double) totalPlays / numberOfSongs;
 		int totalPlaytimeInt = artistSongsList.stream().mapToInt(s -> s.getTotalPlays() * s.getTrackLength()).sum();
@@ -956,7 +993,7 @@ public class MainController {
 		ArtistPageDTO artistInfo = new ArtistPageDTO(artistSongsList, artistAlbumsList, firstSongPlayed, lastSongPlayed,
 				totalPlays, totalPlaytime, averageSongLength, averagePlaysPerSong, numberOfSongs, daysArtistWasPlayed,
 				weeksArtistWasPlayed, monthsArtistWasPlayed, Utils.generateMilestones(plays, 100, 200, 300, 400, 500,
-						1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000));
+						1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000), playsByAccount);
 
 		model.addAttribute("artist", artist);
 		model.addAttribute("includeFeatures", includeFeatures);
@@ -981,6 +1018,8 @@ public class MainController {
 
 		List<PlayDTO> plays = artistRepository.albumPlays(artist, album);
 		List<AlbumSongsQueryDTO> albumSongsList = new ArrayList<>();
+		
+		List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
 
 		Map<String, List<PlayDTO>> songGrouping = plays.stream().collect(Collectors.groupingBy(PlayDTO::getSong));
 		for (String song : songGrouping.keySet()) {
@@ -1003,13 +1042,24 @@ public class MainController {
 					(int) sorted.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
 			albumSong.setCloudStatus(sorted.get(0).getCloudStatus());
 			albumSong.setId(sorted.get(0).getId());
+			String playsByAccount="";
+			for(String account : accounts) {
+				playsByAccount += account+": "+sorted.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+			}
+			albumSong.setPlaysByAccount(playsByAccount);
 			albumSongsList.add(albumSong);
 		}
 		albumSongsList.sort((s1, s2) -> s1.getTotalPlays() < s2.getTotalPlays() ? 1
 				: s1.getTotalPlays() == s2.getTotalPlays() ? 0 : -1);
 
 		int numberOfSongs = albumSongsList.size();
-		int totalPlays = albumSongsList.stream().mapToInt(s -> s.getTotalPlays()).sum();
+		int totalPlays = plays.size();
+		
+		String playsByAccount="";
+		for(String account : accounts) {
+			playsByAccount += account+": "+plays.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+		}
+		
 		int sumOfTrackLengths = albumSongsList.stream().mapToInt(s -> s.getTrackLength()).sum();
 		double averagePlaysPerSong = (double) totalPlays / numberOfSongs;
 		int totalPlaytimeInt = albumSongsList.stream().mapToInt(s -> s.getTotalPlays() * s.getTrackLength()).sum();
@@ -1031,7 +1081,8 @@ public class MainController {
 		AlbumPageDTO albumInfo = new AlbumPageDTO(albumSongsList, firstSongPlayed, lastSongPlayed, totalPlays,
 				totalPlaytime, averageSongLength, averagePlaysPerSong, numberOfSongs,
 				Utils.secondsToStringColon(sumOfTrackLengths), daysAlbumWasPlayed, weeksArtistWasPlayed,
-				monthsAlbumWasPlayed, Utils.generateMilestones(plays, 100, 200, 300, 400, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000));
+				monthsAlbumWasPlayed, Utils.generateMilestones(plays, 100, 200, 300, 400, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000),
+				playsByAccount);
 
 		model.addAttribute("artist", artist);
 		model.addAttribute("album", album);
@@ -1053,6 +1104,7 @@ public class MainController {
 			@RequestParam(required = true) String album, @RequestParam(required = true) String song) {
 
 		List<PlayDTO> plays = artistRepository.songPlays(artist, album, song);
+		List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
 
 		SongPageDTO songPage = new SongPageDTO();
 		songPage.setArtist(artist);
@@ -1069,6 +1121,11 @@ public class MainController {
 				(int) plays.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
 		songPage.setMilestones(
 				Utils.generateMilestones(plays, 10, 30, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000));
+		String playsByAccount="";
+		for(String account : accounts) {
+			playsByAccount += account+": "+plays.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+		}
+		songPage.setPlaysByAccount(playsByAccount);
 
 		model.addAttribute("song", songPage);
 
@@ -1083,17 +1140,6 @@ public class MainController {
 		return "song";
 	}
 
-	@GetMapping({ "/categorySearch" })
-	public String categorySearch(Model model) {
-		model.addAttribute("sexes", songRepositoryImpl.getAllSexes());
-		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
-		model.addAttribute("races", songRepositoryImpl.getAllRaces());
-		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
-
-		return "categorysearchform";
-
-	}
-	
 	@GetMapping({ "/deleted" })
 	public String deleted(Model model) {
 		List<DeletedSongsDTO> deletedSongs = songRepositoryImpl.getDeletedSongs();
@@ -1143,13 +1189,28 @@ public class MainController {
 		return "deleted";
 
 	}
+	
+	@GetMapping({ "/categorySearch" })
+	public String categorySearch(Model model) {
+		model.addAttribute("sexes", songRepositoryImpl.getAllSexes());
+		model.addAttribute("genres", songRepositoryImpl.getAllGenres());
+		model.addAttribute("races", songRepositoryImpl.getAllRaces());
+		model.addAttribute("languages", songRepositoryImpl.getAllLanguages());
+		model.addAttribute("accounts", songRepositoryImpl.getAllAccounts());
+
+		return "categorysearchform";
+
+	}
 
 	@GetMapping({ "/category//{limit}", "/category//{limit}/{category1}/{value1}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}",
-			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}" })
+			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}",
+			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}/{category7}/{value7}",
+			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}/{category7}/{value7}/{category8}/{value8}"
+			})
 	public String category(Model model, @PathVariable(required = true) int limit,
 			@PathVariable(required = false) String category1, @PathVariable(required = false) String value1,
 			@PathVariable(required = false) String category2, @PathVariable(required = false) String value2,
@@ -1157,6 +1218,8 @@ public class MainController {
 			@PathVariable(required = false) String category4, @PathVariable(required = false) String value4,
 			@PathVariable(required = false) String category5, @PathVariable(required = false) String value5,
 			@PathVariable(required = false) String category6, @PathVariable(required = false) String value6,
+			@PathVariable(required = false) String category7, @PathVariable(required = false) String value7,
+			@PathVariable(required = false) String category8, @PathVariable(required = false) String value8,
 			@RequestParam(defaultValue = "1970-01-01") String start,
 			@RequestParam(defaultValue = "2400-12-31") String end) {
 
@@ -1170,6 +1233,7 @@ public class MainController {
 			categories.add(category4);
 			categories.add(category5);
 			categories.add(category6);
+			categories.add(category7);
 
 			values.add(value1);
 			values.add(value2);
@@ -1177,14 +1241,33 @@ public class MainController {
 			values.add(value4);
 			values.add(value5);
 			values.add(value6);
+			values.add(value7);
 		}
+		
+		int startYearIndex = categories.indexOf("YearStart");
+		int endYearIndex = categories.indexOf("YearEnd");
+		
+		int startYear = startYearIndex < 0 ? 0 : Integer.parseInt(values.get(startYearIndex));
+		int endYear = endYearIndex < 0 ? 10000 : Integer.parseInt(values.get(endYearIndex));
+		
+		if(endYearIndex >= 0) {
+			categories.remove(endYearIndex);
+			values.remove(endYearIndex);
+		}
+		if(startYearIndex >= 0) {
+			categories.remove(startYearIndex);
+			values.remove(startYearIndex);
+		}
+			
 		values.add(start);
 		values.add(end);
 		categories = categories.stream().filter(c -> c != null).toList();
 		values = values.stream().filter(v -> v != null).toList();
 
 		List<PlayDTO> plays = artistRepository.categoryPlays(categories.toArray(String[]::new),
-				values.toArray(String[]::new));
+				values.toArray(String[]::new), startYear, endYear);
+		
+		List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
 
 		CategoryPageDTO categoryPage = new CategoryPageDTO();
 
@@ -1200,6 +1283,13 @@ public class MainController {
 		}
 		categoryPage.setCategoryValue(categoryValueDisplay);
 		categoryPage.setTotalPlays(plays.size());
+		
+		String playsByAccount="";
+		for(String account : accounts) {
+			playsByAccount += account+": "+plays.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+		}
+		categoryPage.setPlaysByAccount(playsByAccount);
+		
 		categoryPage.setTotalPlaytime(plays.stream().mapToInt(s -> s.getTrackLength()).sum());
 		categoryPage.setDaysCategoryWasPlayed(
 				(int) plays.stream().map(s -> s.getPlayDate().substring(0, 10)).distinct().count());
@@ -1238,6 +1328,11 @@ public class MainController {
 			album.setLanguage(e.getValue().get(0).getLanguage());
 			album.setReleaseYear(e.getValue().get(0).getYear());
 			album.setTotalPlays(e.getValue().size());
+			String temp="";
+			for(String account : accounts) {
+				temp += account+": "+e.getValue().stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+			}
+			album.setPlaysByAccount(temp);
 			return album;
 		}).toList());
 
@@ -1263,6 +1358,11 @@ public class MainController {
 			song.setYear(e.getValue().get(0).getYear());
 			song.setTotalPlays(e.getValue().size());
 			song.setCloudStatus(e.getValue().get(0).getCloudStatus());
+			String temp="";
+			for(String account : accounts) {
+				temp += account+": "+e.getValue().stream().filter(s->s.getAccount().equals(account)).count()+"\n";
+			}
+			song.setPlaysByAccount(temp);
 			return song;
 		}).toList());
 
@@ -1293,6 +1393,9 @@ public class MainController {
 				new Criterion<>("PlayYear", play -> play.getPlayDate().substring(0, 4),
 						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
 				new Criterion<>("Cloud Status", play -> play.getCloudStatus(),
+						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+				new Criterion<>("Account", play -> play.getAccount(),
 						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
 								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1))
 				);

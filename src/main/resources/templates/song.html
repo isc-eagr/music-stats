@@ -5,17 +5,20 @@
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src='../../../js/utils.js'></script>
 	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css" />
+	<link rel="stylesheet" href="css/global.css" />
 </head>
 
 <body>
 	Song length: <span th:text="${song.trackLengthString}" /> <br />
-	Total Plays: <span th:text="${song.totalPlays}" /><br />
 	Total Playtime: <span th:text="${song.totalPlaytimeString}" /><br />
 	First Play: <span th:text="${song.firstPlay}" /><br />
 	Last Play: <span th:text="${song.lastPlay}" /><br />
 	Days song was played: <span th:text="${song.daysSongWasPlayed}" /><br />
 	Weeks song was played: <span th:text="${song.weeksSongWasPlayed}" /><br />
 	Months song was played: <span th:text="${song.monthsSongWasPlayed}" /><br />
+	Total Plays: 	<div class="tooltip">[[${song.totalPlays}]]
+						  <span class="tooltiptext" th:text="${song.playsByAccount}"/>
+						</div><br />
 	
 	<table id="milestonesTable" class="sortable-theme-finder" data-sortable>
 		<thead>

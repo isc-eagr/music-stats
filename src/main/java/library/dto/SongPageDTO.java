@@ -19,7 +19,7 @@ public class SongPageDTO {
 	String chartLabels;
 	String chartValues;
 	List<MilestoneDTO> milestones;
-
+	String playsByAccount;
 
 	public String getArtist() {
 		return artist;
@@ -134,7 +134,6 @@ public class SongPageDTO {
 		this.chartValues = chartValues;
 	}
 
-
 	public String getTrackLengthString() {
 		return Utils.secondsToStringColon(trackLength);
 	}
@@ -150,6 +149,15 @@ public class SongPageDTO {
 	public void setMilestones(List<MilestoneDTO> milestones) {
 		this.milestones = milestones;
 	}
+	
+	public String getPlaysByAccount() {
+		return playsByAccount;
+	}
+
+	public void setPlaysByAccount(String playsByAccount) {
+		this.playsByAccount = playsByAccount;
+	}
+
 
 	public SongPageDTO() {
 

@@ -25,7 +25,8 @@ public class Scrobble {
 		scrobble_date datetime,
 		artist varchar(2000),
 		song varchar(2000),
-		album varchar(2000)
+		album varchar(2000),
+		account varchar(20)
 		);
 	*/
 	
@@ -56,6 +57,9 @@ public class Scrobble {
 	
 	@Column (name="song_id")
 	private int songId;
+	
+	@Column (name="account")
+	private String account;
 
 	public int getId() {
 		return id;
@@ -118,6 +122,14 @@ public class Scrobble {
 
 	public void setSongId(int songId) {
 		this.songId = songId;
+	}
+
+	public String getAccount() {
+		return account;
+	}
+
+	public void setAccount(String account) {
+		this.account = account;
 	}
 
 	public String toString() {

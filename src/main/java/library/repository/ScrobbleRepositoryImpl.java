@@ -21,11 +21,11 @@ public class ScrobbleRepositoryImpl{
 	}
 
     private static final String SONGS_LASTFM_BUT_NOT_LOCAL = """
-    		select sc.artist, sc.song, sc.album, count(*) count 
+    		select sc.artist, sc.song, sc.album, sc.account, count(*) count 
 			from scrobble sc left join song so 
 			on so.id = sc.song_id 
 			where so.artist is null 
-			group by sc.artist, sc.song, sc.album 
+			group by sc.artist, sc.song, sc.album, sc.account
 			order by count desc, sc.artist asc, sc.album asc, sc.song asc
 			""";			           
 	

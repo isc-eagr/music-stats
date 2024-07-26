@@ -23,6 +23,7 @@ public class CategoryPageDTO {
 	String mostPlayedSong;
 	String categoryValue;
 	String categoryValueDisplay;
+	String playsByAccount;
 	private List<AlbumSongsQueryDTO> mostPlayedSongs;
 	private List<ArtistAlbumsQueryDTO> mostPlayedAlbums;
 	
@@ -222,6 +223,16 @@ public class CategoryPageDTO {
 
 	public void setCategoryValueDisplay(String categoryValueDisplay) {
 		this.categoryValueDisplay = categoryValueDisplay;
+	}
+
+
+	public String getPlaysByAccount() {
+		return playsByAccount;
+	}
+
+
+	public void setPlaysByAccount(String playsByAccount) {
+		this.playsByAccount = playsByAccount;
 	}
 	
 }

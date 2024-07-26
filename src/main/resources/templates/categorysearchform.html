@@ -11,8 +11,10 @@
 				if(document.getElementById("genre").value != ''){url += "/Genre/"+document.getElementById("genre").value}
 				if(document.getElementById("race").value != ''){url += "/Race/"+document.getElementById("race").value}
 				if(document.getElementById("language").value != ''){url += "/Language/"+document.getElementById("language").value}
-				if(document.getElementById("releaseYear").value != ''){url += "/Year/"+document.getElementById("releaseYear").value}
+				if(document.getElementById("releaseYearStart").value != ''){url += "/YearStart/"+document.getElementById("releaseYearStart").value}
+				if(document.getElementById("releaseYearEnd").value != ''){url += "/YearEnd/"+document.getElementById("releaseYearEnd").value}
 				if(document.getElementById("playYear").value != ''){url += "/PlayYear/"+document.getElementById("playYear").value}
+				if(document.getElementById("account").value != ''){url += "/Account/"+document.getElementById("account").value}
 				
 				window.open(url);
 			}
@@ -36,8 +38,12 @@
 			    <option value="">Select...</option>
 			    <option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
 			 </select><br/>
-	  Release Year: <input type="text" id="releaseYear"/><br/>
+	  Release Year Start: <input type="text" id="releaseYearStart" value="0"/>Release Year End: <input type="text" id="releaseYearEnd" value="10000"/><br/>
 	  Play Year: <input type="text" id="playYear"/><br/>
+	  Account: 	  <select id="account">
+	  			    <option value="">Select...</option>
+	  			    <option th:each="account : ${accounts}" th:value="${account}" th:text="${account}"></option>
+	  			 </select><br/>
 	  
 	  <input type="button" id="goToCategory" onclick="goToCategory()" value="Search"/>
 	

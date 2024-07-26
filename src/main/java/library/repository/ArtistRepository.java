@@ -19,7 +19,7 @@ public class ArtistRepository{
 
     private static final String ARTIST_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		IF(LOWER(sc.artist)=LOWER(?),'Main','Feature') as main_or_feature, so.id, 
+    		IF(LOWER(sc.artist)=LOWER(?),'Main','Feature') as main_or_feature, so.id, sc.account, 
     		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
@@ -30,7 +30,7 @@ public class ArtistRepository{
     
     private static final String ALBUM_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, so.id, 
+    		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, so.id, sc.account, 
     		YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
@@ -39,7 +39,7 @@ public class ArtistRepository{
 			""";
     
     private static final String SONG_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.account, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
@@ -49,7 +49,7 @@ public class ArtistRepository{
 			""";
     
     private static final String CATEGORY_PLAYS_QUERY = """
-    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
+    		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.account, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
     		 		YEARWEEK(sc.scrobble_date,1) week 
             from scrobble sc inner join song so on sc.song_id = so.id
@@ -83,14 +83,17 @@ public class ArtistRepository{
 		return template.query(SONG_PLAYS_QUERY, new BeanPropertyRowMapper<>(PlayDTO.class), artist, album, song);
 	}
 	
-	public List<PlayDTO> categoryPlays(String[] categories, String[] values) {
+	public List<PlayDTO> categoryPlays(String[] categories, String[] values, int startYear, int endYear) {
 		String query = CATEGORY_PLAYS_QUERY;
+		query += String.format(" and so.year between %s and %s ",startYear, endYear);
 		for(int i=0 ; i < categories.length ; i++) {
 			if(categories[i].equals("PlayYear")) {
 				query += "and YEAR(sc.%s)=? ";
 				categories[i] = "scrobble_date";
-			}
-			else {
+			} else if(categories[i].equalsIgnoreCase("Account")) {
+				query += "and sc.%s like ? ";
+				categories[i] = "account";				
+			}else{
 				query += "and so.%s like ? ";
 			}
 		}

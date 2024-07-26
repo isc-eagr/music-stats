@@ -6,6 +6,7 @@
 	<script src='../../js/utils.js'></script>
 	<script src="../../js/sortable.min.js"></script>
 	<link rel="stylesheet" href="../../css/sortable-theme-finder.css" />
+	<link rel="stylesheet" href="css/global.css" />
 	<script type="text/javascript">
 		window.onload = function () {
 			Sortable.init();
@@ -17,7 +18,9 @@
 
 	Number Of Songs: <span th:text="${albumInfo.numberOfSongs}" /> <br />
 	Album length: <span th:text="${albumInfo.albumLength}" /> <br />
-	Total Plays: <span th:text="${albumInfo.totalPlays}" /><br />
+	Total Plays: 	<div class="tooltip">[[${albumInfo.totalPlays}]]
+						 	<span class="tooltiptext" th:text="${albumInfo.playsByAccount}"/>
+						 </div><br />
 	Total Playtime: <span th:text="${albumInfo.totalPlaytime}" /><br />
 	First Song Played: <span th:text="${albumInfo.firstSongPlayed}" /><br />
 	Last Song Played: <span th:text="${albumInfo.lastSongPlayed}" /><br />
@@ -53,7 +56,6 @@
 		<thead>
 			<tr>
 				<th>Position</th>
-				<th>Delete Song</th>
 				<th>Song</th>
 				<th>Album</th>
 				<th>Release Year</th>
@@ -65,23 +67,22 @@
 				<th>Days song was played</th>
 				<th>Weeks song was played</th>
 				<th>Months song was played</th>
+				<th>Delete Song</th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr th:each="song, stat : ${albumInfo.songs}">
 				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
-				<td th:if="${topSong.cloudStatus=='Deleted'}">
-					<a th:href="@{/softUndeleteSong/{id}(id=${topSong.id})}">Undelete Song</a>
-				</td>
-				<td th:if="${topSong.cloudStatus!='Deleted'}">
-					<a th:href="@{/softDeleteSong/{id}(id=${topSong.id})}">Delete Song</a>
-				</td>
 				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
 						th:text="${song.song}"></td>
 				<td th:text="${song.album}" />
 				<td><a th:href="@{/category/100/{category}/{value}(value=${song.releaseYear},category=${'Year'})}"
 						th:text="${song.releaseYear}" /></td>
-				<td th:text="${song.totalPlays}" />
+				<td>
+					<div class="tooltip">[[${song.totalPlays}]]
+					  <span class="tooltiptext" th:text="${song.playsByAccount}"/>
+					</div>
+				</td>
 				<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}" />
 				<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}" />
 				<td th:text="${song.firstPlay}" />
@@ -89,6 +90,12 @@
 				<td th:text="${song.daysSongWasPlayed}" />
 				<td th:text="${song.weeksSongWasPlayed}" />
 				<td th:text="${song.monthsSongWasPlayed}" />
+				<td th:if="${song.cloudStatus=='Deleted'}">
+					<a th:href="@{/softUndeleteSong/{id}(id=${song.id})}">Undelete Song</a>
+				</td>
+				<td th:if="${song.cloudStatus!='Deleted'}">
+					<a th:href="@{/softDeleteSong/{id}(id=${song.id})}">Delete Song</a>
+				</td>
 			</tr>
 		</tbody>
 	</table>

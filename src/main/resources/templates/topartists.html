@@ -5,6 +5,7 @@
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
 	<script src='js/utils.js'></script>
 	<link rel="stylesheet" href="css/sortable-theme-finder.css" />
+	<link rel="stylesheet" href="css/global.css" />
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
 	<script type="text/javascript">
 		function submitForm(page, sortField, sortDir) {
@@ -107,6 +108,10 @@
 		  Language: <select th:field="*{language}">
 					    <option value="">Select...</option>
 					    <option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
+				 	</select><br/>
+		  Account: <select th:field="*{account}">
+				    <option value="">Select...</option>
+				    <option th:each="account : ${accounts}" th:value="${account}" th:text="${account}"></option>
 				 	</select><br/>
 		  Plays more than or equal: <input type="text" th:field="*{playsMoreThan}" /><br/>
 		  Top: <input type="text" th:field="*{pageSize}" /><br/>
@@ -273,7 +278,11 @@
 					<td th:text="${stat.index+1}"/>
 					<td th:text="${stat.index+1}"/>
 					<td><a th:href="@{/artist?artist={artist}(artist=${topArtist.artist})}" th:text="${topArtist.artist}"/></td>
-					<td th:text="${topArtist.count}"/>
+					<td>
+						<div class="tooltip">[[${topArtist.count}]]
+						  <span class="tooltiptext" th:text="${topArtist.playsByAccount}"/>
+						</div>
+					</td>
 					<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.genre},category=${'Genre'})}" th:text="${topArtist.genre}"/></td>
 					<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.sex},category=${'Sex'})}" th:text="${topArtist.sex}"/></td>
 					<td><a th:href="@{/category/100/{category}/{value}(value=${topArtist.language},category=${'Language'})}" th:text="${topArtist.language}"/></td>

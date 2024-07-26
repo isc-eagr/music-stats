@@ -23,6 +23,7 @@ public class AlbumSongsQueryDTO {
 	int monthsSongWasPlayed;
 	String cloudStatus;
 	int id;
+	String playsByAccount;
 
 	public String getArtist() {
 		return artist;
@@ -178,6 +179,14 @@ public class AlbumSongsQueryDTO {
 
 	public void setId(int id) {
 		this.id = id;
+	}
+	
+	public String getPlaysByAccount() {
+		return playsByAccount;
+	}
+
+	public void setPlaysByAccount(String playsByAccount) {
+		this.playsByAccount = playsByAccount;
 	}
 
 	public String getTrackLengthString() {
