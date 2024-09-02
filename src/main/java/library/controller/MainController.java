@@ -591,9 +591,10 @@ public class MainController {
 
 	}
 
-	@RequestMapping("/songsLastFmButNotLocal")
-	public String songsLastFmButNotLocal(Model model) {
-		model.addAttribute("listSongs", scrobbleRepositoryImpl.songsInLastFmButNotLocal());
+	@RequestMapping({"/songsLastFmButNotLocal","/songsLastFmButNotLocal/{account}"})
+	public String songsLastFmButNotLocal(Model model, @PathVariable(required = false) String account) {
+		model.addAttribute("accounts", songRepositoryImpl.getAllAccounts());
+		model.addAttribute("listSongs", scrobbleRepositoryImpl.songsInLastFmButNotLocal(account));
 		return "songsLastFmButNotLocal";
 
 	}

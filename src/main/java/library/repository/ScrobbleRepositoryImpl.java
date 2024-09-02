@@ -1,5 +1,6 @@
 package library.repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -25,6 +26,7 @@ public class ScrobbleRepositoryImpl{
 			from scrobble sc left join song so 
 			on so.id = sc.song_id 
 			where so.artist is null 
+			%s 
 			group by sc.artist, sc.song, sc.album, sc.account
 			order by count desc, sc.artist asc, sc.album asc, sc.song asc
 			""";			           
@@ -65,8 +67,11 @@ public class ScrobbleRepositoryImpl{
 			""";
 	
 	
-	public List<SongsInLastfmButNotLocalDTO> songsInLastFmButNotLocal() {
-		return template.query(SONGS_LASTFM_BUT_NOT_LOCAL, new BeanPropertyRowMapper<>(SongsInLastfmButNotLocalDTO.class));
+	public List<SongsInLastfmButNotLocalDTO> songsInLastFmButNotLocal(String account) {
+		String builtQuery = SONGS_LASTFM_BUT_NOT_LOCAL;
+		List<Object> params = new ArrayList<>();
+		if(account != null) {builtQuery = String.format(builtQuery, " and sc.account = ?"); params.add(account);} else {builtQuery = String.format(builtQuery, "");}
+		return template.query(builtQuery, new BeanPropertyRowMapper<>(SongsInLastfmButNotLocalDTO.class), params.toArray());
 	}
 	
 	public int updateSongIds(int songId, String artist, String song, String album) {

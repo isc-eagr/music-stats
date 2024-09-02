@@ -4,9 +4,22 @@
 	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
 	<script src="js/sortable.min.js"></script>
 	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+	<script type="text/javascript">
+		function goToCategory(){
+			
+			var url="";
+				
+			if(document.getElementById("account").value != ''){url += document.getElementById("account").value}
+			
+			window.location = url;
+		}
+	</script>
 </head>
 <body>
-
+	Account: 	  <select id="account" onchange="goToCategory()">
+		  			    <option value="">Select...</option>
+		  			    <option th:each="account : ${accounts}" th:value="${account}" th:text="${account}"></option>
+		  			 </select><br/>
 	Songs in lastfm but not locally: <span th:text="${listSongs.size}">.</span> <br/>
 	<table class="sortable-theme-finder" data-sortable>
 	<thead>
