@@ -7,7 +7,7 @@
 </head>
 <body>
 
-	Songs not in library anymore: <span th:text="${deletedSongs.size}">.</span> <br/>
+	Songs not in library anymore: <span th:text="${deletedSongs.size()}">.</span> <br/>
 	
 	<div id="groupsTable">
 	<table th:each="deletedSongsGroup : ${deletedSongsGroupList}" >

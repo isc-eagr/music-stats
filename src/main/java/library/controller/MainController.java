@@ -31,7 +31,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -201,14 +202,8 @@ public class MainController {
 					case "Album":
 						songObject.setAlbum(value == null || value.isBlank() ? null : value);
 						break;
-					case "Grouping":
-						songObject.setLanguage(value);
-						break;
 					case "Genre":
 						songObject.setGenre(value);
-						break;
-					case "Movement Name":
-						songObject.setRace(value);
 						break;
 					case "Total Time":
 						songObject.setDuration(Integer.parseInt(value) / 1000);
@@ -217,7 +212,12 @@ public class MainController {
 						songObject.setYear(value == null ? 0 : Integer.parseInt(value));
 						break;
 					case "Comments":
-						songObject.setSex(value);
+						try {
+							String values[] = value.split("---");
+							songObject.setLanguage(values[0].strip());
+							songObject.setSex(values[1].strip());
+							songObject.setRace(values[2].strip());
+						}catch(Exception e) {ignore = true;}
 						break;
 					case "Kind":
 						switch (value) {
@@ -1203,7 +1203,7 @@ public class MainController {
 
 	}
 
-	@GetMapping({ "/category//{limit}", "/category//{limit}/{category1}/{value1}",
+	@GetMapping({ "/category/{limit}", "/category/{limit}/{category1}/{value1}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}",
@@ -1212,7 +1212,7 @@ public class MainController {
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}/{category7}/{value7}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}/{category7}/{value7}/{category8}/{value8}"
 			})
-	public String category(Model model, @PathVariable(required = true) int limit,
+	public String category(Model model, HttpServletRequest request, @PathVariable(required = true) int limit,
 			@PathVariable(required = false) String category1, @PathVariable(required = false) String value1,
 			@PathVariable(required = false) String category2, @PathVariable(required = false) String value2,
 			@PathVariable(required = false) String category3, @PathVariable(required = false) String value3,
@@ -1408,6 +1408,7 @@ public class MainController {
 		model.addAttribute("daysElapsedSinceFirstPlay", daysElapsedSinceFirstPlay);
 		model.addAttribute("start", start == null || start.isBlank() || start.equals("1970-01-01") ? "" : start);
 		model.addAttribute("end", end == null || end.isBlank() || end.equals("2400-12-31") ? "" : end);
+		model.addAttribute("servletPath", request.getServletPath());
 
 		return "category";
 	}

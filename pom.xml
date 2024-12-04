@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.4.4</version>
+		<version>3.3.6</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
@@ -36,6 +36,7 @@
         <dependency>
         	<groupId>mysql</groupId>
         	<artifactId>mysql-connector-java</artifactId>
+        	<version>8.0.33</version>
     	</dependency>
     	<dependency>
 	      <groupId>com.opencsv</groupId>
@@ -47,6 +48,36 @@
 		  <artifactId>jsoup</artifactId>
 		  <version>1.17.1</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.xerial</groupId>
+		    <artifactId>sqlite-jdbc</artifactId>
+		</dependency>
+		<dependency> 
+		  <groupId>org.apache.poi</groupId>
+		  <artifactId>poi</artifactId> 
+		  <version>5.3.0</version> 
+		</dependency> 
+		<dependency> 
+		  <groupId>org.apache.poi</groupId> 
+		  <artifactId>poi-ooxml</artifactId> 
+		  <version>5.3.0</version> 
+		</dependency>
+		<dependency>
+		  <groupId>org.jxls</groupId>
+		  <artifactId>jxls-jexcel</artifactId>
+		  <version>1.0.9</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.dhatim</groupId>
+		    <artifactId>fastexcel-reader</artifactId>
+		    <version>0.18.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.dhatim</groupId>
+		    <artifactId>fastexcel</artifactId>
+		    <version>0.18.1</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

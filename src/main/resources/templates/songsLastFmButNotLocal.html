@@ -7,7 +7,7 @@
 	<script type="text/javascript">
 		function goToCategory(){
 			
-			var url="";
+			var url="/songsLastFmButNotLocal/";
 				
 			if(document.getElementById("account").value != ''){url += document.getElementById("account").value}
 			
@@ -20,7 +20,7 @@
 		  			    <option value="">Select...</option>
 		  			    <option th:each="account : ${accounts}" th:value="${account}" th:text="${account}"></option>
 		  			 </select><br/>
-	Songs in lastfm but not locally: <span th:text="${listSongs.size}">.</span> <br/>
+	Songs in lastfm but not locally: <span th:text="${listSongs.size()}">.</span> <br/>
 	<table class="sortable-theme-finder" data-sortable>
 	<thead>
 		<tr>

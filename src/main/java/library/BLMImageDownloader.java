@@ -17,19 +17,22 @@ import org.jsoup.select.Elements;
 
 public class BLMImageDownloader {
 	
+	static int startInclusive = 1694;
+	static int endInclusive = 1694;
+	
 	public static void main(String... args) throws IOException{
 		
-		String userpass = "vatito22:Tr4iler0nuda+";
+		String userpass = "vatito22:Tr4ilera";
 		String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
 		Document document;
 		
-		for(int i=1 ; i<= 36; i++) {
+		for(int i=startInclusive ; i<= endInclusive; i++) {
 		
 			String numberString = String.valueOf(i);
 			//numberString = numberString.length()==2?"0"+numberString:numberString;
 			//numberString = numberString.length()==1?"00"+numberString:numberString;
 			
-		String url = "https://nakedpapis.com/members/sexpics/bonus01/bonus"+numberString+"/";
+		String url = "https://bilatinmen.com/members/latin_men_pictures/pictures_09/model"+numberString+"/";
 		
 		String[] urlSegments = url.split("/");
 		String dirName = urlSegments[urlSegments.length-1];
@@ -44,7 +47,7 @@ public class BLMImageDownloader {
 		if(document!=null) {
 			Element table = document.select("table").first();
 			try {
-				Files.createDirectory(Path.of("D:/Content/Latino Part 2/NakedPapis/Pics/"+dirName));
+				Files.createDirectory(Path.of("D:/Content/Latino/Bilatinmen/Pics/"+dirName));
 			}
 			catch(FileAlreadyExistsException faee) {}
 			Elements trs = table.select("tbody").select("tr");
@@ -60,14 +63,14 @@ public class BLMImageDownloader {
 								Element a = as.first();
 							
 								String fileName = a.text();
-								if(fileName.startsWith("bonus") && fileName.endsWith(".jpg")) {
+								if(fileName.startsWith("model") && fileName.endsWith(".jpg")) {
 									URL urlImg = new URL(url+fileName);
 	
 									URLConnection uc = urlImg.openConnection();
 									uc.setRequestProperty ("Authorization", basicAuth);
 									in = uc.getInputStream();
 									
-								    Files.copy(in, Paths.get("D:/Content/Latino Part 2/NakedPapis/Pics/"+dirName+"/"+fileName));
+								    Files.copy(in, Paths.get("D:/Content/Latino/Bilatinmen/Pics/"+dirName+"/"+fileName));
 							    }
 							}
 						}
