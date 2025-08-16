@@ -17,10 +17,10 @@ import org.jsoup.select.Elements;
 
 public class BLMImageDownloader {
 	
-	static int startInclusive = 1694;
-	static int endInclusive = 1694;
+	static int startInclusive = 934;
+	static int endInclusive = 934;
 	
-	public static void main(String... args) throws IOException{
+	public static void mainBLMPics(String... args) throws IOException{
 		
 		String userpass = "vatito22:Tr4ilera";
 		String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
@@ -71,6 +71,77 @@ public class BLMImageDownloader {
 									in = uc.getInputStream();
 									
 								    Files.copy(in, Paths.get("D:/Content/Latino/Bilatinmen/Pics/"+dirName+"/"+fileName));
+							    }
+							}
+						}
+					}catch(Exception e) {
+						e.printStackTrace();
+					}finally{
+						if(in != null) {
+							try {
+								in.close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				});
+			}		
+		}
+	}
+	
+public static void main(String... args) throws IOException{
+		
+		String userpass = "vatito22:c0ns0lada";
+		String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
+		Document document;
+		
+		for(int i=startInclusive ; i<= endInclusive; i++) {
+		
+			String numberString = String.valueOf(i);
+			//numberString = numberString.length()==2?"0"+numberString:numberString;
+			//numberString = numberString.length()==1?"00"+numberString:numberString;
+			
+		//String url = "https://nakedpapis.com/members/sexpics/pictures01/papi"+numberString+"/";
+			String url = "https://nakedpapis.com/members/solopics/pictures01/papi"+numberString+"/";
+		
+		String[] urlSegments = url.split("/");
+		String dirName = urlSegments[urlSegments.length-1];
+		try {
+			document = Jsoup.connect(url).header("Authorization", basicAuth).get();
+		}
+		catch(Exception e) {
+			document = null;
+		}
+		
+		
+		if(document!=null && document.getElementsByTag("h1").first().text().contains("Index of")) {
+			Element table = document.select("table").first();
+			try {
+				Files.createDirectory(Path.of("D:/Content/Latino/NakedPapis/Pics/"+dirName));
+			}
+			catch(FileAlreadyExistsException faee) {}
+			Elements trs = table.select("tbody").select("tr");
+				trs.forEach(tr -> {
+					InputStream in = null;
+					try{
+						Elements tds = tr.select("td");
+						if(tds.size()>0) {
+							Element td = tds.get(1);
+							Elements as = td.select("a");
+							
+							if(as.size()>0) {
+								Element a = as.first();
+							
+								String fileName = a.text();
+								if(fileName.startsWith("papi") && fileName.endsWith(".jpg")) {
+									URL urlImg = new URL(url+fileName);
+	
+									URLConnection uc = urlImg.openConnection();
+									uc.setRequestProperty ("Authorization", basicAuth);
+									in = uc.getInputStream();
+									
+								    Files.copy(in, Paths.get("D:/Content/Latino/NakedPapis/Pics/"+dirName+"/"+fileName));
 							    }
 							}
 						}

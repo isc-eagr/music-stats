@@ -43,7 +43,7 @@ public class SongsInLastfmButNotLocalDTO {
 	public void setAccount(String account) {
 		this.account = account;
 	}
-
+	
 	public int getCount() {
 		return count;
 	}

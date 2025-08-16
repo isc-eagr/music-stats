@@ -96,7 +96,7 @@ public class SongRepositoryImpl{
 	private static final String TOP_SONGS_COUNT = """
 			select count(*) from 
 			(select sc.artist, sc.song, IFNULL(so.album,'(single)') album, so.duration length,  
-							so.genre, so.sex, so.language, so.year, so.race, min(sc.scrobble_date) first_play, 
+							so.genre, so.sex, so.language, so.year, so.cloud_status, so.race, min(sc.scrobble_date) first_play, 
 							max(sc.scrobble_date) last_play, count(*) count, sum(duration) playtime,
                             count(distinct date(sc.scrobble_date)) play_days, 
 			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
@@ -279,6 +279,7 @@ public class SongRepositoryImpl{
 		if(filter.getYear()>0) {topSongsBuiltQuery += " and year=? "; params.add(filter.getYear());topSongsCountBuiltQuery+=" and year=?";}
 		if(filter.getPlaysMoreThan()>0) {topSongsBuiltQuery += " and count>=? "; params.add(filter.getPlaysMoreThan());topSongsCountBuiltQuery+=" and count>=?";}
 		if(filter.getLanguage()!=null && !filter.getLanguage().isBlank()) {topSongsBuiltQuery += " and language=? "; params.add(filter.getLanguage());topSongsCountBuiltQuery+=" and language=?";}
+		if(!filter.isIncludeDeleted()) {topSongsBuiltQuery += " and cloud_status <> 'Deleted' "; topSongsCountBuiltQuery+=" and cloud_status <> 'Deleted' ";}
 		
 		Order order = page.getSort().toList().get(0);		
 		List<TopSongsDTO> songs = template.query(

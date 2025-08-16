@@ -33,6 +33,8 @@ public class Filter {
     private String sortDir="desc";
     
     private String filterMode="1";
+    
+    private boolean includeDeleted = true;
 
 	public String getArtist() {
 		return artist;
@@ -161,5 +163,15 @@ public class Filter {
 	public void setIncludeFeatures(boolean includeFeatures) {
 		this.includeFeatures = includeFeatures;
 	}
+
+	public boolean isIncludeDeleted() {
+		return includeDeleted;
+	}
+
+	public void setIncludeDeleted(boolean includeDeleted) {
+		this.includeDeleted = includeDeleted;
+	}
+	
+	
 	
 }
