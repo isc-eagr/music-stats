@@ -1212,206 +1212,178 @@ public class MainController {
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}/{category7}/{value7}",
 			"/category/{limit}/{category1}/{value1}/{category2}/{value2}/{category3}/{value3}/{category4}/{value4}/{category5}/{value5}/{category6}/{value6}/{category7}/{value7}/{category8}/{value8}"
 			})
-	public String category(Model model, HttpServletRequest request, @PathVariable(required = true) int limit,
-			@PathVariable(required = false) String category1, @PathVariable(required = false) String value1,
-			@PathVariable(required = false) String category2, @PathVariable(required = false) String value2,
-			@PathVariable(required = false) String category3, @PathVariable(required = false) String value3,
-			@PathVariable(required = false) String category4, @PathVariable(required = false) String value4,
-			@PathVariable(required = false) String category5, @PathVariable(required = false) String value5,
-			@PathVariable(required = false) String category6, @PathVariable(required = false) String value6,
-			@PathVariable(required = false) String category7, @PathVariable(required = false) String value7,
-			@PathVariable(required = false) String category8, @PathVariable(required = false) String value8,
-			@RequestParam(defaultValue = "1970-01-01") String start,
-			@RequestParam(defaultValue = "2400-12-31") String end) {
+    public String category(Model model, HttpServletRequest request, @PathVariable(required = true) int limit,
+            @PathVariable(required = false) String category1, @PathVariable(required = false) String value1,
+            @PathVariable(required = false) String category2, @PathVariable(required = false) String value2,
+            @PathVariable(required = false) String category3, @PathVariable(required = false) String value3,
+            @PathVariable(required = false) String category4, @PathVariable(required = false) String value4,
+            @PathVariable(required = false) String category5, @PathVariable(required = false) String value5,
+            @PathVariable(required = false) String category6, @PathVariable(required = false) String value6,
+            @PathVariable(required = false) String category7, @PathVariable(required = false) String value7,
+            @PathVariable(required = false) String category8, @PathVariable(required = false) String value8,
+            @RequestParam(defaultValue = "1970-01-01") String start,
+            @RequestParam(defaultValue = "2400-12-31") String end) {
 
-		List<String> categories = new ArrayList<>();
-		List<String> values = new ArrayList<>();
+        List<String> categories = new ArrayList<>();
+        List<String> values = new ArrayList<>();
 
-		if (category1 != null) {
-			categories.add(category1);
-			categories.add(category2);
-			categories.add(category3);
-			categories.add(category4);
-			categories.add(category5);
-			categories.add(category6);
-			categories.add(category7);
+        if (category1 != null) {
+            categories.add(category1);
+            categories.add(category2);
+            categories.add(category3);
+            categories.add(category4);
+            categories.add(category5);
+            categories.add(category6);
+            categories.add(category7);
 
-			values.add(value1);
-			values.add(value2);
-			values.add(value3);
-			values.add(value4);
-			values.add(value5);
-			values.add(value6);
-			values.add(value7);
-		}
-		
-		int startYearIndex = categories.indexOf("YearStart");
-		int endYearIndex = categories.indexOf("YearEnd");
-		
-		int startYear = startYearIndex < 0 ? 0 : Integer.parseInt(values.get(startYearIndex));
-		int endYear = endYearIndex < 0 ? 10000 : Integer.parseInt(values.get(endYearIndex));
-		
-		if(endYearIndex >= 0) {
-			categories.remove(endYearIndex);
-			values.remove(endYearIndex);
-		}
-		if(startYearIndex >= 0) {
-			categories.remove(startYearIndex);
-			values.remove(startYearIndex);
-		}
-			
-		values.add(start);
-		values.add(end);
-		categories = categories.stream().filter(c -> c != null).toList();
-		values = values.stream().filter(v -> v != null).toList();
+            values.add(value1);
+            values.add(value2);
+            values.add(value3);
+            values.add(value4);
+            values.add(value5);
+            values.add(value6);
+            values.add(value7);
+        }
+        
+        int startYearIndex = categories.indexOf("YearStart");
+        int endYearIndex = categories.indexOf("YearEnd");
+        
+        int startYear = startYearIndex < 0 ? 0 : Integer.parseInt(values.get(startYearIndex));
+        int endYear = endYearIndex < 0 ? 10000 : Integer.parseInt(values.get(endYearIndex));
+        
+        if(endYearIndex >= 0) {
+            categories.remove(endYearIndex);
+            values.remove(endYearIndex);
+        }
+        if(startYearIndex >= 0) {
+            categories.remove(startYearIndex);
+            values.remove(startYearIndex);
+        }
+            
+        values.add(start);
+        values.add(end);
+        categories = categories.stream().filter(c -> c != null).toList();
+        values = values.stream().filter(v -> v != null).toList();
 
-		List<PlayDTO> plays = artistRepository.categoryPlays(categories.toArray(String[]::new),
-				values.toArray(String[]::new), startYear, endYear);
-		
-		List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
+        // Keep plays for charts and item-level account tooltips
+        List<PlayDTO> plays = artistRepository.categoryPlays(categories.toArray(String[]::new),
+                values.toArray(String[]::new), startYear, endYear);
+        List<String> accounts = plays.stream().map(p->p.getAccount()).distinct().toList();
 
-		CategoryPageDTO categoryPage = new CategoryPageDTO();
+        // Use SQL aggregations for totals and tops
+        var totals = artistRepository.categoryTotals(categories.toArray(String[]::new), values.toArray(String[]::new), startYear, endYear);
+        var topAlbums = artistRepository.categoryTopAlbums(limit, categories.toArray(String[]::new), values.toArray(String[]::new), startYear, endYear);
+        var topSongs = artistRepository.categoryTopSongs(limit, categories.toArray(String[]::new), values.toArray(String[]::new), startYear, endYear);
+        var playsByAcc = artistRepository.categoryPlaysByAccount(categories.toArray(String[]::new), values.toArray(String[]::new), startYear, endYear);
+        var mostPlayedArtistStr = artistRepository.categoryTopArtist(categories.toArray(String[]::new), values.toArray(String[]::new), startYear, endYear);
 
-		String categoryValueDisplay = "";
-		for (int i = 0; i < categories.size(); i++) {
-			if (categories.get(i).equals("Year")) {
-				categoryValueDisplay += ("Released " + values.get(i) + " ");
-			} else if (categories.get(i).equals("PlayYear")) {
-				categoryValueDisplay += ("Played " + values.get(i) + " ");
-			} else {
-				categoryValueDisplay += (values.get(i) + " ");
-			}
-		}
-		categoryPage.setCategoryValue(categoryValueDisplay);
-		categoryPage.setTotalPlays(plays.size());
-		
-		String playsByAccount="";
-		for(String account : accounts) {
-			playsByAccount += account+": "+plays.stream().filter(s->s.getAccount().equals(account)).count()+"\n";
-		}
-		categoryPage.setPlaysByAccount(playsByAccount);
-		
-		categoryPage.setTotalPlaytime(plays.stream().mapToInt(s -> s.getTrackLength()).sum());
-		categoryPage.setDaysCategoryWasPlayed(
-				(int) plays.stream().map(s -> s.getPlayDate().substring(0, 10)).distinct().count());
-		categoryPage.setWeeksCategoryWasPlayed((int) plays.stream().map(s -> s.getWeek()).distinct().count());
-		categoryPage.setMonthsCategoryWasPlayed(
-				(int) plays.stream().map(s -> s.getPlayDate().substring(0, 7)).distinct().count());
+        CategoryPageDTO categoryPage = new CategoryPageDTO();
 
-		// Breakdowns
-		Map<String, List<PlayDTO>> map = plays.stream().collect(Collectors.groupingBy(s -> s.getArtist()));
-		List<Entry<String, List<PlayDTO>>> sortedList = new ArrayList<>(map.entrySet());
-		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-				: (o1.getValue().size() == o2.getValue().size() ? 0 : 1));
+        String categoryValueDisplay = "";
+        for (int i = 0; i < categories.size(); i++) {
+            if (categories.get(i).equals("Year")) {
+                categoryValueDisplay += ("Released " + values.get(i) + " ");
+            } else if (categories.get(i).equals("PlayYear")) {
+                categoryValueDisplay += ("Played " + values.get(i) + " ");
+            } else {
+                categoryValueDisplay += (values.get(i) + " ");
+            }
+        }
+        categoryPage.setCategoryValue(categoryValueDisplay);
 
-		categoryPage.setMostPlayedArtist(
-				sortedList.size() > 0 ? (sortedList.get(0).getKey() + " - " + sortedList.get(0).getValue().size())
-						: "");
-		categoryPage.setNumberOfArtists(map.entrySet().size());
+        // Totals
+        categoryPage.setTotalPlays(totals.getTotalPlays());
+        categoryPage.setTotalPlaytime(totals.getTotalPlaytime());
+        categoryPage.setNumberOfArtists(totals.getNumberOfArtists());
+        categoryPage.setNumberOfAlbums(totals.getNumberOfAlbums());
+        categoryPage.setNumberOfSongs(totals.getNumberOfSongs());
+        categoryPage.setDaysCategoryWasPlayed(totals.getDaysCategoryWasPlayed());
+        categoryPage.setWeeksCategoryWasPlayed(totals.getWeeksCategoryWasPlayed());
+        categoryPage.setMonthsCategoryWasPlayed(totals.getMonthsCategoryWasPlayed());
+        categoryPage.setAverageSongLength(totals.getAverageSongLength());
+        categoryPage.setAveragePlaysPerSong(totals.getNumberOfSongs() > 0 ? (double) totals.getTotalPlays() / totals.getNumberOfSongs() : 0);
 
-		map = plays.stream().filter(s -> !s.getAlbum().equals("(single)") && !s.getAlbum().isBlank())
-				.collect(Collectors.groupingBy(s -> s.getArtist() + "::" + s.getAlbum()));
-		sortedList = new ArrayList<>(map.entrySet());
-		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-				: (o1.getValue().size() == o2.getValue().size() ? 0 : 1));
-		categoryPage.setMostPlayedAlbum(
-				sortedList.size() > 0 ? (sortedList.get(0).getKey() + " - " + sortedList.get(0).getValue().size())
-						: "");
-		categoryPage.setNumberOfAlbums(map.entrySet().size());
+        // Plays by account string
+        String playsByAccount = playsByAcc.stream()
+                .map(a -> a.getAccount() + ": " + a.getCount())
+                .collect(Collectors.joining("\n"));
+        categoryPage.setPlaysByAccount(playsByAccount);
 
-		categoryPage.setMostPlayedAlbums(sortedList.stream().limit(limit).map(e -> {
-			ArtistAlbumsQueryDTO album = new ArtistAlbumsQueryDTO();
-			album.setArtist(e.getValue().get(0).getArtist());
-			album.setAlbum(e.getValue().get(0).getAlbum());
-			album.setGenre(e.getValue().get(0).getGenre());
-			album.setRace(e.getValue().get(0).getRace());
-			album.setSex(e.getValue().get(0).getSex());
-			album.setLanguage(e.getValue().get(0).getLanguage());
-			album.setReleaseYear(e.getValue().get(0).getYear());
-			album.setTotalPlays(e.getValue().size());
-			String temp="";
-			for(String account : accounts) {
-				temp += account+": "+e.getValue().stream().filter(s->s.getAccount().equals(account)).count()+"\n";
-			}
-			album.setPlaysByAccount(temp);
-			return album;
-		}).toList());
+        // Tops
+        categoryPage.setMostPlayedArtist(mostPlayedArtistStr);
+        if(!topAlbums.isEmpty()) {
+            var a0 = topAlbums.get(0);
+            categoryPage.setMostPlayedAlbum(a0.getArtist()+"::"+a0.getAlbum()+" - "+a0.getTotalPlays());
+        }
+        if(!topSongs.isEmpty()) {
+            var s0 = topSongs.get(0);
+            categoryPage.setMostPlayedSong(s0.getArtist()+"::"+s0.getAlbum()+"::"+s0.getSong()+" - "+s0.getTotalPlays());
+        }
 
-		map = plays.stream()
-				.collect(Collectors.groupingBy(s -> s.getArtist() + "::" + s.getAlbum() + "::" + s.getSong()));
-		sortedList = new ArrayList<>(map.entrySet());
-		Collections.sort(sortedList, (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-				: (o1.getValue().size() == o2.getValue().size() ? 0 : 1));
-		categoryPage.setMostPlayedSong(
-				sortedList.size() > 0 ? (sortedList.get(0).getKey() + " - " + sortedList.get(0).getValue().size())
-						: "");
-		categoryPage.setNumberOfSongs(map.entrySet().size());
+        // Enrich tops with playsByAccount using plays in-memory (limited list)
+        for (var a : topAlbums) {
+            String temp = "";
+            for (String acc : accounts) {
+                long cnt = plays.stream().filter(p -> p.getAccount().equals(acc)
+                        && p.getArtist().equals(a.getArtist())
+                        && (p.getAlbum()==null?"(single)":p.getAlbum()).equals(a.getAlbum()))
+                        .count();
+                temp += acc + ": " + cnt + "\n";
+            }
+            a.setPlaysByAccount(temp);
+        }
+        for (var s : topSongs) {
+            String temp = "";
+            for (String acc : accounts) {
+                long cnt = plays.stream().filter(p -> p.getAccount().equals(acc)
+                        && p.getArtist().equals(s.getArtist())
+                        && (p.getAlbum()==null?"(single)":p.getAlbum()).equals(s.getAlbum())
+                        && p.getSong().equals(s.getSong()))
+                        .count();
+                temp += acc + ": " + cnt + "\n";
+            }
+            s.setPlaysByAccount(temp);
+        }
+        categoryPage.setMostPlayedAlbums(topAlbums);
+        categoryPage.setMostPlayedSongs(topSongs);
 
-		categoryPage.setMostPlayedSongs(sortedList.stream().limit(limit).map(e -> {
-			AlbumSongsQueryDTO song = new AlbumSongsQueryDTO();
-			song.setArtist(e.getValue().get(0).getArtist());
-			song.setAlbum(e.getValue().get(0).getAlbum());
-			song.setSong(e.getValue().get(0).getSong());
-			song.setGenre(e.getValue().get(0).getGenre());
-			song.setRace(e.getValue().get(0).getRace());
-			song.setSex(e.getValue().get(0).getSex());
-			song.setLanguage(e.getValue().get(0).getLanguage());
-			song.setYear(e.getValue().get(0).getYear());
-			song.setTotalPlays(e.getValue().size());
-			song.setCloudStatus(e.getValue().get(0).getCloudStatus());
-			String temp="";
-			for(String account : accounts) {
-				temp += account+": "+e.getValue().stream().filter(s->s.getAccount().equals(account)).count()+"\n";
-			}
-			song.setPlaysByAccount(temp);
-			return song;
-		}).toList());
+        // Chart groups (still computed in memory for now)
+        List<Criterion<PlayDTO>> criteria = List.of(
+                new Criterion<>("Sex", play -> play.getSex(),
+                        (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+                                : (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+                new Criterion<>("Genre", play -> play.getGenre(),
+                        (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+                                : (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+                new Criterion<>("Race", play -> play.getRace(),
+                        (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+                                : (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+                new Criterion<>("Language", play -> play.getLanguage(),
+                        (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+                                : (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+                new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
+                        (o1, o2) -> o1.getKey().compareTo(o2.getKey())),
+                new Criterion<>("PlayYear", play -> play.getPlayDate().substring(0, 4),
+                        (o1, o2) -> o1.getKey().compareTo(o2.getKey())),
+                new Criterion<>("Cloud Status", play -> play.getCloudStatus(),
+                        (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+                                : (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
+                new Criterion<>("Account", play -> play.getAccount(),
+                        (o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
+                                : (o1.getValue().size() == o2.getValue().size() ? 0 : 1))
+                );
 
-		categoryPage.setAveragePlaysPerSong(categoryPage.getNumberOfSongs() > 0
-				? (double) categoryPage.getTotalPlays() / categoryPage.getNumberOfSongs()
-				: 0);
-		categoryPage.setAverageSongLength(
-				categoryPage.getNumberOfSongs() > 0
-						? sortedList.stream().mapToInt(e -> e.getValue().get(0).getTrackLength()).sum()
-								/ categoryPage.getNumberOfSongs()
-						: 0);
+        model.addAttribute("categories", categories);
+        model.addAttribute("category", categoryPage);
+        model.addAttribute("categoryGroupList", Utils.generateChartData(criteria, plays,
+                categoryPage.getNumberOfSongs(), categoryPage.getTotalPlaytime()));
+        model.addAttribute("daysElapsedSinceFirstPlay", daysElapsedSinceFirstPlay);
+        model.addAttribute("start", start == null || start.isBlank() || start.equals("1970-01-01") ? "" : start);
+        model.addAttribute("end", end == null || end.isBlank() || end.equals("2400-12-31") ? "" : end);
+        model.addAttribute("servletPath", request.getServletPath());
 
-		List<Criterion<PlayDTO>> criteria = List.of(
-				new Criterion<>("Sex", play -> play.getSex(),
-						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
-				new Criterion<>("Genre", play -> play.getGenre(),
-						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
-				new Criterion<>("Race", play -> play.getRace(),
-						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
-				new Criterion<>("Language", play -> play.getLanguage(),
-						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
-				new Criterion<>("Release Year", play -> String.valueOf(play.getYear()),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
-				new Criterion<>("PlayYear", play -> play.getPlayDate().substring(0, 4),
-						(o1, o2) -> o1.getKey().compareTo(o2.getKey())),
-				new Criterion<>("Cloud Status", play -> play.getCloudStatus(),
-						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1)),
-				new Criterion<>("Account", play -> play.getAccount(),
-						(o1, o2) -> (o1.getValue()).size() > (o2.getValue()).size() ? -1
-								: (o1.getValue().size() == o2.getValue().size() ? 0 : 1))
-				);
-
-		model.addAttribute("categories", categories);
-		model.addAttribute("category", categoryPage);
-		model.addAttribute("categoryGroupList", Utils.generateChartData(criteria, plays,
-				categoryPage.getNumberOfSongs(), categoryPage.getTotalPlaytime()));
-		model.addAttribute("daysElapsedSinceFirstPlay", daysElapsedSinceFirstPlay);
-		model.addAttribute("start", start == null || start.isBlank() || start.equals("1970-01-01") ? "" : start);
-		model.addAttribute("end", end == null || end.isBlank() || end.equals("2400-12-31") ? "" : end);
-		model.addAttribute("servletPath", request.getServletPath());
-
-		return "category";
-	}
+        return "category";
+    }
 	
 	@GetMapping({ "/softDeleteSong/{songId}" })
 	@ResponseBody

@@ -2,44 +2,89 @@
 
 <head>
 	<title th:text="${song.artist+' - '+song.song}" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
-	<script src='../../../js/utils.js'></script>
-	<link rel="stylesheet" href="../../../css/sortable-theme-finder.css" />
-	<link rel="stylesheet" href="css/global.css" />
+	<script src='/js/utils.js'></script>
+	<script src='/js/table-sort.js'></script>
+	<link rel="stylesheet" href="/css/global.css" />
 </head>
 
 <body>
-	Song length: <span th:text="${song.trackLengthString}" /> <br />
-	Total Playtime: <span th:text="${song.totalPlaytimeString}" /><br />
-	First Play: <span th:text="${song.firstPlay}" /><br />
-	Last Play: <span th:text="${song.lastPlay}" /><br />
-	Days song was played: <span th:text="${song.daysSongWasPlayed}" /><br />
-	Weeks song was played: <span th:text="${song.weeksSongWasPlayed}" /><br />
-	Months song was played: <span th:text="${song.monthsSongWasPlayed}" /><br />
-	Total Plays: 	<div class="tooltip">[[${song.totalPlays}]]
-						  <span class="tooltiptext" th:text="${song.playsByAccount}"/>
-						</div><br />
-	
-	<table id="milestonesTable" class="sortable-theme-finder" data-sortable>
-		<thead>
-			<tr>
-				<th>Milestone</th>
-				<th>Date</th>
-				<th>Days it took to achieve it</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr th:each="milestone : ${song.milestones}">
-				<td th:text="${milestone.plays}"/>
-				<td th:text="${milestone.date}"/>
-				<td th:text="${milestone.days}"/>
-			</tr>
-		</tbody>
-	</table>
+	<header class="topbar">
+		<div class="container">
+			<nav class="breadcrumbs">
+				<a href="/">Home</a>
+				<span class="sep">/</span>
+				<a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}"></a>
+				<span class="sep">/</span>
+				<a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}" th:text="${song.album}"></a>
+				<span class="sep">/</span>
+				<span th:text="${song.song}"></span>
+			</nav>
+			<h1 class="page-title" th:text="${song.artist+' - '+song.song}"></h1>
+		</div>
+	</header>
 
-		<div style="width: 50%;">
-			<canvas th:id="${'plays'}" ></canvas>
+	<main class="container">
+		<section class="cards-grid">
+			<div class="card">
+				<h3>Song length</h3>
+				<div class="metric" th:text="${song.trackLengthString}"></div>
+			</div>
+			<div class="card">
+				<h3>Total Playtime</h3>
+				<div class="metric" th:text="${song.totalPlaytimeString}"></div>
+			</div>
+			<div class="card">
+				<h3>First Play</h3>
+				<div class="metric" th:text="${song.firstPlay}"></div>
+			</div>
+			<div class="card">
+				<h3>Last Play</h3>
+				<div class="metric" th:text="${song.lastPlay}"></div>
+			</div>
+			<div class="card">
+				<h3>Total Plays</h3>
+				<div class="metric">
+					<div class="tooltip">[[${song.totalPlays}]]
+						<span class="tooltiptext" th:text="${song.playsByAccount}"/>
+					</div>
+				</div>
+			</div>
+			<div class="card">
+				<h3>Activity Span</h3>
+				<ul class="list-compact">
+					<li>Days played: <strong th:text="${song.daysSongWasPlayed}"></strong></li>
+					<li>Weeks played: <strong th:text="${song.weeksSongWasPlayed}"></strong></li>
+					<li>Months played: <strong th:text="${song.monthsSongWasPlayed}"></strong></li>
+				</ul>
+			</div>
+		</section>
 
+		<section class="data-section">
+			<h2 class="section-title">Milestones</h2>
+			<div class="table-wrapper">
+				<table id="milestonesTable" class="table table-compact js-sortable">
+					<thead>
+						<tr>
+							<th>Milestone</th>
+							<th>Date</th>
+							<th>Days it took to achieve it</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="milestone : ${song.milestones}">
+							<td th:text="${milestone.plays}"></td>
+							<td th:text="${milestone.date}"></td>
+							<td th:text="${milestone.days}"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section class="chart-card" style="height:300px;">
+			<canvas th:id="${'plays'}"></canvas>
 			<script th:inline="javascript">
 				/*<![CDATA[*/
 				var ctx = document.getElementById(/*[[${'plays'}]]*/'').getContext('2d');
@@ -57,13 +102,13 @@
 							}
 						]
 					},
-					options: {
-						responsive: true
-					}
+					options: { responsive: true }
 				});
-
 				myChart.update();
-                /*]]>*/
+				/*]]>*/
 			</script>
-		</div>
+		</section>
+	</main>
+</body>
+
 </html>

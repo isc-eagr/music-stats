@@ -1,12 +1,11 @@
 <html xmlns:th="http://www.thymeleaf.org">
 	<head>
 		<title>Stats</title>
-		<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="stylesheet" href="/css/global.css" />
 		<script type="text/javascript">
 			function goToCategory(){
-				
 				var url="category/100";
-				
 				if(document.getElementById("sex").value != '' ){url += "/Sex/"+document.getElementById("sex").value}
 				if(document.getElementById("genre").value != ''){url += "/Genre/"+document.getElementById("genre").value}
 				if(document.getElementById("race").value != ''){url += "/Race/"+document.getElementById("race").value}
@@ -15,11 +14,9 @@
 				if(document.getElementById("releaseYearEnd").value != ''){url += "/YearEnd/"+document.getElementById("releaseYearEnd").value}
 				if(document.getElementById("playYear").value != ''){url += "/PlayYear/"+document.getElementById("playYear").value}
 				if(document.getElementById("account").value != ''){url += "/Account/"+document.getElementById("account").value}
-				
 				window.open(url);
 			}
 		</script>
-	
 	</head>
 	<body>
 	  Sex: <select id="sex">
@@ -44,8 +41,6 @@
 	  			    <option value="">Select...</option>
 	  			    <option th:each="account : ${accounts}" th:value="${account}" th:text="${account}"></option>
 	  			 </select><br/>
-	  
 	  <input type="button" id="goToCategory" onclick="goToCategory()" value="Search"/>
-	
 	</body>
 </html>

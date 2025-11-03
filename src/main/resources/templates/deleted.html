@@ -1,16 +1,14 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 <title>Stats</title>
-	<script	src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
-	<script src="js/sortable.min.js"></script>
-	<link rel="stylesheet" href="css/sortable-theme-finder.css"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script src="/js/table-sort.js"></script>
+	<link rel="stylesheet" href="/css/global.css"/>
 </head>
 <body>
-
 	Songs not in library anymore: <span th:text="${deletedSongs.size()}">.</span> <br/>
-	
 	<div id="groupsTable">
-	<table th:each="deletedSongsGroup : ${deletedSongsGroupList}" >
+	<table th:each="deletedSongsGroup : ${deletedSongsGroupList}" class="table table-compact js-sortable" >
 		<tr>
 			<th th:text="${deletedSongsGroup.criteria}"/>
 			<th>Number of Songs</th>
@@ -18,14 +16,13 @@
 		</tr>
 		<tr th:each="listCount : ${deletedSongsGroup.listCounts}">
 			<td th:text="${listCount.element}"/>
-			<td th:text="${listCount.count}"/>
+			<td th:text="${listCount.count}" th:attr="data-sort-value=${listCount.count}"/>
 			<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
 		</tr>
 	</table>
 </div>
 	<br />
-	
-	<table class="sortable-theme-finder" data-sortable>
+	<table class="table table-compact js-sortable">
 	<thead>
 		<tr>
 			<th>Artist</th>
@@ -42,14 +39,13 @@
 	</thead>
 	<tbody>
 		<tr th:each="song : ${deletedSongs}">
-			
 				<td><a th:href="@{/artist?artist={artist}(artist=${song.artist})}" th:text="${song.artist}">
 								</td>
 				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
 										th:text="${song.song}"></td>
 				<td><a th:href="@{/album?artist={artist}&album={album}(artist=${song.artist},album=${song.album})}"
 										th:text="${song.album}"></td>
-				<td th:text="${song.plays}"/>
+				<td th:text="${song.plays}" th:attr="data-sort-value=${song.plays}"/>
 				<td th:text="${song.durationString}"/>
 				<td><a th:href="@{/category/100/{category}/{value}(value=${song.genre},category=${'Genre'})}"
 										th:text="${song.genre}" /></td>
@@ -61,11 +57,9 @@
 										th:text="${song.language}" /></td>
 				<td><a th:href="@{/category/100/{category}/{value}(value=${song.year},category=${'Year'})}"
 										th:text="${song.year}" /></td>
-			
 		</tr>
 	</tbody>
 	</table>
-
 </body>
 
 </html>

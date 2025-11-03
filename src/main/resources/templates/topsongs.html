@@ -2,370 +2,294 @@
 
 <head>
 	<title>Top Songs</title>
-	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js'></script>
-	<script src='js/utils.js'></script>
-	<link rel="stylesheet" href="css/sortable-theme-finder.css" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
+	<script src='/js/utils.js'></script>
+	<script src="/js/table-sort.js"></script>
+	<link rel="stylesheet" href="/css/global.css" />
+</head>
+
+<body>
+	<header class="topbar">
+		<div class="container">
+			<nav class="breadcrumbs">
+				<a href="/">Home</a>
+				<span class="sep">/</span>
+				<span>Top Songs</span>
+			</nav>
+			<h1 class="page-title">Top Songs</h1>
+		</div>
+	</header>
+
+	<main class="container">
+		<section class="filters">
+			<div class="filters__form" style="gap: 16px; display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); align-items: end;">
+				<div style="grid-column: 1 / -1; display:flex; align-items:center; gap:8px;">
+					<input type="radio" name="filtermode" id="mode1" value="mode1" onclick="disableForm('form2')" th:checked="${filterMode eq '1'}" />
+					<label for="mode1">Mode 1</label>
+					<input type="radio" name="filtermode" id="mode2" value="mode2" onclick="disableForm('form1')" th:checked="${filterMode eq '2'}" />
+					<label for="mode2">Mode 2</label>
+				</div>
+
+				<form action="#" th:action="@{/topSongs}" th:object="${filter}" method="post" id="form1" style="grid-column: 1 / -1; display: contents;">
+					<label class="field"><span>Artist</span><input type="text" th:field="*{artist}" /></label>
+					<label class="field"><span>Song</span><input type="text" th:field="*{song}" /></label>
+					<label class="field"><span>Album</span><input type="text" th:field="*{album}" /></label>
+					<label class="field"><span>Sex</span>
+						<select th:field="*{sex}">
+							<option value="">Select...</option>
+							<option th:each="sex : ${sexes}" th:value="${sex}" th:text="${sex}"></option>
+						</select>
+					</label>
+					<label class="field"><span>Genre</span>
+						<select th:field="*{genre}">
+							<option value="">Select...</option>
+							<option th:each="genre : ${genres}" th:value="${genre}" th:text="${genre}"></option>
+						</select>
+					</label>
+					<label class="field"><span>Race</span>
+						<select th:field="*{race}">
+							<option value="">Select...</option>
+							<option th:each="race : ${races}" th:value="${race}" th:text="${race}"></option>
+						</select>
+					</label>
+					<label class="field"><span>Year</span><input type="text" th:field="*{year}" /></label>
+					<label class="field"><span>Language</span>
+						<select th:field="*{language}">
+							<option value="">Select...</option>
+							<option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
+						</select>
+					</label>
+					<label class="field"><span>Plays ≥</span><input type="text" th:field="*{playsMoreThan}" /></label>
+					<label class="field"><span>Page Size</span><input type="text" th:field="*{pageSize}" /></label>
+					<label class="field"><span>Include Deleted</span><input type="checkbox" th:field="*{includeDeleted}" /></label>
+					<input type="hidden" th:field="*{sortField}" id="sortField1" />
+					<input type="hidden" th:field="*{sortDir}" id="sortDir1" />
+					<input type="hidden" th:field="*{page}" id="page1" />
+					<input type="hidden" th:field="*{filterMode}" id="filterMode1" />
+					<button type="button" class="btn btn-primary" id="submitButton1" th:page="${'1'}" th:sortField="${sortField}" th:sortDir="${sortDir}" th:filterMode="${'1'}"
+						th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">Apply</button>
+				</form>
+
+				<form action="#" th:action="@{/topSongs}" th:object="${filter}" method="post" id="form2" style="grid-column: 1 / -1; display: contents;">
+					<label class="field"><span>Top</span><input type="text" th:field="*{pageSize}" /></label>
+					<input type="hidden" th:field="*{sortField}" id="sortField2" />
+					<input type="hidden" th:field="*{sortDir}" id="sortDir2" />
+					<input type="hidden" th:field="*{page}" id="page2" />
+					<input type="hidden" th:field="*{filterMode}" id="filterMode2" />
+					<button type="button" class="btn btn-primary" id="submitButton2" th:page="${'1'}" th:sortField="${sortField}" th:sortDir="${sortDir}" th:filterMode="${'2'}"
+						th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">Apply</button>
+				</form>
+			</div>
+		</section>
+
+		<section class="groups" th:if="${filterMode eq '2'}">
+			<div class="group-section">
+				<h2 class="section-title">Groups</h2>
+				<div class="table-wrapper" id="groupsTable">
+					<table th:each="topSongsGroup : ${topSongsGroupList}" class="table table-compact js-sortable">
+						<tr>
+							<th></th>
+							<th th:text="${topSongsGroup.criteria}"></th>
+							<th>Number of Songs</th>
+							<th>Percentage of Songs</th>
+							<th>Number of Plays</th>
+							<th>Percentage of Plays</th>
+							<th>Playtime</th>
+							<th>Playtime %</th>
+						</tr>
+						<tr th:each="listCount : ${topSongsGroup.listCounts}">
+							<td><input type="checkbox" th:value="${listCount.element+','+topSongsGroup.criteria}" onclick="filterTable(this.value)" /></td>
+							<td th:text="${listCount.element}"></td>
+							<td th:text="${listCount.count}"></td>
+							<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"></td>
+							<td th:text="${listCount.plays}"></td>
+							<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"></td>
+							<td th:text="${listCount.playtimeString}"></td>
+							<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</section>
+
+		<section class="data-section">
+			<h2 class="section-title">Top songs</h2>
+			<div class="table-wrapper">
+				<div>Total number of songs: <span id="totalNumberSongs" th:text="${topSongs.totalElements}"></span></div>
+				<div id="topPagination" th:if="${filterMode eq '1'}">
+					<ul th:if="${topSongs.totalPages > 0}" style="overflow: hidden; list-style-type: none;">
+						<li th:each="pageNumber : ${pageNumbers}" style="float: left; padding-right:5px;">
+							<a th:page="${pageNumber}" th:sortField="${sortField}" th:sortDir="${sortDir}" th:filterMode="${filterMode}"
+								th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))"
+								th:text=${pageNumber}></a>
+						<li>
+					</ul>
+				</div>
+				<table id="songsTable" class="table table-compact js-sortable">
+					<thead>
+						<tr>
+							<th>Position</th>
+							<th>Overall Position</th>
+							<th>Delete</th>
+							<th>Total Plays</th>
+							<th>Artist</th>
+							<th>Song</th>
+							<th>Album</th>
+							<th>Genre</th>
+							<th>Sex</th>
+							<th>Language</th>
+							<th>Year</th>
+							<th>Race</th>
+							<th>Length</th>
+							<th>Playtime</th>
+							<th>First Play</th>
+							<th>Last Play</th>
+							<th>Days Song Was Played</th>
+							<th>Weeks Song Was Played</th>
+							<th>Months Song Was Played</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="topSong, stat : ${topSongs}">
+							<td th:text="${stat.index+topSongs.pageable.offset+1}" th:style="${topSong.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"></td>
+							<td th:text="${stat.index+topSongs.pageable.offset+1}"></td>
+							<td th:if="${topSong.cloudStatus=='Deleted'}">
+								<a th:href="@{/softUndeleteSong/{id}(id=${topSong.id})}">Undelete Song</a>
+							</td>
+							<td th:if="${topSong.cloudStatus!='Deleted'}">
+								<a th:href="@{/softDeleteSong/{id}(id=${topSong.id})}">Delete Song</a>
+							</td>
+							<td th:text="${topSong.count}" th:attr="data-sort-value=${topSong.count}"></td>
+							<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}"></a></td>
+							<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}" th:text="${topSong.song}"></a></td>
+							<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topSong.artist},album=${topSong.album})}" th:text="${topSong.album}"></a></td>
+							<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.genre},category=${'Genre'})}" th:text="${topSong.genre}"></a></td>
+							<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.sex},category=${'Sex'})}" th:text="${topSong.sex}"></a></td>
+							<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.language},category=${'Language'})}" th:text="${topSong.language}"></a></td>
+							<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.year},category=${'Year'})}" th:text="${topSong.year}"></a></td>
+							<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.race},category=${'Race'})}" th:text="${topSong.race}"></a></td>
+							<td th:text="${topSong.lengthString}" th:attr="data-sort-value=${topSong.length}"></td>
+							<td th:text="${topSong.playtimeString}" th:attr="data-sort-value=${topSong.playtime}"></td>
+							<td th:text="${topSong.firstPlay}"></td>
+							<td th:text="${topSong.lastPlay}"></td>
+							<td th:text="${topSong.playDays}" th:attr="data-sort-value=${topSong.playDays}"></td>
+							<td th:text="${topSong.playWeeks}" th:attr="data-sort-value=${topSong.playWeeks}"></td>
+							<td th:text="${topSong.playMonths}" th:attr="data-sort-value=${topSong.playMonths}"></td>
+						</tr>
+					</tbody>
+				</table>
+
+				<div id="bottomPagination" th:if="${filterMode eq '1'}">
+					<ul th:if="${topSongs.totalPages > 0}" style="overflow: hidden; list-style-type: none;">
+						<li th:each="pageNumber : ${pageNumbers}" style="float: left; padding-right:5px;">
+							<a th:page="${pageNumber}" th:sortField="${sortField}" th:sortDir="${sortDir}" th:filterMode="${filterMode}"
+								th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))"
+								th:text=${pageNumber}></a>
+						<li>
+					</ul>
+				</div>
+			</div>
+		</section>
+	</main>
+
 	<script type="text/javascript">
 		function submitForm(page, sortField, sortDir, filterMode) {
-			document.getElementById("page"+filterMode).value=page;
-			document.getElementById("sortField"+filterMode).value=sortField;
-			document.getElementById("sortDir"+filterMode).value=sortDir;
-			document.getElementById("filterMode"+filterMode).value=filterMode;
-			document.getElementById("form"+filterMode).submit();
+			document.getElementById("page" + filterMode).value = page;
+			document.getElementById("sortField" + filterMode).value = sortField;
+			document.getElementById("sortDir" + filterMode).value = sortDir;
+			document.getElementById("filterMode" + filterMode).value = filterMode;
+			document.getElementById("form" + filterMode).submit();
 		}
-		
-		function disableForm(form){
+
+		function disableForm(form) {
 			var oppositeForm;
-			if(form==='form1'){
-				oppositeForm=document.getElementById("form2");
+			if (form === 'form1') {
+				oppositeForm = document.getElementById("form2");
 			}
-			if(form==='form2'){
-				oppositeForm=document.getElementById("form1");
+			if (form === 'form2') {
+				oppositeForm = document.getElementById("form1");
 			}
-			
-			var form = document.getElementById(form);
-			var elements = form.elements;
-			for (var i = 0; i< elements.length; i++) {
-			    elements[i].disabled = true;
+
+			var currentForm = document.getElementById(form);
+			var elements = currentForm.elements;
+			for (var i = 0; i < elements.length; i++) {
+				elements[i].disabled = true;
 			}
-			
+
 			elements = oppositeForm.elements;
-			for (var i = 0; i< elements.length; i++) {
-			    elements[i].disabled = false;
+			for (var i = 0; i < elements.length; i++) {
+				elements[i].disabled = false;
 			}
 		}
-		
-		function filterTable(value){
+
+		function filterTable(value) {
 			console.log(value);
-			
+
 			var table = document.getElementById("songsTable");
 			var inputs = document.getElementsByTagName("input");
-			
+
 			for (let row of table.rows) {
-				if(row.rowIndex > 0){
-	        		row.style.display = 'none';
+				if (row.rowIndex > 0) {
+					row.style.display = 'none';
 				}
 			}
-			
+
 			var genres = new Array();
 			var sexes = new Array();
 			var languages = new Array();
 			var years = new Array();
 			var races = new Array();
-			
-			for(let input of inputs){
-				if(input.type=='checkbox' && input.checked){
-					switch(input.value.split(',')[1]){
-					   case "Genre": 
-						   genres.push(input.value.split(',')[0]);
-						   break;
-					   case "Sex": 
-						   sexes.push(input.value.split(',')[0]);
-						   break;
-					   case "Language": 
-						   languages.push(input.value.split(',')[0]);
-						   break;
-					   case "Release Year": 
-						   years.push(input.value.split(',')[0]);
-						   break;
-					   case "Race": 
-						   races.push(input.value.split(',')[0]);
-						   break;
-				   	}
+
+			for (let input of inputs) {
+				if (input.type == 'checkbox' && input.checked) {
+					switch (input.value.split(',')[1]) {
+						case "Genre":
+							genres.push(input.value.split(',')[0]);
+							break;
+						case "Sex":
+							sexes.push(input.value.split(',')[0]);
+							break;
+						case "Language":
+							languages.push(input.value.split(',')[0]);
+							break;
+						case "Release Year":
+							years.push(input.value.split(',')[0]);
+							break;
+						case "Race":
+							races.push(input.value.split(',')[0]);
+							break;
+					}
 				}
 			}
 			var enabledCells = 0;
 			console.log(sexes);
 			for (let row of table.rows) {
-	        	var colGenre = htmlDecode(row.cells[6].firstChild.innerHTML);
-	        	var colSex = row.cells[7].firstChild.innerHTML;
-	        	var colLanguage = row.cells[8].firstChild.innerHTML;
-	        	var colYear = row.cells[9].firstChild.innerHTML;
-	        	var colRace = row.cells[10].firstChild.innerHTML;
-	        	if(row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) && 
-	        			(sexes.length <= 0 || sexes.includes(colSex)) && 
-	        			(languages.length <=0 || languages.includes(colLanguage)) && 
-	        			(years.length <=0 || years.includes(colYear)) &&
-	        			(races.length <=0 || races.includes(colRace))
-	        			){
-	        		row.style.display = '';
-	        		enabledCells++;
-	        		row.cells[0].innerHTML = enabledCells;
-	        	}
+				var colGenre = htmlDecode(row.cells[7].firstChild.innerHTML);
+				var colSex = row.cells[8].firstChild.innerHTML;
+				var colLanguage = row.cells[9].firstChild.innerHTML;
+				var colYear = row.cells[10].firstChild.innerHTML;
+				var colRace = row.cells[11].firstChild.innerHTML;
+				if (row.rowIndex > 0 && (genres.length <= 0 || genres.includes(colGenre)) &&
+					(sexes.length <= 0 || sexes.includes(colSex)) &&
+					(languages.length <= 0 || languages.includes(colLanguage)) &&
+					(years.length <= 0 || years.includes(colYear)) &&
+					(races.length <= 0 || races.includes(colRace))
+				) {
+					row.style.display = '';
+					enabledCells++;
+					row.cells[0].innerHTML = enabledCells;
+				}
 			}
-			
 		}
-		
-		window.onload = function(){
-			
-			if(document.getElementById("mode1").checked ==true)
+
+		window.onload = function () {
+			if (document.getElementById("mode1").checked == true)
 				disableForm('form2');
-			else if(document.getElementById("mode2").checked ==true)
-				disableForm('form1');	
+			else if (document.getElementById("mode2").checked == true)
+				disableForm('form1');
 		}
-
 	</script>
-	<style>
-		.table_wrapper {
-			display: block;
-			overflow-x: auto;
-			white-space: nowrap;
-			width: 150%;
-		}
-	</style>
-</head>
-
-<body>
-<div style="float: left;">
-	<div style="float:left; padding-right:70px;">
-	<input type="radio" name="filtermode" id="mode1" value="mode1" onclick="disableForm('form2')" th:checked="${filterMode eq '1'}"/>
-	<label for="mode1">Mode 1</label>
-		<form action="#" th:action="@{/topSongs}" th:object="${filter}" method="post" id="form1">
-		  Artist: <input type="text" th:field="*{artist}" /><br/>
-		  Song: <input type="text" th:field="*{song}" /><br/>
-		  Album: <input type="text" th:field="*{album}" /><br/>
-		  Sex: <select th:field="*{sex}">
-				    <option value="">Select...</option>
-				    <option th:each="sex : ${sexes}" th:value="${sex}" th:text="${sex}"></option>
-				 </select><br/>
-		  Genre: <select th:field="*{genre}">
-				    <option value="">Select...</option>
-				    <option th:each="genre : ${genres}" th:value="${genre}" th:text="${genre}"></option>
-				 </select><br/>
-		  Race: <select th:field="*{race}">
-				    <option value="">Select...</option>
-				    <option th:each="race : ${races}" th:value="${race}" th:text="${race}"></option>
-				 </select><br/>
-		  Year: <input type="text" th:field="*{year}" /><br/>
-		  Language: <select th:field="*{language}">
-					    <option value="">Select...</option>
-					    <option th:each="language : ${languages}" th:value="${language}" th:text="${language}"></option>
-				 	</select><br/>
-		  Plays more than or equal: <input type="text" th:field="*{playsMoreThan}" /><br/>
-		  Page Size: <input type="text" th:field="*{pageSize}" /><br/>
-		  Include Deleted Songs: <input type="checkbox" th:field="*{includeDeleted}"/><br />
-		  <input type="hidden" th:field="*{sortField}" id="sortField1"/>
-		  <input type="hidden" th:field="*{sortDir}" id="sortDir1"/>
-		  <input type="hidden" th:field="*{page}" id="page1"/>
-		  <input type="hidden" th:field="*{filterMode}" id="filterMode1"/>
-		  <input value="Submit" type="button" id="submitButton" th:page="${'1'}" th:sortField="${sortField}"  th:sortDir="${sortDir}" th:filterMode="${'1'}"
-				th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))"/>
-		</form>
-	</div>
-	<div style="float:left;">
-		<input type="radio" name="filtermode" id="mode2" value="mode2" onclick="disableForm('form1')" th:checked="${filterMode eq '2'}"/>
-		<label for="mode2">Mode 2</label>
-		<form action="#" th:action="@{/topSongs}" th:object="${filter}" method="post" id="form2">
-			  Top: <input type="text" th:field="*{pageSize}" /><br/>
-			  <input type="hidden" th:field="*{sortField}" id="sortField2"/>
-			  <input type="hidden" th:field="*{sortDir}" id="sortDir2"/>
-			  <input type="hidden" th:field="*{page}" id="page2"/>
-			  <input type="hidden" th:field="*{filterMode}" id="filterMode2"/>
-			  <input value="Submit" type="button" id="submitButton" th:page="${'1'}" th:sortField="${sortField}"  th:sortDir="${sortDir}" th:filterMode="${'2'}" 
-					th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))"/>
-		</form>
-	</div>
-</div>
-
-<div id="groupsTable" th:if="${filterMode eq '2'}" style="float:left;">
-	<table th:each="topSongsGroup : ${topSongsGroupList}" >
-		<tr>
-			<th/>
-			<th th:text="${topSongsGroup.criteria}"/>
-			<th>Number of Songs</th>
-			<th>Percentage of Songs</th>
-			<th>Number of Plays</th>
-			<th>Percentage of Plays</th>
-			<th>Playtime</th>
-			<th>Playtime %</th>
-		</tr>
-		<tr th:each="listCount : ${topSongsGroup.listCounts}">
-			<td><input type="checkbox" th:value="${listCount.element+','+topSongsGroup.criteria}" onclick="filterTable(this.value)"/></td>
-			<td th:text="${listCount.element}"/>
-			<td th:text="${listCount.count}"/>
-			<td th:text="${#numbers.formatDecimal(listCount.percentageCount, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-			<td th:text="${listCount.plays}"/>
-			<td th:text="${#numbers.formatDecimal(listCount.percentagePlays, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-			<td th:text="${listCount.playtimeString}"/>
-			<td th:text="${#numbers.formatDecimal(listCount.percentagePlaytime, 1, 'DEFAULT', 2, 'DEFAULT')+'%'}"/>
-		
-		</tr>
-	</table>
-</div>
-	<br />
-	
-	<div class="table_wrapper">
-	Total number of songs: <span id="totalNumberSongs" th:text="${topSongs.totalElements}" /><br />
-		<div id="topPagination" th:if="${filterMode eq '1'}">
-			<ul th:if="${topSongs.totalPages > 0}" style="overflow: hidden; list-style-type: none;">
-				<li th:each="pageNumber : ${pageNumbers}" style="float: left; padding-right:5px;">
-					<a th:page="${pageNumber}" th:sortField="${sortField}"  th:sortDir="${sortDir}" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))"
-							th:text=${pageNumber}></a>
-				<li>
-			</ul>
-		</div>
-		<table id="songsTable" class="sortable-theme-finder" data-sortable>
-			<thead>
-				<tr>
-					<th data-sortable="false">Position</th>
-					<th data-sortable="false">Overall Position</th>
-					<th data-sortable="false">Delete</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'count'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Plays
-							<i th:if="${sortField eq 'count'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'artist'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}" 
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Artist
-							<i th:if="${sortField eq 'artist'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'song'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}" 
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Song
-							<i th:if="${sortField eq 'song'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'album'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}" 
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Album
-							<i th:if="${sortField eq 'album'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th data-sortable="false">Genre</th>
-					<th data-sortable="false">Sex</th>
-					<th data-sortable="false">Language</th>
-					<th data-sortable="false">Year</th>
-					<th data-sortable="false">Race</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'length'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}" 
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Length
-							<i th:if="${sortField eq 'length'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'playtime'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Playtime
-							<i th:if="${sortField eq 'playtime'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'first_play'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							First Play
-							<i th:if="${sortField eq 'first_play'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'last_play'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Last Play
-							<i th:if="${sortField eq 'last_play'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'play_days'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Days Song Was Played
-							<i th:if="${sortField eq 'play_days'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'play_weeks'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Weeks Song Was Played
-							<i th:if="${sortField eq 'play_weeks'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-					<th>
-						<a th:page="${'1'}" th:sortField="${'play_months'}"  th:sortDir="${sortDir eq 'desc'}  ? 'asc' : 'desc'" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))">
-							Months Song Was Played
-							<i th:if="${sortField eq 'play_months'}"
-								th:class="${sortDir eq 'desc' ? 'fa fa-sort-down' : 'fa fa-sort-up'}">
-							</i>
-						</a>
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr th:each="topSong, stat : ${topSongs}">
-					<td th:text="${stat.index+topSongs.pageable.offset+1}" th:style="${topSong.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
-					<td th:text="${stat.index+topSongs.pageable.offset+1}"/>
-					<td th:if="${topSong.cloudStatus=='Deleted'}">
-						<a th:href="@{/softUndeleteSong/{id}(id=${topSong.id})}">Undelete Song</a>
-					</td>
-					<td th:if="${topSong.cloudStatus!='Deleted'}">
-						<a th:href="@{/softDeleteSong/{id}(id=${topSong.id})}">Delete Song</a>
-					</td>
-					<td th:text="${topSong.count}" />
-					<td><a th:href="@{/artist?artist={artist}(artist=${topSong.artist})}" th:text="${topSong.artist}">
-					</td>
-					<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${topSong.artist},album=${topSong.album},song=${topSong.song})}"
-							th:text="${topSong.song}" /></td>
-					<td><a th:href="@{/album?artist={artist}&album={album}(artist=${topSong.artist},album=${topSong.album})}"
-							th:text="${topSong.album}" /></td>
-					<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.genre},category=${'Genre'})}"
-							th:text="${topSong.genre}" /></td>
-					<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.sex},category=${'Sex'})}"
-							th:text="${topSong.sex}" /></td>
-					<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.language},category=${'Language'})}"
-							th:text="${topSong.language}" /></td>
-					<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.year},category=${'Year'})}"
-							th:text="${topSong.year}" /></td>
-					<td><a th:href="@{/category/100/{category}/{value}(value=${topSong.race},category=${'Race'})}"
-							th:text="${topSong.race}" /></td>
-					<td th:text="${topSong.lengthString}" th:data-value="${topSong.length}" />
-					<td th:text="${topSong.playtimeString}" th:data-value="${topSong.playtime}" />
-					<td th:text="${topSong.firstPlay}" />
-					<td th:text="${topSong.lastPlay}" />
-					<td th:text="${topSong.playDays}" />
-					<td th:text="${topSong.playWeeks}" />
-					<td th:text="${topSong.playMonths}" />
-				</tr>
-			</tbody>
-		</table>
-
-		<div id="bottomPagination" th:if="${filterMode eq '1'}">
-			<ul th:if="${topSongs.totalPages > 0}" style="overflow: hidden; list-style-type: none;">
-				<li th:each="pageNumber : ${pageNumbers}" style="float: left; padding-right:5px;">
-					<a th:page="${pageNumber}" th:sortField="${sortField}"  th:sortDir="${sortDir}" th:filterMode="${filterMode}"
-							th:onclick="submitForm(this.getAttribute('page'), this.getAttribute('sortField'), this.getAttribute('sortDir'), this.getAttribute('filterMode'))"
-							th:text=${pageNumber}></a>
-				<li>
-			</ul>
-		</div>
-	</div>
 </body>
 
 </html>

@@ -2,107 +2,152 @@
 
 <head>
 	<title th:text="${artist+' - '+album}" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
-	<script src='../../js/utils.js'></script>
-	<script src="../../js/sortable.min.js"></script>
-	<link rel="stylesheet" href="../../css/sortable-theme-finder.css" />
-	<link rel="stylesheet" href="css/global.css" />
-	<script type="text/javascript">
-		window.onload = function () {
-			Sortable.init();
-		}
-	</script>
+	<script src='/js/utils.js'></script>
+	<script src='/js/table-sort.js'></script>
+	<link rel="stylesheet" href="/css/global.css" />
 </head>
 
 <body>
+	<header class="topbar">
+		<div class="container">
+			<nav class="breadcrumbs">
+				<a href="/">Home</a>
+				<span class="sep">/</span>
+				<a th:href="@{/artist?artist={artist}(artist=${artist})}" th:text="${artist}"></a>
+				<span class="sep">/</span>
+				<span th:text="${album}"></span>
+			</nav>
+			<h1 class="page-title" th:text="${artist+' - '+album}"></h1>
+		</div>
+	</header>
 
-	Number Of Songs: <span th:text="${albumInfo.numberOfSongs}" /> <br />
-	Album length: <span th:text="${albumInfo.albumLength}" /> <br />
-	Total Plays: 	<div class="tooltip">[[${albumInfo.totalPlays}]]
-						 	<span class="tooltiptext" th:text="${albumInfo.playsByAccount}"/>
-						 </div><br />
-	Total Playtime: <span th:text="${albumInfo.totalPlaytime}" /><br />
-	First Song Played: <span th:text="${albumInfo.firstSongPlayed}" /><br />
-	Last Song Played: <span th:text="${albumInfo.lastSongPlayed}" /><br />
-	Average Song Length: <span th:text="${albumInfo.averageSongLength}" /><br />
-	Average Plays Per Song: <span
-		th:text="${#numbers.formatDecimal(albumInfo.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}" /><br />
-	Days album was played: <span th:text="${albumInfo.daysAlbumWasPlayed}" /><br />
-	Weeks album was played: <span th:text="${albumInfo.weeksAlbumWasPlayed}" /><br />
-	Months album was played: <span th:text="${albumInfo.monthsAlbumWasPlayed}" /><br />
-
-
-	<br />
-	<br />
-		<table id="milestonesTable" class="sortable-theme-finder" data-sortable>
-			<thead>
-				<tr>
-					<th>Milestone</th>
-					<th>Date</th>
-					<th>Days it took to achieve it</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr th:each="milestone : ${albumInfo.milestones}">
-					<td th:text="${milestone.plays}"/>
-					<td th:text="${milestone.date}"/>
-					<td th:text="${milestone.days}"/>
-				</tr>
-			</tbody>
-		</table>
-	<br />
-	<br />
-	<table id="albumSongsTable" class="sortable-theme-finder" data-sortable>
-		<thead>
-			<tr>
-				<th>Position</th>
-				<th>Song</th>
-				<th>Album</th>
-				<th>Release Year</th>
-				<th>Total Plays</th>
-				<th>Track Length</th>
-				<th>Total Playtime</th>
-				<th>First Play</th>
-				<th>Last Play</th>
-				<th>Days song was played</th>
-				<th>Weeks song was played</th>
-				<th>Months song was played</th>
-				<th>Delete Song</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr th:each="song, stat : ${albumInfo.songs}">
-				<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"/>
-				<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
-						th:text="${song.song}"></td>
-				<td th:text="${song.album}" />
-				<td><a th:href="@{/category/100/{category}/{value}(value=${song.releaseYear},category=${'Year'})}"
-						th:text="${song.releaseYear}" /></td>
-				<td>
-					<div class="tooltip">[[${song.totalPlays}]]
-					  <span class="tooltiptext" th:text="${song.playsByAccount}"/>
+	<main class="container">
+		<section class="cards-grid">
+			<div class="card">
+				<h3>Number Of Songs</h3>
+				<div class="metric" th:text="${albumInfo.numberOfSongs}"></div>
+			</div>
+			<div class="card">
+				<h3>Album Length</h3>
+				<div class="metric" th:text="${albumInfo.albumLength}"></div>
+			</div>
+			<div class="card">
+				<h3>Total Plays</h3>
+				<div class="metric">
+					<div class="tooltip">[[${albumInfo.totalPlays}]]
+						<span class="tooltiptext" th:text="${albumInfo.playsByAccount}"/>
 					</div>
-				</td>
-				<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}" />
-				<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}" />
-				<td th:text="${song.firstPlay}" />
-				<td th:text="${song.lastPlay}" />
-				<td th:text="${song.daysSongWasPlayed}" />
-				<td th:text="${song.weeksSongWasPlayed}" />
-				<td th:text="${song.monthsSongWasPlayed}" />
-				<td th:if="${song.cloudStatus=='Deleted'}">
-					<a th:href="@{/softUndeleteSong/{id}(id=${song.id})}">Undelete Song</a>
-				</td>
-				<td th:if="${song.cloudStatus!='Deleted'}">
-					<a th:href="@{/softDeleteSong/{id}(id=${song.id})}">Delete Song</a>
-				</td>
-			</tr>
-		</tbody>
-	</table>
+				</div>
+			</div>
+			<div class="card">
+				<h3>Total Playtime</h3>
+				<div class="metric" th:text="${albumInfo.totalPlaytime}"></div>
+			</div>
+			<div class="card">
+				<h3>First Song Played</h3>
+				<div class="metric" th:text="${albumInfo.firstSongPlayed}"></div>
+			</div>
+			<div class="card">
+				<h3>Last Song Played</h3>
+				<div class="metric" th:text="${albumInfo.lastSongPlayed}"></div>
+			</div>
+			<div class="card">
+				<h3>Average Song Length</h3>
+				<div class="metric" th:text="${albumInfo.averageSongLength}"></div>
+			</div>
+			<div class="card">
+				<h3>Average Plays per Song</h3>
+				<div class="metric" th:text="${#numbers.formatDecimal(albumInfo.averagePlaysPerSong, 1, 'DEFAULT', 2, 'DEFAULT')}"></div>
+			</div>
+			<div class="card">
+				<h3>Activity Span</h3>
+				<ul class="list-compact">
+					<li>Days played: <strong th:text="${albumInfo.daysAlbumWasPlayed}"></strong></li>
+					<li>Weeks played: <strong th:text="${albumInfo.weeksAlbumWasPlayed}"></strong></li>
+					<li>Months played: <strong th:text="${albumInfo.monthsAlbumWasPlayed}"></strong></li>
+				</ul>
+			</div>
+		</section>
 
-	<div style="width: 50%;">
-			<canvas th:id="${'plays'}" ></canvas>
+		<section class="data-section">
+			<h2 class="section-title">Milestones</h2>
+			<div class="table-wrapper">
+				<table id="milestonesTable" class="table table-compact js-sortable">
+					<thead>
+						<tr>
+							<th>Milestone</th>
+							<th>Date</th>
+							<th>Days it took to achieve it</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="milestone : ${albumInfo.milestones}">
+							<td th:text="${milestone.plays}"></td>
+							<td th:text="${milestone.date}"></td>
+							<td th:text="${milestone.days}"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
 
+		<section class="data-section">
+			<h2 class="section-title">Songs in this album</h2>
+			<div class="table-wrapper">
+				<table id="albumSongsTable" class="table table-compact js-sortable">
+					<thead>
+						<tr>
+							<th>Position</th>
+							<th>Song</th>
+							<th>Album</th>
+							<th>Release Year</th>
+							<th>Total Plays</th>
+							<th>Track Length</th>
+							<th>Total Playtime</th>
+							<th>First Play</th>
+							<th>Last Play</th>
+							<th>Days song was played</th>
+							<th>Weeks song was played</th>
+							<th>Months song was played</th>
+							<th>Delete Song</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="song, stat : ${albumInfo.songs}">
+							<td th:text="${stat.index+1}" th:style="${song.cloudStatus=='Deleted' ? 'background-color:#FFCCCC' : ''}"></td>
+							<td><a th:href="@{/song?artist={artist}&album={album}&song={song}(artist=${song.artist},album=${song.album},song=${song.song})}"
+									th:text="${song.song}"></a></td>
+							<td th:text="${song.album}"></td>
+							<td><a th:href="@{/category/100/{category}/{value}(value=${song.releaseYear},category=${'Year'})}"
+									th:text="${song.releaseYear}"></a></td>
+							<td th:attr="data-sort-value=${song.totalPlays}">
+								<div class="tooltip">[[${song.totalPlays}]]
+								  <span class="tooltiptext" th:text="${song.playsByAccount}"/>
+								</div>
+							</td>
+							<td th:text="${song.trackLengthString}" th:data-value="${song.trackLength}" th:attr="data-sort-value=${song.trackLength}"></td>
+							<td th:text="${song.totalPlaytimeString}" th:data-value="${song.totalPlaytime}" th:attr="data-sort-value=${song.totalPlaytime}"></td>
+							<td th:text="${song.firstPlay}"></td>
+							<td th:text="${song.lastPlay}"></td>
+							<td th:text="${song.daysSongWasPlayed}"></td>
+							<td th:text="${song.weeksSongWasPlayed}"></td>
+							<td th:text="${song.monthsSongWasPlayed}"></td>
+							<td th:if="${song.cloudStatus=='Deleted'}">
+								<a th:href="@{/softUndeleteSong/{id}(id=${song.id})}">Undelete Song</a>
+							</td>
+							<td th:if="${song.cloudStatus!='Deleted'}">
+								<a th:href="@{/softDeleteSong/{id}(id=${song.id})}">Delete Song</a>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section class="chart-card" style="height:300px;">
+			<canvas th:id="${'plays'}"></canvas>
 			<script th:inline="javascript">
 				/*<![CDATA[*/
 				var ctx = document.getElementById(/*[[${'plays'}]]*/'').getContext('2d');
@@ -120,17 +165,13 @@
 							}
 						]
 					},
-					options: {
-						responsive: true
-					}
-
+					options: { responsive: true }
 				});
-
 				myChart.update();
-                /*]]>*/
+				/*]]>*/
 			</script>
-		</div>
-
+		</section>
+	</main>
 
 </body>
 

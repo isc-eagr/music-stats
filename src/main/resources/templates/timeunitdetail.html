@@ -1,25 +1,34 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 	<title th:text="${unitValue}"></title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-	<script src="http://localhost:8080/js/sortable.min.js"></script>
-	<link rel="stylesheet" href="http://localhost:8080/css/sortable-theme-finder.css"/>
+	<!-- Use unified sorter and global styles -->
+	<script src="/js/table-sort.js"></script>
+	<link rel="stylesheet" href="/css/global.css"/>
 	<script type="text/javascript">
-	
 		function htmlDecode(input){
 		  var e = document.createElement('textarea');
 		  e.innerHTML = input;
 		  return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
 		}
-		
-		window.onload = function(){
-			Sortable.init();
-		}
 	</script>
 </head>
 <body>
+<header class="topbar">
+	<div class="container">
+		<nav class="breadcrumbs">
+			<a href="/">Home</a>
+			<span class="sep">/</span>
+			<span th:text="${unitValue}"></span>
+		</nav>
+		<h1 class="page-title" th:text="${unitValue}"></h1>
+	</div>
+</header>
+
+<main class="container">
 <h1 th:text="${unitValue}"/>
 <br />
 <a th:href="@{/category/100/{category}/{value}(value=${unitValue},category=${'Year'})}" 
@@ -237,7 +246,8 @@ Percentage of unit where music was played: <span th:text="${#numbers.formatDecim
 <br/>
 
 Top songs
-<table id="songsTable" class="sortable-theme-finder" data-sortable>
+<div class="table-wrapper">
+<table id="songsTable" class="table table-compact js-sortable">
 	<thead>
 		<tr>
 			<th>Position</th>
@@ -262,14 +272,16 @@ Top songs
 			<td><a th:href="@{/category/100/{category}/{value}(value=${song.sex},category=${'Sex'})}" th:text="${song.sex}"></td>
 			<td><a th:href="@{/category/100/{category}/{value}(value=${song.language},category=${'Language'})}" th:text="${song.language}"></td>
 			<td><a th:href="@{/category/100/{category}/{value}(value=${song.race},category=${'Race'})}" th:text="${song.race}"></td>
-			<td th:text="${song.year}"/>
-			<td th:text="${song.totalPlays}"/>
+			<td th:text="${song.year}" th:attr="data-sort-value=${song.year}"/>
+			<td th:text="${song.totalPlays}" th:attr="data-sort-value=${song.totalPlays}"/>
 		</tr>
 	</tbody>
 </table>
+</div>
 
 Top albums
-<table id="albumsTable" class="sortable-theme-finder" data-sortable>
+<div class="table-wrapper">
+<table id="albumsTable" class="table table-compact js-sortable">
 	<thead>
 		<tr>
 			<th>Position</th>
@@ -292,11 +304,14 @@ Top albums
 			<td><a th:href="@{/category/100/{category}/{value}(value=${album.sex},category=${'Sex'})}" th:text="${album.sex}"></td>
 			<td><a th:href="@{/category/100/{category}/{value}(value=${album.language},category=${'Language'})}" th:text="${album.language}"></td>
 			<td><a th:href="@{/category/100/{category}/{value}(value=${album.race},category=${'Race'})}" th:text="${album.race}"></td>
-			<td th:text="${album.releaseYear}"/>
-			<td th:text="${album.totalPlays}"/>
+			<td th:text="${album.releaseYear}" th:attr="data-sort-value=${album.releaseYear}"/>
+			<td th:text="${album.totalPlays}" th:attr="data-sort-value=${album.totalPlays}"/>
 		</tr>
 	</tbody>
 </table>
+</div>
+
+</main>
 
 </body>
 

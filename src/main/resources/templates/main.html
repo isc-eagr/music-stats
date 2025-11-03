@@ -2,34 +2,58 @@
 
 <head>
 	<title>Stats</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
-	<script src='js/utils.js'></script>
-	<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
-	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
+	<script src='/js/utils.js'></script>
+	<link rel="stylesheet" href="/css/global.css" />
 </head>
 
 <body>
-	
+	<header class="topbar">
+		<div class="container">
+			<nav class="breadcrumbs">
+				<a href="/">Home</a>
+			</nav>
+			<h1 class="page-title">Stats</h1>
+		</div>
+	</header>
 
-	<a href="/insertItunesInfo">Load Itunes (Do first)</a><br />
-	<a href="/insertScrobbles">Load Scrobbles (Do second)</a><br />
-	<a href="/category/100">General Overview</a><br />
-	<a href="/categorySearch">Category Search</a><br />
-	<a href="/topArtists">Top Artists</a><br />
-	<a href="/topAlbums">Top Albums</a><br />
-	<a href="/topSongs">Top Songs</a><br />
-	<a href="/topGenres">Top Genres</a><br />
-	<a href="/timeUnit?unit=day">Days</a><br />
-	<a href="/timeUnit?unit=week">Weeks</a><br />
-	<a href="/timeUnit?unit=month">Months</a><br />
-	<a href="/timeUnit?unit=season">Seasons</a><br />
-	<a href="/timeUnit?unit=year">Years</a><br />
-	<a href="/timeUnit?unit=decade">Decades</a><br />
-	<a href="/songsLastFmButNotLocal">Songs on lastfm but not locally</a><br />
-	<a href="/songsLocalButNotLastfm">Songs locally but not lastfm</a><br />
-	<a href="/deleted">Deleted songs</a><br />
+	<main class="container">
+		<section class="data-section">
+			<h2 class="section-title">Data management</h2>
+			<ul class="list-links">
+				<li><a href="/insertItunesInfo">Load iTunes (Do first)</a></li>
+				<li><a href="/insertScrobbles">Load Scrobbles (Do second)</a></li>
+			</ul>
+		</section>
 
+		<section class="data-section">
+			<h2 class="section-title">Explore</h2>
+			<ul class="list-links">
+				<li><a href="/category/100">General Overview</a></li>
+				<li><a href="/categorySearch">Category Search</a></li>
+				<li><a href="/topArtists">Top Artists</a></li>
+				<li><a href="/topAlbums">Top Albums</a></li>
+				<li><a href="/topSongs">Top Songs</a></li>
+				<li><a href="/topGenres">Top Genres</a></li>
+				<li><a href="/timeUnit?unit=day">Days</a></li>
+				<li><a href="/timeUnit?unit=week">Weeks</a></li>
+				<li><a href="/timeUnit?unit=month">Months</a></li>
+				<li><a href="/timeUnit?unit=season">Seasons</a></li>
+				<li><a href="/timeUnit?unit=year">Years</a></li>
+				<li><a href="/timeUnit?unit=decade">Decades</a></li>
+			</ul>
+		</section>
+
+		<section class="data-section">
+			<h2 class="section-title">Maintenance</h2>
+			<ul class="list-links">
+				<li><a href="/songsLastFmButNotLocal">Songs on Last.fm but not locally</a></li>
+				<li><a href="/songsLocalButNotLastfm">Songs locally but not Last.fm</a></li>
+				<li><a href="/deleted">Deleted songs</a></li>
+			</ul>
+		</section>
+	</main>
 
 </body>
 
