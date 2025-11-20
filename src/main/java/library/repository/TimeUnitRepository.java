@@ -21,7 +21,7 @@ public class TimeUnitRepository{
 	private static final String DAY_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
 			 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
-			 		YEARWEEK(sc.scrobble_date,1) week
+			 		strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where date(sc.scrobble_date)=date(?)
 			""";
@@ -29,46 +29,46 @@ public class TimeUnitRepository{
     private static final String WEEK_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
+    		 		strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where YEARWEEK(sc.scrobble_date,1)=?
+            where strftime('%Y%W', sc.scrobble_date)=?
 			""";
     
     private static final String MONTH_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
+    		 		strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where date_format(sc.scrobble_date,'%Y-%M')=?
+            where strftime('%Y-%m', sc.scrobble_date)=?
 			""";
     
     private static final String SEASON_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
+    		 		strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where (case when MONTH(sc.scrobble_date) between 3 and 5 then CONCAT(YEAR(sc.scrobble_date),'Spring')
-			         when MONTH(sc.scrobble_date) between 6 and 8 then CONCAT(YEAR(sc.scrobble_date),'Summer')
-			         when MONTH(sc.scrobble_date) between 9 and 11 then CONCAT(YEAR(sc.scrobble_date),'Fall')
-			         when MONTH(sc.scrobble_date) = 12 then CONCAT(YEAR(sc.scrobble_date)+1,'Winter')
-			         when MONTH(sc.scrobble_date) between 1 and 2 then CONCAT(YEAR(sc.scrobble_date),'Winter')
+            where (case when CAST(strftime('%m', sc.scrobble_date) AS INTEGER) between 3 and 5 then strftime('%Y', sc.scrobble_date) || 'Spring'
+			         when CAST(strftime('%m', sc.scrobble_date) AS INTEGER) between 6 and 8 then strftime('%Y', sc.scrobble_date) || 'Summer'
+			         when CAST(strftime('%m', sc.scrobble_date) AS INTEGER) between 9 and 11 then strftime('%Y', sc.scrobble_date) || 'Fall'
+			         when CAST(strftime('%m', sc.scrobble_date) AS INTEGER) = 12 then CAST((CAST(strftime('%Y', sc.scrobble_date) AS INTEGER) + 1) AS TEXT) || 'Winter'
+			         when CAST(strftime('%m', sc.scrobble_date) AS INTEGER) between 1 and 2 then strftime('%Y', sc.scrobble_date) || 'Winter'
 			end)=?
 			""";
     
     private static final String YEAR_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race,  so.cloud_status, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
+    		 		strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where date_format(sc.scrobble_date,'%Y')=?
+            where strftime('%Y', sc.scrobble_date)=?
 			""";
     
     private static final String DECADE_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		 		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
-    		 		YEARWEEK(sc.scrobble_date,1) week
+    		 		strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
-            where concat(convert(year(scrobble_date),CHAR(3)),'0','s')=?
+            where substr(strftime('%Y', scrobble_date), 1, 3) || '0s'=?
 			""";
     
             

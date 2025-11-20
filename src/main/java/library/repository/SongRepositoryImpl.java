@@ -47,8 +47,8 @@ public class SongRepositoryImpl{
 			inner join 
 			        (select sc.artist, IFNULL(sc.album,'(single)') album,
 			                count(distinct date(sc.scrobble_date)) play_days, 
-			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
-			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
+			                count(distinct strftime('%Y%W', sc.scrobble_date)) play_weeks, 
+			                count(distinct strftime('%Y-%m', sc.scrobble_date)) play_months
 			                from scrobble sc
 			                where sc.album is not null and sc.album <> ''
 			                group by sc.artist, sc.album) loc2 
@@ -71,8 +71,8 @@ public class SongRepositoryImpl{
 			inner join 
 			        (select sc.artist, IFNULL(sc.album,'(single)') album,
 			                count(distinct date(sc.scrobble_date)) play_days, 
-			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
-			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
+			                count(distinct strftime('%Y%W', sc.scrobble_date)) play_weeks, 
+			                count(distinct strftime('%Y-%m', sc.scrobble_date)) play_months
 			                from scrobble sc
 			                where sc.album is not null and sc.album <> ''
 			                group by sc.artist, sc.album) loc2 
@@ -86,8 +86,8 @@ public class SongRepositoryImpl{
 								so.genre, so.sex, so.language, so.year, so.cloud_status, so.race, min(sc.scrobble_date) first_play, 
 								max(sc.scrobble_date) last_play, count(*) count, sum(duration) playtime,
                                 count(distinct date(sc.scrobble_date)) play_days, 
-				                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
-				                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
+				                count(distinct strftime('%Y%W', sc.scrobble_date)) play_weeks, 
+				                count(distinct strftime('%Y-%m', sc.scrobble_date)) play_months
 								from scrobble sc inner join song so on so.id=sc.song_id 
 								group by sc.artist, sc.album, sc.song) loc1
 				where 1=1 
@@ -99,8 +99,8 @@ public class SongRepositoryImpl{
 							so.genre, so.sex, so.language, so.year, so.cloud_status, so.race, min(sc.scrobble_date) first_play, 
 							max(sc.scrobble_date) last_play, count(*) count, sum(duration) playtime,
                             count(distinct date(sc.scrobble_date)) play_days, 
-			                count(distinct YEARWEEK(sc.scrobble_date,1)) play_weeks, 
-			                count(distinct date_format(sc.scrobble_date,'%Y-%M')) play_months
+			                count(distinct strftime('%Y%W', sc.scrobble_date)) play_weeks, 
+			                count(distinct strftime('%Y-%m', sc.scrobble_date)) play_months
 							from scrobble sc inner join song so on so.id=sc.song_id 
 							group by sc.artist, sc.album, sc.song ) loc1 
 				where 1=1 
@@ -130,24 +130,24 @@ public class SongRepositoryImpl{
 	private static final String DAY_UNIT="date(sc.scrobble_date)";
 	private static final String DAY_SORT_UNIT="date(sc.scrobble_date)";
 	
-	private static final String MONTH_UNIT="date_format(sc.scrobble_date,'%Y-%M')";
-	private static final String MONTH_SORT_UNIT="date_format(sc.scrobble_date,'%Y-%m')";
+	private static final String MONTH_UNIT="strftime('%%Y-%%m', sc.scrobble_date)";
+	private static final String MONTH_SORT_UNIT="strftime('%%Y-%%m', sc.scrobble_date)";
 	
 	private static final String SEASON_UNIT="""
-			case when MONTH(sc.scrobble_date) between 3 and 5 then CONCAT(YEAR(sc.scrobble_date),'Spring')
-			         when MONTH(sc.scrobble_date) between 6 and 8 then CONCAT(YEAR(sc.scrobble_date),'Summer')
-			         when MONTH(sc.scrobble_date) between 9 and 11 then CONCAT(YEAR(sc.scrobble_date),'Fall')
-			         when MONTH(sc.scrobble_date) = 12 then CONCAT(YEAR(sc.scrobble_date)+1,'Winter')
-			         when MONTH(sc.scrobble_date) between 1 and 2 then CONCAT(YEAR(sc.scrobble_date),'Winter')
+			case when CAST(strftime('%%m', sc.scrobble_date) AS INTEGER) between 3 and 5 then strftime('%%Y', sc.scrobble_date) || 'Spring'
+			         when CAST(strftime('%%m', sc.scrobble_date) AS INTEGER) between 6 and 8 then strftime('%%Y', sc.scrobble_date) || 'Summer'
+			         when CAST(strftime('%%m', sc.scrobble_date) AS INTEGER) between 9 and 11 then strftime('%%Y', sc.scrobble_date) || 'Fall'
+			         when CAST(strftime('%%m', sc.scrobble_date) AS INTEGER) = 12 then CAST((CAST(strftime('%%Y', sc.scrobble_date) AS INTEGER) + 1) AS TEXT) || 'Winter'
+			         when CAST(strftime('%%m', sc.scrobble_date) AS INTEGER) between 1 and 2 then strftime('%%Y', sc.scrobble_date) || 'Winter'
 			end
 			""";
-	private static final String SEASON_SORT_UNIT="date_format(sc.scrobble_date,'%Y-%m')";
+	private static final String SEASON_SORT_UNIT="strftime('%%Y-%%m', sc.scrobble_date)";
 	
-	private static final String YEAR_UNIT="date_format(sc.scrobble_date,'%Y')";
-	private static final String YEAR_SORT_UNIT="date_format(sc.scrobble_date,'%Y')";
+	private static final String YEAR_UNIT="strftime('%%Y', sc.scrobble_date)";
+	private static final String YEAR_SORT_UNIT="strftime('%%Y', sc.scrobble_date)";
 	
-	private static final String DECADE_UNIT="concat(convert(year(scrobble_date),CHAR(3)),'0','s')";
-	private static final String DECADE_SORT_UNIT="concat(convert(year(scrobble_date),CHAR(3)),'0','s')";
+	private static final String DECADE_UNIT="substr(strftime('%%Y', scrobble_date), 1, 3) || '0s'";
+	private static final String DECADE_SORT_UNIT="substr(strftime('%%Y', scrobble_date), 1, 3) || '0s'";
 	
 	private static final String TIME_UNIT_QUERY = """
 			select * from 
@@ -177,25 +177,25 @@ public class SongRepositoryImpl{
 	
 	private static final String WEEK_QUERY = """
 			select * from (select a.genre, MIN(minDate) display_date_genre, max(a.duration) duration_genre, sum(a.duration) total_duration, a.count count_genre, sum(a.count) total_count, a.yearweek query_date_genre
-			from (select so.genre, YEARWEEK(sc.scrobble_date,1) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
+			from (select so.genre, strftime('%Y%W', sc.scrobble_date) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			group by so.genre, YEARWEEK(sc.scrobble_date,1) 
-			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
+			group by so.genre, strftime('%Y%W', sc.scrobble_date) 
+			order by strftime('%Y%W', sc.scrobble_date) desc, sum(duration) desc) a 
 			group by a.yearweek) genre 
 			inner join 
 			(select a.sex, MIN(minDate) display_date_sex, max(a.duration) duration_sex, a.count count_sex 
-            from (select so.sex, YEARWEEK(sc.scrobble_date,1) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
+            from (select so.sex, strftime('%Y%W', sc.scrobble_date) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			group by so.sex, YEARWEEK(sc.scrobble_date,1) 
-			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
+			group by so.sex, strftime('%Y%W', sc.scrobble_date) 
+			order by strftime('%Y%W', sc.scrobble_date) desc, sum(duration) desc) a 
 			group by a.yearweek) sex 
 			on genre.display_date_genre = sex.display_date_sex 
 			inner join 
 			(select a.race, MIN(minDate) display_date_race, max(a.duration) duration_race, a.count count_race 
-            from (select so.race, YEARWEEK(sc.scrobble_date,1) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
+            from (select so.race, strftime('%Y%W', sc.scrobble_date) yearweek, sum(duration) duration, count(*) count, MIN(DATE(sc.scrobble_date)) minDate 
 			from song so inner join scrobble sc on so.id = sc.song_id 
-			group by so.race, YEARWEEK(sc.scrobble_date,1) 
-			order by YEARWEEK(sc.scrobble_date,1) desc, sum(duration) desc) a 
+			group by so.race, strftime('%Y%W', sc.scrobble_date) 
+			order by strftime('%Y%W', sc.scrobble_date) desc, sum(duration) desc) a 
 			group by a.yearweek) race 
 			on sex.display_date_sex = race.display_date_race
 			""";

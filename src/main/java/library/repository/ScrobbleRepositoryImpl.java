@@ -61,7 +61,7 @@ public class ScrobbleRepositoryImpl{
 	private static final String GET_PLAYS_BY_DATE_RANGE_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, 
 			 		so.duration track_length, sc.scrobble_date play_date, so.genre, so.race, 
-			 		so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+			 		so.year, so.language, so.sex, strftime('%Y%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where date(sc.scrobble_date) >= ? and date(sc.scrobble_date) <= ? 
 			""";

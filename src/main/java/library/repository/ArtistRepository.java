@@ -23,9 +23,9 @@ public class ArtistRepository{
 
     private static final String ARTIST_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
-    		IF(LOWER(sc.artist)=LOWER(?),'Main','Feature') as main_or_feature, so.id, sc.account, 
+    		CASE WHEN LOWER(sc.artist)=LOWER(?) THEN 'Main' ELSE 'Feature' END as main_or_feature, so.id, sc.account, 
     		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, 
-    		YEARWEEK(sc.scrobble_date,1) week
+    		strftime('%%Y%%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where (LOWER(sc.artist)=LOWER(?)
             <includeFeatures>)
@@ -35,7 +35,7 @@ public class ArtistRepository{
     private static final String ALBUM_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, 
     		sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.cloud_status, so.id, sc.account, 
-    		YEARWEEK(sc.scrobble_date,1) week
+    		strftime('%%Y%%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
             and LOWER(IFNULL(so.album,'(single)'))=LOWER(?) 
@@ -44,7 +44,7 @@ public class ArtistRepository{
     
     private static final String SONG_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.account, 
-    				sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, YEARWEEK(sc.scrobble_date,1) week
+    				sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, strftime('%%Y%%W', sc.scrobble_date) week
             from scrobble sc inner join song so on sc.song_id = so.id
             where LOWER(sc.artist)=LOWER(?)
             and LOWER(IFNULL(so.album,'(single)'))=LOWER(?)
@@ -55,7 +55,7 @@ public class ArtistRepository{
     private static final String CATEGORY_PLAYS_QUERY = """
     		select so.artist, so.song, IFNULL(so.album,'(single)') album, so.duration track_length, sc.account, 
     				sc.scrobble_date play_date, so.genre, so.year, so.language, so.sex, so.race, so.cloud_status, 
-    				YEARWEEK(sc.scrobble_date,1) week 
+    				strftime('%%Y%%W', sc.scrobble_date) week 
             from scrobble sc inner join song so on sc.song_id = so.id
             where 1=1
 			""";
@@ -92,7 +92,7 @@ public class ArtistRepository{
 		query += String.format(" and so.year between %s and %s ",startYear, endYear);
 		for(int i=0 ; i < categories.length ; i++) {
 			if(categories[i].equals("PlayYear")) {
-				query += "and YEAR(sc.%s)=? ";
+				query += "and strftime('%%Y', sc.%s)=? ";
 				categories[i] = "scrobble_date";
 			} else if(categories[i].equalsIgnoreCase("Account")) {
 				boolean wildcard = values[i] != null && (values[i].contains("%") || values[i].contains("_"));
@@ -105,7 +105,7 @@ public class ArtistRepository{
 		}
 	
 		// Use sargable date filtering (no function on column)
-		query += " and sc.scrobble_date >= ? and sc.scrobble_date < DATE_ADD(?, INTERVAL 1 DAY)";
+		query += " and sc.scrobble_date >= ? and sc.scrobble_date < date(?, '+1 day')";
 		
 		return template.query(String.format(query, (Object[])categories), new BeanPropertyRowMapper<>(PlayDTO.class), (Object[])values);
 	}
@@ -117,7 +117,7 @@ public class ArtistRepository{
 		for (int i = 0; i < cols.length; i++) {
 			if (cols[i] == null) continue;
 			if ("PlayYear".equals(cols[i])) {
-				sb.append("and YEAR(sc.%s)=? ");
+				sb.append("and strftime('%%Y', sc.%s)=? ");
 				cols[i] = "scrobble_date";
 				params.add(values[i]);
 			} else if ("Account".equalsIgnoreCase(cols[i])) {
@@ -132,7 +132,7 @@ public class ArtistRepository{
 			}
 		}
 		// date range, sargable
-		sb.append(" and sc.scrobble_date >= ? and sc.scrobble_date < DATE_ADD(?, INTERVAL 1 DAY)");
+		sb.append(" and sc.scrobble_date >= ? and sc.scrobble_date < date(?, '+1 day')");
 		// push the corresponding start/end parameters (last two entries in values)
 		if (values != null && values.length >= 2) {
 			params.add(values[values.length - 2]);
@@ -147,11 +147,11 @@ public class ArtistRepository{
 			  COUNT(*) as totalPlays,
 			  SUM(so.duration) as totalPlaytime,
 			  COUNT(DISTINCT so.artist) as numberOfArtists,
-			  COUNT(DISTINCT CONCAT(so.artist,'::',IFNULL(so.album,'(single)'))) as numberOfAlbums,
+			  COUNT(DISTINCT so.artist || '::' || IFNULL(so.album,'(single)')) as numberOfAlbums,
 			  COUNT(DISTINCT so.id) as numberOfSongs,
 			  COUNT(DISTINCT DATE(sc.scrobble_date)) as daysCategoryWasPlayed,
-			  COUNT(DISTINCT YEARWEEK(sc.scrobble_date,1)) as weeksCategoryWasPlayed,
-			  COUNT(DISTINCT DATE_FORMAT(sc.scrobble_date,'%%Y-%%m')) as monthsCategoryWasPlayed,
+			  COUNT(DISTINCT strftime('%%Y%%W', sc.scrobble_date)) as weeksCategoryWasPlayed,
+			  COUNT(DISTINCT strftime('%%Y-%%m', sc.scrobble_date)) as monthsCategoryWasPlayed,
 			  (select AVG(t.dur) from (
 			     select so2.id, MAX(so2.duration) as dur
 			     from scrobble sc2 join song so2 on sc2.song_id = so2.id
