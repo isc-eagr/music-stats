@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${album.name} + ' - Music Stats'">Album Detail</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/album-detail.css}">
+    <script th:src="@{/js/table-sort.js}" defer></script>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container-wide" th:classappend="${artistGender != null and artistGender.toLowerCase().contains('male') and !artistGender.toLowerCase().contains('female')} ? 'gender-male' : (${artistGender != null and artistGender.toLowerCase().contains('female')} ? 'gender-female' : '')">
+        <div class="detail-grid">
+            <!-- Left column: Image with name overlay -->
+            <div class="detail-sidebar">
+                <div class="item-name-overlay">
+                    <h1 class="item-name-top" th:text="${album.name}">Album Name</h1>
+                    <div class="album-metadata" style="font-size: 0.9em; font-weight: normal; margin-top: 10px; color: #ccc; line-height: 1.6;">
+                        <div th:if="${artistName != null}">
+                            <a th:href="@{'/artists/' + ${album.artistId}}" style="color: #e5e7eb; text-decoration: none; transition: color 0.2s;"
+                               onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e7eb'"
+                               th:text="${artistName}"></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="item-image-container">
+                    <img th:if="${hasImage}" 
+                         th:src="@{'/albums/' + ${album.id} + '/image'}" 
+                         th:alt="${album.name}"
+                         id="albumImage"
+                         class="item-image-large">
+                    <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
+                        <span>💿</span>
+                    </div>
+                    
+                    <div class="image-upload-overlay">
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                            Upload Image
+                        </button>
+                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="item-stats">
+                    <div class="stat">
+                        <span class="stat-icon">🎵</span>
+                        <span class="stat-value" th:text="${songCount}">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-icon" tabindex="0" role="button"
+                              onmouseover="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onmouseout="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))" onfocus="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onblur="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))">▶️</span>
+                        <div class="stat-value">
+                            <div class="tooltip" tabindex="0" role="button" aria-describedby="album-plays-tooltip"
+                                 th:attr="data-plays=${albumPlaysByAccount != null and albumPlaysByAccount != '' ? albumPlaysByAccount : 'No plays'}"
+                                 onmouseover="showTooltip(this)" onmouseout="hideTooltip(this)" onfocus="showTooltip(this)" onblur="hideTooltip(this)"
+                                 style="position:relative;display:inline-block;">
+                                [[${albumPlayCount != null ? albumPlayCount : 0}]]
+                                <span id="album-plays-tooltip" class="tooltiptext"
+                                      style="position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(6px);background-color:rgba(0,0,0,0.92);color:#fff;text-align:left;border-radius:8px;padding:8px 10px;z-index:1000;max-width:360px;white-space:pre-line;box-shadow:0 10px 20px rgba(0,0,0,0.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;">
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right side: Two-column layout for General and Statistics -->
+            <div class="detail-right-section">
+                <!-- General Section (Left) -->
+                <div class="detail-content-card">
+                    <div class="section-header">
+                        <h2 class="section-title">General</h2>
+                        <div class="edit-button-container">
+                            <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
+                            <button type="button" class="btn-negative" id="deleteBtn" 
+                                    th:disabled="${albumPlayCount > 0}"
+                                    th:title="${albumPlayCount > 0 ? 'Cannot delete album with existing plays' : 'Delete this album and all associated songs'}"
+                                    onclick="confirmDelete()">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <form method="post" th:action="@{'/albums/' + ${album.id}}" th:object="${album}" id="albumForm">
+                        <input type="hidden" id="name" name="name" th:field="*{name}" />
+                        <input type="hidden" id="artistId" name="artistId" th:field="*{artistId}" />
+                        
+                        <div class="form-section">
+                            <div class="attributes-grid">
+                                <div class="form-group">
+                                    <label for="releaseDate">Release Date</label>
+                                    <span class="attribute-text" data-field="releaseDate" th:text="${album.releaseDateFormatted != null ? album.releaseDateFormatted : '-'}">-</span>
+                                    <input type="text" id="releaseDate" name="releaseDate" th:value="${album.releaseDateInput}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideGenreId">Genre</label>
+                                    <span class="attribute-text" data-field="overrideGenreId" 
+                                          th:classappend="${album.overrideGenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${album.overrideGenreId != null ? genres.get(album.overrideGenreId) : (effectiveGenreName != null ? effectiveGenreName : '-')}">-</span>
+                                    <select id="overrideGenreId" name="overrideGenreId" th:field="*{overrideGenreId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${genres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideSubgenreId">Subgenre</label>
+                                    <span class="attribute-text" data-field="overrideSubgenreId"
+                                          th:classappend="${album.overrideSubgenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${album.overrideSubgenreId != null ? subgenres.get(album.overrideSubgenreId) : (effectiveSubgenreName != null ? effectiveSubgenreName : '-')}">-</span>
+                                    <select id="overrideSubgenreId" name="overrideSubgenreId" th:field="*{overrideSubgenreId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${subgenres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideLanguageId">Language</label>
+                                    <span class="attribute-text" data-field="overrideLanguageId"
+                                          th:classappend="${album.overrideLanguageId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${album.overrideLanguageId != null ? languages.get(album.overrideLanguageId) : (effectiveLanguageName != null ? effectiveLanguageName : '-')}">-</span>
+                                    <select id="overrideLanguageId" name="overrideLanguageId" th:field="*{overrideLanguageId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${languages}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions" id="formActions" style="display:none;">
+                            <button type="submit" class="btn-action">Save</button>
+                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Statistics Section (Right) -->
+                <div class="detail-content-card">
+                    <h2 class="section-title">Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Listening Time</span>
+                            <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">First Listened</span>
+                            <span class="stat-value" th:text="${firstListenedDate}">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Last Listened</span>
+                            <span class="stat-value" th:text="${lastListenedDate}">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Songs List Section - Inside grid, spanning full width of right column -->
+            <div class="detail-content-section" th:if="${songs != null and !songs.isEmpty()}">
+                <h2 class="section-title">Songs</h2>
+                <div class="table-container">
+                    <table class="data-table sortable-table js-sortable" id="songsTable">
+                        <thead>
+                            <tr>
+                                <th class="duration-col sortable" data-column="duration" data-type="number">
+                                    Duration<span class="sort-indicator"></span>
+                                </th>
+                                <th class="time-col sortable" data-column="totaltime" data-type="duration">
+                                    Time Listening<span class="sort-indicator"></span>
+                                </th>
+                                <th class="name-col sortable" data-column="name" data-type="string">
+                                    Title<span class="sort-indicator"></span>
+                                </th>
+                                <th class="date-col sortable" data-column="firstlisten" data-type="date">
+                                    First Listened<span class="sort-indicator"></span>
+                                </th>
+                                <th class="date-col sortable" data-column="lastlisten" data-type="date">
+                                    Last Listened<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="primary" data-type="number">
+                                    Primary<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="legacy" data-type="number">
+                                    Legacy<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="total" data-type="number">
+                                    Total<span class="sort-indicator"></span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="songsTableBody">
+                            <tr th:each="song : ${songs}">
+                                <td class="duration-col" th:attr="data-value=${song.length}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">3:45</td>
+                                <td class="time-col" th:attr="data-value=${song.length != null and song.totalPlays != null ? song.length * song.totalPlays : 0}" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">12:30</td>
+                                <td class="name-col" th:attr="data-value=${song.name}">
+                                    <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}" class="item-link">Song Name</a>
+                                </td>
+                                <td class="date-col" th:attr="data-value=${song.firstListenedDate}" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
+                                <td class="date-col" th:attr="data-value=${song.lastListenedDate}" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
+                                <td class="plays-col" th:attr="data-value=${song.vatitoPlays}" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td class="plays-col" th:attr="data-value=${song.robertloverPlays}" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td class="plays-col" th:attr="data-value=${song.totalPlays}" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isEditing = false;
+        
+        function toggleEdit() {
+            isEditing = !isEditing;
+            const editBtn = document.getElementById('editBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+            const formActions = document.getElementById('formActions');
+            const inputs = document.querySelectorAll('#albumForm input[type="date"], #albumForm input[type="text"]:not([type="hidden"])');
+            const selects = document.querySelectorAll('#albumForm select');
+            const attributeTexts = document.querySelectorAll('.attribute-text');
+            
+            if (isEditing) {
+                editBtn.style.display = 'none';
+                deleteBtn.style.display = 'none';
+                formActions.style.display = 'flex';
+                
+                inputs.forEach(input => {
+                    if (input.type === 'hidden') return;
+                    input.style.display = 'block';
+                });
+                selects.forEach(select => {
+                    select.removeAttribute('disabled');
+                    select.style.display = 'block';
+                });
+                attributeTexts.forEach(text => {
+                    if (text.dataset.field) {
+                        text.style.display = 'none';
+                    }
+                });
+            } else {
+                window.location.reload();
+            }
+        }
+        
+        function cancelEdit() {
+            window.location.reload();
+        }
+        
+        function confirmDelete() {
+            const albumName = document.querySelector('.item-name-top').textContent;
+            const playCount = /*[[${albumPlayCount}]]*/ 0;
+            
+            if (playCount > 0) {
+                alert('Cannot delete album with existing plays (' + playCount + ' plays)');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to delete "' + albumName + '"?\n\nThis will also delete all songs in this album. This action cannot be undone!')) {
+                const albumId = window.location.pathname.split('/').pop();
+                
+                fetch(`/albums/${albumId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.text())
+                .then(data => {
+                    if (data === 'success') {
+                        window.location.href = '/albums';
+                    } else if (data.startsWith('error:')) {
+                        alert(data.substring(6));
+                    } else {
+                        alert('Failed to delete album');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting album:', error);
+                    alert('Error deleting album');
+                });
+            }
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            const albumId = window.location.pathname.split('/').pop();
+            
+            fetch(`/albums/${albumId}/image`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to upload image');
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image');
+            });
+        }
+        
+        function removeImage() {
+            if (!confirm('Are you sure you want to remove this image?')) {
+                return;
+            }
+            
+            const albumId = window.location.pathname.split('/').pop();
+            
+            fetch(`/albums/${albumId}/image`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to remove image');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing image:', error);
+                alert('Error removing image');
+            });
+        }
+        
+        // Sortable table functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('songsTable');
+            if (!table) return;
+            
+            const headers = table.querySelectorAll('th.sortable');
+            let currentSort = { column: null, direction: null };
+            
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    const column = this.dataset.column;
+                    const type = this.dataset.type;
+                    
+                    let direction = 'asc';
+                    if (currentSort.column === column && currentSort.direction === 'asc') {
+                        direction = 'desc';
+                    }
+                    
+                    headers.forEach(h => {
+                        h.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    this.classList.add('sort-' + direction);
+                    
+                    sortTable(column, direction, type);
+                    currentSort = { column, direction };
+                });
+            });
+            
+            function sortTable(column, direction, type) {
+                const tbody = document.getElementById('songsTableBody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                rows.sort((a, b) => {
+                    let aVal, bVal;
+                    
+                    if (column === 'duration') {
+                        aVal = parseInt(a.cells[0].dataset.value) || 0;
+                        bVal = parseInt(b.cells[0].dataset.value) || 0;
+                    } else if (column === 'totaltime') {
+                        aVal = parseInt(a.cells[1].dataset.value) || 0;
+                        bVal = parseInt(b.cells[1].dataset.value) || 0;
+                    } else if (column === 'name') {
+                        aVal = a.cells[2].dataset.value.toLowerCase();
+                        bVal = b.cells[2].dataset.value.toLowerCase();
+                    } else if (column === 'primary') {
+                        aVal = parseInt(a.cells[3].dataset.value) || 0;
+                        bVal = parseInt(b.cells[3].dataset.value) || 0;
+                    } else if (column === 'legacy') {
+                        aVal = parseInt(a.cells[4].dataset.value) || 0;
+                        bVal = parseInt(b.cells[4].dataset.value) || 0;
+                    } else if (column === 'total') {
+                        aVal = parseInt(a.cells[5].dataset.value) || 0;
+                        bVal = parseInt(b.cells[5].dataset.value) || 0;
+                    }
+                    
+                    if (type === 'string') {
+                        return direction === 'asc' 
+                            ? aVal.localeCompare(bVal)
+                            : bVal.localeCompare(aVal);
+                    } else {
+                        return direction === 'asc' 
+                            ? aVal - bVal
+                            : bVal - aVal;
+                    }
+                });
+                
+                rows.forEach(row => tbody.appendChild(row));
+            }
+            
+            // Apply default sort: Total plays descending
+            const totalHeader = Array.from(headers).find(h => h.dataset.column === 'total');
+            if (totalHeader) {
+                totalHeader.classList.add('sort-desc');
+                sortTable('total', 'desc', 'number');
+                currentSort = { column: 'total', direction: 'desc' };
+            }
+        });
+        
+        // Tooltip functionality
+        function showTooltip(element) {
+            if (!element) return;
+            const tooltip = element.classList.contains('tooltip') 
+                ? element.querySelector('.tooltiptext')
+                : element;
+            if (tooltip) {
+                const playsData = element.closest('.tooltip')?.dataset?.plays || element.dataset?.plays;
+                if (playsData && tooltip.id === 'album-plays-tooltip') {
+                    tooltip.textContent = playsData;
+                }
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+                tooltip.style.transform = 'translateX(-50%) translateY(0)';
+                tooltip.style.transition = 'opacity 180ms ease, transform 180ms ease, visibility 0s linear 0s';
+            }
+        }
+
+        function hideTooltip(element) {
+            if (!element) return;
+            const tooltip = element.classList.contains('tooltip') 
+                ? element.querySelector('.tooltiptext')
+                : element;
+            if (tooltip) {
+                tooltip.style.opacity = '0';
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.transform = 'translateX(-50%) translateY(6px)';
+                tooltip.style.transition = 'opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms';
+            }
+        }
+    </script>
+    
+    <style>
+        /* Make disabled delete buttons visually distinct */
+        .btn-negative:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #4a4a4a;
+            color: #888;
+        }
+        
+        .btn-negative:disabled:hover {
+            background-color: #4a4a4a;
+            color: #888;
+        }
+    </style>
+</body>
+</html>

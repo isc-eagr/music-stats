@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Stats</title>
+    <!-- Load global stylesheet first so pages and fragments have consistent variables/layout -->
+    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #000000;
+            color: #e5e7eb;
+            min-height: 100vh;
+        }
+        
+        .hero {
+            /* Keep hero centered but match site container width/padding */
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 16px;
+            text-align: center;
+        }
+        
+        .hero-title {
+            font-size: 56px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #999999 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: 20px;
+            color: #999999;
+            margin-bottom: 48px;
+        }
+        
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .quick-link-card {
+            background-color: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 12px;
+            padding: 32px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .quick-link-card:hover {
+            border-color: #333333;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            text-decoration: none;
+        }
+        
+        .quick-link-icon {
+            font-size: 48px;
+            text-decoration: none !important;
+        }
+        
+        .quick-link-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .quick-link-description {
+            font-size: 14px;
+            color: #999999;
+            text-align: center;
+        }
+        
+        .stats-section {
+            margin-top: 64px;
+            padding-top: 48px;
+            border-top: 1px solid #1a1a1a;
+        }
+        
+        .stats-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stat-card {
+            background-color: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            border-color: #333333;
+            transform: translateY(-2px);
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #999999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .footer-link {
+            text-align: center;
+            margin-top: 64px;
+            padding-top: 32px;
+            border-top: 1px solid #1a1a1a;
+        }
+        
+        .footer-link a {
+            color: #666666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .footer-link a:hover {
+            color: #999999;
+        }
+        /* Discreet homepage link style */
+        .discreet-link {
+            margin-top: 20px;
+        }
+        .discreet-link a {
+            font-size: 13px;
+            color: #6b6b6b;
+            text-decoration: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+        .discreet-link a:hover { color: #9a9a9a; background-color: rgba(255,255,255,0.02); }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="hero">
+        <h1 class="hero-title">Music Stats</h1>
+        <p class="hero-subtitle">Explore your music library</p>
+        
+        <div class="quick-links">
+            <a href="/artists" class="quick-link-card">
+                <div class="quick-link-icon">🎤</div>
+                <h2 class="quick-link-title">Artists</h2>
+                <p class="quick-link-description">Browse and manage your music artists</p>
+            </a>
+            
+            <a href="/albums" class="quick-link-card">
+                <div class="quick-link-icon">💿</div>
+                <h2 class="quick-link-title">Albums</h2>
+                <p class="quick-link-description">Explore your album collection</p>
+            </a>
+            
+            <a href="/songs" class="quick-link-card">
+                <div class="quick-link-icon">🎵</div>
+                <h2 class="quick-link-title">Songs</h2>
+                <p class="quick-link-description">Discover and edit your songs</p>
+            </a>
+        </div>
+        
+        <!-- Overall Statistics Section -->
+        <div class="stats-section">
+            <h2 class="stats-title">Overall Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${totalArtists}">0</div>
+                    <div class="stat-label">Total Artists</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${totalAlbums}">0</div>
+                    <div class="stat-label">Total Albums</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${totalSongs}">0</div>
+                    <div class="stat-label">Total Songs</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${totalPlays}">0</div>
+                    <div class="stat-label">Total Plays</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${totalListeningTime}">0h 0m</div>
+                    <div class="stat-label">Time Listening</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

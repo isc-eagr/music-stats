@@ -1,0 +1,540 @@
+package library.service;
+
+import library.dto.SongCardDTO;
+import library.entity.SongNew;
+import library.repository.LookupRepository;
+import library.repository.SongRepositoryNew;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+public class SongService {
+    
+    private final SongRepositoryNew songRepository;
+    private final LookupRepository lookupRepository;
+    private final JdbcTemplate jdbcTemplate;
+    
+    public SongService(SongRepositoryNew songRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+        this.songRepository = songRepository;
+        this.lookupRepository = lookupRepository;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+    
+    public List<SongCardDTO> getSongs(String name, String artistName, String albumName,
+                                       List<Integer> genreIds, String genreMode,
+                                       List<Integer> subgenreIds, String subgenreMode,
+                                       List<Integer> languageIds, String languageMode,
+                                       List<Integer> genderIds, String genderMode,
+                                       List<Integer> ethnicityIds, String ethnicityMode,
+                                       List<String> countries, String countryMode,
+                                       String sortBy, int page, int perPage) {
+        int offset = page * perPage;
+        
+        List<Object[]> results = songRepository.findSongsWithStats(
+                name, artistName, albumName, genreIds, genreMode, 
+                subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
+                ethnicityIds, ethnicityMode, countries, countryMode, sortBy, perPage, offset
+        );
+        
+        List<SongCardDTO> songs = new ArrayList<>();
+        for (Object[] row : results) {
+            SongCardDTO dto = new SongCardDTO();
+            dto.setId(((Number) row[0]).intValue());
+            dto.setName((String) row[1]);
+            dto.setArtistName((String) row[2]);
+            dto.setArtistId(((Number) row[3]).intValue());
+            dto.setAlbumName((String) row[4]);
+            dto.setAlbumId(row[5] != null ? ((Number) row[5]).intValue() : null);
+            dto.setGenreName((String) row[6]);
+            dto.setSubgenreName((String) row[7]);
+            dto.setLanguageName((String) row[8]);
+            dto.setReleaseYear((String) row[9]);
+            dto.setLengthSeconds(row[10] != null ? ((Number) row[10]).intValue() : null);
+            dto.setHasImage(row[11] != null && ((Number) row[11]).intValue() == 1);
+            dto.setGenderName((String) row[12]);
+            dto.setPlayCount(row[13] != null ? ((Number) row[13]).intValue() : 0);
+            
+            // Set time listened and format it
+            long timeListened = row[14] != null ? ((Number) row[14]).longValue() : 0L;
+            dto.setTimeListened(timeListened);
+            dto.setTimeListenedFormatted(formatTime(timeListened));
+            
+            // Format length
+            if (dto.getLengthSeconds() != null) {
+                int minutes = dto.getLengthSeconds() / 60;
+                int seconds = dto.getLengthSeconds() % 60;
+                dto.setLengthFormatted(String.format("%d:%02d", minutes, seconds));
+            }
+            
+            songs.add(dto);
+        }
+        
+        return songs;
+    }
+    
+    public long countSongs(String name, String artistName, String albumName,
+                          List<Integer> genreIds, String genreMode,
+                          List<Integer> subgenreIds, String subgenreMode,
+                          List<Integer> languageIds, String languageMode,
+                          List<Integer> genderIds, String genderMode,
+                          List<Integer> ethnicityIds, String ethnicityMode,
+                          List<String> countries, String countryMode) {
+        return songRepository.countSongsWithFilters(name, artistName, albumName, 
+                genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
+                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode);
+    }
+    
+    public Optional<SongNew> getSongById(Integer id) {
+        String sql = """
+            SELECT s.id, s.artist_id, s.album_id, s.name, s.status, s.length_seconds, s.is_single,
+                   s.override_genre_id, s.override_subgenre_id, s.override_language_id,
+                   s.override_gender_id, s.override_ethnicity_id, s.release_date,
+                   s.creation_date, s.update_date,
+                   al.override_genre_id as album_genre_id,
+                   al.override_subgenre_id as album_subgenre_id,
+                   al.override_language_id as album_language_id,
+                   ar.genre_id as artist_genre_id,
+                   ar.subgenre_id as artist_subgenre_id,
+                   ar.language_id as artist_language_id,
+                   ar.gender_id as artist_gender_id,
+                   ar.ethnicity_id as artist_ethnicity_id
+            FROM Song s
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album al ON s.album_id = al.id
+            WHERE s.id = ?
+            """;
+        
+        List<SongNew> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            SongNew song = new SongNew();
+            song.setId(rs.getInt("id"));
+            song.setArtistId(rs.getInt("artist_id"));
+            
+            int albumId = rs.getInt("album_id");
+            song.setAlbumId(rs.wasNull() ? null : albumId);
+            
+            song.setName(rs.getString("name"));
+            song.setStatus(rs.getString("status"));
+            
+            int length = rs.getInt("length_seconds");
+            song.setLengthSeconds(rs.wasNull() ? null : length);
+            
+            song.setIsSingle(rs.getInt("is_single") == 1);
+            
+            int genreId = rs.getInt("override_genre_id");
+            song.setOverrideGenreId(rs.wasNull() ? null : genreId);
+            
+            int subgenreId = rs.getInt("override_subgenre_id");
+            song.setOverrideSubgenreId(rs.wasNull() ? null : subgenreId);
+            
+            int languageId = rs.getInt("override_language_id");
+            song.setOverrideLanguageId(rs.wasNull() ? null : languageId);
+            
+            int genderId = rs.getInt("override_gender_id");
+            song.setOverrideGenderId(rs.wasNull() ? null : genderId);
+            
+            int ethnicityId = rs.getInt("override_ethnicity_id");
+            song.setOverrideEthnicityId(rs.wasNull() ? null : ethnicityId);
+            
+            // Set inherited values from Album
+            int albumGenreId = rs.getInt("album_genre_id");
+            song.setAlbumGenreId(rs.wasNull() ? null : albumGenreId);
+            
+            int albumSubgenreId = rs.getInt("album_subgenre_id");
+            song.setAlbumSubgenreId(rs.wasNull() ? null : albumSubgenreId);
+            
+            int albumLanguageId = rs.getInt("album_language_id");
+            song.setAlbumLanguageId(rs.wasNull() ? null : albumLanguageId);
+            
+            // Set inherited values from Artist
+            int artistGenreId = rs.getInt("artist_genre_id");
+            song.setArtistGenreId(rs.wasNull() ? null : artistGenreId);
+            
+            int artistSubgenreId = rs.getInt("artist_subgenre_id");
+            song.setArtistSubgenreId(rs.wasNull() ? null : artistSubgenreId);
+            
+            int artistLanguageId = rs.getInt("artist_language_id");
+            song.setArtistLanguageId(rs.wasNull() ? null : artistLanguageId);
+            
+            int artistGenderId = rs.getInt("artist_gender_id");
+            song.setArtistGenderId(rs.wasNull() ? null : artistGenderId);
+            
+            int artistEthnicityId = rs.getInt("artist_ethnicity_id");
+            song.setArtistEthnicityId(rs.wasNull() ? null : artistEthnicityId);
+            
+            // Try multiple methods to read release_date from SQLite
+            java.sql.Date releaseDate = null;
+            try {
+                // Try getting as Date object first
+                releaseDate = rs.getDate("release_date");
+            } catch (Exception e1) {
+                // If that fails, try as string
+                try {
+                    String releaseDateStr = rs.getString("release_date");
+                    if (releaseDateStr != null && !releaseDateStr.isEmpty()) {
+                        // Try parsing as long (timestamp)
+                        try {
+                            long timestamp = Long.parseLong(releaseDateStr);
+                            releaseDate = new java.sql.Date(timestamp);
+                        } catch (NumberFormatException e2) {
+                            // Try parsing as date string
+                            releaseDate = parseDate(releaseDateStr);
+                        }
+                    }
+                } catch (Exception e2) {
+                    // Date parsing failed, leave as null
+                }
+            }
+            song.setReleaseDate(releaseDate);
+            
+            // Robust timestamp parsing for SQLite date-only values
+            String creation = rs.getString("creation_date");
+            String update = rs.getString("update_date");
+            song.setCreationDate(parseTimestamp(creation));
+            song.setUpdateDate(parseTimestamp(update));
+            
+            return song;
+        }, id);
+        
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+    
+    public SongNew saveSong(SongNew song) {
+        String sql = """
+            UPDATE Song 
+            SET name = ?, artist_id = ?, album_id = ?, release_date = ?,
+                length_seconds = ?, is_single = ?, status = ?,
+                override_genre_id = ?, override_subgenre_id = ?, override_language_id = ?,
+                override_gender_id = ?, override_ethnicity_id = ?,
+                update_date = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """;
+        
+        // Convert java.sql.Date to yyyy-MM-dd string format for database
+        String releaseDateStr = null;
+        if (song.getReleaseDate() != null) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            releaseDateStr = sdf.format(song.getReleaseDate());
+        }
+        
+        jdbcTemplate.update(sql, 
+            song.getName(),
+            song.getArtistId(),
+            song.getAlbumId(),
+            releaseDateStr,
+            song.getLengthSeconds(),
+            song.getIsSingle() ? 1 : 0,
+            song.getStatus(),
+            song.getOverrideGenreId(),
+            song.getOverrideSubgenreId(),
+            song.getOverrideLanguageId(),
+            song.getOverrideGenderId(),
+            song.getOverrideEthnicityId(),
+            song.getId()
+        );
+        
+        return song;
+    }
+    
+    public void updateSongImage(Integer id, byte[] imageData) {
+        String sql = "UPDATE Song SET single_cover = ? WHERE id = ?";
+        jdbcTemplate.update(sql, imageData, id);
+    }
+    
+    public byte[] getSongImage(Integer id) {
+        String sql = "SELECT single_cover FROM Song WHERE id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("single_cover"), id);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    public String getArtistName(int artistId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT name FROM Artist WHERE id = ?", String.class, artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    public String getAlbumName(int albumId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT name FROM Album WHERE id = ?", String.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    public String getArtistGender(Integer artistId) {
+        String sql = "SELECT g.name FROM Artist a LEFT JOIN Gender g ON a.gender_id = g.id WHERE a.id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    public Map<Integer, String> getGenres() {
+        return lookupRepository.getAllGenres();
+    }
+    
+    public Map<Integer, String> getSubGenres() {
+        return lookupRepository.getAllSubGenres();
+    }
+    
+    public Map<Integer, String> getLanguages() {
+        return lookupRepository.getAllLanguages();
+    }
+    
+    public Map<Integer, String> getGenders() {
+        return lookupRepository.getAllGenders();
+    }
+    
+    public Map<Integer, String> getEthnicities() {
+        return lookupRepository.getAllEthnicities();
+    }
+    
+    public List<String> getCountries() {
+        String sql = "SELECT DISTINCT country FROM Artist WHERE country IS NOT NULL ORDER BY country";
+        return jdbcTemplate.queryForList(sql, String.class);
+    }
+    
+    // Helper to parse various SQLite timestamp representations
+    private static java.sql.Timestamp parseTimestamp(String value) {
+        if (value == null) return null;
+        String v = value.trim();
+        if (v.isEmpty()) return null;
+        try {
+            if (v.length() == 10 && v.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                v = v + " 00:00:00";
+            } else if (v.contains("T") && v.matches("\\d{4}-\\d{2}-\\d{2}T.*")) {
+                v = v.replace('T', ' ');
+            }
+            return java.sql.Timestamp.valueOf(v);
+        } catch (Exception e) {
+            try {
+                if (v.length() >= 10) {
+                    String datePart = v.substring(0, 10);
+                    if (datePart.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                        return java.sql.Timestamp.valueOf(datePart + " 00:00:00");
+                    }
+                }
+            } catch (Exception ignore) {}
+            return null;
+        }
+    }
+
+    // Helper to parse date values from database (yyyy-MM-dd format)
+    private static java.sql.Date parseDate(String value) {
+        if (value == null) return null;
+        String v = value.trim();
+        if (v.isEmpty()) return null;
+        
+        // Parse as date string
+        if (v.contains("T")) v = v.replace('T', ' ');
+        if (v.length() >= 10) v = v.substring(0, 10);
+        if (v.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            try {
+                return java.sql.Date.valueOf(v);
+            } catch (Exception ignore) {}
+        }
+        return null;
+    }
+
+    // NEW: total plays for a song (count scrobbles for this song)
+    public int getPlayCountForSong(int songId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM Scrobble WHERE song_id = ?",
+                Integer.class, songId);
+        return count != null ? count : 0;
+    }
+
+    // Return a string with per-account play counts for this song (e.g. "lastfm: 12\nspotify: 3\n")
+    public String getPlaysByAccountForSong(int songId) {
+        String sql = "SELECT account, COUNT(*) as cnt FROM Scrobble WHERE song_id = ? GROUP BY account ORDER BY cnt DESC";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, songId);
+        StringBuilder sb = new StringBuilder();
+        for (Map<String, Object> row : rows) {
+            Object account = row.get("account");
+            Object cnt = row.get("cnt");
+            sb.append(account != null ? account.toString() : "unknown");
+            sb.append(": ");
+            sb.append(cnt != null ? cnt.toString() : "0");
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    // Get total listening time for a song
+    public String getTotalListeningTimeForSong(int songId) {
+        String sql = """
+            SELECT s.length_seconds * COALESCE(play_count, 0) as total_seconds
+            FROM Song s
+            LEFT JOIN (
+                SELECT song_id, COUNT(*) as play_count
+                FROM Scrobble
+                WHERE song_id = ?
+                GROUP BY song_id
+            ) scr ON s.id = scr.song_id
+            WHERE s.id = ?
+            """;
+        
+        try {
+            Integer totalSeconds = jdbcTemplate.queryForObject(sql, Integer.class, songId, songId);
+            if (totalSeconds == null || totalSeconds == 0) {
+                return "-";
+            }
+            return formatDuration(totalSeconds);
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+
+    // Get first listened date for a song
+    public String getFirstListenedDateForSong(int songId) {
+        String sql = "SELECT MIN(scrobble_date) FROM Scrobble WHERE song_id = ?";
+        try {
+            String date = jdbcTemplate.queryForObject(sql, String.class, songId);
+            return formatDate(date);
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+
+    // Get last listened date for a song
+    public String getLastListenedDateForSong(int songId) {
+        String sql = "SELECT MAX(scrobble_date) FROM Scrobble WHERE song_id = ?";
+        try {
+            String date = jdbcTemplate.queryForObject(sql, String.class, songId);
+            return formatDate(date);
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+
+    // Delete song (only if play count is 0)
+    public void deleteSong(Integer songId) {
+        // First check if song has any plays
+        int playCount = getPlayCountForSong(songId);
+        if (playCount > 0) {
+            throw new IllegalStateException("Cannot delete song with existing plays");
+        }
+        
+        // Delete the song
+        jdbcTemplate.update("DELETE FROM Song WHERE id = ?", songId);
+    }
+    
+    // Create a new song
+    public SongNew createSong(SongNew song) {
+        String sql = """
+            INSERT INTO Song (artist_id, album_id, name, release_date, length_seconds, 
+                             is_single, status, override_genre_id, override_subgenre_id, 
+                             override_language_id, override_gender_id, override_ethnicity_id,
+                             creation_date, update_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """;
+        
+        // Convert java.sql.Date to yyyy-MM-dd string format for database
+        String releaseDateStr = null;
+        if (song.getReleaseDate() != null) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            releaseDateStr = sdf.format(song.getReleaseDate());
+        }
+        
+        jdbcTemplate.update(sql,
+            song.getArtistId(),
+            song.getAlbumId(),
+            song.getName(),
+            releaseDateStr,
+            song.getLengthSeconds(),
+            song.getIsSingle() != null && song.getIsSingle() ? 1 : 0,
+            song.getStatus(),
+            song.getOverrideGenreId(),
+            song.getOverrideSubgenreId(),
+            song.getOverrideLanguageId(),
+            song.getOverrideGenderId(),
+            song.getOverrideEthnicityId()
+        );
+        
+        // Get the ID of the newly created song
+        Integer id = jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Integer.class);
+        song.setId(id);
+        
+        return song;
+    }
+    
+    // Helper method to format duration from seconds
+    private String formatDuration(int totalSeconds) {
+        if (totalSeconds <= 0) return "-";
+        
+        long days = totalSeconds / 86400;
+        long hours = (totalSeconds % 86400) / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+        
+        if (days > 0) {
+            return String.format("%dd:%02d:%02d:%02d", days, hours, minutes, seconds);
+        } else if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, seconds);
+        } else {
+            return String.format("%d:%02d", minutes, seconds);
+        }
+    }
+
+    // Helper method to format date strings
+    private String formatDate(String dateTimeString) {
+        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
+            return "-";
+        }
+        
+        try {
+            String datePart = dateTimeString.trim();
+            if (datePart.contains(" ")) {
+                datePart = datePart.split(" ")[0];
+            }
+            
+            String[] parts = datePart.split("-");
+            if (parts.length == 3) {
+                int year = Integer.parseInt(parts[0]);
+                int month = Integer.parseInt(parts[1]);
+                int day = Integer.parseInt(parts[2]);
+                
+                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                
+                return day + " " + monthNames[month - 1] + " " + year;
+            }
+        } catch (Exception e) {
+            // If parsing fails, return as is
+        }
+        
+        return dateTimeString;
+    }
+    
+    // Helper method to format time in seconds to human-readable format
+    private String formatTime(long totalSeconds) {
+        if (totalSeconds == 0) {
+            return "0m";
+        }
+        
+        long days = totalSeconds / 86400;
+        long hours = (totalSeconds % 86400) / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        
+        // Smart formatting for card display
+        if (days > 0) {
+            return String.format("%dd %dh", days, hours);
+        } else if (hours > 0) {
+            return String.format("%dh %dm", hours, minutes);
+        } else {
+            return String.format("%dm", minutes);
+        }
+    }
+}

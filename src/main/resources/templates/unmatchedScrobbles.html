@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unmatched Scrobbles</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .content-card { max-width: 1100px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .hint { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
+        th { color: var(--text-muted); font-weight: 600; }
+        .count { text-align: right; font-weight: 700; }
+        .filters { display:flex; gap:12px; align-items:center; margin-bottom:12px }
+        .filters label { color: var(--text-muted); font-size: 13px; }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Scrobbles</h1>
+            
+            <!-- Filter form: choose account -> submit GET to same endpoint -->
+            <form method="get" th:action="@{/scrobbles/unmatched}" style="display: flex; gap: 8px; align-items: center;">
+                <label for="accountSelect" style="color: var(--text-muted); font-size: 13px;">Account:</label>
+                <select id="accountSelect" name="account" th:onchange="this.form.submit()">
+                    <!-- Use a plain value for the empty "All accounts" option (th:value with empty string causes parsing error) -->
+                    <option value="" th:selected="${selectedAccount == ''}">All accounts</option>
+                    <!-- Render a special value for blank/null account so it is distinguishable from 'All' -->
+                    <!-- Use a plain value for the special blank marker -->
+                    <option th:if="${#lists.contains(accounts, '')}" value="__BLANK__" th:selected="${selectedAccount == '__BLANK__'}">(blank)</option>
+                    <option th:each="acc : ${accounts}" th:if="${acc != ''}"
+                            th:value="${acc}"
+                            th:text="${acc}"
+                            th:selected="${acc == selectedAccount}">
+                    </option>
+                </select>
+                <noscript><button type="submit" class="btn btn-primary">Filter</button></noscript>
+            </form>
+        </div>
+        
+        <div class="content-card">
+            <p class="hint">List of scrobbles (account / artist / album / song) that do not have a matched song_id, ordered by frequency.</p>
+
+            <div th:if="${unmatched == null or #lists.isEmpty(unmatched)}">
+                <p>No unmatched scrobbles found.</p>
+            </div>
+
+            <div th:if="${unmatched != null and !#lists.isEmpty(unmatched)}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Artist</th>
+                            <th>Album</th>
+                            <th>Song</th>
+                            <th class="count">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="row : ${unmatched}">
+                            <td th:text="${row.account}">account</td>
+                            <td th:text="${row.artist}">Artist</td>
+                            <td th:text="${row.album}">Album</td>
+                            <td th:text="${row.song}">Song</td>
+                            <td class="count" th:text="${row.cnt}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:12px">
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

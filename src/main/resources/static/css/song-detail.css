@@ -1,0 +1,6 @@
+/* Song Detail Page - Page-specific overrides only */
+
+/* Song-specific alignment for General and Statistics boxes */
+.detail-right-section {
+    margin-top: 120px; /* Align with image top (accounting for name overlay and metadata) */
+}

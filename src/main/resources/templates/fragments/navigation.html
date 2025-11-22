@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="nav-styles">
+        <!-- Navigation CSS moved to /css/global.css to centralize layout and avoid
+             duplication; keep this fragment focused on the script and markup. -->
+         <script>
+             // Robust floating tooltip: append a positioned element to document.body
+             (function(){
+                 const activeTooltips = new WeakMap();
+
+                 function createFloatingTooltip(text) {
+                     const node = document.createElement('div');
+                     node.className = 'floating-tooltip';
+                     // Inline styles to avoid relying on external CSS
+                     node.style.position = 'fixed';
+                     node.style.background = 'rgba(0,0,0,0.92)';
+                     node.style.color = '#fff';
+                     node.style.padding = '8px 10px';
+                     node.style.borderRadius = '8px';
+                     node.style.boxShadow = '0 10px 20px rgba(0,0,0,0.45)';
+                     node.style.zIndex = 2147483000;
+                     node.style.maxWidth = '360px';
+                     node.style.whiteSpace = 'pre-line';
+                     node.style.transition = 'opacity 160ms ease, transform 160ms ease';
+                     node.style.opacity = '0';
+                     node.style.pointerEvents = 'auto';
+                     node.style.left = '0px';
+                     node.style.top = '0px';
+                     node.style.willChange = 'opacity, transform';
+                     node.textContent = text || '';
+                     return node;
+                 }
+
+                 window.showTooltip = function(el) {
+                     try {
+                         if (!el) return;
+                         // Prefer dataset on the element to avoid showing text inline
+                         const contentNode = el.querySelector('.tooltiptext');
+                         const text = (el.dataset && el.dataset.plays) ? el.dataset.plays : (contentNode ? contentNode.textContent : '');
+                         if (!text || text.trim() === '') return;
+
+                         // If already created, reuse
+                         if (activeTooltips.has(el)) return;
+
+                         const tip = createFloatingTooltip(text);
+                         document.body.appendChild(tip);
+                         activeTooltips.set(el, tip);
+
+                         // Position
+                         const rect = el.getBoundingClientRect();
+                         // Let tip render to measure
+                         const measure = () => {
+                             const tw = tip.offsetWidth;
+                             const th = tip.offsetHeight;
+                             // Preferred above the element
+                             let left = rect.left + (rect.width / 2) - (tw / 2);
+                             left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+                             let top = rect.top - th - 8;
+                             let transform = 'translateY(6px)';
+                             if (top < 8) {
+                                 // Not enough space above — place below
+                                 top = rect.bottom + 8;
+                                 transform = 'translateY(-6px)';
+                             }
+                             tip.style.left = Math.round(left) + 'px';
+                             tip.style.top = Math.round(top) + 'px';
+                             // Force reflow then animate in
+                             requestAnimationFrame(() => {
+                                 tip.style.transform = 'translateY(0)';
+                                 tip.style.opacity = '1';
+                             });
+                         };
+                         // Delay to ensure DOM appended
+                         setTimeout(measure, 8);
+
+                         // hide on scroll/resizes
+                         const onWindowChange = () => { window.hideTooltip(el); };
+                         window.addEventListener('scroll', onWindowChange, true);
+                         window.addEventListener('resize', onWindowChange);
+                         // store cleanup handler
+                         tip._cleanup = () => {
+                             window.removeEventListener('scroll', onWindowChange, true);
+                             window.removeEventListener('resize', onWindowChange);
+                         };
+                     } catch (e) { /* ignore */ }
+                 };
+
+                 window.hideTooltip = function(el) {
+                     try {
+                         const tip = activeTooltips.get(el);
+                         if (!tip) return;
+                         tip.style.opacity = '0';
+                         tip.style.transform = 'translateY(6px)';
+                         // allow transition to finish then remove
+                         const cleanup = () => {
+                             try { if (tip._cleanup) tip._cleanup(); } catch(e){}
+                             if (tip.parentNode) tip.parentNode.removeChild(tip);
+                         };
+                         setTimeout(cleanup, 180);
+                         activeTooltips.delete(el);
+                     } catch (e) { /* ignore */ }
+                 };
+             })();
+          </script>
+     </th:block>
+</head>
+<body>
+    <nav th:fragment="navigation" class="app-nav">
+        <div class="app-nav-container">
+         <div class="app-nav-left">
+             <a href="/" class="app-nav-brand">Music Stats</a>
+             <ul class="app-nav-links">
+                 <li><a href="/artists" class="app-nav-link" th:classappend="${currentSection == 'artists'} ? 'active' : ''">Artists</a></li>
+                 <li><a href="/albums" class="app-nav-link" th:classappend="${currentSection == 'albums'} ? 'active' : ''">Albums</a></li>
+                 <li><a href="/songs" class="app-nav-link" th:classappend="${currentSection == 'songs'} ? 'active' : ''">Songs</a></li>
+             </ul>
+         </div>
+         <div class="app-nav-utilities">
+             <a href="/scrobbles/upload" class="app-nav-link-discreet">Import</a>
+             <a href="/scrobbles/populate" class="app-nav-link-discreet">Populate</a>
+             <a href="/scrobbles/unmatched" class="app-nav-link-discreet">Unmatched Scrobbles</a>
+         </div>
+        </div>
+     </nav>
+ </body>
+</html>

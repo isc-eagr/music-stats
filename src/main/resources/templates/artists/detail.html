@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${artist.name} + ' - Music Stats'">Artist Detail</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/artist-detail.css}">
+    <script th:src="@{/js/table-sort.js}" defer></script>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container-wide" th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : '')">
+        <div class="detail-grid">
+            <!-- Left column: Image with name overlay -->
+            <div class="detail-sidebar">
+                <div class="item-name-overlay">
+                    <h1 class="item-name-top" th:text="${artist.name}">Artist Name</h1>
+                </div>
+                <div class="item-image-container">
+                    <img th:if="${hasImage}" 
+                         th:src="@{'/artists/' + ${artist.id} + '/image'}" 
+                         th:alt="${artist.name}"
+                         id="artistImage"
+                         class="item-image-large">
+                    <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
+                        <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
+                    </div>
+                    
+                    <div class="image-upload-overlay">
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                            Upload Image
+                        </button>
+                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="item-stats">
+                    <div class="stat">
+                        <span class="stat-icon">🎵</span>
+                        <span class="stat-value" th:text="${songCount}">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-icon">💿</span>
+                        <span class="stat-value" th:text="${albumCount}">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-icon" tabindex="0" role="button"
+                              onmouseover="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onmouseout="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))" onfocus="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onblur="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))">▶️</span>
+                        <div class="stat-value">
+                            <div class="tooltip" tabindex="0" role="button" aria-describedby="artist-plays-tooltip"
+                                 th:attr="data-plays=${artistPlaysByAccount != null and artistPlaysByAccount != '' ? artistPlaysByAccount : 'No plays'}"
+                                 onmouseover="showTooltip(this)" onmouseout="hideTooltip(this)" onfocus="showTooltip(this)" onblur="hideTooltip(this)"
+                                 style="position:relative;display:inline-block;">
+                                [[${artistPlayCount != null ? artistPlayCount : 0}]]
+                                <span id="artist-plays-tooltip" class="tooltiptext"
+                                      style="position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(6px);background-color:rgba(0,0,0,0.92);color:#fff;text-align:left;border-radius:8px;padding:8px 10px;z-index:1000;max-width:360px;white-space:pre-line;box-shadow:0 10px 20px rgba(0,0,0,0.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;">
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right side: Two-column layout for General and Statistics -->
+            <div class="detail-right-section">
+                <!-- General Section (Left) -->
+                <div class="detail-content-card">
+                    <div class="section-header">
+                        <h2 class="section-title">General</h2>
+                        <div class="edit-button-container">
+                            <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
+                            <button type="button" class="btn-negative" id="deleteBtn" 
+                                    th:disabled="${artistPlayCount > 0}"
+                                    th:title="${artistPlayCount > 0 ? 'Cannot delete artist with existing plays' : 'Delete this artist and all associated albums and songs'}"
+                                    onclick="confirmDelete()">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <form method="post" th:action="@{'/artists/' + ${artist.id}}" th:object="${artist}" id="artistForm">
+                        <input type="hidden" id="name" name="name" th:field="*{name}" />
+                        
+                        <div class="form-section">
+                            <div class="attributes-grid">
+                                <div class="form-group">
+                                    <label for="genderId">Gender</label>
+                                    <span class="attribute-text" data-field="genderId" th:text="${artist.genderId != null ? genders.get(artist.genderId) : '-'}">-</span>
+                                    <select id="genderId" name="genderId" th:field="*{genderId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${genders}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="ethnicityId">Ethnicity</label>
+                                    <span class="attribute-text" data-field="ethnicityId" th:text="${artist.ethnicityId != null ? ethnicities.get(artist.ethnicityId) : '-'}">-</span>
+                                    <select id="ethnicityId" name="ethnicityId" th:field="*{ethnicityId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${ethnicities}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="country">Country</label>
+                                    <span class="attribute-text" data-field="country" th:text="${artist.country != null && !#strings.isEmpty(artist.country) ? artist.country : '-'}">-</span>
+                                    <select id="country" name="country" th:field="*{country}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="c : ${countries}" th:value="${c}" th:text="${c}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="genreId">Genre</label>
+                                    <span class="attribute-text" data-field="genreId" th:text="${artist.genreId != null ? genres.get(artist.genreId) : '-'}">-</span>
+                                    <select id="genreId" name="genreId" th:field="*{genreId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${genres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="subgenreId">Subgenre</label>
+                                    <span class="attribute-text" data-field="subgenreId" th:text="${artist.subgenreId != null ? subgenres.get(artist.subgenreId) : '-'}">-</span>
+                                    <select id="subgenreId" name="subgenreId" th:field="*{subgenreId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${subgenres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="languageId">Language</label>
+                                    <span class="attribute-text" data-field="languageId" th:text="${artist.languageId != null ? languages.get(artist.languageId) : '-'}">-</span>
+                                    <select id="languageId" name="languageId" th:field="*{languageId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${languages}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions" id="formActions" style="display: none;">
+                            <button type="submit" class="btn-action">Save</button>
+                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Statistics Section (Right) -->
+                <div class="detail-content-card">
+                    <h2 class="section-title">Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Listening Time</span>
+                            <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">First Listened</span>
+                            <span class="stat-value" th:text="${firstListenedDate}">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Last Listened</span>
+                            <span class="stat-value" th:text="${lastListenedDate}">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Albums List Section - Aligned with right section -->
+            <div class="detail-content-section" th:if="${albums != null}">
+                <h2 class="section-title">Albums</h2>
+                <div class="table-container">
+                    <table class="data-table sortable-table js-sortable" id="albumsTable">
+                        <thead>
+                            <tr>
+                                <th class="cover-col">Cover</th>
+                                <th class="name-col sortable" data-column="name" data-type="string">
+                                    Title<span class="sort-indicator"></span>
+                                </th>
+                                <th class="count-col sortable" data-column="songcount" data-type="number">
+                                    Songs<span class="sort-indicator"></span>
+                                </th>
+                                <th class="duration-col sortable" data-column="totallength" data-type="duration">
+                                    Total Length<span class="sort-indicator"></span>
+                                </th>
+                                <th class="time-col sortable" data-column="totaltime" data-type="duration">
+                                    Time Listening<span class="sort-indicator"></span>
+                                </th>
+                                <th class="date-col sortable" data-column="firstlisten" data-type="date">
+                                    First Listened<span class="sort-indicator"></span>
+                                </th>
+                                <th class="date-col sortable" data-column="lastlisten" data-type="date">
+                                    Last Listened<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="primary" data-type="number">
+                                    Primary<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="legacy" data-type="number">
+                                    Legacy<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="total" data-type="number">
+                                    Total<span class="sort-indicator"></span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="albumsTableBody">
+                            <tr th:each="album : ${albums}">
+                                <td class="cover-col">
+                                    <a th:href="@{'/albums/' + ${album.id}}" class="cover-link" th:title="${album.name}">
+                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" class="album-cover-thumb" onerror="this.style.display='none'; this.parentElement.querySelector('.album-cover-placeholder').style.display='flex';">
+                                        <div class="album-cover-placeholder" style="display:none;" aria-label="No image">
+                                            <svg viewBox="0 0 48 48" width="36" height="36" fill="none" stroke="#666" stroke-width="2" role="img" aria-label="No album image">
+                                                <rect x="4" y="4" width="40" height="40" rx="6" fill="#1a1a1a" stroke="#333"/>
+                                                <path d="M12 34L20 24l6 8 4-5 8 11H12z" fill="#2a2a2a" stroke="#444"/>
+                                                <circle cx="18" cy="16" r="4" fill="#2a2a2a" stroke="#444"/>
+                                            </svg>
+                                        </div>
+                                    </a>
+                                </td>
+                                <td class="name-col" th:attr="data-value=${album.name}">
+                                    <a th:href="@{'/albums/' + ${album.id}}" th:text="${album.name}" class="item-link">Album Name</a>
+                                </td>
+                                <td class="count-col" th:attr="data-value=${album.songCount}" th:text="${album.songCount != null ? album.songCount : 0}">0</td>
+                                <td class="duration-col" th:attr="data-value=${album.totalLength}" th:text="${album.totalLength != null ? album.totalLength : '-'}">45:30</td>
+                                <td class="time-col" th:attr="data-value=${album.totalListeningTime}" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">2:15:00</td>
+                                <td class="date-col" th:attr="data-value=${album.firstListenedDate}" th:text="${album.firstListenedDate != null ? album.firstListenedDate : '-'}">-</td>
+                                <td class="date-col" th:attr="data-value=${album.lastListenedDate}" th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
+                                <td class="plays-col" th:attr="data-value=${album.vatitoPlays}" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
+                                <td class="plays-col" th:attr="data-value=${album.robertloverPlays}" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
+                                <td class="plays-col" th:attr="data-value=${album.totalPlays}" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
+                            </tr>
+                            <tr class="empty-row non-sortable-row" th:if="${#lists.isEmpty(albums)}">
+                                <td class="cover-col"></td>
+                                <td class="name-col" data-value=""><em>No albums</em></td>
+                                <td class="count-col" data-value="0">0</td>
+                                <td class="duration-col" data-value="0">-</td>
+                                <td class="time-col" data-value="0">-</td>
+                                <td class="date-col" data-value=""></td>
+                                <td class="date-col" data-value=""></td>
+                                <td class="plays-col" data-value="0">0</td>
+                                <td class="plays-col" data-value="0">0</td>
+                                <td class="plays-col" data-value="0">0</td>
+                            </tr>
+                            <tr id="noAlbumSummaryRow" class="no-album-row" style="display:none;">
+                                <td class="cover-col"></td>
+                                <td class="name-col" data-value="zzzz_no_album"><strong>No Album Songs</strong></td>
+                                <td class="count-col" id="noAlbumSongCount" data-value="0">0</td>
+                                <td class="duration-col" id="noAlbumTotalLength" data-value="0">-</td>
+                                <td class="time-col" id="noAlbumTotalListeningTime" data-value="0">-</td>
+                                <td class="date-col" id="noAlbumFirstListened" data-value="">-</td>
+                                <td class="date-col" id="noAlbumLastListened" data-value="">-</td>
+                                <td class="plays-col" id="noAlbumVatitoPlays" data-value="0">0</td>
+                                <td class="plays-col" id="noAlbumRobertloverPlays" data-value="0">0</td>
+                                <td class="plays-col" id="noAlbumTotalPlays" data-value="0">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Songs List Section - Aligned with right section -->
+            <div class="detail-content-section" th:if="${songs != null and !songs.isEmpty()}">
+                <h2 class="section-title">Songs</h2>
+                <div class="table-container">
+                    <table class="data-table sortable-table js-sortable" id="songsTable">
+                        <thead>
+                            <tr>
+                                <th class="duration-col sortable" data-column="duration" data-type="number">
+                                    Duration<span class="sort-indicator"></span>
+                                </th>
+                                <th class="time-col sortable" data-column="totaltime" data-type="duration">
+                                    Time Listening<span class="sort-indicator"></span>
+                                </th>
+                                <th class="name-col sortable" data-column="name" data-type="string">
+                                    Title<span class="sort-indicator"></span>
+                                </th>
+                                <th class="name-col sortable" data-column="album" data-type="string">
+                                    Album<span class="sort-indicator"></span>
+                                </th>
+                                <th class="date-col sortable" data-column="firstlisten" data-type="date">
+                                    First Listened<span class="sort-indicator"></span>
+                                </th>
+                                <th class="date-col sortable" data-column="lastlisten" data-type="date">
+                                    Last Listened<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="primary" data-type="number">
+                                    Primary<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="legacy" data-type="number">
+                                    Legacy<span class="sort-indicator"></span>
+                                </th>
+                                <th class="plays-col sortable" data-column="total" data-type="number">
+                                    Total<span class="sort-indicator"></span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="songsTableBody">
+                            <tr th:each="song : ${songs}">
+                                <td class="duration-col" th:attr="data-value=${song.length}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">3:45</td>
+                                <td class="time-col" th:attr="data-value=${song.length != null and song.totalPlays != null ? song.length * song.totalPlays : 0}" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">12:30</td>
+                                <td class="name-col" th:attr="data-value=${song.name}">
+                                    <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}" class="item-link">Song Name</a>
+                                </td>
+                                <td class="name-col" th:attr="data-value=${song.albumName != null ? song.albumName : ''}">
+                                    <a th:if="${song.albumId != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${song.albumName}" class="item-link">Album Name</a>
+                                    <span th:unless="${song.albumId != null}">-</span>
+                                </td>
+                                <td class="date-col" th:attr="data-value=${song.firstListenedDate}" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
+                                <td class="date-col" th:attr="data-value=${song.lastListenedDate}" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
+                                <td class="plays-col" th:attr="data-value=${song.vatitoPlays}" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td class="plays-col" th:attr="data-value=${song.robertloverPlays}" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td class="plays-col" th:attr="data-value=${song.totalPlays}" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isEditing = false;
+        
+        function toggleEdit() {
+            isEditing = !isEditing;
+            const editBtn = document.getElementById('editBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+            const formActions = document.getElementById('formActions');
+            const selects = document.querySelectorAll('#artistForm select');
+            const attributeTexts = document.querySelectorAll('.attribute-text');
+            
+            if (isEditing) {
+                editBtn.style.display = 'none';
+                deleteBtn.style.display = 'none';
+                formActions.style.display = 'flex';
+                
+                selects.forEach(select => {
+                    select.removeAttribute('disabled');
+                    select.style.display = 'block';
+                });
+                attributeTexts.forEach(text => {
+                    if (text.dataset.field) {
+                        text.style.display = 'none';
+                    }
+                });
+            } else {
+                window.location.reload();
+            }
+        }
+        
+        function cancelEdit() {
+            window.location.reload();
+        }
+        
+        function confirmDelete() {
+            const artistName = document.querySelector('.item-name-top').textContent;
+            const playCount = /*[[${artistPlayCount}]]*/ 0;
+            
+            if (playCount > 0) {
+                alert('Cannot delete artist with existing plays (' + playCount + ' plays)');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to delete "' + artistName + '"?\n\nThis will also delete all associated albums and songs. This action cannot be undone!')) {
+                const artistId = window.location.pathname.split('/').pop();
+                
+                fetch(`/artists/${artistId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.text())
+                .then(data => {
+                    if (data === 'success') {
+                        window.location.href = '/artists';
+                    } else if (data.startsWith('error:')) {
+                        alert(data.substring(6));
+                    } else {
+                        alert('Failed to delete artist');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting artist:', error);
+                    alert('Error deleting artist');
+                });
+            }
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            const artistId = window.location.pathname.split('/').pop();
+            
+            fetch(`/artists/${artistId}/image`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to upload image');
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image');
+            });
+        }
+        
+        function removeImage() {
+            if (!confirm('Are you sure you want to remove this image?')) {
+                return;
+            }
+            
+            const artistId = window.location.pathname.split('/').pop();
+            
+            fetch(`/artists/${artistId}/image`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to remove image');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing image:', error);
+                alert('Error removing image');
+            });
+        }
+        
+        function showTooltip(element) {
+            const tooltip = element.querySelector('.tooltiptext') || element;
+            if (tooltip.classList.contains('tooltiptext')) {
+                const dataPlays = element.getAttribute('data-plays') || element.parentElement.getAttribute('data-plays');
+                if (dataPlays) {
+                    tooltip.textContent = dataPlays;
+                }
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+            }
+        }
+        
+        function hideTooltip(element) {
+            const tooltip = element.querySelector('.tooltiptext') || element;
+            if (tooltip.classList.contains('tooltiptext')) {
+                tooltip.style.opacity = '0';
+                tooltip.style.visibility = 'hidden';
+            }
+        }
+        
+        // Sortable table functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup sorting for Songs table
+            const songsTable = document.getElementById('songsTable');
+            if (songsTable) {
+                setupTableSorting(songsTable, 'songsTableBody', {
+                    'duration': 0, 'totaltime': 1, 'name': 2, 'album': 3,
+                    'firstlisten': 4, 'lastlisten': 5, 'primary': 6, 'legacy': 7, 'total': 8
+                });
+            }
+            
+            // Setup sorting for Albums table (skip cover column)
+            const albumsTable = document.getElementById('albumsTable');
+            if (albumsTable) {
+                setupTableSorting(albumsTable, 'albumsTableBody', {
+                    'name': 1, 'songcount': 2, 'totallength': 3, 'totaltime': 4,
+                    'firstlisten': 5, 'lastlisten': 6, 'primary': 7, 'legacy': 8, 'total': 9
+                }, true); // flag for summary row handling
+                computeNoAlbumSummary();
+            }
+        });
+        
+        function setupTableSorting(table, tbodyId, columnMapping, hasSummaryRow = false) {
+            const headers = table.querySelectorAll('th.sortable');
+            let currentSort = { column: null, direction: null };
+            
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    const column = this.dataset.column;
+                    const type = this.dataset.type;
+                    
+                    let direction = 'asc';
+                    if (currentSort.column === column && currentSort.direction === 'asc') {
+                        direction = 'desc';
+                    }
+                    
+                    headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+                    this.classList.add('sort-' + direction);
+                    
+                    sortTable(tbodyId, column, direction, type, columnMapping, hasSummaryRow);
+                    currentSort = { column, direction };
+                });
+            });
+            
+            const totalHeader = Array.from(headers).find(h => h.dataset.column === 'total');
+            if (totalHeader) {
+                totalHeader.classList.add('sort-desc');
+                sortTable(tbodyId, 'total', 'desc', 'number', columnMapping, hasSummaryRow);
+                currentSort = { column: 'total', direction: 'desc' };
+            }
+        }
+        
+        function sortTable(tbodyId, column, direction, type, columnMapping, hasSummaryRow = false) {
+            const tbody = document.getElementById(tbodyId);
+            let rows = Array.from(tbody.querySelectorAll('tr'));
+            let summaryRow = null;
+            if (hasSummaryRow) {
+                summaryRow = rows.find(r => r.id === 'noAlbumSummaryRow');
+                rows = rows.filter(r => r !== summaryRow);
+            }
+            // Filter out non-sortable placeholder rows
+            rows = rows.filter(r => !r.classList.contains('non-sortable-row'));
+            const cellIndex = columnMapping[column];
+            if (cellIndex === undefined) return;
+            
+            rows.sort((a, b) => {
+                let aCell = a.cells[cellIndex];
+                let bCell = b.cells[cellIndex];
+                let aVal = aCell ? (aCell.dataset.value || '') : '';
+                let bVal = bCell ? (bCell.dataset.value || '') : '';
+                if (type === 'number' || type === 'duration') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                    return direction === 'asc' ? aVal - bVal : bVal - aVal;
+                } else if (type === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                    return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                } else if (type === 'date') {
+                    return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+            });
+            rows.forEach(row => tbody.appendChild(row));
+            if (summaryRow) tbody.appendChild(summaryRow);
+        }
+        
+        function computeNoAlbumSummary() {
+            const songsTableBody = document.getElementById('songsTableBody');
+            if (!songsTableBody) return;
+            const summaryRow = document.getElementById('noAlbumSummaryRow');
+            if (!summaryRow) return;
+            const songRows = Array.from(songsTableBody.querySelectorAll('tr'));
+            const noAlbumRows = songRows.filter(r => {
+                const albumCell = r.cells[3];
+                const val = albumCell.dataset.value || albumCell.textContent.trim();
+                return val === '' || val === '-';
+            });
+            if (noAlbumRows.length === 0) return; // leave hidden
+            let count = 0, totalLength = 0, totalListening = 0, firstDate = null, lastDate = null, vatito = 0, robertlover = 0, totalPlays = 0;
+            noAlbumRows.forEach(r => {
+                count++;
+                const lengthVal = parseFloat(r.cells[0].dataset.value) || 0; // duration seconds
+                totalLength += lengthVal;
+                const timeVal = parseFloat(r.cells[1].dataset.value) || 0;
+                totalListening += timeVal;
+                const first = r.cells[4].dataset.value || '';
+                const last = r.cells[5].dataset.value || '';
+                if (first && (!firstDate || first < firstDate)) firstDate = first;
+                if (last && (!lastDate || last > lastDate)) lastDate = last;
+                vatito += parseFloat(r.cells[6].dataset.value) || 0;
+                robertlover += parseFloat(r.cells[7].dataset.value) || 0;
+                totalPlays += parseFloat(r.cells[8].dataset.value) || 0;
+            });
+            // Format helpers
+            function formatSeconds(sec) {
+                if (sec <= 0) return '-';
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = sec % 60;
+                if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+                return m + ':' + String(s).padStart(2,'0');
+            }
+            document.getElementById('noAlbumSongCount').textContent = count;
+            document.getElementById('noAlbumSongCount').dataset.value = count;
+            document.getElementById('noAlbumTotalLength').textContent = formatSeconds(totalLength);
+            document.getElementById('noAlbumTotalLength').dataset.value = totalLength;
+            document.getElementById('noAlbumTotalListeningTime').textContent = formatSeconds(totalListening);
+            document.getElementById('noAlbumTotalListeningTime').dataset.value = totalListening;
+            document.getElementById('noAlbumFirstListened').textContent = firstDate || '-';
+            document.getElementById('noAlbumFirstListened').dataset.value = firstDate || '';
+            document.getElementById('noAlbumLastListened').textContent = lastDate || '-';
+            document.getElementById('noAlbumLastListened').dataset.value = lastDate || '';
+            document.getElementById('noAlbumVatitoPlays').textContent = vatito;
+            document.getElementById('noAlbumVatitoPlays').dataset.value = vatito;
+            document.getElementById('noAlbumRobertloverPlays').textContent = robertlover;
+            document.getElementById('noAlbumRobertloverPlays').dataset.value = robertlover;
+            document.getElementById('noAlbumTotalPlays').textContent = totalPlays;
+            document.getElementById('noAlbumTotalPlays').dataset.value = totalPlays;
+            summaryRow.style.display = '';
+            const placeholder = document.querySelector('#albumsTableBody .empty-row');
+            if (placeholder) placeholder.style.display = 'none'; // hide placeholder when summary appears
+        }
+    </script>
+    
+    <style>
+        /* Make disabled delete buttons visually distinct */
+        .btn-negative:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #4a4a4a;
+            color: #888;
+        }
+        
+        .btn-negative:disabled:hover {
+            background-color: #4a4a4a;
+            color: #888;
+        }
+    </style>
+</body>
+</html>

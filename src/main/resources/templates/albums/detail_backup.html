@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${album.name} + ' - Music Stats'">Album Detail</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/album-detail.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container" th:classappend="${artistGender != null and artistGender.toLowerCase().contains('male') and !artistGender.toLowerCase().contains('female')} ? 'gender-male' : (${artistGender != null and artistGender.toLowerCase().contains('female')} ? 'gender-female' : '')">
+        <div class="album-detail">
+            <!-- Left column: Image with name overlay -->
+            <div class="album-sidebar">
+                <div class="album-name-overlay">
+                    <h1 class="album-name-top" th:text="${album.name}">Album Name</h1>
+                    <div class="album-metadata" style="font-size: 0.9em; font-weight: normal; margin-top: 10px; color: #ccc; line-height: 1.6;">
+                        <div th:if="${artistName != null}">
+                            <a th:href="@{'/artists/' + ${album.artistId}}" style="color: #e5e7eb; text-decoration: none; transition: color 0.2s;"
+                               onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e7eb'"
+                               th:text="${artistName}"></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="album-image-container">
+                    <img th:if="${hasImage}" 
+                         th:src="@{'/albums/' + ${album.id} + '/image'}" 
+                         th:alt="${album.name}"
+                         id="albumImage"
+                         class="album-image-large">
+                    <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
+                        <span>💿</span>
+                    </div>
+                    
+                    <div class="image-upload-overlay">
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                            Upload Image
+                        </button>
+                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="album-stats">
+                    <div class="stat">
+                        <span class="stat-icon">🎵</span>
+                        <span class="stat-value" th:text="${songCount}">0</span>
+                    </div>
+                    <!-- Play count added -->
+                    <div class="stat">
+                        <span class="stat-icon" tabindex="0" role="button"
+                              onmouseover="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onmouseout="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))" onfocus="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onblur="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))">▶️</span>
+                        <div class="stat-value">
+                            <div class="tooltip" tabindex="0" role="button" aria-describedby="album-plays-tooltip"
+                                 th:attr="data-plays=${albumPlaysByAccount != null and albumPlaysByAccount != '' ? albumPlaysByAccount : 'No plays'}"
+                                 onmouseover="showTooltip(this)" onmouseout="hideTooltip(this)" onfocus="showTooltip(this)" onblur="hideTooltip(this)"
+                                 style="position:relative;display:inline-block;">
+                                [[${albumPlayCount != null ? albumPlayCount : 0}]]
+                                <span id="album-plays-tooltip" class="tooltiptext"
+                                      style="position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(6px);background-color:rgba(0,0,0,0.92);color:#fff;text-align:left;border-radius:8px;padding:8px 10px;z-index:1000;max-width:360px;white-space:pre-line;box-shadow:0 10px 20px rgba(0,0,0,0.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;">
+                                </span>
+        <div class="album-detail">
+            <!-- Left column: Image with name overlay -->
+            <div class="album-sidebar">
+                // ...existing code...
+            </div>
+            
+            <!-- Right column: General and Statistics sections in grid -->
+            <div class="album-info-grid">
+                <!-- General Section -->
+                <div class="album-content">
+                    <h2 class="section-title">General</h2>
+                    
+                    <div class="edit-button-container">
+                        <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
+                    </div>
+                
+                <form method="post" th:action="@{'/albums/' + ${album.id}}" th:object="${album}" id="albumForm">
+                    <input type="hidden" id="name" name="name" th:field="*{name}" />
+                    <input type="hidden" id="artistId" name="artistId" th:field="*{artistId}" />
+                    
+                    <div class="form-section">
+                        <div class="attributes-grid">
+                            <div class="form-group">
+                                <label for="releaseDate">Release Date</label>
+                                <span class="attribute-text" data-field="releaseDate" th:text="${album.releaseDateFormatted != null ? album.releaseDateFormatted : '-'}">-</span>
+                                <input type="text" id="releaseDate" name="releaseDate" th:value="${album.releaseDateFormatted}" placeholder="DD/MM/YYYY" pattern="\d{2}/\d{2}/\d{4}" style="display:none;" />
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="overrideGenreId">Genre</label>
+                                <span class="attribute-text" data-field="overrideGenreId">
+                                    <span th:if="${album.overrideGenreId != null}" th:text="${genres.get(album.overrideGenreId)}"></span>
+                                    <span th:if="${album.overrideGenreId == null}" style="color: #999;">
+                                        <span th:text="'-'"></span>
+                                        <span th:if="${effectiveGenreName != null}" style="font-size: 0.85em;"> (using: <span th:text="${effectiveGenreName}"></span>)</span>
+                                    </span>
+                                </span>
+                                <select id="overrideGenreId" name="overrideGenreId" th:field="*{overrideGenreId}" disabled style="display:none;">
+                                    <option value="">Select...</option>
+                                    <option th:each="entry : ${genres}" 
+                                            th:value="${entry.key}" 
+                                            th:text="${entry.value}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="overrideSubgenreId">Subgenre</label>
+                                <span class="attribute-text" data-field="overrideSubgenreId">
+                                    <span th:if="${album.overrideSubgenreId != null}" th:text="${subgenres.get(album.overrideSubgenreId)}"></span>
+                                    <span th:if="${album.overrideSubgenreId == null}" style="color: #999;">
+                                        <span th:text="'-'"></span>
+                                        <span th:if="${effectiveSubgenreName != null}" style="font-size: 0.85em;"> (using: <span th:text="${effectiveSubgenreName}"></span>)</span>
+                                    </span>
+                                </span>
+                                <select id="overrideSubgenreId" name="overrideSubgenreId" th:field="*{overrideSubgenreId}" disabled style="display:none;">
+                                    <option value="">Select...</option>
+                                    <option th:each="entry : ${subgenres}" 
+                                            th:value="${entry.key}" 
+                                            th:text="${entry.value}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="overrideLanguageId">Language</label>
+                                <span class="attribute-text" data-field="overrideLanguageId">
+                                    <span th:if="${album.overrideLanguageId != null}" th:text="${languages.get(album.overrideLanguageId)}"></span>
+                                    <span th:if="${album.overrideLanguageId == null}" style="color: #999;">
+                                        <span th:text="'-'"></span>
+                                        <span th:if="${effectiveLanguageName != null}" style="font-size: 0.85em;"> (using: <span th:text="${effectiveLanguageName}"></span>)</span>
+                                    </span>
+                                </span>
+                                <select id="overrideLanguageId" name="overrideLanguageId" th:field="*{overrideLanguageId}" disabled style="display:none;">
+                                    <option value="">Select...</option>
+                                    <option th:each="entry : ${languages}" 
+                                            th:value="${entry.key}" 
+                                            th:text="${entry.value}"></option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions" id="formActions" style="display:none;">
+                        <button type="submit" class="btn-action">Save</button>
+                        <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Statistics Section -->
+            <div class="album-stats-content">
+                <h2 class="section-title">Statistics</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Listening Time</span>
+                        <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+        
+        <!-- Songs List Section - Separate div with same styling as album-content -->
+        <div class="album-songs-content" th:if="${songs != null and !songs.isEmpty()}">
+            <h2 class="section-title">Songs</h2>
+            <div class="table-container">
+                <table class="data-table sortable-table" id="songsTable">
+                    <thead>
+                        <tr>
+                            <th class="duration-col sortable" data-column="duration" data-type="number">
+                                Duration<span class="sort-indicator"></span>
+                            </th>
+                            <th class="time-col sortable" data-column="totaltime" data-type="duration">
+                                Time Listening<span class="sort-indicator"></span>
+                            </th>
+                            <th class="name-col sortable" data-column="name" data-type="string">
+                                Title<span class="sort-indicator"></span>
+                            </th>
+                            <th class="plays-col sortable" data-column="primary" data-type="number">
+                                Primary<span class="sort-indicator"></span>
+                            </th>
+                            <th class="plays-col sortable" data-column="legacy" data-type="number">
+                                Legacy<span class="sort-indicator"></span>
+                            </th>
+                            <th class="plays-col sortable" data-column="total" data-type="number">
+                                Total<span class="sort-indicator"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="songsTableBody">
+                        <tr th:each="song : ${songs}">
+                            <td class="duration-col" th:attr="data-value=${song.length}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">3:45</td>
+                            <td class="time-col" th:attr="data-value=${song.length != null and song.totalPlays != null ? song.length * song.totalPlays : 0}" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">12:30</td>
+                            <td class="name-col" th:attr="data-value=${song.name}">
+                                <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}" class="item-link">Song Name</a>
+                            </td>
+                            <td class="plays-col" th:attr="data-value=${song.vatitoPlays}" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                            <td class="plays-col" th:attr="data-value=${song.robertloverPlays}" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                            <td class="plays-col" th:attr="data-value=${song.totalPlays}" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isEditing = false;
+        
+        function toggleEdit() {
+            // ...existing code...
+        }
+        
+        function cancelEdit() {
+            window.location.reload();
+        }
+        
+        function handleImageUpload(event) {
+            // ...existing code...
+        }
+        
+        function removeImage() {
+            // ...existing code...
+        }
+        
+        // Sortable table functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('songsTable');
+            if (!table) return;
+            
+            const headers = table.querySelectorAll('th.sortable');
+            let currentSort = { column: null, direction: null };
+            
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    const column = this.dataset.column;
+                    const type = this.dataset.type;
+                    
+                    // Determine sort direction
+                    let direction = 'asc';
+                    if (currentSort.column === column && currentSort.direction === 'asc') {
+                        direction = 'desc';
+                    }
+                    
+                    // Update UI
+                    headers.forEach(h => {
+                        h.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    this.classList.add('sort-' + direction);
+                    
+                    // Sort the table
+                    sortTable(column, direction, type);
+                    
+                    // Update current sort state
+                    currentSort = { column, direction };
+                });
+            });
+            
+            function sortTable(column, direction, type) {
+                const tbody = document.getElementById('songsTableBody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                rows.sort((a, b) => {
+                    let aVal, bVal;
+                    
+                    // New column order: Duration(0), Time Listening(1), Title(2), Primary(3), Legacy(4), Total(5)
+                    if (column === 'duration') {
+                        aVal = parseInt(a.cells[0].dataset.value) || 0;
+                        bVal = parseInt(b.cells[0].dataset.value) || 0;
+                    } else if (column === 'totaltime') {
+                        aVal = parseInt(a.cells[1].dataset.value) || 0;
+                        bVal = parseInt(b.cells[1].dataset.value) || 0;
+                    } else if (column === 'name') {
+                        aVal = a.cells[2].dataset.value.toLowerCase();
+                        bVal = b.cells[2].dataset.value.toLowerCase();
+                    } else if (column === 'primary') {
+                        aVal = parseInt(a.cells[3].dataset.value) || 0;
+                        bVal = parseInt(b.cells[3].dataset.value) || 0;
+                    } else if (column === 'legacy') {
+                        aVal = parseInt(a.cells[4].dataset.value) || 0;
+                        bVal = parseInt(b.cells[4].dataset.value) || 0;
+                    } else if (column === 'total') {
+                        aVal = parseInt(a.cells[5].dataset.value) || 0;
+                        bVal = parseInt(b.cells[5].dataset.value) || 0;
+                    }
+                    
+                    if (type === 'string') {
+                        return direction === 'asc' 
+                            ? aVal.localeCompare(bVal)
+                            : bVal.localeCompare(aVal);
+                    } else {
+                        return direction === 'asc' 
+                            ? aVal - bVal
+                            : bVal - aVal;
+                    }
+                });
+                
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            }
+            
+            // Apply default sort: Total plays descending
+            const totalHeader = Array.from(headers).find(h => h.dataset.column === 'total');
+            if (totalHeader) {
+                totalHeader.classList.add('sort-desc');
+                sortTable('total', 'desc', 'number');
+                currentSort = { column: 'total', direction: 'desc' };
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Import Result</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        /* Page-specific tweaks to align with site look */
+        .result-card { max-width: 880px; margin: 24px 0; padding: 28px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .stat { color: var(--text); margin-bottom:8px }
+        .error { color: #ff6b6b; }
+        .note { color: var(--text-muted); font-size: 13px; margin-top: 12px; }
+        .actions { display:flex; gap:8px; margin-top:12px }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
+        <h1 style="margin: 24px 0 16px; font-size: 28px; font-weight: 650;">Import Result</h1>
+        <div class="result-card">
+
+            <div th:if="${error}">
+                <p class="error" th:text="${error}"></p>
+                <p class="actions"><a th:href="@{/scrobbles/upload}" class="btn btn-primary">Back to upload</a></p>
+            </div>
+
+            <div th:if="${stats}">
+                <p class="stat">Account: <span th:text="${account}"></span></p>
+                <p class="stat">Batch size: <span th:text="${batchSize}"></span></p>
+                <p th:if="${dryRun}" class="stat">Dry run: <strong>Yes</strong></p>
+                <p class="stat">Total processed: <strong th:text="${stats.totalProcessed}"></strong></p>
+                <p class="stat">Matched: <strong th:text="${stats.totalMatched}"></strong></p>
+                <p class="stat">Unmatched: <strong th:text="${stats.totalUnmatched}"></strong></p>
+
+                <div class="actions">
+                    <a th:href="@{/scrobbles/upload}" class="btn btn-action">Import another file</a>
+                    <a th:href="@{/}" class="btn btn-secondary">Home</a>
+                </div>
+
+                <p class="note" th:if="${note}" th:text="${note}"></p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Songs - Music Stats</title>
+    <!-- Load global styles first so fragment styles can override as necessary -->
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/songs.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container">
+        <!-- Header with search and filters -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1 style="margin: 0;">Songs</h1>
+                <button type="button" class="btn-action" onclick="openCreateModal()">New Song</button>
+            </div>
+            <div class="controls">
+                <div class="search-bar">
+                    <form method="get" action="/songs">
+                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search songs...">
+                        <button type="submit" class="btn-action">Search</button>
+                    </form>
+                </div>
+                
+                <div class="filter-section">
+                    <button class="filter-toggle" onclick="toggleFilters()">Edit Filter</button>
+                    
+                    <!-- Sort By Dropdown -->
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                        <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                            <option value="name" th:selected="${sortBy == 'name'}">Name</option>
+                            <option value="artist" th:selected="${sortBy == 'artist'}">Artist</option>
+                            <option value="album" th:selected="${sortBy == 'album'}">Album</option>
+                            <option value="release_date" th:selected="${sortBy == 'release_date'}">Release Date</option>
+                            <option value="length" th:selected="${sortBy == 'length'}">Length</option>
+                            <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filters" id="filterPanel">
+                        <div class="filter-header">
+                            <h3>Edit Filter</h3>
+                            <button class="filter-close" onclick="toggleFilters()">×</button>
+                        </div>
+                        
+                        <div class="filter-content">
+                            <form method="get" action="/songs" id="filterForm">
+                                <input type="hidden" name="q" th:value="${searchQuery}">
+                                
+                                <!-- Artist Filter (text) -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Artist
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <label class="field"><span>Artist Name</span>
+                                            <input type="text" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Album Filter (text) -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Album
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <label class="field"><span>Album Name</span>
+                                            <input type="text" name="album" th:value="${selectedAlbum}" placeholder="Album name..." />
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Genre Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Genre
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${genreMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="genre">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genreMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="genre">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genreMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="genre">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genreMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="genre">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="genreMode" th:value="${genreMode}" id="genreMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('genre')">
+                                                <div class="multi-select-chips" id="genreChips">
+                                                    <span class="multi-select-chip" th:each="genreId : ${selectedGenres}">
+                                                        <span th:text="${genres.get(genreId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'genre\', ' + ${genreId} + ')'" th:attr="data-value=${genreId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedGenres == null || selectedGenres.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="genreDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${genres}">
+                                                    <label>
+                                                        <input type="checkbox" name="genre" th:value="${entry.key}" 
+                                                               th:checked="${selectedGenres != null && selectedGenres.contains(entry.key)}"
+                                                               onchange="updateChips('genre', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Subgenre Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Subgenre
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="subgenre">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="subgenre">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="subgenre">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="subgenre">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="subgenreMode" th:value="${subgenreMode}" id="subgenreMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('subgenre')">
+                                                <div class="multi-select-chips" id="subgenreChips">
+                                                    <span class="multi-select-chip" th:each="subgenreId : ${selectedSubgenres}">
+                                                        <span th:text="${subgenres.get(subgenreId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'subgenre\', ' + ${subgenreId} + ')'" th:attr="data-value=${subgenreId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedSubgenres == null || selectedSubgenres.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="subgenreDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${subgenres}">
+                                                    <label>
+                                                        <input type="checkbox" name="subgenre" th:value="${entry.key}" 
+                                                               th:checked="${selectedSubgenres != null && selectedSubgenres.contains(entry.key)}"
+                                                               onchange="updateChips('subgenre', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Gender Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Artist Gender
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="gender">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="gender">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="gender">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="gender">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="genderMode" th:value="${genderMode}" id="genderMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('gender')">
+                                                <div class="multi-select-chips" id="genderChips">
+                                                    <span class="multi-select-chip" th:each="genderId : ${selectedGenders}">
+                                                        <span th:text="${genders.get(genderId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'gender\', ' + ${genderId} + ')'" th:attr="data-value=${genderId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedGenders == null || selectedGenders.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="genderDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${genders}">
+                                                    <label>
+                                                        <input type="checkbox" name="gender" th:value="${entry.key}" 
+                                                               th:checked="${selectedGenders != null && selectedGenders.contains(entry.key)}"
+                                                               onchange="updateChips('gender', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Ethnicity Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Artist Ethnicity
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="ethnicity">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="ethnicity">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="ethnicity">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="ethnicity">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="ethnicityMode" th:value="${ethnicityMode}" id="ethnicityMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('ethnicity')">
+                                                <div class="multi-select-chips" id="ethnicityChips">
+                                                    <span class="multi-select-chip" th:each="ethnicityId : ${selectedEthnicities}">
+                                                        <span th:text="${ethnicities.get(ethnicityId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'ethnicity\', ' + ${ethnicityId} + ')'" th:attr="data-value=${ethnicityId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedEthnicities == null || selectedEthnicities.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="ethnicityDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${ethnicities}">
+                                                    <label>
+                                                        <input type="checkbox" name="ethnicity" th:value="${entry.key}" 
+                                                               th:checked="${selectedEthnicities != null && selectedEthnicities.contains(entry.key)}"
+                                                               onchange="updateChips('ethnicity', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="filter-note">
+                                            Note: Afrolatino counts as Black and Latino; Mixed counts as Black and White.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Language Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Language
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${languageMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="language">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${languageMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="language">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${languageMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="language">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${languageMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="language">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="languageMode" th:value="${languageMode}" id="languageMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('language')">
+                                                <div class="multi-select-chips" id="languageChips">
+                                                    <span class="multi-select-chip" th:each="languageId : ${selectedLanguages}">
+                                                        <span th:text="${languages.get(languageId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'language\', ' + ${languageId} + ')'" th:attr="data-value=${languageId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedLanguages == null || selectedLanguages.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="languageDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${languages}">
+                                                    <label>
+                                                        <input type="checkbox" name="language" th:value="${entry.key}" 
+                                                               th:checked="${selectedLanguages != null && selectedLanguages.contains(entry.key)}"
+                                                               onchange="updateChips('language', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Country Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Country
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="country">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="country">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="country">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="country">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="countryMode" th:value="${countryMode}" id="countryMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('country')">
+                                                <div class="multi-select-chips" id="countryChips">
+                                                    <span class="multi-select-chip" th:each="countryName : ${selectedCountries}" th:attr="data-value=${countryName}">
+                                                        <span th:text="${countryName}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${countryName}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedCountries == null || selectedCountries.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="countryDropdown">
+                                                <div class="multi-select-option" th:each="countryName : ${countries}">
+                                                    <label>
+                                                        <input type="checkbox" name="country" th:value="${countryName}" 
+                                                               th:checked="${selectedCountries != null && selectedCountries.contains(countryName)}"
+                                                               onchange="updateCountryChips(this)">
+                                                        <span th:text="${countryName}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </form>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <button type="button" class="btn-clear" onclick="clearFilters()">Clear</button>
+                            <button type="button" class="btn-apply" onclick="applyFilters()">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Filters Chips -->
+        <div class="active-filters" id="activeFilters">
+            <div class="filter-chip" th:if="${searchQuery != null and !searchQuery.isEmpty()}">
+                <span class="filter-chip-label">Name is</span>
+                <span class="filter-chip-value" th:text="${searchQuery}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('q')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedArtist != null and !selectedArtist.isEmpty()}">
+                <span class="filter-chip-label">Artist is</span>
+                <span class="filter-chip-value" th:text="${selectedArtist}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('artist')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedAlbum != null and !selectedAlbum.isEmpty()}">
+                <span class="filter-chip-label">Album is</span>
+                <span class="filter-chip-value" th:text="${selectedAlbum}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('album')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedGenders != null and !selectedGenders.isEmpty()}">
+                <span class="filter-chip-label" th:text="${genderMode == 'excludes' ? 'Gender excludes' : 'Gender includes'}">Gender includes</span>
+                <span class="filter-chip-value" th:each="genderId, iterStat : ${selectedGenders}">
+                    <span th:text="${genders.get(genderId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('gender')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedEthnicities != null and !selectedEthnicities.isEmpty()}">
+                <span class="filter-chip-label" th:text="${ethnicityMode == 'excludes' ? 'Ethnicity excludes' : 'Ethnicity includes'}">Ethnicity includes</span>
+                <span class="filter-chip-value" th:each="ethnicityId, iterStat : ${selectedEthnicities}">
+                    <span th:text="${ethnicities.get(ethnicityId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('ethnicity')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedGenres != null and !selectedGenres.isEmpty()}">
+                <span class="filter-chip-label" th:text="${genreMode == 'excludes' ? 'Genre excludes' : 'Genre includes'}">Genre includes</span>
+                <span class="filter-chip-value" th:each="genreId, iterStat : ${selectedGenres}">
+                    <span th:text="${genres.get(genreId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedSubgenres != null and !selectedSubgenres.isEmpty()}">
+                <span class="filter-chip-label" th:text="${subgenreMode == 'excludes' ? 'Subgenre excludes' : 'Subgenre includes'}">Subgenre includes</span>
+                <span class="filter-chip-value" th:each="subgenreId, iterStat : ${selectedSubgenres}">
+                    <span th:text="${subgenres.get(subgenreId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('subgenre')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedLanguages != null and !selectedLanguages.isEmpty()}">
+                <span class="filter-chip-label" th:text="${languageMode == 'excludes' ? 'Language excludes' : 'Language includes'}">Language includes</span>
+                <span class="filter-chip-value" th:each="languageId, iterStat : ${selectedLanguages}">
+                    <span th:text="${languages.get(languageId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('language')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedCountries != null and !selectedCountries.isEmpty()}">
+                <span class="filter-chip-label" th:text="${countryMode == 'excludes' ? 'Country excludes' : 'Country includes'}">Country includes</span>
+                <span class="filter-chip-value" th:each="countryName, iterStat : ${selectedCountries}">
+                    <span th:text="${countryName}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('country')" type="button">×</button>
+            </div>
+            
+            <!-- Null-mode chips (show even when no selection chips are present) -->
+            <div class="filter-chip" th:if="${genderMode == 'isnull'}">
+                <span class="filter-chip-label">Gender is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('gender')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${genderMode == 'isnotnull'}">
+                <span class="filter-chip-label">Gender is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('gender')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${ethnicityMode == 'isnull'}">
+                <span class="filter-chip-label">Ethnicity is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('ethnicity')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${ethnicityMode == 'isnotnull'}">
+                <span class="filter-chip-label">Ethnicity is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('ethnicity')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${genreMode == 'isnull'}">
+                <span class="filter-chip-label">Genre is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${genreMode == 'isnotnull'}">
+                <span class="filter-chip-label">Genre is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${subgenreMode == 'isnull'}">
+                <span class="filter-chip-label">Subgenre is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('subgenre')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${subgenreMode == 'isnotnull'}">
+                <span class="filter-chip-label">Subgenre is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('subgenre')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${languageMode == 'isnull'}">
+                <span class="filter-chip-label">Language is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('language')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${languageMode == 'isnotnull'}">
+                <span class="filter-chip-label">Language is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('language')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${countryMode == 'isnull'}">
+                <span class="filter-chip-label">Country is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('country')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${countryMode == 'isnotnull'}">
+                <span class="filter-chip-label">Country is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('country')" type="button">×</button>
+            </div>
+            
+            <button class="clear-all-filters" onclick="clearFilters()" type="button" 
+                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty())}">
+                Clear
+            </button>
+        </div>
+        
+        <!-- Pagination info -->
+        <div class="pagination-info">
+            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
+        </div>
+        
+        <!-- Pagination controls (top) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+        
+        <!-- Song cards grid -->
+        <div class="song-grid">
+            <div th:each="song : ${songs}" 
+                 class="song-card"
+                 th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                <a th:href="@{'/songs/' + ${song.id}}" class="song-image">
+                    <img th:if="${song.hasImage}" 
+                         th:src="@{'/songs/' + ${song.id} + '/image'}" 
+                         th:alt="${song.name}">
+                    <img th:if="${!song.hasImage and song.albumId != null}" 
+                         th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
+                         th:alt="${song.name}"
+                         class="inherited-image"
+                         style="opacity: 0.7;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div th:if="${!song.hasImage and song.albumId == null}" class="no-image">
+                        <span>🎵</span>
+                    </div>
+                    <div th:if="${!song.hasImage and song.albumId != null}" class="no-image" style="display: none;">
+                        <span>🎵</span>
+                    </div>
+                </a>
+                
+                <div class="song-info">
+                    <a th:href="@{'/songs/' + ${song.id}}">
+                        <h3 class="song-name" th:text="${song.name}">Song Name</h3>
+                    </a>
+                    
+                    <div class="song-artist" th:if="${song.artistName != null}">
+                        <span th:text="${song.artistName}"></span>
+                    </div>
+                    
+                    <!-- Album, Genre, Length, Year -->
+                    <div class="song-metadata">
+                        <span th:if="${song.albumName != null and !#strings.isEmpty(song.albumName)}" th:text="${song.albumName}"></span>
+                        <span th:if="${song.releaseYear != null and !#strings.isEmpty(song.releaseYear)}">
+                            <span th:if="${song.albumName != null and !#strings.isEmpty(song.albumName)}"> • </span>
+                            <span th:text="${song.releaseYear}"></span>
+                        </span>
+                        <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}">
+                            <span th:if="${(song.albumName != null and !#strings.isEmpty(song.albumName)) or (song.releaseYear != null and !#strings.isEmpty(song.releaseYear))}"> • </span>
+                            <span th:text="${song.lengthFormatted}"></span>
+                        </span>
+                        <span th:if="${song.genreName != null and !#strings.isEmpty(song.genreName)}">
+                            <span th:if="${(song.albumName != null and !#strings.isEmpty(song.albumName)) or (song.releaseYear != null and !#strings.isEmpty(song.releaseYear)) or (song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted))}"> • </span>
+                            <span th:text="${song.genreName}"></span>
+                        </span>
+                    </div>
+                    
+                    <div class="song-stats">
+                        <div class="stat">
+                            <span class="stat-icon">▶️</span>
+                            <span class="stat-value" th:text="${song.playCount}">0</span>
+                        </div>
+                    </div>
+                    <div class="song-stats song-stats-row2">
+                        <div class="stat">
+                            <span class="stat-icon">🕒</span>
+                            <span class="stat-value" th:text="${song.timeListenedFormatted}">0m</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination controls (bottom) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/songs(q=${searchQuery}, artist=${artist}, album=${album}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/songs(q=${searchQuery}, genre=${selectedGenre}, subgenre=${selectedSubgenre}, sortby=${sortBy}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+    </div>
+    
+    <script>
+        function toggleFilters() {
+            const panel = document.getElementById('filterPanel');
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+            }
+        }
+        
+        function toggleFilterItem(header) {
+            const content = header.nextElementSibling;
+            const chevron = header.querySelector('.filter-item-chevron');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                chevron.classList.remove('expanded');
+                header.classList.remove('active');
+            } else {
+                content.classList.add('expanded');
+                chevron.classList.add('expanded');
+                header.classList.add('active');
+            }
+        }
+        
+        function toggleMultiSelectDropdown(filterName) {
+            const dropdown = document.getElementById(filterName + 'Dropdown');
+            // If the display has been disabled due to a null-mode selection, don't open the dropdown
+            const display = dropdown ? dropdown.previousElementSibling : null;
+            if (display && display.classList.contains('disabled')) { return; }
+            if (!dropdown) { console.warn('Dropdown not found for', filterName); return; }
+            const willShow = !dropdown.classList.contains('show');
+            document.querySelectorAll('.multi-select-dropdown').forEach(d => { if (d !== dropdown) { d.classList.remove('show'); d.classList.remove('above'); } });
+            if (!willShow) { dropdown.classList.remove('show'); return; }
+            dropdown.classList.add('show');
+            dropdown.classList.remove('above');
+            requestAnimationFrame(() => {
+                const rect = dropdown.getBoundingClientRect();
+                const options = dropdown.querySelectorAll('.multi-select-option').length;
+                const viewportSpaceBelow = window.innerHeight - rect.bottom;
+                const viewportSpaceAbove = rect.top;
+                const container = dropdown.closest('.filters');
+                let insideSpaceBelow = viewportSpaceBelow;
+                let insideSpaceAbove = viewportSpaceAbove;
+                if (container) {
+                    const cRect = container.getBoundingClientRect();
+                    insideSpaceBelow = cRect.bottom - rect.bottom;
+                    insideSpaceAbove = rect.top - cRect.top;
+                }
+                console.log(`[${filterName}] rect=`, rect, 'options=', options, 'viewportBelow=', viewportSpaceBelow, 'viewportAbove=', viewportSpaceAbove, 'insideBelow=', insideSpaceBelow, 'insideAbove=', insideSpaceAbove);
+                const needFlip = (insideSpaceBelow < 40 || viewportSpaceBelow < 40) && insideSpaceAbove > insideSpaceBelow;
+                if (needFlip) { dropdown.classList.add('above'); console.log(`[${filterName}] positioned above due to container clipping`); }
+                if (rect.height === 0) {
+                    console.warn(`[${filterName}] dropdown height 0 after open. Forcing inline styles.`);
+                    dropdown.style.display = 'block'; dropdown.style.visibility = 'visible'; dropdown.style.opacity = '1';
+                }
+            });
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.multi-select-container')) {
+                document.querySelectorAll('.multi-select-dropdown').forEach(d => {
+                    d.classList.remove('show');
+                });
+            }
+        });
+        
+        function updateChips(filterName, checkbox) {
+            const chipsContainer = document.getElementById(filterName + 'Chips');
+            const labelElement = chipsContainer.nextElementSibling;
+            const value = checkbox.value;
+            const text = checkbox.parentElement.textContent.trim();
+            
+            if (checkbox.checked) {
+                // Add chip
+                const chip = document.createElement('span');
+                chip.className = 'multi-select-chip';
+                chip.setAttribute('data-value', value);
+                chip.innerHTML = `
+                    <span>${text}</span>
+                    <button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">×</button>
+                `;
+                chipsContainer.appendChild(chip);
+            } else {
+                // Remove chip
+                const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+                if (chip) chip.remove();
+            }
+            
+            // Show/hide placeholder label
+            if (chipsContainer.children.length > 0) {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'none';
+                }
+            } else {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'block';
+                }
+            }
+        }
+        
+        function removeChip(event, filterName, value) {
+            event.stopPropagation();
+            
+            // Uncheck the checkbox
+            const dropdown = document.getElementById(filterName + 'Dropdown');
+            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            
+            // Remove the chip
+            const chipsContainer = document.getElementById(filterName + 'Chips');
+            const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+            if (chip) chip.remove();
+            
+            // Show placeholder if no chips left
+            const labelElement = chipsContainer.nextElementSibling;
+            if (chipsContainer.children.length === 0) {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'block';
+                }
+            }
+        }
+        
+        function updateCountryChips(checkbox) {
+            const chipsContainer = document.getElementById('countryChips');
+            const labelElement = chipsContainer.nextElementSibling;
+            const value = checkbox.value;
+            const text = checkbox.parentElement.textContent.trim();
+            
+            if (checkbox.checked) {
+                // Add chip
+                const chip = document.createElement('span');
+                chip.className = 'multi-select-chip';
+                chip.setAttribute('data-value', value);
+                chip.innerHTML = `
+                    <span>${text}</span>
+                    <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>
+                `;
+                chipsContainer.appendChild(chip);
+            } else {
+                // Remove chip
+                const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+                if (chip) chip.remove();
+            }
+            
+            // Show/hide placeholder label
+            if (chipsContainer.children.length > 0) {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'none';
+                }
+            } else {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'block';
+                }
+            }
+        }
+        
+        function removeCountryChip(event, value) {
+            event.stopPropagation();
+            
+            // Uncheck the checkbox
+            const dropdown = document.getElementById('countryDropdown');
+            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            
+            // Remove the chip
+            const chipsContainer = document.getElementById('countryChips');
+            const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+            if (chip) chip.remove();
+            
+            // Show placeholder if no chips left
+            const labelElement = chipsContainer.nextElementSibling;
+            if (chipsContainer.children.length === 0) {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'block';
+                }
+            }
+        }
+        
+        function applyFilters() {
+            document.getElementById('filterForm').submit();
+        }
+        
+        function changeSortBy(sortValue) {
+            const url = new URL(window.location);
+            url.searchParams.set('sortby', sortValue);
+            url.searchParams.set('page', '0'); // Reset to first page when sorting changes
+            window.location.href = url.toString();
+        }
+        
+        function clearFilters() {
+            const sortBy = document.getElementById('sortBySelect').value;
+            window.location.href = '/songs?sortby=' + sortBy;
+        }
+        
+        function removeFilter(paramName) {
+            const url = new URL(window.location);
+            url.searchParams.delete(paramName);
+            window.location.href = url.toString();
+        }
+        
+        function removeFilterGroup(paramName) {
+            const url = new URL(window.location);
+            url.searchParams.delete(paramName);
+            url.searchParams.delete(paramName + 'Mode');
+            window.location.href = url.toString();
+        }
+        
+        function goToPage(pageNum) {
+            const url = new URL(window.location);
+            url.searchParams.set('page', pageNum);
+            window.location.href = url.toString();
+        }
+        
+        // Handle filter modifier buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const modifierButtons = document.querySelectorAll('.filter-modifier');
+            modifierButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Toggle active state within the same group
+                    const group = this.parentElement;
+                    group.querySelectorAll('.filter-modifier').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Update the hidden input for the mode
+                    const filterName = this.getAttribute('data-filter');
+                    const mode = this.getAttribute('data-mode');
+                    if (filterName && mode) {
+                        const modeInput = document.getElementById(filterName + 'Mode');
+                        if (modeInput) {
+                            modeInput.value = mode;
+                        }
+
+                        // If selecting a null-mode, clear any selected chips and uncheck checkboxes
+                        if (mode === 'isnull' || mode === 'isnotnull') {
+                            const chipsContainer = document.getElementById(filterName + 'Chips');
+                            if (chipsContainer) {
+                                while (chipsContainer.firstChild) chipsContainer.removeChild(chipsContainer.firstChild);
+                                // show placeholder label if present
+                                const label = chipsContainer.nextElementSibling;
+                                if (label && label.classList.contains('multi-select-label')) label.style.display = 'block';
+                            }
+                            const dropdown = document.getElementById(filterName + 'Dropdown');
+                            if (dropdown) {
+                                dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                                // hide the dropdown and mark display as disabled so it can't be opened
+                                dropdown.classList.remove('show');
+                                dropdown.style.display = 'none';
+                                const display = dropdown.previousElementSibling;
+                                if (display) { display.classList.add('disabled'); display.style.pointerEvents = 'none'; display.style.opacity = '0.6'; }
+                            }
+                            // special-case country (its label is next to chips in markup) handled above
+                        } else {
+                            // Re-enable dropdown/display when switching back to includes/excludes
+                            const dropdown = document.getElementById(filterName + 'Dropdown');
+                            if (dropdown) {
+                                dropdown.style.display = '';
+                                const display = dropdown.previousElementSibling;
+                                if (display) { display.classList.remove('disabled'); display.style.pointerEvents = ''; display.style.opacity = ''; }
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Initialize any filters already in null-mode on page load
+            // This ensures the dropdown/display is hidden and disabled when the server rendered the page
+            document.querySelectorAll('input[id$="Mode"]').forEach(modeInput => {
+                const val = modeInput.value;
+                if (val === 'isnull' || val === 'isnotnull') {
+                    const filterName = modeInput.id.replace(/Mode$/, '');
+
+                    // Clear chips and show placeholder if present
+                    const chipsContainer = document.getElementById(filterName + 'Chips');
+                    if (chipsContainer) {
+                        while (chipsContainer.firstChild) chipsContainer.removeChild(chipsContainer.firstChild);
+                        const label = chipsContainer.nextElementSibling;
+                        if (label && label.classList.contains('multi-select-label')) label.style.display = 'block';
+                    }
+
+                    // Hide and disable dropdown/display
+                    const dropdown = document.getElementById(filterName + 'Dropdown');
+                    if (dropdown) {
+                        dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                        dropdown.classList.remove('show');
+                        dropdown.style.display = 'none';
+                        const display = dropdown.previousElementSibling;
+                        if (display) { display.classList.add('disabled'); display.style.pointerEvents = 'none'; display.style.opacity = '0.6'; }
+                    }
+                }
+            });
+        });
+        
+        // Create Song Modal Functions
+        function openCreateModal() {
+            document.getElementById('createSongModal').style.display = 'flex';
+            loadArtistsForSong();
+        }
+        
+        function closeCreateModal() {
+            document.getElementById('createSongModal').style.display = 'none';
+            document.getElementById('createSongForm').reset();
+            document.getElementById('createAlbumId').innerHTML = '<option value="">Select Album (Optional)</option>';
+        }
+        
+        function loadArtistsForSong() {
+            fetch('/artists/api/artists')
+            .then(response => response.json())
+            .then(artists => {
+                const select = document.getElementById('createSongArtistId');
+                select.innerHTML = '<option value="">Select Artist *</option>';
+                artists.forEach(artist => {
+                    const option = document.createElement('option');
+                    option.value = artist.id;
+                    option.textContent = artist.name;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading artists:', error);
+            });
+        }
+        
+        function onArtistChange() {
+            const artistId = document.getElementById('createSongArtistId').value;
+            const albumSelect = document.getElementById('createAlbumId');
+            
+            if (!artistId) {
+                albumSelect.innerHTML = '<option value="">Select Album (Optional)</option>';
+                return;
+            }
+            
+            fetch('/albums/api/albums?artistId=' + artistId)
+            .then(response => response.json())
+            .then(albums => {
+                albumSelect.innerHTML = '<option value="">No Album</option>';
+                albums.forEach(album => {
+                    const option = document.createElement('option');
+                    option.value = album.id;
+                    option.textContent = album.name;
+                    albumSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading albums:', error);
+            });
+        }
+        
+        function submitCreateSong(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const data = {};
+            formData.forEach((value, key) => {
+                if (value === '') {
+                    data[key] = null;
+                } else if (key === 'lengthFormatted') {
+                    const parts = value.split(':');
+                    if (parts.length === 2) {
+                        const minutes = parseInt(parts[0]) || 0;
+                        const seconds = parseInt(parts[1]) || 0;
+                        data['lengthSeconds'] = (minutes * 60) + seconds;
+                    }
+                } else if (key === 'isSingle') {
+                    data[key] = formData.get(key) === 'on';
+                } else {
+                    data[key] = value;
+                }
+            });
+            
+            delete data.lengthFormatted;
+            
+            fetch('/songs/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to create song');
+                }
+            })
+            .then(data => {
+                if (data.id) {
+                    window.location.href = '/songs/' + data.id;
+                }
+            })
+            .catch(error => {
+                console.error('Error creating song:', error);
+                alert('Error creating song');
+            });
+        }
+    </script>
+    
+    <!-- Create Song Modal -->
+    <div id="createSongModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Song</h2>
+                <span class="modal-close" onclick="closeCreateModal()">&times;</span>
+            </div>
+            <form id="createSongForm" onsubmit="submitCreateSong(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="createSongArtistId">Artist *</label>
+                        <select id="createSongArtistId" name="artistId" required onchange="onArtistChange()">
+                            <option value="">Select Artist...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createAlbumId">Album</label>
+                        <select id="createAlbumId" name="albumId">
+                            <option value="">Select Album (Optional)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createSongName">Name *</label>
+                        <input type="text" id="createSongName" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createLengthFormatted">Length (mm:ss)</label>
+                        <input type="text" id="createLengthFormatted" name="lengthFormatted" placeholder="3:45">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createReleaseDateSong">Release Date</label>
+                        <input type="text" id="createReleaseDateSong" name="releaseDate" placeholder="dd/MM/yyyy">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createStatus">Status</label>
+                        <select id="createStatus" name="status">
+                            <option value="">Select...</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="createIsSingle" name="isSingle">
+                            Is Single
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createOverrideGenreIdSong">Genre Override</label>
+                        <select id="createOverrideGenreIdSong" name="overrideGenreId">
+                            <option value="">Select...</option>
+                            <option th:each="entry : ${genres}" 
+                                    th:value="${entry.key}" 
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createOverrideSubgenreIdSong">Subgenre Override</label>
+                        <select id="createOverrideSubgenreIdSong" name="overrideSubgenreId">
+                            <option value="">Select...</option>
+                            <option th:each="entry : ${subgenres}" 
+                                    th:value="${entry.key}" 
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createOverrideLanguageIdSong">Language Override</label>
+                        <select id="createOverrideLanguageIdSong" name="overrideLanguageId">
+                            <option value="">Select...</option>
+                            <option th:each="entry : ${languages}" 
+                                    th:value="${entry.key}" 
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createOverrideGenderIdSong">Gender Override</label>
+                        <select id="createOverrideGenderIdSong" name="overrideGenderId">
+                            <option value="">Select...</option>
+                            <option th:each="entry : ${genders}" 
+                                    th:value="${entry.key}" 
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createOverrideEthnicityIdSong">Ethnicity Override</label>
+                        <select id="createOverrideEthnicityIdSong" name="overrideEthnicityId">
+                            <option value="">Select...</option>
+                            <option th:each="entry : ${ethnicities}" 
+                                    th:value="${entry.key}" 
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="submit" class="btn-action">Create</button>
+                    <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #fff;
+        }
+        
+        .modal-close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .modal-close:hover {
+            color: #fff;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-body .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .modal-body .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-size: 14px;
+        }
+        
+        .modal-body .form-group input[type="text"],
+        .modal-body .form-group select {
+            width: 100%;
+            padding: 8px;
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .modal-body .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .modal-body .form-group input:focus,
+        .modal-body .form-group select:focus {
+            outline: none;
+            border-color: #666;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #333;
+            justify-content: flex-end;
+        }
+    </style>
+</body>
+</html>

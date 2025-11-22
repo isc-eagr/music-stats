@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${song.name} + ' - Music Stats'">Song Detail</title>
+    <!-- Load global styles first so fragment styles are layered predictably -->
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/song-detail.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container-wide" th:classappend="${artistGender != null and artistGender.toLowerCase().contains('male') and !artistGender.toLowerCase().contains('female')} ? 'gender-male' : (${artistGender != null and artistGender.toLowerCase().contains('female')} ? 'gender-female' : '')">
+        <div class="detail-grid">
+            <!-- Left column: Image with name overlay -->
+            <div class="detail-sidebar">
+                <div class="item-name-overlay">
+                    <h1 class="item-name-top" th:text="${song.name}">Song Name</h1>
+                    <div class="song-metadata" style="font-size: 0.9em; font-weight: normal; margin-top: 10px; color: #ccc; line-height: 1.6;">
+                        <div th:if="${artistName != null}">
+                            <a th:href="@{'/artists/' + ${song.artistId}}" style="color: #e5e7eb; text-decoration: none; transition: color 0.2s;" 
+                               onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e7eb'"
+                               th:text="${artistName}"></a>
+                        </div>
+                        <div th:if="${albumName != null}" style="margin-top: 6px;">
+                            <a th:href="@{'/albums/' + ${song.albumId}}" style="color: #e5e7eb; text-decoration: none; transition: color 0.2s;"
+                               onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e7eb'"
+                               th:text="${albumName}"></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="item-image-container">
+                    <img th:if="${hasImage}" 
+                         th:src="@{'/songs/' + ${song.id} + '/image'}" 
+                         th:alt="${song.name}"
+                         id="songImage"
+                         class="item-image-large">
+                    <img th:if="${!hasImage and song.albumId != null}" 
+                         th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
+                         th:alt="${song.name}"
+                         id="albumImage"
+                         class="item-image-large"
+                         style="opacity: 0.7;"
+                         onerror="this.style.display='none'; document.getElementById('noImagePlaceholder').style.display='flex';">
+                    <div th:if="${!hasImage and song.albumId == null}" class="no-image-large" id="noImagePlaceholder">
+                        <span>🎵</span>
+                    </div>
+                    <div th:if="${!hasImage and song.albumId != null}" class="no-image-large" id="noImagePlaceholder" style="display: none;">
+                        <span>🎵</span>
+                    </div>
+                    
+                    <div class="image-upload-overlay">
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                            Upload Image
+                        </button>
+                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="item-stats">
+                    <div class="stat">
+                        <span class="stat-icon" tabindex="0" role="button"
+                              onmouseover="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onmouseout="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))" onfocus="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onblur="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))">▶️</span>
+                        <div class="stat-value">
+                            <div class="tooltip" tabindex="0" role="button" aria-describedby="song-plays-tooltip"
+                                 th:attr="data-plays=${songPlaysByAccount != null and songPlaysByAccount != '' ? songPlaysByAccount : 'No plays'}"
+                                 onmouseover="showTooltip(this)" onmouseout="hideTooltip(this)" onfocus="showTooltip(this)" onblur="hideTooltip(this)"
+                                 style="position:relative;display:inline-block;">
+                                [[${songPlayCount != null ? songPlayCount : 0}]]
+                                <span id="song-plays-tooltip" class="tooltiptext"
+                                      style="position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(6px);background-color:rgba(0,0,0,0.92);color:#fff;text-align:left;border-radius:8px;padding:8px 10px;z-index:1000;max-width:360px;white-space:pre-line;box-shadow:0 10px 20px rgba(0,0,0,0.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;">
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right side: Two-column layout for General and Statistics -->
+            <div class="detail-right-section">
+                <!-- General Section (Left) -->
+                <div class="detail-content-card">
+                    <div class="section-header">
+                        <h2 class="section-title">General</h2>
+                        <div class="edit-button-container">
+                            <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
+                            <button type="button" class="btn-negative" id="deleteBtn" 
+                                    th:disabled="${songPlayCount > 0}"
+                                    th:title="${songPlayCount > 0 ? 'Cannot delete song with existing plays' : 'Delete this song'}"
+                                    onclick="confirmDelete()">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <form method="post" th:action="@{'/songs/' + ${song.id}}" th:object="${song}" id="songForm">
+                        <input type="hidden" id="name" name="name" th:field="*{name}" />
+                        <input type="hidden" id="artistId" name="artistId" th:field="*{artistId}" />
+                        <input type="hidden" id="albumId" name="albumId" th:field="*{albumId}" />
+                        
+                        <div class="form-section">
+                            <div class="attributes-grid">
+                                <div class="form-group">
+                                    <label for="releaseDate">Release Date</label>
+                                    <span class="attribute-text" data-field="releaseDate">
+                                        <th:block th:if="${song.releaseDateFormatted != null}" th:text="${song.releaseDateFormatted}"></th:block>
+                                        <th:block th:if="${song.releaseDateFormatted == null}">-</th:block>
+                                    </span>
+                                    <input type="text" 
+                                           id="releaseDate" 
+                                           name="releaseDate" 
+                                           th:value="${song.releaseDateInput != null ? song.releaseDateInput : ''}" 
+                                           placeholder="dd/MM/yyyy"
+                                           pattern="\d{2}/\d{2}/\d{4}"
+                                           class="editable-input"
+                                           style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="lengthFormatted">Length</label>
+                                    <span class="attribute-text" data-field="lengthFormatted">
+                                        <th:block th:if="${song.lengthSeconds != null}">
+                                            <th:block th:with="minutes=${song.lengthSeconds / 60}, seconds=${song.lengthSeconds % 60}">
+                                                <span th:text="${#numbers.formatInteger(minutes, 1) + ':' + #numbers.formatInteger(seconds, 2, 'NONE')}"></span>
+                                            </th:block>
+                                        </th:block>
+                                        <th:block th:if="${song.lengthSeconds == null}">-</th:block>
+                                    </span>
+                                    <input type="text" 
+                                           id="lengthFormatted" 
+                                           class="editable-input"
+                                           placeholder="mm:ss"
+                                           pattern="[0-9]{1,2}:[0-5][0-9]"
+                                           style="display:none;" />
+                                    <input type="hidden" id="lengthSeconds" name="lengthSeconds" th:value="${song.lengthSeconds}" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="status">Status</label>
+                                    <span class="attribute-text" data-field="status" th:text="${song.status != null ? song.status : '-'}">-</span>
+                                    <input type="text" id="status" name="status" th:field="*{status}" class="editable-input" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="isSingle">Is Single</label>
+                                    <span class="attribute-text" data-field="isSingle" th:text="${song.isSingle != null and song.isSingle ? 'Yes' : 'No'}">No</span>
+                                    <input type="checkbox" id="isSingle" name="isSingle" th:field="*{isSingle}" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideGenreId">Genre</label>
+                                    <span class="attribute-text" data-field="overrideGenreId"
+                                          th:classappend="${song.overrideGenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${song.overrideGenreId != null ? genres.get(song.overrideGenreId) : (effectiveGenreName != null ? effectiveGenreName : '-')}">-</span>
+                                    <select id="overrideGenreId" name="overrideGenreId" th:field="*{overrideGenreId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${genres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideSubgenreId">Subgenre</label>
+                                    <span class="attribute-text" data-field="overrideSubgenreId"
+                                          th:classappend="${song.overrideSubgenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${song.overrideSubgenreId != null ? subgenres.get(song.overrideSubgenreId) : (effectiveSubgenreName != null ? effectiveSubgenreName : '-')}">-</span>
+                                    <select id="overrideSubgenreId" name="overrideSubgenreId" th:field="*{overrideSubgenreId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${subgenres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideLanguageId">Language</label>
+                                    <span class="attribute-text" data-field="overrideLanguageId"
+                                          th:classappend="${song.overrideLanguageId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${song.overrideLanguageId != null ? languages.get(song.overrideLanguageId) : (effectiveLanguageName != null ? effectiveLanguageName : '-')}">-</span>
+                                    <select id="overrideLanguageId" name="overrideLanguageId" th:field="*{overrideLanguageId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${languages}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideGenderId">Gender</label>
+                                    <span class="attribute-text" data-field="overrideGenderId"
+                                          th:classappend="${song.overrideGenderId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${song.overrideGenderId != null ? genders.get(song.overrideGenderId) : (effectiveGenderName != null ? effectiveGenderName : '-')}">-</span>
+                                    <select id="overrideGenderId" name="overrideGenderId" th:field="*{overrideGenderId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${genders}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="overrideEthnicityId">Ethnicity</label>
+                                    <span class="attribute-text" data-field="overrideEthnicityId"
+                                          th:classappend="${song.overrideEthnicityId != null ? 'attribute-overridden' : 'attribute-inherited'}"
+                                          th:text="${song.overrideEthnicityId != null ? ethnicities.get(song.overrideEthnicityId) : (effectiveEthnicityName != null ? effectiveEthnicityName : '-')}">-</span>
+                                    <select id="overrideEthnicityId" name="overrideEthnicityId" th:field="*{overrideEthnicityId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${ethnicities}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions" id="formActions" style="display:none;">
+                            <button type="submit" class="btn-action">Save</button>
+                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Statistics Section (Right) -->
+                <div class="detail-content-card">
+                    <h2 class="section-title">Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Listening Time</span>
+                            <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">First Listened</span>
+                            <span class="stat-value" th:text="${firstListenedDate}">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Last Listened</span>
+                            <span class="stat-value" th:text="${lastListenedDate}">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let isEditing = false;
+        
+        // Add form submit handler to convert mm:ss to seconds
+        document.getElementById('songForm').addEventListener('submit', function(e) {
+            const lengthFormatted = document.getElementById('lengthFormatted').value;
+            const lengthSecondsField = document.getElementById('lengthSeconds');
+            
+            if (lengthFormatted && lengthFormatted.trim() !== '') {
+                const parts = lengthFormatted.split(':');
+                if (parts.length === 2) {
+                    const minutes = parseInt(parts[0]) || 0;
+                    const seconds = parseInt(parts[1]) || 0;
+                    const totalSeconds = (minutes * 60) + seconds;
+                    lengthSecondsField.value = totalSeconds;
+                }
+            }
+        });
+        
+        function toggleEdit() {
+            isEditing = !isEditing;
+            const editBtn = document.getElementById('editBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+            const formActions = document.getElementById('formActions');
+            
+            // Get all editable inputs by class and type
+            const textInputs = document.querySelectorAll('#songForm .editable-input');
+            const numberInputs = document.querySelectorAll('#songForm input[type="number"]');
+            const checkboxInputs = document.querySelectorAll('#songForm input[type="checkbox"]');
+            const selects = document.querySelectorAll('#songForm select');
+            const attributeTexts = document.querySelectorAll('.attribute-text');
+            
+            if (isEditing) {
+                editBtn.style.display = 'none';
+                deleteBtn.style.display = 'none';
+                formActions.style.display = 'flex';
+                
+                // Populate length formatted field with mm:ss value
+                const lengthSeconds = document.getElementById('lengthSeconds').value;
+                const lengthFormatted = document.getElementById('lengthFormatted');
+                if (lengthSeconds && lengthSeconds !== '') {
+                    const totalSeconds = parseInt(lengthSeconds);
+                    const minutes = Math.floor(totalSeconds / 60);
+                    const seconds = totalSeconds % 60;
+                    lengthFormatted.value = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                }
+                
+                // Show text inputs
+                textInputs.forEach(input => {
+                    input.style.display = 'block';
+                });
+                
+                // Show number inputs
+                numberInputs.forEach(input => {
+                    input.style.display = 'block';
+                });
+                
+                // Show checkboxes
+                checkboxInputs.forEach(input => {
+                    input.style.display = 'inline-block';
+                });
+                
+                // Show selects
+                selects.forEach(select => {
+                    select.removeAttribute('disabled');
+                    select.style.display = 'block';
+                });
+                
+                // Hide text displays
+                attributeTexts.forEach(text => {
+                    if (text.dataset.field) {
+                        text.style.display = 'none';
+                    }
+                });
+            } else {
+                window.location.reload();
+            }
+        }
+        
+        function cancelEdit() {
+            window.location.reload();
+        }
+        
+        function confirmDelete() {
+            const songName = document.querySelector('.item-name-top').textContent;
+            const playCount = /*[[${songPlayCount}]]*/ 0;
+            
+            if (playCount > 0) {
+                alert('Cannot delete song with existing plays (' + playCount + ' plays)');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to delete "' + songName + '"?\n\nThis action cannot be undone!')) {
+                const songId = window.location.pathname.split('/').pop();
+                
+                fetch(`/songs/${songId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.text())
+                .then(data => {
+                    if (data === 'success') {
+                        window.location.href = '/songs';
+                    } else if (data.startsWith('error:')) {
+                        alert(data.substring(6));
+                    } else {
+                        alert('Failed to delete song');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting song:', error);
+                    alert('Error deleting song');
+                });
+            }
+        }
+        
+        function showTooltip(element) {
+            const tooltip = element.querySelector('.tooltiptext') || element;
+            if (tooltip.classList.contains('tooltiptext')) {
+                const dataPlays = element.getAttribute('data-plays') || element.parentElement.getAttribute('data-plays');
+                if (dataPlays) {
+                    tooltip.textContent = dataPlays;
+                }
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+            }
+        }
+        
+        function hideTooltip(element) {
+            const tooltip = element.querySelector('.tooltiptext') || element;
+            if (tooltip.classList.contains('tooltiptext')) {
+                tooltip.style.opacity = '0';
+                tooltip.style.visibility = 'hidden';
+            }
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            const songId = window.location.pathname.split('/').pop();
+            
+            fetch(`/songs/${songId}/image`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to upload image');
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image');
+            });
+        }
+        
+        function removeImage() {
+            if (!confirm('Are you sure you want to remove this image?')) {
+                return;
+            }
+            
+            const songId = window.location.pathname.split('/').pop();
+            
+            fetch(`/songs/${songId}/image`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to remove image');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing image:', error);
+                alert('Error removing image');
+            });
+        }
+        
+        // Note: rely on global showTooltip/hideTooltip defined in fragments/navigation.html
+    </script>
+    
+    <style>
+        /* Make disabled delete buttons visually distinct */
+        .btn-negative:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #4a4a4a;
+            color: #888;
+        }
+        
+        .btn-negative:disabled:hover {
+            background-color: #4a4a4a;
+            color: #888;
+        }
+    </style>
+</body>
+</html>
