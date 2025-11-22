@@ -3,6 +3,7 @@ package library.entity;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,7 +57,7 @@ public class Scrobble {
 	private String album;
 	
 	@Column (name="song_id")
-	private int songId;
+	private Integer songId;
 	
 	@Column (name="account")
 	private String account;
@@ -74,14 +75,61 @@ public class Scrobble {
 	}
 
 	public void setScrobbleDate(String scrobbleDate) {
-		ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(scrobbleDate+" UTC",DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm VV"));
-		ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
-		
-		if(utcScrobbleDate.getYear()==1970)
-			mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
-		
-		
-		this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+		if (scrobbleDate == null) {
+			this.scrobbleDate = null;
+			return;
+		}
+		String trimmed = scrobbleDate.trim();
+		// Try multiple formats safely. If parsing fails, store the original trimmed value.
+		// Known original pattern used in legacy code: "dd MMM yyyy, HH:mm VV" (e.g., "21 Nov 2025, 12:00 UTC")
+		String[] patterns = new String[] {
+			"dd MMM yyyy, HH:mm VV",
+			"dd MMM yyyy, HH:mm",
+			"yyyy-MM-dd HH:mm",
+			"dd/MM/yyyy HH:mm",
+			"dd MMM yyyy HH:mm",
+		};
+		for (String pattern : patterns) {
+			try {
+				DateTimeFormatter fmt = DateTimeFormatter.ofPattern(pattern);
+				// When pattern includes zone (VV), parse as ZonedDateTime; otherwise assume UTC then convert
+				if (pattern.contains("VV")) {
+					ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(trimmed + (pattern.contains("VV") && !trimmed.endsWith("UTC") && !trimmed.matches(".*\\s[A-Z]{3,}$") ? " UTC" : ""), fmt);
+					ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+					if(utcScrobbleDate.getYear()==1970)
+						mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
+					this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+					return;
+				} else {
+					// Parse without zone; assume input is UTC-like and convert
+					try {
+						ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(trimmed + " UTC", DateTimeFormatter.ofPattern(pattern + " VV"));
+						ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+						if(utcScrobbleDate.getYear()==1970)
+							mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
+						this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+						return;
+					} catch (DateTimeParseException e) {
+						// fallback: try to parse LocalDateTime style via the pattern, then interpret as UTC
+						try {
+							java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(trimmed, DateTimeFormatter.ofPattern(pattern));
+							ZonedDateTime utcScrobbleDate = ldt.atZone(ZoneId.of("UTC"));
+							ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+							if(utcScrobbleDate.getYear()==1970)
+								mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
+							this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+							return;
+						} catch (Exception ex) {
+							// continue to next pattern
+						}
+					}
+				}
+			} catch (DateTimeParseException e) {
+				// try next pattern
+			}
+		}
+		// If we couldn't parse with any pattern, just save the raw trimmed string (no exception thrown)
+		this.scrobbleDate = trimmed;
 	}
 
 	public String getArtist() {
@@ -116,11 +164,11 @@ public class Scrobble {
 		this.lastfmId = lastfmId;
 	}
 
-	public int getSongId() {
+	public Integer getSongId() {
 		return songId;
 	}
 
-	public void setSongId(int songId) {
+	public void setSongId(Integer songId) {
 		this.songId = songId;
 	}
 

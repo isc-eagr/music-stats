@@ -277,6 +277,18 @@ public class MainController {
 
 	@RequestMapping("/")
 	public String index(Model model) {
+		// Add overall statistics
+		model.addAttribute("totalArtists", songRepositoryImpl.getTotalArtistsCount());
+		model.addAttribute("totalAlbums", songRepositoryImpl.getTotalAlbumsCount());
+		model.addAttribute("totalSongs", songRepository.count());
+		model.addAttribute("totalPlays", scrobbleRepository.count());
+		model.addAttribute("totalListeningTime", songRepositoryImpl.getTotalListeningTime());
+		
+		return "index";
+	}
+
+	@RequestMapping("/old")
+	public String oldIndex(Model model) {
 		return "main";
 	}
 

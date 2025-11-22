@@ -5,10 +5,12 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.js'></script>
 	<script src='/js/utils.js'></script>
-	<link rel="stylesheet" href="/css/global.css" />
+	<script src="/js/table-sort.js"></script>
+	<link rel="stylesheet" th:href="@{/css/global.css}" />
 </head>
 
 <body>
+	<th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 	<header class="topbar">
 		<div class="container">
 			<nav class="breadcrumbs">

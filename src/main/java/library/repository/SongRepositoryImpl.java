@@ -361,4 +361,55 @@ public class SongRepositoryImpl{
 		return template.query(DELETED_SONGS_QUERY, new BeanPropertyRowMapper<>(DeletedSongsDTO.class));
 	}
 	
+	// Get total number of unique artists
+	public long getTotalArtistsCount() {
+		String sql = "SELECT COUNT(DISTINCT id) FROM Artist";
+		Long count = template.queryForObject(sql, Long.class);
+		return count != null ? count : 0;
+	}
+	
+	// Get total number of unique albums
+	public long getTotalAlbumsCount() {
+		String sql = "SELECT COUNT(DISTINCT id) FROM Album";
+		Long count = template.queryForObject(sql, Long.class);
+		return count != null ? count : 0;
+	}
+	
+	// Get total listening time across all scrobbles
+	public String getTotalListeningTime() {
+		String sql = """
+			SELECT SUM(s.length_seconds) as total_seconds
+			FROM Scrobble scr
+			INNER JOIN Song s ON scr.song_id = s.id
+			WHERE s.length_seconds IS NOT NULL
+			""";
+		
+		try {
+			Integer totalSeconds = template.queryForObject(sql, Integer.class);
+			if (totalSeconds == null || totalSeconds == 0) {
+				return "0:00";
+			}
+			return formatDuration(totalSeconds);
+		} catch (Exception e) {
+			return "0:00";
+		}
+	}
+	
+	// Helper method to format duration from seconds
+	private String formatDuration(int totalSeconds) {
+		if (totalSeconds <= 0) return "0:00";
+		
+		long days = totalSeconds / 86400;
+		long hours = (totalSeconds % 86400) / 3600;
+		long minutes = (totalSeconds % 3600) / 60;
+		
+		if (days > 0) {
+			return String.format("%dd %dh %dm", days, hours, minutes);
+		} else if (hours > 0) {
+			return String.format("%dh %dm", hours, minutes);
+		} else {
+			return String.format("%dm", minutes);
+		}
+	}
+	
 }

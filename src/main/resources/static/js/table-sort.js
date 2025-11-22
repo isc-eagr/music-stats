@@ -13,10 +13,34 @@
     return NaN;
   }
 
+  function parseDate(txt){
+    // Parse "dd MMM yyyy" format (e.g., "21 Nov 2025")
+    const monthMap = {
+      'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+      'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+    };
+    
+    const parts = txt.trim().split(/\s+/);
+    if(parts.length === 3){
+      const day = parseInt(parts[0]);
+      const month = monthMap[parts[1].toLowerCase()];
+      const year = parseInt(parts[2]);
+      
+      if(!Number.isNaN(day) && month !== undefined && !Number.isNaN(year)){
+        return new Date(year, month, day).getTime();
+      }
+    }
+    return NaN;
+  }
+
   function parseCell(text){
     if(!text) return {type:'string', value:''};
     const t = text.trim();
     if(!t) return {type:'string', value:''};
+
+    // Date check (dd MMM yyyy)
+    const dateVal = parseDate(t);
+    if(!Number.isNaN(dateVal)) return {type:'date', value:dateVal};
 
     // Percent e.g. 12.34%
     if(t.endsWith('%')){
@@ -98,9 +122,9 @@
       const pa = parseCell(ta);
       const pb = parseCell(tb);
 
-      if(sampleType === 'number'){
-        const va = (pa.type==='number') ? pa.value : Number.NEGATIVE_INFINITY;
-        const vb = (pb.type==='number') ? pb.value : Number.NEGATIVE_INFINITY;
+      if(sampleType === 'number' || sampleType === 'date'){
+        const va = (pa.type==='number' || pa.type==='date') ? pa.value : Number.NEGATIVE_INFINITY;
+        const vb = (pb.type==='number' || pb.type==='date') ? pb.value : Number.NEGATIVE_INFINITY;
         return dir === 'asc' ? (va - vb) : (vb - va);
       }
       // string compare
