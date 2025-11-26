@@ -7,7 +7,10 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/album-detail.css}">
-    <script th:src="@{/js/table-sort.js}" defer></script>
+    <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
+    <script th:src="@{/js/top-table-sort.js}" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -26,15 +29,21 @@
                     </div>
                 </div>
                 <div class="item-image-container">
-                    <img th:if="${hasImage}" 
-                         th:src="@{'/albums/' + ${album.id} + '/image'}" 
+                    <img th:if="${hasImage}"
+                         th:src="@{'/albums/' + ${album.id} + '/image'}"
                          th:alt="${album.name}"
                          id="albumImage"
                          class="item-image-large">
                     <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
                         <span>💿</span>
                     </div>
-                    
+
+                    <span class="flag-overlay" th:if="${artistCountry != null and @countryCodeMapper.getCode(artistCountry) != null}"
+                          th:title="${artistCountry}">
+                        <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artistCountry)})}"
+                             th:alt="${artistCountry}" />
+                    </span>
+
                     <div class="image-upload-overlay">
                         <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
@@ -69,8 +78,18 @@
                 </div>
             </div>
             
+            <!-- Tab Navigation -->
+            <div class="detail-tabs">
+                <a th:href="@{'/albums/' + ${album.id}}" 
+                   th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
+                   class="detail-tab">General</a>
+                <a th:href="@{'/albums/' + ${album.id} + '?tab=plays'}" 
+                   th:classappend="${activeTab == 'plays'} ? 'active' : ''"
+                   class="detail-tab">Plays</a>
+            </div>
+            
             <!-- Right side: Two-column layout for General and Statistics -->
-            <div class="detail-right-section">
+            <div class="detail-right-section" th:if="${activeTab == 'general' or activeTab == null}">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -165,57 +184,179 @@
             </div>
             
             <!-- Songs List Section - Inside grid, spanning full width of right column -->
-            <div class="detail-content-section" th:if="${songs != null and !songs.isEmpty()}">
+            <div class="detail-content-section" th:if="${(activeTab == 'general' or activeTab == null) and songs != null and !songs.isEmpty()}">
                 <h2 class="section-title">Songs</h2>
-                <div class="table-container">
-                    <table class="data-table sortable-table js-sortable" id="songsTable">
+                <div class="top-table-container">
+                    <table class="top-table" id="songsTable">
                         <thead>
                             <tr>
-                                <th class="duration-col sortable" data-column="duration" data-type="number">
-                                    Duration<span class="sort-indicator"></span>
-                                </th>
-                                <th class="time-col sortable" data-column="totaltime" data-type="duration">
-                                    Time Listening<span class="sort-indicator"></span>
-                                </th>
-                                <th class="name-col sortable" data-column="name" data-type="string">
-                                    Title<span class="sort-indicator"></span>
-                                </th>
-                                <th class="date-col sortable" data-column="firstlisten" data-type="date">
-                                    First Listened<span class="sort-indicator"></span>
-                                </th>
-                                <th class="date-col sortable" data-column="lastlisten" data-type="date">
-                                    Last Listened<span class="sort-indicator"></span>
-                                </th>
-                                <th class="plays-col sortable" data-column="primary" data-type="number">
-                                    Primary<span class="sort-indicator"></span>
-                                </th>
-                                <th class="plays-col sortable" data-column="legacy" data-type="number">
-                                    Legacy<span class="sort-indicator"></span>
-                                </th>
-                                <th class="plays-col sortable" data-column="total" data-type="number">
-                                    Total<span class="sort-indicator"></span>
-                                </th>
+                                <th data-sort="name">Song Name</th>
+                                <th data-sort="releasedate">Release Date</th>
+                                <th data-sort="firstlistened">First Listened</th>
+                                <th data-sort="lastlistened">Last Listened</th>
+                                <th data-sort="primaryplays" class="numeric">Primary</th>
+                                <th data-sort="legacyplays" class="numeric">Legacy</th>
+                                <th data-sort="totalplays" class="numeric">Total</th>
+                                <th data-sort="timelistened" class="numeric">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="songsTableBody">
-                            <tr th:each="song : ${songs}">
-                                <td class="duration-col" th:attr="data-value=${song.length}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">3:45</td>
-                                <td class="time-col" th:attr="data-value=${song.length != null and song.totalPlays != null ? song.length * song.totalPlays : 0}" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">12:30</td>
-                                <td class="name-col" th:attr="data-value=${song.name}">
-                                    <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}" class="item-link">Song Name</a>
-                                </td>
-                                <td class="date-col" th:attr="data-value=${song.firstListenedDate}" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
-                                <td class="date-col" th:attr="data-value=${song.lastListenedDate}" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td class="plays-col" th:attr="data-value=${song.vatitoPlays}" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td class="plays-col" th:attr="data-value=${song.robertloverPlays}" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td class="plays-col" th:attr="data-value=${song.totalPlays}" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                            <tr th:each="song : ${songs}"
+                                th:attr="data-name=${song.name},
+                                        data-releasedate=${song.releaseDate},
+                                        data-firstlistened=${song.firstListenedDate},
+                                        data-lastlistened=${song.lastListenedDate},
+                                        data-primaryplays=${song.vatitoPlays},
+                                        data-legacyplays=${song.robertloverPlays},
+                                        data-totalplays=${song.totalPlays},
+                                        data-timelistened=${song.totalListeningTimeSeconds}">
+                                <td><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
+                                <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
+                                <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
+                                <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
+                                <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td class="numeric" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td class="numeric" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+            
+            <!-- Plays Tab Content -->
+            <div class="plays-tab-content" th:if="${activeTab == 'plays'}">
+                <!-- Plays by Year Chart -->
+                <div class="detail-content-card plays-chart-section">
+                    <h2 class="section-title">Plays by Year</h2>
+                    <div class="chart-container">
+                        <canvas id="playsByYearChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Scrobbles Table -->
+                <div class="detail-content-section">
+                    <h2 class="section-title">Play History 
+                        <span class="scrobble-count">(<span th:text="${scrobblesTotalCount}">0</span> plays)</span>
+                    </h2>
+                    
+                    <!-- Top Pagination -->
+                    <div class="pagination pagination-top" th:if="${scrobblesTotalPages > 1}">
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=0'}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                    </div>
+                    
+                    <div class="top-table-container">
+                        <table class="top-table" id="scrobblesTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Song</th>
+                                    <th>Account</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="scrobble : ${scrobbles}">
+                                    <td th:text="${scrobble.scrobbleDate}">-</td>
+                                    <td>
+                                        <a th:href="@{'/songs/' + ${scrobble.songId}}" th:text="${scrobble.songName}">Song</a>
+                                    </td>
+                                    <td th:text="${scrobble.account}">-</td>
+                                </tr>
+                                <tr th:if="${scrobbles == null or scrobbles.isEmpty()}">
+                                    <td colspan="3"><em>No plays recorded</em></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Bottom Pagination -->
+                    <div class="pagination pagination-bottom" th:if="${scrobblesTotalPages > 1}">
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=0'}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    
+    <script th:if="${activeTab == 'plays'}" th:inline="javascript">
+        // Initialize plays by year chart
+        document.addEventListener('DOMContentLoaded', function() {
+            const playsByYearData = /*[[${playsByYear}]]*/ [];
+            const artistGender = /*[[${artistGender}]]*/ '';
+            
+            if (playsByYearData && playsByYearData.length > 0) {
+                const ctx = document.getElementById('playsByYearChart').getContext('2d');
+                
+                // Fill in missing years with 0 plays (only between first and last year)
+                const filledData = [];
+                const years = playsByYearData.map(d => parseInt(d.year)).sort((a, b) => a - b);
+                const minYear = years[0];
+                const maxYear = years[years.length - 1];
+                const yearMap = {};
+                playsByYearData.forEach(d => yearMap[d.year] = d.playCount);
+                
+                for (let year = minYear; year <= maxYear; year++) {
+                    filledData.push({
+                        year: year.toString(),
+                        playCount: yearMap[year.toString()] || 0
+                    });
+                }
+                
+                // Determine bar color based on gender
+                const isFemale = artistGender && artistGender.toLowerCase().includes('female');
+                const barColor = isFemale ? 'rgba(236, 72, 153, 0.8)' : 'rgba(59, 130, 246, 0.8)';
+                const borderColor = isFemale ? 'rgba(236, 72, 153, 1)' : 'rgba(59, 130, 246, 1)';
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: filledData.map(d => d.year),
+                        datasets: [{
+                            label: 'Plays',
+                            data: filledData.map(d => d.playCount),
+                            backgroundColor: barColor,
+                            borderColor: borderColor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
     
     <script>
         let isEditing = false;
@@ -347,81 +488,14 @@
             });
         }
         
-        // Sortable table functionality
+        // Initialize table sorting using shared module
         document.addEventListener('DOMContentLoaded', function() {
-            const table = document.getElementById('songsTable');
-            if (!table) return;
-            
-            const headers = table.querySelectorAll('th.sortable');
-            let currentSort = { column: null, direction: null };
-            
-            headers.forEach(header => {
-                header.addEventListener('click', function() {
-                    const column = this.dataset.column;
-                    const type = this.dataset.type;
-                    
-                    let direction = 'asc';
-                    if (currentSort.column === column && currentSort.direction === 'asc') {
-                        direction = 'desc';
-                    }
-                    
-                    headers.forEach(h => {
-                        h.classList.remove('sort-asc', 'sort-desc');
-                    });
-                    this.classList.add('sort-' + direction);
-                    
-                    sortTable(column, direction, type);
-                    currentSort = { column, direction };
+            // Songs table sorting
+            if (document.getElementById('songsTable')) {
+                initTopTableSort('songsTable', {
+                    defaultColumn: 'totalplays',
+                    defaultDirection: 'desc'
                 });
-            });
-            
-            function sortTable(column, direction, type) {
-                const tbody = document.getElementById('songsTableBody');
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                
-                rows.sort((a, b) => {
-                    let aVal, bVal;
-                    
-                    if (column === 'duration') {
-                        aVal = parseInt(a.cells[0].dataset.value) || 0;
-                        bVal = parseInt(b.cells[0].dataset.value) || 0;
-                    } else if (column === 'totaltime') {
-                        aVal = parseInt(a.cells[1].dataset.value) || 0;
-                        bVal = parseInt(b.cells[1].dataset.value) || 0;
-                    } else if (column === 'name') {
-                        aVal = a.cells[2].dataset.value.toLowerCase();
-                        bVal = b.cells[2].dataset.value.toLowerCase();
-                    } else if (column === 'primary') {
-                        aVal = parseInt(a.cells[3].dataset.value) || 0;
-                        bVal = parseInt(b.cells[3].dataset.value) || 0;
-                    } else if (column === 'legacy') {
-                        aVal = parseInt(a.cells[4].dataset.value) || 0;
-                        bVal = parseInt(b.cells[4].dataset.value) || 0;
-                    } else if (column === 'total') {
-                        aVal = parseInt(a.cells[5].dataset.value) || 0;
-                        bVal = parseInt(b.cells[5].dataset.value) || 0;
-                    }
-                    
-                    if (type === 'string') {
-                        return direction === 'asc' 
-                            ? aVal.localeCompare(bVal)
-                            : bVal.localeCompare(aVal);
-                    } else {
-                        return direction === 'asc' 
-                            ? aVal - bVal
-                            : bVal - aVal;
-                    }
-                });
-                
-                rows.forEach(row => tbody.appendChild(row));
-            }
-            
-            // Apply default sort: Total plays descending
-            const totalHeader = Array.from(headers).find(h => h.dataset.column === 'total');
-            if (totalHeader) {
-                totalHeader.classList.add('sort-desc');
-                sortTable('total', 'desc', 'number');
-                currentSort = { column: 'total', direction: 'desc' };
             }
         });
         

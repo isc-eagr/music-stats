@@ -18,7 +18,16 @@ public interface ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            String firstListenedDate,
+            String firstListenedDateFrom,
+            String firstListenedDateTo,
+            String firstListenedDateMode,
+            String lastListenedDate,
+            String lastListenedDateFrom,
+            String lastListenedDateTo,
+            String lastListenedDateMode,
             String sortBy,
+            String sortDir,
             int limit,
             int offset
     );
@@ -36,6 +45,14 @@ public interface ArtistRepositoryCustom {
             List<Integer> languageIds,
             String languageMode,
             List<String> countries,
-            String countryMode
+            String countryMode,
+            String firstListenedDate,
+            String firstListenedDateFrom,
+            String firstListenedDateTo,
+            String firstListenedDateMode,
+            String lastListenedDate,
+            String lastListenedDateFrom,
+            String lastListenedDateTo,
+            String lastListenedDateMode
     );
 }

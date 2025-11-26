@@ -22,16 +22,24 @@ public class AlbumRepositoryNew {
                                                List<Integer> genderIds, String genderMode,
                                                List<Integer> ethnicityIds, String ethnicityMode,
                                                List<String> countries, String countryMode,
-                                               String sortBy, int limit, int offset) {
+                                               String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                                               String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                               String sortBy, String sortDir, int limit, int offset) {
         StringBuilder sql = new StringBuilder("""
             SELECT 
                 a.id,
                 a.name,
                 ar.name as artist_name,
                 ar.id as artist_id,
+                COALESCE(a.override_genre_id, ar.genre_id) as genre_id,
                 COALESCE(g_override.name, g_artist.name) as genre_name,
+                COALESCE(a.override_subgenre_id, ar.subgenre_id) as subgenre_id,
                 COALESCE(sg_override.name, sg_artist.name) as subgenre_name,
+                COALESCE(a.override_language_id, ar.language_id) as language_id,
                 COALESCE(l_override.name, l_artist.name) as language_name,
+                ar.ethnicity_id as ethnicity_id,
+                e.name as ethnicity_name,
                 CAST(strftime('%Y', a.release_date) AS TEXT) as release_year,
                 (SELECT COUNT(*) FROM Song s WHERE s.album_id = a.id) as song_count,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
@@ -40,7 +48,10 @@ public class AlbumRepositoryNew {
                 (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) 
                  FROM Song s 
                  LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id 
-                 WHERE s.album_id = a.id) as time_listened
+                 WHERE s.album_id = a.id) as time_listened,
+                (SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id)) as first_listened,
+                (SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id)) as last_listened,
+                ar.country as country
             FROM Album a
             LEFT JOIN Artist ar ON a.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -50,6 +61,7 @@ public class AlbumRepositoryNew {
             LEFT JOIN SubGenre sg_artist ON ar.subgenre_id = sg_artist.id
             LEFT JOIN Language l_override ON a.override_language_id = l_override.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
+            LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
             WHERE 1=1
             """);
         
@@ -178,14 +190,121 @@ public class AlbumRepositoryNew {
             }
         }
         
+        // Release Date filter
+        if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
+            switch (releaseDateMode) {
+                case "exact":
+                    if (releaseDate != null && !releaseDate.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) = ?");
+                        params.add(releaseDate);
+                    }
+                    break;
+                case "gte":
+                    if (releaseDate != null && !releaseDate.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) >= ?");
+                        params.add(releaseDate);
+                    }
+                    break;
+                case "lte":
+                    if (releaseDate != null && !releaseDate.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) <= ?");
+                        params.add(releaseDate);
+                    }
+                    break;
+                case "between":
+                    if (releaseDateFrom != null && !releaseDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) >= ?");
+                        params.add(releaseDateFrom);
+                    }
+                    if (releaseDateTo != null && !releaseDateTo.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) <= ?");
+                        params.add(releaseDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // First Listened Date filter
+        if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            switch (firstListenedDateMode) {
+                case "exact":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (firstListenedDateFrom != null && !firstListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDateFrom);
+                    }
+                    if (firstListenedDateTo != null && !firstListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // Last Listened Date filter
+        if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            switch (lastListenedDateMode) {
+                case "exact":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDateFrom);
+                    }
+                    if (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDateTo);
+                    }
+                    break;
+            }
+        }
+        
         // Sorting
+        String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         switch (sortBy != null ? sortBy : "name") {
-            case "artist" -> sql.append(" ORDER BY ar.name, a.name");
-            case "release_date" -> sql.append(" ORDER BY a.release_date DESC NULLS LAST, a.name");
-            case "song_count" -> sql.append(" ORDER BY song_count DESC, a.name");
-            case "plays" -> sql.append(" ORDER BY play_count DESC, a.name");
-            case "time" -> sql.append(" ORDER BY (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) FROM Song s LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id WHERE s.album_id = a.id) DESC, a.name");
-            default -> sql.append(" ORDER BY a.name");
+            case "artist" -> sql.append(" ORDER BY ar.name " + direction + ", a.name");
+            case "release_date" -> sql.append(" ORDER BY a.release_date " + direction + " NULLS LAST, a.name");
+            case "song_count" -> sql.append(" ORDER BY song_count " + direction + ", a.name");
+            case "plays" -> sql.append(" ORDER BY play_count " + direction + ", a.name");
+            case "time" -> sql.append(" ORDER BY (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) FROM Song s LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id WHERE s.album_id = a.id) " + direction + ", a.name");
+            case "first_listened" -> sql.append(" ORDER BY first_listened " + direction + " NULLS LAST, a.name");
+            case "last_listened" -> sql.append(" ORDER BY last_listened " + direction + " NULLS LAST, a.name");
+            default -> sql.append(" ORDER BY a.name " + direction);
         }
         
         sql.append(" LIMIT ? OFFSET ?");
@@ -193,20 +312,28 @@ public class AlbumRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
-            Object[] row = new Object[13];
+            Object[] row = new Object[21];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
             row[3] = rs.getInt("artist_id");
-            row[4] = rs.getString("genre_name");
-            row[5] = rs.getString("subgenre_name");
-            row[6] = rs.getString("language_name");
-            row[7] = rs.getString("release_year");
-            row[8] = rs.getInt("song_count");
-            row[9] = rs.getInt("has_image");
-            row[10] = rs.getString("gender_name");
-            row[11] = rs.getInt("play_count");
-            row[12] = rs.getLong("time_listened");
+            row[4] = rs.getObject("genre_id");
+            row[5] = rs.getString("genre_name");
+            row[6] = rs.getObject("subgenre_id");
+            row[7] = rs.getString("subgenre_name");
+            row[8] = rs.getObject("language_id");
+            row[9] = rs.getString("language_name");
+            row[10] = rs.getObject("ethnicity_id");
+            row[11] = rs.getString("ethnicity_name");
+            row[12] = rs.getString("release_year");
+            row[13] = rs.getInt("song_count");
+            row[14] = rs.getInt("has_image");
+            row[15] = rs.getString("gender_name");
+            row[16] = rs.getInt("play_count");
+            row[17] = rs.getLong("time_listened");
+            row[18] = rs.getString("first_listened");
+            row[19] = rs.getString("last_listened");
+            row[20] = rs.getString("country");
             return row;
         });
     }
@@ -217,7 +344,10 @@ public class AlbumRepositoryNew {
                                        List<Integer> languageIds, String languageMode,
                                        List<Integer> genderIds, String genderMode,
                                        List<Integer> ethnicityIds, String ethnicityMode,
-                                       List<String> countries, String countryMode) {
+                                       List<String> countries, String countryMode,
+                                       String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                                       String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
         StringBuilder sql = new StringBuilder("""
             SELECT COUNT(*)
             FROM Album a
@@ -343,6 +473,110 @@ public class AlbumRepositoryNew {
                     sql.append(" AND (ar.country NOT IN (").append(placeholders).append(") OR ar.country IS NULL)");
                     params.addAll(countries);
                 }
+            }
+        }
+        
+        // Release Date filter
+        if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
+            switch (releaseDateMode) {
+                case "exact":
+                    if (releaseDate != null && !releaseDate.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) = ?");
+                        params.add(releaseDate);
+                    }
+                    break;
+                case "gte":
+                    if (releaseDate != null && !releaseDate.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) >= ?");
+                        params.add(releaseDate);
+                    }
+                    break;
+                case "lte":
+                    if (releaseDate != null && !releaseDate.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) <= ?");
+                        params.add(releaseDate);
+                    }
+                    break;
+                case "between":
+                    if (releaseDateFrom != null && !releaseDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) >= ?");
+                        params.add(releaseDateFrom);
+                    }
+                    if (releaseDateTo != null && !releaseDateTo.isEmpty()) {
+                        sql.append(" AND DATE(a.release_date) <= ?");
+                        params.add(releaseDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // First Listened Date filter
+        if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            switch (firstListenedDateMode) {
+                case "exact":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (firstListenedDateFrom != null && !firstListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDateFrom);
+                    }
+                    if (firstListenedDateTo != null && !firstListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // Last Listened Date filter
+        if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            switch (lastListenedDateMode) {
+                case "exact":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDateFrom);
+                    }
+                    if (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDateTo);
+                    }
+                    break;
             }
         }
         

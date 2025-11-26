@@ -1,9 +1,7 @@
 package library.service;
 
 import library.entity.Scrobble;
-import library.entity.Song;
 import library.repository.ScrobbleRepository;
-import library.repository.SongRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -25,13 +23,11 @@ import java.util.Map;
 public class ScrobbleService {
     
     private final ScrobbleRepository scrobbleRepository;
-    private final SongRepository songRepository;
     private final JdbcTemplate jdbcTemplate;
     private final TransactionTemplate transactionTemplate;
     
-    public ScrobbleService(ScrobbleRepository scrobbleRepository, SongRepository songRepository, JdbcTemplate jdbcTemplate, PlatformTransactionManager txManager) {
+    public ScrobbleService(ScrobbleRepository scrobbleRepository, JdbcTemplate jdbcTemplate, PlatformTransactionManager txManager) {
         this.scrobbleRepository = scrobbleRepository;
-        this.songRepository = songRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.transactionTemplate = new TransactionTemplate(txManager);
     }

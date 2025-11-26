@@ -81,22 +81,53 @@ public class AlbumController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(defaultValue = "name") String sortby,
+            @RequestParam(defaultValue = "asc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "40") int perpage,
             Model model) {
+        
+        // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
+        String releaseDateConverted = convertDateFormat(releaseDate);
+        String releaseDateFromConverted = convertDateFormat(releaseDateFrom);
+        String releaseDateToConverted = convertDateFormat(releaseDateTo);
+        String firstListenedDateConverted = convertDateFormat(firstListenedDate);
+        String firstListenedDateFromConverted = convertDateFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = convertDateFormat(firstListenedDateTo);
+        String lastListenedDateConverted = convertDateFormat(lastListenedDate);
+        String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
         
         // Get filtered and sorted albums
         List<AlbumCardDTO> albums = albumService.getAlbums(
                 q, artist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-                country, countryMode, sortby, page, perpage
+                country, countryMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                sortby, sortdir, page, perpage
         );
         
         // Get total count for pagination
         long totalCount = albumService.countAlbums(q, artist, genre, 
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
-                genderMode, ethnicity, ethnicityMode, country, countryMode);
+                genderMode, ethnicity, ethnicityMode, country, countryMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -124,7 +155,33 @@ public class AlbumController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        
+        // Release date filter attributes
+        model.addAttribute("releaseDate", releaseDate);
+        model.addAttribute("releaseDateFrom", releaseDateFrom);
+        model.addAttribute("releaseDateTo", releaseDateTo);
+        model.addAttribute("releaseDateMode", releaseDateMode != null ? releaseDateMode : "exact");
+        
+        // First listened date filter attributes
+        model.addAttribute("firstListenedDate", firstListenedDate);
+        model.addAttribute("firstListenedDateFrom", firstListenedDateFrom);
+        model.addAttribute("firstListenedDateTo", firstListenedDateTo);
+        model.addAttribute("firstListenedDateMode", firstListenedDateMode != null ? firstListenedDateMode : "exact");
+        model.addAttribute("firstListenedDateFormatted", formatDateForDisplay(firstListenedDate));
+        model.addAttribute("firstListenedDateFromFormatted", formatDateForDisplay(firstListenedDateFrom));
+        model.addAttribute("firstListenedDateToFormatted", formatDateForDisplay(firstListenedDateTo));
+        
+        // Last listened date filter attributes
+        model.addAttribute("lastListenedDate", lastListenedDate);
+        model.addAttribute("lastListenedDateFrom", lastListenedDateFrom);
+        model.addAttribute("lastListenedDateTo", lastListenedDateTo);
+        model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
+        model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
+        model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
+        model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        
         model.addAttribute("sortBy", sortby);
+        model.addAttribute("sortDir", sortdir);
         
         // Add filter options
         model.addAttribute("genres", albumService.getGenres());
@@ -138,7 +195,10 @@ public class AlbumController {
     }
     
     @GetMapping("/{id}")
-    public String viewAlbum(@PathVariable Integer id, Model model) {
+    public String viewAlbum(@PathVariable Integer id, 
+                           @RequestParam(defaultValue = "general") String tab,
+                           @RequestParam(defaultValue = "0") int playsPage,
+                           Model model) {
         Optional<Album> album = albumService.getAlbumById(id);
         
         if (album.isEmpty()) {
@@ -155,12 +215,14 @@ public class AlbumController {
         // Get artist name and gender
         String artistName = albumService.getArtistName(album.get().getArtistId());
         String artistGender = albumService.getArtistGender(album.get().getArtistId());
+        String artistCountry = albumService.getArtistCountry(album.get().getArtistId());
         
         model.addAttribute("currentSection", "albums");
         model.addAttribute("album", album.get());
         model.addAttribute("hasImage", hasImage);
         model.addAttribute("artistName", artistName);
         model.addAttribute("artistGender", artistGender);
+        model.addAttribute("artistCountry", artistCountry);
         
         // Add lookup maps
         Map<Integer, String> genres = albumService.getGenres();
@@ -192,6 +254,19 @@ public class AlbumController {
         // Add first and last listened dates for the album
         model.addAttribute("firstListenedDate", albumService.getFirstListenedDateForAlbum(id));
         model.addAttribute("lastListenedDate", albumService.getLastListenedDateForAlbum(id));
+        
+        // Tab and plays data
+        model.addAttribute("activeTab", tab);
+        
+        if ("plays".equals(tab)) {
+            int pageSize = 100;
+            model.addAttribute("scrobbles", albumService.getScrobblesForAlbum(id, playsPage, pageSize));
+            model.addAttribute("scrobblesTotalCount", albumService.countScrobblesForAlbum(id));
+            model.addAttribute("scrobblesPage", playsPage);
+            model.addAttribute("scrobblesPageSize", pageSize);
+            model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) albumService.countScrobblesForAlbum(id) / pageSize));
+            model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
+        }
         
         return "albums/detail";
     }
@@ -270,5 +345,49 @@ public class AlbumController {
     @ResponseBody
     public List<Map<String, Object>> getAlbumsByArtist(@RequestParam Integer artistId) {
         return albumService.getAlbumsByArtistForApi(artistId);
+    }
+    
+    // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)
+    private String formatDateForDisplay(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            String[] parts = dateStr.split("-");
+            if (parts.length == 3) {
+                int year = Integer.parseInt(parts[0]);
+                int month = Integer.parseInt(parts[1]);
+                int day = Integer.parseInt(parts[2]);
+                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                return day + " " + monthNames[month - 1] + " " + year;
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
+    }
+    
+    // Helper method to convert date format from dd/mm/yyyy to yyyy-MM-dd for database queries
+    private String convertDateFormat(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Check if it's already in yyyy-MM-dd format
+            if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                return dateStr;
+            }
+            // Try to parse dd/mm/yyyy format
+            if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] parts = dateStr.split("/");
+                if (parts.length == 3) {
+                    return parts[2] + "-" + parts[1] + "-" + parts[0];
+                }
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
     }
 }

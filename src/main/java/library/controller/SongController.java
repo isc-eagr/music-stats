@@ -82,22 +82,53 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(defaultValue = "name") String sortby,
+            @RequestParam(defaultValue = "asc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "40") int perpage,
             Model model) {
+        
+        // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
+        String releaseDateConverted = convertDateFormat(releaseDate);
+        String releaseDateFromConverted = convertDateFormat(releaseDateFrom);
+        String releaseDateToConverted = convertDateFormat(releaseDateTo);
+        String firstListenedDateConverted = convertDateFormat(firstListenedDate);
+        String firstListenedDateFromConverted = convertDateFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = convertDateFormat(firstListenedDateTo);
+        String lastListenedDateConverted = convertDateFormat(lastListenedDate);
+        String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
         
         // Get filtered and sorted songs
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, sortby, page, perpage
+                ethnicity, ethnicityMode, country, countryMode, 
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                sortby, sortdir, page, perpage
         );
         
         // Get total count for pagination
         long totalCount = songService.countSongs(q, artist, album, 
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode);
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -126,7 +157,35 @@ public class SongController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("releaseDate", releaseDate);
+        model.addAttribute("releaseDateFrom", releaseDateFrom);
+        model.addAttribute("releaseDateTo", releaseDateTo);
+        model.addAttribute("releaseDateMode", releaseDateMode != null ? releaseDateMode : "exact");
+        // Add formatted dates for display
+        model.addAttribute("releaseDateFormatted", formatDateForDisplay(releaseDate));
+        model.addAttribute("releaseDateFromFormatted", formatDateForDisplay(releaseDateFrom));
+        model.addAttribute("releaseDateToFormatted", formatDateForDisplay(releaseDateTo));
+        
+        // First listened date filter attributes
+        model.addAttribute("firstListenedDate", firstListenedDate);
+        model.addAttribute("firstListenedDateFrom", firstListenedDateFrom);
+        model.addAttribute("firstListenedDateTo", firstListenedDateTo);
+        model.addAttribute("firstListenedDateMode", firstListenedDateMode != null ? firstListenedDateMode : "exact");
+        model.addAttribute("firstListenedDateFormatted", formatDateForDisplay(firstListenedDate));
+        model.addAttribute("firstListenedDateFromFormatted", formatDateForDisplay(firstListenedDateFrom));
+        model.addAttribute("firstListenedDateToFormatted", formatDateForDisplay(firstListenedDateTo));
+        
+        // Last listened date filter attributes
+        model.addAttribute("lastListenedDate", lastListenedDate);
+        model.addAttribute("lastListenedDateFrom", lastListenedDateFrom);
+        model.addAttribute("lastListenedDateTo", lastListenedDateTo);
+        model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
+        model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
+        model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
+        model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        
         model.addAttribute("sortBy", sortby);
+        model.addAttribute("sortDir", sortdir);
         
         // Add filter options
         model.addAttribute("genres", songService.getGenres());
@@ -140,7 +199,10 @@ public class SongController {
     }
     
     @GetMapping("/{id}")
-    public String viewSong(@PathVariable Integer id, Model model) {
+    public String viewSong(@PathVariable Integer id, 
+                          @RequestParam(defaultValue = "general") String tab,
+                          @RequestParam(defaultValue = "0") int playsPage,
+                          Model model) {
         Optional<SongNew> song = songService.getSongById(id);
         
         if (song.isEmpty()) {
@@ -154,6 +216,7 @@ public class SongController {
         // Get artist and album names
         String artistName = songService.getArtistName(song.get().getArtistId());
         String artistGender = songService.getArtistGender(song.get().getArtistId());
+        String artistCountry = songService.getArtistCountry(song.get().getArtistId());
         String albumName = song.get().getAlbumId() != null ? 
                           songService.getAlbumName(song.get().getAlbumId()) : null;
         
@@ -162,6 +225,7 @@ public class SongController {
         model.addAttribute("hasImage", hasImage);
         model.addAttribute("artistName", artistName);
         model.addAttribute("artistGender", artistGender);
+        model.addAttribute("artistCountry", artistCountry);
         model.addAttribute("albumName", albumName);
         
         // NEW: add song play count
@@ -194,6 +258,19 @@ public class SongController {
         model.addAttribute("effectiveLanguageName", s.getEffectiveLanguageId() != null ? languages.get(s.getEffectiveLanguageId()) : null);
         model.addAttribute("effectiveGenderName", s.getEffectiveGenderId() != null ? genders.get(s.getEffectiveGenderId()) : null);
         model.addAttribute("effectiveEthnicityName", s.getEffectiveEthnicityId() != null ? ethnicities.get(s.getEffectiveEthnicityId()) : null);
+        
+        // Tab and plays data
+        model.addAttribute("activeTab", tab);
+        
+        if ("plays".equals(tab)) {
+            int pageSize = 100;
+            model.addAttribute("scrobbles", songService.getScrobblesForSong(id, playsPage, pageSize));
+            model.addAttribute("scrobblesTotalCount", songService.countScrobblesForSong(id));
+            model.addAttribute("scrobblesPage", playsPage);
+            model.addAttribute("scrobblesPageSize", pageSize);
+            model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) songService.countScrobblesForSong(id) / pageSize));
+            model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
+        }
         
         return "songs/detail";
     }
@@ -266,5 +343,384 @@ public class SongController {
             e.printStackTrace();
             throw new RuntimeException("Failed to create song");
         }
+    }
+    
+    // API endpoint for General tab chart data (pie charts)
+    @GetMapping("/api/charts/general")
+    @ResponseBody
+    public Map<String, Object> getGeneralChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getGeneralChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Genre tab chart data (bar charts)
+    @GetMapping("/api/charts/genre")
+    @ResponseBody
+    public Map<String, Object> getGenreChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getGenreChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Subgenre tab chart data (bar charts)
+    @GetMapping("/api/charts/subgenre")
+    @ResponseBody
+    public Map<String, Object> getSubgenreChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getSubgenreChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Ethnicity tab chart data (bar charts)
+    @GetMapping("/api/charts/ethnicity")
+    @ResponseBody
+    public Map<String, Object> getEthnicityChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getEthnicityChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Language tab chart data (bar charts)
+    @GetMapping("/api/charts/language")
+    @ResponseBody
+    public Map<String, Object> getLanguageChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getLanguageChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Country tab chart data (bar charts)
+    @GetMapping("/api/charts/country")
+    @ResponseBody
+    public Map<String, Object> getCountryChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getCountryChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Release Year tab chart data (bar charts)
+    @GetMapping("/api/charts/releaseYear")
+    @ResponseBody
+    public Map<String, Object> getReleaseYearChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getReleaseYearChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Listen Year tab chart data (bar charts)
+    @GetMapping("/api/charts/listenYear")
+    @ResponseBody
+    public Map<String, Object> getListenYearChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getListenYearChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // API endpoint for Top tab data (artists, albums, songs tables)
+    @GetMapping("/api/charts/top")
+    @ResponseBody
+    public Map<String, Object> getTopChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(defaultValue = "10") int limit) {
+        
+        return songService.getTopChartData(
+            q, artist, album,
+            genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode,
+            ethnicity, ethnicityMode, country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            limit
+        );
+    }
+    
+    // Legacy API endpoint for filtered gender breakdown chart data (kept for backwards compatibility)
+    @GetMapping("/api/charts/gender")
+    @ResponseBody
+    public Map<String, Object> getFilteredGenderChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode) {
+        
+        return songService.getFilteredChartData(
+            q, artist, album,
+            genre, genreMode,
+            subgenre, subgenreMode,
+            language, languageMode,
+            gender, genderMode,
+            ethnicity, ethnicityMode,
+            country, countryMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+        );
+    }
+    
+    // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)
+    private String formatDateForDisplay(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            String[] parts = dateStr.split("-");
+            if (parts.length == 3) {
+                int year = Integer.parseInt(parts[0]);
+                int month = Integer.parseInt(parts[1]);
+                int day = Integer.parseInt(parts[2]);
+                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                return day + " " + monthNames[month - 1] + " " + year;
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
+    }
+    
+    // Helper method to convert date format from dd/mm/yyyy to yyyy-MM-dd for database queries
+    private String convertDateFormat(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Check if it's already in yyyy-MM-dd format
+            if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                return dateStr;
+            }
+            // Try to parse dd/mm/yyyy format
+            if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] parts = dateStr.split("/");
+                if (parts.length == 3) {
+                    return parts[2] + "-" + parts[1] + "-" + parts[0];
+                }
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
     }
 }

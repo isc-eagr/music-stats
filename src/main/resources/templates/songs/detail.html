@@ -8,6 +8,9 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/song-detail.css}">
+    <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -31,13 +34,13 @@
                     </div>
                 </div>
                 <div class="item-image-container">
-                    <img th:if="${hasImage}" 
-                         th:src="@{'/songs/' + ${song.id} + '/image'}" 
+                    <img th:if="${hasImage}"
+                         th:src="@{'/songs/' + ${song.id} + '/image'}"
                          th:alt="${song.name}"
                          id="songImage"
                          class="item-image-large">
-                    <img th:if="${!hasImage and song.albumId != null}" 
-                         th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
+                    <img th:if="${!hasImage and song.albumId != null}"
+                         th:src="@{'/albums/' + ${song.albumId} + '/image'}"
                          th:alt="${song.name}"
                          id="albumImage"
                          class="item-image-large"
@@ -49,7 +52,13 @@
                     <div th:if="${!hasImage and song.albumId != null}" class="no-image-large" id="noImagePlaceholder" style="display: none;">
                         <span>🎵</span>
                     </div>
-                    
+
+                    <span class="flag-overlay" th:if="${artistCountry != null and @countryCodeMapper.getCode(artistCountry) != null}"
+                          th:title="${artistCountry}">
+                        <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artistCountry)})}"
+                             th:alt="${artistCountry}" />
+                    </span>
+
                     <div class="image-upload-overlay">
                         <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
@@ -80,8 +89,18 @@
                 </div>
             </div>
             
+            <!-- Tab Navigation -->
+            <div class="detail-tabs">
+                <a th:href="@{'/songs/' + ${song.id}}" 
+                   th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
+                   class="detail-tab">General</a>
+                <a th:href="@{'/songs/' + ${song.id} + '?tab=plays'}" 
+                   th:classappend="${activeTab == 'plays'} ? 'active' : ''"
+                   class="detail-tab">Plays</a>
+            </div>
+            
             <!-- Right side: Two-column layout for General and Statistics -->
-            <div class="detail-right-section">
+            <div class="detail-right-section" th:if="${activeTab == 'general' or activeTab == null}">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -242,8 +261,137 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Plays Tab Content -->
+            <div class="plays-tab-content" th:if="${activeTab == 'plays'}">
+                <!-- Plays by Year Chart -->
+                <div class="detail-content-card plays-chart-section">
+                    <h2 class="section-title">Plays by Year</h2>
+                    <div class="chart-container">
+                        <canvas id="playsByYearChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Scrobbles Table -->
+                <div class="detail-content-section">
+                    <h2 class="section-title">Play History 
+                        <span class="scrobble-count">(<span th:text="${scrobblesTotalCount}">0</span> plays)</span>
+                    </h2>
+                    
+                    <!-- Top Pagination -->
+                    <div class="pagination pagination-top" th:if="${scrobblesTotalPages > 1}">
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=0'}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                    </div>
+                    
+                    <div class="top-table-container">
+                        <table class="top-table" id="scrobblesTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Account</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="scrobble : ${scrobbles}">
+                                    <td th:text="${scrobble.scrobbleDate}">-</td>
+                                    <td th:text="${scrobble.account}">-</td>
+                                </tr>
+                                <tr th:if="${scrobbles == null or scrobbles.isEmpty()}">
+                                    <td colspan="2"><em>No plays recorded</em></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Bottom Pagination -->
+                    <div class="pagination pagination-bottom" th:if="${scrobblesTotalPages > 1}">
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=0'}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
+                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
+                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    
+    <script th:if="${activeTab == 'plays'}" th:inline="javascript">
+        // Initialize plays by year chart
+        document.addEventListener('DOMContentLoaded', function() {
+            const playsByYearData = /*[[${playsByYear}]]*/ [];
+            const artistGender = /*[[${artistGender}]]*/ '';
+            
+            if (playsByYearData && playsByYearData.length > 0) {
+                const ctx = document.getElementById('playsByYearChart').getContext('2d');
+                
+                // Fill in missing years with 0 plays (only between first and last year)
+                const filledData = [];
+                const years = playsByYearData.map(d => parseInt(d.year)).sort((a, b) => a - b);
+                const minYear = years[0];
+                const maxYear = years[years.length - 1];
+                const yearMap = {};
+                playsByYearData.forEach(d => yearMap[d.year] = d.playCount);
+                
+                for (let year = minYear; year <= maxYear; year++) {
+                    filledData.push({
+                        year: year.toString(),
+                        playCount: yearMap[year.toString()] || 0
+                    });
+                }
+                
+                // Determine bar color based on gender
+                const isFemale = artistGender && artistGender.toLowerCase().includes('female');
+                const barColor = isFemale ? 'rgba(236, 72, 153, 0.8)' : 'rgba(59, 130, 246, 0.8)';
+                const borderColor = isFemale ? 'rgba(236, 72, 153, 1)' : 'rgba(59, 130, 246, 1)';
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: filledData.map(d => d.year),
+                        datasets: [{
+                            label: 'Plays',
+                            data: filledData.map(d => d.playCount),
+                            backgroundColor: barColor,
+                            borderColor: borderColor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+    
     <script>
         let isEditing = false;
         

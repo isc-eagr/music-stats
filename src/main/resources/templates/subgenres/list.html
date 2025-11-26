@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subgenres - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container">
+        <!-- Header with search and filters -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1 style="margin: 0;">Subgenres</h1>
+                <div style="display: flex; gap: 10px;">
+                    <button class="charts-toggle" onclick="openChartsModal()">📊 Charts</button>
+                    <button type="button" class="btn-action" onclick="openCreateModal()">New Subgenre</button>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="search-bar">
+                    <form method="get" action="/subgenres" id="searchForm">
+                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search subgenres...">
+                        <input type="hidden" name="parentGenre" th:value="${selectedParentGenre}">
+                        <button type="submit" class="btn-action">Search</button>
+                    </form>
+                </div>
+                
+                <div class="filter-section" style="display: inline-block; margin-left: 10px;">
+                    <label for="parentGenreSelect" style="margin-right: 5px; font-weight: bold;">Parent Genre:</label>
+                    <select id="parentGenreSelect" onchange="changeParentGenre(this.value)">
+                        <option value="">All</option>
+                        <option th:each="entry : ${genres}" 
+                                th:value="${entry.key}" 
+                                th:text="${entry.value}"
+                                th:selected="${selectedParentGenre != null and selectedParentGenre == entry.key}"></option>
+                    </select>
+                </div>
+                
+                <div class="sort-section">
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                        <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                            <option value="name" th:selected="${sortBy == 'name'}">Name</option>
+                            <option value="genre" th:selected="${sortBy == 'genre'}">Parent Genre</option>
+                            <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
+                            <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
+                            <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
+                        </select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
+                                th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir == 'desc'}">↓</span>
+                            <span th:if="${sortDir != 'desc'}">↑</span>
+                        </button>
+                    </div>
+                    
+                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
+                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                               style="width: 70px;" onchange="changePageSize(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Filters Chips -->
+        <div class="active-filters" id="activeFilters">
+            <div class="filter-chip" th:if="${searchQuery != null and !searchQuery.isEmpty()}">
+                <span class="filter-chip-label">Name is</span>
+                <span class="filter-chip-value" th:text="${searchQuery}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('q')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedParentGenre != null}">
+                <span class="filter-chip-label">Parent Genre:</span>
+                <span class="filter-chip-value" th:text="${genres.get(selectedParentGenre)}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('parentGenre')" type="button">×</button>
+            </div>
+            
+            <button class="clear-all-filters" onclick="clearFilters()" type="button" 
+                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or selectedParentGenre != null}">
+                Clear
+            </button>
+        </div>
+        
+        <!-- Pagination info -->
+        <div class="pagination-info">
+            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
+        </div>
+        
+        <!-- Pagination controls (top) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+        
+        <!-- Subgenre cards grid -->
+        <div class="catalog-grid">
+            <div th:each="subgenre : ${subgenres}" class="catalog-card">
+                <a th:href="@{'/subgenres/' + ${subgenre.id}}" class="catalog-image">
+                    <img th:if="${subgenre.hasImage}" 
+                         th:src="@{'/subgenres/' + ${subgenre.id} + '/image'}" 
+                         th:alt="${subgenre.name}">
+                    <div th:unless="${subgenre.hasImage}" class="catalog-icon" title="No image">
+                        🎷
+                    </div>
+                </a>
+                
+                <div class="catalog-info">
+                    <a th:href="@{'/subgenres/' + ${subgenre.id}}">
+                        <h3 class="catalog-name" th:text="${subgenre.name}">Subgenre Name</h3>
+                    </a>
+                    
+                    <div class="catalog-parent" th:if="${subgenre.parentGenreName != null}">
+                        <span th:text="${subgenre.parentGenreName}">Parent Genre</span>
+                    </div>
+                    
+                    <div class="catalog-stats">
+                        <div class="stat">
+                            <span class="stat-icon">🎤</span>
+                            <span class="stat-value" th:text="${subgenre.artistCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">💿</span>
+                            <span class="stat-value" th:text="${subgenre.albumCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🎵</span>
+                            <span class="stat-value" th:text="${subgenre.songCount}">0</span>
+                        </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
+                        <div class="stat">
+                            <span class="stat-icon">▶️</span>
+                            <span class="stat-value" th:text="${subgenre.playCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🕒</span>
+                            <span class="stat-value" th:text="${subgenre.timeListenedFormatted}">0m</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Gender breakdown bars -->
+                    <div class="gender-bars-container">
+                        <div class="gender-bar-row" th:if="${subgenre.maleArtistCount > 0 or subgenre.femaleArtistCount > 0}">
+                            <span class="gender-bar-icon" title="Artists">🎤</span>
+                            <div class="gender-bar">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${subgenre.maleArtistCount + subgenre.femaleArtistCount > 0} ? (${subgenre.maleArtistCount} * 100 / (${subgenre.maleArtistCount} + ${subgenre.femaleArtistCount})) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((subgenre.maleArtistCount * 100.0 / (subgenre.maleArtistCount + subgenre.femaleArtistCount)), 1, 2)} + '%'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${subgenre.maleArtistCount + subgenre.femaleArtistCount > 0} ? (${subgenre.femaleArtistCount} * 100 / (${subgenre.maleArtistCount} + ${subgenre.femaleArtistCount})) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((subgenre.femaleArtistCount * 100.0 / (subgenre.maleArtistCount + subgenre.femaleArtistCount)), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${subgenre.maleAlbumCount > 0 or subgenre.femaleAlbumCount > 0}">
+                            <span class="gender-bar-icon" title="Albums">💿</span>
+                            <div class="gender-bar">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${subgenre.maleAlbumCount + subgenre.femaleAlbumCount > 0} ? (${subgenre.maleAlbumCount} * 100 / (${subgenre.maleAlbumCount} + ${subgenre.femaleAlbumCount})) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((subgenre.maleAlbumCount * 100.0 / (subgenre.maleAlbumCount + subgenre.femaleAlbumCount)), 1, 2)} + '%'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${subgenre.maleAlbumCount + subgenre.femaleAlbumCount > 0} ? (${subgenre.femaleAlbumCount} * 100 / (${subgenre.maleAlbumCount} + ${subgenre.femaleAlbumCount})) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((subgenre.femaleAlbumCount * 100.0 / (subgenre.maleAlbumCount + subgenre.femaleAlbumCount)), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${subgenre.maleCount > 0 or subgenre.femaleCount > 0}">
+                            <span class="gender-bar-icon" title="Songs">🎵</span>
+                            <div class="gender-bar">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${subgenre.maleCount + subgenre.femaleCount > 0} ? (${subgenre.maleCount} * 100 / (${subgenre.maleCount} + ${subgenre.femaleCount})) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((subgenre.maleCount * 100.0 / (subgenre.maleCount + subgenre.femaleCount)), 1, 2)} + '%'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${subgenre.maleCount + subgenre.femaleCount > 0} ? (${subgenre.femaleCount} * 100 / (${subgenre.maleCount} + ${subgenre.femaleCount})) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((subgenre.femaleCount * 100.0 / (subgenre.maleCount + subgenre.femaleCount)), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${subgenre.malePlayCount > 0 or subgenre.femalePlayCount > 0}">
+                            <span class="gender-bar-icon" title="Plays">▶️</span>
+                            <div class="gender-bar">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${subgenre.malePlayCount + subgenre.femalePlayCount > 0} ? (${subgenre.malePlayCount} * 100 / (${subgenre.malePlayCount} + ${subgenre.femalePlayCount})) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((subgenre.malePlayCount * 100.0 / (subgenre.malePlayCount + subgenre.femalePlayCount)), 1, 2)} + '%'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${subgenre.malePlayCount + subgenre.femalePlayCount > 0} ? (${subgenre.femalePlayCount} * 100 / (${subgenre.malePlayCount} + ${subgenre.femalePlayCount})) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((subgenre.femalePlayCount * 100.0 / (subgenre.malePlayCount + subgenre.femalePlayCount)), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${subgenre.maleTimeListened > 0 or subgenre.femaleTimeListened > 0}">
+                            <span class="gender-bar-icon" title="Listening Time">🕒</span>
+                            <div class="gender-bar">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${subgenre.maleTimeListened + subgenre.femaleTimeListened > 0} ? (${subgenre.maleTimeListened} * 100 / (${subgenre.maleTimeListened} + ${subgenre.femaleTimeListened})) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((subgenre.maleTimeListened * 100.0 / (subgenre.maleTimeListened + subgenre.femaleTimeListened)), 1, 2)} + '%'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${subgenre.maleTimeListened + subgenre.femaleTimeListened > 0} ? (${subgenre.femaleTimeListened} * 100 / (${subgenre.maleTimeListened} + ${subgenre.femaleTimeListened})) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((subgenre.femaleTimeListened * 100.0 / (subgenre.maleTimeListened + subgenre.femaleTimeListened)), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination controls (bottom) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/subgenres(q=${searchQuery}, parentGenre=${selectedParentGenre}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+    </div>
+    
+    <script>
+        function changeSortBy(sortValue) {
+            const url = new URL(window.location);
+            url.searchParams.set('sortby', sortValue);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function toggleSortDirection() {
+            const url = new URL(window.location);
+            const currentDir = url.searchParams.get('sortdir') || 'asc';
+            url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function changePageSize(newSize) {
+            const url = new URL(window.location);
+            url.searchParams.set('perpage', newSize);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function changeParentGenre(genreId) {
+            const url = new URL(window.location);
+            if (genreId) {
+                url.searchParams.set('parentGenre', genreId);
+            } else {
+                url.searchParams.delete('parentGenre');
+            }
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function clearFilters() {
+            const sortBy = document.getElementById('sortBySelect').value;
+            window.location.href = '/subgenres?sortby=' + sortBy;
+        }
+        
+        function removeFilter(paramName) {
+            const url = new URL(window.location);
+            url.searchParams.delete(paramName);
+            window.location.href = url.toString();
+        }
+        
+        function goToPage(pageNum) {
+            const url = new URL(window.location);
+            url.searchParams.set('page', pageNum);
+            window.location.href = url.toString();
+        }
+        
+        // Create Subgenre Modal Functions
+        function openCreateModal() {
+            document.getElementById('createModal').style.display = 'flex';
+        }
+        
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+            document.getElementById('createForm').reset();
+        }
+        
+        function submitCreate(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const data = {
+                name: formData.get('name'),
+                parentGenreId: formData.get('parentGenreId') ? parseInt(formData.get('parentGenreId')) : null
+            };
+            
+            fetch('/subgenres/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('Failed to create subgenre');
+            })
+            .then(data => {
+                if (data.id) {
+                    window.location.href = '/subgenres/' + data.id;
+                }
+            })
+            .catch(error => {
+                console.error('Error creating subgenre:', error);
+                alert('Error creating subgenre');
+            });
+        }
+    </script>
+    
+    <!-- Create Subgenre Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Subgenre</h2>
+                <span class="modal-close" onclick="closeCreateModal()">&times;</span>
+            </div>
+            <form id="createForm" onsubmit="submitCreate(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="createName">Name *</label>
+                        <input type="text" id="createName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="createParentGenreId">Parent Genre *</label>
+                        <select id="createParentGenreId" name="parentGenreId" required>
+                            <option value="">Select...</option>
+                            <option th:each="entry : ${genres}" 
+                                    th:value="${entry.key}" 
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="submit" class="btn-action">Create</button>
+                    <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #fff;
+        }
+        
+        .modal-close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-body .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .modal-body .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+        
+        .modal-body .form-group input,
+        .modal-body .form-group select {
+            width: 100%;
+            padding: 8px;
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #333;
+            justify-content: flex-end;
+        }
+        
+        .catalog-parent {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+    </style>
+    
+    <!-- Charts Modal (included from fragment) -->
+    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
+</body>
+</html>

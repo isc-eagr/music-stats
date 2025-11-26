@@ -37,22 +37,43 @@ public class ArtistController {
             @RequestParam(required = false) String languageMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(defaultValue = "name") String sortby,
+            @RequestParam(defaultValue = "asc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "40") int perpage,
             Model model) {
+        
+        // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
+        String firstListenedDateConverted = convertDateFormat(firstListenedDate);
+        String firstListenedDateFromConverted = convertDateFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = convertDateFormat(firstListenedDateTo);
+        String lastListenedDateConverted = convertDateFormat(lastListenedDate);
+        String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
         
         // Get filtered and sorted artists
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, country, countryMode,
-                sortby, page, perpage
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                sortby, sortdir, page, perpage
         );
         
         // Get total count for pagination
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
-                languageMode, country, countryMode);
+                languageMode, country, countryMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -79,7 +100,27 @@ public class ArtistController {
         model.addAttribute("languageMode", languageMode != null ? languageMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        
+        // First listened date filter attributes
+        model.addAttribute("firstListenedDate", firstListenedDate);
+        model.addAttribute("firstListenedDateFrom", firstListenedDateFrom);
+        model.addAttribute("firstListenedDateTo", firstListenedDateTo);
+        model.addAttribute("firstListenedDateMode", firstListenedDateMode != null ? firstListenedDateMode : "exact");
+        model.addAttribute("firstListenedDateFormatted", formatDateForDisplay(firstListenedDate));
+        model.addAttribute("firstListenedDateFromFormatted", formatDateForDisplay(firstListenedDateFrom));
+        model.addAttribute("firstListenedDateToFormatted", formatDateForDisplay(firstListenedDateTo));
+        
+        // Last listened date filter attributes
+        model.addAttribute("lastListenedDate", lastListenedDate);
+        model.addAttribute("lastListenedDateFrom", lastListenedDateFrom);
+        model.addAttribute("lastListenedDateTo", lastListenedDateTo);
+        model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
+        model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
+        model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
+        model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        
         model.addAttribute("sortBy", sortby);
+        model.addAttribute("sortDir", sortdir);
         
         // Add filter options
         model.addAttribute("genders", artistService.getGenders());
@@ -93,7 +134,10 @@ public class ArtistController {
     }
     
     @GetMapping("/{id}")
-    public String viewArtist(@PathVariable Integer id, Model model) {
+    public String viewArtist(@PathVariable Integer id, 
+                            @RequestParam(defaultValue = "general") String tab,
+                            @RequestParam(defaultValue = "0") int playsPage,
+                            Model model) {
         Optional<Artist> artist = artistService.getArtistById(id);
         
         if (artist.isEmpty()) {
@@ -133,6 +177,22 @@ public class ArtistController {
         
         // Add songs list for the artist
         model.addAttribute("songs", artistService.getSongsForArtist(id));
+        
+        // Tab and plays data
+        model.addAttribute("activeTab", tab);
+        
+        if ("plays".equals(tab)) {
+            int pageSize = 100;
+            model.addAttribute("scrobbles", artistService.getScrobblesForArtist(id, playsPage, pageSize));
+            model.addAttribute("scrobblesTotalCount", artistService.countScrobblesForArtist(id));
+            model.addAttribute("scrobblesPage", playsPage);
+            model.addAttribute("scrobblesPageSize", pageSize);
+            model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) artistService.countScrobblesForArtist(id) / pageSize));
+            model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
+        }
+        
+        // Get gender name for bar color
+        model.addAttribute("artistGenderName", artistService.getArtistGenderName(id));
         
         return "artists/detail";
     }
@@ -211,5 +271,49 @@ public class ArtistController {
     @ResponseBody
     public List<Map<String, Object>> getAllArtistsForApi() {
         return artistService.getAllArtistsForApi();
+    }
+    
+    // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)
+    private String formatDateForDisplay(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            String[] parts = dateStr.split("-");
+            if (parts.length == 3) {
+                int year = Integer.parseInt(parts[0]);
+                int month = Integer.parseInt(parts[1]);
+                int day = Integer.parseInt(parts[2]);
+                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                return day + " " + monthNames[month - 1] + " " + year;
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
+    }
+    
+    // Helper method to convert date format from dd/mm/yyyy to yyyy-MM-dd for database queries
+    private String convertDateFormat(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Check if it's already in yyyy-MM-dd format
+            if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                return dateStr;
+            }
+            // Try to parse dd/mm/yyyy format
+            if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] parts = dateStr.split("/");
+                if (parts.length == 3) {
+                    return parts[2] + "-" + parts[1] + "-" + parts[0];
+                }
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
     }
 }

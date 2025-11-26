@@ -30,7 +30,16 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            String firstListenedDate,
+            String firstListenedDateFrom,
+            String firstListenedDateTo,
+            String firstListenedDateMode,
+            String lastListenedDate,
+            String lastListenedDateFrom,
+            String lastListenedDateTo,
+            String lastListenedDateMode,
             String sortBy,
+            String sortDir,
             int limit,
             int offset
     ) {
@@ -38,10 +47,15 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             SELECT 
                 a.id,
                 a.name,
+                a.gender_id,
                 g.name as gender_name,
+                a.ethnicity_id,
                 e.name as ethnicity_name,
+                a.genre_id,
                 gen.name as genre_name,
+                a.subgenre_id,
                 sg.name as subgenre_name,
+                a.language_id,
                 l.name as language_name,
                 a.country,
                 COUNT(DISTINCT s.id) as song_count,
@@ -51,7 +65,9 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
                 (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) 
                  FROM Song s 
                  LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id 
-                 WHERE s.artist_id = a.id) as time_listened
+                 WHERE s.artist_id = a.id) as time_listened,
+                (SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as first_listened,
+                (SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as last_listened
             FROM Artist a
             LEFT JOIN Gender g ON a.gender_id = g.id
             LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
@@ -89,25 +105,101 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
         // Country filter
         appendStringFilterCondition(sql, params, "a.country", countries, countryMode);
         
-        sql.append(" GROUP BY a.id, a.name, g.name, e.name, gen.name, sg.name, l.name, a.country, a.image ");
+        // First Listened Date filter
+        if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+            switch (firstListenedDateMode) {
+                case "exact":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (firstListenedDateFrom != null && !firstListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDateFrom);
+                    }
+                    if (firstListenedDateTo != null && !firstListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // Last Listened Date filter
+        if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+            switch (lastListenedDateMode) {
+                case "exact":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDateFrom);
+                    }
+                    if (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        sql.append(" GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name, a.genre_id, gen.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country, a.image ");
         
         // Sorting
+        String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
+        String oppositeDir = "desc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
         sql.append(" ORDER BY ");
         if ("songs".equals(sortBy)) {
-            sql.append(" COUNT(DISTINCT s.id) DESC, a.name ASC");
+            sql.append(" COUNT(DISTINCT s.id) " + direction + ", a.name ASC");
         } else if ("albums".equals(sortBy)) {
-            sql.append(" COUNT(DISTINCT alb.id) DESC, a.name ASC");
+            sql.append(" COUNT(DISTINCT alb.id) " + direction + ", a.name ASC");
         } else if ("plays".equals(sortBy)) {
-            sql.append(" play_count DESC, a.name ASC");
+            sql.append(" play_count " + direction + ", a.name ASC");
         } else if ("time".equals(sortBy)) {
             sql.append(" (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) " +
                        "FROM Song s " +
                        "LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id " +
-                       "WHERE s.artist_id = a.id) DESC, a.name ASC");
+                       "WHERE s.artist_id = a.id) " + direction + ", a.name ASC");
+        } else if ("first_listened".equals(sortBy)) {
+            sql.append(" first_listened " + direction + " NULLS LAST, a.name ASC");
+        } else if ("last_listened".equals(sortBy)) {
+            sql.append(" last_listened " + direction + " NULLS LAST, a.name ASC");
         } else if ("name".equals(sortBy)) {
-            sql.append(" a.name ASC");
+            sql.append(" a.name " + direction);
         } else {
-            sql.append(" a.name ASC");
+            sql.append(" a.name " + direction);
         }
         
         sql.append(" LIMIT ? OFFSET ? ");
@@ -118,17 +210,24 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             return new Object[] {
                 rs.getInt("id"),
                 rs.getString("name"),
+                rs.getObject("gender_id"),
                 rs.getString("gender_name"),
+                rs.getObject("ethnicity_id"),
                 rs.getString("ethnicity_name"),
+                rs.getObject("genre_id"),
                 rs.getString("genre_name"),
+                rs.getObject("subgenre_id"),
                 rs.getString("subgenre_name"),
+                rs.getObject("language_id"),
                 rs.getString("language_name"),
                 rs.getString("country"),
                 rs.getInt("song_count"),
                 rs.getInt("album_count"),
                 rs.getInt("has_image"),
                 rs.getInt("play_count"),
-                rs.getLong("time_listened")
+                rs.getLong("time_listened"),
+                rs.getString("first_listened"),
+                rs.getString("last_listened")
             };
         });
     }
@@ -147,7 +246,15 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             List<Integer> languageIds,
             String languageMode,
             List<String> countries,
-            String countryMode
+            String countryMode,
+            String firstListenedDate,
+            String firstListenedDateFrom,
+            String firstListenedDateTo,
+            String firstListenedDateMode,
+            String lastListenedDate,
+            String lastListenedDateFrom,
+            String lastListenedDateTo,
+            String lastListenedDateMode
     ) {
         StringBuilder sql = new StringBuilder("""
             SELECT COUNT(DISTINCT a.id)
@@ -180,6 +287,76 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
         
         // Country filter
         appendStringFilterCondition(sql, params, "a.country", countries, countryMode);
+        
+        // First Listened Date filter
+        if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+            switch (firstListenedDateMode) {
+                case "exact":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (firstListenedDateFrom != null && !firstListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(firstListenedDateFrom);
+                    }
+                    if (firstListenedDateTo != null && !firstListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(firstListenedDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // Last Listened Date filter
+        if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
+            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+            switch (lastListenedDateMode) {
+                case "exact":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") = ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "gte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "lte":
+                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDate);
+                    }
+                    break;
+                case "between":
+                    if (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
+                        params.add(lastListenedDateFrom);
+                    }
+                    if (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) {
+                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
+                        params.add(lastListenedDateTo);
+                    }
+                    break;
+            }
+        }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
         return count != null ? count : 0L;

@@ -3,14 +3,22 @@ package library.dto;
 public class ArtistAlbumDTO {
     private Integer id;
     private String name;
+    private String releaseDate; // formatted date
     private Integer songCount;
     private String totalLength; // formatted total album length
+    private Integer totalLengthSeconds; // raw seconds for sorting
     private Integer vatitoPlays;
     private Integer robertloverPlays;
     private Integer totalPlays;
     private String totalListeningTime; // formatted as dd:hh:mm:ss (smart display)
+    private Integer totalListeningTimeSeconds; // raw seconds for sorting
     private String firstListenedDate; // formatted date
     private String lastListenedDate; // formatted date
+    private String genre;
+    private String subgenre;
+    private String ethnicity;
+    private String language;
+    private String country;
     
     public ArtistAlbumDTO() {}
     
@@ -93,6 +101,70 @@ public class ArtistAlbumDTO {
     
     public void setLastListenedDate(String lastListenedDate) {
         this.lastListenedDate = lastListenedDate;
+    }
+    
+    public String getReleaseDate() {
+        return releaseDate;
+    }
+    
+    public void setReleaseDate(String releaseDate) {
+        this.releaseDate = releaseDate;
+    }
+    
+    public Integer getTotalLengthSeconds() {
+        return totalLengthSeconds;
+    }
+    
+    public void setTotalLengthSeconds(Integer totalLengthSeconds) {
+        this.totalLengthSeconds = totalLengthSeconds;
+    }
+    
+    public Integer getTotalListeningTimeSeconds() {
+        return totalListeningTimeSeconds;
+    }
+    
+    public void setTotalListeningTimeSeconds(Integer totalListeningTimeSeconds) {
+        this.totalListeningTimeSeconds = totalListeningTimeSeconds;
+    }
+    
+    public String getGenre() {
+        return genre;
+    }
+    
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+    
+    public String getSubgenre() {
+        return subgenre;
+    }
+    
+    public void setSubgenre(String subgenre) {
+        this.subgenre = subgenre;
+    }
+    
+    public String getEthnicity() {
+        return ethnicity;
+    }
+    
+    public void setEthnicity(String ethnicity) {
+        this.ethnicity = ethnicity;
+    }
+    
+    public String getLanguage() {
+        return language;
+    }
+    
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+    
+    public String getCountry() {
+        return country;
+    }
+    
+    public void setCountry(String country) {
+        this.country = country;
     }
     
     // Helper method to calculate total listening time

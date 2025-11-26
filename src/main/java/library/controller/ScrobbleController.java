@@ -7,19 +7,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.opencsv.bean.CsvToBeanBuilder;
-
-import library.entity.Scrobble;
-import library.entity.Song;
-import library.repository.SongRepository;
 import library.repository.ScrobbleRepository;
 
 @Controller
@@ -27,12 +17,10 @@ import library.repository.ScrobbleRepository;
 public class ScrobbleController {
     
     private final ScrobbleService scrobbleService;
-    private final SongRepository songRepository;
     private final ScrobbleRepository scrobbleRepository;
     
-    public ScrobbleController(ScrobbleService scrobbleService, SongRepository songRepository, ScrobbleRepository scrobbleRepository) {
+    public ScrobbleController(ScrobbleService scrobbleService, ScrobbleRepository scrobbleRepository) {
         this.scrobbleService = scrobbleService;
-        this.songRepository = songRepository;
         this.scrobbleRepository = scrobbleRepository;
     }
     
@@ -85,69 +73,6 @@ public class ScrobbleController {
             
             return ResponseEntity.internalServerError().body(errorResponse);
         }
-    }
-
-    /**
-     * Legacy insertScrobbles behavior ported with batching (commits every batchSize records).
-     * Saves in chunks to avoid large single transactions and memory spikes.
-     */
-    @RequestMapping("/insertScrobbles")
-    @ResponseBody
-    public String insertScrobbles() throws FileNotFoundException, IOException {
-        List<String> accounts = List.of("vatito", "robertlover");
-        String result = "";
-        final int batchSize = 2000; // commit every 2000 records
-
-        for (String account : accounts) {
-            String fileName = String.format("C:\\scrobbles-%s.csv", account);
-            FileReader file = new FileReader(fileName);
-
-            List<Scrobble> scrobbles = new CsvToBeanBuilder<Scrobble>(file).withType(Scrobble.class).withSkipLines(1)
-                    .build().parse();
-
-            List<Song> everySong = songRepository.findAll();
-
-            Song emptySong = new Song();
-            List<Song> duplicateSongs = Collections.synchronizedList(new ArrayList<>()); // thread-safe collection
-
-            // Process scrobbles in batches to commit every batchSize
-            int total = scrobbles.size();
-            for (int i = 0; i < total; i += batchSize) {
-                int end = Math.min(total, i + batchSize);
-                List<Scrobble> chunk = scrobbles.subList(i, end);
-
-                // perform matching for the chunk (parallel for speed)
-                chunk.stream().parallel().forEach(sc -> {
-                    List<Song> foundSongs = everySong.stream().parallel()
-                            .filter(song -> song.getArtist().equalsIgnoreCase(sc.getArtist())
-                                    && song.getSong().replace("????", "").equalsIgnoreCase(sc.getSong().replace("????", ""))
-                                    && String.valueOf(song.getAlbum()).equalsIgnoreCase(String.valueOf(sc.getAlbum())))
-                            .toList();
-
-                    if (foundSongs.size() > 1) {
-                        duplicateSongs.add(foundSongs.get(0));
-                    }
-
-                    sc.setSongId(foundSongs.stream().findFirst().orElse(emptySong).getId());
-                    sc.setAlbum(sc.getAlbum() == null || sc.getAlbum().isBlank() ? null : sc.getAlbum());
-                    sc.setAccount(account);
-                });
-
-                // save this chunk so we commit every batchSize
-                scrobbleRepository.saveAll(new ArrayList<>(chunk));
-                System.out.println(String.format("Saved chunk %d - %d for account %s", i, end - 1, account));
-            }
-
-            // Print duplicates (distinct)
-            duplicateSongs.stream().map(s -> s.getArtist() + " - " + s.getAlbum() + " - " + s.getSong()).distinct()
-                    .forEach(System.out::println);
-
-            file.close();
-
-            result += "Success!" + scrobbles.size() + " scrobbles inserted from " + account + " account!<br/>";
-        }
-
-        return result;
     }
 
     // New file upload UI

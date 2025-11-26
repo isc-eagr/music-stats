@@ -3,13 +3,14 @@ package library.service;
 import library.dto.ArtistAlbumDTO;
 import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
+import library.dto.PlaysByYearDTO;
+import library.dto.ScrobbleDTO;
 import library.entity.Artist;
 import library.repository.ArtistRepositoryNew;
 import library.repository.LookupRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,9 @@ public class ArtistService {
                                           List<Integer> subgenreIds, String subgenreMode,
                                           List<Integer> languageIds, String languageMode,
                                           List<String> countries, String countryMode,
-                                          String sortBy, int page, int perPage) {
+                                          String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                          String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
 
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
@@ -51,7 +54,10 @@ public class ArtistService {
         List<Object[]> results = artistRepository.findArtistsWithStats(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                countries, countryMode, sortBy, perPage, offset
+                countries, countryMode,
+                firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                sortBy, sortDir, perPage, offset
         );
         
         List<ArtistCardDTO> artists = new ArrayList<>();
@@ -59,21 +65,30 @@ public class ArtistService {
             ArtistCardDTO dto = new ArtistCardDTO();
             dto.setId(((Number) row[0]).intValue());
             dto.setName((String) row[1]);
-            dto.setGenderName((String) row[2]);
-            dto.setEthnicityName((String) row[3]);
-            dto.setGenreName((String) row[4]);
-            dto.setSubgenreName((String) row[5]);
-            dto.setLanguageName((String) row[6]);
-            dto.setCountry((String) row[7]);
-            dto.setSongCount(row[8] != null ? ((Number) row[8]).intValue() : 0);
-            dto.setAlbumCount(row[9] != null ? ((Number) row[9]).intValue() : 0);
-            dto.setHasImage(row[10] != null && ((Number) row[10]).intValue() == 1);
-            dto.setPlayCount(row[11] != null ? ((Number) row[11]).intValue() : 0);
+            dto.setGenderId(row[2] != null ? ((Number) row[2]).intValue() : null);
+            dto.setGenderName((String) row[3]);
+            dto.setEthnicityId(row[4] != null ? ((Number) row[4]).intValue() : null);
+            dto.setEthnicityName((String) row[5]);
+            dto.setGenreId(row[6] != null ? ((Number) row[6]).intValue() : null);
+            dto.setGenreName((String) row[7]);
+            dto.setSubgenreId(row[8] != null ? ((Number) row[8]).intValue() : null);
+            dto.setSubgenreName((String) row[9]);
+            dto.setLanguageId(row[10] != null ? ((Number) row[10]).intValue() : null);
+            dto.setLanguageName((String) row[11]);
+            dto.setCountry((String) row[12]);
+            dto.setSongCount(row[13] != null ? ((Number) row[13]).intValue() : 0);
+            dto.setAlbumCount(row[14] != null ? ((Number) row[14]).intValue() : 0);
+            dto.setHasImage(row[15] != null && ((Number) row[15]).intValue() == 1);
+            dto.setPlayCount(row[16] != null ? ((Number) row[16]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[12] != null ? ((Number) row[12]).longValue() : 0L;
+            long timeListened = row[17] != null ? ((Number) row[17]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
+            
+            // Set first and last listened dates (indices 18 and 19)
+            dto.setFirstListenedDate(row[18] != null ? formatDate((String) row[18]) : null);
+            dto.setLastListenedDate(row[19] != null ? formatDate((String) row[19]) : null);
             
             artists.add(dto);
         }
@@ -86,7 +101,9 @@ public class ArtistService {
                             List<Integer> genreIds, String genreMode,
                             List<Integer> subgenreIds, String subgenreMode,
                             List<Integer> languageIds, String languageMode,
-                            List<String> countries, String countryMode) {
+                            List<String> countries, String countryMode,
+                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
         // Normalize empty lists to null here as well
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -97,13 +114,15 @@ public class ArtistService {
         
         return artistRepository.countArtistsWithFilters(name, genderIds, genderMode, 
                 ethnicityIds, ethnicityMode, genreIds, genreMode, subgenreIds, subgenreMode,
-                languageIds, languageMode, countries, countryMode);
+                languageIds, languageMode, countries, countryMode,
+                firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
     }
     
     public Optional<Artist> getArtistById(Integer id) {
         String sql = """
             SELECT id, name, gender_id, country, ethnicity_id, 
-                   genre_id, subgenre_id, language_id, 
+                   genre_id, subgenre_id, language_id, is_band,
                    creation_date, update_date
             FROM Artist
             WHERE id = ?
@@ -132,6 +151,9 @@ public class ArtistService {
             int languageId = rs.getInt("language_id");
             artist.setLanguageId(rs.wasNull() ? null : languageId);
             
+            int isBand = rs.getInt("is_band");
+            artist.setIsBand(rs.wasNull() ? null : isBand == 1);
+            
             artist.setCreationDate(rs.getTimestamp("creation_date"));
             artist.setUpdateDate(rs.getTimestamp("update_date"));
             
@@ -145,7 +167,7 @@ public class ArtistService {
         String sql = """
             UPDATE Artist 
             SET name = ?, gender_id = ?, country = ?, ethnicity_id = ?, 
-                genre_id = ?, subgenre_id = ?, language_id = ?, 
+                genre_id = ?, subgenre_id = ?, language_id = ?, is_band = ?,
                 update_date = CURRENT_TIMESTAMP
             WHERE id = ?
             """;
@@ -158,6 +180,7 @@ public class ArtistService {
             artist.getGenreId(),
             artist.getSubgenreId(),
             artist.getLanguageId(),
+            artist.getIsBand() != null && artist.getIsBand() ? 1 : 0,
             artist.getId()
         );
         
@@ -319,18 +342,41 @@ public class ArtistService {
                 s.id,
                 s.name,
                 s.length_seconds,
+                s.single_cover IS NOT NULL as has_image,
+                COALESCE(s.release_date, a.release_date) as release_date,
                 a.name as album_name,
                 a.id as album_id,
+                ar.country,
+                COALESCE(g_song.name, g_album.name, g_artist.name) as genre,
+                COALESCE(sg_song.name, sg_album.name, sg_artist.name) as subgenre,
+                COALESCE(eth_song.name, eth_artist.name) as ethnicity,
+                COALESCE(l_song.name, l_album.name, l_artist.name) as language,
                 COALESCE(SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END), 0) as vatito_plays,
                 COALESCE(SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END), 0) as robertlover_plays,
                 COUNT(scr.id) as total_plays,
                 MIN(scr.scrobble_date) as first_listen,
                 MAX(scr.scrobble_date) as last_listen
             FROM Song s
+            INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album a ON s.album_id = a.id
             LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
+            LEFT JOIN Genre g_album ON a.override_genre_id = g_album.id
+            LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
+            LEFT JOIN SubGenre sg_song ON s.override_subgenre_id = sg_song.id
+            LEFT JOIN SubGenre sg_album ON a.override_subgenre_id = sg_album.id
+            LEFT JOIN SubGenre sg_artist ON ar.subgenre_id = sg_artist.id
+            LEFT JOIN Language l_song ON s.override_language_id = l_song.id
+            LEFT JOIN Language l_album ON a.override_language_id = l_album.id
+            LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
+            LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
+            LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE s.artist_id = ?
-            GROUP BY s.id, s.name, s.length_seconds, a.name, a.id
+            GROUP BY s.id, s.name, s.length_seconds, s.single_cover, COALESCE(s.release_date, a.release_date), a.name, a.id, ar.country, 
+                     COALESCE(g_song.name, g_album.name, g_artist.name), 
+                     COALESCE(sg_song.name, sg_album.name, sg_artist.name), 
+                     COALESCE(eth_song.name, eth_artist.name), 
+                     COALESCE(l_song.name, l_album.name, l_artist.name)
             ORDER BY s.name
             """;
         
@@ -338,6 +384,13 @@ public class ArtistService {
             ArtistSongDTO dto = new ArtistSongDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
+            dto.setHasImage(rs.getBoolean("has_image"));
+            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setCountry(rs.getString("country"));
+            dto.setGenre(rs.getString("genre"));
+            dto.setSubgenre(rs.getString("subgenre"));
+            dto.setEthnicity(rs.getString("ethnicity"));
+            dto.setLanguage(rs.getString("language"));
             
             // Set album info
             int albumId = rs.getInt("album_id");
@@ -360,6 +413,11 @@ public class ArtistService {
             
             // Calculate total listening time
             dto.calculateTotalListeningTime();
+            if (dto.getLength() != null && dto.getTotalPlays() != null) {
+                dto.setTotalListeningTimeSeconds(dto.getLength() * dto.getTotalPlays());
+            } else {
+                dto.setTotalListeningTimeSeconds(0);
+            }
             
             return dto;
         }, artistId);
@@ -371,6 +429,12 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                a.release_date,
+                ar.country,
+                COALESCE(g_override.name, g_artist.name) as genre,
+                COALESCE(sg_override.name, sg_artist.name) as subgenre,
+                eth.name as ethnicity,
+                COALESCE(l_override.name, l_artist.name) as language,
                 (SELECT COUNT(*) FROM Song WHERE album_id = a.id) as song_count,
                 (SELECT SUM(length_seconds) FROM Song WHERE album_id = a.id) as total_length_seconds,
                 COALESCE(SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END), 0) as vatito_plays,
@@ -382,10 +446,18 @@ public class ArtistService {
                     (SELECT COUNT(*) FROM Scrobble WHERE song_id = s.id)) 
                  FROM Song s WHERE s.album_id = a.id) as total_listening_seconds
             FROM Album a
+            INNER JOIN Artist ar ON a.artist_id = ar.id
             LEFT JOIN Song s ON a.id = s.album_id
             LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Genre g_override ON a.override_genre_id = g_override.id
+            LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
+            LEFT JOIN SubGenre sg_override ON a.override_subgenre_id = sg_override.id
+            LEFT JOIN SubGenre sg_artist ON ar.subgenre_id = sg_artist.id
+            LEFT JOIN Language l_override ON a.override_language_id = l_override.id
+            LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
+            LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
             WHERE a.artist_id = ?
-            GROUP BY a.id, a.name
+            GROUP BY a.id, a.name, a.release_date, ar.country, genre, subgenre, eth.name, language
             ORDER BY a.name
             """;
         
@@ -393,6 +465,12 @@ public class ArtistService {
             ArtistAlbumDTO dto = new ArtistAlbumDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
+            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setCountry(rs.getString("country"));
+            dto.setGenre(rs.getString("genre"));
+            dto.setSubgenre(rs.getString("subgenre"));
+            dto.setEthnicity(rs.getString("ethnicity"));
+            dto.setLanguage(rs.getString("language"));
             dto.setSongCount(rs.getInt("song_count"));
             
             // Format total length
@@ -401,8 +479,10 @@ public class ArtistService {
                 int minutes = totalSeconds / 60;
                 int seconds = totalSeconds % 60;
                 dto.setTotalLength(String.format("%d:%02d", minutes, seconds));
+                dto.setTotalLengthSeconds(totalSeconds);
             } else {
                 dto.setTotalLength("-");
+                dto.setTotalLengthSeconds(0);
             }
             
             dto.setVatitoPlays(rs.getInt("vatito_plays"));
@@ -418,6 +498,7 @@ public class ArtistService {
             // Calculate and format total listening time
             int listeningSeconds = rs.getInt("total_listening_seconds");
             if (!rs.wasNull() && listeningSeconds > 0) {
+                dto.setTotalListeningTimeSeconds(listeningSeconds);
                 long days = listeningSeconds / 86400;
                 long hours = (listeningSeconds % 86400) / 3600;
                 long mins = (listeningSeconds % 3600) / 60;
@@ -432,6 +513,7 @@ public class ArtistService {
                 }
             } else {
                 dto.setTotalListeningTime("-");
+                dto.setTotalListeningTimeSeconds(0);
             }
             
             return dto;
@@ -460,8 +542,8 @@ public class ArtistService {
     public Artist createArtist(Artist artist) {
         String sql = """
             INSERT INTO Artist (name, gender_id, country, ethnicity_id, 
-                               genre_id, subgenre_id, language_id, creation_date, update_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                               genre_id, subgenre_id, language_id, is_band, creation_date, update_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """;
         
         jdbcTemplate.update(sql,
@@ -471,7 +553,8 @@ public class ArtistService {
             artist.getEthnicityId(),
             artist.getGenreId(),
             artist.getSubgenreId(),
-            artist.getLanguageId()
+            artist.getLanguageId(),
+            artist.getIsBand() != null && artist.getIsBand() ? 1 : 0
         );
         
         // Get the ID of the newly created artist
@@ -543,6 +626,88 @@ public class ArtistService {
             return String.format("%dh %dm", hours, minutes);
         } else {
             return String.format("%dm", minutes);
+        }
+    }
+    
+    // Get scrobbles for an artist with pagination
+    public List<ScrobbleDTO> getScrobblesForArtist(int artistId, int page, int pageSize) {
+        int offset = page * pageSize;
+        String sql = """
+            SELECT 
+                scr.id,
+                scr.scrobble_date,
+                s.name as song_name,
+                s.id as song_id,
+                a.name as album_name,
+                a.id as album_id,
+                ar.name as artist_name,
+                ar.id as artist_id,
+                scr.account
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album a ON s.album_id = a.id
+            WHERE ar.id = ?
+            ORDER BY scr.scrobble_date DESC
+            LIMIT ? OFFSET ?
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            ScrobbleDTO dto = new ScrobbleDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setScrobbleDate(rs.getString("scrobble_date"));
+            dto.setSongName(rs.getString("song_name"));
+            dto.setSongId(rs.getInt("song_id"));
+            dto.setAlbumName(rs.getString("album_name"));
+            int albumId = rs.getInt("album_id");
+            dto.setAlbumId(rs.wasNull() ? null : albumId);
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setAccount(rs.getString("account"));
+            return dto;
+        }, artistId, pageSize, offset);
+    }
+    
+    // Count total scrobbles for an artist
+    public long countScrobblesForArtist(int artistId) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            WHERE s.artist_id = ?
+            """;
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    // Get plays by year for an artist
+    public List<PlaysByYearDTO> getPlaysByYearForArtist(int artistId) {
+        String sql = """
+            SELECT 
+                strftime('%Y', scr.scrobble_date) as year,
+                COUNT(*) as play_count
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
+            GROUP BY strftime('%Y', scr.scrobble_date)
+            ORDER BY year ASC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            PlaysByYearDTO dto = new PlaysByYearDTO();
+            dto.setYear(rs.getString("year"));
+            dto.setPlayCount(rs.getLong("play_count"));
+            return dto;
+        }, artistId);
+    }
+    
+    // Get artist gender name
+    public String getArtistGenderName(int artistId) {
+        String sql = "SELECT g.name FROM Artist a LEFT JOIN Gender g ON a.gender_id = g.id WHERE a.id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, artistId);
+        } catch (Exception e) {
+            return null;
         }
     }
 }

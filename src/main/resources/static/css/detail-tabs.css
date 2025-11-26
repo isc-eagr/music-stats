@@ -1,0 +1,159 @@
+/* Detail Page Tabs */
+.detail-tabs {
+    grid-column: 2 / -1;
+    grid-row: 1;
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    margin-top: 95px; /* Align with the image */
+    border-bottom: 1px solid #374151;
+    align-self: start;
+}
+
+.detail-tab {
+    padding: 12px 24px;
+    color: #9ca3af;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    margin-bottom: -1px;
+}
+
+.detail-tab:hover {
+    color: #e5e7eb;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.detail-tab.active {
+    color: #fff;
+    border-bottom-color: #3b82f6;
+}
+
+/* Gender-specific active tab colors */
+.gender-female .detail-tab.active {
+    border-bottom-color: #ec4899;
+}
+
+.gender-male .detail-tab.active {
+    border-bottom-color: #3b82f6;
+}
+
+/* Override detail-right-section when tabs are present */
+.detail-grid .detail-tabs + .detail-right-section {
+    grid-row: 2;
+    margin-top: 0;
+}
+
+/* Plays Tab Content */
+.plays-tab-content {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.plays-chart-section {
+    width: 100%;
+}
+
+.chart-container {
+    height: 300px;
+    position: relative;
+}
+
+/* Flag overlay for images */
+.item-image-container {
+    position: relative; /* ensure overlay can be positioned */
+}
+
+.flag-overlay {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 28px;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: help;
+}
+
+.flag-overlay img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.scrobble-count {
+    font-size: 0.85em;
+    font-weight: normal;
+    color: #9ca3af;
+}
+
+/* Pagination for plays tab */
+.plays-tab-content .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.plays-tab-content .pagination.pagination-top {
+    margin-bottom: 8px;
+}
+
+.plays-tab-content .pagination.pagination-bottom {
+    margin-top: 16px;
+}
+
+.plays-tab-content .page-link {
+    padding: 8px 16px;
+    background-color: #374151;
+    color: #e5e7eb;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.plays-tab-content .page-link:hover {
+    background-color: #4b5563;
+}
+
+.plays-tab-content .page-link.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.plays-tab-content .page-info {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+/* Scrobbles table adjustments */
+#scrobblesTable {
+    font-size: 14px;
+}
+
+#scrobblesTable td:first-child {
+    white-space: nowrap;
+    width: 180px;
+}
+
+#scrobblesTable td:last-child {
+    width: 100px;
+}
+
+/* Content section when following tabs */
+.detail-grid .detail-tabs ~ .detail-content-section {
+    grid-row: 3;
+}

@@ -7,10 +7,17 @@ public class SongCardDTO {
     private Integer artistId;
     private String albumName;
     private Integer albumId;
+    private Integer genreId;
     private String genreName;
+    private Integer subgenreId;
     private String subgenreName;
+    private Integer languageId;
     private String languageName;
+    private Integer ethnicityId;
+    private String ethnicityName;
     private String releaseYear;
+    private String firstListenedDate;
+    private String lastListenedDate;
     private Integer lengthSeconds;
     private String lengthFormatted;
     private Integer playCount;
@@ -18,6 +25,7 @@ public class SongCardDTO {
     private String timeListenedFormatted;
     private boolean hasImage;
     private String genderName;
+    private String country;
 
     // Getters and Setters
     public Integer getId() {
@@ -76,12 +84,28 @@ public class SongCardDTO {
         this.genreName = genreName;
     }
 
+    public Integer getGenreId() {
+        return genreId;
+    }
+
+    public void setGenreId(Integer genreId) {
+        this.genreId = genreId;
+    }
+
     public String getSubgenreName() {
         return subgenreName;
     }
 
     public void setSubgenreName(String subgenreName) {
         this.subgenreName = subgenreName;
+    }
+
+    public Integer getSubgenreId() {
+        return subgenreId;
+    }
+
+    public void setSubgenreId(Integer subgenreId) {
+        this.subgenreId = subgenreId;
     }
 
     public String getLanguageName() {
@@ -92,12 +116,52 @@ public class SongCardDTO {
         this.languageName = languageName;
     }
 
+    public Integer getLanguageId() {
+        return languageId;
+    }
+
+    public void setLanguageId(Integer languageId) {
+        this.languageId = languageId;
+    }
+
+    public Integer getEthnicityId() {
+        return ethnicityId;
+    }
+
+    public void setEthnicityId(Integer ethnicityId) {
+        this.ethnicityId = ethnicityId;
+    }
+
+    public String getEthnicityName() {
+        return ethnicityName;
+    }
+
+    public void setEthnicityName(String ethnicityName) {
+        this.ethnicityName = ethnicityName;
+    }
+
     public String getReleaseYear() {
         return releaseYear;
     }
 
     public void setReleaseYear(String releaseYear) {
         this.releaseYear = releaseYear;
+    }
+
+    public String getFirstListenedDate() {
+        return firstListenedDate;
+    }
+
+    public void setFirstListenedDate(String firstListenedDate) {
+        this.firstListenedDate = firstListenedDate;
+    }
+
+    public String getLastListenedDate() {
+        return lastListenedDate;
+    }
+
+    public void setLastListenedDate(String lastListenedDate) {
+        this.lastListenedDate = lastListenedDate;
     }
 
     public Integer getLengthSeconds() {
@@ -158,5 +222,13 @@ public class SongCardDTO {
 
     public void setGenderName(String genderName) {
         this.genderName = genderName;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 }

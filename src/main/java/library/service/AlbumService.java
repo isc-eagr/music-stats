@@ -2,6 +2,8 @@ package library.service;
 
 import library.dto.AlbumCardDTO;
 import library.dto.AlbumSongDTO;
+import library.dto.PlaysByYearDTO;
+import library.dto.ScrobbleDTO;
 import library.entity.Album;
 import library.repository.AlbumRepositoryNew;
 import library.repository.LookupRepository;
@@ -33,13 +35,20 @@ public class AlbumService {
                                          List<Integer> genderIds, String genderMode,
                                          List<Integer> ethnicityIds, String ethnicityMode,
                                          List<String> countries, String countryMode,
-                                         String sortBy, int page, int perPage) {
+                                         String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                                         String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                         String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                         String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
         
         List<Object[]> results = albumRepository.findAlbumsWithStats(
                 name, artistName, genreIds, genreMode, 
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode, sortBy, perPage, offset
+                ethnicityIds, ethnicityMode, countries, countryMode,
+                releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                sortBy, sortDir, perPage, offset
         );
         
         List<AlbumCardDTO> albums = new ArrayList<>();
@@ -49,19 +58,31 @@ public class AlbumService {
             dto.setName((String) row[1]);
             dto.setArtistName((String) row[2]);
             dto.setArtistId(((Number) row[3]).intValue());
-            dto.setGenreName((String) row[4]);
-            dto.setSubgenreName((String) row[5]);
-            dto.setLanguageName((String) row[6]);
-            dto.setReleaseYear((String) row[7]);
-            dto.setSongCount(row[8] != null ? ((Number) row[8]).intValue() : 0);
-            dto.setHasImage(row[9] != null && ((Number) row[9]).intValue() == 1);
-            dto.setGenderName((String) row[10]);
-            dto.setPlayCount(row[11] != null ? ((Number) row[11]).intValue() : 0);
+            dto.setGenreId(row[4] != null ? ((Number) row[4]).intValue() : null);
+            dto.setGenreName((String) row[5]);
+            dto.setSubgenreId(row[6] != null ? ((Number) row[6]).intValue() : null);
+            dto.setSubgenreName((String) row[7]);
+            dto.setLanguageId(row[8] != null ? ((Number) row[8]).intValue() : null);
+            dto.setLanguageName((String) row[9]);
+            dto.setEthnicityId(row[10] != null ? ((Number) row[10]).intValue() : null);
+            dto.setEthnicityName((String) row[11]);
+            dto.setReleaseYear((String) row[12]);
+            dto.setSongCount(row[13] != null ? ((Number) row[13]).intValue() : 0);
+            dto.setHasImage(row[14] != null && ((Number) row[14]).intValue() == 1);
+            dto.setGenderName((String) row[15]);
+            dto.setPlayCount(row[16] != null ? ((Number) row[16]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[12] != null ? ((Number) row[12]).longValue() : 0L;
+            long timeListened = row[17] != null ? ((Number) row[17]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
+            
+            // Set first and last listened dates (indices 18 and 19)
+            dto.setFirstListenedDate(row[18] != null ? formatDate((String) row[18]) : null);
+            dto.setLastListenedDate(row[19] != null ? formatDate((String) row[19]) : null);
+            
+            // Set country (inherited from artist, index 20)
+            dto.setCountry((String) row[20]);
             
             albums.add(dto);
         }
@@ -75,10 +96,16 @@ public class AlbumService {
                            List<Integer> languageIds, String languageMode,
                            List<Integer> genderIds, String genderMode,
                            List<Integer> ethnicityIds, String ethnicityMode,
-                           List<String> countries, String countryMode) {
+                           List<String> countries, String countryMode,
+                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
         return albumRepository.countAlbumsWithFilters(name, artistName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode);
+                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode,
+                releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
     }
     
     public Optional<Album> getAlbumById(Integer id) {
@@ -226,6 +253,15 @@ public class AlbumService {
         }
     }
     
+    public String getArtistCountry(Integer artistId) {
+        String sql = "SELECT country FROM Artist WHERE id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
     // NEW: total plays for an album (count scrobbles for songs in this album)
     public int getPlayCountForAlbum(int albumId) {
         Integer count = jdbcTemplate.queryForObject(
@@ -257,15 +293,38 @@ public class AlbumService {
                 s.id,
                 s.name,
                 s.length_seconds,
+                COALESCE(s.release_date, alb.release_date) as release_date,
+                ar.country,
+                COALESCE(g_song.name, g_album.name, g_artist.name) as genre,
+                COALESCE(sg_song.name, sg_album.name, sg_artist.name) as subgenre,
+                COALESCE(eth_song.name, eth_artist.name) as ethnicity,
+                COALESCE(l_song.name, l_album.name, l_artist.name) as language,
                 COALESCE(SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END), 0) as vatito_plays,
                 COALESCE(SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END), 0) as robertlover_plays,
                 COUNT(scr.id) as total_plays,
                 MIN(scr.scrobble_date) as first_listen,
                 MAX(scr.scrobble_date) as last_listen
             FROM Song s
+            INNER JOIN Album alb ON s.album_id = alb.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
+            LEFT JOIN Genre g_album ON alb.override_genre_id = g_album.id
+            LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
+            LEFT JOIN SubGenre sg_song ON s.override_subgenre_id = sg_song.id
+            LEFT JOIN SubGenre sg_album ON alb.override_subgenre_id = sg_album.id
+            LEFT JOIN SubGenre sg_artist ON ar.subgenre_id = sg_artist.id
+            LEFT JOIN Language l_song ON s.override_language_id = l_song.id
+            LEFT JOIN Language l_album ON alb.override_language_id = l_album.id
+            LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
+            LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
+            LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE s.album_id = ?
-            GROUP BY s.id, s.name, s.length_seconds
+            GROUP BY s.id, s.name, s.length_seconds, COALESCE(s.release_date, alb.release_date), ar.country, 
+                     COALESCE(g_song.name, g_album.name, g_artist.name), 
+                     COALESCE(sg_song.name, sg_album.name, sg_artist.name), 
+                     COALESCE(eth_song.name, eth_artist.name), 
+                     COALESCE(l_song.name, l_album.name, l_artist.name)
             ORDER BY s.name
             """;
         
@@ -273,6 +332,12 @@ public class AlbumService {
             AlbumSongDTO dto = new AlbumSongDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
+            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setCountry(rs.getString("country"));
+            dto.setGenre(rs.getString("genre"));
+            dto.setSubgenre(rs.getString("subgenre"));
+            dto.setEthnicity(rs.getString("ethnicity"));
+            dto.setLanguage(rs.getString("language"));
             
             // No track number column in database
             dto.setTrackNumber(null);
@@ -292,6 +357,11 @@ public class AlbumService {
             
             // Calculate total listening time
             dto.calculateTotalListeningTime();
+            if (dto.getLength() != null && dto.getTotalPlays() != null) {
+                dto.setTotalListeningTimeSeconds(dto.getLength() * dto.getTotalPlays());
+            } else {
+                dto.setTotalListeningTimeSeconds(0);
+            }
             
             return dto;
         }, albumId);
@@ -519,5 +589,77 @@ public class AlbumService {
         } else {
             return String.format("%dm", minutes);
         }
+    }
+    
+    // Get scrobbles for an album with pagination
+    public List<ScrobbleDTO> getScrobblesForAlbum(int albumId, int page, int pageSize) {
+        int offset = page * pageSize;
+        String sql = """
+            SELECT 
+                scr.id,
+                scr.scrobble_date,
+                s.name as song_name,
+                s.id as song_id,
+                a.name as album_name,
+                a.id as album_id,
+                ar.name as artist_name,
+                ar.id as artist_id,
+                scr.account
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album a ON s.album_id = a.id
+            WHERE a.id = ?
+            ORDER BY scr.scrobble_date DESC
+            LIMIT ? OFFSET ?
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            ScrobbleDTO dto = new ScrobbleDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setScrobbleDate(rs.getString("scrobble_date"));
+            dto.setSongName(rs.getString("song_name"));
+            dto.setSongId(rs.getInt("song_id"));
+            dto.setAlbumName(rs.getString("album_name"));
+            int aId = rs.getInt("album_id");
+            dto.setAlbumId(rs.wasNull() ? null : aId);
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setAccount(rs.getString("account"));
+            return dto;
+        }, albumId, pageSize, offset);
+    }
+    
+    // Count total scrobbles for an album
+    public long countScrobblesForAlbum(int albumId) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            WHERE s.album_id = ?
+            """;
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, albumId);
+        return count != null ? count : 0;
+    }
+    
+    // Get plays by year for an album
+    public List<PlaysByYearDTO> getPlaysByYearForAlbum(int albumId) {
+        String sql = """
+            SELECT 
+                strftime('%Y', scr.scrobble_date) as year,
+                COUNT(*) as play_count
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            WHERE s.album_id = ? AND scr.scrobble_date IS NOT NULL
+            GROUP BY strftime('%Y', scr.scrobble_date)
+            ORDER BY year ASC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            PlaysByYearDTO dto = new PlaysByYearDTO();
+            dto.setYear(rs.getString("year"));
+            dto.setPlayCount(rs.getLong("play_count"));
+            return dto;
+        }, albumId);
     }
 }

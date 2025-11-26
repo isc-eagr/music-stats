@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${subgenre.name} + ' - Music Stats'">Subgenre Detail</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-detail.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container-wide">
+        <div class="detail-grid">
+            <!-- Left column: Image with name overlay -->
+            <div class="detail-sidebar">
+                <div class="item-name-overlay">
+                    <h1 class="item-name-top" th:text="${subgenre.name}">Subgenre Name</h1>
+                </div>
+                <div class="item-image-container">
+                    <img th:if="${hasImage}" 
+                         th:src="@{'/subgenres/' + ${subgenre.id} + '/image'}" 
+                         th:alt="${subgenre.name}"
+                         id="itemImage"
+                         class="item-image-large">
+                    <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder" title="No image">
+                        🎷
+                    </div>
+                    
+                    <div class="image-upload-overlay">
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                            Upload Image
+                        </button>
+                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right side: General Info and Stats -->
+            <div class="detail-right-section">
+                <div class="detail-content-card">
+                    <div class="section-header">
+                        <h2 class="section-title">General</h2>
+                        <div class="edit-button-container">
+                            <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
+                        </div>
+                    </div>
+                    
+                    <form method="post" th:action="@{'/subgenres/' + ${subgenre.id}}" id="subgenreForm">
+                        <div class="form-section">
+                            <div class="attributes-grid">
+                                <div class="form-group">
+                                    <label for="parentGenreId">Parent Genre</label>
+                                    <span class="attribute-text" data-field="parentGenreId" th:text="${subgenre.parentGenreName != null ? subgenre.parentGenreName : '-'}">-</span>
+                                    <select id="parentGenreId" name="parentGenreId" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${genres}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"
+                                                th:selected="${subgenre.parentGenreId == entry.key}"></option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions" id="formActions" style="display: none;">
+                            <button type="submit" class="btn-action">Save</button>
+                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="detail-content-card">
+                    <h2 class="section-title">Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Artists</span>
+                            <span class="stat-value" th:text="${stats != null ? stats['artist_count'] : 0}">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Albums</span>
+                            <span class="stat-value" th:text="${stats != null ? stats['album_count'] : 0}">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Songs</span>
+                            <span class="stat-value" th:text="${stats != null ? stats['song_count'] : 0}">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Plays</span>
+                            <span class="stat-value" th:text="${stats != null ? stats['play_count'] : 0}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top Artists Section -->
+            <div class="detail-content-section" th:if="${topArtists != null and !topArtists.isEmpty()}">
+                <h2 class="section-title">Top 50 Artists</h2>
+                <div class="top-items-grid">
+                    <div th:each="artist, iterStat : ${topArtists}" class="top-item" th:if="${iterStat.index < 50}">
+                        <span class="top-item-rank" th:text="${iterStat.index + 1}"></span>
+                        <a th:href="@{'/artists/' + ${artist['id']}}" class="top-item-image">
+                            <img th:if="${artist['hasImage']}" 
+                                 th:src="@{'/artists/' + ${artist['id']} + '/image'}" 
+                                 th:alt="${artist['name']}">
+                            <div th:unless="${artist['hasImage']}" class="no-image-small" title="No image">
+                                🎤
+                            </div>
+                        </a>
+                        <div class="top-item-info">
+                            <a th:href="@{'/artists/' + ${artist['id']}}" class="top-item-name" th:text="${artist['name']}">Artist Name</a>
+                            <span class="top-item-plays" th:text="${artist['playCount']} + ' plays'">0 plays</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top Albums Section -->
+            <div class="detail-content-section" th:if="${topAlbums != null and !topAlbums.isEmpty()}">
+                <h2 class="section-title">Top 50 Albums</h2>
+                <div class="top-items-grid">
+                    <div th:each="album, iterStat : ${topAlbums}" class="top-item" th:if="${iterStat.index < 50}">
+                        <span class="top-item-rank" th:text="${iterStat.index + 1}"></span>
+                        <a th:href="@{'/albums/' + ${album['id']}}" class="top-item-image">
+                            <img th:if="${album['hasImage']}" 
+                                 th:src="@{'/albums/' + ${album['id']} + '/image'}" 
+                                 th:alt="${album['name']}">
+                            <div th:unless="${album['hasImage']}" class="no-image-small" title="No image">
+                                💿
+                            </div>
+                        </a>
+                        <div class="top-item-info">
+                            <a th:href="@{'/albums/' + ${album['id']}}" class="top-item-name" th:text="${album['name']}">Album Name</a>
+                            <span class="top-item-artist" th:text="${album['artistName']}">Artist Name</span>
+                            <span class="top-item-plays" th:text="${album['playCount']} + ' plays'">0 plays</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top Songs Section -->
+            <div class="detail-content-section" th:if="${topSongs != null and !topSongs.isEmpty()}">
+                <h2 class="section-title">Top 50 Songs</h2>
+                <div class="top-items-list">
+                    <div th:each="song, iterStat : ${topSongs}" class="top-song-item" th:if="${iterStat.index < 50}">
+                        <span class="top-item-rank" th:text="${iterStat.index + 1}"></span>
+                        <div class="top-song-info">
+                            <a th:href="@{'/songs/' + ${song['id']}}" class="top-song-name" th:text="${song['name']}">Song Name</a>
+                            <span class="top-song-artist" th:text="${song['artistName']}">Artist Name</span>
+                        </div>
+                        <span class="top-song-plays" th:text="${song['playCount']}">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isEditing = false;
+        
+        function toggleEdit() {
+            isEditing = !isEditing;
+            const editBtn = document.getElementById('editBtn');
+            const formActions = document.getElementById('formActions');
+            const selects = document.querySelectorAll('#subgenreForm select');
+            const attributeTexts = document.querySelectorAll('.attribute-text');
+            
+            if (isEditing) {
+                editBtn.style.display = 'none';
+                formActions.style.display = 'flex';
+                
+                selects.forEach(select => {
+                    select.removeAttribute('disabled');
+                    select.style.display = 'block';
+                });
+                attributeTexts.forEach(text => {
+                    if (text.dataset.field) {
+                        text.style.display = 'none';
+                    }
+                });
+            } else {
+                window.location.reload();
+            }
+        }
+        
+        function cancelEdit() {
+            window.location.reload();
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            const id = window.location.pathname.split('/').pop();
+            
+            fetch(`/subgenres/${id}/image`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to upload image');
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image');
+            });
+        }
+        
+        function removeImage() {
+            if (!confirm('Are you sure you want to remove this image?')) {
+                return;
+            }
+            
+            const id = window.location.pathname.split('/').pop();
+            
+            fetch(`/subgenres/${id}/image`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to remove image');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing image:', error);
+                alert('Error removing image');
+            });
+        }
+    </script>
+</body>
+</html>

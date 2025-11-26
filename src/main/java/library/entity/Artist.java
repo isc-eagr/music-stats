@@ -33,6 +33,9 @@ public class Artist {
     @Column(name = "language_id")
     private Integer languageId;
     
+    @Column(name = "is_band")
+    private Boolean isBand;
+    
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "image")
@@ -209,5 +212,13 @@ public class Artist {
 
     public void setAlbumCount(Integer albumCount) {
         this.albumCount = albumCount;
+    }
+
+    public Boolean getIsBand() {
+        return isBand;
+    }
+
+    public void setIsBand(Boolean isBand) {
+        this.isBand = isBand;
     }
 }

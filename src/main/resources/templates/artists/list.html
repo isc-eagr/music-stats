@@ -16,7 +16,10 @@
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1 style="margin: 0;">Artists</h1>
-                <button type="button" class="btn-action" onclick="openCreateModal()">New Artist</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="charts-toggle" onclick="openChartsModal()">📊 Charts</button>
+                    <button type="button" class="btn-action" onclick="openCreateModal()">New Artist</button>
+                </div>
             </div>
             <div class="controls">
                 <div class="search-bar">
@@ -38,7 +41,20 @@
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="first_listened" th:selected="${sortBy == 'first_listened'}">First Listened</option>
+                            <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
                         </select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
+                                th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir == 'desc'}">↓</span>
+                            <span th:if="${sortDir != 'desc'}">↑</span>
+                        </button>
+                    </div>
+                    
+                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
+                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                               style="width: 70px;" onchange="changePageSize(this.value)">
                     </div>
                     
                     <div class="filters" id="filterPanel">
@@ -300,6 +316,78 @@
                                     </div>
                                 </div>
                                 
+                                <!-- First Listened Date Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            First Listened Date
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="firstListenedDate" data-mode="exact"
+                                                    th:classappend="${firstListenedDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstListenedDate" data-mode="gte"
+                                                    th:classappend="${firstListenedDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstListenedDate" data-mode="lte"
+                                                    th:classappend="${firstListenedDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstListenedDate" data-mode="between"
+                                                    th:classappend="${firstListenedDateMode == 'between'} ? 'active' : ''">Between</button>
+                                        </div>
+                                        <input type="hidden" name="firstListenedDateMode" id="firstListenedDateModeInput" th:value="${firstListenedDateMode}" />
+                                        <div id="firstListenedDateSingle" th:style="${firstListenedDateMode == 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>Date</span>
+                                                <input type="text" name="firstListenedDate" th:value="${firstListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                        <div id="firstListenedDateRange" th:style="${firstListenedDateMode != 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>From</span>
+                                                <input type="text" name="firstListenedDateFrom" th:value="${firstListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                                <input type="text" name="firstListenedDateTo" th:value="${firstListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Last Listened Date Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Last Listened Date
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="exact"
+                                                    th:classappend="${lastListenedDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="gte"
+                                                    th:classappend="${lastListenedDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="lte"
+                                                    th:classappend="${lastListenedDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="between"
+                                                    th:classappend="${lastListenedDateMode == 'between'} ? 'active' : ''">Between</button>
+                                        </div>
+                                        <input type="hidden" name="lastListenedDateMode" id="lastListenedDateModeInput" th:value="${lastListenedDateMode}" />
+                                        <div id="lastListenedDateSingle" th:style="${lastListenedDateMode == 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>Date</span>
+                                                <input type="text" name="lastListenedDate" th:value="${lastListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                        <div id="lastListenedDateRange" th:style="${lastListenedDateMode != 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>From</span>
+                                                <input type="text" name="lastListenedDateFrom" th:value="${lastListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                                <input type="text" name="lastListenedDateTo" th:value="${lastListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                             </form>
                         </div>
                         
@@ -429,6 +517,46 @@
                 <button class="filter-chip-remove" onclick="removeFilterGroup('country')" type="button">×</button>
             </div>
             
+            <!-- First Listened Date filter chips -->
+            <div class="filter-chip" th:if="${firstListenedDate != null and !firstListenedDate.isEmpty() and firstListenedDateMode != 'between'}">
+                <span class="filter-chip-label" th:switch="${firstListenedDateMode}">
+                    <span th:case="'exact'">First Listened is</span>
+                    <span th:case="'gte'">First Listened on or after</span>
+                    <span th:case="'lte'">First Listened on or before</span>
+                    <span th:case="*">First Listened is</span>
+                </span>
+                <span class="filter-chip-value" th:text="${firstListenedDateFormatted != null ? firstListenedDateFormatted : firstListenedDate}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('firstListenedDate', 'firstListenedDateMode')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${firstListenedDateMode == 'between' and firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty() and firstListenedDateTo != null and !firstListenedDateTo.isEmpty()}">
+                <span class="filter-chip-label">First Listened between</span>
+                <span class="filter-chip-value" th:text="${firstListenedDateFromFormatted != null ? firstListenedDateFromFormatted : firstListenedDateFrom}"></span>
+                <span> and </span>
+                <span class="filter-chip-value" th:text="${firstListenedDateToFormatted != null ? firstListenedDateToFormatted : firstListenedDateTo}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('firstListenedDateFrom', 'firstListenedDateTo', 'firstListenedDateMode')" type="button">×</button>
+            </div>
+            
+            <!-- Last Listened Date filter chips -->
+            <div class="filter-chip" th:if="${lastListenedDate != null and !lastListenedDate.isEmpty() and lastListenedDateMode != 'between'}">
+                <span class="filter-chip-label" th:switch="${lastListenedDateMode}">
+                    <span th:case="'exact'">Last Listened is</span>
+                    <span th:case="'gte'">Last Listened on or after</span>
+                    <span th:case="'lte'">Last Listened on or before</span>
+                    <span th:case="*">Last Listened is</span>
+                </span>
+                <span class="filter-chip-value" th:text="${lastListenedDateFormatted != null ? lastListenedDateFormatted : lastListenedDate}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('lastListenedDate', 'lastListenedDateMode')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${lastListenedDateMode == 'between' and lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty() and lastListenedDateTo != null and !lastListenedDateTo.isEmpty()}">
+                <span class="filter-chip-label">Last Listened between</span>
+                <span class="filter-chip-value" th:text="${lastListenedDateFromFormatted != null ? lastListenedDateFromFormatted : lastListenedDateFrom}"></span>
+                <span> and </span>
+                <span class="filter-chip-value" th:text="${lastListenedDateToFormatted != null ? lastListenedDateToFormatted : lastListenedDateTo}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('lastListenedDateFrom', 'lastListenedDateTo', 'lastListenedDateMode')" type="button">×</button>
+            </div>
+            
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
                     th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty())}">
                 Clear
@@ -443,11 +571,11 @@
         <!-- Pagination controls (top) -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=0, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage - 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -457,11 +585,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage + 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${totalPages - 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
         
@@ -470,14 +598,20 @@
             <div th:each="artist : ${artists}" 
                  class="artist-card" 
                  th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
-                <a th:href="@{'/artists/' + ${artist.id}}" class="artist-image">
-                    <img th:if="${artist.hasImage}" 
-                         th:src="@{'/artists/' + ${artist.id} + '/image'}" 
-                         th:alt="${artist.name}">
-                    <div th:unless="${artist.hasImage}" class="no-image">
-                        <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
-                    </div>
-                </a>
+                <a th:href="@{'/artists/' + ${artist.id}}" class="artist-image item-image-container">
+                        <img th:if="${artist.hasImage}"
+                             th:src="@{'/artists/' + ${artist.id} + '/image'}"
+                             th:alt="${artist.name}">
+                        <div th:unless="${artist.hasImage}" class="no-image">
+                            <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
+                        </div>
+
+                        <span class="flag-overlay" th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
+                              th:title="${artist.country}">
+                            <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
+                                 th:alt="${artist.country}" />
+                        </span>
+                    </a>
                 
                 <div class="artist-info">
                     <a th:href="@{'/artists/' + ${artist.id}}">
@@ -487,15 +621,29 @@
                     <div class="artist-details" th:if="${artist.genderName != null or artist.ethnicityName != null}">
                         <span th:if="${artist.genderName != null and !#strings.isEmpty(artist.genderName)}" th:text="${artist.genderName}"></span>
                         <span th:if="${(artist.genderName != null and !#strings.isEmpty(artist.genderName)) and (artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName))}"> • </span>
-                        <span th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}" th:text="${artist.ethnicityName}"></span>
+                        <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName) and artist.ethnicityId != null}" 
+                           th:href="@{'/ethnicities/' + ${artist.ethnicityId}}" 
+                           th:text="${artist.ethnicityName}" 
+                           class="metadata-link"></a>
+                        <span th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName) and artist.ethnicityId == null}" 
+                              th:text="${artist.ethnicityName}"></span>
                     </div>
                     
                     <!-- Genre, Subgenre, Country, Language -->
                     <div class="artist-metadata" style="font-size: 12px; color: #999; margin: 6px 0;">
-                        <span th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}" th:text="${artist.genreName}"></span>
+                        <a th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName) and artist.genreId != null}" 
+                           th:href="@{'/genres/' + ${artist.genreId}}" 
+                           th:text="${artist.genreName}" 
+                           class="metadata-link"></a>
+                        <span th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName) and artist.genreId == null}" 
+                              th:text="${artist.genreName}"></span>
                         <span th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}">
                             <span th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}"> • </span>
-                            <span th:text="${artist.subgenreName}"></span>
+                            <a th:if="${artist.subgenreId != null}" 
+                               th:href="@{'/subgenres/' + ${artist.subgenreId}}" 
+                               th:text="${artist.subgenreName}" 
+                               class="metadata-link"></a>
+                            <span th:if="${artist.subgenreId == null}" th:text="${artist.subgenreName}"></span>
                         </span>
                         <span th:if="${artist.country != null and !#strings.isEmpty(artist.country)}">
                             <span th:if="${(artist.genreName != null and !#strings.isEmpty(artist.genreName)) or (artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName))}"> • </span>
@@ -503,7 +651,11 @@
                         </span>
                         <span th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}">
                             <span th:if="${(artist.genreName != null and !#strings.isEmpty(artist.genreName)) or (artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)) or (artist.country != null and !#strings.isEmpty(artist.country))}"> • </span>
-                            <span th:text="${artist.languageName}"></span>
+                            <a th:if="${artist.languageId != null}" 
+                               th:href="@{'/languages/' + ${artist.languageId}}" 
+                               th:text="${artist.languageName}" 
+                               class="metadata-link"></a>
+                            <span th:if="${artist.languageId == null}" th:text="${artist.languageName}"></span>
                         </span>
                     </div>
                     
@@ -534,11 +686,11 @@
         <!-- Pagination controls (bottom) -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=0, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage - 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -548,11 +700,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${currentPage + 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, page=${totalPages - 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
     </div>
@@ -749,14 +901,29 @@
             window.location.href = url.toString();
         }
         
+        function toggleSortDirection() {
+            const url = new URL(window.location);
+            const currentDir = url.searchParams.get('sortdir') || 'asc';
+            url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function changePageSize(newSize) {
+            const url = new URL(window.location);
+            url.searchParams.set('perpage', newSize);
+            url.searchParams.set('page', '0'); // Reset to first page when changing page size
+            window.location.href = url.toString();
+        }
+        
         function clearFilters() {
             const sortBy = document.getElementById('sortBySelect').value;
             window.location.href = '/artists?sortby=' + sortBy;
         }
         
-        function removeFilter(paramName) {
+        function removeFilter(...paramNames) {
             const url = new URL(window.location);
-            url.searchParams.delete(paramName);
+            paramNames.forEach(paramName => url.searchParams.delete(paramName));
             window.location.href = url.toString();
         }
         
@@ -790,8 +957,27 @@
                     const mode = this.getAttribute('data-mode');
                     if (filterName && mode) {
                         const modeInput = document.getElementById(filterName + 'Mode');
-                        if (modeInput) {
+                        if (!modeInput) {
+                            // Try with ModeInput suffix for date filters
+                            const altModeInput = document.getElementById(filterName + 'ModeInput');
+                            if (altModeInput) {
+                                altModeInput.value = mode;
+                            }
+                        } else {
                             modeInput.value = mode;
+                        }
+
+                        // Special handling for date filters - toggle between single/range inputs
+                        if (filterName === 'firstListenedDate' || filterName === 'lastListenedDate') {
+                            const singleDiv = document.getElementById(filterName + 'Single');
+                            const rangeDiv = document.getElementById(filterName + 'Range');
+                            if (mode === 'between') {
+                                if (singleDiv) singleDiv.style.display = 'none';
+                                if (rangeDiv) rangeDiv.style.display = 'block';
+                            } else {
+                                if (singleDiv) singleDiv.style.display = 'block';
+                                if (rangeDiv) rangeDiv.style.display = 'none';
+                            }
                         }
 
                         // If selecting a null-mode, clear any selected chips and uncheck checkboxes
@@ -876,6 +1062,9 @@
                     data[key] = value;
                 }
             });
+            
+            // Handle checkbox - convert to boolean
+            data.isBand = document.getElementById('createIsBand').checked;
             
             fetch('/artists/create', {
                 method: 'POST',
@@ -973,6 +1162,14 @@
                                     th:value="${entry.key}" 
                                     th:text="${entry.value}"></option>
                         </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createIsBand">Is Band</label>
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="createIsBand" name="isBand">
+                            <label for="createIsBand" class="checkbox-label">This artist is a band or group</label>
+                        </div>
                     </div>
                 </div>
                 
@@ -1072,6 +1269,30 @@
             border-top: 1px solid #333;
             justify-content: flex-end;
         }
+        
+        /* Checkbox styling */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .checkbox-label {
+            font-size: 14px;
+            color: #e5e7eb;
+            cursor: pointer;
+        }
+        
     </style>
+    
+    <!-- Charts Modal (included from fragment) -->
+    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
 </body>
 </html>
