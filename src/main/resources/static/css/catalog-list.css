@@ -100,9 +100,12 @@
 }
 
 .pagination-info {
-    color: #888;
     font-size: 14px;
-    margin-bottom: 10px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    text-align: center;
 }
 
 .pagination {
@@ -320,6 +323,17 @@
     opacity: 0.8;
 }
 
+.gender-other-bar {
+    background-color: #6b7280;
+    height: 100%;
+    cursor: help;
+    transition: opacity 0.2s;
+}
+
+.gender-other-bar:hover {
+    opacity: 0.8;
+}
+
 /* Buttons */
 .btn-action {
     padding: 8px 16px;
@@ -349,3 +363,121 @@
 .btn-negative:hover {
     background-color: #c82333;
 }
+
+/* ========================================
+   TIMEFRAME CARDS - Winning Gender Styling
+   ======================================== */
+
+/* Timeframe cards are clickable */
+.timeframe-card {
+    cursor: pointer;
+}
+
+/* No image for timeframe cards - use full space for info */
+.timeframe-card .timeframe-info {
+    padding: 16px;
+}
+
+.timeframe-card .timeframe-name {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+/* Winning gender border and aura */
+.catalog-card.winning-male {
+    border-left: 4px solid rgba(59, 130, 246, 0.6);
+}
+
+.catalog-card.winning-female {
+    border-left: 4px solid rgba(236, 72, 153, 0.6);
+}
+
+.catalog-card.winning-male:hover {
+    border-left: 4px solid rgba(59, 130, 246, 0.6);
+    box-shadow: 
+        -10px 0 20px rgba(59, 130, 246, 0.2),
+        10px 0 20px rgba(59, 130, 246, 0.15),
+        0 10px 20px rgba(59, 130, 246, 0.15),
+        0 12px 30px rgba(0,0,0,0.6);
+}
+
+.catalog-card.winning-female:hover {
+    border-left: 4px solid rgba(236, 72, 153, 0.6);
+    box-shadow: 
+        -10px 0 20px rgba(236, 72, 153, 0.2),
+        10px 0 20px rgba(236, 72, 153, 0.15),
+        0 10px 20px rgba(236, 72, 153, 0.15),
+        0 12px 30px rgba(0,0,0,0.6);
+}
+
+/* Winning attribute chips */
+.winning-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.winning-chip {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #fff;
+    background-color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.winning-chip.genre {
+    background-color: rgba(139, 92, 246, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+.winning-chip.ethnicity {
+    background-color: rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.winning-chip.language {
+    background-color: rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+}
+
+.winning-chip.country {
+    background-color: rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.winning-chip.gender {
+    background-color: rgba(100, 100, 100, 0.3);
+    border: 1px solid rgba(100, 100, 100, 0.5);
+}
+
+.winning-chip.gender.male {
+    background-color: rgba(56, 189, 248, 0.3);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+}
+
+.winning-chip.gender.female {
+    background-color: rgba(244, 114, 182, 0.3);
+    border: 1px solid rgba(244, 114, 182, 0.5);
+}
+
+/* Range inputs in filter panel */
+.range-inputs {
+    display: flex;
+    gap: 10px;
+}
+
+.range-inputs .field {
+    flex: 1;
+}
+
+.range-inputs input {
+    width: 100%;
+}
+

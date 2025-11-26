@@ -3,6 +3,7 @@ package library.service;
 import library.dto.ArtistAlbumDTO;
 import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
+import library.dto.FeaturedArtistCardDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.entity.Artist;
@@ -709,5 +710,79 @@ public class ArtistService {
         } catch (Exception e) {
             return null;
         }
+    }
+    
+    /**
+     * Get featured artist cards for an artist (artists who are featured on this artist's songs)
+     * Returns full artist card data with feature count, sorted alphabetically
+     */
+    public List<FeaturedArtistCardDTO> getCollaboratedArtistsForArtist(int artistId) {
+        String sql = """
+            SELECT 
+                a.id,
+                a.name,
+                a.gender_id,
+                g.name as gender_name,
+                a.ethnicity_id,
+                e.name as ethnicity_name,
+                a.genre_id,
+                gr.name as genre_name,
+                a.subgenre_id,
+                sg.name as subgenre_name,
+                a.language_id,
+                l.name as language_name,
+                a.country,
+                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
+                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
+                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                COALESCE(scr.play_count, 0) as play_count,
+                COALESCE(scr.time_listened, 0) as time_listened,
+                COUNT(sfa.song_id) as feature_count
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Song s ON sfa.song_id = s.id
+            INNER JOIN Artist a ON sfa.artist_id = a.id
+            LEFT JOIN Gender g ON a.gender_id = g.id
+            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
+            LEFT JOIN Genre gr ON a.genre_id = gr.id
+            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
+            LEFT JOIN Language l ON a.language_id = l.id
+            LEFT JOIN (
+                SELECT s2.artist_id, COUNT(*) as play_count, 
+                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
+                FROM Scrobble scr2
+                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                GROUP BY s2.artist_id
+            ) scr ON a.id = scr.artist_id
+            WHERE s.artist_id = ?
+            GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
+                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country
+            ORDER BY a.name
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setName(rs.getString("name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            dto.setGenderName(rs.getString("gender_name"));
+            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
+            dto.setEthnicityName(rs.getString("ethnicity_name"));
+            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
+            dto.setGenreName(rs.getString("genre_name"));
+            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
+            dto.setSubgenreName(rs.getString("subgenre_name"));
+            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
+            dto.setLanguageName(rs.getString("language_name"));
+            dto.setCountry(rs.getString("country"));
+            dto.setSongCount(rs.getInt("song_count"));
+            dto.setAlbumCount(rs.getInt("album_count"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setPlayCount(rs.getInt("play_count"));
+            long timeListened = rs.getLong("time_listened");
+            dto.setTimeListened(timeListened);
+            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setFeatureCount(rs.getInt("feature_count"));
+            return dto;
+        }, artistId);
     }
 }

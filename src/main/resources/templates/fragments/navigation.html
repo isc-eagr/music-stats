@@ -118,6 +118,20 @@
                  <li><a href="/subgenres" class="app-nav-link" th:classappend="${currentSection == 'subgenres'} ? 'active' : ''">Subgenres</a></li>
                  <li><a href="/ethnicities" class="app-nav-link" th:classappend="${currentSection == 'ethnicities'} ? 'active' : ''">Ethnicities</a></li>
                  <li><a href="/languages" class="app-nav-link" th:classappend="${currentSection == 'languages'} ? 'active' : ''">Languages</a></li>
+                 <li><a href="/genders" class="app-nav-link" th:classappend="${currentSection == 'genders'} ? 'active' : ''">Genders</a></li>
+                 <li><a href="/countries" class="app-nav-link" th:classappend="${currentSection == 'countries'} ? 'active' : ''">Countries</a></li>
+                 <li class="app-nav-dropdown">
+                     <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
+                        th:classappend="${currentSection == 'days' or currentSection == 'weeks' or currentSection == 'months' or currentSection == 'seasons' or currentSection == 'years' or currentSection == 'decades'} ? 'active' : ''">Timeframes ▾</a>
+                     <ul class="app-nav-dropdown-menu">
+                         <li><a href="/days" class="app-nav-dropdown-link" th:classappend="${currentSection == 'days'} ? 'active' : ''">Days</a></li>
+                         <li><a href="/weeks" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weeks'} ? 'active' : ''">Weeks</a></li>
+                         <li><a href="/months" class="app-nav-dropdown-link" th:classappend="${currentSection == 'months'} ? 'active' : ''">Months</a></li>
+                         <li><a href="/seasons" class="app-nav-dropdown-link" th:classappend="${currentSection == 'seasons'} ? 'active' : ''">Seasons</a></li>
+                         <li><a href="/years" class="app-nav-dropdown-link" th:classappend="${currentSection == 'years'} ? 'active' : ''">Years</a></li>
+                         <li><a href="/decades" class="app-nav-dropdown-link" th:classappend="${currentSection == 'decades'} ? 'active' : ''">Decades</a></li>
+                     </ul>
+                 </li>
              </ul>
          </div>
          <div class="app-nav-utilities">

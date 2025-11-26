@@ -22,6 +22,11 @@ public class SubGenreCardDTO {
     private Integer femalePlayCount;
     private Long maleTimeListened;
     private Long femaleTimeListened;
+    private Integer otherCount;
+    private Integer otherArtistCount;
+    private Integer otherAlbumCount;
+    private Integer otherPlayCount;
+    private Long otherTimeListened;
 
     // Getters and Setters
     public Integer getId() {
@@ -194,5 +199,45 @@ public class SubGenreCardDTO {
 
     public void setFemaleTimeListened(Long femaleTimeListened) {
         this.femaleTimeListened = femaleTimeListened;
+    }
+
+    public Integer getOtherCount() {
+        return otherCount;
+    }
+
+    public void setOtherCount(Integer otherCount) {
+        this.otherCount = otherCount;
+    }
+
+    public Integer getOtherArtistCount() {
+        return otherArtistCount;
+    }
+
+    public void setOtherArtistCount(Integer otherArtistCount) {
+        this.otherArtistCount = otherArtistCount;
+    }
+
+    public Integer getOtherAlbumCount() {
+        return otherAlbumCount;
+    }
+
+    public void setOtherAlbumCount(Integer otherAlbumCount) {
+        this.otherAlbumCount = otherAlbumCount;
+    }
+
+    public Integer getOtherPlayCount() {
+        return otherPlayCount;
+    }
+
+    public void setOtherPlayCount(Integer otherPlayCount) {
+        this.otherPlayCount = otherPlayCount;
+    }
+
+    public Long getOtherTimeListened() {
+        return otherTimeListened;
+    }
+
+    public void setOtherTimeListened(Long otherTimeListened) {
+        this.otherTimeListened = otherTimeListened;
     }
 }

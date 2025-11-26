@@ -58,11 +58,4 @@ public class MainController {
 		return data;
 	}
 
-	@RequestMapping("/old")
-	public String oldIndex(Model model) {
-		return "main";
-	}
-
-	
-
 }

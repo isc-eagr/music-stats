@@ -1,9 +1,7 @@
 package library.dto;
 
-public class GenreCardDTO {
-    private Integer id;
-    private String name;
-    private boolean hasImage;
+public class CountryCardDTO {
+    private String name;  // Country name is the identifier (no database ID)
     private Integer playCount;
     private Long timeListened;
     private String timeListenedFormatted;
@@ -27,32 +25,12 @@ public class GenreCardDTO {
     private Long otherTimeListened;
 
     // Getters and Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public boolean isHasImage() {
-        return hasImage;
-    }
-
-    public boolean getHasImage() {
-        return hasImage;
-    }
-
-    public void setHasImage(boolean hasImage) {
-        this.hasImage = hasImage;
     }
 
     public Integer getPlayCount() {

@@ -64,12 +64,157 @@ function formatListeningTime(totalSeconds) {
  * Opens the charts modal and loads chart data
  */
 function openChartsModal() {
+    // Clear any previous date range
+    chartsDateRange.from = null;
+    chartsDateRange.to = null;
+    
+    // Clear any previous entity filter
+    chartsEntityFilter.type = null;
+    chartsEntityFilter.id = null;
+    chartsEntityFilter.name = null;
+    
+    // Reset tabs so they reload with cleared date filter
+    resetChartsLoaded();
+    
     document.getElementById('chartsModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     updateChartsFiltersDisplay();
     
-    // Always default to General tab
-    switchTab('general');
+    // Always default to Top tab
+    switchTab('top');
+}
+
+// Store date range for charts modal when opened from timeframe cards
+let chartsDateRange = { from: null, to: null };
+
+// Store entity filter for charts modal when opened from genre/subgenre/ethnicity/language cards
+let chartsEntityFilter = { type: null, id: null, name: null };
+
+/**
+ * Opens the charts modal with a specific entity filter
+ * Called from genre/subgenre/ethnicity/language cards
+ * @param {string} filterType - The filter type: 'genre', 'subgenre', 'ethnicity', or 'language'
+ * @param {number} filterId - The ID of the entity to filter by
+ * @param {string} filterName - The display name of the entity (for showing in filter display)
+ */
+function openChartsModalWithFilter(filterType, filterId, filterName) {
+    // Clear any previous filters
+    chartsDateRange.from = null;
+    chartsDateRange.to = null;
+    
+    // Store the entity filter
+    chartsEntityFilter.type = filterType;
+    chartsEntityFilter.id = filterId;
+    chartsEntityFilter.name = filterName;
+    
+    // Reset all tabs so they reload with new filter
+    resetChartsLoaded();
+    
+    // Open the modal
+    document.getElementById('chartsModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Update filter display to show the entity filter
+    updateChartsFiltersDisplayWithEntity(filterType, filterName);
+    
+    // Always default to Top tab
+    switchTab('top');
+}
+
+/**
+ * Updates the filter display in charts modal to show entity filter
+ */
+function updateChartsFiltersDisplayWithEntity(filterType, filterName) {
+    const container = document.getElementById('chartsFiltersDisplay');
+    const noFiltersMsg = document.getElementById('noFiltersMsg');
+    
+    if (!container) return;
+    
+    // Remove existing filter chips from charts modal
+    container.querySelectorAll('.filter-chip').forEach(el => el.remove());
+    
+    // Hide no filters message
+    if (noFiltersMsg) noFiltersMsg.style.display = 'none';
+    
+    // Create a filter chip for the entity
+    const chip = document.createElement('span');
+    chip.className = 'filter-chip';
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'filter-chip-label';
+    // Capitalize the filter type for display
+    const displayType = filterType.charAt(0).toUpperCase() + filterType.slice(1) + ':';
+    labelSpan.textContent = displayType;
+    chip.appendChild(labelSpan);
+    
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'filter-chip-value filter-value-highlight';
+    valueSpan.textContent = filterName;
+    chip.appendChild(valueSpan);
+    
+    container.appendChild(chip);
+}
+
+/**
+ * Opens the charts modal with specific date range filter
+ * Called from timeframe cards to filter charts by listened date range
+ * @param {string} listenedDateFrom - Start date in yyyy-MM-dd format
+ * @param {string} listenedDateTo - End date in yyyy-MM-dd format  
+ * @param {string} periodLabel - Display label for the time period (optional)
+ */
+function openChartsModalWithDates(listenedDateFrom, listenedDateTo, periodLabel) {
+    // Clear any previous entity filter
+    chartsEntityFilter.type = null;
+    chartsEntityFilter.id = null;
+    chartsEntityFilter.name = null;
+    // Store the date range for use in API calls
+    chartsDateRange.from = listenedDateFrom;
+    chartsDateRange.to = listenedDateTo;
+    
+    // Reset all tabs so they reload with new date filter
+    resetChartsLoaded();
+    
+    // Open the modal
+    document.getElementById('chartsModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Update filter display to show the date range
+    updateChartsFiltersDisplayWithDates(listenedDateFrom, listenedDateTo, periodLabel);
+    
+    // Always default to Top tab
+    switchTab('top');
+}
+
+/**
+ * Updates the filter display in charts modal to show date range
+ */
+function updateChartsFiltersDisplayWithDates(listenedDateFrom, listenedDateTo, periodLabel) {
+    const container = document.getElementById('chartsFiltersDisplay');
+    const noFiltersMsg = document.getElementById('noFiltersMsg');
+    
+    if (!container) return;
+    
+    // Remove existing filter chips from charts modal
+    container.querySelectorAll('.filter-chip').forEach(el => el.remove());
+    
+    // Hide no filters message
+    if (noFiltersMsg) noFiltersMsg.style.display = 'none';
+    
+    // Create a filter chip for the date range
+    const chip = document.createElement('span');
+    chip.className = 'filter-chip';
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'filter-chip-label';
+    labelSpan.textContent = 'Period:';
+    chip.appendChild(labelSpan);
+    
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'filter-chip-value filter-value-highlight';
+    valueSpan.textContent = periodLabel || (listenedDateFrom + ' to ' + listenedDateTo);
+    chip.appendChild(valueSpan);
+    
+    container.appendChild(chip);
 }
 
 /**
@@ -78,6 +223,15 @@ function openChartsModal() {
 function closeChartsModal() {
     document.getElementById('chartsModal').classList.remove('show');
     document.body.style.overflow = '';
+    
+    // Clear date range when closing modal
+    chartsDateRange.from = null;
+    chartsDateRange.to = null;
+    
+    // Clear entity filter when closing modal
+    chartsEntityFilter.type = null;
+    chartsEntityFilter.id = null;
+    chartsEntityFilter.name = null;
 }
 
 /**
@@ -156,7 +310,7 @@ function loadTabData(tabName, forceReload = false) {
 }
 
 /**
- * Gets filter parameters from current URL
+ * Gets filter parameters from current URL and includes any date range or entity filter set
  */
 function getFilterParams() {
     const currentUrl = new URL(window.location.href);
@@ -168,6 +322,18 @@ function getFilterParams() {
     params.delete('sortby');
     params.delete('sortdir');
     
+    // Add date range if set (from timeframe cards)
+    if (chartsDateRange.from && chartsDateRange.to) {
+        params.set('listenedDateFrom', chartsDateRange.from);
+        params.set('listenedDateTo', chartsDateRange.to);
+    }
+    
+    // Add entity filter if set (from genre/subgenre/ethnicity/language cards)
+    if (chartsEntityFilter.type && chartsEntityFilter.id) {
+        params.set(chartsEntityFilter.type, chartsEntityFilter.id);
+        params.set(chartsEntityFilter.type + 'Mode', 'includes');
+    }
+    
     return params;
 }
 
@@ -178,11 +344,11 @@ function renderTabCharts(tabName, data) {
     switch (tabName) {
         case 'general':
             createCombinedBarChart('generalCombinedChartContainer', 'generalCombinedChart', {
-                artists: [{ name: 'Overall', male: data.artistsByGender?.male || 0, female: data.artistsByGender?.female || 0 }],
-                albums: [{ name: 'Overall', male: data.albumsByGender?.male || 0, female: data.albumsByGender?.female || 0 }],
-                songs: [{ name: 'Overall', male: data.songsByGender?.male || 0, female: data.songsByGender?.female || 0 }],
-                plays: [{ name: 'Overall', male: data.playsByGender?.male || 0, female: data.playsByGender?.female || 0 }],
-                listeningTime: [{ name: 'Overall', male: data.listeningTimeByGender?.male || 0, female: data.listeningTimeByGender?.female || 0 }]
+                artists: [{ name: 'Overall', male: data.artistsByGender?.male || 0, female: data.artistsByGender?.female || 0, other: data.artistsByGender?.other || 0 }],
+                albums: [{ name: 'Overall', male: data.albumsByGender?.male || 0, female: data.albumsByGender?.female || 0, other: data.albumsByGender?.other || 0 }],
+                songs: [{ name: 'Overall', male: data.songsByGender?.male || 0, female: data.songsByGender?.female || 0, other: data.songsByGender?.other || 0 }],
+                plays: [{ name: 'Overall', male: data.playsByGender?.male || 0, female: data.playsByGender?.female || 0, other: data.playsByGender?.other || 0 }],
+                listeningTime: [{ name: 'Overall', male: data.listeningTimeByGender?.male || 0, female: data.listeningTimeByGender?.female || 0, other: data.listeningTimeByGender?.other || 0 }]
             });
             break;
         

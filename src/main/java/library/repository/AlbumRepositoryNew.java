@@ -41,6 +41,7 @@ public class AlbumRepositoryNew {
                 ar.ethnicity_id as ethnicity_id,
                 e.name as ethnicity_name,
                 CAST(strftime('%Y', a.release_date) AS TEXT) as release_year,
+                a.release_date as release_date,
                 (SELECT COUNT(*) FROM Song s WHERE s.album_id = a.id) as song_count,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
@@ -312,7 +313,7 @@ public class AlbumRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
-            Object[] row = new Object[21];
+            Object[] row = new Object[22];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -326,14 +327,15 @@ public class AlbumRepositoryNew {
             row[10] = rs.getObject("ethnicity_id");
             row[11] = rs.getString("ethnicity_name");
             row[12] = rs.getString("release_year");
-            row[13] = rs.getInt("song_count");
-            row[14] = rs.getInt("has_image");
-            row[15] = rs.getString("gender_name");
-            row[16] = rs.getInt("play_count");
-            row[17] = rs.getLong("time_listened");
-            row[18] = rs.getString("first_listened");
-            row[19] = rs.getString("last_listened");
-            row[20] = rs.getString("country");
+            row[13] = rs.getString("release_date");
+            row[14] = rs.getInt("song_count");
+            row[15] = rs.getInt("has_image");
+            row[16] = rs.getString("gender_name");
+            row[17] = rs.getInt("play_count");
+            row[18] = rs.getLong("time_listened");
+            row[19] = rs.getString("first_listened");
+            row[20] = rs.getString("last_listened");
+            row[21] = rs.getString("country");
             return row;
         });
     }

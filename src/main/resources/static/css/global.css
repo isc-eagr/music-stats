@@ -1337,15 +1337,12 @@ select:focus {
 
 /* Pagination info */
 .pagination-info {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  margin-bottom: 20px;
-  padding: 12px 20px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Pagination controls */
@@ -1354,8 +1351,8 @@ select:focus {
   justify-content: center;
   align-items: center;
   gap: 12px;
-  margin: 20px 0;
-  padding: 16px 0;
+  margin: 2px 0;
+  padding: 2px 0;
 }
 
 .pagination .page-btn {
@@ -1765,14 +1762,235 @@ select:focus {
     text-decoration: none;
 }
 
-/* Metadata links in list cards */
+/* Metadata links in list cards - use neutral styling like detail pages */
 .metadata-link {
-    color: #93c5fd;
+    color: #e5e7eb;
     text-decoration: none;
     transition: color 0.2s;
 }
 
 .metadata-link:hover {
-    color: #60a5fa;
-    text-decoration: underline;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+/* ==========================================
+   Featured Artists Tab - Smaller Artist Cards
+   ========================================== */
+
+.featured-tab-content {
+    grid-column: 2;
+}
+
+.featured-artist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    padding: 8px 0;
+}
+
+.featured-artist-card {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.featured-artist-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Gender-based aura effects for featured artist cards */
+.featured-artist-card.gender-male {
+    border-left: 3px solid rgba(59, 130, 246, 0.6);
+}
+
+.featured-artist-card.gender-female {
+    border-left: 3px solid rgba(236, 72, 153, 0.6);
+}
+
+.featured-artist-card.gender-male:hover {
+    box-shadow: 
+        -8px 0 16px rgba(59, 130, 246, 0.2),
+        8px 0 16px rgba(59, 130, 246, 0.15),
+        0 8px 16px rgba(59, 130, 246, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.featured-artist-card.gender-female:hover {
+    box-shadow: 
+        -8px 0 16px rgba(236, 72, 153, 0.2),
+        8px 0 16px rgba(236, 72, 153, 0.15),
+        0 8px 16px rgba(236, 72, 153, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.featured-artist-image {
+    display: block;
+    position: relative;
+    aspect-ratio: 2/3;
+    overflow: hidden;
+    text-decoration: none;
+    /* Override inherited gender border from parent container's .item-image-container rules */
+    border-left: none !important;
+    box-shadow: none;
+}
+
+.featured-artist-image:hover {
+    text-decoration: none;
+}
+
+.featured-artist-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.featured-artist-card:hover .featured-artist-image img {
+    transform: scale(1.05);
+}
+
+.featured-artist-image .no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    font-size: 36px;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.featured-artist-image .flag-overlay {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 3px;
+    padding: 2px;
+}
+
+.featured-artist-image .flag-overlay img {
+    display: block;
+    width: 18px;
+    height: auto;
+}
+
+/* Feature count badge - matches gender color */
+.feature-count-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gender-colored badges */
+.featured-artist-card.gender-male .feature-count-badge {
+    background: rgba(59, 130, 246, 0.7);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.featured-artist-card.gender-female .feature-count-badge {
+    background: rgba(236, 72, 153, 0.7);
+    border-color: rgba(236, 72, 153, 0.4);
+}
+
+.featured-artist-info {
+    padding: 10px;
+}
+
+.featured-artist-name {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.featured-artist-info a {
+    text-decoration: none;
+}
+
+.featured-artist-info a:hover {
+    text-decoration: none;
+}
+
+.featured-artist-info a:hover .featured-artist-name {
+    color: var(--primary-strong);
+}
+
+.featured-artist-details {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.featured-artist-metadata {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.featured-artist-stats {
+    display: flex;
+    gap: 12px;
+}
+
+.featured-artist-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.featured-artist-stats .stat-icon {
+    font-size: 10px;
+}
+
+.featured-artist-stats .stat-value {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Empty state message */
+.no-items-message {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.no-items-message p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Item count in section title */
+.item-count {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-muted);
 }

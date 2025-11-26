@@ -258,6 +258,11 @@ public class AlbumController {
         // Tab and plays data
         model.addAttribute("activeTab", tab);
         
+        // Add featured artist cards (for the Featured Artists tab)
+        if ("featured".equals(tab)) {
+            model.addAttribute("featuredArtistCards", albumService.getFeaturedArtistCardsForAlbum(id));
+        }
+        
         if ("plays".equals(tab)) {
             int pageSize = 100;
             model.addAttribute("scrobbles", albumService.getScrobblesForAlbum(id, playsPage, pageSize));

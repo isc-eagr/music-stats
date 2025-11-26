@@ -83,6 +83,9 @@
                 <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays'}" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
                    class="detail-tab">Plays</a>
+                <a th:href="@{'/artists/' + ${artist.id} + '?tab=collaborated'}" 
+                   th:classappend="${activeTab == 'collaborated'} ? 'active' : ''"
+                   class="detail-tab">Collaborated With</a>
             </div>
             
             <!-- Right side: Two-column layout for General and Statistics -->
@@ -402,6 +405,67 @@
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
                         <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Collaborated With Tab Content -->
+            <div class="featured-tab-content" th:if="${activeTab == 'collaborated'}">
+                <div class="detail-content-card">
+                    <h2 class="section-title">Collaborated With 
+                        <span class="item-count">(<span th:text="${collaboratedArtistCards != null ? collaboratedArtistCards.size() : 0}">0</span>)</span>
+                    </h2>
+                    
+                    <div th:if="${collaboratedArtistCards == null or collaboratedArtistCards.isEmpty()}" class="no-items-message">
+                        <p>No collaborations found for this artist.</p>
+                    </div>
+                    
+                    <div th:if="${collaboratedArtistCards != null and !collaboratedArtistCards.isEmpty()}" class="featured-artist-grid">
+                        <div th:each="collab : ${collaboratedArtistCards}" 
+                             class="featured-artist-card"
+                             th:classappend="${collab.genderName != null and collab.genderName.toLowerCase().contains('male') and !collab.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${collab.genderName != null and collab.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                            <a th:href="@{'/artists/' + ${collab.id}}" class="featured-artist-image item-image-container">
+                                <img th:if="${collab.hasImage}"
+                                     th:src="@{'/artists/' + ${collab.id} + '/image'}"
+                                     th:alt="${collab.name}">
+                                <div th:unless="${collab.hasImage}" class="no-image">
+                                    <span th:text="${#strings.substring(collab.name, 0, 1)}"></span>
+                                </div>
+                                <span class="flag-overlay" th:if="${collab.country != null and @countryCodeMapper.getCode(collab.country) != null}"
+                                      th:title="${collab.country}">
+                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(collab.country)})}"
+                                         th:alt="${collab.country}" />
+                                </span>
+                                <!-- Feature count badge for artists -->
+                                <span th:if="${collab.featureCount > 1}" class="feature-count-badge" 
+                                      th:text="${collab.featureCount}" th:title="${collab.featureCount + ' songs'}"></span>
+                            </a>
+                            <div class="featured-artist-info">
+                                <a th:href="@{'/artists/' + ${collab.id}}">
+                                    <h3 class="featured-artist-name" th:text="${collab.name}">Artist Name</h3>
+                                </a>
+                                <div class="featured-artist-details" th:if="${collab.genderName != null or collab.ethnicityName != null}">
+                                    <span th:if="${collab.genderName != null}" th:text="${collab.genderName}"></span>
+                                    <span th:if="${collab.genderName != null and collab.ethnicityName != null}"> • </span>
+                                    <span th:if="${collab.ethnicityName != null}" th:text="${collab.ethnicityName}"></span>
+                                </div>
+                                <div class="featured-artist-metadata" th:if="${collab.genreName != null or collab.country != null}">
+                                    <span th:if="${collab.genreName != null}" th:text="${collab.genreName}"></span>
+                                    <span th:if="${collab.genreName != null and collab.country != null}"> • </span>
+                                    <span th:if="${collab.country != null}" th:text="${collab.country}"></span>
+                                </div>
+                                <div class="featured-artist-stats">
+                                    <div class="stat">
+                                        <span class="stat-icon">🎵</span>
+                                        <span class="stat-value" th:text="${collab.songCount}">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-icon">▶️</span>
+                                        <span class="stat-value" th:text="${collab.playCount}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

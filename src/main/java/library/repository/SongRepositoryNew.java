@@ -43,6 +43,7 @@ public class SongRepositoryNew {
                 COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as ethnicity_id,
                 e.name as ethnicity_name,
                 CAST(strftime('%Y', COALESCE(s.release_date, alb.release_date)) AS TEXT) as release_year,
+                COALESCE(s.release_date, alb.release_date) as release_date,
                 s.length_seconds,
                 CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
@@ -319,7 +320,7 @@ public class SongRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
-            Object[] row = new Object[23];
+            Object[] row = new Object[24];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -335,14 +336,15 @@ public class SongRepositoryNew {
             row[12] = rs.getObject("ethnicity_id");
             row[13] = rs.getString("ethnicity_name");
             row[14] = rs.getString("release_year");
-            row[15] = rs.getObject("length_seconds");
-            row[16] = rs.getInt("has_image");
-            row[17] = rs.getString("gender_name");
-            row[18] = rs.getInt("play_count");
-            row[19] = rs.getLong("time_listened");
-            row[20] = rs.getString("first_listened");
-            row[21] = rs.getString("last_listened");
-            row[22] = rs.getString("country");
+            row[15] = rs.getString("release_date");
+            row[16] = rs.getObject("length_seconds");
+            row[17] = rs.getInt("has_image");
+            row[18] = rs.getString("gender_name");
+            row[19] = rs.getInt("play_count");
+            row[20] = rs.getLong("time_listened");
+            row[21] = rs.getString("first_listened");
+            row[22] = rs.getString("last_listened");
+            row[23] = rs.getString("country");
             return row;
         });
     }
@@ -611,7 +613,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         // Build the filter clause that will be reused
         StringBuilder filterClause = new StringBuilder();
@@ -621,7 +624,12 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
@@ -629,13 +637,13 @@ public class SongRepositoryNew {
         data.put("playsByGender", getPlaysByGenderFiltered(filterClause.toString(), params));
         
         // Get songs by gender
-        data.put("songsByGender", getSongsByGenderFiltered(filterClause.toString(), params));
+        data.put("songsByGender", getSongsByGenderFiltered(filterClause.toString(), params, needsScrobbleJoin));
         
         // Get artists by gender (from filtered songs)
-        data.put("artistsByGender", getArtistsByGenderFiltered(filterClause.toString(), params));
+        data.put("artistsByGender", getArtistsByGenderFiltered(filterClause.toString(), params, needsScrobbleJoin));
         
         // Get albums by gender (from filtered songs)
-        data.put("albumsByGender", getAlbumsByGenderFiltered(filterClause.toString(), params));
+        data.put("albumsByGender", getAlbumsByGenderFiltered(filterClause.toString(), params, needsScrobbleJoin));
         
         // Get plays by genre with gender breakdown (from filtered songs)
         data.put("playsByGenreAndGender", getPlaysByGenreAndGenderFiltered(filterClause.toString(), params));
@@ -660,7 +668,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         if (name != null && !name.trim().isEmpty()) {
             sql.append(" AND s.name LIKE ?");
@@ -844,6 +853,20 @@ public class SongRepositoryNew {
                 }
             }
         }
+        
+        // Listened date filter (scrobble_date range)
+        if (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty() && 
+            listenedDateTo != null && !listenedDateTo.trim().isEmpty()) {
+            sql.append(" AND DATE(scr.scrobble_date) >= DATE(?) AND DATE(scr.scrobble_date) <= DATE(?)");
+            params.add(listenedDateFrom);
+            params.add(listenedDateTo);
+        } else if (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) {
+            sql.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            params.add(listenedDateFrom);
+        } else if (listenedDateTo != null && !listenedDateTo.trim().isEmpty()) {
+            sql.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            params.add(listenedDateTo);
+        }
     }
     
     private java.util.Map<String, Long> getPlaysByGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -878,7 +901,8 @@ public class SongRepositoryNew {
         return result;
     }
     
-    private java.util.Map<String, Long> getSongsByGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.Map<String, Long> getSongsByGenderFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 CASE 
@@ -888,6 +912,7 @@ public class SongRepositoryNew {
                 END as gender,
                 COUNT(DISTINCT s.id) as song_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -909,7 +934,8 @@ public class SongRepositoryNew {
         return result;
     }
     
-    private java.util.Map<String, Long> getArtistsByGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.Map<String, Long> getArtistsByGenderFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 CASE 
@@ -919,6 +945,7 @@ public class SongRepositoryNew {
                 END as gender,
                 COUNT(DISTINCT ar.id) as artist_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON ar.gender_id = g.id
@@ -940,7 +967,8 @@ public class SongRepositoryNew {
         return result;
     }
     
-    private java.util.Map<String, Long> getAlbumsByGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.Map<String, Long> getAlbumsByGenderFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 CASE 
@@ -950,6 +978,7 @@ public class SongRepositoryNew {
                 END as gender,
                 COUNT(DISTINCT alb.id) as album_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON ar.gender_id = g.id
@@ -1101,7 +1130,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -1110,13 +1140,17 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByGender", getArtistsByGenderFiltered(filterClause.toString(), params));
-        data.put("albumsByGender", getAlbumsByGenderFiltered(filterClause.toString(), params));
-        data.put("songsByGender", getSongsByGenderFiltered(filterClause.toString(), params));
+        data.put("artistsByGender", getArtistsByGenderFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("albumsByGender", getAlbumsByGenderFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsByGender", getSongsByGenderFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsByGender", getPlaysByGenderFiltered(filterClause.toString(), params));
         data.put("listeningTimeByGender", getListeningTimeByGenderFiltered(filterClause.toString(), params));
         
@@ -1164,7 +1198,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -1173,20 +1208,26 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByGenre", getArtistsByGenreFiltered(filterClause.toString(), params));
-        data.put("albumsByGenre", getAlbumsByGenreFiltered(filterClause.toString(), params));
-        data.put("songsByGenre", getSongsByGenreFiltered(filterClause.toString(), params));
+        data.put("artistsByGenre", getArtistsByGenreFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("albumsByGenre", getAlbumsByGenreFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsByGenre", getSongsByGenreFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsByGenre", getPlaysByGenreFiltered(filterClause.toString(), params));
         data.put("listeningTimeByGenre", getListeningTimeByGenreFiltered(filterClause.toString(), params));
         
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getArtistsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(gr.name, 'Unknown') as genre_name,
@@ -1196,6 +1237,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT ar.id as artist_id, ar.genre_id, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE 1=1 """ + " " + filterClause + """
@@ -1218,7 +1260,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(gr.name, 'Unknown') as genre_name,
@@ -1230,6 +1273,7 @@ public class SongRepositoryNew {
                     COALESCE(alb.override_genre_id, ar.genre_id) as effective_genre_id,
                     ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE alb.id IS NOT NULL """ + " " + filterClause + """
@@ -1251,7 +1295,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getSongsByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getSongsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 COALESCE(gr.name, 'Unknown') as genre_name,
@@ -1259,6 +1304,7 @@ public class SongRepositoryNew {
                 SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
                 SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -1346,7 +1392,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -1355,20 +1402,26 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsBySubgenre", getArtistsBySubgenreFiltered(filterClause.toString(), params));
-        data.put("albumsBySubgenre", getAlbumsBySubgenreFiltered(filterClause.toString(), params));
-        data.put("songsBySubgenre", getSongsBySubgenreFiltered(filterClause.toString(), params));
+        data.put("artistsBySubgenre", getArtistsBySubgenreFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("albumsBySubgenre", getAlbumsBySubgenreFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsBySubgenre", getSongsBySubgenreFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsBySubgenre", getPlaysBySubgenreFiltered(filterClause.toString(), params));
         data.put("listeningTimeBySubgenre", getListeningTimeBySubgenreFiltered(filterClause.toString(), params));
         
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getArtistsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(sg.name, 'Unknown') as subgenre_name,
@@ -1378,6 +1431,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT ar.id as artist_id, ar.subgenre_id, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE 1=1 """ + " " + filterClause + """
@@ -1400,7 +1454,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getAlbumsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(sg.name, 'Unknown') as subgenre_name,
@@ -1412,6 +1467,7 @@ public class SongRepositoryNew {
                     COALESCE(alb.override_subgenre_id, ar.subgenre_id) as effective_subgenre_id,
                     ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE alb.id IS NOT NULL """ + " " + filterClause + """
@@ -1433,7 +1489,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getSongsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getSongsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 COALESCE(sg.name, 'Unknown') as subgenre_name,
@@ -1441,6 +1498,7 @@ public class SongRepositoryNew {
                 SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
                 SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -1528,7 +1586,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -1537,20 +1596,26 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByEthnicity", getArtistsByEthnicityFiltered(filterClause.toString(), params));
-        data.put("albumsByEthnicity", getAlbumsByEthnicityFiltered(filterClause.toString(), params));
-        data.put("songsByEthnicity", getSongsByEthnicityFiltered(filterClause.toString(), params));
+        data.put("artistsByEthnicity", getArtistsByEthnicityFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("albumsByEthnicity", getAlbumsByEthnicityFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsByEthnicity", getSongsByEthnicityFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsByEthnicity", getPlaysByEthnicityFiltered(filterClause.toString(), params));
         data.put("listeningTimeByEthnicity", getListeningTimeByEthnicityFiltered(filterClause.toString(), params));
         
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getArtistsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(e.name, 'Unknown') as ethnicity_name,
@@ -1560,6 +1625,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT ar.id as artist_id, ar.ethnicity_id, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE 1=1 """ + " " + filterClause + """
@@ -1582,7 +1648,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(e.name, 'Unknown') as ethnicity_name,
@@ -1592,6 +1659,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT alb.id as album_id, ar.ethnicity_id, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE alb.id IS NOT NULL """ + " " + filterClause + """
@@ -1613,7 +1681,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getSongsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getSongsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 COALESCE(e.name, 'Unknown') as ethnicity_name,
@@ -1621,6 +1690,7 @@ public class SongRepositoryNew {
                 SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
                 SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -1708,7 +1778,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -1717,20 +1788,26 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByLanguage", getArtistsByLanguageFiltered(filterClause.toString(), params));
-        data.put("albumsByLanguage", getAlbumsByLanguageFiltered(filterClause.toString(), params));
-        data.put("songsByLanguage", getSongsByLanguageFiltered(filterClause.toString(), params));
+        data.put("artistsByLanguage", getArtistsByLanguageFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("albumsByLanguage", getAlbumsByLanguageFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsByLanguage", getSongsByLanguageFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsByLanguage", getPlaysByLanguageFiltered(filterClause.toString(), params));
         data.put("listeningTimeByLanguage", getListeningTimeByLanguageFiltered(filterClause.toString(), params));
         
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getArtistsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(l.name, 'Unknown') as language_name,
@@ -1740,6 +1817,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT ar.id as artist_id, ar.language_id, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE 1=1 """ + " " + filterClause + """
@@ -1762,7 +1840,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(l.name, 'Unknown') as language_name,
@@ -1774,6 +1853,7 @@ public class SongRepositoryNew {
                        COALESCE(alb.override_language_id, ar.language_id) as lang_id, 
                        ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE alb.id IS NOT NULL """ + " " + filterClause + """
@@ -1795,7 +1875,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getSongsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getSongsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 COALESCE(l.name, 'Unknown') as language_name,
@@ -1803,6 +1884,7 @@ public class SongRepositoryNew {
                 SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
                 SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -1890,7 +1972,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -1899,20 +1982,26 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByCountry", getArtistsByCountryFiltered(filterClause.toString(), params));
-        data.put("albumsByCountry", getAlbumsByCountryFiltered(filterClause.toString(), params));
-        data.put("songsByCountry", getSongsByCountryFiltered(filterClause.toString(), params));
+        data.put("artistsByCountry", getArtistsByCountryFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("albumsByCountry", getAlbumsByCountryFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsByCountry", getSongsByCountryFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsByCountry", getPlaysByCountryFiltered(filterClause.toString(), params));
         data.put("listeningTimeByCountry", getListeningTimeByCountryFiltered(filterClause.toString(), params));
         
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getArtistsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(ar.country, 'Unknown') as country_name,
@@ -1922,6 +2011,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT ar.id as artist_id, ar.country, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE 1=1 """ + " " + filterClause + """
@@ -1943,7 +2033,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(sub.country, 'Unknown') as country_name,
@@ -1953,6 +2044,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT alb.id as album_id, ar.country, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE alb.id IS NOT NULL """ + " " + filterClause + """
@@ -1973,7 +2065,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getSongsByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getSongsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 COALESCE(ar.country, 'Unknown') as country_name,
@@ -1981,6 +2074,7 @@ public class SongRepositoryNew {
                 SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
                 SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -2065,7 +2159,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -2074,20 +2169,26 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
+        
+        // Determine if Scrobble join is needed for non-scrobble queries
+        boolean needsScrobbleJoin = (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) || 
+                                     (listenedDateTo != null && !listenedDateTo.trim().isEmpty());
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
         // No artists by release year - artists don't have release dates
-        data.put("albumsByReleaseYear", getAlbumsByReleaseYearFiltered(filterClause.toString(), params));
-        data.put("songsByReleaseYear", getSongsByReleaseYearFiltered(filterClause.toString(), params));
+        data.put("albumsByReleaseYear", getAlbumsByReleaseYearFiltered(filterClause.toString(), params, needsScrobbleJoin));
+        data.put("songsByReleaseYear", getSongsByReleaseYearFiltered(filterClause.toString(), params, needsScrobbleJoin));
         data.put("playsByReleaseYear", getPlaysByReleaseYearFiltered(filterClause.toString(), params));
         data.put("listeningTimeByReleaseYear", getListeningTimeByReleaseYearFiltered(filterClause.toString(), params));
         
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
         String sql = """
             SELECT 
                 COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
@@ -2097,6 +2198,7 @@ public class SongRepositoryNew {
             FROM (
                 SELECT DISTINCT alb.id as album_id, alb.release_date, ar.gender_id
                 FROM Song s
+                """ + scrobbleJoin + """
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE alb.id IS NOT NULL """ + " " + filterClause + """
@@ -2119,7 +2221,8 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getSongsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams) {
+    private java.util.List<java.util.Map<String, Object>> getSongsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
                 COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
@@ -2127,6 +2230,7 @@ public class SongRepositoryNew {
                 SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
                 SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
             FROM Song s
+            """ + scrobbleJoin + """
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
@@ -2211,7 +2315,8 @@ public class SongRepositoryNew {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -2220,7 +2325,8 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
@@ -2393,6 +2499,7 @@ public class SongRepositoryNew {
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode,
             String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo,
             int limit) {
         
         // Build filter clause (using the same method as other chart methods)
@@ -2403,7 +2510,8 @@ public class SongRepositoryNew {
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo);
         
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         result.put("topArtists", getTopArtistsFiltered(filterClause.toString(), filterParams, limit));

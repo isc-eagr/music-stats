@@ -160,6 +160,16 @@ CREATE TABLE Scrobble (
     FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE SET NULL
 );
 
+-- SongFeaturedArtist table (many-to-many relationship for featured artists)
+CREATE TABLE SongFeaturedArtist (
+    song_id INTEGER NOT NULL,
+    artist_id INTEGER NOT NULL,
+    creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (song_id, artist_id),
+    FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE CASCADE,
+    FOREIGN KEY (artist_id) REFERENCES Artist(id) ON DELETE CASCADE
+);
+
 -- ============================================
 -- Indexes for Performance
 -- ============================================
@@ -189,6 +199,10 @@ CREATE INDEX idx_scrobble_date ON Scrobble(scrobble_date);
 CREATE INDEX idx_scrobble_account ON Scrobble(account);
 CREATE INDEX idx_scrobble_artist ON Scrobble(artist);
 CREATE INDEX idx_scrobble_lastfm_id ON Scrobble(lastfm_id);
+
+-- SongFeaturedArtist indexes
+CREATE INDEX idx_song_featured_artist_song ON SongFeaturedArtist(song_id);
+CREATE INDEX idx_song_featured_artist_artist ON SongFeaturedArtist(artist_id);
 
 -- SubGenre indexes
 CREATE INDEX idx_subgenre_parent ON SubGenre(parent_genre_id);

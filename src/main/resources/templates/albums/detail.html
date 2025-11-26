@@ -86,6 +86,9 @@
                 <a th:href="@{'/albums/' + ${album.id} + '?tab=plays'}" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
                    class="detail-tab">Plays</a>
+                <a th:href="@{'/albums/' + ${album.id} + '?tab=featured'}" 
+                   th:classappend="${activeTab == 'featured'} ? 'active' : ''"
+                   class="detail-tab">Featured Artists</a>
             </div>
             
             <!-- Right side: Two-column layout for General and Statistics -->
@@ -288,6 +291,67 @@
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
                         <a th:href="@{'/albums/' + ${album.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Featured Artists Tab Content -->
+            <div class="featured-tab-content" th:if="${activeTab == 'featured'}">
+                <div class="detail-content-card">
+                    <h2 class="section-title">Featured Artists 
+                        <span class="item-count">(<span th:text="${featuredArtistCards != null ? featuredArtistCards.size() : 0}">0</span>)</span>
+                    </h2>
+                    
+                    <div th:if="${featuredArtistCards == null or featuredArtistCards.isEmpty()}" class="no-items-message">
+                        <p>No featured artists for songs in this album.</p>
+                    </div>
+                    
+                    <div th:if="${featuredArtistCards != null and !featuredArtistCards.isEmpty()}" class="featured-artist-grid">
+                        <div th:each="artist : ${featuredArtistCards}" 
+                             class="featured-artist-card"
+                             th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                            <a th:href="@{'/artists/' + ${artist.id}}" class="featured-artist-image item-image-container">
+                                <img th:if="${artist.hasImage}"
+                                     th:src="@{'/artists/' + ${artist.id} + '/image'}"
+                                     th:alt="${artist.name}">
+                                <div th:unless="${artist.hasImage}" class="no-image">
+                                    <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
+                                </div>
+                                <span class="flag-overlay" th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
+                                      th:title="${artist.country}">
+                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
+                                         th:alt="${artist.country}" />
+                                </span>
+                                <!-- Feature count badge for albums -->
+                                <span th:if="${artist.featureCount > 1}" class="feature-count-badge" 
+                                      th:text="${artist.featureCount}" th:title="${artist.featureCount + ' songs'}"></span>
+                            </a>
+                            <div class="featured-artist-info">
+                                <a th:href="@{'/artists/' + ${artist.id}}">
+                                    <h3 class="featured-artist-name" th:text="${artist.name}">Artist Name</h3>
+                                </a>
+                                <div class="featured-artist-details" th:if="${artist.genderName != null or artist.ethnicityName != null}">
+                                    <span th:if="${artist.genderName != null}" th:text="${artist.genderName}"></span>
+                                    <span th:if="${artist.genderName != null and artist.ethnicityName != null}"> • </span>
+                                    <span th:if="${artist.ethnicityName != null}" th:text="${artist.ethnicityName}"></span>
+                                </div>
+                                <div class="featured-artist-metadata" th:if="${artist.genreName != null or artist.country != null}">
+                                    <span th:if="${artist.genreName != null}" th:text="${artist.genreName}"></span>
+                                    <span th:if="${artist.genreName != null and artist.country != null}"> • </span>
+                                    <span th:if="${artist.country != null}" th:text="${artist.country}"></span>
+                                </div>
+                                <div class="featured-artist-stats">
+                                    <div class="stat">
+                                        <span class="stat-icon">🎵</span>
+                                        <span class="stat-value" th:text="${artist.songCount}">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-icon">▶️</span>
+                                        <span class="stat-value" th:text="${artist.playCount}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

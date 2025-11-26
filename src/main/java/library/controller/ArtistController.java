@@ -181,6 +181,11 @@ public class ArtistController {
         // Tab and plays data
         model.addAttribute("activeTab", tab);
         
+        // Add collaborated artist cards (for the Collaborated With tab)
+        if ("collaborated".equals(tab)) {
+            model.addAttribute("collaboratedArtistCards", artistService.getCollaboratedArtistsForArtist(id));
+        }
+        
         if ("plays".equals(tab)) {
             int pageSize = 100;
             model.addAttribute("scrobbles", artistService.getScrobblesForArtist(id, playsPage, pageSize));

@@ -1,5 +1,6 @@
 package library.controller;
 
+import library.dto.FeaturedArtistDTO;
 import library.dto.SongCardDTO;
 import library.entity.SongNew;
 import library.service.SongService;
@@ -262,6 +263,14 @@ public class SongController {
         // Tab and plays data
         model.addAttribute("activeTab", tab);
         
+        // Add featured artists for this song (for editing)
+        model.addAttribute("featuredArtists", songService.getFeaturedArtistsForSong(id));
+        
+        // Add featured artist cards (for the Featured Artists tab)
+        if ("featured".equals(tab)) {
+            model.addAttribute("featuredArtistCards", songService.getFeaturedArtistCardsForSong(id));
+        }
+        
         if ("plays".equals(tab)) {
             int pageSize = 100;
             model.addAttribute("scrobbles", songService.getScrobblesForSong(id, playsPage, pageSize));
@@ -367,14 +376,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getGeneralChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -400,14 +412,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getGenreChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -433,14 +448,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getSubgenreChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -466,14 +484,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getEthnicityChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -499,14 +520,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getLanguageChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -532,14 +556,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getCountryChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -565,14 +592,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getReleaseYearChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -598,14 +628,17 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getListenYearChartData(
             q, artist, album,
             genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -632,6 +665,8 @@ public class SongController {
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
             @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo,
             @RequestParam(defaultValue = "10") int limit) {
         
         return songService.getTopChartData(
@@ -640,6 +675,7 @@ public class SongController {
             language, languageMode, gender, genderMode,
             ethnicity, ethnicityMode, country, countryMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo,
             limit
         );
     }
@@ -666,7 +702,9 @@ public class SongController {
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode) {
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo) {
         
         return songService.getFilteredChartData(
             q, artist, album,
@@ -676,7 +714,8 @@ public class SongController {
             gender, genderMode,
             ethnicity, ethnicityMode,
             country, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -722,5 +761,42 @@ public class SongController {
             // If parsing fails, return original
         }
         return dateStr;
+    }
+    
+    // ============================================
+    // Featured Artists API Endpoints
+    // ============================================
+    
+    /**
+     * Search artists by name for the featured artists autocomplete
+     */
+    @GetMapping("/api/artists/search")
+    @ResponseBody
+    public List<FeaturedArtistDTO> searchArtists(@RequestParam String q) {
+        return songService.searchArtists(q, 10);
+    }
+    
+    /**
+     * Get featured artists for a song
+     */
+    @GetMapping("/{id}/featured-artists")
+    @ResponseBody
+    public List<FeaturedArtistDTO> getFeaturedArtists(@PathVariable Integer id) {
+        return songService.getFeaturedArtistsForSong(id);
+    }
+    
+    /**
+     * Save featured artists for a song
+     */
+    @PostMapping("/{id}/featured-artists")
+    @ResponseBody
+    public String saveFeaturedArtists(@PathVariable Integer id, @RequestBody List<Integer> artistIds) {
+        try {
+            songService.saveFeaturedArtists(id, artistIds);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
     }
 }

@@ -97,6 +97,9 @@
                 <a th:href="@{'/songs/' + ${song.id} + '?tab=plays'}" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
                    class="detail-tab">Plays</a>
+                <a th:href="@{'/songs/' + ${song.id} + '?tab=featured'}" 
+                   th:classappend="${activeTab == 'featured'} ? 'active' : ''"
+                   class="detail-tab">Featured Artists</a>
             </div>
             
             <!-- Right side: Two-column layout for General and Statistics -->
@@ -232,6 +235,37 @@
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
+                                
+                                <!-- Featured Artists field (spans full width) - only shown in edit mode -->
+                                <div class="form-group form-group-full-width" id="featuredArtistsField" style="display:none;">
+                                    <label>Featured Artists</label>
+                                    <span class="attribute-text featured-artists-display" data-field="featuredArtists" style="display:none;">
+                                        <th:block th:if="${featuredArtists != null and !featuredArtists.isEmpty()}">
+                                            <th:block th:each="fa, stat : ${featuredArtists}">
+                                                <a th:href="@{'/artists/' + ${fa.artistId}}" 
+                                                   class="featured-artist-link"
+                                                   th:text="${fa.artistName}"></a><th:block th:if="${!stat.last}">, </th:block>
+                                            </th:block>
+                                        </th:block>
+                                        <th:block th:if="${featuredArtists == null or featuredArtists.isEmpty()}">-</th:block>
+                                    </span>
+                                    <!-- Featured Artists multi-select component (shown in edit mode) -->
+                                    <div id="featuredArtistsContainer" class="featured-artists-container" style="display:none;">
+                                        <div class="chips-input-wrapper">
+                                            <div id="featuredArtistsChips" class="chips-container">
+                                                <!-- Chips will be added here dynamically -->
+                                            </div>
+                                            <input type="text" 
+                                                   id="featuredArtistsInput" 
+                                                   class="chips-text-input"
+                                                   placeholder="Search artists..."
+                                                   autocomplete="off" />
+                                        </div>
+                                        <div id="featuredArtistsDropdown" class="chips-dropdown" style="display:none;">
+                                            <!-- Search results will appear here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -325,6 +359,64 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Featured Artists Tab Content -->
+            <div class="featured-tab-content" th:if="${activeTab == 'featured'}">
+                <div class="detail-content-card">
+                    <h2 class="section-title">Featured Artists 
+                        <span class="item-count">(<span th:text="${featuredArtistCards != null ? featuredArtistCards.size() : 0}">0</span>)</span>
+                    </h2>
+                    
+                    <div th:if="${featuredArtistCards == null or featuredArtistCards.isEmpty()}" class="no-items-message">
+                        <p>No featured artists for this song.</p>
+                    </div>
+                    
+                    <div th:if="${featuredArtistCards != null and !featuredArtistCards.isEmpty()}" class="featured-artist-grid">
+                        <div th:each="artist : ${featuredArtistCards}" 
+                             class="featured-artist-card"
+                             th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                            <a th:href="@{'/artists/' + ${artist.id}}" class="featured-artist-image item-image-container">
+                                <img th:if="${artist.hasImage}"
+                                     th:src="@{'/artists/' + ${artist.id} + '/image'}"
+                                     th:alt="${artist.name}">
+                                <div th:unless="${artist.hasImage}" class="no-image">
+                                    <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
+                                </div>
+                                <span class="flag-overlay" th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
+                                      th:title="${artist.country}">
+                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
+                                         th:alt="${artist.country}" />
+                                </span>
+                            </a>
+                            <div class="featured-artist-info">
+                                <a th:href="@{'/artists/' + ${artist.id}}">
+                                    <h3 class="featured-artist-name" th:text="${artist.name}">Artist Name</h3>
+                                </a>
+                                <div class="featured-artist-details" th:if="${artist.genderName != null or artist.ethnicityName != null}">
+                                    <span th:if="${artist.genderName != null}" th:text="${artist.genderName}"></span>
+                                    <span th:if="${artist.genderName != null and artist.ethnicityName != null}"> • </span>
+                                    <span th:if="${artist.ethnicityName != null}" th:text="${artist.ethnicityName}"></span>
+                                </div>
+                                <div class="featured-artist-metadata" th:if="${artist.genreName != null or artist.country != null}">
+                                    <span th:if="${artist.genreName != null}" th:text="${artist.genreName}"></span>
+                                    <span th:if="${artist.genreName != null and artist.country != null}"> • </span>
+                                    <span th:if="${artist.country != null}" th:text="${artist.country}"></span>
+                                </div>
+                                <div class="featured-artist-stats">
+                                    <div class="stat">
+                                        <span class="stat-icon">🎵</span>
+                                        <span class="stat-value" th:text="${artist.songCount}">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-icon">▶️</span>
+                                        <span class="stat-value" th:text="${artist.playCount}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -392,11 +484,31 @@
         });
     </script>
     
-    <script>
+    <script th:inline="javascript">
         let isEditing = false;
         
-        // Add form submit handler to convert mm:ss to seconds
+        // Featured artists state
+        let selectedFeaturedArtists = /*[[${featuredArtists}]]*/ [];
+        let searchTimeout = null;
+        
+        // Initialize featured artists from server data
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFeaturedArtists();
+        });
+        
+        function initializeFeaturedArtists() {
+            // Convert server data to our format
+            const serverData = /*[[${featuredArtists}]]*/ [];
+            selectedFeaturedArtists = serverData.map(fa => ({
+                artistId: fa.artistId,
+                artistName: fa.artistName
+            }));
+        }
+        
+        // Add form submit handler to convert mm:ss to seconds and save featured artists
         document.getElementById('songForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
             const lengthFormatted = document.getElementById('lengthFormatted').value;
             const lengthSecondsField = document.getElementById('lengthSeconds');
             
@@ -409,6 +521,30 @@
                     lengthSecondsField.value = totalSeconds;
                 }
             }
+            
+            // Save featured artists first, then submit the form
+            const songId = window.location.pathname.split('/').pop();
+            const artistIds = selectedFeaturedArtists.map(a => a.artistId);
+            
+            fetch(`/songs/${songId}/featured-artists`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(artistIds)
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data === 'success' || data === 'error') {
+                    // Submit the main form regardless (featured artists are saved separately)
+                    e.target.submit();
+                }
+            })
+            .catch(error => {
+                console.error('Error saving featured artists:', error);
+                // Still submit the main form
+                e.target.submit();
+            });
         });
         
         function toggleEdit() {
@@ -466,6 +602,16 @@
                         text.style.display = 'none';
                     }
                 });
+                
+                // Show featured artists field and container
+                const featuredArtistsField = document.getElementById('featuredArtistsField');
+                if (featuredArtistsField) {
+                    featuredArtistsField.style.display = 'block';
+                }
+                const featuredArtistsContainer = document.getElementById('featuredArtistsContainer');
+                if (featuredArtistsContainer) {
+                    featuredArtistsContainer.style.display = 'block';
+                }
             } else {
                 window.location.reload();
             }
@@ -586,6 +732,129 @@
             });
         }
         
+        // ============================================
+        // Featured Artists Functions
+        // ============================================
+        
+        function renderFeaturedArtistChips() {
+            const chipsContainer = document.getElementById('featuredArtistsChips');
+            if (!chipsContainer) return;
+            
+            chipsContainer.innerHTML = '';
+            
+            selectedFeaturedArtists.forEach(artist => {
+                const chip = document.createElement('span');
+                chip.className = 'artist-chip';
+                chip.innerHTML = `
+                    ${escapeHtml(artist.artistName)}
+                    <button type="button" class="chip-remove" onclick="removeFeaturedArtist(${artist.artistId})">&times;</button>
+                `;
+                chipsContainer.appendChild(chip);
+            });
+        }
+        
+        function removeFeaturedArtist(artistId) {
+            selectedFeaturedArtists = selectedFeaturedArtists.filter(a => a.artistId !== artistId);
+            renderFeaturedArtistChips();
+        }
+        
+        function addFeaturedArtist(artistId, artistName) {
+            // Check if already added
+            if (selectedFeaturedArtists.some(a => a.artistId === artistId)) {
+                return;
+            }
+            
+            selectedFeaturedArtists.push({ artistId, artistName });
+            renderFeaturedArtistChips();
+            
+            // Clear input and hide dropdown
+            const input = document.getElementById('featuredArtistsInput');
+            if (input) {
+                input.value = '';
+            }
+            hideFeaturedArtistsDropdown();
+        }
+        
+        function searchFeaturedArtists(query) {
+            if (!query || query.trim().length < 1) {
+                hideFeaturedArtistsDropdown();
+                return;
+            }
+            
+            fetch(`/songs/api/artists/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(artists => {
+                    const dropdown = document.getElementById('featuredArtistsDropdown');
+                    if (!dropdown) return;
+                    
+                    // Filter out already selected artists
+                    const availableArtists = artists.filter(a => 
+                        !selectedFeaturedArtists.some(sa => sa.artistId === a.artistId)
+                    );
+                    
+                    if (availableArtists.length === 0) {
+                        dropdown.innerHTML = '<div class="dropdown-item no-results">No artists found</div>';
+                    } else {
+                        dropdown.innerHTML = availableArtists.map(a => `
+                            <div class="dropdown-item" onclick="addFeaturedArtist(${a.artistId}, '${escapeHtml(a.artistName).replace(/'/g, "\\'")}')">
+                                ${escapeHtml(a.artistName)}
+                            </div>
+                        `).join('');
+                    }
+                    
+                    dropdown.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error searching artists:', error);
+                    hideFeaturedArtistsDropdown();
+                });
+        }
+        
+        function hideFeaturedArtistsDropdown() {
+            const dropdown = document.getElementById('featuredArtistsDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Set up featured artists input listener
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('featuredArtistsInput');
+            if (input) {
+                input.addEventListener('input', function(e) {
+                    if (searchTimeout) {
+                        clearTimeout(searchTimeout);
+                    }
+                    searchTimeout = setTimeout(() => {
+                        searchFeaturedArtists(e.target.value);
+                    }, 200);
+                });
+                
+                input.addEventListener('focus', function() {
+                    if (this.value.trim().length >= 1) {
+                        searchFeaturedArtists(this.value);
+                    }
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('featuredArtistsContainer');
+                if (container && !container.contains(e.target)) {
+                    hideFeaturedArtistsDropdown();
+                }
+            });
+            
+            // Render initial chips when entering edit mode
+            renderFeaturedArtistChips();
+        });
+        
         // Note: rely on global showTooltip/hideTooltip defined in fragments/navigation.html
     </script>
     
@@ -601,6 +870,139 @@
         .btn-negative:disabled:hover {
             background-color: #4a4a4a;
             color: #888;
+        }
+        
+        /* Featured Artists Styles */
+        .form-group-full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .featured-artists-display {
+            display: inline;
+        }
+        
+        .featured-artist-link {
+            color: #e5e7eb;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .featured-artist-link:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        
+        .featured-artists-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .chips-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            min-height: 42px;
+        }
+        
+        .chips-input-wrapper:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .artist-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #3b82f6;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+        
+        .chip-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            padding: 0;
+            margin-left: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .chip-remove:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        
+        .chips-text-input {
+            flex: 1;
+            min-width: 120px;
+            padding: 4px 0;
+            background: transparent;
+            border: none;
+            color: #e5e7eb;
+            font-size: 0.9em;
+            outline: none;
+        }
+        
+        .chips-text-input::placeholder {
+            color: #6b7280;
+        }
+        
+        .chips-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dropdown-item {
+            padding: 10px 12px;
+            color: #e5e7eb;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        .dropdown-item:hover {
+            background: #374151;
+        }
+        
+        .dropdown-item.no-results {
+            color: #6b7280;
+            font-style: italic;
+            cursor: default;
+        }
+        
+        .dropdown-item.no-results:hover {
+            background: transparent;
         }
     </style>
 </body>

@@ -66,14 +66,19 @@ public class LanguageService {
                 COALESCE(stats.song_count, 0) as song_count,
                 COALESCE(stats.male_song_count, 0) as male_song_count,
                 COALESCE(stats.female_song_count, 0) as female_song_count,
+                COALESCE(stats.other_song_count, 0) as other_song_count,
                 COALESCE(stats.male_artist_count, 0) as male_artist_count,
                 COALESCE(stats.female_artist_count, 0) as female_artist_count,
+                COALESCE(stats.other_artist_count, 0) as other_artist_count,
                 COALESCE(stats.male_album_count, 0) as male_album_count,
                 COALESCE(stats.female_album_count, 0) as female_album_count,
+                COALESCE(stats.other_album_count, 0) as other_album_count,
                 COALESCE(stats.male_play_count, 0) as male_play_count,
                 COALESCE(stats.female_play_count, 0) as female_play_count,
+                COALESCE(stats.other_play_count, 0) as other_play_count,
                 COALESCE(stats.male_time_listened, 0) as male_time_listened,
-                COALESCE(stats.female_time_listened, 0) as female_time_listened
+                COALESCE(stats.female_time_listened, 0) as female_time_listened,
+                COALESCE(stats.other_time_listened, 0) as other_time_listened
             FROM Language l
             LEFT JOIN (
                 SELECT 
@@ -85,14 +90,19 @@ public class LanguageService {
                     COUNT(DISTINCT s.id) as song_count,
                     SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_song_count,
                     SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_song_count,
+                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as other_song_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) as male_artist_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END) as female_artist_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) as other_artist_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count,
                     SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened
+                    SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened
                 FROM Song s
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
@@ -105,7 +115,7 @@ public class LanguageService {
             ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
         
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Object[] row = new Object[18];
+            Object[] row = new Object[23];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getInt("has_image");
@@ -116,14 +126,19 @@ public class LanguageService {
             row[7] = rs.getInt("song_count");
             row[8] = rs.getInt("male_song_count");
             row[9] = rs.getInt("female_song_count");
-            row[10] = rs.getInt("male_artist_count");
-            row[11] = rs.getInt("female_artist_count");
-            row[12] = rs.getInt("male_album_count");
-            row[13] = rs.getInt("female_album_count");
-            row[14] = rs.getInt("male_play_count");
-            row[15] = rs.getInt("female_play_count");
-            row[16] = rs.getLong("male_time_listened");
-            row[17] = rs.getLong("female_time_listened");
+            row[10] = rs.getInt("other_song_count");
+            row[11] = rs.getInt("male_artist_count");
+            row[12] = rs.getInt("female_artist_count");
+            row[13] = rs.getInt("other_artist_count");
+            row[14] = rs.getInt("male_album_count");
+            row[15] = rs.getInt("female_album_count");
+            row[16] = rs.getInt("other_album_count");
+            row[17] = rs.getInt("male_play_count");
+            row[18] = rs.getInt("female_play_count");
+            row[19] = rs.getInt("other_play_count");
+            row[20] = rs.getLong("male_time_listened");
+            row[21] = rs.getLong("female_time_listened");
+            row[22] = rs.getLong("other_time_listened");
             return row;
         }, name, name, perPage, offset);
         
@@ -141,14 +156,19 @@ public class LanguageService {
             dto.setSongCount((Integer) row[7]);
             dto.setMaleCount((Integer) row[8]);
             dto.setFemaleCount((Integer) row[9]);
-            dto.setMaleArtistCount((Integer) row[10]);
-            dto.setFemaleArtistCount((Integer) row[11]);
-            dto.setMaleAlbumCount((Integer) row[12]);
-            dto.setFemaleAlbumCount((Integer) row[13]);
-            dto.setMalePlayCount((Integer) row[14]);
-            dto.setFemalePlayCount((Integer) row[15]);
-            dto.setMaleTimeListened((Long) row[16]);
-            dto.setFemaleTimeListened((Long) row[17]);
+            dto.setOtherCount((Integer) row[10]);
+            dto.setMaleArtistCount((Integer) row[11]);
+            dto.setFemaleArtistCount((Integer) row[12]);
+            dto.setOtherArtistCount((Integer) row[13]);
+            dto.setMaleAlbumCount((Integer) row[14]);
+            dto.setFemaleAlbumCount((Integer) row[15]);
+            dto.setOtherAlbumCount((Integer) row[16]);
+            dto.setMalePlayCount((Integer) row[17]);
+            dto.setFemalePlayCount((Integer) row[18]);
+            dto.setOtherPlayCount((Integer) row[19]);
+            dto.setMaleTimeListened((Long) row[20]);
+            dto.setFemaleTimeListened((Long) row[21]);
+            dto.setOtherTimeListened((Long) row[22]);
             languages.add(dto);
         }
         

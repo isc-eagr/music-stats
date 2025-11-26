@@ -372,8 +372,8 @@
             
             <!-- Tab Navigation -->
             <div class="charts-tabs">
-                <button class="charts-tab-btn active" data-tab="general" onclick="switchTab('general')">General</button>
-                <button class="charts-tab-btn" data-tab="top" onclick="switchTab('top')">Top</button>
+                <button class="charts-tab-btn active" data-tab="top" onclick="switchTab('top')">Top</button>
+                <button class="charts-tab-btn" data-tab="general" onclick="switchTab('general')">General</button>
                 <button class="charts-tab-btn" data-tab="genre" onclick="switchTab('genre')">Genre</button>
                 <button class="charts-tab-btn" data-tab="subgenre" onclick="switchTab('subgenre')">Subgenre</button>
                 <button class="charts-tab-btn" data-tab="ethnicity" onclick="switchTab('ethnicity')">Ethnicity</button>
@@ -390,7 +390,7 @@
                 </div>
                 
                 <!-- Tab 1: General -->
-                <div id="tab-general" class="tab-content active">
+                <div id="tab-general" class="tab-content">
                     <div class="tab-loading" id="loading-general" style="display: none;">
                         <div class="spinner"></div>
                         <span>Loading charts...</span>
@@ -408,7 +408,7 @@
                 </div>
                 
                 <!-- Tab 2: Top -->
-                <div id="tab-top" class="tab-content">
+                <div id="tab-top" class="tab-content active">
                     <div class="tab-loading" id="loading-top" style="display: none;">
                         <div class="spinner"></div>
                         <span>Loading top data...</span>

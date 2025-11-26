@@ -1,5 +1,7 @@
 package library.service;
 
+import library.dto.FeaturedArtistCardDTO;
+import library.dto.FeaturedArtistDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.dto.SongCardDTO;
@@ -8,6 +10,7 @@ import library.repository.LookupRepository;
 import library.repository.SongRepositoryNew;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,22 +71,23 @@ public class SongService {
             dto.setEthnicityId(row[12] != null ? ((Number) row[12]).intValue() : null);
             dto.setEthnicityName((String) row[13]);
             dto.setReleaseYear((String) row[14]);
-            dto.setLengthSeconds(row[15] != null ? ((Number) row[15]).intValue() : null);
-            dto.setHasImage(row[16] != null && ((Number) row[16]).intValue() == 1);
-            dto.setGenderName((String) row[17]);
-            dto.setPlayCount(row[18] != null ? ((Number) row[18]).intValue() : 0);
+            dto.setReleaseDate(row[15] != null ? formatDate((String) row[15]) : null);
+            dto.setLengthSeconds(row[16] != null ? ((Number) row[16]).intValue() : null);
+            dto.setHasImage(row[17] != null && ((Number) row[17]).intValue() == 1);
+            dto.setGenderName((String) row[18]);
+            dto.setPlayCount(row[19] != null ? ((Number) row[19]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[19] != null ? ((Number) row[19]).longValue() : 0L;
+            long timeListened = row[20] != null ? ((Number) row[20]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
             
-            // Set first and last listened dates (indices 20 and 21)
-            dto.setFirstListenedDate(row[20] != null ? formatDate((String) row[20]) : null);
-            dto.setLastListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
+            // Set first and last listened dates (indices 21 and 22)
+            dto.setFirstListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
+            dto.setLastListenedDate(row[22] != null ? formatDate((String) row[22]) : null);
             
-            // Set country (inherited from artist, index 22)
-            dto.setCountry((String) row[22]);
+            // Set country (inherited from artist, index 23)
+            dto.setCountry((String) row[23]);
             
             // Format length
             if (dto.getLengthSeconds() != null) {
@@ -583,7 +587,8 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getFilteredChartData(
             name, artistName, albumName,
@@ -593,7 +598,8 @@ public class SongService {
             genderIds, genderMode,
             ethnicityIds, ethnicityMode,
             countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -606,14 +612,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getGeneralChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -626,14 +634,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getGenreChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -646,14 +656,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getSubgenreChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -666,14 +678,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getEthnicityChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -686,14 +700,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getLanguageChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -706,14 +722,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getCountryChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -726,14 +744,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getReleaseYearChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -746,14 +766,16 @@ public class SongService {
             List<Integer> genderIds, String genderMode,
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode) {
+            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo) {
         
         return songRepository.getListenYearChartData(
             name, artistName, albumName,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo
         );
     }
     
@@ -767,6 +789,7 @@ public class SongService {
             List<Integer> ethnicityIds, String ethnicityMode,
             List<String> countries, String countryMode,
             String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+            String listenedDateFrom, String listenedDateTo,
             int limit) {
         
         return songRepository.getTopChartData(
@@ -775,6 +798,7 @@ public class SongService {
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            listenedDateFrom, listenedDateTo,
             limit
         );
     }
@@ -841,6 +865,137 @@ public class SongService {
             PlaysByYearDTO dto = new PlaysByYearDTO();
             dto.setYear(rs.getString("year"));
             dto.setPlayCount(rs.getLong("play_count"));
+            return dto;
+        }, songId);
+    }
+    
+    // ============================================
+    // Featured Artists Methods
+    // ============================================
+    
+    /**
+     * Get all featured artists for a song
+     */
+    public List<FeaturedArtistDTO> getFeaturedArtistsForSong(int songId) {
+        String sql = """
+            SELECT sfa.artist_id, a.name as artist_name
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Artist a ON sfa.artist_id = a.id
+            WHERE sfa.song_id = ?
+            ORDER BY a.name
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            FeaturedArtistDTO dto = new FeaturedArtistDTO();
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setArtistName(rs.getString("artist_name"));
+            return dto;
+        }, songId);
+    }
+    
+    /**
+     * Search artists by name for the featured artists autocomplete
+     */
+    public List<FeaturedArtistDTO> searchArtists(String query, int limit) {
+        String sql = """
+            SELECT id, name
+            FROM Artist
+            WHERE LOWER(name) LIKE LOWER(?)
+            ORDER BY name
+            LIMIT ?
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            FeaturedArtistDTO dto = new FeaturedArtistDTO();
+            dto.setArtistId(rs.getInt("id"));
+            dto.setArtistName(rs.getString("name"));
+            return dto;
+        }, "%" + query + "%", limit);
+    }
+    
+    /**
+     * Save featured artists for a song (replaces all existing)
+     */
+    @Transactional
+    public void saveFeaturedArtists(int songId, List<Integer> artistIds) {
+        // First, delete all existing featured artists for this song
+        jdbcTemplate.update("DELETE FROM SongFeaturedArtist WHERE song_id = ?", songId);
+        
+        // Then insert the new ones
+        if (artistIds != null && !artistIds.isEmpty()) {
+            String insertSql = "INSERT INTO SongFeaturedArtist (song_id, artist_id, creation_date) VALUES (?, ?, CURRENT_TIMESTAMP)";
+            for (Integer artistId : artistIds) {
+                jdbcTemplate.update(insertSql, songId, artistId);
+            }
+        }
+    }
+    
+    /**
+     * Get featured artist cards for a song (for the Featured Artists tab)
+     * Returns full artist card data sorted alphabetically
+     */
+    public List<FeaturedArtistCardDTO> getFeaturedArtistCardsForSong(int songId) {
+        String sql = """
+            SELECT 
+                a.id,
+                a.name,
+                a.gender_id,
+                g.name as gender_name,
+                a.ethnicity_id,
+                e.name as ethnicity_name,
+                a.genre_id,
+                gr.name as genre_name,
+                a.subgenre_id,
+                sg.name as subgenre_name,
+                a.language_id,
+                l.name as language_name,
+                a.country,
+                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
+                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
+                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                COALESCE(scr.play_count, 0) as play_count,
+                COALESCE(scr.time_listened, 0) as time_listened
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Artist a ON sfa.artist_id = a.id
+            LEFT JOIN Gender g ON a.gender_id = g.id
+            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
+            LEFT JOIN Genre gr ON a.genre_id = gr.id
+            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
+            LEFT JOIN Language l ON a.language_id = l.id
+            LEFT JOIN (
+                SELECT s.artist_id, COUNT(*) as play_count, 
+                       SUM(COALESCE(s.length_seconds, 0)) as time_listened
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                GROUP BY s.artist_id
+            ) scr ON a.id = scr.artist_id
+            WHERE sfa.song_id = ?
+            ORDER BY a.name
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setName(rs.getString("name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            dto.setGenderName(rs.getString("gender_name"));
+            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
+            dto.setEthnicityName(rs.getString("ethnicity_name"));
+            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
+            dto.setGenreName(rs.getString("genre_name"));
+            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
+            dto.setSubgenreName(rs.getString("subgenre_name"));
+            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
+            dto.setLanguageName(rs.getString("language_name"));
+            dto.setCountry(rs.getString("country"));
+            dto.setSongCount(rs.getInt("song_count"));
+            dto.setAlbumCount(rs.getInt("album_count"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setPlayCount(rs.getInt("play_count"));
+            long timeListened = rs.getLong("time_listened");
+            dto.setTimeListened(timeListened);
+            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setFeatureCount(1); // For songs, each featured artist only appears once
             return dto;
         }, songId);
     }

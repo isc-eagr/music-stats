@@ -14,6 +14,7 @@ public class AlbumCardDTO {
     private Integer ethnicityId;
     private String ethnicityName;
     private String releaseYear;
+    private String releaseDate;
     private String firstListenedDate;
     private String lastListenedDate;
     private Integer songCount;
@@ -127,6 +128,14 @@ public class AlbumCardDTO {
 
     public void setReleaseYear(String releaseYear) {
         this.releaseYear = releaseYear;
+    }
+
+    public String getReleaseDate() {
+        return releaseDate;
+    }
+
+    public void setReleaseDate(String releaseDate) {
+        this.releaseDate = releaseDate;
     }
 
     public String getFirstListenedDate() {

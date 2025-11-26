@@ -170,6 +170,14 @@
             border-radius: 6px;
         }
         .discreet-link a:hover { color: #9a9a9a; background-color: rgba(255,255,255,0.02); }
+        
+        .row-separator {
+            width: 100%;
+            max-width: 600px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #333333, transparent);
+            margin: 32px auto;
+        }
     </style>
 </head>
 <body>
@@ -178,6 +186,7 @@
         <h1 class="hero-title">Music Stats</h1>
         <p class="hero-subtitle">Explore your music library</p>
         
+        <!-- Row 1: Core catalogs -->
         <div class="quick-links">
             <a href="/artists" class="quick-link-card">
                 <div class="quick-link-icon">🎤</div>
@@ -195,6 +204,17 @@
                 <div class="quick-link-icon">🎵</div>
                 <h2 class="quick-link-title">Songs</h2>
                 <p class="quick-link-description">Discover and edit your songs</p>
+            </a>
+        </div>
+        
+        <div class="row-separator"></div>
+        
+        <!-- Row 2: Attribute catalogs -->
+        <div class="quick-links" style="margin-top: 24px;">
+            <a href="/genders" class="quick-link-card">
+                <div class="quick-link-icon">⚥</div>
+                <h2 class="quick-link-title">Genders</h2>
+                <p class="quick-link-description">View artists by gender</p>
             </a>
             
             <a href="/genres" class="quick-link-card">
@@ -215,10 +235,57 @@
                 <p class="quick-link-description">View artists by ethnicity</p>
             </a>
             
+            <a href="/countries" class="quick-link-card">
+                <div class="quick-link-icon">🌐</div>
+                <h2 class="quick-link-title">Countries</h2>
+                <p class="quick-link-description">Explore artists by country</p>
+            </a>
+            
             <a href="/languages" class="quick-link-card">
                 <div class="quick-link-icon">🗣️</div>
                 <h2 class="quick-link-title">Languages</h2>
                 <p class="quick-link-description">Discover music by language</p>
+            </a>
+        </div>
+        
+        <div class="row-separator"></div>
+        
+        <!-- Row 3: Timeframes -->
+        <div class="quick-links" style="margin-top: 24px;">
+            <a href="/days" class="quick-link-card">
+                <div class="quick-link-icon">📅</div>
+                <h2 class="quick-link-title">Days</h2>
+                <p class="quick-link-description">View listening stats by day</p>
+            </a>
+            
+            <a href="/weeks" class="quick-link-card">
+                <div class="quick-link-icon">📆</div>
+                <h2 class="quick-link-title">Weeks</h2>
+                <p class="quick-link-description">View listening stats by week</p>
+            </a>
+            
+            <a href="/months" class="quick-link-card">
+                <div class="quick-link-icon">🗓️</div>
+                <h2 class="quick-link-title">Months</h2>
+                <p class="quick-link-description">View listening stats by month</p>
+            </a>
+            
+            <a href="/seasons" class="quick-link-card">
+                <div class="quick-link-icon">🌸</div>
+                <h2 class="quick-link-title">Seasons</h2>
+                <p class="quick-link-description">View listening stats by season</p>
+            </a>
+            
+            <a href="/years" class="quick-link-card">
+                <div class="quick-link-icon">📊</div>
+                <h2 class="quick-link-title">Years</h2>
+                <p class="quick-link-description">View listening stats by year</p>
+            </a>
+            
+            <a href="/decades" class="quick-link-card">
+                <div class="quick-link-icon">🔟</div>
+                <h2 class="quick-link-title">Decades</h2>
+                <p class="quick-link-description">View listening stats by decade</p>
             </a>
         </div>
         

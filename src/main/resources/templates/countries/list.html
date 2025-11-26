@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countries - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container">
+        <!-- Header with search and filters -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1 style="margin: 0;">Countries</h1>
+            </div>
+            <div class="controls">
+                <div class="search-bar">
+                    <form method="get" action="/countries">
+                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search countries...">
+                        <button type="submit" class="btn-action">Search</button>
+                    </form>
+                </div>
+                
+                <div class="sort-section">
+                    <!-- Sort By Dropdown -->
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                        <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                            <option value="name" th:selected="${sortBy == 'name'}">Name</option>
+                            <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
+                            <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
+                            <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
+                        </select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
+                                th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir == 'desc'}">↓</span>
+                            <span th:if="${sortDir != 'desc'}">↑</span>
+                        </button>
+                    </div>
+                    
+                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
+                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                               style="width: 70px;" onchange="changePageSize(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Filters Chips -->
+        <div class="active-filters" id="activeFilters">
+            <div class="filter-chip" th:if="${searchQuery != null and !searchQuery.isEmpty()}">
+                <span class="filter-chip-label">Name is</span>
+                <span class="filter-chip-value" th:text="${searchQuery}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('q')" type="button">×</button>
+            </div>
+            
+            <button class="clear-all-filters" onclick="clearFilters()" type="button" 
+                    th:if="${searchQuery != null and !searchQuery.isEmpty()}">
+                Clear
+            </button>
+        </div>
+        
+        <!-- Pagination controls (top) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+        
+        <!-- Pagination info -->
+        <div class="pagination-info">
+            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
+        </div>
+        
+        <!-- Country cards grid -->
+        <div class="catalog-grid">
+            <div th:each="country : ${countries}" class="catalog-card" style="cursor: pointer;"
+                 th:data-name="${country.name}"
+                 onclick="openChartsModalWithFilter('country', this.getAttribute('data-name'), this.getAttribute('data-name'))">
+                <div class="catalog-image">
+                    <div class="catalog-icon" title="Country">
+                        🌐
+                    </div>
+                </div>
+                
+                <div class="catalog-info">
+                    <h3 class="catalog-name" th:text="${country.name}">Country Name</h3>
+                    
+                    <div class="catalog-stats">
+                        <div class="stat">
+                            <span class="stat-icon">🎤</span>
+                            <span class="stat-value" th:text="${country.artistCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">💿</span>
+                            <span class="stat-value" th:text="${country.albumCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🎵</span>
+                            <span class="stat-value" th:text="${country.songCount}">0</span>
+                        </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
+                        <div class="stat">
+                            <span class="stat-icon">▶️</span>
+                            <span class="stat-value" th:text="${country.playCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🕒</span>
+                            <span class="stat-value" th:text="${country.timeListenedFormatted}">0m</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Gender breakdown bars -->
+                    <div class="gender-bars-container">
+                        <div class="gender-bar-row" th:if="${country.maleArtistCount > 0 or country.femaleArtistCount > 0 or country.otherArtistCount > 0}">
+                            <span class="gender-bar-icon" title="Artists">🎤</span>
+                            <div class="gender-bar" th:with="total=${country.maleArtistCount + country.femaleArtistCount + country.otherArtistCount}">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.maleArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${country.maleArtistCount} + ' (' + ${#numbers.formatDecimal((country.maleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.femaleArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${country.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((country.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.otherArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${country.otherArtistCount} + ' (' + ${#numbers.formatDecimal((country.otherArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${country.maleAlbumCount > 0 or country.femaleAlbumCount > 0 or country.otherAlbumCount > 0}">
+                            <span class="gender-bar-icon" title="Albums">💿</span>
+                            <div class="gender-bar" th:with="total=${country.maleAlbumCount + country.femaleAlbumCount + country.otherAlbumCount}">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.maleAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${country.maleAlbumCount} + ' (' + ${#numbers.formatDecimal((country.maleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.femaleAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${country.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((country.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.otherAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${country.otherAlbumCount} + ' (' + ${#numbers.formatDecimal((country.otherAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${country.maleCount > 0 or country.femaleCount > 0 or country.otherCount > 0}">
+                            <span class="gender-bar-icon" title="Songs">🎵</span>
+                            <div class="gender-bar" th:with="total=${country.maleCount + country.femaleCount + country.otherCount}">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.maleCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${country.maleCount} + ' (' + ${#numbers.formatDecimal((country.maleCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.femaleCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${country.femaleCount} + ' (' + ${#numbers.formatDecimal((country.femaleCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.otherCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${country.otherCount} + ' (' + ${#numbers.formatDecimal((country.otherCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${country.malePlayCount > 0 or country.femalePlayCount > 0 or country.otherPlayCount > 0}">
+                            <span class="gender-bar-icon" title="Plays">▶️</span>
+                            <div class="gender-bar" th:with="total=${country.malePlayCount + country.femalePlayCount + country.otherPlayCount}">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.malePlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${country.malePlayCount} + ' (' + ${#numbers.formatDecimal((country.malePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.femalePlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${country.femalePlayCount} + ' (' + ${#numbers.formatDecimal((country.femalePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.otherPlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${country.otherPlayCount} + ' (' + ${#numbers.formatDecimal((country.otherPlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${country.maleTimeListened > 0 or country.femaleTimeListened > 0 or country.otherTimeListened > 0}">
+                            <span class="gender-bar-icon" title="Listening Time">🕒</span>
+                            <div class="gender-bar" th:with="total=${country.maleTimeListened + country.femaleTimeListened + country.otherTimeListened}">
+                                <div class="gender-male-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.maleTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((country.maleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
+                                <div class="gender-female-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.femaleTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((country.femaleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${country.otherTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${#numbers.formatDecimal((country.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination controls (bottom) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/countries(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+    </div>
+    
+    <script>
+        function changeSortBy(sortValue) {
+            const url = new URL(window.location);
+            url.searchParams.set('sortby', sortValue);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function toggleSortDirection() {
+            const url = new URL(window.location);
+            const currentDir = url.searchParams.get('sortdir') || 'asc';
+            url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function changePageSize(newSize) {
+            const url = new URL(window.location);
+            url.searchParams.set('perpage', newSize);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function clearFilters() {
+            const sortBy = document.getElementById('sortBySelect').value;
+            window.location.href = '/countries?sortby=' + sortBy;
+        }
+        
+        function removeFilter(paramName) {
+            const url = new URL(window.location);
+            url.searchParams.delete(paramName);
+            window.location.href = url.toString();
+        }
+        
+        function goToPage(pageNum) {
+            const url = new URL(window.location);
+            url.searchParams.set('page', pageNum);
+            window.location.href = url.toString();
+        }
+    </script>
+    
+    <!-- Charts Modal (included from fragment) -->
+    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
+</body>
+</html>

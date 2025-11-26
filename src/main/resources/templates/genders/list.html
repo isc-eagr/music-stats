@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genders - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container">
+        <!-- Header with search and filters -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1 style="margin: 0;">Genders</h1>
+            </div>
+            <div class="controls">
+                <div class="search-bar">
+                    <form method="get" action="/genders">
+                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search genders...">
+                        <button type="submit" class="btn-action">Search</button>
+                    </form>
+                </div>
+                
+                <div class="sort-section">
+                    <!-- Sort By Dropdown -->
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                        <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                            <option value="name" th:selected="${sortBy == 'name'}">Name</option>
+                            <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
+                            <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
+                            <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
+                        </select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
+                                th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir == 'desc'}">↓</span>
+                            <span th:if="${sortDir != 'desc'}">↑</span>
+                        </button>
+                    </div>
+                    
+                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
+                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                               style="width: 70px;" onchange="changePageSize(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Filters Chips -->
+        <div class="active-filters" id="activeFilters">
+            <div class="filter-chip" th:if="${searchQuery != null and !searchQuery.isEmpty()}">
+                <span class="filter-chip-label">Name is</span>
+                <span class="filter-chip-value" th:text="${searchQuery}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('q')" type="button">×</button>
+            </div>
+            
+            <button class="clear-all-filters" onclick="clearFilters()" type="button" 
+                    th:if="${searchQuery != null and !searchQuery.isEmpty()}">
+                Clear
+            </button>
+        </div>
+        
+        <!-- Pagination controls (top) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+        
+        <!-- Pagination info -->
+        <div class="pagination-info">
+            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
+        </div>
+        
+        <!-- Gender cards grid -->
+        <div class="catalog-grid">
+            <div th:each="gender : ${genders}" class="catalog-card" style="cursor: pointer;"
+                 th:data-id="${gender.id}"
+                 th:data-name="${gender.name}"
+                 onclick="openChartsModalWithFilter('gender', this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                <div class="catalog-image">
+                    <div class="catalog-icon" title="Gender">
+                        ⚥
+                    </div>
+                </div>
+                
+                <div class="catalog-info">
+                    <h3 class="catalog-name" th:text="${gender.name}">Gender Name</h3>
+                    
+                    <div class="catalog-stats">
+                        <div class="stat">
+                            <span class="stat-icon">🎤</span>
+                            <span class="stat-value" th:text="${gender.artistCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">💿</span>
+                            <span class="stat-value" th:text="${gender.albumCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🎵</span>
+                            <span class="stat-value" th:text="${gender.songCount}">0</span>
+                        </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
+                        <div class="stat">
+                            <span class="stat-icon">▶️</span>
+                            <span class="stat-value" th:text="${gender.playCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🕒</span>
+                            <span class="stat-value" th:text="${gender.timeListenedFormatted}">0m</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination controls (bottom) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+            
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+            
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
+                of <span th:text="${totalPages}"></span>
+            </span>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+            
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/genders(q=${searchQuery}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+    </div>
+    
+    <script>
+        function changeSortBy(sortValue) {
+            const url = new URL(window.location);
+            url.searchParams.set('sortby', sortValue);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function toggleSortDirection() {
+            const url = new URL(window.location);
+            const currentDir = url.searchParams.get('sortdir') || 'asc';
+            url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function changePageSize(newSize) {
+            const url = new URL(window.location);
+            url.searchParams.set('perpage', newSize);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+        
+        function clearFilters() {
+            const sortBy = document.getElementById('sortBySelect').value;
+            window.location.href = '/genders?sortby=' + sortBy;
+        }
+        
+        function removeFilter(paramName) {
+            const url = new URL(window.location);
+            url.searchParams.delete(paramName);
+            window.location.href = url.toString();
+        }
+        
+        function goToPage(pageNum) {
+            const url = new URL(window.location);
+            url.searchParams.set('page', pageNum);
+            window.location.href = url.toString();
+        }
+    </script>
+    
+    <!-- Charts Modal (included from fragment) -->
+    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
+</body>
+</html>

@@ -16,7 +16,6 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1 style="margin: 0;">Genres</h1>
                 <div style="display: flex; gap: 10px;">
-                    <button class="charts-toggle" onclick="openChartsModal()">📊 Charts</button>
                     <button type="button" class="btn-action" onclick="openCreateModal()">New Genre</button>
                 </div>
             </div>
@@ -70,11 +69,6 @@
             </button>
         </div>
         
-        <!-- Pagination info -->
-        <div class="pagination-info">
-            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
-        </div>
-        
         <!-- Pagination controls (top) -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
@@ -100,22 +94,28 @@
                class="page-btn">»</a>
         </div>
         
+        <!-- Pagination info -->
+        <div class="pagination-info">
+            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
+        </div>
+        
         <!-- Genre cards grid -->
         <div class="catalog-grid">
-            <div th:each="genre : ${genres}" class="catalog-card">
-                <a th:href="@{'/genres/' + ${genre.id}}" class="catalog-image">
+            <div th:each="genre : ${genres}" class="catalog-card" style="cursor: pointer;"
+                 th:data-id="${genre.id}"
+                 th:data-name="${genre.name}"
+                 onclick="openChartsModalWithFilter('genre', this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                <div class="catalog-image">
                     <img th:if="${genre.hasImage}" 
                          th:src="@{'/genres/' + ${genre.id} + '/image'}" 
                          th:alt="${genre.name}">
                     <div th:unless="${genre.hasImage}" class="catalog-icon" title="No image">
                         🎸
                     </div>
-                </a>
+                </div>
                 
                 <div class="catalog-info">
-                    <a th:href="@{'/genres/' + ${genre.id}}">
-                        <h3 class="catalog-name" th:text="${genre.name}">Genre Name</h3>
-                    </a>
+                    <h3 class="catalog-name" th:text="${genre.name}">Genre Name</h3>
                     
                     <div class="catalog-stats">
                         <div class="stat">
@@ -144,59 +144,74 @@
                     
                     <!-- Gender breakdown bars -->
                     <div class="gender-bars-container">
-                        <div class="gender-bar-row" th:if="${genre.maleArtistCount > 0 or genre.femaleArtistCount > 0}">
+                        <div class="gender-bar-row" th:if="${genre.maleArtistCount > 0 or genre.femaleArtistCount > 0 or genre.otherArtistCount > 0}">
                             <span class="gender-bar-icon" title="Artists">🎤</span>
-                            <div class="gender-bar" th:attr="data-male-pct=${#numbers.formatDecimal((genre.maleArtistCount * 100.0 / (genre.maleArtistCount + genre.femaleArtistCount)), 1, 2)}, data-female-pct=${#numbers.formatDecimal((genre.femaleArtistCount * 100.0 / (genre.maleArtistCount + genre.femaleArtistCount)), 1, 2)}">
+                            <div class="gender-bar" th:with="total=${genre.maleArtistCount + genre.femaleArtistCount + genre.otherArtistCount}">
                                 <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${genre.maleArtistCount + genre.femaleArtistCount > 0} ? (${genre.maleArtistCount} * 100 / (${genre.maleArtistCount} + ${genre.femaleArtistCount})) : 0) + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal((genre.maleArtistCount * 100.0 / (genre.maleArtistCount + genre.femaleArtistCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.maleArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${genre.maleArtistCount} + ' (' + ${#numbers.formatDecimal((genre.maleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-female-bar" 
-                                     th:style="'width: ' + (${genre.maleArtistCount + genre.femaleArtistCount > 0} ? (${genre.femaleArtistCount} * 100 / (${genre.maleArtistCount + genre.femaleArtistCount})) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((genre.femaleArtistCount * 100.0 / (genre.maleArtistCount + genre.femaleArtistCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.femaleArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${genre.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((genre.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${genre.otherArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${genre.otherArtistCount} + ' (' + ${#numbers.formatDecimal((genre.otherArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
                             </div>
                         </div>
-                        <div class="gender-bar-row" th:if="${genre.maleAlbumCount > 0 or genre.femaleAlbumCount > 0}">
+                        <div class="gender-bar-row" th:if="${genre.maleAlbumCount > 0 or genre.femaleAlbumCount > 0 or genre.otherAlbumCount > 0}">
                             <span class="gender-bar-icon" title="Albums">💿</span>
-                            <div class="gender-bar">
+                            <div class="gender-bar" th:with="total=${genre.maleAlbumCount + genre.femaleAlbumCount + genre.otherAlbumCount}">
                                 <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${genre.maleAlbumCount + genre.femaleAlbumCount > 0} ? (${genre.maleAlbumCount} * 100 / (${genre.maleAlbumCount} + ${genre.femaleAlbumCount})) : 0) + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal((genre.maleAlbumCount * 100.0 / (genre.maleAlbumCount + genre.femaleAlbumCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.maleAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${genre.maleAlbumCount} + ' (' + ${#numbers.formatDecimal((genre.maleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-female-bar" 
-                                     th:style="'width: ' + (${genre.maleAlbumCount + genre.femaleAlbumCount > 0} ? (${genre.femaleAlbumCount} * 100 / (${genre.maleAlbumCount} + ${genre.femaleAlbumCount})) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((genre.femaleAlbumCount * 100.0 / (genre.maleAlbumCount + genre.femaleAlbumCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.femaleAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${genre.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((genre.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${genre.otherAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${genre.otherAlbumCount} + ' (' + ${#numbers.formatDecimal((genre.otherAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
                             </div>
                         </div>
-                        <div class="gender-bar-row" th:if="${genre.maleCount > 0 or genre.femaleCount > 0}">
+                        <div class="gender-bar-row" th:if="${genre.maleCount > 0 or genre.femaleCount > 0 or genre.otherCount > 0}">
                             <span class="gender-bar-icon" title="Songs">🎵</span>
-                            <div class="gender-bar">
+                            <div class="gender-bar" th:with="total=${genre.maleCount + genre.femaleCount + genre.otherCount}">
                                 <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${genre.maleCount + genre.femaleCount > 0} ? (${genre.maleCount} * 100 / (${genre.maleCount} + ${genre.femaleCount})) : 0) + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal((genre.maleCount * 100.0 / (genre.maleCount + genre.femaleCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.maleCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${genre.maleCount} + ' (' + ${#numbers.formatDecimal((genre.maleCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-female-bar" 
-                                     th:style="'width: ' + (${genre.maleCount + genre.femaleCount > 0} ? (${genre.femaleCount} * 100 / (${genre.maleCount} + ${genre.femaleCount})) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((genre.femaleCount * 100.0 / (genre.maleCount + genre.femaleCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.femaleCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${genre.femaleCount} + ' (' + ${#numbers.formatDecimal((genre.femaleCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${genre.otherCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${genre.otherCount} + ' (' + ${#numbers.formatDecimal((genre.otherCount * 100.0 / total), 1, 2)} + '%)'"></div>
                             </div>
                         </div>
-                        <div class="gender-bar-row" th:if="${genre.malePlayCount > 0 or genre.femalePlayCount > 0}">
+                        <div class="gender-bar-row" th:if="${genre.malePlayCount > 0 or genre.femalePlayCount > 0 or genre.otherPlayCount > 0}">
                             <span class="gender-bar-icon" title="Plays">▶️</span>
-                            <div class="gender-bar">
+                            <div class="gender-bar" th:with="total=${genre.malePlayCount + genre.femalePlayCount + genre.otherPlayCount}">
                                 <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${genre.malePlayCount + genre.femalePlayCount > 0} ? (${genre.malePlayCount} * 100 / (${genre.malePlayCount} + ${genre.femalePlayCount})) : 0) + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal((genre.malePlayCount * 100.0 / (genre.malePlayCount + genre.femalePlayCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.malePlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${genre.malePlayCount} + ' (' + ${#numbers.formatDecimal((genre.malePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-female-bar" 
-                                     th:style="'width: ' + (${genre.malePlayCount + genre.femalePlayCount > 0} ? (${genre.femalePlayCount} * 100 / (${genre.malePlayCount} + ${genre.femalePlayCount})) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((genre.femalePlayCount * 100.0 / (genre.malePlayCount + genre.femalePlayCount)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.femalePlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${genre.femalePlayCount} + ' (' + ${#numbers.formatDecimal((genre.femalePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${genre.otherPlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${genre.otherPlayCount} + ' (' + ${#numbers.formatDecimal((genre.otherPlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
                             </div>
                         </div>
-                        <div class="gender-bar-row" th:if="${genre.maleTimeListened > 0 or genre.femaleTimeListened > 0}">
+                        <div class="gender-bar-row" th:if="${genre.maleTimeListened > 0 or genre.femaleTimeListened > 0 or genre.otherTimeListened > 0}">
                             <span class="gender-bar-icon" title="Listening Time">🕒</span>
-                            <div class="gender-bar">
+                            <div class="gender-bar" th:with="total=${genre.maleTimeListened + genre.femaleTimeListened + genre.otherTimeListened}">
                                 <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${genre.maleTimeListened + genre.femaleTimeListened > 0} ? (${genre.maleTimeListened} * 100 / (${genre.maleTimeListened} + ${genre.femaleTimeListened})) : 0) + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal((genre.maleTimeListened * 100.0 / (genre.maleTimeListened + genre.femaleTimeListened)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.maleTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal((genre.maleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                                 <div class="gender-female-bar" 
-                                     th:style="'width: ' + (${genre.maleTimeListened + genre.femaleTimeListened > 0} ? (${genre.femaleTimeListened} * 100 / (${genre.maleTimeListened} + ${genre.femaleTimeListened})) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((genre.femaleTimeListened * 100.0 / (genre.maleTimeListened + genre.femaleTimeListened)), 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + (${total > 0} ? (${genre.femaleTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((genre.femaleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
+                                <div class="gender-other-bar" 
+                                     th:style="'width: ' + (${total > 0} ? (${genre.otherTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${#numbers.formatDecimal((genre.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                             </div>
                         </div>
                     </div>
