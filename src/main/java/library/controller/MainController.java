@@ -26,7 +26,13 @@ public class MainController {
 		model.addAttribute("totalArtists", songRepositoryImpl.getTotalArtistsCount());
 		model.addAttribute("totalAlbums", songRepositoryImpl.getTotalAlbumsCount());
 		model.addAttribute("totalSongs", songRepositoryImpl.getTotalSongsCount());
-		model.addAttribute("totalPlays", songRepositoryImpl.getTotalScrobblesCount());
+		
+		// Add play counts breakdown
+		java.util.Map<String, Long> playCounts = songRepositoryImpl.getPlayCountsByAccount();
+		model.addAttribute("primaryPlays", playCounts.get("primary"));
+		model.addAttribute("legacyPlays", playCounts.get("legacy"));
+		model.addAttribute("totalPlays", playCounts.get("total"));
+		
 		model.addAttribute("totalListeningTime", songRepositoryImpl.getTotalListeningTime());
 		
 		// Add gender breakdown stats

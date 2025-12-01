@@ -1,5 +1,7 @@
 package library.repository;
 
+import library.util.SqlFilterHelper;
+import library.util.StringNormalizer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -38,6 +40,7 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String lastListenedDateFrom,
             String lastListenedDateTo,
             String lastListenedDateMode,
+            String organized,
             String sortBy,
             String sortDir,
             int limit,
@@ -61,13 +64,16 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
                 COUNT(DISTINCT s.id) as song_count,
                 COUNT(DISTINCT alb.id) as album_count,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as play_count,
+                COALESCE(play_stats.play_count, 0) as play_count,
+                COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
                 (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) 
                  FROM Song s 
                  LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id 
                  WHERE s.artist_id = a.id) as time_listened,
                 (SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as first_listened,
-                (SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as last_listened
+                (SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as last_listened,
+                a.organized
             FROM Artist a
             LEFT JOIN Gender g ON a.gender_id = g.id
             LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
@@ -76,106 +82,63 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             LEFT JOIN Language l ON a.language_id = l.id
             LEFT JOIN Song s ON s.artist_id = a.id
             LEFT JOIN Album alb ON alb.artist_id = a.id
+            LEFT JOIN (
+                SELECT 
+                    song.artist_id,
+                    COUNT(*) as play_count,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count
+                FROM Scrobble scr
+                JOIN Song song ON scr.song_id = song.id
+                GROUP BY song.artist_id
+            ) play_stats ON play_stats.artist_id = a.id
             WHERE 1=1
             """);
         
         List<Object> params = new ArrayList<>();
         
-        // Name filter
+        // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {
-            sql.append(" AND LOWER(a.name) LIKE LOWER(?) ");
-            params.add(name + "%");
+            sql.append(" AND ").append(StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ? ");
+            params.add(StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Gender filter
-        appendFilterCondition(sql, params, "a.gender_id", genderIds, genderMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.gender_id", genderIds, genderMode);
         
         // Ethnicity filter
-        appendFilterCondition(sql, params, "a.ethnicity_id", ethnicityIds, ethnicityMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.ethnicity_id", ethnicityIds, ethnicityMode);
         
         // Genre filter
-        appendFilterCondition(sql, params, "a.genre_id", genreIds, genreMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.genre_id", genreIds, genreMode);
         
         // Subgenre filter
-        appendFilterCondition(sql, params, "a.subgenre_id", subgenreIds, subgenreMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.subgenre_id", subgenreIds, subgenreMode);
         
         // Language filter
-        appendFilterCondition(sql, params, "a.language_id", languageIds, languageMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.language_id", languageIds, languageMode);
         
         // Country filter
-        appendStringFilterCondition(sql, params, "a.country", countries, countryMode);
+        SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
         
         // First Listened Date filter
-        if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
-            switch (firstListenedDateMode) {
-                case "exact":
-                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") = ?");
-                        params.add(firstListenedDate);
-                    }
-                    break;
-                case "gte":
-                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(firstListenedDate);
-                    }
-                    break;
-                case "lte":
-                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(firstListenedDate);
-                    }
-                    break;
-                case "between":
-                    if (firstListenedDateFrom != null && !firstListenedDateFrom.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(firstListenedDateFrom);
-                    }
-                    if (firstListenedDateTo != null && !firstListenedDateTo.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(firstListenedDateTo);
-                    }
-                    break;
-            }
-        }
+        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
         
         // Last Listened Date filter
-        if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
-            switch (lastListenedDateMode) {
-                case "exact":
-                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") = ?");
-                        params.add(lastListenedDate);
-                    }
-                    break;
-                case "gte":
-                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(lastListenedDate);
-                    }
-                    break;
-                case "lte":
-                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(lastListenedDate);
-                    }
-                    break;
-                case "between":
-                    if (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(lastListenedDateFrom);
-                    }
-                    if (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(lastListenedDateTo);
-                    }
-                    break;
+        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
+        
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND a.organized = 1 ");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (a.organized = 0 OR a.organized IS NULL) ");
             }
         }
         
-        sql.append(" GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name, a.genre_id, gen.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country, a.image ");
+        sql.append(" GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name, a.genre_id, gen.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country, a.image, a.organized, play_stats.play_count, play_stats.vatito_play_count, play_stats.robertlover_play_count ");
         
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -225,9 +188,12 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
                 rs.getInt("album_count"),
                 rs.getInt("has_image"),
                 rs.getInt("play_count"),
+                rs.getInt("vatito_play_count"),
+                rs.getInt("robertlover_play_count"),
                 rs.getLong("time_listened"),
                 rs.getString("first_listened"),
-                rs.getString("last_listened")
+                rs.getString("last_listened"),
+                rs.getObject("organized")
             };
         });
     }
@@ -254,7 +220,8 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String lastListenedDate,
             String lastListenedDateFrom,
             String lastListenedDateTo,
-            String lastListenedDateMode
+            String lastListenedDateMode,
+            String organized
     ) {
         StringBuilder sql = new StringBuilder("""
             SELECT COUNT(DISTINCT a.id)
@@ -264,178 +231,48 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
         
         List<Object> params = new ArrayList<>();
         
-        // Name filter
+        // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {
-            sql.append(" AND LOWER(a.name) LIKE LOWER(?) ");
-            params.add(name + "%");
+            sql.append(" AND ").append(StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ? ");
+            params.add(StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Gender filter
-        appendFilterCondition(sql, params, "a.gender_id", genderIds, genderMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.gender_id", genderIds, genderMode);
         
         // Ethnicity filter
-        appendFilterCondition(sql, params, "a.ethnicity_id", ethnicityIds, ethnicityMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.ethnicity_id", ethnicityIds, ethnicityMode);
         
         // Genre filter
-        appendFilterCondition(sql, params, "a.genre_id", genreIds, genreMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.genre_id", genreIds, genreMode);
         
         // Subgenre filter
-        appendFilterCondition(sql, params, "a.subgenre_id", subgenreIds, subgenreMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.subgenre_id", subgenreIds, subgenreMode);
         
         // Language filter
-        appendFilterCondition(sql, params, "a.language_id", languageIds, languageMode);
+        SqlFilterHelper.appendIdFilter(sql, params, "a.language_id", languageIds, languageMode);
         
         // Country filter
-        appendStringFilterCondition(sql, params, "a.country", countries, countryMode);
+        SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
         
         // First Listened Date filter
-        if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
-            switch (firstListenedDateMode) {
-                case "exact":
-                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") = ?");
-                        params.add(firstListenedDate);
-                    }
-                    break;
-                case "gte":
-                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(firstListenedDate);
-                    }
-                    break;
-                case "lte":
-                    if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(firstListenedDate);
-                    }
-                    break;
-                case "between":
-                    if (firstListenedDateFrom != null && !firstListenedDateFrom.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(firstListenedDateFrom);
-                    }
-                    if (firstListenedDateTo != null && !firstListenedDateTo.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(firstListenedDateTo);
-                    }
-                    break;
-            }
-        }
+        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
         
         // Last Listened Date filter
-        if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
-            switch (lastListenedDateMode) {
-                case "exact":
-                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") = ?");
-                        params.add(lastListenedDate);
-                    }
-                    break;
-                case "gte":
-                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(lastListenedDate);
-                    }
-                    break;
-                case "lte":
-                    if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(lastListenedDate);
-                    }
-                    break;
-                case "between":
-                    if (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") >= ?");
-                        params.add(lastListenedDateFrom);
-                    }
-                    if (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) {
-                        sql.append(" AND DATE(").append(subquery).append(") <= ?");
-                        params.add(lastListenedDateTo);
-                    }
-                    break;
+        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
+        
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND a.organized = 1 ");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (a.organized = 0 OR a.organized IS NULL) ");
             }
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
         return count != null ? count : 0L;
-    }
-    
-    private void appendFilterCondition(StringBuilder sql, List<Object> params, 
-                                      String columnName, List<Integer> ids, String mode) {
-        // Support includes, excludes, isnull, isnotnull
-        if (mode == null) return;
-        switch(mode) {
-            case "includes":
-                if (ids != null && !ids.isEmpty()) {
-                    sql.append(" AND ").append(columnName).append(" IN (");
-                    for (int i = 0; i < ids.size(); i++) {
-                        if (i > 0) sql.append(",");
-                        sql.append("?");
-                        params.add(ids.get(i));
-                    }
-                    sql.append(") ");
-                }
-                break;
-            case "excludes":
-                if (ids != null && !ids.isEmpty()) {
-                    sql.append(" AND (").append(columnName).append(" NOT IN (");
-                    for (int i = 0; i < ids.size(); i++) {
-                        if (i > 0) sql.append(",");
-                        sql.append("?");
-                        params.add(ids.get(i));
-                    }
-                    sql.append(") OR ").append(columnName).append(" IS NULL) ");
-                }
-                break;
-            case "isnull":
-                sql.append(" AND ").append(columnName).append(" IS NULL ");
-                break;
-            case "isnotnull":
-                sql.append(" AND ").append(columnName).append(" IS NOT NULL ");
-                break;
-            default:
-                // unknown mode - ignore
-                break;
-        }
-    }
-    
-    private void appendStringFilterCondition(StringBuilder sql, List<Object> params, 
-                                            String columnName, List<String> values, String mode) {
-        // Support includes, excludes, isnull, isnotnull for string columns
-        if (mode == null) return;
-        switch(mode) {
-            case "includes":
-                if (values != null && !values.isEmpty()) {
-                    sql.append(" AND ").append(columnName).append(" IN (");
-                    for (int i = 0; i < values.size(); i++) {
-                        if (i > 0) sql.append(",");
-                        sql.append("?");
-                        params.add(values.get(i));
-                    }
-                    sql.append(") ");
-                }
-                break;
-            case "excludes":
-                if (values != null && !values.isEmpty()) {
-                    sql.append(" AND (").append(columnName).append(" NOT IN (");
-                    for (int i = 0; i < values.size(); i++) {
-                        if (i > 0) sql.append(",");
-                        sql.append("?");
-                        params.add(values.get(i));
-                    }
-                    sql.append(") OR ").append(columnName).append(" IS NULL) ");
-                }
-                break;
-            case "isnull":
-                sql.append(" AND ").append(columnName).append(" IS NULL ");
-                break;
-            case "isnotnull":
-                sql.append(" AND ").append(columnName).append(" IS NOT NULL ");
-                break;
-            default:
-                break;
-        }
     }
 }

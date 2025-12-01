@@ -26,6 +26,7 @@ public interface ArtistRepositoryCustom {
             String lastListenedDateFrom,
             String lastListenedDateTo,
             String lastListenedDateMode,
+            String organized,
             String sortBy,
             String sortDir,
             int limit,
@@ -53,6 +54,7 @@ public interface ArtistRepositoryCustom {
             String lastListenedDate,
             String lastListenedDateFrom,
             String lastListenedDateTo,
-            String lastListenedDateMode
+            String lastListenedDateMode,
+            String organized
     );
 }

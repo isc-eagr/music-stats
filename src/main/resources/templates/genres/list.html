@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <script th:src="@{/js/list-utils.js}"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -132,8 +133,16 @@
                         </div>
                     </div>
                     <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat">
-                            <span class="stat-icon">▶️</span>
+                        <div class="stat" title="Primary plays">
+                            <span class="stat-icon primary-plays">⏵</span>
+                            <span class="stat-value" th:text="${genre.vatitoPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Legacy plays">
+                            <span class="stat-icon legacy-plays">⏵</span>
+                            <span class="stat-value" th:text="${genre.robertloverPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Total plays">
+                            <span class="stat-icon total-plays">▶️</span>
                             <span class="stat-value" th:text="${genre.playCount}">0</span>
                         </div>
                         <div class="stat">
@@ -262,27 +271,15 @@
         }
         
         function changePageSize(newSize) {
-            const url = new URL(window.location);
-            url.searchParams.set('perpage', newSize);
-            url.searchParams.set('page', '0');
-            window.location.href = url.toString();
+            changePerPage(newSize);
         }
         
         function clearFilters() {
-            const sortBy = document.getElementById('sortBySelect').value;
-            window.location.href = '/genres?sortby=' + sortBy;
+            clearAllFilters();
         }
         
         function removeFilter(paramName) {
-            const url = new URL(window.location);
-            url.searchParams.delete(paramName);
-            window.location.href = url.toString();
-        }
-        
-        function goToPage(pageNum) {
-            const url = new URL(window.location);
-            url.searchParams.set('page', pageNum);
-            window.location.href = url.toString();
+            removeFilterGroup(paramName);
         }
         
         // Create Genre Modal Functions

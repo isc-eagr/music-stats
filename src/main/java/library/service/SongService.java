@@ -40,6 +40,7 @@ public class SongService {
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                       String organized,
                                        String sortBy, String sortDirection, int page, int perPage) {
         int offset = page * perPage;
         
@@ -50,6 +51,7 @@ public class SongService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                organized,
                 sortBy, sortDirection, perPage, offset
         );
         
@@ -76,18 +78,23 @@ public class SongService {
             dto.setHasImage(row[17] != null && ((Number) row[17]).intValue() == 1);
             dto.setGenderName((String) row[18]);
             dto.setPlayCount(row[19] != null ? ((Number) row[19]).intValue() : 0);
+            dto.setVatitoPlayCount(row[20] != null ? ((Number) row[20]).intValue() : 0);
+            dto.setRobertloverPlayCount(row[21] != null ? ((Number) row[21]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[20] != null ? ((Number) row[20]).longValue() : 0L;
+            long timeListened = row[22] != null ? ((Number) row[22]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
             
-            // Set first and last listened dates (indices 21 and 22)
-            dto.setFirstListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
-            dto.setLastListenedDate(row[22] != null ? formatDate((String) row[22]) : null);
+            // Set first and last listened dates (indices 23 and 24)
+            dto.setFirstListenedDate(row[23] != null ? formatDate((String) row[23]) : null);
+            dto.setLastListenedDate(row[24] != null ? formatDate((String) row[24]) : null);
             
-            // Set country (inherited from artist, index 23)
-            dto.setCountry((String) row[23]);
+            // Set country (inherited from artist, index 25)
+            dto.setCountry((String) row[25]);
+            
+            // Set organized (index 26)
+            dto.setOrganized(row[26] != null && ((Number) row[26]).intValue() == 1);
             
             // Format length
             if (dto.getLengthSeconds() != null) {
@@ -111,20 +118,22 @@ public class SongService {
                           List<String> countries, String countryMode,
                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
-                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
+                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                          String organized) {
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                 genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
-                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                organized);
     }
     
     public Optional<SongNew> getSongById(Integer id) {
         String sql = """
             SELECT s.id, s.artist_id, s.album_id, s.name, s.status, s.length_seconds, s.is_single,
                    s.override_genre_id, s.override_subgenre_id, s.override_language_id,
-                   s.override_gender_id, s.override_ethnicity_id, s.release_date,
+                   s.override_gender_id, s.override_ethnicity_id, s.release_date, s.organized,
                    s.creation_date, s.update_date,
                    al.override_genre_id as album_genre_id,
                    al.override_subgenre_id as album_subgenre_id,
@@ -170,6 +179,9 @@ public class SongService {
             
             int ethnicityId = rs.getInt("override_ethnicity_id");
             song.setOverrideEthnicityId(rs.wasNull() ? null : ethnicityId);
+            
+            int organizedVal = rs.getInt("organized");
+            song.setOrganized(rs.wasNull() ? null : organizedVal == 1);
             
             // Set inherited values from Album
             int albumGenreId = rs.getInt("album_genre_id");
@@ -235,12 +247,24 @@ public class SongService {
     }
     
     public SongNew saveSong(SongNew song) {
+        // Get the old song data to check if name or album changed
+        String oldName = null;
+        Integer oldAlbumId = null;
+        try {
+            Map<String, Object> oldData = jdbcTemplate.queryForMap(
+                "SELECT name, album_id FROM Song WHERE id = ?", song.getId());
+            oldName = (String) oldData.get("name");
+            oldAlbumId = oldData.get("album_id") != null ? ((Number) oldData.get("album_id")).intValue() : null;
+        } catch (Exception e) {
+            // Ignore if song doesn't exist
+        }
+        
         String sql = """
             UPDATE Song 
             SET name = ?, artist_id = ?, album_id = ?, release_date = ?,
                 length_seconds = ?, is_single = ?, status = ?,
                 override_genre_id = ?, override_subgenre_id = ?, override_language_id = ?,
-                override_gender_id = ?, override_ethnicity_id = ?,
+                override_gender_id = ?, override_ethnicity_id = ?, organized = ?,
                 update_date = CURRENT_TIMESTAMP
             WHERE id = ?
             """;
@@ -265,10 +289,80 @@ public class SongService {
             song.getOverrideLanguageId(),
             song.getOverrideGenderId(),
             song.getOverrideEthnicityId(),
+            song.getOrganized() != null && song.getOrganized() ? 1 : 0,
             song.getId()
         );
         
+        // If song name changed, update scrobbles
+        if (oldName != null && !oldName.equals(song.getName())) {
+            updateScrobblesForSongNameChange(song.getId(), song.getName());
+        }
+        
+        // If album changed, update scrobbles with new album name
+        boolean albumChanged = (oldAlbumId == null && song.getAlbumId() != null) ||
+                              (oldAlbumId != null && !oldAlbumId.equals(song.getAlbumId()));
+        if (albumChanged) {
+            String newAlbumName = song.getAlbumId() != null ? getAlbumName(song.getAlbumId()) : null;
+            updateScrobblesForSongAlbumChange(song.getId(), newAlbumName);
+        }
+        
+        // Try to match unmatched scrobbles with the current song details
+        // This catches scrobbles that might now match after the song was renamed or album changed
+        tryMatchUnmatchedScrobblesForSong(song);
+        
         return song;
+    }
+    
+    /**
+     * Update the song name in all scrobbles for this song
+     */
+    private void updateScrobblesForSongNameChange(int songId, String newSongName) {
+        String sql = "UPDATE Scrobble SET song = ? WHERE song_id = ?";
+        jdbcTemplate.update(sql, newSongName, songId);
+    }
+    
+    /**
+     * Update the album name in all scrobbles for this song
+     */
+    private void updateScrobblesForSongAlbumChange(int songId, String newAlbumName) {
+        String sql = "UPDATE Scrobble SET album = ? WHERE song_id = ?";
+        jdbcTemplate.update(sql, newAlbumName, songId);
+    }
+    
+    /**
+     * Try to match unmatched scrobbles to this song.
+     * Looks for scrobbles where artist, album, and song name match.
+     */
+    private void tryMatchUnmatchedScrobblesForSong(SongNew song) {
+        // Get artist name
+        String artistName = getArtistName(song.getArtistId());
+        if (artistName == null) return;
+        
+        // Get album name (may be null for singles)
+        String albumName = song.getAlbumId() != null ? getAlbumName(song.getAlbumId()) : null;
+        
+        // Try to match unmatched scrobbles and update their canonical names
+        String sql = """
+            UPDATE Scrobble 
+            SET song_id = ?,
+                artist = ?,
+                album = ?,
+                song = ?
+            WHERE song_id IS NULL
+            AND LOWER(COALESCE(artist, '')) = LOWER(?)
+            AND LOWER(COALESCE(album, '')) = LOWER(?)
+            AND LOWER(COALESCE(song, '')) = LOWER(?)
+            """;
+        
+        jdbcTemplate.update(sql, 
+            song.getId(),
+            artistName,
+            albumName != null ? albumName : "",
+            song.getName(),
+            artistName,
+            albumName != null ? albumName : "",
+            song.getName()
+        );
     }
     
     public void updateSongImage(Integer id, byte[] imageData) {
@@ -396,6 +490,22 @@ public class SongService {
         return count != null ? count : 0;
     }
 
+    // Get vatito (primary) play count for song
+    public int getVatitoPlayCountForSong(int songId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM Scrobble WHERE song_id = ? AND account = 'vatito'",
+                Integer.class, songId);
+        return count != null ? count : 0;
+    }
+    
+    // Get robertlover (legacy) play count for song
+    public int getRobertloverPlayCountForSong(int songId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM Scrobble WHERE song_id = ? AND account = 'robertlover'",
+                Integer.class, songId);
+        return count != null ? count : 0;
+    }
+
     // Return a string with per-account play counts for this song (e.g. "lastfm: 12\nspotify: 3\n")
     public String getPlaysByAccountForSong(int songId) {
         String sql = "SELECT account, COUNT(*) as cnt FROM Scrobble WHERE song_id = ? GROUP BY account ORDER BY cnt DESC";
@@ -508,6 +618,20 @@ public class SongService {
         song.setId(id);
         
         return song;
+    }
+    
+    // Create song from map (for API)
+    public Integer createSong(java.util.Map<String, Object> data) {
+        SongNew song = new SongNew();
+        song.setName((String) data.get("name"));
+        if (data.get("artistId") != null) {
+            song.setArtistId(((Number) data.get("artistId")).intValue());
+        }
+        if (data.get("albumId") != null) {
+            song.setAlbumId(((Number) data.get("albumId")).intValue());
+        }
+        SongNew created = createSong(song);
+        return created.getId();
     }
     
     // Helper method to format duration from seconds
@@ -998,5 +1122,45 @@ public class SongService {
             dto.setFeatureCount(1); // For songs, each featured artist only appears once
             return dto;
         }, songId);
+    }
+    
+    // Search songs by artist and song name for API
+    public List<Map<String, Object>> searchSongs(String artistQuery, String songQuery, int limit) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name " +
+            "FROM Song s " +
+            "JOIN Artist a ON s.artist_id = a.id " +
+            "LEFT JOIN Album al ON s.album_id = al.id " +
+            "WHERE 1=1 "
+        );
+        
+        List<Object> params = new ArrayList<>();
+        
+        if (artistQuery != null && !artistQuery.trim().isEmpty()) {
+            sql.append("AND LOWER(a.name) LIKE ? ");
+            params.add("%" + artistQuery.toLowerCase() + "%");
+        }
+        
+        if (songQuery != null && !songQuery.trim().isEmpty()) {
+            sql.append("AND LOWER(s.name) LIKE ? ");
+            params.add("%" + songQuery.toLowerCase() + "%");
+        }
+        
+        sql.append("ORDER BY a.name, s.name ");
+        
+        // Only apply limit if > 0
+        if (limit > 0) {
+            sql.append("LIMIT ?");
+            params.add(limit);
+        }
+        
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+            Map<String, Object> song = new java.util.HashMap<>();
+            song.put("id", rs.getInt("id"));
+            song.put("name", rs.getString("name"));
+            song.put("artistName", rs.getString("artist_name"));
+            song.put("albumName", rs.getString("album_name"));
+            return song;
+        }, params.toArray());
     }
 }

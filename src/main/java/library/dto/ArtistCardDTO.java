@@ -19,9 +19,12 @@ public class ArtistCardDTO {
     private Integer songCount;
     private Integer albumCount;
     private Integer playCount;
+    private Integer vatitoPlayCount;
+    private Integer robertloverPlayCount;
     private Long timeListened; // in seconds
     private String timeListenedFormatted;
     private boolean hasImage;
+    private Boolean organized;
 
     // Getters and Setters
     public Integer getId() {
@@ -168,6 +171,22 @@ public class ArtistCardDTO {
         this.playCount = playCount;
     }
 
+    public Integer getVatitoPlayCount() {
+        return vatitoPlayCount;
+    }
+
+    public void setVatitoPlayCount(Integer vatitoPlayCount) {
+        this.vatitoPlayCount = vatitoPlayCount;
+    }
+
+    public Integer getRobertloverPlayCount() {
+        return robertloverPlayCount;
+    }
+
+    public void setRobertloverPlayCount(Integer robertloverPlayCount) {
+        this.robertloverPlayCount = robertloverPlayCount;
+    }
+
     public Long getTimeListened() {
         return timeListened;
     }
@@ -194,5 +213,13 @@ public class ArtistCardDTO {
 
     public void setHasImage(boolean hasImage) {
         this.hasImage = hasImage;
+    }
+
+    public Boolean getOrganized() {
+        return organized;
+    }
+
+    public void setOrganized(Boolean organized) {
+        this.organized = organized;
     }
 }

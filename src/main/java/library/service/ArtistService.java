@@ -41,6 +41,7 @@ public class ArtistService {
                                           List<String> countries, String countryMode,
                                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                          String organized,
                                           String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
 
@@ -58,6 +59,7 @@ public class ArtistService {
                 countries, countryMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                organized,
                 sortBy, sortDir, perPage, offset
         );
         
@@ -81,15 +83,20 @@ public class ArtistService {
             dto.setAlbumCount(row[14] != null ? ((Number) row[14]).intValue() : 0);
             dto.setHasImage(row[15] != null && ((Number) row[15]).intValue() == 1);
             dto.setPlayCount(row[16] != null ? ((Number) row[16]).intValue() : 0);
+            dto.setVatitoPlayCount(row[17] != null ? ((Number) row[17]).intValue() : 0);
+            dto.setRobertloverPlayCount(row[18] != null ? ((Number) row[18]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[17] != null ? ((Number) row[17]).longValue() : 0L;
+            long timeListened = row[19] != null ? ((Number) row[19]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
             
-            // Set first and last listened dates (indices 18 and 19)
-            dto.setFirstListenedDate(row[18] != null ? formatDate((String) row[18]) : null);
-            dto.setLastListenedDate(row[19] != null ? formatDate((String) row[19]) : null);
+            // Set first and last listened dates (indices 20 and 21)
+            dto.setFirstListenedDate(row[20] != null ? formatDate((String) row[20]) : null);
+            dto.setLastListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
+            
+            // Set organized (index 22)
+            dto.setOrganized(row[22] != null && ((Number) row[22]).intValue() == 1);
             
             artists.add(dto);
         }
@@ -104,7 +111,8 @@ public class ArtistService {
                             List<Integer> languageIds, String languageMode,
                             List<String> countries, String countryMode,
                             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
-                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
+                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                            String organized) {
         // Normalize empty lists to null here as well
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -117,13 +125,14 @@ public class ArtistService {
                 ethnicityIds, ethnicityMode, genreIds, genreMode, subgenreIds, subgenreMode,
                 languageIds, languageMode, countries, countryMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
-                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                organized);
     }
     
     public Optional<Artist> getArtistById(Integer id) {
         String sql = """
             SELECT id, name, gender_id, country, ethnicity_id, 
-                   genre_id, subgenre_id, language_id, is_band,
+                   genre_id, subgenre_id, language_id, is_band, organized,
                    creation_date, update_date
             FROM Artist
             WHERE id = ?
@@ -155,6 +164,9 @@ public class ArtistService {
             int isBand = rs.getInt("is_band");
             artist.setIsBand(rs.wasNull() ? null : isBand == 1);
             
+            int organized = rs.getInt("organized");
+            artist.setOrganized(rs.wasNull() ? null : organized == 1);
+            
             artist.setCreationDate(rs.getTimestamp("creation_date"));
             artist.setUpdateDate(rs.getTimestamp("update_date"));
             
@@ -165,10 +177,14 @@ public class ArtistService {
     }
     
     public Artist saveArtist(Artist artist) {
+        // Get the old artist name to check if it changed
+        String oldName = jdbcTemplate.queryForObject(
+            "SELECT name FROM Artist WHERE id = ?", String.class, artist.getId());
+        
         String sql = """
             UPDATE Artist 
             SET name = ?, gender_id = ?, country = ?, ethnicity_id = ?, 
-                genre_id = ?, subgenre_id = ?, language_id = ?, is_band = ?,
+                genre_id = ?, subgenre_id = ?, language_id = ?, is_band = ?, organized = ?,
                 update_date = CURRENT_TIMESTAMP
             WHERE id = ?
             """;
@@ -182,10 +198,64 @@ public class ArtistService {
             artist.getSubgenreId(),
             artist.getLanguageId(),
             artist.getIsBand() != null && artist.getIsBand() ? 1 : 0,
+            artist.getOrganized() != null && artist.getOrganized() ? 1 : 0,
             artist.getId()
         );
         
+        // If artist name changed, update all associated scrobbles
+        if (oldName != null && !oldName.equals(artist.getName())) {
+            updateScrobblesForArtistNameChange(artist.getId(), artist.getName());
+        }
+        
+        // Try to match unmatched scrobbles with the new artist name
+        // This catches scrobbles that might now match after the artist was renamed
+        tryMatchUnmatchedScrobblesForArtist(artist.getId(), artist.getName());
+        
         return artist;
+    }
+    
+    /**
+     * Update the artist name in all scrobbles for songs belonging to this artist
+     */
+    private void updateScrobblesForArtistNameChange(int artistId, String newArtistName) {
+        String sql = """
+            UPDATE Scrobble 
+            SET artist = ?
+            WHERE song_id IN (SELECT id FROM Song WHERE artist_id = ?)
+            """;
+        jdbcTemplate.update(sql, newArtistName, artistId);
+    }
+    
+    /**
+     * Try to match unmatched scrobbles to songs by this artist.
+     * For each song by this artist, look for unmatched scrobbles that match
+     * the artist name, album name, and song name.
+     */
+    private void tryMatchUnmatchedScrobblesForArtist(int artistId, String artistName) {
+        // Match scrobbles to songs by this artist where artist, album, and song name all match
+        String sql = """
+            UPDATE Scrobble 
+            SET song_id = (
+                SELECT s.id FROM Song s 
+                LEFT JOIN Album al ON s.album_id = al.id
+                WHERE s.artist_id = ?
+                AND LOWER(s.name) = LOWER(Scrobble.song)
+                AND LOWER(COALESCE(al.name, '')) = LOWER(COALESCE(Scrobble.album, ''))
+                LIMIT 1
+            ),
+            artist = ?
+            WHERE song_id IS NULL
+            AND LOWER(COALESCE(artist, '')) = LOWER(?)
+            AND EXISTS (
+                SELECT 1 FROM Song s 
+                LEFT JOIN Album al ON s.album_id = al.id
+                WHERE s.artist_id = ?
+                AND LOWER(s.name) = LOWER(Scrobble.song)
+                AND LOWER(COALESCE(al.name, '')) = LOWER(COALESCE(Scrobble.album, ''))
+            )
+            """;
+        
+        jdbcTemplate.update(sql, artistId, artistName, artistName, artistId);
     }
     
     public void updateArtistImage(Integer id, byte[] imageData) {
@@ -248,6 +318,22 @@ public class ArtistService {
     public int getPlayCountForArtist(int artistId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ?",
+                Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    // Get vatito (primary) play count for artist
+    public int getVatitoPlayCountForArtist(int artistId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'vatito'",
+                Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    // Get robertlover (legacy) play count for artist
+    public int getRobertloverPlayCountForArtist(int artistId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'robertlover'",
                 Integer.class, artistId);
         return count != null ? count : 0;
     }
@@ -576,6 +662,63 @@ public class ArtistService {
         });
     }
     
+    // Search artists by name for API
+    public List<Map<String, Object>> searchArtists(String query, int limit) {
+        String sql = "SELECT id, name FROM Artist WHERE LOWER(name) LIKE ? ORDER BY name LIMIT ?";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> artist = new java.util.HashMap<>();
+            artist.put("id", rs.getInt("id"));
+            artist.put("name", rs.getString("name"));
+            return artist;
+        }, "%" + query.toLowerCase() + "%", limit);
+    }
+    
+    // Find artist by ID
+    public Artist findById(Integer id) {
+        if (id == null) return null;
+        String sql = "SELECT id, name, gender_id, country, ethnicity_id, genre_id, subgenre_id, language_id, is_band FROM Artist WHERE id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                Artist a = new Artist();
+                a.setId(rs.getInt("id"));
+                a.setName(rs.getString("name"));
+                a.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+                a.setCountry(rs.getString("country"));
+                a.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
+                a.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
+                a.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
+                a.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
+                a.setIsBand(rs.getInt("is_band") == 1);
+                return a;
+            }, id);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+    
+    // Create artist from map (for API)
+    public Integer createArtist(java.util.Map<String, Object> data) {
+        Artist artist = new Artist();
+        artist.setName((String) data.get("name"));
+        if (data.get("genderId") != null) {
+            artist.setGenderId(((Number) data.get("genderId")).intValue());
+        }
+        if (data.get("country") != null) {
+            artist.setCountry((String) data.get("country"));
+        }
+        if (data.get("ethnicityId") != null) {
+            artist.setEthnicityId(((Number) data.get("ethnicityId")).intValue());
+        }
+        if (data.get("genreId") != null) {
+            artist.setGenreId(((Number) data.get("genreId")).intValue());
+        }
+        if (data.get("languageId") != null) {
+            artist.setLanguageId(((Number) data.get("languageId")).intValue());
+        }
+        Artist created = createArtist(artist);
+        return created.getId();
+    }
+
     // Helper method to format date strings (from scrobble_date)
     private String formatDate(String dateTimeString) {
         if (dateTimeString == null || dateTimeString.trim().isEmpty()) {

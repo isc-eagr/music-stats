@@ -57,20 +57,17 @@
                         <span class="stat-icon">💿</span>
                         <span class="stat-value" th:text="${albumCount}">0</span>
                     </div>
-                    <div class="stat">
-                        <span class="stat-icon" tabindex="0" role="button"
-                              onmouseover="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onmouseout="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))" onfocus="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onblur="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))">▶️</span>
-                        <div class="stat-value">
-                            <div class="tooltip" tabindex="0" role="button" aria-describedby="artist-plays-tooltip"
-                                 th:attr="data-plays=${artistPlaysByAccount != null and artistPlaysByAccount != '' ? artistPlaysByAccount : 'No plays'}"
-                                 onmouseover="showTooltip(this)" onmouseout="hideTooltip(this)" onfocus="showTooltip(this)" onblur="hideTooltip(this)"
-                                 style="position:relative;display:inline-block;">
-                                [[${artistPlayCount != null ? artistPlayCount : 0}]]
-                                <span id="artist-plays-tooltip" class="tooltiptext"
-                                      style="position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(6px);background-color:rgba(0,0,0,0.92);color:#fff;text-align:left;border-radius:8px;padding:8px 10px;z-index:1000;max-width:360px;white-space:pre-line;box-shadow:0 10px 20px rgba(0,0,0,0.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;">
-                                </span>
-                            </div>
-                        </div>
+                    <div class="stat" title="Primary plays">
+                        <span class="stat-icon primary-plays">⏵</span>
+                        <span class="stat-value" th:text="${artistVatitoPlayCount != null ? artistVatitoPlayCount : 0}">0</span>
+                    </div>
+                    <div class="stat" title="Legacy plays">
+                        <span class="stat-icon legacy-plays">⏵</span>
+                        <span class="stat-value" th:text="${artistRobertloverPlayCount != null ? artistRobertloverPlayCount : 0}">0</span>
+                    </div>
+                    <div class="stat" title="Total plays">
+                        <span class="stat-icon total-plays">▶️</span>
+                        <span class="stat-value" th:text="${artistPlayCount != null ? artistPlayCount : 0}">0</span>
                     </div>
                 </div>
             </div>
@@ -104,9 +101,14 @@
                     </div>
                     
                     <form method="post" th:action="@{'/artists/' + ${artist.id}}" th:object="${artist}" id="artistForm">
-                        <input type="hidden" id="name" name="name" th:field="*{name}" />
                         
                         <div class="form-section">
+                            <!-- Name field (editable, only shown in edit mode) -->
+                            <div class="form-group form-group-full-width name-field-group" id="nameFieldGroup" style="display:none;">
+                                <label for="name">Name</label>
+                                <span class="attribute-text" data-field="name" th:text="${artist.name}" style="display:none;">Artist Name</span>
+                                <input type="text" id="name" name="name" th:field="*{name}" class="editable-input" />
+                            </div>
                             <div class="attributes-grid">
                                 <div class="form-group">
                                     <label for="genderId">Gender</label>
@@ -178,6 +180,15 @@
                                     <div class="checkbox-container" style="display:none;">
                                         <input type="checkbox" id="isBand" name="isBand" th:field="*{isBand}" disabled />
                                         <label for="isBand" class="checkbox-label">This artist is a band or group</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="organized">Organized</label>
+                                    <span class="attribute-text" data-field="organized" th:text="${artist.organized != null and artist.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
+                                    <div class="checkbox-container" style="display:none;">
+                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" disabled />
+                                        <label for="organized" class="checkbox-label">This artist is organized</label>
                                     </div>
                                 </div>
                             </div>
@@ -545,6 +556,7 @@
             const deleteBtn = document.getElementById('deleteBtn');
             const formActions = document.getElementById('formActions');
             const selects = document.querySelectorAll('#artistForm select');
+            const textInputs = document.querySelectorAll('#artistForm input.editable-input');
             const checkboxContainers = document.querySelectorAll('.checkbox-container');
             const checkboxes = document.querySelectorAll('#artistForm input[type="checkbox"]');
             const attributeTexts = document.querySelectorAll('.attribute-text');
@@ -553,6 +565,17 @@
                 editBtn.style.display = 'none';
                 deleteBtn.style.display = 'none';
                 formActions.style.display = 'flex';
+                
+                // Show name field group
+                const nameFieldGroup = document.getElementById('nameFieldGroup');
+                if (nameFieldGroup) {
+                    nameFieldGroup.style.display = 'block';
+                }
+                
+                // Show text inputs
+                textInputs.forEach(input => {
+                    input.style.display = 'block';
+                });
                 
                 selects.forEach(select => {
                     select.removeAttribute('disabled');
@@ -796,6 +819,28 @@
             font-size: 14px;
             color: #e5e7eb;
             cursor: pointer;
+        }
+        
+        /* Name field styling */
+        .name-field-group {
+            grid-column: 1 / -1;
+            margin-bottom: 10px;
+        }
+        
+        .editable-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: #e5e7eb;
+            font-size: 0.95em;
+        }
+        
+        .editable-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
     </style>
 </body>

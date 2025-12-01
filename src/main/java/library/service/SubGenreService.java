@@ -65,6 +65,8 @@ public class SubGenreService {
                 g.name as parent_genre_name,
                 CASE WHEN sg.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(stats.play_count, 0) as play_count,
+                COALESCE(stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(stats.robertlover_play_count, 0) as robertlover_play_count,
                 COALESCE(stats.time_listened, 0) as time_listened,
                 COALESCE(stats.artist_count, 0) as artist_count,
                 COALESCE(stats.album_count, 0) as album_count,
@@ -90,6 +92,8 @@ public class SubGenreService {
                 SELECT 
                     COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) as effective_subgenre_id,
                     COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
@@ -122,32 +126,34 @@ public class SubGenreService {
             ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
         
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Object[] row = new Object[25];
+            Object[] row = new Object[27];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getInt("parent_genre_id");
             row[3] = rs.getString("parent_genre_name");
             row[4] = rs.getInt("has_image");
             row[5] = rs.getInt("play_count");
-            row[6] = rs.getLong("time_listened");
-            row[7] = rs.getInt("artist_count");
-            row[8] = rs.getInt("album_count");
-            row[9] = rs.getInt("song_count");
-            row[10] = rs.getInt("male_song_count");
-            row[11] = rs.getInt("female_song_count");
-            row[12] = rs.getInt("other_song_count");
-            row[13] = rs.getInt("male_artist_count");
-            row[14] = rs.getInt("female_artist_count");
-            row[15] = rs.getInt("other_artist_count");
-            row[16] = rs.getInt("male_album_count");
-            row[17] = rs.getInt("female_album_count");
-            row[18] = rs.getInt("other_album_count");
-            row[19] = rs.getInt("male_play_count");
-            row[20] = rs.getInt("female_play_count");
-            row[21] = rs.getInt("other_play_count");
-            row[22] = rs.getLong("male_time_listened");
-            row[23] = rs.getLong("female_time_listened");
-            row[24] = rs.getLong("other_time_listened");
+            row[6] = rs.getInt("vatito_play_count");
+            row[7] = rs.getInt("robertlover_play_count");
+            row[8] = rs.getLong("time_listened");
+            row[9] = rs.getInt("artist_count");
+            row[10] = rs.getInt("album_count");
+            row[11] = rs.getInt("song_count");
+            row[12] = rs.getInt("male_song_count");
+            row[13] = rs.getInt("female_song_count");
+            row[14] = rs.getInt("other_song_count");
+            row[15] = rs.getInt("male_artist_count");
+            row[16] = rs.getInt("female_artist_count");
+            row[17] = rs.getInt("other_artist_count");
+            row[18] = rs.getInt("male_album_count");
+            row[19] = rs.getInt("female_album_count");
+            row[20] = rs.getInt("other_album_count");
+            row[21] = rs.getInt("male_play_count");
+            row[22] = rs.getInt("female_play_count");
+            row[23] = rs.getInt("other_play_count");
+            row[24] = rs.getLong("male_time_listened");
+            row[25] = rs.getLong("female_time_listened");
+            row[26] = rs.getLong("other_time_listened");
             return row;
         }, name, name, parentGenreId, parentGenreId, perPage, offset);
         
@@ -160,26 +166,28 @@ public class SubGenreService {
             dto.setParentGenreName((String) row[3]);
             dto.setHasImage(((Integer) row[4]) == 1);
             dto.setPlayCount((Integer) row[5]);
-            dto.setTimeListened((Long) row[6]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[6]));
-            dto.setArtistCount((Integer) row[7]);
-            dto.setAlbumCount((Integer) row[8]);
-            dto.setSongCount((Integer) row[9]);
-            dto.setMaleCount((Integer) row[10]);
-            dto.setFemaleCount((Integer) row[11]);
-            dto.setOtherCount((Integer) row[12]);
-            dto.setMaleArtistCount((Integer) row[13]);
-            dto.setFemaleArtistCount((Integer) row[14]);
-            dto.setOtherArtistCount((Integer) row[15]);
-            dto.setMaleAlbumCount((Integer) row[16]);
-            dto.setFemaleAlbumCount((Integer) row[17]);
-            dto.setOtherAlbumCount((Integer) row[18]);
-            dto.setMalePlayCount((Integer) row[19]);
-            dto.setFemalePlayCount((Integer) row[20]);
-            dto.setOtherPlayCount((Integer) row[21]);
-            dto.setMaleTimeListened((Long) row[22]);
-            dto.setFemaleTimeListened((Long) row[23]);
-            dto.setOtherTimeListened((Long) row[24]);
+            dto.setVatitoPlayCount((Integer) row[6]);
+            dto.setRobertloverPlayCount((Integer) row[7]);
+            dto.setTimeListened((Long) row[8]);
+            dto.setTimeListenedFormatted(formatTime((Long) row[8]));
+            dto.setArtistCount((Integer) row[9]);
+            dto.setAlbumCount((Integer) row[10]);
+            dto.setSongCount((Integer) row[11]);
+            dto.setMaleCount((Integer) row[12]);
+            dto.setFemaleCount((Integer) row[13]);
+            dto.setOtherCount((Integer) row[14]);
+            dto.setMaleArtistCount((Integer) row[15]);
+            dto.setFemaleArtistCount((Integer) row[16]);
+            dto.setOtherArtistCount((Integer) row[17]);
+            dto.setMaleAlbumCount((Integer) row[18]);
+            dto.setFemaleAlbumCount((Integer) row[19]);
+            dto.setOtherAlbumCount((Integer) row[20]);
+            dto.setMalePlayCount((Integer) row[21]);
+            dto.setFemalePlayCount((Integer) row[22]);
+            dto.setOtherPlayCount((Integer) row[23]);
+            dto.setMaleTimeListened((Long) row[24]);
+            dto.setFemaleTimeListened((Long) row[25]);
+            dto.setOtherTimeListened((Long) row[26]);
             subGenres.add(dto);
         }
 

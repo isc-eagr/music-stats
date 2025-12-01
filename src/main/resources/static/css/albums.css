@@ -1,68 +1,7 @@
 /* Albums List Page - Page-specific styles only */
+/* Base card styles are in global.css */
 
-/* Album grid with 1:1 aspect ratio images */
-.album-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.album-card {
-    background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: all 0.3s;
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-}
-
-.album-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-    border-color: rgba(255,255,255,0.12);
-}
-
-.album-image {
-    width: 100%;
-    background-color: #0a0a0a;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 1/1;
-    margin-bottom: 0;
-    border-radius: 0;
-}
-
-.album-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.album-image .no-image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    color: #666666;
-    font-size: 48px;
-}
-
-.album-info {
-    padding: 8px 16px 16px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
+/* Album-specific name styling */
 .album-name {
     font-size: 16px;
     font-weight: 600;
@@ -76,6 +15,7 @@
     transition: color 0.2s;
 }
 
+/* Album artist link */
 .album-artist {
     font-size: 13px;
     color: #a0aec0;
@@ -94,67 +34,11 @@
 .album-artist .artist-link:hover {
     color: #ffffff;
 }
-}
 
+/* Album metadata */
 .album-metadata {
     font-size: 12px;
     color: #999;
     margin-bottom: 10px;
     line-height: 1.4;
-}
-
-.album-stats {
-    display: flex;
-    gap: 12px;
-    font-size: 11px;
-    color: #999;
-    margin-top: auto;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.album-stats-row2 {
-    border-top: none;
-    padding-top: 4px;
-}
-
-.album-stats .stat {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.album-stats .stat-icon {
-    font-size: 11px;
-}
-
-.album-stats .stat-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: #fff;
-}
-
-/* Date information section */
-.album-dates {
-    font-size: 11px;
-    color: #777;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.album-dates .date-item {
-    display: flex;
-    justify-content: space-between;
-}
-
-.album-dates .date-label {
-    color: #666;
-}
-
-.album-dates .date-value {
-    color: #999;
 }

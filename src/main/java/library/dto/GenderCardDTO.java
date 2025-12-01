@@ -4,6 +4,8 @@ public class GenderCardDTO {
     private Integer id;
     private String name;
     private Integer playCount;
+    private Integer vatitoPlayCount;
+    private Integer robertloverPlayCount;
     private Long timeListened;
     private String timeListenedFormatted;
     private Integer artistCount;
@@ -33,6 +35,22 @@ public class GenderCardDTO {
 
     public void setPlayCount(Integer playCount) {
         this.playCount = playCount;
+    }
+
+    public Integer getVatitoPlayCount() {
+        return vatitoPlayCount;
+    }
+
+    public void setVatitoPlayCount(Integer vatitoPlayCount) {
+        this.vatitoPlayCount = vatitoPlayCount;
+    }
+
+    public Integer getRobertloverPlayCount() {
+        return robertloverPlayCount;
+    }
+
+    public void setRobertloverPlayCount(Integer robertloverPlayCount) {
+        this.robertloverPlayCount = robertloverPlayCount;
     }
 
     public Long getTimeListened() {

@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <script th:src="@{/js/list-utils.js}"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -125,8 +126,16 @@
                         </div>
                     </div>
                     <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat">
-                            <span class="stat-icon">▶️</span>
+                        <div class="stat" title="Primary plays">
+                            <span class="stat-icon primary-plays">⏵</span>
+                            <span class="stat-value" th:text="${country.vatitoPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Legacy plays">
+                            <span class="stat-icon legacy-plays">⏵</span>
+                            <span class="stat-value" th:text="${country.robertloverPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Total plays">
+                            <span class="stat-icon total-plays">▶️</span>
                             <span class="stat-value" th:text="${country.playCount}">0</span>
                         </div>
                         <div class="stat">

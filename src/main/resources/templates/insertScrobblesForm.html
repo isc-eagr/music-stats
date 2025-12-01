@@ -24,6 +24,18 @@
 
     <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
         <h1 style="margin: 24px 0 16px; font-size: 28px; font-weight: 650;">Import Scrobbles</h1>
+        
+        <!-- Max Last.fm ID per account -->
+        <div th:if="${maxLastfmIds != null and !maxLastfmIds.isEmpty()}" class="form-card" style="margin-bottom: 16px; padding: 16px;">
+            <p style="margin: 0 0 8px; font-size: 14px; color: var(--text-muted); font-weight: 600;">Latest Last.fm ID per account:</p>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                <div th:each="entry : ${maxLastfmIds}" style="display: flex; gap: 8px; align-items: center;">
+                    <span style="color: var(--text-muted); font-size: 13px;" th:text="${entry.key != '' ? entry.key : '(blank)'}">account</span>
+                    <span style="font-weight: 700; font-size: 15px; color: var(--text);" th:text="${entry.value}">0</span>
+                </div>
+            </div>
+        </div>
+        
         <div class="form-card">
             <p class="hint">Upload a CSV file containing scrobbles. The server will stream and save in batches to avoid high memory usage.</p>
 

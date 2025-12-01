@@ -49,6 +49,9 @@ public class SongNew {
     @Column(name = "release_date")
     private Date releaseDate;
     
+    @Column(name = "organized")
+    private Boolean organized;
+    
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "single_cover")
@@ -327,5 +330,13 @@ public class SongNew {
     
     public void setArtistEthnicityId(Integer artistEthnicityId) {
         this.artistEthnicityId = artistEthnicityId;
+    }
+
+    public Boolean getOrganized() {
+        return organized;
+    }
+
+    public void setOrganized(Boolean organized) {
+        this.organized = organized;
     }
 }

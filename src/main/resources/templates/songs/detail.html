@@ -71,20 +71,17 @@
                 </div>
                 
                 <div class="item-stats">
-                    <div class="stat">
-                        <span class="stat-icon" tabindex="0" role="button"
-                              onmouseover="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onmouseout="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))" onfocus="showTooltip(this.nextElementSibling.querySelector('.tooltip'))" onblur="hideTooltip(this.nextElementSibling.querySelector('.tooltip'))">▶️</span>
-                        <div class="stat-value">
-                            <div class="tooltip" tabindex="0" role="button" aria-describedby="song-plays-tooltip"
-                                 th:attr="data-plays=${songPlaysByAccount != null and songPlaysByAccount != '' ? songPlaysByAccount : 'No plays'}"
-                                 onmouseover="showTooltip(this)" onmouseout="hideTooltip(this)" onfocus="showTooltip(this)" onblur="hideTooltip(this)"
-                                 style="position:relative;display:inline-block;">
-                                [[${songPlayCount != null ? songPlayCount : 0}]]
-                                <span id="song-plays-tooltip" class="tooltiptext"
-                                      style="position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(6px);background-color:rgba(0,0,0,0.92);color:#fff;text-align:left;border-radius:8px;padding:8px 10px;z-index:1000;max-width:360px;white-space:pre-line;box-shadow:0 10px 20px rgba(0,0,0,0.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;">
-                                </span>
-                            </div>
-                        </div>
+                    <div class="stat" title="Primary plays">
+                        <span class="stat-icon primary-plays">⏵</span>
+                        <span class="stat-value" th:text="${songVatitoPlayCount != null ? songVatitoPlayCount : 0}">0</span>
+                    </div>
+                    <div class="stat" title="Legacy plays">
+                        <span class="stat-icon legacy-plays">⏵</span>
+                        <span class="stat-value" th:text="${songRobertloverPlayCount != null ? songRobertloverPlayCount : 0}">0</span>
+                    </div>
+                    <div class="stat" title="Total plays">
+                        <span class="stat-icon total-plays">▶️</span>
+                        <span class="stat-value" th:text="${songPlayCount != null ? songPlayCount : 0}">0</span>
                     </div>
                 </div>
             </div>
@@ -118,12 +115,30 @@
                     </div>
                     
                     <form method="post" th:action="@{'/songs/' + ${song.id}}" th:object="${song}" id="songForm">
-                        <input type="hidden" id="name" name="name" th:field="*{name}" />
                         <input type="hidden" id="artistId" name="artistId" th:field="*{artistId}" />
-                        <input type="hidden" id="albumId" name="albumId" th:field="*{albumId}" />
                         
                         <div class="form-section">
                             <div class="attributes-grid">
+                                <!-- Name field (editable, only shown in edit mode) -->
+                                <div class="form-group form-group-full-width name-field-group" id="nameFieldGroup" style="display:none;">
+                                    <label for="name">Name</label>
+                                    <span class="attribute-text" data-field="name" th:text="${song.name}" style="display:none;">Song Name</span>
+                                    <input type="text" id="name" name="name" th:field="*{name}" class="editable-input" />
+                                </div>
+                                
+                                <!-- Album field (editable dropdown, only shown in edit mode) -->
+                                <div class="form-group form-group-full-width album-field-group" id="albumFieldGroup" style="display:none;">
+                                    <label for="albumId">Album</label>
+                                    <span class="attribute-text" data-field="albumId" style="display:none;">
+                                        <a th:if="${albumName != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${albumName}"></a>
+                                        <span th:if="${albumName == null}">-</span>
+                                    </span>
+                                    <select id="albumId" name="albumId">
+                                        <option value="">No album (single)</option>
+                                        <!-- Albums will be loaded via JavaScript -->
+                                    </select>
+                                </div>
+                                
                                 <div class="form-group">
                                     <label for="releaseDate">Release Date</label>
                                     <span class="attribute-text" data-field="releaseDate">
@@ -172,12 +187,15 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="overrideGenreId">Genre</label>
+                                    <label for="overrideGenreId">
+                                        <span class="label-view">Genre</span>
+                                        <span class="label-edit" style="display:none;">Genre Override</span>
+                                    </label>
                                     <span class="attribute-text" data-field="overrideGenreId"
                                           th:classappend="${song.overrideGenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideGenreId != null ? genres.get(song.overrideGenreId) : (effectiveGenreName != null ? effectiveGenreName : '-')}">-</span>
                                     <select id="overrideGenreId" name="overrideGenreId" th:field="*{overrideGenreId}" disabled style="display:none;">
-                                        <option value="">Select...</option>
+                                        <option value="" th:text="'Inherit (' + (${effectiveGenreName} != null ? ${effectiveGenreName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${genres}" 
                                                 th:value="${entry.key}" 
                                                 th:text="${entry.value}"></option>
@@ -185,12 +203,15 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="overrideSubgenreId">Subgenre</label>
+                                    <label for="overrideSubgenreId">
+                                        <span class="label-view">Subgenre</span>
+                                        <span class="label-edit" style="display:none;">Subgenre Override</span>
+                                    </label>
                                     <span class="attribute-text" data-field="overrideSubgenreId"
                                           th:classappend="${song.overrideSubgenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideSubgenreId != null ? subgenres.get(song.overrideSubgenreId) : (effectiveSubgenreName != null ? effectiveSubgenreName : '-')}">-</span>
                                     <select id="overrideSubgenreId" name="overrideSubgenreId" th:field="*{overrideSubgenreId}" disabled style="display:none;">
-                                        <option value="">Select...</option>
+                                        <option value="" th:text="'Inherit (' + (${effectiveSubgenreName} != null ? ${effectiveSubgenreName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${subgenres}" 
                                                 th:value="${entry.key}" 
                                                 th:text="${entry.value}"></option>
@@ -198,12 +219,15 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="overrideLanguageId">Language</label>
+                                    <label for="overrideLanguageId">
+                                        <span class="label-view">Language</span>
+                                        <span class="label-edit" style="display:none;">Language Override</span>
+                                    </label>
                                     <span class="attribute-text" data-field="overrideLanguageId"
                                           th:classappend="${song.overrideLanguageId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideLanguageId != null ? languages.get(song.overrideLanguageId) : (effectiveLanguageName != null ? effectiveLanguageName : '-')}">-</span>
                                     <select id="overrideLanguageId" name="overrideLanguageId" th:field="*{overrideLanguageId}" disabled style="display:none;">
-                                        <option value="">Select...</option>
+                                        <option value="" th:text="'Inherit (' + (${effectiveLanguageName} != null ? ${effectiveLanguageName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${languages}" 
                                                 th:value="${entry.key}" 
                                                 th:text="${entry.value}"></option>
@@ -211,12 +235,15 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="overrideGenderId">Gender</label>
+                                    <label for="overrideGenderId">
+                                        <span class="label-view">Gender</span>
+                                        <span class="label-edit" style="display:none;">Gender Override</span>
+                                    </label>
                                     <span class="attribute-text" data-field="overrideGenderId"
                                           th:classappend="${song.overrideGenderId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideGenderId != null ? genders.get(song.overrideGenderId) : (effectiveGenderName != null ? effectiveGenderName : '-')}">-</span>
                                     <select id="overrideGenderId" name="overrideGenderId" th:field="*{overrideGenderId}" disabled style="display:none;">
-                                        <option value="">Select...</option>
+                                        <option value="" th:text="'Inherit (' + (${effectiveGenderName} != null ? ${effectiveGenderName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${genders}" 
                                                 th:value="${entry.key}" 
                                                 th:text="${entry.value}"></option>
@@ -224,16 +251,25 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="overrideEthnicityId">Ethnicity</label>
+                                    <label for="overrideEthnicityId">
+                                        <span class="label-view">Ethnicity</span>
+                                        <span class="label-edit" style="display:none;">Ethnicity Override</span>
+                                    </label>
                                     <span class="attribute-text" data-field="overrideEthnicityId"
                                           th:classappend="${song.overrideEthnicityId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideEthnicityId != null ? ethnicities.get(song.overrideEthnicityId) : (effectiveEthnicityName != null ? effectiveEthnicityName : '-')}">-</span>
                                     <select id="overrideEthnicityId" name="overrideEthnicityId" th:field="*{overrideEthnicityId}" disabled style="display:none;">
-                                        <option value="">Select...</option>
+                                        <option value="" th:text="'Inherit (' + (${effectiveEthnicityName} != null ? ${effectiveEthnicityName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${ethnicities}" 
                                                 th:value="${entry.key}" 
                                                 th:text="${entry.value}"></option>
                                     </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="organized">Organized</label>
+                                    <span class="attribute-text" data-field="organized" th:text="${song.organized != null and song.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
+                                    <input type="checkbox" id="organized" name="organized" th:field="*{organized}" style="display:none;" />
                                 </div>
                                 
                                 <!-- Featured Artists field (spans full width) - only shown in edit mode -->
@@ -575,6 +611,22 @@
                     lengthFormatted.value = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
                 }
                 
+                // Show name field group
+                const nameFieldGroup = document.getElementById('nameFieldGroup');
+                if (nameFieldGroup) {
+                    nameFieldGroup.style.display = 'block';
+                }
+                
+                // Show album field group
+                const albumFieldGroup = document.getElementById('albumFieldGroup');
+                if (albumFieldGroup) {
+                    albumFieldGroup.style.display = 'block';
+                }
+                
+                // Switch labels to edit mode (show "Override" labels)
+                document.querySelectorAll('.label-view').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.label-edit').forEach(el => el.style.display = 'inline');
+                
                 // Show text inputs
                 textInputs.forEach(input => {
                     input.style.display = 'block';
@@ -603,6 +655,9 @@
                     }
                 });
                 
+                // Load albums for the album dropdown
+                loadAlbumsForArtist();
+                
                 // Show featured artists field and container
                 const featuredArtistsField = document.getElementById('featuredArtistsField');
                 if (featuredArtistsField) {
@@ -615,6 +670,36 @@
             } else {
                 window.location.reload();
             }
+        }
+        
+        // Load albums for the current artist to populate the album dropdown
+        function loadAlbumsForArtist() {
+            const artistId = document.getElementById('artistId').value;
+            const albumSelect = document.getElementById('albumId');
+            const currentAlbumId = /*[[${song.albumId}]]*/ null;
+            
+            if (!artistId) return;
+            
+            fetch(`/albums/api/albums?artistId=${artistId}`)
+                .then(response => response.json())
+                .then(albums => {
+                    // Keep the "No album" option
+                    albumSelect.innerHTML = '<option value="">No album (single)</option>';
+                    
+                    // Add each album as an option
+                    albums.forEach(album => {
+                        const option = document.createElement('option');
+                        option.value = album.id;
+                        option.textContent = album.name;
+                        if (currentAlbumId && album.id == currentAlbumId) {
+                            option.selected = true;
+                        }
+                        albumSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading albums:', error);
+                });
         }
         
         function cancelEdit() {
@@ -870,6 +955,44 @@
         .btn-negative:disabled:hover {
             background-color: #4a4a4a;
             color: #888;
+        }
+        
+        /* Name and Album field styling */
+        .name-field-group,
+        .album-field-group {
+            margin-bottom: 10px;
+        }
+        
+        .editable-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: #e5e7eb;
+            font-size: 0.95em;
+        }
+        
+        .editable-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        #albumId {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: #e5e7eb;
+            font-size: 0.95em;
+        }
+        
+        #albumId:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
         
         /* Featured Artists Styles */

@@ -54,6 +54,8 @@ public class GenderService {
                 g.id,
                 g.name,
                 COALESCE(stats.play_count, 0) as play_count,
+                COALESCE(stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(stats.robertlover_play_count, 0) as robertlover_play_count,
                 COALESCE(stats.time_listened, 0) as time_listened,
                 COALESCE(stats.artist_count, 0) as artist_count,
                 COALESCE(stats.album_count, 0) as album_count,
@@ -63,6 +65,8 @@ public class GenderService {
                 SELECT 
                     COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id,
                     COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
@@ -78,14 +82,16 @@ public class GenderService {
             ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
         
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Object[] row = new Object[7];
+            Object[] row = new Object[9];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getInt("play_count");
-            row[3] = rs.getLong("time_listened");
-            row[4] = rs.getInt("artist_count");
-            row[5] = rs.getInt("album_count");
-            row[6] = rs.getInt("song_count");
+            row[3] = rs.getInt("vatito_play_count");
+            row[4] = rs.getInt("robertlover_play_count");
+            row[5] = rs.getLong("time_listened");
+            row[6] = rs.getInt("artist_count");
+            row[7] = rs.getInt("album_count");
+            row[8] = rs.getInt("song_count");
             return row;
         }, name, name, perPage, offset);
         
@@ -95,11 +101,13 @@ public class GenderService {
             dto.setId((Integer) row[0]);
             dto.setName((String) row[1]);
             dto.setPlayCount((Integer) row[2]);
-            dto.setTimeListened((Long) row[3]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[3]));
-            dto.setArtistCount((Integer) row[4]);
-            dto.setAlbumCount((Integer) row[5]);
-            dto.setSongCount((Integer) row[6]);
+            dto.setVatitoPlayCount((Integer) row[3]);
+            dto.setRobertloverPlayCount((Integer) row[4]);
+            dto.setTimeListened((Long) row[5]);
+            dto.setTimeListenedFormatted(formatTime((Long) row[5]));
+            dto.setArtistCount((Integer) row[6]);
+            dto.setAlbumCount((Integer) row[7]);
+            dto.setSongCount((Integer) row[8]);
             genders.add(dto);
         }
         
@@ -138,5 +146,13 @@ public class GenderService {
         } else {
             return String.format("%dm", minutes);
         }
+    }
+    
+    /**
+     * Get all genders as simple id/name maps for dropdown lists.
+     */
+    public java.util.List<java.util.Map<String, Object>> getAllGendersSimple() {
+        String sql = "SELECT id, name FROM gender ORDER BY name";
+        return jdbcTemplate.queryForList(sql);
     }
 }

@@ -19,11 +19,14 @@ public class AlbumCardDTO {
     private String lastListenedDate;
     private Integer songCount;
     private Integer playCount;
+    private Integer vatitoPlayCount;
+    private Integer robertloverPlayCount;
     private Long timeListened; // in seconds
     private String timeListenedFormatted;
     private boolean hasImage;
     private String genderName;
     private String country;
+    private Boolean organized;
 
     // Getters and Setters
     public Integer getId() {
@@ -170,6 +173,22 @@ public class AlbumCardDTO {
         this.playCount = playCount;
     }
 
+    public Integer getVatitoPlayCount() {
+        return vatitoPlayCount;
+    }
+
+    public void setVatitoPlayCount(Integer vatitoPlayCount) {
+        this.vatitoPlayCount = vatitoPlayCount;
+    }
+
+    public Integer getRobertloverPlayCount() {
+        return robertloverPlayCount;
+    }
+
+    public void setRobertloverPlayCount(Integer robertloverPlayCount) {
+        this.robertloverPlayCount = robertloverPlayCount;
+    }
+
     public Long getTimeListened() {
         return timeListened;
     }
@@ -212,5 +231,13 @@ public class AlbumCardDTO {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public Boolean getOrganized() {
+        return organized;
+    }
+
+    public void setOrganized(Boolean organized) {
+        this.organized = organized;
     }
 }

@@ -40,6 +40,28 @@ public class SongRepositoryImpl {
 		return count != null ? count : 0;
 	}
 	
+	// Get play counts by account (vatito = primary, robertlover = legacy)
+	public java.util.Map<String, Long> getPlayCountsByAccount() {
+		String sql = "SELECT COALESCE(account, '') as account, COUNT(*) as cnt FROM Scrobble GROUP BY account";
+		java.util.Map<String, Long> result = new java.util.HashMap<>();
+		result.put("primary", 0L);   // vatito
+		result.put("legacy", 0L);    // robertlover
+		result.put("total", 0L);
+		
+		template.query(sql, rs -> {
+			String account = rs.getString("account");
+			long count = rs.getLong("cnt");
+			if ("vatito".equalsIgnoreCase(account)) {
+				result.put("primary", count);
+			} else if ("robertlover".equalsIgnoreCase(account)) {
+				result.put("legacy", count);
+			}
+			result.put("total", result.get("total") + count);
+		});
+		
+		return result;
+	}
+	
 	// Get total listening time across all scrobbles
 	public String getTotalListeningTime() {
 		String sql = """

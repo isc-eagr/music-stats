@@ -60,19 +60,21 @@ public class GenreService {
                 g.name,
                 CASE WHEN g.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(stats.play_count, 0) as play_count,
+                COALESCE(stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(stats.robertlover_play_count, 0) as robertlover_play_count,
                 COALESCE(stats.time_listened, 0) as time_listened,
-                COALESCE(stats.artist_count, 0) as artist_count,
-                COALESCE(stats.album_count, 0) as album_count,
+                COALESCE(artist_stats.artist_count, 0) as artist_count,
+                COALESCE(album_stats.album_count, 0) as album_count,
                 COALESCE(stats.song_count, 0) as song_count,
                 COALESCE(stats.male_song_count, 0) as male_song_count,
                 COALESCE(stats.female_song_count, 0) as female_song_count,
                 COALESCE(stats.other_song_count, 0) as other_song_count,
-                COALESCE(stats.male_artist_count, 0) as male_artist_count,
-                COALESCE(stats.female_artist_count, 0) as female_artist_count,
-                COALESCE(stats.other_artist_count, 0) as other_artist_count,
-                COALESCE(stats.male_album_count, 0) as male_album_count,
-                COALESCE(stats.female_album_count, 0) as female_album_count,
-                COALESCE(stats.other_album_count, 0) as other_album_count,
+                COALESCE(artist_stats.male_artist_count, 0) as male_artist_count,
+                COALESCE(artist_stats.female_artist_count, 0) as female_artist_count,
+                COALESCE(artist_stats.other_artist_count, 0) as other_artist_count,
+                COALESCE(album_stats.male_album_count, 0) as male_album_count,
+                COALESCE(album_stats.female_album_count, 0) as female_album_count,
+                COALESCE(album_stats.other_album_count, 0) as other_album_count,
                 COALESCE(stats.male_play_count, 0) as male_play_count,
                 COALESCE(stats.female_play_count, 0) as female_play_count,
                 COALESCE(stats.other_play_count, 0) as other_play_count,
@@ -84,19 +86,13 @@ public class GenreService {
                 SELECT 
                     COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as effective_genre_id,
                     COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
-                    COUNT(DISTINCT ar.id) as artist_count,
-                    COUNT(DISTINCT al.id) as album_count,
                     COUNT(DISTINCT s.id) as song_count,
                     SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_song_count,
                     SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_song_count,
                     SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as other_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) as male_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END) as female_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) as other_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count,
                     COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count,
@@ -111,34 +107,61 @@ public class GenreService {
                 WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IS NOT NULL
                 GROUP BY effective_genre_id
             ) stats ON g.id = stats.effective_genre_id
+            LEFT JOIN (
+                SELECT 
+                    ar.genre_id,
+                    COUNT(DISTINCT ar.id) as artist_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) as male_artist_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END) as female_artist_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) as other_artist_count
+                FROM Artist ar
+                LEFT JOIN Gender gn ON ar.gender_id = gn.id
+                WHERE ar.genre_id IS NOT NULL
+                GROUP BY ar.genre_id
+            ) artist_stats ON g.id = artist_stats.genre_id
+            LEFT JOIN (
+                SELECT 
+                    COALESCE(al.override_genre_id, ar.genre_id) as effective_genre_id,
+                    COUNT(DISTINCT al.id) as album_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count
+                FROM Album al
+                JOIN Artist ar ON al.artist_id = ar.id
+                LEFT JOIN Gender gn ON ar.gender_id = gn.id
+                WHERE COALESCE(al.override_genre_id, ar.genre_id) IS NOT NULL
+                GROUP BY effective_genre_id
+            ) album_stats ON g.id = album_stats.effective_genre_id
             WHERE (? IS NULL OR g.name LIKE '%' || ? || '%')
             ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
         
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Object[] row = new Object[23];
+            Object[] row = new Object[25];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getInt("has_image");
             row[3] = rs.getInt("play_count");
-            row[4] = rs.getLong("time_listened");
-            row[5] = rs.getInt("artist_count");
-            row[6] = rs.getInt("album_count");
-            row[7] = rs.getInt("song_count");
-            row[8] = rs.getInt("male_song_count");
-            row[9] = rs.getInt("female_song_count");
-            row[10] = rs.getInt("other_song_count");
-            row[11] = rs.getInt("male_artist_count");
-            row[12] = rs.getInt("female_artist_count");
-            row[13] = rs.getInt("other_artist_count");
-            row[14] = rs.getInt("male_album_count");
-            row[15] = rs.getInt("female_album_count");
-            row[16] = rs.getInt("other_album_count");
-            row[17] = rs.getInt("male_play_count");
-            row[18] = rs.getInt("female_play_count");
-            row[19] = rs.getInt("other_play_count");
-            row[20] = rs.getLong("male_time_listened");
-            row[21] = rs.getLong("female_time_listened");
-            row[22] = rs.getLong("other_time_listened");
+            row[4] = rs.getInt("vatito_play_count");
+            row[5] = rs.getInt("robertlover_play_count");
+            row[6] = rs.getLong("time_listened");
+            row[7] = rs.getInt("artist_count");
+            row[8] = rs.getInt("album_count");
+            row[9] = rs.getInt("song_count");
+            row[10] = rs.getInt("male_song_count");
+            row[11] = rs.getInt("female_song_count");
+            row[12] = rs.getInt("other_song_count");
+            row[13] = rs.getInt("male_artist_count");
+            row[14] = rs.getInt("female_artist_count");
+            row[15] = rs.getInt("other_artist_count");
+            row[16] = rs.getInt("male_album_count");
+            row[17] = rs.getInt("female_album_count");
+            row[18] = rs.getInt("other_album_count");
+            row[19] = rs.getInt("male_play_count");
+            row[20] = rs.getInt("female_play_count");
+            row[21] = rs.getInt("other_play_count");
+            row[22] = rs.getLong("male_time_listened");
+            row[23] = rs.getLong("female_time_listened");
+            row[24] = rs.getLong("other_time_listened");
             return row;
         }, name, name, perPage, offset);
         
@@ -149,26 +172,28 @@ public class GenreService {
             dto.setName((String) row[1]);
             dto.setHasImage(((Integer) row[2]) == 1);
             dto.setPlayCount((Integer) row[3]);
-            dto.setTimeListened((Long) row[4]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[4]));
-            dto.setArtistCount((Integer) row[5]);
-            dto.setAlbumCount((Integer) row[6]);
-            dto.setSongCount((Integer) row[7]);
-            dto.setMaleCount((Integer) row[8]);
-            dto.setFemaleCount((Integer) row[9]);
-            dto.setOtherCount((Integer) row[10]);
-            dto.setMaleArtistCount((Integer) row[11]);
-            dto.setFemaleArtistCount((Integer) row[12]);
-            dto.setOtherArtistCount((Integer) row[13]);
-            dto.setMaleAlbumCount((Integer) row[14]);
-            dto.setFemaleAlbumCount((Integer) row[15]);
-            dto.setOtherAlbumCount((Integer) row[16]);
-            dto.setMalePlayCount((Integer) row[17]);
-            dto.setFemalePlayCount((Integer) row[18]);
-            dto.setOtherPlayCount((Integer) row[19]);
-            dto.setMaleTimeListened((Long) row[20]);
-            dto.setFemaleTimeListened((Long) row[21]);
-            dto.setOtherTimeListened((Long) row[22]);
+            dto.setVatitoPlayCount((Integer) row[4]);
+            dto.setRobertloverPlayCount((Integer) row[5]);
+            dto.setTimeListened((Long) row[6]);
+            dto.setTimeListenedFormatted(formatTime((Long) row[6]));
+            dto.setArtistCount((Integer) row[7]);
+            dto.setAlbumCount((Integer) row[8]);
+            dto.setSongCount((Integer) row[9]);
+            dto.setMaleCount((Integer) row[10]);
+            dto.setFemaleCount((Integer) row[11]);
+            dto.setOtherCount((Integer) row[12]);
+            dto.setMaleArtistCount((Integer) row[13]);
+            dto.setFemaleArtistCount((Integer) row[14]);
+            dto.setOtherArtistCount((Integer) row[15]);
+            dto.setMaleAlbumCount((Integer) row[16]);
+            dto.setFemaleAlbumCount((Integer) row[17]);
+            dto.setOtherAlbumCount((Integer) row[18]);
+            dto.setMalePlayCount((Integer) row[19]);
+            dto.setFemalePlayCount((Integer) row[20]);
+            dto.setOtherPlayCount((Integer) row[21]);
+            dto.setMaleTimeListened((Long) row[22]);
+            dto.setFemaleTimeListened((Long) row[23]);
+            dto.setOtherTimeListened((Long) row[24]);
             genres.add(dto);
         }
         
@@ -232,14 +257,18 @@ public class GenreService {
             SELECT 
                 ar.id,
                 ar.name,
-                COUNT(scr.id) as play_count,
+                COALESCE(play_stats.play_count, 0) as play_count,
                 CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
             FROM Artist ar
-            JOIN Song s ON ar.id = s.artist_id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
-            WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
-            GROUP BY ar.id, ar.name
+            LEFT JOIN (
+                SELECT 
+                    s.artist_id,
+                    COUNT(scr.id) as play_count
+                FROM Song s
+                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                GROUP BY s.artist_id
+            ) play_stats ON ar.id = play_stats.artist_id
+            WHERE ar.genre_id = ?
             ORDER BY play_count DESC
             LIMIT 50
             """;
@@ -261,14 +290,20 @@ public class GenreService {
                 al.id,
                 al.name,
                 ar.name as artist_name,
-                COUNT(scr.id) as play_count,
+                COALESCE(play_stats.play_count, 0) as play_count,
                 CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
             FROM Album al
             JOIN Artist ar ON al.artist_id = ar.id
-            JOIN Song s ON al.id = s.album_id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN (
+                SELECT 
+                    s.album_id,
+                    COUNT(scr.id) as play_count
+                FROM Song s
+                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                WHERE s.album_id IS NOT NULL
+                GROUP BY s.album_id
+            ) play_stats ON al.id = play_stats.album_id
             WHERE COALESCE(al.override_genre_id, ar.genre_id) = ?
-            GROUP BY al.id, al.name, ar.name
             ORDER BY play_count DESC
             LIMIT 50
             """;
@@ -318,21 +353,41 @@ public class GenreService {
     public Map<String, Object> getGenreStats(Integer genreId) {
         String sql = """
             SELECT 
-                COUNT(DISTINCT scr.id) as play_count,
-                COALESCE(SUM(s.length_seconds), 0) as total_length,
-                COUNT(DISTINCT ar.id) as artist_count,
-                COUNT(DISTINCT al.id) as album_count,
-                COUNT(DISTINCT s.id) as song_count,
-                MIN(scr.scrobble_date) as first_listened,
-                MAX(scr.scrobble_date) as last_listened
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
-            WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
+                COALESCE(song_stats.play_count, 0) as play_count,
+                COALESCE(song_stats.total_length, 0) as total_length,
+                COALESCE(artist_stats.artist_count, 0) as artist_count,
+                COALESCE(album_stats.album_count, 0) as album_count,
+                COALESCE(song_stats.song_count, 0) as song_count,
+                song_stats.first_listened as first_listened,
+                song_stats.last_listened as last_listened
+            FROM (SELECT 1 as dummy) base
+            LEFT JOIN (
+                SELECT 
+                    COUNT(DISTINCT scr.id) as play_count,
+                    SUM(s.length_seconds) as total_length,
+                    COUNT(DISTINCT s.id) as song_count,
+                    MIN(scr.scrobble_date) as first_listened,
+                    MAX(scr.scrobble_date) as last_listened
+                FROM Song s
+                JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album al ON s.album_id = al.id
+                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
+            ) song_stats ON 1=1
+            LEFT JOIN (
+                SELECT COUNT(*) as artist_count
+                FROM Artist
+                WHERE genre_id = ?
+            ) artist_stats ON 1=1
+            LEFT JOIN (
+                SELECT COUNT(DISTINCT al.id) as album_count
+                FROM Album al
+                JOIN Artist ar ON al.artist_id = ar.id
+                WHERE COALESCE(al.override_genre_id, ar.genre_id) = ?
+            ) album_stats ON 1=1
             """;
         
-        return jdbcTemplate.queryForMap(sql, genreId);
+        return jdbcTemplate.queryForMap(sql, genreId, genreId, genreId);
     }
     
     // Helper method to format time in seconds to human-readable format

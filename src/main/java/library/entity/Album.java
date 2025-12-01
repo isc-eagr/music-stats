@@ -34,6 +34,9 @@ public class Album {
     @Column(name = "override_language_id")
     private Integer overrideLanguageId;
     
+    @Column(name = "organized")
+    private Boolean organized;
+    
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "image")
@@ -258,5 +261,13 @@ public class Album {
     
     public void setArtistLanguageId(Integer artistLanguageId) {
         this.artistLanguageId = artistLanguageId;
+    }
+
+    public Boolean getOrganized() {
+        return organized;
+    }
+
+    public void setOrganized(Boolean organized) {
+        this.organized = organized;
     }
 }

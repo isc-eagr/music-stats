@@ -2,6 +2,7 @@ package library.controller;
 
 import library.dto.GenderCardDTO;
 import library.service.GenderService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -50,5 +51,15 @@ public class GenderController {
         model.addAttribute("sortDir", sortdir);
         
         return "genders/list";
+    }
+    
+    /**
+     * API endpoint to get all genders for dropdowns.
+     */
+    @GetMapping("/api/list")
+    @ResponseBody
+    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> listGendersApi() {
+        java.util.List<java.util.Map<String, Object>> genders = genderService.getAllGendersSimple();
+        return ResponseEntity.ok(genders);
     }
 }

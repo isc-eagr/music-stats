@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- This fragment provides reusable unmatched scrobbles modal functionality -->
+</head>
+<body>
+    <!-- Unmatched Scrobbles Modal Styles -->
+    <th:block th:fragment="modal-styles">
+        <style>
+            /* Modal base styles */
+            .unmatched-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+            .unmatched-modal.active { display: flex; }
+            .unmatched-modal-content { background-color: #1a1a1a; border-radius: 8px; width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+            .unmatched-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #333; }
+            .unmatched-modal-header h2 { margin: 0; color: #fff; font-size: 18px; }
+            .unmatched-modal-close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+            .unmatched-modal-close:hover { color: #fff; }
+            .unmatched-modal-body { padding: 20px; }
+            .unmatched-modal-footer { display: flex; gap: 10px; padding: 20px; border-top: 1px solid #333; justify-content: flex-end; }
+            
+            /* Wizard steps */
+            .wizard-steps { display: flex; gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #333; }
+            .wizard-step { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; background: #2a2a2a; color: #888; font-size: 13px; }
+            .wizard-step.active { background: var(--primary, #4a9eff); color: #fff; }
+            .wizard-step.completed { background: #2d4a2d; color: #8f8; }
+            .wizard-step-number { width: 20px; height: 20px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
+            .wizard-step.active .wizard-step-number { background: rgba(255,255,255,0.2); }
+            .wizard-step.completed .wizard-step-number { background: #4a8; }
+            
+            /* Unmatched list table */
+            .unmatched-table { width: 100%; border-collapse: collapse; }
+            .unmatched-table th, .unmatched-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
+            .unmatched-table th { color: var(--text-muted, #888); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+            .unmatched-table .count { text-align: right; font-weight: 700; }
+            .unmatched-table .actions { text-align: center; white-space: nowrap; }
+            .unmatched-table .actions .btn { padding: 4px 10px; font-size: 11px; margin: 0 2px; }
+            
+            /* Scrobble info display */
+            .scrobble-info { background: #222; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+            .scrobble-info p { margin: 4px 0; color: #ccc; font-size: 14px; }
+            .scrobble-info strong { color: #fff; }
+            
+            /* Form sections */
+            .wizard-section { display: none; }
+            .wizard-section.active { display: block; }
+            .form-group { margin-bottom: 16px; }
+            .form-group label { display: block; margin-bottom: 6px; color: #ccc; font-size: 14px; }
+            .form-group input, .form-group select { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #fff; font-size: 14px; }
+            .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary, #4a9eff); }
+            
+            /* Search with button */
+            .search-row { display: flex; gap: 8px; }
+            .search-row input { flex: 1; }
+            .search-row button { padding: 10px 16px; }
+            
+            /* Search results */
+            .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #333; border-radius: 6px; margin-top: 8px; }
+            .search-result-item { padding: 10px 12px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.2s; }
+            .search-result-item:last-child { border-bottom: none; }
+            .search-result-item:hover { background: #2a2a2a; }
+            .search-result-item.selected { background: #3a3a3a; border-left: 3px solid var(--primary, #4a9eff); }
+            .result-name { font-weight: 600; color: #fff; }
+            .result-meta { font-size: 12px; color: #888; margin-top: 2px; }
+            .no-results { padding: 20px; text-align: center; color: #666; }
+            
+            /* Create new option */
+            .create-new-option { padding: 12px; background: #1e3a1e; border: 1px dashed #4a8; border-radius: 6px; margin-top: 8px; cursor: pointer; transition: all 0.2s; }
+            .create-new-option:hover { background: #2a4a2a; border-color: #6c6; }
+            .create-new-option.selected { background: #2d5a2d; border-style: solid; }
+            
+            /* Navigation buttons */
+            .wizard-nav { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid #333; }
+            .wizard-nav .btn-back { background: #444; }
+            .wizard-nav .btn-back:hover { background: #555; }
+            
+            /* Disabled button styling */
+            .btn:disabled, .btn-action:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+                pointer-events: none;
+            }
+        </style>
+    </th:block>
+
+    <!-- Unmatched Scrobbles List Modal -->
+    <div th:fragment="unmatched-list-modal" id="unmatchedListModal" class="unmatched-modal">
+        <div class="unmatched-modal-content" style="max-width: 1000px;">
+            <div class="unmatched-modal-header">
+                <h2>Unmatched Scrobbles</h2>
+                <span class="unmatched-modal-close" onclick="closeUnmatchedListModal()">&times;</span>
+            </div>
+            <div class="unmatched-modal-body">
+                <p style="color: #888; font-size: 14px; margin-bottom: 16px;">
+                    These scrobbles could not be matched to existing songs. Use <strong>Create</strong> to add new artist/album/song, or <strong>Match</strong> to link to an existing song.
+                </p>
+                <div id="unmatchedListContainer">
+                    <table class="unmatched-table">
+                        <thead>
+                            <tr>
+                                <th>Artist</th>
+                                <th>Album</th>
+                                <th>Song</th>
+                                <th class="count">Count</th>
+                                <th class="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unmatchedListBody">
+                            <!-- Populated via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="unmatched-modal-footer">
+                <button type="button" class="btn btn-negative" onclick="closeUnmatchedListModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Wizard Modal -->
+    <div th:fragment="create-wizard-modal" id="createWizardModal" class="unmatched-modal">
+        <div class="unmatched-modal-content">
+            <div class="unmatched-modal-header">
+                <h2>Create Song for Scrobbles</h2>
+                <span class="unmatched-modal-close" onclick="closeCreateWizard()">&times;</span>
+            </div>
+            <div class="unmatched-modal-body">
+                <!-- Wizard Steps Indicator -->
+                <div class="wizard-steps">
+                    <div class="wizard-step active" id="wizardStep1Indicator">
+                        <span class="wizard-step-number">1</span>
+                        <span>Artist</span>
+                    </div>
+                    <div class="wizard-step" id="wizardStep2Indicator">
+                        <span class="wizard-step-number">2</span>
+                        <span>Album</span>
+                    </div>
+                    <div class="wizard-step" id="wizardStep3Indicator">
+                        <span class="wizard-step-number">3</span>
+                        <span>Song</span>
+                    </div>
+                </div>
+
+                <!-- Scrobble being processed -->
+                <div class="scrobble-info" id="wizardScrobbleInfo">
+                    <p><strong>Artist:</strong> <span id="wizardArtistName"></span></p>
+                    <p><strong>Album:</strong> <span id="wizardAlbumName"></span></p>
+                    <p><strong>Song:</strong> <span id="wizardSongName"></span></p>
+                    <p><strong>Count:</strong> <span id="wizardScrobbleCount"></span> scrobbles</p>
+                </div>
+
+                <!-- Step 1: Artist Selection/Creation -->
+                <div class="wizard-section active" id="wizardStep1">
+                    <h3 style="color: #fff; margin-bottom: 12px;">Select or Create Artist</h3>
+                    <div class="form-group">
+                        <label>Search existing artists:</label>
+                        <div class="search-row">
+                            <input type="text" id="wizardArtistSearch" placeholder="Search artist name..." onkeyup="handleWizardArtistSearchKeyup(event)">
+                            <button type="button" class="btn btn-action" onclick="searchWizardArtists()">Search</button>
+                        </div>
+                        <div class="search-results" id="wizardArtistResults">
+                            <div class="no-results">Search for an existing artist or create a new one</div>
+                        </div>
+                    </div>
+                    <div class="create-new-option" id="createNewArtistOption" onclick="toggleCreateNewArtist()">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">➕</span>
+                            <div>
+                                <div style="color: #8f8; font-weight: 600;">Create New Artist</div>
+                                <div style="color: #888; font-size: 12px;">Artist doesn't exist? Create it now.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="newArtistForm" style="display: none; margin-top: 12px; padding: 12px; background: #1e3a1e; border-radius: 6px;">
+                        <div class="form-group">
+                            <label>Artist Name *</label>
+                            <input type="text" id="newArtistName" placeholder="Enter artist name">
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="newArtistGender">
+                                <option value="">-- Select Gender --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="wizard-nav">
+                        <button type="button" class="btn btn-negative" onclick="closeCreateWizard()">Cancel</button>
+                        <button type="button" class="btn btn-action" onclick="wizardNextStep(1)" id="wizardStep1Next" disabled>Next: Album →</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Album Selection/Creation -->
+                <div class="wizard-section" id="wizardStep2">
+                    <h3 style="color: #fff; margin-bottom: 12px;">Select or Create Album</h3>
+                    <p style="color: #888; font-size: 13px; margin-bottom: 12px;">
+                        Artist: <strong id="selectedArtistDisplay" style="color: #fff;"></strong>
+                    </p>
+                    <div class="form-group">
+                        <label>Select from artist's albums:</label>
+                        <select id="wizardAlbumSelect">
+                            <option value="">-- No Album (Single) --</option>
+                        </select>
+                    </div>
+                    <div class="create-new-option" id="createNewAlbumOption" onclick="toggleCreateNewAlbum()">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">➕</span>
+                            <div>
+                                <div style="color: #8f8; font-weight: 600;">Create New Album</div>
+                                <div style="color: #888; font-size: 12px;">Album doesn't exist? Create it now.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="newAlbumForm" style="display: none; margin-top: 12px; padding: 12px; background: #1e3a1e; border-radius: 6px;">
+                        <div class="form-group">
+                            <label>Album Name *</label>
+                            <input type="text" id="newAlbumName" placeholder="Enter album name">
+                        </div>
+                    </div>
+                    <div class="wizard-nav">
+                        <button type="button" class="btn btn-back" onclick="wizardPrevStep(2)">← Back</button>
+                        <button type="button" class="btn btn-action" onclick="wizardNextStep(2)">Next: Song →</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Song Creation -->
+                <div class="wizard-section" id="wizardStep3">
+                    <h3 style="color: #fff; margin-bottom: 12px;">Create Song</h3>
+                    <p style="color: #888; font-size: 13px; margin-bottom: 12px;">
+                        Artist: <strong id="selectedArtistDisplay2" style="color: #fff;"></strong><br>
+                        Album: <strong id="selectedAlbumDisplay" style="color: #fff;"></strong>
+                    </p>
+                    <div class="form-group">
+                        <label>Song Name *</label>
+                        <input type="text" id="wizardSongNameInput" placeholder="Enter song name">
+                    </div>
+                    <div class="wizard-nav">
+                        <button type="button" class="btn btn-back" onclick="wizardPrevStep(3)">← Back</button>
+                        <button type="button" class="btn btn-action" onclick="createAndAssignSong()">Create & Assign Scrobbles</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match to Existing Song Modal -->
+    <div th:fragment="match-modal" id="matchSongModal" class="unmatched-modal">
+        <div class="unmatched-modal-content">
+            <div class="unmatched-modal-header">
+                <h2>Match to Existing Song</h2>
+                <span class="unmatched-modal-close" onclick="closeMatchModal()">&times;</span>
+            </div>
+            <div class="unmatched-modal-body">
+                <div class="scrobble-info" id="matchScrobbleInfo">
+                    <p><strong>Artist:</strong> <span id="matchArtistName"></span></p>
+                    <p><strong>Album:</strong> <span id="matchAlbumName"></span></p>
+                    <p><strong>Song:</strong> <span id="matchSongName"></span></p>
+                </div>
+                
+                <div class="form-group">
+                    <label>Filter by artist:</label>
+                    <div class="search-row">
+                        <input type="text" id="matchArtistFilter" placeholder="Artist name (leave empty for all)" onkeyup="handleMatchSearchKeyup(event)">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Search for song:</label>
+                    <div class="search-row">
+                        <input type="text" id="matchSongSearch" placeholder="Search by song name..." onkeyup="handleMatchSearchKeyup(event)">
+                        <button type="button" class="btn btn-action" onclick="searchMatchSongs()">Search</button>
+                    </div>
+                </div>
+                
+                <div class="search-results" id="matchSongResults" style="max-height: 400px;">
+                    <div class="no-results">Enter a search term and click Search</div>
+                </div>
+            </div>
+            <div class="unmatched-modal-footer">
+                <button type="button" class="btn btn-action" id="matchAssignBtn" onclick="assignMatchedSong()" disabled>Match</button>
+                <button type="button" class="btn btn-negative" onclick="closeMatchModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for unmatched scrobbles modals -->
+    <script th:fragment="modal-scripts">
+        // State for wizard
+        let wizardState = {
+            scrobbleData: null,
+            selectedArtistId: null,
+            selectedArtistName: null,
+            isNewArtist: false,
+            selectedAlbumId: null,
+            selectedAlbumName: null,
+            isNewAlbum: false
+        };
+        
+        // State for match modal
+        let matchState = {
+            scrobbleData: null,
+            selectedSongId: null
+        };
+        
+        // Unmatched list data (populated from import result or API)
+        let unmatchedList = [];
+
+        // ==================== Unmatched List Modal ====================
+        function openUnmatchedListModal(data) {
+            unmatchedList = data || [];
+            renderUnmatchedList();
+            document.getElementById('unmatchedListModal').classList.add('active');
+        }
+        
+        function closeUnmatchedListModal() {
+            document.getElementById('unmatchedListModal').classList.remove('active');
+        }
+        
+        function renderUnmatchedList() {
+            const tbody = document.getElementById('unmatchedListBody');
+            if (!unmatchedList || unmatchedList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No unmatched scrobbles</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = unmatchedList.map((row, index) => `
+                <tr>
+                    <td>${escapeHtml(row.artist || '')}</td>
+                    <td>${escapeHtml(row.album || '')}</td>
+                    <td>${escapeHtml(row.song || '')}</td>
+                    <td class="count">${row.cnt || row.count || 0}</td>
+                    <td class="actions">
+                        <button class="btn btn-action" onclick="openCreateWizard(${index})">Create</button>
+                        <button class="btn btn-secondary" onclick="openMatchModal(${index})">Match</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== Create Wizard Modal ====================
+        function openCreateWizard(index) {
+            const row = unmatchedList[index];
+            wizardState = {
+                scrobbleData: row,
+                selectedArtistId: null,
+                selectedArtistName: null,
+                isNewArtist: false,
+                selectedAlbumId: null,
+                selectedAlbumName: null,
+                isNewAlbum: false
+            };
+            
+            // Populate scrobble info
+            document.getElementById('wizardArtistName').textContent = row.artist || '(none)';
+            document.getElementById('wizardAlbumName').textContent = row.album || '(none)';
+            document.getElementById('wizardSongName').textContent = row.song || '(none)';
+            document.getElementById('wizardScrobbleCount').textContent = row.cnt || row.count || 0;
+            
+            // Pre-fill search fields
+            document.getElementById('wizardArtistSearch').value = row.artist || '';
+            document.getElementById('newArtistName').value = row.artist || '';
+            document.getElementById('newAlbumName').value = row.album || '';
+            document.getElementById('wizardSongNameInput').value = row.song || '';
+            
+            // Reset to step 1
+            showWizardStep(1);
+            resetWizardForms();
+            
+            // Load genders for dropdown
+            loadGenders();
+            
+            // Open modal
+            document.getElementById('createWizardModal').classList.add('active');
+            
+            // Auto-search for artist
+            if (row.artist) {
+                searchWizardArtists();
+            }
+        }
+        
+        function closeCreateWizard() {
+            document.getElementById('createWizardModal').classList.remove('active');
+            wizardState = { scrobbleData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false };
+        }
+        
+        function showWizardStep(step) {
+            // Update step indicators
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`wizardStep${i}Indicator`);
+                const section = document.getElementById(`wizardStep${i}`);
+                indicator.classList.remove('active', 'completed');
+                section.classList.remove('active');
+                
+                if (i < step) {
+                    indicator.classList.add('completed');
+                } else if (i === step) {
+                    indicator.classList.add('active');
+                    section.classList.add('active');
+                }
+            }
+        }
+        
+        function resetWizardForms() {
+            document.getElementById('wizardArtistResults').innerHTML = '<div class="no-results">Search for an existing artist or create a new one</div>';
+            document.getElementById('newArtistForm').style.display = 'none';
+            document.getElementById('createNewArtistOption').classList.remove('selected');
+            document.getElementById('newAlbumForm').style.display = 'none';
+            document.getElementById('createNewAlbumOption').classList.remove('selected');
+            document.getElementById('wizardStep1Next').disabled = true;
+        }
+        
+        function loadGenders() {
+            fetch('/genders/api/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('newArtistGender');
+                    select.innerHTML = '<option value="">-- Select Gender --</option>';
+                    data.forEach(g => {
+                        select.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error loading genders:', err));
+        }
+        
+        function handleWizardArtistSearchKeyup(event) {
+            if (event.key === 'Enter') searchWizardArtists();
+        }
+        
+        function searchWizardArtists() {
+            const query = document.getElementById('wizardArtistSearch').value.trim();
+            if (!query) return;
+            
+            fetch(`/artists/api/search?q=${encodeURIComponent(query)}&limit=20`)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('wizardArtistResults');
+                    if (!data || data.length === 0) {
+                        container.innerHTML = '<div class="no-results">No artists found. Create a new one below.</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(a => `
+                        <div class="search-result-item" data-id="${a.id}" data-name="${escapeHtml(a.name)}" onclick="selectWizardArtist(${a.id}, '${escapeJs(a.name)}')">
+                            <div class="result-name">${escapeHtml(a.name)}</div>
+                            <div class="result-meta">${escapeHtml(a.genderName || '')} ${a.country ? '• ' + escapeHtml(a.country) : ''}</div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    console.error('Error searching artists:', err);
+                    document.getElementById('wizardArtistResults').innerHTML = '<div class="no-results">Error searching artists</div>';
+                });
+        }
+        
+        function selectWizardArtist(id, name) {
+            // Deselect create new option
+            document.getElementById('createNewArtistOption').classList.remove('selected');
+            document.getElementById('newArtistForm').style.display = 'none';
+            wizardState.isNewArtist = false;
+            
+            // Select this artist
+            document.querySelectorAll('#wizardArtistResults .search-result-item').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`#wizardArtistResults .search-result-item[data-id="${id}"]`).classList.add('selected');
+            
+            wizardState.selectedArtistId = id;
+            wizardState.selectedArtistName = name;
+            document.getElementById('wizardStep1Next').disabled = false;
+        }
+        
+        function toggleCreateNewArtist() {
+            const option = document.getElementById('createNewArtistOption');
+            const form = document.getElementById('newArtistForm');
+            const isSelected = option.classList.toggle('selected');
+            form.style.display = isSelected ? 'block' : 'none';
+            
+            // Deselect any existing artist
+            document.querySelectorAll('#wizardArtistResults .search-result-item').forEach(el => el.classList.remove('selected'));
+            
+            if (isSelected) {
+                wizardState.isNewArtist = true;
+                wizardState.selectedArtistId = null;
+                wizardState.selectedArtistName = document.getElementById('newArtistName').value;
+                document.getElementById('wizardStep1Next').disabled = false;
+            } else {
+                wizardState.isNewArtist = false;
+                document.getElementById('wizardStep1Next').disabled = true;
+            }
+        }
+        
+        function wizardNextStep(currentStep) {
+            if (currentStep === 1) {
+                // Validate artist selection
+                if (wizardState.isNewArtist) {
+                    wizardState.selectedArtistName = document.getElementById('newArtistName').value.trim();
+                    if (!wizardState.selectedArtistName) {
+                        alert('Please enter an artist name');
+                        return;
+                    }
+                } else if (!wizardState.selectedArtistId) {
+                    alert('Please select an artist');
+                    return;
+                }
+                
+                // Update display and load albums
+                document.getElementById('selectedArtistDisplay').textContent = wizardState.selectedArtistName;
+                document.getElementById('selectedArtistDisplay2').textContent = wizardState.selectedArtistName;
+                
+                // Reset album selection
+                wizardState.selectedAlbumId = null;
+                wizardState.selectedAlbumName = null;
+                wizardState.isNewAlbum = false;
+                document.getElementById('newAlbumForm').style.display = 'none';
+                document.getElementById('createNewAlbumOption').classList.remove('selected');
+                
+                // Load albums if existing artist
+                if (wizardState.selectedArtistId) {
+                    loadArtistAlbums(wizardState.selectedArtistId);
+                } else {
+                    document.getElementById('wizardAlbumSelect').innerHTML = '<option value="">-- No Album (Single) --</option>';
+                }
+                
+                showWizardStep(2);
+            } else if (currentStep === 2) {
+                // Validate album selection
+                if (wizardState.isNewAlbum) {
+                    wizardState.selectedAlbumName = document.getElementById('newAlbumName').value.trim();
+                    if (!wizardState.selectedAlbumName) {
+                        alert('Please enter an album name');
+                        return;
+                    }
+                } else {
+                    const albumSelect = document.getElementById('wizardAlbumSelect');
+                    wizardState.selectedAlbumId = albumSelect.value ? parseInt(albumSelect.value) : null;
+                    wizardState.selectedAlbumName = albumSelect.value ? albumSelect.options[albumSelect.selectedIndex].text : '(Single)';
+                }
+                
+                // Update display
+                document.getElementById('selectedAlbumDisplay').textContent = wizardState.selectedAlbumName || '(Single)';
+                
+                showWizardStep(3);
+            }
+        }
+        
+        function wizardPrevStep(currentStep) {
+            showWizardStep(currentStep - 1);
+        }
+        
+        function loadArtistAlbums(artistId) {
+            fetch(`/albums/api/by-artist?artistId=${artistId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('wizardAlbumSelect');
+                    select.innerHTML = '<option value="">-- No Album (Single) --</option>';
+                    data.forEach(album => {
+                        const option = document.createElement('option');
+                        option.value = album.id;
+                        option.textContent = album.name;
+                        select.appendChild(option);
+                    });
+                    
+                    // Try to auto-select matching album
+                    if (wizardState.scrobbleData && wizardState.scrobbleData.album) {
+                        const match = data.find(a => a.name.toLowerCase() === wizardState.scrobbleData.album.toLowerCase());
+                        if (match) {
+                            select.value = match.id;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error loading albums:', err));
+        }
+        
+        function toggleCreateNewAlbum() {
+            const option = document.getElementById('createNewAlbumOption');
+            const form = document.getElementById('newAlbumForm');
+            const isSelected = option.classList.toggle('selected');
+            form.style.display = isSelected ? 'block' : 'none';
+            wizardState.isNewAlbum = isSelected;
+            
+            if (isSelected) {
+                document.getElementById('wizardAlbumSelect').value = '';
+            }
+        }
+        
+        function createAndAssignSong() {
+            const songName = document.getElementById('wizardSongNameInput').value.trim();
+            if (!songName) {
+                alert('Please enter a song name');
+                return;
+            }
+            
+            const payload = {
+                scrobbleArtist: wizardState.scrobbleData.artist,
+                scrobbleAlbum: wizardState.scrobbleData.album,
+                scrobbleSong: wizardState.scrobbleData.song,
+                scrobbleAccount: wizardState.scrobbleData.account,
+                
+                artistId: wizardState.isNewArtist ? null : wizardState.selectedArtistId,
+                newArtistName: wizardState.isNewArtist ? wizardState.selectedArtistName : null,
+                newArtistGenderId: wizardState.isNewArtist ? (document.getElementById('newArtistGender').value || null) : null,
+                
+                albumId: wizardState.isNewAlbum ? null : wizardState.selectedAlbumId,
+                newAlbumName: wizardState.isNewAlbum ? wizardState.selectedAlbumName : null,
+                
+                songName: songName
+            };
+            
+            fetch('/scrobbles/api/create-and-assign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const importCount = wizardState.scrobbleData.cnt || wizardState.scrobbleData.count || 0;
+                    let msg = `Success! Created song and assigned ${data.updatedCount} scrobble(s).`;
+                    if (data.updatedCount > importCount) {
+                        msg += `\n(${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
+                    }
+                    alert(msg);
+                    // Refresh list BEFORE closing (so scrobbleData is still available)
+                    refreshUnmatchedList();
+                    closeCreateWizard();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error creating and assigning:', err);
+                alert('Error creating song');
+            });
+        }
+
+        // ==================== Match Modal ====================
+        function openMatchModal(index) {
+            const row = unmatchedList[index];
+            matchState = {
+                scrobbleData: row,
+                selectedSongId: null
+            };
+            
+            document.getElementById('matchArtistName').textContent = row.artist || '(none)';
+            document.getElementById('matchAlbumName').textContent = row.album || '(none)';
+            document.getElementById('matchSongName').textContent = row.song || '(none)';
+            document.getElementById('matchArtistFilter').value = row.artist || '';
+            document.getElementById('matchSongSearch').value = row.song || '';
+            document.getElementById('matchSongResults').innerHTML = '<div class="no-results">Enter a search term and click Search</div>';
+            document.getElementById('matchAssignBtn').disabled = true;
+            
+            document.getElementById('matchSongModal').classList.add('active');
+            
+            // Auto-search using the artist and song
+            if (row.artist || row.song) {
+                searchMatchSongs();
+            }
+        }
+        
+        function closeMatchModal() {
+            document.getElementById('matchSongModal').classList.remove('active');
+            matchState = { scrobbleData: null, selectedSongId: null };
+        }
+        
+        function handleMatchSearchKeyup(event) {
+            if (event.key === 'Enter') searchMatchSongs();
+        }
+        
+        function searchMatchSongs() {
+            const artistFilter = document.getElementById('matchArtistFilter').value.trim();
+            const songQuery = document.getElementById('matchSongSearch').value.trim();
+            
+            if (!artistFilter && !songQuery) {
+                document.getElementById('matchSongResults').innerHTML = '<div class="no-results">Please enter an artist or song name to search</div>';
+                return;
+            }
+            
+            let url = '/songs/api/search?';
+            const params = [];
+            if (artistFilter) params.push(`artist=${encodeURIComponent(artistFilter)}`);
+            if (songQuery) params.push(`song=${encodeURIComponent(songQuery)}`);
+            url += params.join('&');
+            
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('matchSongResults');
+                    if (!data || data.length === 0) {
+                        container.innerHTML = '<div class="no-results">No songs found</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(s => `
+                        <div class="search-result-item" data-id="${s.id}" onclick="selectMatchSong(${s.id}, this)">
+                            <div class="result-name">${escapeHtml(s.name)}</div>
+                            <div class="result-meta">${escapeHtml(s.artistName || '')}${s.albumName ? ' • ' + escapeHtml(s.albumName) : ''}</div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    console.error('Error searching songs:', err);
+                    document.getElementById('matchSongResults').innerHTML = '<div class="no-results">Error searching songs</div>';
+                });
+        }
+        
+        function selectMatchSong(id, element) {
+            document.querySelectorAll('#matchSongResults .search-result-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            matchState.selectedSongId = id;
+            document.getElementById('matchAssignBtn').disabled = false;
+        }
+        
+        function assignMatchedSong() {
+            if (!matchState.selectedSongId) {
+                alert('Please select a song');
+                return;
+            }
+            
+            fetch('/scrobbles/api/assign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    account: matchState.scrobbleData.account || '',
+                    artist: matchState.scrobbleData.artist || '',
+                    album: matchState.scrobbleData.album || '',
+                    song: matchState.scrobbleData.song || '',
+                    songId: matchState.selectedSongId
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const importCount = matchState.scrobbleData.cnt || matchState.scrobbleData.count || 0;
+                    let msg = `Success! Matched ${data.updatedCount} scrobble(s) to this song.`;
+                    if (data.updatedCount > importCount) {
+                        msg += `\n(${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
+                    }
+                    alert(msg);
+                    // Refresh list BEFORE closing (so scrobbleData is still available)
+                    refreshUnmatchedList();
+                    closeMatchModal();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error assigning song:', err);
+                alert('Error assigning song');
+            });
+        }
+        
+        function refreshUnmatchedList() {
+            // Remove the assigned row from local list and re-render
+            if (matchState.scrobbleData) {
+                unmatchedList = unmatchedList.filter(r => 
+                    !(r.artist === matchState.scrobbleData.artist && 
+                      r.album === matchState.scrobbleData.album && 
+                      r.song === matchState.scrobbleData.song &&
+                      r.account === matchState.scrobbleData.account)
+                );
+            }
+            if (wizardState.scrobbleData) {
+                unmatchedList = unmatchedList.filter(r => 
+                    !(r.artist === wizardState.scrobbleData.artist && 
+                      r.album === wizardState.scrobbleData.album && 
+                      r.song === wizardState.scrobbleData.song &&
+                      r.account === wizardState.scrobbleData.account)
+                );
+            }
+            renderUnmatchedList();
+            
+            // Update count display if exists
+            const countEl = document.getElementById('unmatchedCount');
+            if (countEl) {
+                countEl.textContent = unmatchedList.length;
+            }
+        }
+
+        // ==================== Utility Functions ====================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function escapeJs(text) {
+            if (!text) return '';
+            return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+    </script>
+</body>
+</html>

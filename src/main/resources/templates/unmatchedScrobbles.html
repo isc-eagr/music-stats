@@ -6,8 +6,9 @@
     <title>Unmatched Scrobbles</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
     <style>
-        .content-card { max-width: 1100px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .content-card { max-width: 1200px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
         .hint { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
@@ -15,6 +16,30 @@
         .count { text-align: right; font-weight: 700; }
         .filters { display:flex; gap:12px; align-items:center; margin-bottom:12px }
         .filters label { color: var(--text-muted); font-size: 13px; }
+        .action-col { width: 220px; text-align: center; white-space: nowrap; }
+        .action-col .btn { padding: 4px 8px; font-size: 11px; margin: 0 2px; }
+        .btn-delete { background: transparent; border: 1px solid #dc3545; color: #dc3545; }
+        .btn-delete:hover { background: #dc3545; color: white; }
+        
+        /* Delete confirmation modal */
+        .delete-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .delete-modal-overlay.active { display: flex; }
+        .delete-modal { background: var(--surface); border: 2px solid #dc3545; border-radius: var(--radius); padding: 24px; max-width: 500px; width: 90%; }
+        .delete-modal h3 { color: #dc3545; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; }
+        .delete-modal .warning-icon { font-size: 24px; }
+        .delete-modal .scrobble-info { background: rgba(220,53,69,0.1); border: 1px solid rgba(220,53,69,0.3); border-radius: 4px; padding: 12px; margin: 12px 0; font-size: 13px; }
+        .delete-modal .scrobble-info p { margin: 4px 0; }
+        .delete-modal .scrobble-info strong { color: var(--text-muted); }
+        .delete-modal .warning-text { color: #dc3545; font-weight: 600; margin: 16px 0; }
+        .delete-modal .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+        .delete-modal .btn-cancel { background: var(--surface-raised); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+        .delete-modal .btn-confirm-delete { background: #dc3545; border: none; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .delete-modal .btn-confirm-delete:hover { background: #c82333; }
+        .delete-modal .btn-confirm-delete:disabled { opacity: 0.5; cursor: not-allowed; }
+        .delete-modal .final-confirm { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(220,53,69,0.3); }
+        .delete-modal .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .delete-modal .checkbox-row input { width: 18px; height: 18px; accent-color: #dc3545; }
+        .delete-modal .checkbox-row label { color: #dc3545; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -22,16 +47,19 @@
 
     <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Scrobbles</h1>
+            <div>
+                <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Scrobbles</h1>
+                <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 14px;">
+                    <span th:text="${totalUnmatchedCount}">0</span> total scrobbles in 
+                    <span th:text="${unmatchedGroupCount}">0</span> groups
+                </p>
+            </div>
             
             <!-- Filter form: choose account -> submit GET to same endpoint -->
             <form method="get" th:action="@{/scrobbles/unmatched}" style="display: flex; gap: 8px; align-items: center;">
                 <label for="accountSelect" style="color: var(--text-muted); font-size: 13px;">Account:</label>
                 <select id="accountSelect" name="account" th:onchange="this.form.submit()">
-                    <!-- Use a plain value for the empty "All accounts" option (th:value with empty string causes parsing error) -->
                     <option value="" th:selected="${selectedAccount == ''}">All accounts</option>
-                    <!-- Render a special value for blank/null account so it is distinguishable from 'All' -->
-                    <!-- Use a plain value for the special blank marker -->
                     <option th:if="${#lists.contains(accounts, '')}" value="__BLANK__" th:selected="${selectedAccount == '__BLANK__'}">(blank)</option>
                     <option th:each="acc : ${accounts}" th:if="${acc != ''}"
                             th:value="${acc}"
@@ -44,7 +72,7 @@
         </div>
         
         <div class="content-card">
-            <p class="hint">List of scrobbles (account / artist / album / song) that do not have a matched song_id, ordered by frequency.</p>
+            <p class="hint">List of scrobbles (account / artist / album / song) that do not have a matched song_id, ordered by frequency. Use <strong>Create</strong> to add new artist/album/song, or <strong>Match</strong> to link to an existing song.</p>
 
             <div th:if="${unmatched == null or #lists.isEmpty(unmatched)}">
                 <p>No unmatched scrobbles found.</p>
@@ -59,24 +87,176 @@
                             <th>Album</th>
                             <th>Song</th>
                             <th class="count">Count</th>
+                            <th class="action-col">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr th:each="row : ${unmatched}">
+                    <tbody id="unmatchedTableBody">
+                        <tr th:each="row, iter : ${unmatched}" th:data-index="${iter.index}">
                             <td th:text="${row.account}">account</td>
                             <td th:text="${row.artist}">Artist</td>
                             <td th:text="${row.album}">Album</td>
                             <td th:text="${row.song}">Song</td>
                             <td class="count" th:text="${row.cnt}">0</td>
+                            <td class="action-col">
+                                <button class="btn btn-action" 
+                                        th:data-index="${iter.index}"
+                                        onclick="openCreateWizardFromTable(this.dataset.index)">
+                                    Create
+                                </button>
+                                <button class="btn btn-secondary" 
+                                        th:data-index="${iter.index}"
+                                        onclick="openMatchModalFromTable(this.dataset.index)">
+                                    Match
+                                </button>
+                                <button class="btn btn-delete" 
+                                        th:data-index="${iter.index}"
+                                        onclick="openDeleteConfirmation(this.dataset.index)">
+                                    Delete
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <div style="margin-top:12px">
-                </table>
             </div>
         </div>
     </main>
+    
+    <!-- Include shared modal fragments -->
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: create-wizard-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: match-modal}"></th:block>
+    
+    <!-- Include shared modal scripts -->
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-scripts}"></th:block>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+            <h3><span class="warning-icon">⚠️</span> Delete Scrobbles</h3>
+            <p>You are about to permanently delete the following scrobbles:</p>
+            <div class="scrobble-info">
+                <p><strong>Account:</strong> <span id="deleteAccount">-</span></p>
+                <p><strong>Artist:</strong> <span id="deleteArtist">-</span></p>
+                <p><strong>Album:</strong> <span id="deleteAlbum">-</span></p>
+                <p><strong>Song:</strong> <span id="deleteSong">-</span></p>
+                <p><strong>Count:</strong> <span id="deleteCount">0</span> scrobbles</p>
+            </div>
+            <p class="warning-text">⚠️ This action cannot be undone! These scrobbles will be permanently deleted from the database.</p>
+            
+            <div class="final-confirm">
+                <div class="checkbox-row">
+                    <input type="checkbox" id="confirmDeleteCheckbox" onchange="updateDeleteButtonState()">
+                    <label for="confirmDeleteCheckbox">I understand this is permanent and want to delete these scrobbles</label>
+                </div>
+            </div>
+            
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-confirm-delete" id="confirmDeleteBtn" disabled onclick="executeDelete()">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+    
+    <script th:inline="javascript">
+        // Initialize unmatched list from server data
+        const unmatchedFromServer = /*[[${unmatched}]]*/ [];
+        unmatchedList = unmatchedFromServer.map(row => ({
+            artist: row.artist || '',
+            album: row.album || '',
+            song: row.song || '',
+            account: row.account || '',
+            cnt: row.cnt || 0
+        }));
+        
+        let deleteTargetIndex = null;
+        
+        function openCreateWizardFromTable(index) {
+            openCreateWizard(parseInt(index));
+        }
+        
+        function openMatchModalFromTable(index) {
+            openMatchModal(parseInt(index));
+        }
+        
+        function openDeleteConfirmation(index) {
+            deleteTargetIndex = parseInt(index);
+            const row = unmatchedList[deleteTargetIndex];
+            
+            document.getElementById('deleteAccount').textContent = row.account || '(blank)';
+            document.getElementById('deleteArtist').textContent = row.artist || '(blank)';
+            document.getElementById('deleteAlbum').textContent = row.album || '(blank)';
+            document.getElementById('deleteSong').textContent = row.song || '(blank)';
+            document.getElementById('deleteCount').textContent = row.cnt;
+            
+            // Reset confirmation state
+            document.getElementById('confirmDeleteCheckbox').checked = false;
+            document.getElementById('confirmDeleteBtn').disabled = true;
+            
+            document.getElementById('deleteModal').classList.add('active');
+        }
+        
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            deleteTargetIndex = null;
+        }
+        
+        function updateDeleteButtonState() {
+            const checkbox = document.getElementById('confirmDeleteCheckbox');
+            document.getElementById('confirmDeleteBtn').disabled = !checkbox.checked;
+        }
+        
+        async function executeDelete() {
+            if (deleteTargetIndex === null) return;
+            
+            const row = unmatchedList[deleteTargetIndex];
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+            
+            try {
+                const response = await fetch('/scrobbles/api/unmatched', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account: row.account,
+                        artist: row.artist,
+                        album: row.album,
+                        song: row.song
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeDeleteModal();
+                    location.reload();
+                } else {
+                    alert('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.textContent = 'Delete Permanently';
+                }
+            } catch (err) {
+                alert('Error deleting scrobbles: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Delete Permanently';
+            }
+        }
+        
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('deleteModal').classList.contains('active')) {
+                closeDeleteModal();
+            }
+        });
+        
+        // Override refreshUnmatchedList to reload page for /unmatched
+        const originalRefreshUnmatchedList = refreshUnmatchedList;
+        refreshUnmatchedList = function() {
+            // For the /unmatched page, just reload to get fresh data from DB
+            location.reload();
+        };
+    </script>
 </body>
 </html>

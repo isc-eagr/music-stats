@@ -36,6 +36,9 @@ public class Artist {
     @Column(name = "is_band")
     private Boolean isBand;
     
+    @Column(name = "organized")
+    private Boolean organized;
+    
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "image")
@@ -220,5 +223,13 @@ public class Artist {
 
     public void setIsBand(Boolean isBand) {
         this.isBand = isBand;
+    }
+
+    public Boolean getOrganized() {
+        return organized;
+    }
+
+    public void setOrganized(Boolean organized) {
+        this.organized = organized;
     }
 }

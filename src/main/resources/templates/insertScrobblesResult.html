@@ -6,13 +6,17 @@
     <title>Import Result</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
     <style>
         /* Page-specific tweaks to align with site look */
         .result-card { max-width: 880px; margin: 24px 0; padding: 28px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
         .stat { color: var(--text); margin-bottom:8px }
         .error { color: #ff6b6b; }
         .note { color: var(--text-muted); font-size: 13px; margin-top: 12px; }
-        .actions { display:flex; gap:8px; margin-top:12px }
+        .actions { display:flex; gap:8px; margin-top:12px; flex-wrap: wrap; }
+        .unmatched-alert { background: #3a2a1a; border: 1px solid #8a6a3a; border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .unmatched-alert-title { color: #ffa; font-weight: 600; margin-bottom: 8px; }
+        .unmatched-alert-text { color: #cca; font-size: 14px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -33,7 +37,19 @@
                 <p th:if="${dryRun}" class="stat">Dry run: <strong>Yes</strong></p>
                 <p class="stat">Total processed: <strong th:text="${stats.totalProcessed}"></strong></p>
                 <p class="stat">Matched: <strong th:text="${stats.totalMatched}"></strong></p>
-                <p class="stat">Unmatched: <strong th:text="${stats.totalUnmatched}"></strong></p>
+                <p class="stat">Unmatched: <strong id="unmatchedCount" th:text="${stats.totalUnmatched}"></strong></p>
+
+                <!-- Unmatched scrobbles alert -->
+                <div th:if="${unmatchedList != null and !unmatchedList.isEmpty()}" class="unmatched-alert">
+                    <div class="unmatched-alert-title">⚠️ Unmatched Scrobbles Detected</div>
+                    <div class="unmatched-alert-text">
+                        <span th:text="${#lists.size(unmatchedList)}">0</span> unique song(s) could not be matched to existing songs in your library.
+                        You can create new songs or match them to existing ones.
+                    </div>
+                    <button type="button" class="btn btn-action" onclick="showUnmatchedFromImport()">
+                        View & Fix Unmatched Scrobbles
+                    </button>
+                </div>
 
                 <div class="actions">
                     <a th:href="@{/scrobbles/upload}" class="btn btn-action">Import another file</a>
@@ -44,5 +60,22 @@
             </div>
         </div>
     </main>
+
+    <!-- Include modal fragments -->
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: unmatched-list-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: create-wizard-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: match-modal}"></th:block>
+    
+    <!-- Include modal scripts -->
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-scripts}"></th:block>
+    
+    <script th:inline="javascript">
+        // Pass unmatched list from server to JavaScript
+        const unmatchedFromImport = /*[[${unmatchedList}]]*/ [];
+        
+        function showUnmatchedFromImport() {
+            openUnmatchedListModal(unmatchedFromImport);
+        }
+    </script>
 </body>
 </html>

@@ -81,6 +81,7 @@ public class AlbumController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String organized,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
@@ -114,7 +115,7 @@ public class AlbumController {
         List<AlbumCardDTO> albums = albumService.getAlbums(
                 q, artist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-                country, countryMode,
+                country, countryMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -124,7 +125,7 @@ public class AlbumController {
         // Get total count for pagination
         long totalCount = albumService.countAlbums(q, artist, genre, 
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
-                genderMode, ethnicity, ethnicityMode, country, countryMode,
+                genderMode, ethnicity, ethnicityMode, country, countryMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
@@ -155,6 +156,7 @@ public class AlbumController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedOrganized", organized);
         
         // Release date filter attributes
         model.addAttribute("releaseDate", releaseDate);
@@ -241,6 +243,8 @@ public class AlbumController {
         
         // NEW: add album play count
         model.addAttribute("albumPlayCount", albumService.getPlayCountForAlbum(id));
+        model.addAttribute("albumVatitoPlayCount", albumService.getVatitoPlayCountForAlbum(id));
+        model.addAttribute("albumRobertloverPlayCount", albumService.getRobertloverPlayCountForAlbum(id));
         // Add per-account breakdown string for tooltip
         model.addAttribute("albumPlaysByAccount", albumService.getPlaysByAccountForAlbum(id));
         
@@ -349,6 +353,12 @@ public class AlbumController {
     @GetMapping("/api/albums")
     @ResponseBody
     public List<Map<String, Object>> getAlbumsByArtist(@RequestParam Integer artistId) {
+        return albumService.getAlbumsByArtistForApi(artistId);
+    }
+    
+    @GetMapping("/api/by-artist")
+    @ResponseBody
+    public List<Map<String, Object>> getAlbumsByArtistAlt(@RequestParam Integer artistId) {
         return albumService.getAlbumsByArtistForApi(artistId);
     }
     

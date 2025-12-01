@@ -37,6 +37,7 @@ public class ArtistController {
             @RequestParam(required = false) String languageMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String organized,
             @RequestParam(required = false) String firstListenedDate,
             @RequestParam(required = false) String firstListenedDateFrom,
             @RequestParam(required = false) String firstListenedDateTo,
@@ -62,7 +63,7 @@ public class ArtistController {
         // Get filtered and sorted artists
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
-                subgenre, subgenreMode, language, languageMode, country, countryMode,
+                subgenre, subgenreMode, language, languageMode, country, countryMode, organized,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 sortby, sortdir, page, perpage
@@ -71,7 +72,7 @@ public class ArtistController {
         // Get total count for pagination
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
-                languageMode, country, countryMode,
+                languageMode, country, countryMode, organized,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
@@ -100,6 +101,7 @@ public class ArtistController {
         model.addAttribute("languageMode", languageMode != null ? languageMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedOrganized", organized);
         
         // First listened date filter attributes
         model.addAttribute("firstListenedDate", firstListenedDate);
@@ -164,6 +166,8 @@ public class ArtistController {
         model.addAttribute("songCount", counts[1]);
         // Add play count for artist
         model.addAttribute("artistPlayCount", artistService.getPlayCountForArtist(id));
+        model.addAttribute("artistVatitoPlayCount", artistService.getVatitoPlayCountForArtist(id));
+        model.addAttribute("artistRobertloverPlayCount", artistService.getRobertloverPlayCountForArtist(id));
         // Add per-account breakdown string for tooltip
         model.addAttribute("artistPlaysByAccount", artistService.getPlaysByAccountForArtist(id));
         
@@ -274,8 +278,19 @@ public class ArtistController {
     
     @GetMapping("/api/artists")
     @ResponseBody
-    public List<Map<String, Object>> getAllArtistsForApi() {
+    public List<Map<String, Object>> getAllArtistsForApi(@RequestParam(required = false) String q) {
+        if (q != null && !q.trim().isEmpty()) {
+            return artistService.searchArtists(q, 20);
+        }
         return artistService.getAllArtistsForApi();
+    }
+    
+    @GetMapping("/api/search")
+    @ResponseBody
+    public List<Map<String, Object>> searchArtistsApi(
+            @RequestParam String q,
+            @RequestParam(required = false, defaultValue = "20") int limit) {
+        return artistService.searchArtists(q, limit);
     }
     
     // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)

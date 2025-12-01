@@ -8,6 +8,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/songs.css}">
+    <script th:src="@{/js/list-utils.js}"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -459,6 +460,25 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Organized Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Organized
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <select name="organized" id="organizedSelect">
+                                                <option value="">All</option>
+                                                <option value="true" th:selected="${selectedOrganized == 'true'}">📦 Organized</option>
+                                                <option value="false" th:selected="${selectedOrganized == 'false'}">📬 Not Organized</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                             </form>
                         </div>
                         
@@ -659,8 +679,14 @@
                 <button class="filter-chip-remove" onclick="removeFilter('lastListenedDateFrom', 'lastListenedDateTo', 'lastListenedDateMode')" type="button">×</button>
             </div>
             
+            <!-- Organized filter chip -->
+            <div class="filter-chip" th:if="${selectedOrganized != null and !selectedOrganized.isEmpty()}">
+                <span class="filter-chip-label" th:text="${selectedOrganized == 'true' ? '📦 Organized' : '📬 Not Organized'}">Organized</span>
+                <button class="filter-chip-remove" onclick="removeFilter('organized')" type="button">×</button>
+            </div>
+            
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
-                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty())}">
+                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty())}">
                 Clear
             </button>
         </div>
@@ -783,8 +809,16 @@
                     </div>
                     
                     <div class="song-stats">
-                        <div class="stat">
-                            <span class="stat-icon">▶️</span>
+                        <div class="stat" title="Primary plays">
+                            <span class="stat-icon primary-plays">⏵</span>
+                            <span class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Legacy plays">
+                            <span class="stat-icon legacy-plays">⏵</span>
+                            <span class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Total plays">
+                            <span class="stat-icon total-plays">▶️</span>
                             <span class="stat-value" th:text="${song.playCount}">0</span>
                         </div>
                     </div>
@@ -792,6 +826,9 @@
                         <div class="stat">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${song.timeListenedFormatted}">0m</span>
+                        </div>
+                        <div class="stat" th:title="${song.organized != null and song.organized ? 'Organized' : 'Not Organized'}">
+                            <span class="stat-icon" th:text="${song.organized != null and song.organized ? '📦' : '📬'}">📬</span>
                         </div>
                     </div>
                     
@@ -1484,149 +1521,6 @@
             padding: 20px;
             border-top: 1px solid #333;
             justify-content: flex-end;
-        }
-        
-        /* Charts Modal */
-        .charts-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            z-index: 10000;
-            overflow-y: auto;
-        }
-        
-        .charts-modal.show {
-            display: block;
-        }
-        
-        .charts-modal-content {
-            background-color: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            max-width: 1400px;
-            margin: 40px auto;
-            overflow: hidden;
-        }
-        
-        .charts-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px 32px;
-            border-bottom: 1px solid #2a2a2a;
-            background-color: #0f0f0f;
-        }
-        
-        .charts-modal-header h2 {
-            margin: 0;
-            font-size: 24px;
-            color: #ffffff;
-        }
-        
-        .charts-modal-close {
-            background: none;
-            border: none;
-            color: #999999;
-            font-size: 32px;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-        
-        .charts-modal-close:hover {
-            color: #ffffff;
-        }
-        
-        .charts-modal-body {
-            padding: 32px;
-        }
-        
-        .charts-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-        
-        .charts-row.full-width {
-            grid-template-columns: 1fr;
-        }
-        
-        .chart-container {
-            background-color: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .chart-container-wide {
-            background-color: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .chart-container h3,
-        .chart-container-wide h3 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            color: #ffffff;
-            text-align: center;
-        }
-        
-        .chart-container canvas {
-            max-height: 250px;
-        }
-        
-        .chart-container-wide canvas {
-            max-height: 300px;
-        }
-        
-        @media (max-width: 768px) {
-            .charts-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .charts-modal-content {
-                margin: 20px;
-            }
-        }
-        
-        .charts-filters-display {
-            background-color: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .charts-filters-display .filter-label {
-            color: #888;
-            font-size: 13px;
-            margin-right: 8px;
-        }
-        
-        .charts-filters-display .filter-chip {
-            background-color: #333;
-            color: #e5e7eb;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        
-        .charts-filters-display .no-filters {
-            color: #666;
-            font-style: italic;
-            font-size: 13px;
         }
     </style>
     

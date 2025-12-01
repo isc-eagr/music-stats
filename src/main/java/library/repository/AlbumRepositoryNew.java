@@ -25,6 +25,7 @@ public class AlbumRepositoryNew {
                                                String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                                String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                                String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                               String organized,
                                                String sortBy, String sortDir, int limit, int offset) {
         StringBuilder sql = new StringBuilder("""
             SELECT 
@@ -45,14 +46,17 @@ public class AlbumRepositoryNew {
                 (SELECT COUNT(*) FROM Song s WHERE s.album_id = a.id) as song_count,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
-                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id)) as play_count,
+                COALESCE(play_stats.play_count, 0) as play_count,
+                COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
                 (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) 
                  FROM Song s 
                  LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id 
                  WHERE s.album_id = a.id) as time_listened,
                 (SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id)) as first_listened,
                 (SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id)) as last_listened,
-                ar.country as country
+                ar.country as country,
+                a.organized
             FROM Album a
             LEFT JOIN Artist ar ON a.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -63,20 +67,32 @@ public class AlbumRepositoryNew {
             LEFT JOIN Language l_override ON a.override_language_id = l_override.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
+            LEFT JOIN (
+                SELECT 
+                    song.album_id,
+                    COUNT(*) as play_count,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count
+                FROM Scrobble scr
+                JOIN Song song ON scr.song_id = song.id
+                WHERE song.album_id IS NOT NULL
+                GROUP BY song.album_id
+            ) play_stats ON play_stats.album_id = a.id
             WHERE 1=1
             """);
         
         List<Object> params = new ArrayList<>();
         
+        // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
-            sql.append(" AND a.name LIKE ?");
-            params.add("%" + name + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Artist name filter
         if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ar.name LIKE ?");
-            params.add("%" + artistName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
         }
         
         if (genreMode != null) {
@@ -295,6 +311,15 @@ public class AlbumRepositoryNew {
             }
         }
         
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND a.organized = 1 ");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (a.organized = 0 OR a.organized IS NULL) ");
+            }
+        }
+        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         switch (sortBy != null ? sortBy : "name") {
@@ -313,7 +338,7 @@ public class AlbumRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
-            Object[] row = new Object[22];
+            Object[] row = new Object[25];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -332,10 +357,13 @@ public class AlbumRepositoryNew {
             row[15] = rs.getInt("has_image");
             row[16] = rs.getString("gender_name");
             row[17] = rs.getInt("play_count");
-            row[18] = rs.getLong("time_listened");
-            row[19] = rs.getString("first_listened");
-            row[20] = rs.getString("last_listened");
-            row[21] = rs.getString("country");
+            row[18] = rs.getInt("vatito_play_count");
+            row[19] = rs.getInt("robertlover_play_count");
+            row[20] = rs.getLong("time_listened");
+            row[21] = rs.getString("first_listened");
+            row[22] = rs.getString("last_listened");
+            row[23] = rs.getString("country");
+            row[24] = rs.getObject("organized");
             return row;
         });
     }
@@ -349,7 +377,8 @@ public class AlbumRepositoryNew {
                                        List<String> countries, String countryMode,
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
-                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
+                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                       String organized) {
         StringBuilder sql = new StringBuilder("""
             SELECT COUNT(*)
             FROM Album a
@@ -359,15 +388,16 @@ public class AlbumRepositoryNew {
         
         List<Object> params = new ArrayList<>();
         
+        // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
-            sql.append(" AND a.name LIKE ?");
-            params.add("%" + name + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Artist name filter
         if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ar.name LIKE ?");
-            params.add("%" + artistName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
         }
         
         if (genreMode != null) {
@@ -579,6 +609,15 @@ public class AlbumRepositoryNew {
                         params.add(lastListenedDateTo);
                     }
                     break;
+            }
+        }
+        
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND a.organized = 1 ");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (a.organized = 0 OR a.organized IS NULL) ");
             }
         }
         

@@ -311,6 +311,10 @@
                 <div class="stat-card">
                     <div class="stat-value" th:text="${totalPlays}">0</div>
                     <div class="stat-label">Total Plays</div>
+                    <div style="display: flex; gap: 16px; justify-content: center; margin-top: 8px; font-size: 12px; color: #999;">
+                        <span title="Primary (vatito)">⏵ <span th:text="${primaryPlays}">0</span></span>
+                        <span title="Legacy (robertlover)">📜 <span th:text="${legacyPlays}">0</span></span>
+                    </div>
                 </div>
                 
                 <div class="stat-card">

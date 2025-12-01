@@ -60,6 +60,8 @@ public class EthnicityService {
                 e.name,
                 CASE WHEN e.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(stats.play_count, 0) as play_count,
+                COALESCE(stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(stats.robertlover_play_count, 0) as robertlover_play_count,
                 COALESCE(stats.time_listened, 0) as time_listened,
                 COALESCE(stats.artist_count, 0) as artist_count,
                 COALESCE(stats.album_count, 0) as album_count,
@@ -84,6 +86,8 @@ public class EthnicityService {
                 SELECT 
                     COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as effective_ethnicity_id,
                     COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
@@ -115,30 +119,32 @@ public class EthnicityService {
             ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
         
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Object[] row = new Object[23];
+            Object[] row = new Object[25];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getInt("has_image");
             row[3] = rs.getInt("play_count");
-            row[4] = rs.getLong("time_listened");
-            row[5] = rs.getInt("artist_count");
-            row[6] = rs.getInt("album_count");
-            row[7] = rs.getInt("song_count");
-            row[8] = rs.getInt("male_song_count");
-            row[9] = rs.getInt("female_song_count");
-            row[10] = rs.getInt("other_song_count");
-            row[11] = rs.getInt("male_artist_count");
-            row[12] = rs.getInt("female_artist_count");
-            row[13] = rs.getInt("other_artist_count");
-            row[14] = rs.getInt("male_album_count");
-            row[15] = rs.getInt("female_album_count");
-            row[16] = rs.getInt("other_album_count");
-            row[17] = rs.getInt("male_play_count");
-            row[18] = rs.getInt("female_play_count");
-            row[19] = rs.getInt("other_play_count");
-            row[20] = rs.getLong("male_time_listened");
-            row[21] = rs.getLong("female_time_listened");
-            row[22] = rs.getLong("other_time_listened");
+            row[4] = rs.getInt("vatito_play_count");
+            row[5] = rs.getInt("robertlover_play_count");
+            row[6] = rs.getLong("time_listened");
+            row[7] = rs.getInt("artist_count");
+            row[8] = rs.getInt("album_count");
+            row[9] = rs.getInt("song_count");
+            row[10] = rs.getInt("male_song_count");
+            row[11] = rs.getInt("female_song_count");
+            row[12] = rs.getInt("other_song_count");
+            row[13] = rs.getInt("male_artist_count");
+            row[14] = rs.getInt("female_artist_count");
+            row[15] = rs.getInt("other_artist_count");
+            row[16] = rs.getInt("male_album_count");
+            row[17] = rs.getInt("female_album_count");
+            row[18] = rs.getInt("other_album_count");
+            row[19] = rs.getInt("male_play_count");
+            row[20] = rs.getInt("female_play_count");
+            row[21] = rs.getInt("other_play_count");
+            row[22] = rs.getLong("male_time_listened");
+            row[23] = rs.getLong("female_time_listened");
+            row[24] = rs.getLong("other_time_listened");
             return row;
         }, name, name, perPage, offset);
         
@@ -149,26 +155,28 @@ public class EthnicityService {
             dto.setName((String) row[1]);
             dto.setHasImage(((Integer) row[2]) == 1);
             dto.setPlayCount((Integer) row[3]);
-            dto.setTimeListened((Long) row[4]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[4]));
-            dto.setArtistCount((Integer) row[5]);
-            dto.setAlbumCount((Integer) row[6]);
-            dto.setSongCount((Integer) row[7]);
-            dto.setMaleCount((Integer) row[8]);
-            dto.setFemaleCount((Integer) row[9]);
-            dto.setOtherCount((Integer) row[10]);
-            dto.setMaleArtistCount((Integer) row[11]);
-            dto.setFemaleArtistCount((Integer) row[12]);
-            dto.setOtherArtistCount((Integer) row[13]);
-            dto.setMaleAlbumCount((Integer) row[14]);
-            dto.setFemaleAlbumCount((Integer) row[15]);
-            dto.setOtherAlbumCount((Integer) row[16]);
-            dto.setMalePlayCount((Integer) row[17]);
-            dto.setFemalePlayCount((Integer) row[18]);
-            dto.setOtherPlayCount((Integer) row[19]);
-            dto.setMaleTimeListened((Long) row[20]);
-            dto.setFemaleTimeListened((Long) row[21]);
-            dto.setOtherTimeListened((Long) row[22]);
+            dto.setVatitoPlayCount((Integer) row[4]);
+            dto.setRobertloverPlayCount((Integer) row[5]);
+            dto.setTimeListened((Long) row[6]);
+            dto.setTimeListenedFormatted(formatTime((Long) row[6]));
+            dto.setArtistCount((Integer) row[7]);
+            dto.setAlbumCount((Integer) row[8]);
+            dto.setSongCount((Integer) row[9]);
+            dto.setMaleCount((Integer) row[10]);
+            dto.setFemaleCount((Integer) row[11]);
+            dto.setOtherCount((Integer) row[12]);
+            dto.setMaleArtistCount((Integer) row[13]);
+            dto.setFemaleArtistCount((Integer) row[14]);
+            dto.setOtherArtistCount((Integer) row[15]);
+            dto.setMaleAlbumCount((Integer) row[16]);
+            dto.setFemaleAlbumCount((Integer) row[17]);
+            dto.setOtherAlbumCount((Integer) row[18]);
+            dto.setMalePlayCount((Integer) row[19]);
+            dto.setFemalePlayCount((Integer) row[20]);
+            dto.setOtherPlayCount((Integer) row[21]);
+            dto.setMaleTimeListened((Long) row[22]);
+            dto.setFemaleTimeListened((Long) row[23]);
+            dto.setOtherTimeListened((Long) row[24]);
             ethnicities.add(dto);
         }
         

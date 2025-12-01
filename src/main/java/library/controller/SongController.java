@@ -95,6 +95,7 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateFrom,
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String organized,
             @RequestParam(defaultValue = "name") String sortby,
             @RequestParam(defaultValue = "asc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -116,7 +117,7 @@ public class SongController {
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, 
+                ethnicity, ethnicityMode, country, countryMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -126,7 +127,7 @@ public class SongController {
         // Get total count for pagination
         long totalCount = songService.countSongs(q, artist, album, 
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
@@ -158,6 +159,7 @@ public class SongController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedOrganized", organized);
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
         model.addAttribute("releaseDateTo", releaseDateTo);
@@ -231,6 +233,8 @@ public class SongController {
         
         // NEW: add song play count
         model.addAttribute("songPlayCount", songService.getPlayCountForSong(id));
+        model.addAttribute("songVatitoPlayCount", songService.getVatitoPlayCountForSong(id));
+        model.addAttribute("songRobertloverPlayCount", songService.getRobertloverPlayCountForSong(id));
         // Add per-account breakdown string for tooltip
         model.addAttribute("songPlaysByAccount", songService.getPlaysByAccountForSong(id));
         
@@ -798,5 +802,17 @@ public class SongController {
             e.printStackTrace();
             return "error";
         }
+    }
+    
+    /**
+     * Search songs by name for the unmatched scrobbles assignment
+     */
+    @GetMapping("/api/search")
+    @ResponseBody
+    public List<Map<String, Object>> searchSongsForApi(
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String song,
+            @RequestParam(required = false, defaultValue = "0") int limit) {
+        return songService.searchSongs(artist, song, limit);
     }
 }

@@ -25,6 +25,7 @@ public class SongRepositoryNew {
                                               String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                               String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                              String organized,
                                               String sortBy, String sortDirection, int limit, int offset) {
         StringBuilder sql = new StringBuilder("""
             SELECT 
@@ -48,10 +49,13 @@ public class SongRepositoryNew {
                 CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
                 (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id) as play_count,
+                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account = 'vatito') as vatito_play_count,
+                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account = 'robertlover') as robertlover_play_count,
                 (s.length_seconds * (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id)) as time_listened,
                 (SELECT MIN(scrobble_date) FROM Scrobble WHERE song_id = s.id) as first_listened,
                 (SELECT MAX(scrobble_date) FROM Scrobble WHERE song_id = s.id) as last_listened,
-                ar.country as country
+                ar.country as country,
+                s.organized
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -71,21 +75,22 @@ public class SongRepositoryNew {
         
         List<Object> params = new ArrayList<>();
         
+        // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
-            sql.append(" AND s.name LIKE ?");
-            params.add("%" + name + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("s.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Artist name filter
         if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ar.name LIKE ?");
-            params.add("%" + artistName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
         }
         
         // Album name filter
         if (albumName != null && !albumName.trim().isEmpty()) {
-            sql.append(" AND alb.name LIKE ?");
-            params.add("%" + albumName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("alb.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(albumName) + "%");
         }
         
         // Genre filter (song -> album -> artist inheritance)
@@ -298,6 +303,15 @@ public class SongRepositoryNew {
             params.add(lastListenedDateTo);
         }
         
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND s.organized = 1 ");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (s.organized = 0 OR s.organized IS NULL) ");
+            }
+        }
+        
         // Determine sort direction
         String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
         String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
@@ -320,7 +334,7 @@ public class SongRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
-            Object[] row = new Object[24];
+            Object[] row = new Object[27];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -341,10 +355,13 @@ public class SongRepositoryNew {
             row[17] = rs.getInt("has_image");
             row[18] = rs.getString("gender_name");
             row[19] = rs.getInt("play_count");
-            row[20] = rs.getLong("time_listened");
-            row[21] = rs.getString("first_listened");
-            row[22] = rs.getString("last_listened");
-            row[23] = rs.getString("country");
+            row[20] = rs.getInt("vatito_play_count");
+            row[21] = rs.getInt("robertlover_play_count");
+            row[22] = rs.getLong("time_listened");
+            row[23] = rs.getString("first_listened");
+            row[24] = rs.getString("last_listened");
+            row[25] = rs.getString("country");
+            row[26] = rs.getObject("organized");
             return row;
         });
     }
@@ -358,7 +375,8 @@ public class SongRepositoryNew {
                                       List<String> countries, String countryMode,
                                       String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                       String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
-                                      String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode) {
+                                      String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                      String organized) {
         StringBuilder sql = new StringBuilder("""
             SELECT COUNT(*)
             FROM Song s
@@ -369,21 +387,22 @@ public class SongRepositoryNew {
         
         List<Object> params = new ArrayList<>();
         
+        // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
-            sql.append(" AND s.name LIKE ?");
-            params.add("%" + name + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("s.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Artist name filter
         if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ar.name LIKE ?");
-            params.add("%" + artistName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
         }
         
         // Album name filter
         if (albumName != null && !albumName.trim().isEmpty()) {
-            sql.append(" AND alb.name LIKE ?");
-            params.add("%" + albumName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("alb.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(albumName) + "%");
         }
         
         if (genreMode != null) {
@@ -600,6 +619,15 @@ public class SongRepositoryNew {
             params.add(lastListenedDateTo);
         }
         
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND s.organized = 1 ");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (s.organized = 0 OR s.organized IS NULL) ");
+            }
+        }
+        
         Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
         return count != null ? count : 0;
     }
@@ -671,19 +699,20 @@ public class SongRepositoryNew {
             String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
             String listenedDateFrom, String listenedDateTo) {
         
+        // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
-            sql.append(" AND s.name LIKE ?");
-            params.add("%" + name + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("s.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ar.name LIKE ?");
-            params.add("%" + artistName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
         }
         
         if (albumName != null && !albumName.trim().isEmpty()) {
-            sql.append(" AND alb.name LIKE ?");
-            params.add("%" + albumName + "%");
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("alb.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(albumName) + "%");
         }
         
         // Genre filter
@@ -2502,7 +2531,7 @@ public class SongRepositoryNew {
             String listenedDateFrom, String listenedDateTo,
             int limit) {
         
-        // Build filter clause (using the same method as other chart methods)
+        // Build filter clause for songs (used by getTopSongsFiltered)
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> filterParams = new java.util.ArrayList<>();
         
@@ -2513,12 +2542,168 @@ public class SongRepositoryNew {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             listenedDateFrom, listenedDateTo);
         
+        // Build separate filter for artists (direct artist fields, no song/album overrides)
+        StringBuilder artistFilterClause = new StringBuilder();
+        java.util.List<Object> artistFilterParams = new java.util.ArrayList<>();
+        buildArtistDirectFilterClause(artistFilterClause, artistFilterParams, 
+            genreIds, genreMode, subgenreIds, subgenreMode,
+            languageIds, languageMode, genderIds, genderMode,
+            ethnicityIds, ethnicityMode, countries, countryMode);
+        
+        // Build separate filter for albums (album/artist effective fields)
+        StringBuilder albumFilterClause = new StringBuilder();
+        java.util.List<Object> albumFilterParams = new java.util.ArrayList<>();
+        buildAlbumDirectFilterClause(albumFilterClause, albumFilterParams,
+            genreIds, genreMode, subgenreIds, subgenreMode,
+            languageIds, languageMode, genderIds, genderMode,
+            ethnicityIds, ethnicityMode, countries, countryMode);
+        
         java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("topArtists", getTopArtistsFiltered(filterClause.toString(), filterParams, limit));
-        result.put("topAlbums", getTopAlbumsFiltered(filterClause.toString(), filterParams, limit));
+        result.put("topArtists", getTopArtistsFiltered(artistFilterClause.toString(), artistFilterParams, limit));
+        result.put("topAlbums", getTopAlbumsFiltered(albumFilterClause.toString(), albumFilterParams, limit));
         result.put("topSongs", getTopSongsFiltered(filterClause.toString(), filterParams, limit));
         
         return result;
+    }
+    
+    /**
+     * Builds a filter clause for direct artist queries (no song/album override logic).
+     */
+    private void buildArtistDirectFilterClause(StringBuilder sql, java.util.List<Object> params,
+            java.util.List<Integer> genreIds, String genreMode,
+            java.util.List<Integer> subgenreIds, String subgenreMode,
+            java.util.List<Integer> languageIds, String languageMode,
+            java.util.List<Integer> genderIds, String genderMode,
+            java.util.List<Integer> ethnicityIds, String ethnicityMode,
+            java.util.List<String> countries, String countryMode) {
+        
+        // Genre filter - direct on artist
+        if (genreIds != null && !genreIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.genre_id", genreIds, genreMode);
+        }
+        
+        // Subgenre filter
+        if (subgenreIds != null && !subgenreIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.subgenre_id", subgenreIds, subgenreMode);
+        }
+        
+        // Language filter
+        if (languageIds != null && !languageIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.language_id", languageIds, languageMode);
+        }
+        
+        // Gender filter
+        if (genderIds != null && !genderIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.gender_id", genderIds, genderMode);
+        }
+        
+        // Ethnicity filter
+        if (ethnicityIds != null && !ethnicityIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.ethnicity_id", ethnicityIds, ethnicityMode);
+        }
+        
+        // Country filter
+        if (countries != null && !countries.isEmpty()) {
+            appendSimpleFilterStrings(sql, params, "ar.country", countries, countryMode);
+        }
+    }
+    
+    /**
+     * Builds a filter clause for direct album queries (album override -> artist fallback).
+     */
+    private void buildAlbumDirectFilterClause(StringBuilder sql, java.util.List<Object> params,
+            java.util.List<Integer> genreIds, String genreMode,
+            java.util.List<Integer> subgenreIds, String subgenreMode,
+            java.util.List<Integer> languageIds, String languageMode,
+            java.util.List<Integer> genderIds, String genderMode,
+            java.util.List<Integer> ethnicityIds, String ethnicityMode,
+            java.util.List<String> countries, String countryMode) {
+        
+        // Genre filter - album override or artist
+        if (genreIds != null && !genreIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "COALESCE(alb.override_genre_id, ar.genre_id)", genreIds, genreMode);
+        }
+        
+        // Subgenre filter
+        if (subgenreIds != null && !subgenreIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "COALESCE(alb.override_subgenre_id, ar.subgenre_id)", subgenreIds, subgenreMode);
+        }
+        
+        // Language filter
+        if (languageIds != null && !languageIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "COALESCE(alb.override_language_id, ar.language_id)", languageIds, languageMode);
+        }
+        
+        // Gender filter - no album override, direct on artist
+        if (genderIds != null && !genderIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.gender_id", genderIds, genderMode);
+        }
+        
+        // Ethnicity filter
+        if (ethnicityIds != null && !ethnicityIds.isEmpty()) {
+            appendSimpleFilter(sql, params, "ar.ethnicity_id", ethnicityIds, ethnicityMode);
+        }
+        
+        // Country filter
+        if (countries != null && !countries.isEmpty()) {
+            appendSimpleFilterStrings(sql, params, "ar.country", countries, countryMode);
+        }
+    }
+    
+    /**
+     * Appends a simple filter condition for integer IDs.
+     */
+    private void appendSimpleFilter(StringBuilder sql, java.util.List<Object> params, String column, java.util.List<Integer> ids, String mode) {
+        if ("isnull".equalsIgnoreCase(mode)) {
+            sql.append(" AND ").append(column).append(" IS NULL");
+        } else if ("isnotnull".equalsIgnoreCase(mode)) {
+            sql.append(" AND ").append(column).append(" IS NOT NULL");
+        } else if ("excludes".equalsIgnoreCase(mode)) {
+            sql.append(" AND (").append(column).append(" IS NULL OR ").append(column).append(" NOT IN (");
+            for (int i = 0; i < ids.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+                params.add(ids.get(i));
+            }
+            sql.append("))");
+        } else {
+            // includes (default)
+            sql.append(" AND ").append(column).append(" IN (");
+            for (int i = 0; i < ids.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+                params.add(ids.get(i));
+            }
+            sql.append(")");
+        }
+    }
+    
+    /**
+     * Appends a simple filter condition for string values.
+     */
+    private void appendSimpleFilterStrings(StringBuilder sql, java.util.List<Object> params, String column, java.util.List<String> values, String mode) {
+        if ("isnull".equalsIgnoreCase(mode)) {
+            sql.append(" AND ").append(column).append(" IS NULL");
+        } else if ("isnotnull".equalsIgnoreCase(mode)) {
+            sql.append(" AND ").append(column).append(" IS NOT NULL");
+        } else if ("excludes".equalsIgnoreCase(mode)) {
+            sql.append(" AND (").append(column).append(" IS NULL OR ").append(column).append(" NOT IN (");
+            for (int i = 0; i < values.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+                params.add(values.get(i));
+            }
+            sql.append("))");
+        } else {
+            // includes (default)
+            sql.append(" AND ").append(column).append(" IN (");
+            for (int i = 0; i < values.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+                params.add(values.get(i));
+            }
+            sql.append(")");
+        }
     }
     
     private java.util.List<java.util.Map<String, Object>> getTopArtistsFiltered(String filterClause, java.util.List<Object> filterParams, int limit) {
@@ -2538,22 +2723,31 @@ public class SongRepositoryNew {
                 ar.language_id,
                 lang.name as language,
                 ar.country,
-                COUNT(scr.id) as plays,
-                SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
-                SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                COALESCE(SUM(s.length_seconds), 0) as time_listened,
-                MIN(scr.scrobble_date) as first_listened,
-                MAX(scr.scrobble_date) as last_listened
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
+                COALESCE(play_stats.plays, 0) as plays,
+                COALESCE(play_stats.primary_plays, 0) as primary_plays,
+                COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
+                COALESCE(play_stats.time_listened, 0) as time_listened,
+                play_stats.first_listened,
+                play_stats.last_listened
+            FROM Artist ar
             LEFT JOIN Genre gen ON ar.genre_id = gen.id
             LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
             LEFT JOIN Language lang ON ar.language_id = lang.id
+            LEFT JOIN (
+                SELECT 
+                    s.artist_id,
+                    COUNT(scr.id) as plays,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                    SUM(s.length_seconds) as time_listened,
+                    MIN(scr.scrobble_date) as first_listened,
+                    MAX(scr.scrobble_date) as last_listened
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                GROUP BY s.artist_id
+            ) play_stats ON ar.id = play_stats.artist_id
             WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY ar.id, ar.name, ar.genre_id, gen.name, ar.subgenre_id, sg.name, ar.ethnicity_id, eth.name, ar.language_id, lang.name, ar.country
             ORDER BY plays DESC
             LIMIT ?
             """;
@@ -2603,16 +2797,14 @@ public class SongRepositoryNew {
                 COALESCE(alb.override_language_id, ar.language_id) as language_id,
                 COALESCE(l_override.name, l_artist.name) as language,
                 ar.country,
-                COUNT(scr.id) as plays,
-                SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
-                SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                COALESCE(SUM(s.length_seconds), 0) as time_listened,
-                MIN(scr.scrobble_date) as first_listened,
-                MAX(scr.scrobble_date) as last_listened
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
+                COALESCE(play_stats.plays, 0) as plays,
+                COALESCE(play_stats.primary_plays, 0) as primary_plays,
+                COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
+                COALESCE(play_stats.time_listened, 0) as time_listened,
+                play_stats.first_listened,
+                play_stats.last_listened
+            FROM Album alb
+            INNER JOIN Artist ar ON alb.artist_id = ar.id
             LEFT JOIN Genre g_override ON alb.override_genre_id = g_override.id
             LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
             LEFT JOIN SubGenre sg_override ON alb.override_subgenre_id = sg_override.id
@@ -2620,8 +2812,21 @@ public class SongRepositoryNew {
             LEFT JOIN Language l_override ON alb.override_language_id = l_override.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
-            WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            GROUP BY alb.id, alb.name, ar.id, ar.name, alb.release_date, genre_id, genre, subgenre_id, subgenre, ar.ethnicity_id, eth.name, language_id, language, ar.country
+            LEFT JOIN (
+                SELECT 
+                    s.album_id,
+                    COUNT(scr.id) as plays,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                    SUM(s.length_seconds) as time_listened,
+                    MIN(scr.scrobble_date) as first_listened,
+                    MAX(scr.scrobble_date) as last_listened
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                WHERE s.album_id IS NOT NULL
+                GROUP BY s.album_id
+            ) play_stats ON alb.id = play_stats.album_id
+            WHERE 1=1 """ + " " + filterClause + """
             ORDER BY plays DESC
             LIMIT ?
             """;
