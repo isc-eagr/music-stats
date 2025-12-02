@@ -19,6 +19,7 @@ public class AlbumSongDTO {
     private String ethnicity;
     private String language;
     private String country;
+    private boolean isSingle;
     
     public AlbumSongDTO() {}
     
@@ -196,5 +197,13 @@ public class AlbumSongDTO {
         } else {
             this.totalListeningTime = "-";
         }
+    }
+    
+    public boolean getIsSingle() {
+        return isSingle;
+    }
+    
+    public void setIsSingle(boolean isSingle) {
+        this.isSingle = isSingle;
     }
 }

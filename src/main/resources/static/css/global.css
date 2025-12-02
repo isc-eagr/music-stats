@@ -120,6 +120,14 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
 }
 
+/* Single indicator diamond icon for songs that are singles */
+.single-indicator {
+  font-size: 0.75em;
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.9;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -1829,8 +1837,8 @@ select:focus {
 /* Album cover thumbnail column */
 .cover-col { width: 68px; padding: 8px 12px; }
 .album-cover-thumb {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     object-fit: cover;
     border-radius: 6px;
     display: block;
@@ -1838,10 +1846,33 @@ select:focus {
     border: 1px solid #2a2a2a;
     box-shadow: 0 2px 4px rgba(0,0,0,0.4);
 }
-.cover-link { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; }
+.cover-link { display: inline-flex; align-items: center; justify-content: center; width: 50px; height: 50px; }
 .album-cover-placeholder {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    background: linear-gradient(135deg,#1a1a1a,#262626);
+    border: 1px dashed #333;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+}
+
+/* Artist cover thumbnail with 2:3 portrait ratio */
+.artist-cover-thumb {
+    width: 40px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    display: block;
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+.artist-cover-link { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 60px; }
+.artist-cover-placeholder {
+    width: 40px;
+    height: 60px;
     border-radius: 6px;
     background: linear-gradient(135deg,#1a1a1a,#262626);
     border: 1px dashed #333;
@@ -2328,4 +2359,44 @@ select:focus {
 /* Total plays icon - keeps default color (neutral) */
 .stat-icon.total-plays {
     /* No specific color override, uses default */
+}
+
+/* ==========================================
+   SONG IMAGE HOVER EFFECT
+   Album image by default, song image on hover
+   (when song has its own image AND album has image)
+   ========================================== */
+
+.hover-image-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.hover-image-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.hover-image-container .album-image-default {
+    opacity: 1;
+    z-index: 2;
+}
+
+.hover-image-container .song-image-hover {
+    opacity: 0;
+    z-index: 1;
+}
+
+.hover-image-container:hover .album-image-default {
+    opacity: 0;
+}
+
+.hover-image-container:hover .song-image-hover {
+    opacity: 1;
 }

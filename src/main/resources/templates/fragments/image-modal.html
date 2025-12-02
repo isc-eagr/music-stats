@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Image Modal Fragment</title>
+</head>
+<body>
+    <!-- Image Modal Fragment -->
+    <th:block th:fragment="image-modal">
+        <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
+            <div class="image-modal-content">
+                <button class="image-modal-close" onclick="closeImageModal(event)">&times;</button>
+                <img id="imageModalImg" class="image-modal-img" src="" alt="Full size image">
+            </div>
+        </div>
+        
+        <style>
+            .image-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.9);
+                z-index: 10000;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+            
+            .image-modal.show {
+                display: flex;
+            }
+            
+            .image-modal-content {
+                position: relative;
+                max-width: 90vw;
+                max-height: 90vh;
+                cursor: default;
+            }
+            
+            .image-modal-close {
+                position: absolute;
+                top: -40px;
+                right: 0;
+                background: transparent;
+                border: none;
+                color: #fff;
+                font-size: 32px;
+                cursor: pointer;
+                padding: 0 10px;
+                line-height: 1;
+                opacity: 0.8;
+                transition: opacity 0.2s ease;
+            }
+            
+            .image-modal-close:hover {
+                opacity: 1;
+            }
+            
+            .image-modal-img {
+                max-width: 90vw;
+                max-height: 90vh;
+                object-fit: contain;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            }
+        </style>
+        
+        <script>
+            function openImageModal(imgSrc) {
+                const modal = document.getElementById('imageModal');
+                const modalImg = document.getElementById('imageModalImg');
+                modalImg.src = imgSrc;
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            function closeImageModal(event) {
+                // Only close if clicking on the backdrop or close button
+                if (event && event.target.classList.contains('image-modal-img')) {
+                    return; // Don't close when clicking on the image itself
+                }
+                const modal = document.getElementById('imageModal');
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+            
+            // Close on Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const modal = document.getElementById('imageModal');
+                    if (modal && modal.classList.contains('show')) {
+                        closeImageModal(event);
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

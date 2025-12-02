@@ -101,7 +101,7 @@
         <div class="catalog-grid">
             <div th:each="country : ${countries}" class="catalog-card" style="cursor: pointer;"
                  th:data-name="${country.name}"
-                 onclick="openChartsModalWithFilter('country', this.getAttribute('data-name'), this.getAttribute('data-name'))">
+                 th:onclick="'window.location.href=\\'/graphs?filterType=country&filterId=' + ${#strings.replace(country.name, ' ', '%20')} + '&filterName=' + ${#strings.replace(country.name, ' ', '%20')} + '\\''">
                 <div class="catalog-image">
                     <div class="catalog-icon" title="Country">
                         🌐
@@ -287,8 +287,5 @@
             window.location.href = url.toString();
         }
     </script>
-    
-    <!-- Charts Modal (included from fragment) -->
-    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
 </body>
 </html>

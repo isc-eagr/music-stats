@@ -32,6 +32,8 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            List<String> accounts,
+            String accountMode,
             String firstListenedDate,
             String firstListenedDateFrom,
             String firstListenedDateTo,
@@ -46,56 +48,82 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             int limit,
             int offset
     ) {
-        StringBuilder sql = new StringBuilder("""
-            SELECT 
-                a.id,
-                a.name,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gen.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                COUNT(DISTINCT s.id) as song_count,
-                COUNT(DISTINCT alb.id) as album_count,
-                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                COALESCE(play_stats.play_count, 0) as play_count,
-                COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
-                COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
-                (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) 
-                 FROM Song s 
-                 LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id 
-                 WHERE s.artist_id = a.id) as time_listened,
-                (SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as first_listened,
-                (SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id)) as last_listened,
-                a.organized
-            FROM Artist a
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gen ON a.genre_id = gen.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN Song s ON s.artist_id = a.id
-            LEFT JOIN Album alb ON alb.artist_id = a.id
-            LEFT JOIN (
-                SELECT 
-                    song.artist_id,
-                    COUNT(*) as play_count,
-                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
-                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count
-                FROM Scrobble scr
-                JOIN Song song ON scr.song_id = song.id
-                GROUP BY song.artist_id
-            ) play_stats ON play_stats.artist_id = a.id
-            WHERE 1=1
-            """);
+        // Build account filter subquery for the play_stats join
+        StringBuilder accountFilterClause = new StringBuilder();
+        List<Object> accountParams = new ArrayList<>();
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account NOT IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        }
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("    a.id, ");
+        sql.append("    a.name, ");
+        sql.append("    a.gender_id, ");
+        sql.append("    g.name as gender_name, ");
+        sql.append("    a.ethnicity_id, ");
+        sql.append("    e.name as ethnicity_name, ");
+        sql.append("    a.genre_id, ");
+        sql.append("    gen.name as genre_name, ");
+        sql.append("    a.subgenre_id, ");
+        sql.append("    sg.name as subgenre_name, ");
+        sql.append("    a.language_id, ");
+        sql.append("    l.name as language_name, ");
+        sql.append("    a.country, ");
+        sql.append("    COALESCE(song_stats.song_count, 0) as song_count, ");
+        sql.append("    COALESCE(album_stats.album_count, 0) as album_count, ");
+        sql.append("    CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image, ");
+        sql.append("    COALESCE(play_stats.play_count, 0) as play_count, ");
+        sql.append("    COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count, ");
+        sql.append("    COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count, ");
+        sql.append("    COALESCE(play_stats.time_listened, 0) as time_listened, ");
+        sql.append("    play_stats.first_listened, ");
+        sql.append("    play_stats.last_listened, ");
+        sql.append("    a.organized ");
+        sql.append("FROM Artist a ");
+        sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
+        sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
+        sql.append("LEFT JOIN Genre gen ON a.genre_id = gen.id ");
+        sql.append("LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id ");
+        sql.append("LEFT JOIN Language l ON a.language_id = l.id ");
+        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as song_count FROM Song GROUP BY artist_id) song_stats ON song_stats.artist_id = a.id ");
+        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) album_stats ON album_stats.artist_id = a.id ");
+        
+        // Use INNER JOIN when account filter is includes mode for better performance
+        String playStatsJoinType = (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) ? "INNER JOIN" : "LEFT JOIN";
+        sql.append(playStatsJoinType).append(" ( ");
+        sql.append("    SELECT ");
+        sql.append("        song.artist_id, ");
+        sql.append("        COUNT(*) as play_count, ");
+        sql.append("        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
+        sql.append("        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
+        sql.append("        SUM(song.length_seconds) as time_listened, ");
+        sql.append("        MIN(scr.scrobble_date) as first_listened, ");
+        sql.append("        MAX(scr.scrobble_date) as last_listened ");
+        sql.append("    FROM Scrobble scr ");
+        sql.append("    JOIN Song song ON scr.song_id = song.id ");
+        sql.append("    WHERE 1=1 ").append(accountFilterClause).append(" ");
+        sql.append("    GROUP BY song.artist_id ");
+        sql.append(") play_stats ON play_stats.artist_id = a.id ");
+        sql.append("WHERE 1=1 ");
         
         List<Object> params = new ArrayList<>();
+        // Add account params only once now (play_stats subquery)
+        params.addAll(accountParams); // play_stats
         
         // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {
@@ -138,23 +166,17 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             }
         }
         
-        sql.append(" GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name, a.genre_id, gen.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country, a.image, a.organized, play_stats.play_count, play_stats.vatito_play_count, play_stats.robertlover_play_count ");
-        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
-        String oppositeDir = "desc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
         sql.append(" ORDER BY ");
         if ("songs".equals(sortBy)) {
-            sql.append(" COUNT(DISTINCT s.id) " + direction + ", a.name ASC");
+            sql.append(" song_count " + direction + ", a.name ASC");
         } else if ("albums".equals(sortBy)) {
-            sql.append(" COUNT(DISTINCT alb.id) " + direction + ", a.name ASC");
+            sql.append(" album_count " + direction + ", a.name ASC");
         } else if ("plays".equals(sortBy)) {
             sql.append(" play_count " + direction + ", a.name ASC");
         } else if ("time".equals(sortBy)) {
-            sql.append(" (SELECT COALESCE(SUM(s.length_seconds * scr_count.play_count), 0) " +
-                       "FROM Song s " +
-                       "LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble GROUP BY song_id) scr_count ON s.id = scr_count.song_id " +
-                       "WHERE s.artist_id = a.id) " + direction + ", a.name ASC");
+            sql.append(" time_listened " + direction + ", a.name ASC");
         } else if ("first_listened".equals(sortBy)) {
             sql.append(" first_listened " + direction + " NULLS LAST, a.name ASC");
         } else if ("last_listened".equals(sortBy)) {
@@ -213,6 +235,8 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            List<String> accounts,
+            String accountMode,
             String firstListenedDate,
             String firstListenedDateFrom,
             String firstListenedDateTo,
@@ -223,13 +247,47 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String lastListenedDateMode,
             String organized
     ) {
-        StringBuilder sql = new StringBuilder("""
-            SELECT COUNT(DISTINCT a.id)
-            FROM Artist a
-            WHERE 1=1
-            """);
+        StringBuilder sql = new StringBuilder();
+        
+        // Use a more efficient approach with JOIN for account filtering
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            sql.append(
+                "SELECT COUNT(DISTINCT a.id) " +
+                "FROM Artist a " +
+                "INNER JOIN Song s ON s.artist_id = a.id " +
+                "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
+                "WHERE scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+            }
+            sql.append(") ");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            sql.append(
+                "SELECT COUNT(DISTINCT a.id) " +
+                "FROM Artist a " +
+                "WHERE NOT EXISTS ( " +
+                "    SELECT 1 FROM Scrobble scr " +
+                "    JOIN Song song ON scr.song_id = song.id " +
+                "    WHERE song.artist_id = a.id AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+            }
+            sql.append(") ) AND 1=1 ");
+        } else {
+            sql.append(
+                "SELECT COUNT(DISTINCT a.id) " +
+                "FROM Artist a " +
+                "WHERE 1=1 ");
+        }
         
         List<Object> params = new ArrayList<>();
+        
+        // Account params first if using includes or excludes mode
+        if (accounts != null && !accounts.isEmpty()) {
+            params.addAll(accounts);
+        }
         
         // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {

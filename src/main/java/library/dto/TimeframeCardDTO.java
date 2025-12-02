@@ -360,4 +360,24 @@ public class TimeframeCardDTO {
     public void setWinningCountry(String winningCountry) {
         this.winningCountry = winningCountry;
     }
+    
+    // Chart generation status (only for weeks)
+    private Boolean hasChart;
+    private Boolean weekComplete;
+    
+    public Boolean getHasChart() {
+        return hasChart;
+    }
+    
+    public void setHasChart(Boolean hasChart) {
+        this.hasChart = hasChart;
+    }
+    
+    public Boolean getWeekComplete() {
+        return weekComplete;
+    }
+    
+    public void setWeekComplete(Boolean weekComplete) {
+        this.weekComplete = weekComplete;
+    }
 }

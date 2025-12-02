@@ -102,7 +102,7 @@
             <div th:each="gender : ${genders}" class="catalog-card" style="cursor: pointer;"
                  th:data-id="${gender.id}"
                  th:data-name="${gender.name}"
-                 onclick="openChartsModalWithFilter('gender', this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                 th:onclick="'window.location.href=\'/graphs?filterType=gender&filterId=' + ${gender.id} + '&filterName=' + ${#strings.replace(gender.name, ' ', '%20')} + '\''">
                 <div class="catalog-image">
                     <div class="catalog-icon" title="Gender">
                         ⚥
@@ -214,8 +214,5 @@
             window.location.href = url.toString();
         }
     </script>
-    
-    <!-- Charts Modal (included from fragment) -->
-    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
 </body>
 </html>

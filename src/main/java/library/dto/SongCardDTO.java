@@ -27,9 +27,11 @@ public class SongCardDTO {
     private Long timeListened; // in seconds
     private String timeListenedFormatted;
     private boolean hasImage;
+    private boolean albumHasImage;
     private String genderName;
     private String country;
     private Boolean organized;
+    private Boolean isSingle;
 
     // Getters and Setters
     public Integer getId() {
@@ -244,6 +246,18 @@ public class SongCardDTO {
         this.hasImage = hasImage;
     }
 
+    public boolean isAlbumHasImage() {
+        return albumHasImage;
+    }
+
+    public boolean getAlbumHasImage() {
+        return albumHasImage;
+    }
+
+    public void setAlbumHasImage(boolean albumHasImage) {
+        this.albumHasImage = albumHasImage;
+    }
+
     public String getGenderName() {
         return genderName;
     }
@@ -266,5 +280,13 @@ public class SongCardDTO {
 
     public void setOrganized(Boolean organized) {
         this.organized = organized;
+    }
+
+    public Boolean getIsSingle() {
+        return isSingle;
+    }
+
+    public void setIsSingle(Boolean isSingle) {
+        this.isSingle = isSingle;
     }
 }

@@ -18,7 +18,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1 style="margin: 0;">Songs</h1>
                 <div style="display: flex; gap: 10px;">
-                    <button class="charts-toggle" onclick="openChartsModal()">📊 Charts</button>
+                    <a id="chartsLink" href="/graphs" target="_blank" class="charts-toggle" style="text-decoration: none;">📊 Graphs</a>
                     <button type="button" class="btn-action" onclick="openCreateModal()">New Song</button>
                 </div>
             </div>
@@ -73,18 +73,50 @@
                                 <input type="hidden" name="sortdir" th:value="${sortDir}">
                                 <input type="hidden" name="perpage" th:value="${perPage}">
                                 
-                                <!-- Artist Filter (text) -->
+                                <!-- Account Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
                                             <span class="filter-item-chevron">▶</span>
-                                            Artist
+                                            Account
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <label class="field"><span>Artist Name</span>
-                                            <input type="text" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
-                                        </label>
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${accountMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="account">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${accountMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="account">excludes</button>
+                                        </div>
+                                        <input type="hidden" name="accountMode" th:value="${accountMode}" id="accountMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('account')">
+                                                <div class="multi-select-chips" id="accountChips">
+                                                    <span class="multi-select-chip" th:each="accountName : ${selectedAccounts}" th:attr="data-value=${accountName}">
+                                                        <span th:text="${accountName == 'vatito' ? '🔵 Primary (vatito)' : '🟣 Legacy (robertlover)'}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${accountName}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedAccounts == null || selectedAccounts.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="accountDropdown">
+                                                <div class="multi-select-option">
+                                                    <label>
+                                                        <input type="checkbox" name="account" value="vatito" 
+                                                               th:checked="${selectedAccounts != null && selectedAccounts.contains('vatito')}"
+                                                               onchange="updateAccountChips(this)">
+                                                        <span>🔵 Primary (vatito)</span>
+                                                    </label>
+                                                </div>
+                                                <div class="multi-select-option">
+                                                    <label>
+                                                        <input type="checkbox" name="account" value="robertlover" 
+                                                               th:checked="${selectedAccounts != null && selectedAccounts.contains('robertlover')}"
+                                                               onchange="updateAccountChips(this)">
+                                                        <span>🟣 Legacy (robertlover)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -103,38 +135,102 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Release Date Filter -->
+                                <!-- Artist Filter (text) -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
                                             <span class="filter-item-chevron">▶</span>
-                                            Release Date
+                                            Artist
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <label class="field"><span>Artist Name</span>
+                                            <input type="text" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Country Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Country
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
                                         <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="exact"
-                                                    th:classappend="${releaseDateMode == 'exact'} ? 'active' : ''">Exact</button>
-                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="gte"
-                                                    th:classappend="${releaseDateMode == 'gte'} ? 'active' : ''">On or After</button>
-                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="lte"
-                                                    th:classappend="${releaseDateMode == 'lte'} ? 'active' : ''">On or Before</button>
-                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="between"
-                                                    th:classappend="${releaseDateMode == 'between'} ? 'active' : ''">Between</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="country">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="country">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="country">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="country">is not null</button>
                                         </div>
-                                        <input type="hidden" name="releaseDateMode" id="releaseDateModeInput" th:value="${releaseDateMode}" />
-                                        <div id="releaseDateSingle" th:style="${releaseDateMode == 'between'} ? 'display:none' : ''">
-                                            <label class="field"><span>Date</span>
-                                                <input type="text" name="releaseDate" th:value="${releaseDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
-                                            </label>
+                                        <input type="hidden" name="countryMode" th:value="${countryMode}" id="countryMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('country')">
+                                                <div class="multi-select-chips" id="countryChips">
+                                                    <span class="multi-select-chip" th:each="countryName : ${selectedCountries}" th:attr="data-value=${countryName}">
+                                                        <span th:text="${countryName}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${countryName}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedCountries == null || selectedCountries.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="countryDropdown">
+                                                <div class="multi-select-option" th:each="countryName : ${countries}">
+                                                    <label>
+                                                        <input type="checkbox" name="country" th:value="${countryName}" 
+                                                               th:checked="${selectedCountries != null && selectedCountries.contains(countryName)}"
+                                                               onchange="updateCountryChips(this)">
+                                                        <span th:text="${countryName}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div id="releaseDateRange" th:style="${releaseDateMode != 'between'} ? 'display:none' : ''">
-                                            <label class="field"><span>From</span>
-                                                <input type="text" name="releaseDateFrom" th:value="${releaseDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
-                                            </label>
-                                            <label class="field" style="margin-top: 8px;"><span>To</span>
-                                                <input type="text" name="releaseDateTo" th:value="${releaseDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
-                                            </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Ethnicity Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Ethnicity
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="ethnicity">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="ethnicity">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="ethnicity">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="ethnicity">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="ethnicityMode" th:value="${ethnicityMode}" id="ethnicityMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('ethnicity')">
+                                                <div class="multi-select-chips" id="ethnicityChips">
+                                                    <span class="multi-select-chip" th:each="ethnicityId : ${selectedEthnicities}">
+                                                        <span th:text="${ethnicities.get(ethnicityId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'ethnicity\', ' + ${ethnicityId} + ')'" th:attr="data-value=${ethnicityId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedEthnicities == null || selectedEthnicities.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="ethnicityDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${ethnicities}">
+                                                    <label>
+                                                        <input type="checkbox" name="ethnicity" th:value="${entry.key}" 
+                                                               th:checked="${selectedEthnicities != null && selectedEthnicities.contains(entry.key)}"
+                                                               onchange="updateChips('ethnicity', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="filter-note">
+                                            Note: Afrolatino counts as Black and Latino; Mixed counts as Black and White.
                                         </div>
                                     </div>
                                 </div>
@@ -175,38 +271,43 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Last Listened Date Filter -->
+                                <!-- Gender Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
                                             <span class="filter-item-chevron">▶</span>
-                                            Last Listened Date
+                                            Gender
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
                                         <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="exact"
-                                                    th:classappend="${lastListenedDateMode == 'exact'} ? 'active' : ''">Exact</button>
-                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="gte"
-                                                    th:classappend="${lastListenedDateMode == 'gte'} ? 'active' : ''">On or After</button>
-                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="lte"
-                                                    th:classappend="${lastListenedDateMode == 'lte'} ? 'active' : ''">On or Before</button>
-                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="between"
-                                                    th:classappend="${lastListenedDateMode == 'between'} ? 'active' : ''">Between</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="gender">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="gender">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="gender">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="gender">is not null</button>
                                         </div>
-                                        <input type="hidden" name="lastListenedDateMode" id="lastListenedDateModeInput" th:value="${lastListenedDateMode}" />
-                                        <div id="lastListenedDateSingle" th:style="${lastListenedDateMode == 'between'} ? 'display:none' : ''">
-                                            <label class="field"><span>Date</span>
-                                                <input type="text" name="lastListenedDate" th:value="${lastListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
-                                            </label>
-                                        </div>
-                                        <div id="lastListenedDateRange" th:style="${lastListenedDateMode != 'between'} ? 'display:none' : ''">
-                                            <label class="field"><span>From</span>
-                                                <input type="text" name="lastListenedDateFrom" th:value="${lastListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
-                                            </label>
-                                            <label class="field" style="margin-top: 8px;"><span>To</span>
-                                                <input type="text" name="lastListenedDateTo" th:value="${lastListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
-                                            </label>
+                                        <input type="hidden" name="genderMode" th:value="${genderMode}" id="genderMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('gender')">
+                                                <div class="multi-select-chips" id="genderChips">
+                                                    <span class="multi-select-chip" th:each="genderId : ${selectedGenders}">
+                                                        <span th:text="${genders.get(genderId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'gender\', ' + ${genderId} + ')'" th:attr="data-value=${genderId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedGenders == null || selectedGenders.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="genderDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${genders}">
+                                                    <label>
+                                                        <input type="checkbox" name="gender" th:value="${entry.key}" 
+                                                               th:checked="${selectedGenders != null && selectedGenders.contains(entry.key)}"
+                                                               onchange="updateChips('gender', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -252,132 +353,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Subgenre Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Subgenre
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="subgenre">includes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="subgenre">excludes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="subgenre">is null</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="subgenre">is not null</button>
-                                        </div>
-                                        <input type="hidden" name="subgenreMode" th:value="${subgenreMode}" id="subgenreMode">
-                                        <div class="filter-group multi-select-container">
-                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('subgenre')">
-                                                <div class="multi-select-chips" id="subgenreChips">
-                                                    <span class="multi-select-chip" th:each="subgenreId : ${selectedSubgenres}">
-                                                        <span th:text="${subgenres.get(subgenreId)}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'subgenre\', ' + ${subgenreId} + ')'" th:attr="data-value=${subgenreId}">×</button>
-                                                    </span>
-                                                </div>
-                                                <span class="multi-select-label" th:if="${selectedSubgenres == null || selectedSubgenres.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">▼</span>
-                                            </div>
-                                            <div class="multi-select-dropdown" id="subgenreDropdown">
-                                                <div class="multi-select-option" th:each="entry : ${subgenres}">
-                                                    <label>
-                                                        <input type="checkbox" name="subgenre" th:value="${entry.key}" 
-                                                               th:checked="${selectedSubgenres != null && selectedSubgenres.contains(entry.key)}"
-                                                               onchange="updateChips('subgenre', this)">
-                                                        <span th:text="${entry.value}"></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Gender Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Artist Gender
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="gender">includes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="gender">excludes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="gender">is null</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="gender">is not null</button>
-                                        </div>
-                                        <input type="hidden" name="genderMode" th:value="${genderMode}" id="genderMode">
-                                        <div class="filter-group multi-select-container">
-                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('gender')">
-                                                <div class="multi-select-chips" id="genderChips">
-                                                    <span class="multi-select-chip" th:each="genderId : ${selectedGenders}">
-                                                        <span th:text="${genders.get(genderId)}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'gender\', ' + ${genderId} + ')'" th:attr="data-value=${genderId}">×</button>
-                                                    </span>
-                                                </div>
-                                                <span class="multi-select-label" th:if="${selectedGenders == null || selectedGenders.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">▼</span>
-                                            </div>
-                                            <div class="multi-select-dropdown" id="genderDropdown">
-                                                <div class="multi-select-option" th:each="entry : ${genders}">
-                                                    <label>
-                                                        <input type="checkbox" name="gender" th:value="${entry.key}" 
-                                                               th:checked="${selectedGenders != null && selectedGenders.contains(entry.key)}"
-                                                               onchange="updateChips('gender', this)">
-                                                        <span th:text="${entry.value}"></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Ethnicity Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Artist Ethnicity
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="ethnicity">includes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="ethnicity">excludes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="ethnicity">is null</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="ethnicity">is not null</button>
-                                        </div>
-                                        <input type="hidden" name="ethnicityMode" th:value="${ethnicityMode}" id="ethnicityMode">
-                                        <div class="filter-group multi-select-container">
-                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('ethnicity')">
-                                                <div class="multi-select-chips" id="ethnicityChips">
-                                                    <span class="multi-select-chip" th:each="ethnicityId : ${selectedEthnicities}">
-                                                        <span th:text="${ethnicities.get(ethnicityId)}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'ethnicity\', ' + ${ethnicityId} + ')'" th:attr="data-value=${ethnicityId}">×</button>
-                                                    </span>
-                                                </div>
-                                                <span class="multi-select-label" th:if="${selectedEthnicities == null || selectedEthnicities.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">▼</span>
-                                            </div>
-                                            <div class="multi-select-dropdown" id="ethnicityDropdown">
-                                                <div class="multi-select-option" th:each="entry : ${ethnicities}">
-                                                    <label>
-                                                        <input type="checkbox" name="ethnicity" th:value="${entry.key}" 
-                                                               th:checked="${selectedEthnicities != null && selectedEthnicities.contains(entry.key)}"
-                                                               onchange="updateChips('ethnicity', this)">
-                                                        <span th:text="${entry.value}"></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="filter-note">
-                                            Note: Afrolatino counts as Black and Latino; Mixed counts as Black and White.
-                                        </div>
-                                    </div>
-                                </div>
-                                
                                 <!-- Language Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -419,43 +394,38 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Country Filter -->
+                                <!-- Last Listened Date Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
                                             <span class="filter-item-chevron">▶</span>
-                                            Country
+                                            Last Listened Date
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
                                         <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="country">includes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="country">excludes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="country">is null</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="country">is not null</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="exact"
+                                                    th:classappend="${lastListenedDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="gte"
+                                                    th:classappend="${lastListenedDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="lte"
+                                                    th:classappend="${lastListenedDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                            <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="between"
+                                                    th:classappend="${lastListenedDateMode == 'between'} ? 'active' : ''">Between</button>
                                         </div>
-                                        <input type="hidden" name="countryMode" th:value="${countryMode}" id="countryMode">
-                                        <div class="filter-group multi-select-container">
-                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('country')">
-                                                <div class="multi-select-chips" id="countryChips">
-                                                    <span class="multi-select-chip" th:each="countryName : ${selectedCountries}" th:attr="data-value=${countryName}">
-                                                        <span th:text="${countryName}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${countryName}">×</button>
-                                                    </span>
-                                                </div>
-                                                <span class="multi-select-label" th:if="${selectedCountries == null || selectedCountries.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">▼</span>
-                                            </div>
-                                            <div class="multi-select-dropdown" id="countryDropdown">
-                                                <div class="multi-select-option" th:each="countryName : ${countries}">
-                                                    <label>
-                                                        <input type="checkbox" name="country" th:value="${countryName}" 
-                                                               th:checked="${selectedCountries != null && selectedCountries.contains(countryName)}"
-                                                               onchange="updateCountryChips(this)">
-                                                        <span th:text="${countryName}"></span>
-                                                    </label>
-                                                </div>
-                                            </div>
+                                        <input type="hidden" name="lastListenedDateMode" id="lastListenedDateModeInput" th:value="${lastListenedDateMode}" />
+                                        <div id="lastListenedDateSingle" th:style="${lastListenedDateMode == 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>Date</span>
+                                                <input type="text" name="lastListenedDate" th:value="${lastListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                        <div id="lastListenedDateRange" th:style="${lastListenedDateMode != 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>From</span>
+                                                <input type="text" name="lastListenedDateFrom" th:value="${lastListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                                <input type="text" name="lastListenedDateTo" th:value="${lastListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -475,6 +445,83 @@
                                                 <option value="true" th:selected="${selectedOrganized == 'true'}">📦 Organized</option>
                                                 <option value="false" th:selected="${selectedOrganized == 'false'}">📬 Not Organized</option>
                                             </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Release Date Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Release Date
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="exact"
+                                                    th:classappend="${releaseDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="gte"
+                                                    th:classappend="${releaseDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="lte"
+                                                    th:classappend="${releaseDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="between"
+                                                    th:classappend="${releaseDateMode == 'between'} ? 'active' : ''">Between</button>
+                                        </div>
+                                        <input type="hidden" name="releaseDateMode" id="releaseDateModeInput" th:value="${releaseDateMode}" />
+                                        <div id="releaseDateSingle" th:style="${releaseDateMode == 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>Date</span>
+                                                <input type="text" name="releaseDate" th:value="${releaseDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                        <div id="releaseDateRange" th:style="${releaseDateMode != 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>From</span>
+                                                <input type="text" name="releaseDateFrom" th:value="${releaseDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                                <input type="text" name="releaseDateTo" th:value="${releaseDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Subgenre Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Subgenre
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="subgenre">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="subgenre">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="subgenre">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="subgenre">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="subgenreMode" th:value="${subgenreMode}" id="subgenreMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('subgenre')">
+                                                <div class="multi-select-chips" id="subgenreChips">
+                                                    <span class="multi-select-chip" th:each="subgenreId : ${selectedSubgenres}">
+                                                        <span th:text="${subgenres.get(subgenreId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'subgenre\', ' + ${subgenreId} + ')'" th:attr="data-value=${subgenreId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedSubgenres == null || selectedSubgenres.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="subgenreDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${subgenres}">
+                                                    <label>
+                                                        <input type="checkbox" name="subgenre" th:value="${entry.key}" 
+                                                               th:checked="${selectedSubgenres != null && selectedSubgenres.contains(entry.key)}"
+                                                               onchange="updateChips('subgenre', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -582,6 +629,15 @@
                     <span th:if="${!iterStat.last}">, </span>
                 </span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('country')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${selectedAccounts != null and !selectedAccounts.isEmpty()}">
+                <span class="filter-chip-label" th:text="${accountMode == 'excludes' ? 'Account excludes' : 'Account includes'}">Account includes</span>
+                <span class="filter-chip-value" th:each="accountName, iterStat : ${selectedAccounts}">
+                    <span th:text="${accountName == 'vatito' ? '🔵 Primary' : '🟣 Legacy'}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('account')" type="button">×</button>
             </div>
             
             <!-- Null-mode chips (show even when no selection chips are present) -->
@@ -694,11 +750,11 @@
         <!-- Pagination controls (top) -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -708,11 +764,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
         
@@ -726,14 +782,32 @@
             <div th:each="song : ${songs}" 
                  class="song-card"
                  th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
-                <a th:href="@{'/songs/' + ${song.id}}" class="song-image item-image-container">
-                    <img th:if="${song.hasImage}"
+                <div class="song-image item-image-container" style="cursor: pointer;">
+                    <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
+                    <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container">
+                        <img th:src="@{'/albums/' + ${song.albumId} + '/image'}"
+                             th:alt="${song.name}"
+                             th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                             class="album-image-default clickable-image">
+                        <img th:src="@{'/songs/' + ${song.id} + '/image'}"
+                             th:alt="${song.name}"
+                             th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                             class="song-image-hover clickable-image">
+                    </div>
+                    
+                    <!-- Case 2: Song has image but album doesn't - just show song image -->
+                    <img th:if="${song.hasImage and !song.albumHasImage}"
                          th:src="@{'/songs/' + ${song.id} + '/image'}"
-                         th:alt="${song.name}">
+                         th:alt="${song.name}"
+                         th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                         class="clickable-image">
+                    
+                    <!-- Case 3: Song doesn't have image but album does - show album image with opacity -->
                     <img th:if="${!song.hasImage and song.albumId != null}"
                          th:src="@{'/albums/' + ${song.albumId} + '/image'}"
                          th:alt="${song.name}"
-                         class="inherited-image"
+                         th:onclick="|openImageModal('/albums/' + ${song.albumId} + '/image')|"
+                         class="inherited-image clickable-image"
                          style="opacity: 0.7;"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div th:if="${!song.hasImage and song.albumId == null}" class="no-image">
@@ -748,11 +822,14 @@
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(song.country)})}"
                              th:alt="${song.country}" />
                     </span>
-                </a>
+                </div>
                 
                 <div class="song-info">
                     <a th:href="@{'/songs/' + ${song.id}}">
-                        <h3 class="song-name" th:text="${song.name}">Song Name</h3>
+                        <h3 class="song-name">
+                            <span th:text="${song.name}">Song Name</span>
+                            <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
+                        </h3>
                     </a>
                     
                     <div class="song-artist" th:if="${song.artistName != null}">
@@ -854,11 +931,11 @@
         <!-- Pagination controls (bottom) -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -868,11 +945,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
     </div>
@@ -1049,6 +1126,65 @@
             
             // Remove the chip
             const chipsContainer = document.getElementById('countryChips');
+            const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+            if (chip) chip.remove();
+            
+            // Show placeholder if no chips left
+            const labelElement = chipsContainer.nextElementSibling;
+            if (chipsContainer.children.length === 0) {
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'block';
+                }
+            }
+        }
+        
+        function updateAccountChips(checkbox) {
+            const chipsContainer = document.getElementById('accountChips');
+            const labelElement = chipsContainer.nextElementSibling;
+            const value = checkbox.value;
+            const displayText = value === 'vatito' ? '🔵 Primary (vatito)' : '🟣 Legacy (robertlover)';
+            
+            if (checkbox.checked) {
+                // Add chip
+                const chip = document.createElement('span');
+                chip.className = 'multi-select-chip';
+                chip.setAttribute('data-value', value);
+                chip.innerHTML = `
+                    <span>${displayText}</span>
+                    <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">×</button>
+                `;
+                chipsContainer.appendChild(chip);
+                
+                // Hide placeholder
+                if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                    labelElement.style.display = 'none';
+                }
+            } else {
+                // Remove chip
+                const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+                if (chip) chip.remove();
+                
+                // Show placeholder if no chips left
+                if (chipsContainer.children.length === 0) {
+                    if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                        labelElement.style.display = 'block';
+                    }
+                }
+            }
+        }
+        
+        function removeAccountChip(event, value) {
+            event.stopPropagation();
+            
+            // Uncheck the checkbox
+            const dropdown = document.getElementById('accountDropdown');
+            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            
+            // Remove the chip
+            const chipsContainer = document.getElementById('accountChips');
             const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
             if (chip) chip.remove();
             
@@ -1315,7 +1451,26 @@
                 alert('Error creating song');
             });
         }
+        
+        // Update Charts link to preserve current filters
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartsLink = document.getElementById('chartsLink');
+            if (chartsLink) {
+                const currentUrl = new URL(window.location.href);
+                const chartsUrl = new URL('/graphs', window.location.origin);
+                // Copy relevant filter params to charts URL
+                currentUrl.searchParams.forEach((value, key) => {
+                    if (key !== 'page' && key !== 'perPage' && key !== 'sortBy' && key !== 'sortDir') {
+                        chartsUrl.searchParams.append(key, value);
+                    }
+                });
+                chartsLink.href = chartsUrl.toString();
+            }
+        });
     </script>
+    
+    <!-- Image Modal -->
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
     
     <!-- Create Song Modal -->
     <div id="createSongModal" class="modal">
@@ -1523,8 +1678,5 @@
             justify-content: flex-end;
         }
     </style>
-    
-    <!-- Charts Modal (included from fragment) -->
-    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
 </body>
 </html>

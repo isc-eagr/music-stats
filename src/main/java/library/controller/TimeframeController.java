@@ -2,6 +2,7 @@ package library.controller;
 
 import library.dto.TimeframeCardDTO;
 import library.repository.LookupRepository;
+import library.service.ChartService;
 import library.service.TimeframeService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Controller
@@ -19,11 +19,13 @@ public class TimeframeController {
     private static final Set<String> VALID_PERIOD_TYPES = Set.of("days", "weeks", "months", "seasons", "years", "decades");
     
     private final TimeframeService timeframeService;
+    private final ChartService chartService;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public TimeframeController(TimeframeService timeframeService, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public TimeframeController(TimeframeService timeframeService, ChartService chartService, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.timeframeService = timeframeService;
+        this.chartService = chartService;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -124,6 +126,15 @@ public class TimeframeController {
         model.addAttribute("periodType", periodType);
         model.addAttribute("periodTypeDisplay", formatPeriodTypeDisplay(periodType));
         model.addAttribute("timeframes", timeframes);
+        
+        // For weeks, populate hasChart status and weekComplete status
+        if ("weeks".equals(periodType)) {
+            Set<String> weeksWithCharts = chartService.getExistingChartPeriodKeys("song");
+            for (TimeframeCardDTO tf : timeframes) {
+                tf.setHasChart(weeksWithCharts.contains(tf.getPeriodKey()));
+                tf.setWeekComplete(chartService.isWeekComplete(tf.getPeriodKey()));
+            }
+        }
         
         // Pagination
         model.addAttribute("currentPage", page);

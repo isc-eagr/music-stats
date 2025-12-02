@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Charts - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .charts-page {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .charts-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .charts-title {
+            font-size: 1.8rem;
+            color: #fff;
+            margin: 0 0 10px 0;
+        }
+        
+        .charts-period {
+            font-size: 1.2rem;
+            color: #aaa;
+        }
+        
+        .charts-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .charts-nav-center {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .date-picker-input {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .date-picker-input:hover {
+            border-color: #444;
+        }
+        
+        .date-picker-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        
+        .nav-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-btn:hover:not(.disabled) {
+            background: #2a2a2a;
+            border-color: #444;
+        }
+        
+        .nav-btn.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        /* Chart type toggle buttons */
+        .chart-type-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-toggle-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #888;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .chart-toggle-btn:hover {
+            background: #2a2a2a;
+            border-color: #444;
+            color: #fff;
+        }
+        
+        .chart-toggle-btn.active {
+            background: #1e40af;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+        
+        .number-one-section {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .number-one-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .number-one-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .number-one-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .number-one-placeholder {
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #444;
+        }
+        
+        /* Section headers for Songs/Albums */
+        .chart-section {
+            margin-bottom: 40px;
+        }
+        
+        .chart-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .chart-section-icon {
+            font-size: 1.5rem;
+        }
+        
+        .chart-section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+        }
+        
+        .charts-table-container {
+            background: #0a0a0a;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+            overflow: hidden;
+        }
+        
+        /* Chart table links */
+        .chart-link {
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .chart-link:hover {
+            text-decoration: underline;
+        }
+        
+        .chart-link-primary {
+            color: #fff;
+        }
+        
+        .chart-link-primary:hover {
+            color: #60a5fa;
+        }
+        
+        .chart-link-secondary {
+            color: #aaa;
+        }
+        
+        .chart-link-secondary:hover {
+            color: #fff;
+        }
+        
+        .charts-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .charts-table th,
+        .charts-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        
+        .charts-table th {
+            background: #111;
+            color: #888;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .charts-table tbody tr:hover {
+            background: #151515;
+        }
+        
+        .charts-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Column widths */
+        .col-expand { width: 40px; text-align: center; }
+        .col-position { width: 80px; text-align: center; }
+        .col-title { min-width: 200px; }
+        .col-artist { min-width: 150px; }
+        .col-plays { width: 100px; text-align: right; }
+        .col-peak { width: 80px; text-align: center; }
+        .col-weeks { width: 80px; text-align: center; }
+        
+        /* Position cell */
+        .position-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .position-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .position-lw {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        .position-lw.new-entry { color: #4ade80; }
+        .position-lw.re-entry { color: #fbbf24; }
+        
+        /* Change indicator */
+        .change-indicator {
+            display: inline-block;
+            margin-right: 4px;
+        }
+        
+        .position-up { color: #4ade80; }
+        .position-down { color: #f87171; }
+        .position-same { color: #888; }
+        
+        /* Plays cell */
+        .plays-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .plays-count {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .plays-lw {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        /* Peak cell */
+        .peak-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .peak-position {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+        
+        .peak-position.peak-number-one {
+            color: #22c55e;
+            text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+        
+        .peak-times {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        /* Expand button */
+        .expand-btn {
+            background: #222;
+            border: 1px solid #333;
+            color: #888;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .expand-btn:hover {
+            background: #333;
+            color: #fff;
+        }
+        
+        .expand-btn.expanded {
+            background: #1e40af;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+        
+        /* Chart run detail row */
+        .chart-run-row {
+            display: none;
+        }
+        
+        .chart-run-row.visible {
+            display: table-row;
+        }
+        
+        .chart-run-cell {
+            background: #0f0f0f;
+            padding: 20px !important;
+        }
+        
+        .chart-run-header {
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        
+        .chart-run-header a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        
+        .chart-run-header a:hover {
+            text-decoration: underline;
+        }
+        
+        .chart-run-boxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 15px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        .chart-run-box {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #888;
+            border: 1px solid #333;
+        }
+        
+        .chart-run-box.on-chart {
+            background: #1e3a5f;
+            color: #60a5fa;
+            border-color: #3b82f6;
+        }
+        
+        .chart-run-box.current {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #60a5fa;
+        }
+        
+        .chart-run-box.absent {
+            color: #555;
+        }
+        
+        .chart-run-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .chart-run-stat {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-align: center;
+        }
+        
+        .chart-run-stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        
+        .chart-run-stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state-title {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state-text {
+            color: #888;
+            margin-bottom: 20px;
+        }
+        
+        .generate-all-btn {
+            background: #1e40af;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .generate-all-btn:hover {
+            background: #2563eb;
+        }
+        
+        /* Progress modal */
+        .progress-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .progress-modal.visible {
+            display: flex;
+        }
+        
+        .progress-modal-content {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            text-align: center;
+        }
+        
+        .progress-modal-title {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar-container {
+            background: #0a0a0a;
+            border-radius: 8px;
+            height: 24px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #1e40af, #3b82f6);
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+        
+        .progress-text {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .progress-current-week {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        
+        /* Action buttons row */
+        .charts-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            background: #2a2a2a;
+            border-color: #444;
+        }
+        
+        .action-btn.primary {
+            background: #1e40af;
+            border-color: #3b82f6;
+        }
+        
+        .action-btn.primary:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    
+    <div class="charts-page">
+        <!-- Empty state when no chart exists -->
+        <div th:if="${!hasChart}" class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <h2 class="empty-state-title">No Charts Generated Yet</h2>
+            <p class="empty-state-text" th:if="${missingWeeksCount > 0}">
+                There are <span th:text="${missingWeeksCount}">0</span> weeks with scrobble data that don't have charts.
+            </p>
+            <p class="empty-state-text" th:if="${missingWeeksCount == 0}">
+                No scrobble data available to generate charts.
+            </p>
+            <button th:if="${missingWeeksCount > 0}" class="generate-all-btn" onclick="startBulkGeneration()">
+                Generate All Missing Charts
+            </button>
+        </div>
+        
+        <!-- Chart display when chart exists -->
+        <div th:if="${hasChart}">
+            <!-- Header -->
+            <div class="charts-header">
+                <h1 class="charts-title">Weekly Charts</h1>
+                <div class="charts-period" th:text="${formattedPeriod}">Nov 16 - Nov 22, 2025</div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="charts-nav">
+                <a th:if="${prevPeriodKey != null}" 
+                   th:href="@{/charts/weekly/{pk}(pk=${prevPeriodKey})}" 
+                   class="nav-btn">
+                    ← Previous
+                </a>
+                <span th:if="${prevPeriodKey == null}" class="nav-btn disabled">← Previous</span>
+                
+                <div class="charts-nav-center">
+                    <input type="date" 
+                           id="chartDatePicker" 
+                           class="date-picker-input"
+                           title="Jump to a specific week"
+                           onchange="navigateToDate(this.value)">
+                </div>
+                
+                <a th:if="${nextPeriodKey != null}" 
+                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey})}" 
+                   class="nav-btn">
+                    Next →
+                </a>
+                <span th:if="${nextPeriodKey == null}" class="nav-btn disabled">Next →</span>
+            </div>
+            
+            <!-- Chart type toggle buttons -->
+            <div class="chart-type-toggle">
+                <button id="songsToggle" class="chart-toggle-btn active" onclick="showSongsChart()">
+                    🎵 Songs Chart
+                </button>
+                <button id="albumsToggle" class="chart-toggle-btn" onclick="showAlbumsChart()">
+                    💿 Albums Chart
+                </button>
+            </div>
+            
+            <!-- Actions -->
+            <div class="charts-actions" th:if="${missingWeeksCount > 0}">
+                <button class="action-btn primary" onclick="startBulkGeneration()">
+                    Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
+                </button>
+            </div>
+            
+            <!-- Top 20 Songs Section -->
+            <div id="songsSection" class="chart-section">
+                <!-- #1 Song Image -->
+                <div class="number-one-section" th:if="${numberOneSong != null}">
+                    <div class="number-one-card">
+                        <div class="number-one-label">🎵 #1 Song</div>
+                        <img th:if="${numberOneSong.hasImage}" 
+                             th:src="@{/songs/{id}/image(id=${numberOneSong.songId})}" 
+                             alt="Number 1 Song"
+                             class="number-one-image">
+                        <div th:unless="${numberOneSong.hasImage}" class="number-one-placeholder">🎵</div>
+                    </div>
+                </div>
+                
+                <div class="chart-section-header">
+                    <span class="chart-section-icon">🎵</span>
+                    <h2 class="chart-section-title">Top 20 Songs</h2>
+                </div>
+                <div class="charts-table-container">
+                    <table class="charts-table">
+                        <thead>
+                            <tr>
+                                <th class="col-expand"></th>
+                                <th class="col-position">Position</th>
+                                <th class="col-title">Title</th>
+                                <th class="col-artist">Artist</th>
+                                <th class="col-plays">Plays</th>
+                                <th class="col-peak">Peak</th>
+                            <th class="col-weeks">Weeks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:each="entry : ${entries}">
+                            <!-- Main row -->
+                            <tr th:data-song-id="${entry.songId}">
+                                <td class="col-expand">
+                                    <button class="expand-btn" 
+                                            th:data-song-id="${entry.songId}"
+                                            onclick="toggleChartRun(this)">+</button>
+                                </td>
+                                <td class="col-position">
+                                    <div class="position-cell">
+                                        <span class="position-number" th:text="${entry.position}">1</span>
+                                        <span class="position-lw" th:classappend="${entry.positionChangeClass}">
+                                            <span class="change-indicator" th:if="${entry.positionChange != null}">
+                                                <span th:if="${entry.positionChange > 0}">↑</span>
+                                                <span th:if="${entry.positionChange < 0}">↓</span>
+                                                <span th:if="${entry.positionChange == 0}">=</span>
+                                            </span>
+                                            <span th:text="'LW: ' + ${entry.lastWeekDisplay}">LW: 3</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="col-title">
+                                    <a th:href="@{/songs/{id}(id=${entry.songId})}" 
+                                       class="chart-link chart-link-primary"
+                                       th:text="${entry.songName}">Song Name</a>
+                                </td>
+                                <td class="col-artist">
+                                    <a th:href="@{/artists/{id}(id=${entry.artistId})}"
+                                       class="chart-link chart-link-secondary"
+                                       th:text="${entry.artistName}">Artist Name</a>
+                                </td>
+                                <td class="col-plays">
+                                    <div class="plays-cell">
+                                        <span class="plays-count" th:text="${entry.playCount}">10</span>
+                                        <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}" 
+                                              th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
+                                    </div>
+                                </td>
+                                <td class="col-peak">
+                                    <div class="peak-cell">
+                                        <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
+                                        <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
+                                    </div>
+                                </td>
+                                <td class="col-weeks" th:text="${entry.weeksOnChart}">5</td>
+                            </tr>
+                            <!-- Chart run detail row (hidden by default) -->
+                            <tr class="chart-run-row" th:data-song-id="${entry.songId}">
+                                <td colspan="7" class="chart-run-cell">
+                                    <div class="chart-run-content" th:id="'chart-run-' + ${entry.songId}">
+                                        <!-- Content loaded via AJAX -->
+                                        <div style="text-align: center; color: #888;">Loading chart run...</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+            
+            <!-- Top 10 Albums Section -->
+            <div id="albumsSection" class="chart-section" style="display: none;" th:if="${albumEntries != null && !albumEntries.isEmpty()}">
+                <!-- #1 Album Image -->
+                <div class="number-one-section" th:if="${numberOneAlbum != null}">
+                    <div class="number-one-card">
+                        <div class="number-one-label">💿 #1 Album</div>
+                        <img th:if="${numberOneAlbum.hasImage}" 
+                             th:src="@{/albums/{id}/image(id=${numberOneAlbum.albumId})}" 
+                             alt="Number 1 Album"
+                             class="number-one-image">
+                        <div th:unless="${numberOneAlbum.hasImage}" class="number-one-placeholder">💿</div>
+                    </div>
+                </div>
+                
+                <div class="chart-section-header">
+                    <span class="chart-section-icon">💿</span>
+                    <h2 class="chart-section-title">Top 10 Albums</h2>
+                </div>
+                <div class="charts-table-container">
+                    <table class="charts-table">
+                        <thead>
+                            <tr>
+                                <th class="col-position">Position</th>
+                                <th class="col-title">Album</th>
+                                <th class="col-artist">Artist</th>
+                                <th class="col-plays">Plays</th>
+                                <th class="col-peak">Peak</th>
+                                <th class="col-weeks">Weeks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <th:block th:each="entry : ${albumEntries}">
+                                <tr>
+                                    <td class="col-position">
+                                        <div class="position-cell">
+                                            <span class="position-number" th:text="${entry.position}">1</span>
+                                            <span class="position-lw" th:classappend="${entry.positionChangeClass}">
+                                                <span class="change-indicator" th:if="${entry.positionChange != null}">
+                                                    <span th:if="${entry.positionChange > 0}">↑</span>
+                                                    <span th:if="${entry.positionChange < 0}">↓</span>
+                                                    <span th:if="${entry.positionChange == 0}">=</span>
+                                                </span>
+                                                <span th:text="'LW: ' + ${entry.lastWeekDisplay}">LW: 3</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="col-title">
+                                        <a th:href="@{/albums/{id}(id=${entry.albumId})}" 
+                                           class="chart-link chart-link-primary"
+                                           th:text="${entry.albumName}">Album Name</a>
+                                    </td>
+                                    <td class="col-artist">
+                                        <a th:href="@{/artists/{id}(id=${entry.artistId})}"
+                                           class="chart-link chart-link-secondary"
+                                           th:text="${entry.artistName}">Artist Name</a>
+                                    </td>
+                                    <td class="col-plays">
+                                        <div class="plays-cell">
+                                            <span class="plays-count" th:text="${entry.playCount}">10</span>
+                                            <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}" 
+                                                  th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
+                                        </div>
+                                    </td>
+                                    <td class="col-peak">
+                                        <div class="peak-cell">
+                                            <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
+                                            <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
+                                        </div>
+                                    </td>
+                                    <td class="col-weeks" th:text="${entry.weeksOnChart}">5</td>
+                                </tr>
+                            </th:block>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Modal -->
+    <div class="progress-modal" id="progressModal">
+        <div class="progress-modal-content">
+            <h3 class="progress-modal-title" id="progressModalTitle">Generating Charts</h3>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressCount">0</span> of <span id="progressTotal">0</span> weeks completed
+            </div>
+            <div class="progress-text" style="margin-top: 8px;">
+                Processing: <span class="progress-current-week" id="progressCurrentWeek">-</span>
+            </div>
+            <button id="closeModalBtn" class="action-btn" style="display: none; margin-top: 20px;" onclick="closeModalAndReload()">
+                Close & Refresh
+            </button>
+        </div>
+    </div>
+    
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const currentPeriodKey = /*[[${periodKey}]]*/ null;
+        
+        // Chart type toggle functions
+        function showSongsChart() {
+            document.getElementById('songsSection').style.display = 'block';
+            document.getElementById('albumsSection').style.display = 'none';
+            document.getElementById('songsToggle').classList.add('active');
+            document.getElementById('albumsToggle').classList.remove('active');
+        }
+        
+        function showAlbumsChart() {
+            document.getElementById('songsSection').style.display = 'none';
+            document.getElementById('albumsSection').style.display = 'block';
+            document.getElementById('songsToggle').classList.remove('active');
+            document.getElementById('albumsToggle').classList.add('active');
+        }
+        
+        // Navigate to a specific date's chart
+        function navigateToDate(dateStr) {
+            if (dateStr) {
+                window.location.href = `/charts/weekly/by-date?date=${dateStr}`;
+            }
+        }
+        
+        // Cache for chart run data
+        const chartRunCache = {};
+        
+        // Toggle chart run detail row
+        async function toggleChartRun(button) {
+            const songId = button.getAttribute('data-song-id');
+            const detailRow = document.querySelector(`.chart-run-row[data-song-id="${songId}"]`);
+            
+            if (detailRow.classList.contains('visible')) {
+                detailRow.classList.remove('visible');
+                button.classList.remove('expanded');
+                button.textContent = '+';
+            } else {
+                // Load data if not cached
+                if (!chartRunCache[songId]) {
+                    await loadChartRun(songId);
+                }
+                detailRow.classList.add('visible');
+                button.classList.add('expanded');
+                button.textContent = '−';
+            }
+        }
+        
+        // Load chart run data via AJAX
+        async function loadChartRun(songId) {
+            try {
+                const response = await fetch(`/charts/weekly/${currentPeriodKey}/song/${songId}/run`);
+                if (!response.ok) throw new Error('Failed to load chart run');
+                
+                const data = await response.json();
+                chartRunCache[songId] = data;
+                
+                // Render the chart run content
+                const container = document.getElementById(`chart-run-${songId}`);
+                container.innerHTML = renderChartRun(data);
+            } catch (error) {
+                console.error('Error loading chart run:', error);
+                const container = document.getElementById(`chart-run-${songId}`);
+                container.innerHTML = '<div style="color: #f87171;">Failed to load chart run data</div>';
+            }
+        }
+        
+        // Render chart run HTML
+        function renderChartRun(data) {
+            let boxesHtml = data.weeks.map(week => {
+                let classes = 'chart-run-box';
+                if (week.onChart) classes += ' on-chart';
+                if (week.current) classes += ' current';
+                if (!week.onChart) classes += ' absent';
+                return `<div class="${classes}" title="${week.periodKey}">${week.display}</div>`;
+            }).join('');
+            
+            return `
+                <div class="chart-run-header">
+                    Chart-run: <a href="/songs/${data.songId}">${data.songName}</a> by ${data.artistName}
+                </div>
+                <div class="chart-run-boxes">
+                    ${boxesHtml}
+                </div>
+                <div class="chart-run-stats">
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 1</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop1}</div>
+                    </div>
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 5</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop5}</div>
+                    </div>
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 10</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop10}</div>
+                    </div>
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 20</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop20}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Bulk generation
+        let generationSessionId = null;
+        let progressInterval = null;
+        
+        async function startBulkGeneration() {
+            try {
+                const response = await fetch('/charts/generate-all', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    generationSessionId = data.sessionId;
+                    showProgressModal();
+                    startProgressPolling();
+                } else {
+                    alert('Failed to start generation: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error starting generation: ' + error.message);
+            }
+        }
+        
+        function showProgressModal() {
+            document.getElementById('progressModal').classList.add('visible');
+        }
+        
+        function hideProgressModal() {
+            document.getElementById('progressModal').classList.remove('visible');
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+        
+        function startProgressPolling() {
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/charts/generate-all/progress/${generationSessionId}`);
+                    const progress = await response.json();
+                    
+                    updateProgressUI(progress);
+                    
+                    // Jackson serializes isComplete() as "complete" in JSON
+                    if (progress.complete || progress.isComplete) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                        
+                        if (progress.error) {
+                            document.getElementById('progressModalTitle').textContent = 'Generation Failed';
+                            document.getElementById('progressCurrentWeek').textContent = progress.error;
+                        } else {
+                            document.getElementById('progressModalTitle').textContent = 'Generation Complete!';
+                            document.getElementById('progressCurrentWeek').textContent = 'Done';
+                        }
+                        // Show close button
+                        document.getElementById('closeModalBtn').style.display = 'inline-block';
+                    }
+                } catch (error) {
+                    console.error('Error polling progress:', error);
+                }
+            }, 500);
+        }
+        
+        function closeModalAndReload() {
+            hideProgressModal();
+            window.location.reload();
+        }
+        
+        function updateProgressUI(progress) {
+            document.getElementById('progressBar').style.width = progress.percentage + '%';
+            document.getElementById('progressCount').textContent = progress.completedWeeks;
+            document.getElementById('progressTotal').textContent = progress.totalWeeks;
+            document.getElementById('progressCurrentWeek').textContent = progress.currentWeek || 'Finishing...';
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>

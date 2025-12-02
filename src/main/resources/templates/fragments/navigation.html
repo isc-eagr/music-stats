@@ -132,6 +132,14 @@
                          <li><a href="/decades" class="app-nav-dropdown-link" th:classappend="${currentSection == 'decades'} ? 'active' : ''">Decades</a></li>
                      </ul>
                  </li>
+                 <li class="app-nav-dropdown">
+                     <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
+                        th:classappend="${currentSection == 'weekly-charts' or currentSection == 'album-charts'} ? 'active' : ''">📈 Charts ▾</a>
+                     <ul class="app-nav-dropdown-menu">
+                         <li><a href="/charts/weekly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-charts'} ? 'active' : ''">Weekly</a></li>
+                     </ul>
+                 </li>
+                 <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">📊 Graphs</a></li>
              </ul>
          </div>
          <div class="app-nav-utilities">

@@ -1,6 +1,14 @@
 /* Songs List Page - Page-specific styles only */
 /* Base card styles are in global.css */
 
+/* Single indicator diamond icon */
+.single-indicator {
+    font-size: 12px;
+    margin-left: 4px;
+    vertical-align: middle;
+    opacity: 0.9;
+}
+
 /* Song-specific name styling */
 .song-name {
     font-size: 15px;

@@ -8,6 +8,53 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <script th:src="@{/js/list-utils.js}"></script>
+    <style>
+        /* Chart generation button on week cards */
+        .chart-generate-btn-container {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
+        .chart-generate-btn {
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        .chart-generate-btn:hover {
+            background: #444;
+            border-color: #666;
+            transform: scale(1.1);
+        }
+        .chart-generate-btn.generating {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        .chart-generated-indicator {
+            font-size: 16px;
+            padding: 4px;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        .chart-generated-indicator:hover {
+            transform: scale(1.2);
+            text-decoration: none;
+        }
+        .chart-pending-indicator {
+            font-size: 16px;
+            padding: 4px;
+            opacity: 0.6;
+            cursor: default;
+        }
+        .timeframe-card {
+            position: relative;
+        }
+    </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -62,6 +109,284 @@
                                 <input type="hidden" name="sortby" th:value="${sortBy}">
                                 <input type="hidden" name="sortdir" th:value="${sortDir}">
                                 <input type="hidden" name="perpage" th:value="${perPage}">
+                                
+                                <!-- Album Count Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Album Count
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" name="albumCountMin" th:value="${albumCountMin}" placeholder="0" min="0">
+                                            </label>
+                                            <label class="field"><span>Max</span>
+                                                <input type="number" name="albumCountMax" th:value="${albumCountMax}" placeholder="∞" min="0">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Artist Count Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Artist Count
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" name="artistCountMin" th:value="${artistCountMin}" placeholder="0" min="0">
+                                            </label>
+                                            <label class="field"><span>Max</span>
+                                                <input type="number" name="artistCountMax" th:value="${artistCountMax}" placeholder="∞" min="0">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Listened Time Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Listened Time (seconds)
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" name="timeMin" th:value="${timeMin}" placeholder="0" min="0">
+                                            </label>
+                                            <label class="field"><span>Max</span>
+                                                <input type="number" name="timeMax" th:value="${timeMax}" placeholder="∞" min="0">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Male Album % Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Male Album %
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min %</span>
+                                                <input type="number" name="maleAlbumPctMin" th:value="${maleAlbumPctMin}" placeholder="0" min="0" max="100" step="0.1">
+                                            </label>
+                                            <label class="field"><span>Max %</span>
+                                                <input type="number" name="maleAlbumPctMax" th:value="${maleAlbumPctMax}" placeholder="100" min="0" max="100" step="0.1">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Male Artist % Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Male Artist %
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min %</span>
+                                                <input type="number" name="maleArtistPctMin" th:value="${maleArtistPctMin}" placeholder="0" min="0" max="100" step="0.1">
+                                            </label>
+                                            <label class="field"><span>Max %</span>
+                                                <input type="number" name="maleArtistPctMax" th:value="${maleArtistPctMax}" placeholder="100" min="0" max="100" step="0.1">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Male Play % Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Male Play %
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min %</span>
+                                                <input type="number" name="malePlayPctMin" th:value="${malePlayPctMin}" placeholder="0" min="0" max="100" step="0.1">
+                                            </label>
+                                            <label class="field"><span>Max %</span>
+                                                <input type="number" name="malePlayPctMax" th:value="${malePlayPctMax}" placeholder="100" min="0" max="100" step="0.1">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Male Song % Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Male Song %
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min %</span>
+                                                <input type="number" name="maleSongPctMin" th:value="${maleSongPctMin}" placeholder="0" min="0" max="100" step="0.1">
+                                            </label>
+                                            <label class="field"><span>Max %</span>
+                                                <input type="number" name="maleSongPctMax" th:value="${maleSongPctMax}" placeholder="100" min="0" max="100" step="0.1">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Male Time % Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Male Time %
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min %</span>
+                                                <input type="number" name="maleTimePctMin" th:value="${maleTimePctMin}" placeholder="0" min="0" max="100" step="0.1">
+                                            </label>
+                                            <label class="field"><span>Max %</span>
+                                                <input type="number" name="maleTimePctMax" th:value="${maleTimePctMax}" placeholder="100" min="0" max="100" step="0.1">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Plays Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Plays
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" name="playsMin" th:value="${playsMin}" placeholder="0" min="0">
+                                            </label>
+                                            <label class="field"><span>Max</span>
+                                                <input type="number" name="playsMax" th:value="${playsMax}" placeholder="∞" min="0">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Song Count Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Song Count
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" name="songCountMin" th:value="${songCountMin}" placeholder="0" min="0">
+                                            </label>
+                                            <label class="field"><span>Max</span>
+                                                <input type="number" name="songCountMax" th:value="${songCountMax}" placeholder="∞" min="0">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Winning Country Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Winning Country
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${winningCountryMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="winningCountry">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${winningCountryMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="winningCountry">excludes</button>
+                                        </div>
+                                        <input type="hidden" name="winningCountryMode" th:value="${winningCountryMode}" id="winningCountryMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('winningCountry')">
+                                                <div class="multi-select-chips" id="winningCountryChips">
+                                                    <span class="multi-select-chip" th:each="country : ${winningCountry}">
+                                                        <span th:text="${country}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeCountryChip(event, \'' + ${country} + '\')'" th:attr="data-value=${country}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${winningCountry == null || winningCountry.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="winningCountryDropdown">
+                                                <div class="multi-select-option" th:each="country : ${countries}">
+                                                    <label>
+                                                        <input type="checkbox" name="winningCountry" th:value="${country}" 
+                                                               th:checked="${winningCountry != null && winningCountry.contains(country)}"
+                                                               onchange="updateCountryChips(this)">
+                                                        <span th:text="${country}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Winning Ethnicity Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Winning Ethnicity
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${winningEthnicityMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="winningEthnicity">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${winningEthnicityMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="winningEthnicity">excludes</button>
+                                        </div>
+                                        <input type="hidden" name="winningEthnicityMode" th:value="${winningEthnicityMode}" id="winningEthnicityMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('winningEthnicity')">
+                                                <div class="multi-select-chips" id="winningEthnicityChips">
+                                                    <span class="multi-select-chip" th:each="ethId : ${winningEthnicity}">
+                                                        <span th:text="${ethnicities.get(ethId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'winningEthnicity\', ' + ${ethId} + ')'" th:attr="data-value=${ethId}">×</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${winningEthnicity == null || winningEthnicity.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">▼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="winningEthnicityDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${ethnicities}">
+                                                    <label>
+                                                        <input type="checkbox" name="winningEthnicity" th:value="${entry.key}" 
+                                                               th:checked="${winningEthnicity != null && winningEthnicity.contains(entry.key)}"
+                                                               onchange="updateChips('winningEthnicity', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <!-- Winning Gender Filter -->
                                 <div class="filter-item">
@@ -141,45 +466,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Winning Ethnicity Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Winning Ethnicity
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" th:classappend="${winningEthnicityMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="winningEthnicity">includes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${winningEthnicityMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="winningEthnicity">excludes</button>
-                                        </div>
-                                        <input type="hidden" name="winningEthnicityMode" th:value="${winningEthnicityMode}" id="winningEthnicityMode">
-                                        <div class="filter-group multi-select-container">
-                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('winningEthnicity')">
-                                                <div class="multi-select-chips" id="winningEthnicityChips">
-                                                    <span class="multi-select-chip" th:each="ethId : ${winningEthnicity}">
-                                                        <span th:text="${ethnicities.get(ethId)}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'winningEthnicity\', ' + ${ethId} + ')'" th:attr="data-value=${ethId}">×</button>
-                                                    </span>
-                                                </div>
-                                                <span class="multi-select-label" th:if="${winningEthnicity == null || winningEthnicity.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">▼</span>
-                                            </div>
-                                            <div class="multi-select-dropdown" id="winningEthnicityDropdown">
-                                                <div class="multi-select-option" th:each="entry : ${ethnicities}">
-                                                    <label>
-                                                        <input type="checkbox" name="winningEthnicity" th:value="${entry.key}" 
-                                                               th:checked="${winningEthnicity != null && winningEthnicity.contains(entry.key)}"
-                                                               onchange="updateChips('winningEthnicity', this)">
-                                                        <span th:text="${entry.value}"></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
                                 <!-- Winning Language Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -215,245 +501,6 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Winning Country Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Winning Country
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-modifiers">
-                                            <button type="button" class="filter-modifier" th:classappend="${winningCountryMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="winningCountry">includes</button>
-                                            <button type="button" class="filter-modifier" th:classappend="${winningCountryMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="winningCountry">excludes</button>
-                                        </div>
-                                        <input type="hidden" name="winningCountryMode" th:value="${winningCountryMode}" id="winningCountryMode">
-                                        <div class="filter-group multi-select-container">
-                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('winningCountry')">
-                                                <div class="multi-select-chips" id="winningCountryChips">
-                                                    <span class="multi-select-chip" th:each="country : ${winningCountry}">
-                                                        <span th:text="${country}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeCountryChip(event, \'' + ${country} + '\')'" th:attr="data-value=${country}">×</button>
-                                                    </span>
-                                                </div>
-                                                <span class="multi-select-label" th:if="${winningCountry == null || winningCountry.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">▼</span>
-                                            </div>
-                                            <div class="multi-select-dropdown" id="winningCountryDropdown">
-                                                <div class="multi-select-option" th:each="country : ${countries}">
-                                                    <label>
-                                                        <input type="checkbox" name="winningCountry" th:value="${country}" 
-                                                               th:checked="${winningCountry != null && winningCountry.contains(country)}"
-                                                               onchange="updateCountryChips(this)">
-                                                        <span th:text="${country}"></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Artist Count Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Artist Count
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min</span>
-                                                <input type="number" name="artistCountMin" th:value="${artistCountMin}" placeholder="0" min="0">
-                                            </label>
-                                            <label class="field"><span>Max</span>
-                                                <input type="number" name="artistCountMax" th:value="${artistCountMax}" placeholder="∞" min="0">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Album Count Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Album Count
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min</span>
-                                                <input type="number" name="albumCountMin" th:value="${albumCountMin}" placeholder="0" min="0">
-                                            </label>
-                                            <label class="field"><span>Max</span>
-                                                <input type="number" name="albumCountMax" th:value="${albumCountMax}" placeholder="∞" min="0">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Song Count Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Song Count
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min</span>
-                                                <input type="number" name="songCountMin" th:value="${songCountMin}" placeholder="0" min="0">
-                                            </label>
-                                            <label class="field"><span>Max</span>
-                                                <input type="number" name="songCountMax" th:value="${songCountMax}" placeholder="∞" min="0">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Plays Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Plays
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min</span>
-                                                <input type="number" name="playsMin" th:value="${playsMin}" placeholder="0" min="0">
-                                            </label>
-                                            <label class="field"><span>Max</span>
-                                                <input type="number" name="playsMax" th:value="${playsMax}" placeholder="∞" min="0">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Listened Time Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Listened Time (seconds)
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min</span>
-                                                <input type="number" name="timeMin" th:value="${timeMin}" placeholder="0" min="0">
-                                            </label>
-                                            <label class="field"><span>Max</span>
-                                                <input type="number" name="timeMax" th:value="${timeMax}" placeholder="∞" min="0">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Male Artist % Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Male Artist %
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min %</span>
-                                                <input type="number" name="maleArtistPctMin" th:value="${maleArtistPctMin}" placeholder="0" min="0" max="100" step="0.1">
-                                            </label>
-                                            <label class="field"><span>Max %</span>
-                                                <input type="number" name="maleArtistPctMax" th:value="${maleArtistPctMax}" placeholder="100" min="0" max="100" step="0.1">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Male Album % Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Male Album %
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min %</span>
-                                                <input type="number" name="maleAlbumPctMin" th:value="${maleAlbumPctMin}" placeholder="0" min="0" max="100" step="0.1">
-                                            </label>
-                                            <label class="field"><span>Max %</span>
-                                                <input type="number" name="maleAlbumPctMax" th:value="${maleAlbumPctMax}" placeholder="100" min="0" max="100" step="0.1">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Male Song % Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Male Song %
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min %</span>
-                                                <input type="number" name="maleSongPctMin" th:value="${maleSongPctMin}" placeholder="0" min="0" max="100" step="0.1">
-                                            </label>
-                                            <label class="field"><span>Max %</span>
-                                                <input type="number" name="maleSongPctMax" th:value="${maleSongPctMax}" placeholder="100" min="0" max="100" step="0.1">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Male Play % Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Male Play %
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min %</span>
-                                                <input type="number" name="malePlayPctMin" th:value="${malePlayPctMin}" placeholder="0" min="0" max="100" step="0.1">
-                                            </label>
-                                            <label class="field"><span>Max %</span>
-                                                <input type="number" name="malePlayPctMax" th:value="${malePlayPctMax}" placeholder="100" min="0" max="100" step="0.1">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Male Time % Range Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Male Time %
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="range-inputs">
-                                            <label class="field"><span>Min %</span>
-                                                <input type="number" name="maleTimePctMin" th:value="${maleTimePctMin}" placeholder="0" min="0" max="100" step="0.1">
-                                            </label>
-                                            <label class="field"><span>Max %</span>
-                                                <input type="number" name="maleTimePctMax" th:value="${maleTimePctMax}" placeholder="100" min="0" max="100" step="0.1">
-                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -613,7 +660,35 @@
                  th:data-date-from="${tf.listenedDateFrom}"
                  th:data-date-to="${tf.listenedDateTo}"
                  th:data-period-label="${tf.periodDisplayName}"
+                 th:data-period-key="${tf.periodKey}"
                  onclick="handleTimeframeCardClick(this)">
+                
+                <!-- Generate Chart button (only for weeks) -->
+                <div th:if="${periodType == 'weeks'}" class="chart-generate-btn-container">
+                    <!-- Show generate button only if week is complete and chart doesn't exist -->
+                    <button type="button" 
+                            th:if="${tf.hasChart != true and tf.weekComplete == true}"
+                            class="chart-generate-btn chart-not-generated"
+                            th:data-period-key="${tf.periodKey}"
+                            onclick="event.stopPropagation(); generateChart(this);"
+                            title="Generate chart for this week">
+                        📊
+                    </button>
+                    <!-- Show hourglass for ongoing week without chart -->
+                    <span th:if="${tf.hasChart != true and tf.weekComplete != true}"
+                          class="chart-pending-indicator"
+                          title="Week is still ongoing - chart can be generated after the week ends">
+                        ⏳
+                    </span>
+                    <a th:if="${tf.hasChart == true}"
+                       th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-generated-indicator"
+                       title="View chart for this week"
+                       onclick="event.stopPropagation();">
+                        ✅
+                    </a>
+                </div>
                 
                 <div class="catalog-info timeframe-info">
                     <h3 class="catalog-name timeframe-name" th:text="${tf.periodDisplayName}">Period Name</h3>
@@ -761,12 +836,49 @@
         const periodType = /*[[${periodType}]]*/ 'days';
         /*]]>*/
         
-        // Handler for timeframe card clicks - reads data attributes
+        // Handler for timeframe card clicks - navigates to Graphs page with date range in new tab
         function handleTimeframeCardClick(card) {
             const dateFrom = card.getAttribute('data-date-from');
             const dateTo = card.getAttribute('data-date-to');
             const periodLabel = card.getAttribute('data-period-label');
-            openChartsModalWithDates(dateFrom, dateTo, periodLabel);
+            const encodedLabel = encodeURIComponent(periodLabel || '');
+            window.open('/graphs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel, '_blank');
+        }
+        
+        // Handler for chart generation button
+        async function generateChart(button) {
+            const periodKey = button.getAttribute('data-period-key');
+            if (!periodKey) return;
+            
+            button.classList.add('generating');
+            button.disabled = true;
+            button.textContent = '⏳';
+            
+            try {
+                const response = await fetch('/charts/generate/' + encodeURIComponent(periodKey), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    // Replace button with green checkmark
+                    const container = button.parentElement;
+                    container.innerHTML = '<span class="chart-generated-indicator" title="Chart generated">✅</span>';
+                } else {
+                    const error = await response.text();
+                    alert('Failed to generate chart: ' + error);
+                    button.classList.remove('generating');
+                    button.disabled = false;
+                    button.textContent = '📊';
+                }
+            } catch (error) {
+                alert('Error generating chart: ' + error.message);
+                button.classList.remove('generating');
+                button.disabled = false;
+                button.textContent = '📊';
+            }
         }
         
         function toggleFilters() {
@@ -955,8 +1067,5 @@
             });
         });
     </script>
-    
-    <!-- Charts Modal (included from fragment) -->
-    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
 </body>
 </html>

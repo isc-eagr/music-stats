@@ -39,6 +39,7 @@ public class ArtistService {
                                           List<Integer> subgenreIds, String subgenreMode,
                                           List<Integer> languageIds, String languageMode,
                                           List<String> countries, String countryMode,
+                                          List<String> accounts, String accountMode,
                                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                           String organized,
@@ -52,11 +53,12 @@ public class ArtistService {
         if (subgenreIds != null && subgenreIds.isEmpty()) subgenreIds = null;
         if (languageIds != null && languageIds.isEmpty()) languageIds = null;
         if (countries != null && countries.isEmpty()) countries = null;
+        if (accounts != null && accounts.isEmpty()) accounts = null;
         
         List<Object[]> results = artistRepository.findArtistsWithStats(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                countries, countryMode,
+                countries, countryMode, accounts, accountMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 organized,
@@ -110,6 +112,7 @@ public class ArtistService {
                             List<Integer> subgenreIds, String subgenreMode,
                             List<Integer> languageIds, String languageMode,
                             List<String> countries, String countryMode,
+                            List<String> accounts, String accountMode,
                             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                             String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                             String organized) {
@@ -120,10 +123,11 @@ public class ArtistService {
         if (subgenreIds != null && subgenreIds.isEmpty()) subgenreIds = null;
         if (languageIds != null && languageIds.isEmpty()) languageIds = null;
         if (countries != null && countries.isEmpty()) countries = null;
+        if (accounts != null && accounts.isEmpty()) accounts = null;
         
         return artistRepository.countArtistsWithFilters(name, genderIds, genderMode, 
                 ethnicityIds, ethnicityMode, genreIds, genreMode, subgenreIds, subgenreMode,
-                languageIds, languageMode, countries, countryMode,
+                languageIds, languageMode, countries, countryMode, accounts, accountMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 organized);
@@ -315,27 +319,47 @@ public class ArtistService {
         return new int[]{albumCount, songCount};
     }
     
+    // Cached play stats to avoid multiple queries
+    private static class PlayStats {
+        int totalPlays;
+        int vatitoPlays;
+        int robertloverPlays;
+    }
+    
+    private PlayStats getPlayStatsForArtist(int artistId) {
+        String sql = """
+            SELECT 
+                COUNT(*) as total_plays,
+                SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays
+            FROM Scrobble scr 
+            INNER JOIN Song s ON scr.song_id = s.id 
+            WHERE s.artist_id = ?
+            """;
+        
+        PlayStats stats = jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+            PlayStats ps = new PlayStats();
+            ps.totalPlays = rs.getInt("total_plays");
+            ps.vatitoPlays = rs.getInt("vatito_plays");
+            ps.robertloverPlays = rs.getInt("robertlover_plays");
+            return ps;
+        }, artistId);
+        
+        return stats != null ? stats : new PlayStats();
+    }
+    
     public int getPlayCountForArtist(int artistId) {
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ?",
-                Integer.class, artistId);
-        return count != null ? count : 0;
+        return getPlayStatsForArtist(artistId).totalPlays;
     }
     
     // Get vatito (primary) play count for artist
     public int getVatitoPlayCountForArtist(int artistId) {
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'vatito'",
-                Integer.class, artistId);
-        return count != null ? count : 0;
+        return getPlayStatsForArtist(artistId).vatitoPlays;
     }
     
     // Get robertlover (legacy) play count for artist
     public int getRobertloverPlayCountForArtist(int artistId) {
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'robertlover'",
-                Integer.class, artistId);
-        return count != null ? count : 0;
+        return getPlayStatsForArtist(artistId).robertloverPlays;
     }
     
     // Return a string with per-account play counts for this artist (e.g. "lastfm: 12\nspotify: 3\n")
@@ -357,14 +381,9 @@ public class ArtistService {
     // Get total listening time for an artist (sum of all songs' listening time)
     public String getTotalListeningTimeForArtist(int artistId) {
         String sql = """
-            SELECT 
-                SUM(s.length_seconds * COALESCE(play_count, 0)) as total_seconds
-            FROM Song s
-            LEFT JOIN (
-                SELECT song_id, COUNT(*) as play_count
-                FROM Scrobble
-                GROUP BY song_id
-            ) scr ON s.id = scr.song_id
+            SELECT SUM(s.length_seconds) as total_seconds
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
             WHERE s.artist_id = ?
             """;
         
@@ -430,6 +449,7 @@ public class ArtistService {
                 s.name,
                 s.length_seconds,
                 s.single_cover IS NOT NULL as has_image,
+                a.image IS NOT NULL as album_has_image,
                 COALESCE(s.release_date, a.release_date) as release_date,
                 a.name as album_name,
                 a.id as album_id,
@@ -438,15 +458,26 @@ public class ArtistService {
                 COALESCE(sg_song.name, sg_album.name, sg_artist.name) as subgenre,
                 COALESCE(eth_song.name, eth_artist.name) as ethnicity,
                 COALESCE(l_song.name, l_album.name, l_artist.name) as language,
-                COALESCE(SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END), 0) as vatito_plays,
-                COALESCE(SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END), 0) as robertlover_plays,
-                COUNT(scr.id) as total_plays,
-                MIN(scr.scrobble_date) as first_listen,
-                MAX(scr.scrobble_date) as last_listen
+                COALESCE(play_stats.vatito_plays, 0) as vatito_plays,
+                COALESCE(play_stats.robertlover_plays, 0) as robertlover_plays,
+                COALESCE(play_stats.total_plays, 0) as total_plays,
+                play_stats.first_listen,
+                play_stats.last_listen,
+                s.is_single
             FROM Song s
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album a ON s.album_id = a.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN (
+                SELECT 
+                    song_id,
+                    SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                    SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
+                    COUNT(*) as total_plays,
+                    MIN(scrobble_date) as first_listen,
+                    MAX(scrobble_date) as last_listen
+                FROM Scrobble
+                GROUP BY song_id
+            ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
             LEFT JOIN Genre g_album ON a.override_genre_id = g_album.id
             LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
@@ -459,12 +490,7 @@ public class ArtistService {
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE s.artist_id = ?
-            GROUP BY s.id, s.name, s.length_seconds, s.single_cover, COALESCE(s.release_date, a.release_date), a.name, a.id, ar.country, 
-                     COALESCE(g_song.name, g_album.name, g_artist.name), 
-                     COALESCE(sg_song.name, sg_album.name, sg_artist.name), 
-                     COALESCE(eth_song.name, eth_artist.name), 
-                     COALESCE(l_song.name, l_album.name, l_artist.name)
-            ORDER BY s.name
+            ORDER BY total_plays DESC
             """;
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -472,6 +498,7 @@ public class ArtistService {
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
             dto.setHasImage(rs.getBoolean("has_image"));
+            dto.setAlbumHasImage(rs.getBoolean("album_has_image"));
             dto.setReleaseDate(formatDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
@@ -506,6 +533,9 @@ public class ArtistService {
                 dto.setTotalListeningTimeSeconds(0);
             }
             
+            // Set isSingle
+            dto.setIsSingle(rs.getBoolean("is_single"));
+            
             return dto;
         }, artistId);
     }
@@ -522,20 +552,16 @@ public class ArtistService {
                 COALESCE(sg_override.name, sg_artist.name) as subgenre,
                 eth.name as ethnicity,
                 COALESCE(l_override.name, l_artist.name) as language,
-                (SELECT COUNT(*) FROM Song WHERE album_id = a.id) as song_count,
-                (SELECT SUM(length_seconds) FROM Song WHERE album_id = a.id) as total_length_seconds,
-                COALESCE(SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END), 0) as vatito_plays,
-                COALESCE(SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END), 0) as robertlover_plays,
-                COUNT(scr.id) as total_plays,
-                MIN(scr.scrobble_date) as first_listen,
-                MAX(scr.scrobble_date) as last_listen,
-                (SELECT SUM(s.length_seconds * 
-                    (SELECT COUNT(*) FROM Scrobble WHERE song_id = s.id)) 
-                 FROM Song s WHERE s.album_id = a.id) as total_listening_seconds
+                COALESCE(song_stats.song_count, 0) as song_count,
+                COALESCE(song_stats.total_length_seconds, 0) as total_length_seconds,
+                COALESCE(play_stats.vatito_plays, 0) as vatito_plays,
+                COALESCE(play_stats.robertlover_plays, 0) as robertlover_plays,
+                COALESCE(play_stats.total_plays, 0) as total_plays,
+                play_stats.first_listen,
+                play_stats.last_listen,
+                COALESCE(play_stats.total_listening_seconds, 0) as total_listening_seconds
             FROM Album a
             INNER JOIN Artist ar ON a.artist_id = ar.id
-            LEFT JOIN Song s ON a.id = s.album_id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
             LEFT JOIN Genre g_override ON a.override_genre_id = g_override.id
             LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
             LEFT JOIN SubGenre sg_override ON a.override_subgenre_id = sg_override.id
@@ -543,9 +569,27 @@ public class ArtistService {
             LEFT JOIN Language l_override ON a.override_language_id = l_override.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
+            LEFT JOIN (
+                SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as total_length_seconds
+                FROM Song
+                GROUP BY album_id
+            ) song_stats ON a.id = song_stats.album_id
+            LEFT JOIN (
+                SELECT 
+                    s.album_id,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
+                    COUNT(*) as total_plays,
+                    MIN(scr.scrobble_date) as first_listen,
+                    MAX(scr.scrobble_date) as last_listen,
+                    SUM(s.length_seconds) as total_listening_seconds
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                WHERE s.album_id IS NOT NULL
+                GROUP BY s.album_id
+            ) play_stats ON a.id = play_stats.album_id
             WHERE a.artist_id = ?
-            GROUP BY a.id, a.name, a.release_date, ar.country, genre, subgenre, eth.name, language
-            ORDER BY a.name
+            ORDER BY total_plays DESC
             """;
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -880,7 +924,8 @@ public class ArtistService {
                 CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
-                COUNT(sfa.song_id) as feature_count
+                COUNT(sfa.song_id) as feature_count,
+                GROUP_CONCAT(s.name, '||') as song_names
             FROM SongFeaturedArtist sfa
             INNER JOIN Song s ON sfa.song_id = s.id
             INNER JOIN Artist a ON sfa.artist_id = a.id
@@ -910,7 +955,7 @@ public class ArtistService {
             dto.setGenderName(rs.getString("gender_name"));
             dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
             dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
+            dto.setGenreId(rs.getObject("gender_id") != null ? rs.getInt("genre_id") : null);
             dto.setGenreName(rs.getString("genre_name"));
             dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
             dto.setSubgenreName(rs.getString("subgenre_name"));
@@ -925,6 +970,11 @@ public class ArtistService {
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
             dto.setFeatureCount(rs.getInt("feature_count"));
+            // Parse song names from GROUP_CONCAT result
+            String songNamesConcat = rs.getString("song_names");
+            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
+                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
+            }
             return dto;
         }, artistId);
     }

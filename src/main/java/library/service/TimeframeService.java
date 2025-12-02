@@ -52,42 +52,114 @@ public class TimeframeService {
         String sortColumn = getSortColumn(sortBy, periodType);
         
         // Build the main query
+        // OPTIMIZATION: Reduce work by filtering/sorting period_stats FIRST, then only compute winning attrs for visible rows
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
         
-        sql.append("""
-            WITH period_stats AS (
+        sql.append(String.format("""
+            WITH period_summary AS (
                 SELECT 
                     %s as period_key,
-                    COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(*) as play_count,
                     COALESCE(SUM(s.length_seconds), 0) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
-                    COUNT(DISTINCT al.id) as album_count,
+                    COUNT(DISTINCT CASE WHEN s.album_id IS NOT NULL THEN s.album_id END) as album_count,
                     COUNT(DISTINCT s.id) as song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN s.id END) as male_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Female%%' THEN s.id END) as female_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN s.id END) as other_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN ar.id END) as male_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Female%%' THEN ar.id END) as female_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN ar.id END) as other_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN al.id END) as male_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Female%%' THEN al.id END) as female_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN al.id END) as other_album_count,
-                    SUM(CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN 1 ELSE 0 END) as male_play_count,
-                    SUM(CASE WHEN gn.name LIKE '%%Female%%' THEN 1 ELSE 0 END) as female_play_count,
-                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN 1 ELSE 0 END) as other_play_count,
-                    SUM(CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN gn.name LIKE '%%Female%%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
-                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.id END) as male_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.id END) as female_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.id END) as other_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN ar.id END) as male_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN ar.id END) as female_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN ar.id END) as other_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 AND s.album_id IS NOT NULL THEN s.album_id END) as male_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 AND s.album_id IS NOT NULL THEN s.album_id END) as female_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL AND s.album_id IS NOT NULL THEN s.album_id END) as other_album_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
                 WHERE scr.scrobble_date IS NOT NULL
                 GROUP BY period_key
                 HAVING period_key IS NOT NULL
             ),
+            filtered_periods AS (
+                SELECT 
+                    period_key,
+                    play_count,
+                    time_listened,
+                    artist_count,
+                    album_count,
+                    song_count,
+                    male_song_count,
+                    female_song_count,
+                    other_song_count,
+                    male_artist_count,
+                    female_artist_count,
+                    other_artist_count,
+                    male_album_count,
+                    female_album_count,
+                    other_album_count,
+                    male_play_count,
+                    female_play_count,
+                    other_play_count,
+                    male_time_listened,
+                    female_time_listened,
+                    other_time_listened,
+                    CASE 
+                        WHEN (male_artist_count + female_artist_count) > 0 
+                        THEN CAST(male_artist_count AS REAL) * 100.0 / (male_artist_count + female_artist_count)
+                        ELSE NULL 
+                    END as male_artist_pct,
+                    CASE 
+                        WHEN (male_album_count + female_album_count) > 0 
+                        THEN CAST(male_album_count AS REAL) * 100.0 / (male_album_count + female_album_count)
+                        ELSE NULL 
+                    END as male_album_pct,
+                    CASE 
+                        WHEN (male_song_count + female_song_count) > 0 
+                        THEN CAST(male_song_count AS REAL) * 100.0 / (male_song_count + female_song_count)
+                        ELSE NULL 
+                    END as male_song_pct,
+                    CASE 
+                        WHEN (male_play_count + female_play_count) > 0 
+                        THEN CAST(male_play_count AS REAL) * 100.0 / (male_play_count + female_play_count)
+                        ELSE NULL 
+                    END as male_play_pct,
+                    CASE 
+                        WHEN (male_time_listened + female_time_listened) > 0 
+                        THEN CAST(male_time_listened AS REAL) * 100.0 / (male_time_listened + female_time_listened)
+                        ELSE NULL 
+                    END as male_time_pct
+                FROM period_summary
+                WHERE 1=1""", periodKeyExpr));
+        
+        // Append filter conditions inline here (before ORDER BY/LIMIT)
+        appendInlineSummaryFilters(sql, params,
+            artistCountMin, artistCountMax,
+            albumCountMin, albumCountMax,
+            songCountMin, songCountMax,
+            playsMin, playsMax,
+            timeMin, timeMax,
+            maleArtistPctMin, maleArtistPctMax,
+            maleAlbumPctMin, maleAlbumPctMax,
+            maleSongPctMin, maleSongPctMax,
+            malePlayPctMin, malePlayPctMax,
+            maleTimePctMin, maleTimePctMax);
+        
+        sql.append("\n                ORDER BY ").append(sortColumn.replace("ps.", "")).append(" ").append(sortDirection);
+        sql.append("\n                LIMIT ? OFFSET ?");
+        params.add(perPage);
+        params.add(offset);
+        sql.append("\n            ),");
+        
+        // Now compute winning attributes ONLY for the filtered/paginated periods
+        sql.append("""
+            
             winning_gender AS (
                 SELECT 
                     %s as period_key,
@@ -99,6 +171,7 @@ public class TimeframeService {
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
                 WHERE scr.scrobble_date IS NOT NULL AND gn.id IS NOT NULL
                 GROUP BY period_key, gn.id, gn.name
             ),
@@ -114,6 +187,7 @@ public class TimeframeService {
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
                 WHERE scr.scrobble_date IS NOT NULL AND gr.id IS NOT NULL
                 GROUP BY period_key, gr.id, gr.name
             ),
@@ -128,6 +202,7 @@ public class TimeframeService {
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
                 WHERE scr.scrobble_date IS NOT NULL AND eth.id IS NOT NULL
                 GROUP BY period_key, eth.id, eth.name
             ),
@@ -143,6 +218,7 @@ public class TimeframeService {
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
                 WHERE scr.scrobble_date IS NOT NULL AND lang.id IS NOT NULL
                 GROUP BY period_key, lang.id, lang.name
             ),
@@ -155,31 +231,32 @@ public class TimeframeService {
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
                 WHERE scr.scrobble_date IS NOT NULL AND ar.country IS NOT NULL
                 GROUP BY period_key, ar.country
             )
             SELECT 
-                ps.period_key,
-                ps.play_count,
-                ps.time_listened,
-                ps.artist_count,
-                ps.album_count,
-                ps.song_count,
-                ps.male_song_count,
-                ps.female_song_count,
-                ps.other_song_count,
-                ps.male_artist_count,
-                ps.female_artist_count,
-                ps.other_artist_count,
-                ps.male_album_count,
-                ps.female_album_count,
-                ps.other_album_count,
-                ps.male_play_count,
-                ps.female_play_count,
-                ps.other_play_count,
-                ps.male_time_listened,
-                ps.female_time_listened,
-                ps.other_time_listened,
+                fp.period_key,
+                fp.play_count,
+                fp.time_listened,
+                fp.artist_count,
+                fp.album_count,
+                fp.song_count,
+                fp.male_song_count,
+                fp.female_song_count,
+                fp.other_song_count,
+                fp.male_artist_count,
+                fp.female_artist_count,
+                fp.other_artist_count,
+                fp.male_album_count,
+                fp.female_album_count,
+                fp.other_album_count,
+                fp.male_play_count,
+                fp.female_play_count,
+                fp.other_play_count,
+                fp.male_time_listened,
+                fp.female_time_listened,
+                fp.other_time_listened,
                 wgn.gender_id as winning_gender_id,
                 wgn.gender_name as winning_gender_name,
                 wgr.genre_id as winning_genre_id,
@@ -189,70 +266,34 @@ public class TimeframeService {
                 wlang.language_id as winning_language_id,
                 wlang.language_name as winning_language_name,
                 wcty.country as winning_country,
-                CASE 
-                    WHEN (ps.male_artist_count + ps.female_artist_count) > 0 
-                    THEN CAST(ps.male_artist_count AS REAL) * 100.0 / (ps.male_artist_count + ps.female_artist_count)
-                    ELSE NULL 
-                END as male_artist_pct,
-                CASE 
-                    WHEN (ps.male_album_count + ps.female_album_count) > 0 
-                    THEN CAST(ps.male_album_count AS REAL) * 100.0 / (ps.male_album_count + ps.female_album_count)
-                    ELSE NULL 
-                END as male_album_pct,
-                CASE 
-                    WHEN (ps.male_song_count + ps.female_song_count) > 0 
-                    THEN CAST(ps.male_song_count AS REAL) * 100.0 / (ps.male_song_count + ps.female_song_count)
-                    ELSE NULL 
-                END as male_song_pct,
-                CASE 
-                    WHEN (ps.male_play_count + ps.female_play_count) > 0 
-                    THEN CAST(ps.male_play_count AS REAL) * 100.0 / (ps.male_play_count + ps.female_play_count)
-                    ELSE NULL 
-                END as male_play_pct,
-                CASE 
-                    WHEN (ps.male_time_listened + ps.female_time_listened) > 0 
-                    THEN CAST(ps.male_time_listened AS REAL) * 100.0 / (ps.male_time_listened + ps.female_time_listened)
-                    ELSE NULL 
-                END as male_time_pct
-            FROM period_stats ps
-            LEFT JOIN winning_gender wgn ON ps.period_key = wgn.period_key AND wgn.rn = 1
-            LEFT JOIN winning_genre wgr ON ps.period_key = wgr.period_key AND wgr.rn = 1
-            LEFT JOIN winning_ethnicity weth ON ps.period_key = weth.period_key AND weth.rn = 1
-            LEFT JOIN winning_language wlang ON ps.period_key = wlang.period_key AND wlang.rn = 1
-            LEFT JOIN winning_country wcty ON ps.period_key = wcty.period_key AND wcty.rn = 1
-            WHERE 1=1
+                fp.male_artist_pct,
+                fp.male_album_pct,
+                fp.male_song_pct,
+                fp.male_play_pct,
+                fp.male_time_pct
+            FROM filtered_periods fp
+            LEFT JOIN winning_gender wgn ON fp.period_key = wgn.period_key AND wgn.rn = 1
+            LEFT JOIN winning_genre wgr ON fp.period_key = wgr.period_key AND wgr.rn = 1
+            LEFT JOIN winning_ethnicity weth ON fp.period_key = weth.period_key AND weth.rn = 1
+            LEFT JOIN winning_language wlang ON fp.period_key = wlang.period_key AND wlang.rn = 1
+            LEFT JOIN winning_country wcty ON fp.period_key = wcty.period_key AND wcty.rn = 1
+            ORDER BY %s %s
             """.formatted(
-                periodKeyExpr, // period_stats
-                periodKeyExpr, periodKeyExpr, // winning_gender
-                periodKeyExpr, periodKeyExpr, // winning_genre
-                periodKeyExpr, periodKeyExpr, // winning_ethnicity
-                periodKeyExpr, periodKeyExpr, // winning_language
-                periodKeyExpr, periodKeyExpr  // winning_country
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_gender
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_genre
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_ethnicity
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_language
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_country
+                sortColumn.replace("ps.", "fp."), sortDirection
             ));
         
-        // Apply filters
-        appendFilters(sql, params,
+        // Apply winning attribute filters (if any)
+        appendWinningFilters(sql, params,
             winningGender, winningGenderMode,
             winningGenre, winningGenreMode,
             winningEthnicity, winningEthnicityMode,
             winningLanguage, winningLanguageMode,
-            winningCountry, winningCountryMode,
-            artistCountMin, artistCountMax,
-            albumCountMin, albumCountMax,
-            songCountMin, songCountMax,
-            playsMin, playsMax,
-            timeMin, timeMax,
-            maleArtistPctMin, maleArtistPctMax,
-            maleAlbumPctMin, maleAlbumPctMax,
-            maleSongPctMin, maleSongPctMax,
-            malePlayPctMin, malePlayPctMax,
-            maleTimePctMin, maleTimePctMax);
-        
-        // Add ordering and pagination
-        sql.append(" ORDER BY ").append(sortColumn).append(" ").append(sortDirection);
-        sql.append(" LIMIT ? OFFSET ?");
-        params.add(perPage);
-        params.add(offset);
+            winningCountry, winningCountryMode);
         
         // Execute query and map results
         List<TimeframeCardDTO> results = jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
@@ -331,110 +372,96 @@ public class TimeframeService {
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
         
-        sql.append("""
-            WITH period_stats AS (
+        // Optimize count query: only compute winning CTEs if they're actually filtered on
+        boolean needWinningGender = winningGenderMode != null && winningGender != null && !winningGender.isEmpty();
+        boolean needWinningGenre = winningGenreMode != null && winningGenre != null && !winningGenre.isEmpty();
+        boolean needWinningEthnicity = winningEthnicityMode != null && winningEthnicity != null && !winningEthnicity.isEmpty();
+        boolean needWinningLanguage = winningLanguageMode != null && winningLanguage != null && !winningLanguage.isEmpty();
+        boolean needWinningCountry = winningCountryMode != null && winningCountry != null && !winningCountry.isEmpty();
+        
+        sql.append(String.format("""
+            WITH period_summary AS (
                 SELECT 
                     %s as period_key,
-                    COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(*) as play_count,
                     COALESCE(SUM(s.length_seconds), 0) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
-                    COUNT(DISTINCT al.id) as album_count,
+                    COUNT(DISTINCT CASE WHEN s.album_id IS NOT NULL THEN s.album_id END) as album_count,
                     COUNT(DISTINCT s.id) as song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN s.id END) as male_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Female%%' THEN s.id END) as female_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN s.id END) as other_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN ar.id END) as male_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Female%%' THEN ar.id END) as female_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN ar.id END) as other_artist_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN al.id END) as male_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%%Female%%' THEN al.id END) as female_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN al.id END) as other_album_count,
-                    SUM(CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN 1 ELSE 0 END) as male_play_count,
-                    SUM(CASE WHEN gn.name LIKE '%%Female%%' THEN 1 ELSE 0 END) as female_play_count,
-                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN 1 ELSE 0 END) as other_play_count,
-                    SUM(CASE WHEN gn.name LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN gn.name LIKE '%%Female%%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
-                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%%Male%%' AND gn.name NOT LIKE '%%Female%%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.id END) as male_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.id END) as female_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.id END) as other_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN ar.id END) as male_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN ar.id END) as female_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN ar.id END) as other_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 AND s.album_id IS NOT NULL THEN s.album_id END) as male_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 AND s.album_id IS NOT NULL THEN s.album_id END) as female_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL AND s.album_id IS NOT NULL THEN s.album_id END) as other_album_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
                 WHERE scr.scrobble_date IS NOT NULL
                 GROUP BY period_key
                 HAVING period_key IS NOT NULL
             ),
-            winning_genre AS (
+            filtered_periods AS (
                 SELECT 
-                    %s as period_key,
-                    gr.id as genre_id,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
-                WHERE scr.scrobble_date IS NOT NULL AND gr.id IS NOT NULL
-                GROUP BY period_key, gr.id
-            ),
-            winning_ethnicity AS (
-                SELECT 
-                    %s as period_key,
-                    eth.id as ethnicity_id,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
-                WHERE scr.scrobble_date IS NOT NULL AND eth.id IS NOT NULL
-                GROUP BY period_key, eth.id
-            ),
-            winning_language AS (
-                SELECT 
-                    %s as period_key,
-                    lang.id as language_id,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
-                WHERE scr.scrobble_date IS NOT NULL AND lang.id IS NOT NULL
-                GROUP BY period_key, lang.id
-            ),
-            winning_country AS (
-                SELECT 
-                    %s as period_key,
-                    ar.country as country,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                WHERE scr.scrobble_date IS NOT NULL AND ar.country IS NOT NULL
-                GROUP BY period_key, ar.country
-            )
-            SELECT COUNT(*) as cnt
-            FROM period_stats ps
-            LEFT JOIN winning_genre wgr ON ps.period_key = wgr.period_key AND wgr.rn = 1
-            LEFT JOIN winning_ethnicity weth ON ps.period_key = weth.period_key AND weth.rn = 1
-            LEFT JOIN winning_language wlang ON ps.period_key = wlang.period_key AND wlang.rn = 1
-            LEFT JOIN winning_country wcty ON ps.period_key = wcty.period_key AND wcty.rn = 1
-            WHERE 1=1
-            """.formatted(
-                periodKeyExpr, // period_stats
-                periodKeyExpr, periodKeyExpr, // winning_genre
-                periodKeyExpr, periodKeyExpr, // winning_ethnicity
-                periodKeyExpr, periodKeyExpr, // winning_language
-                periodKeyExpr, periodKeyExpr  // winning_country
-            ));
+                    period_key,
+                    play_count,
+                    time_listened,
+                    artist_count,
+                    album_count,
+                    song_count,
+                    male_song_count,
+                    female_song_count,
+                    other_song_count,
+                    male_artist_count,
+                    female_artist_count,
+                    other_artist_count,
+                    male_album_count,
+                    female_album_count,
+                    other_album_count,
+                    male_play_count,
+                    female_play_count,
+                    other_play_count,
+                    male_time_listened,
+                    female_time_listened,
+                    other_time_listened,
+                    CASE 
+                        WHEN (male_artist_count + female_artist_count) > 0 
+                        THEN CAST(male_artist_count AS REAL) * 100.0 / (male_artist_count + female_artist_count)
+                        ELSE NULL 
+                    END as male_artist_pct,
+                    CASE 
+                        WHEN (male_album_count + female_album_count) > 0 
+                        THEN CAST(male_album_count AS REAL) * 100.0 / (male_album_count + female_album_count)
+                        ELSE NULL 
+                    END as male_album_pct,
+                    CASE 
+                        WHEN (male_song_count + female_song_count) > 0 
+                        THEN CAST(male_song_count AS REAL) * 100.0 / (male_song_count + female_song_count)
+                        ELSE NULL 
+                    END as male_song_pct,
+                    CASE 
+                        WHEN (male_play_count + female_play_count) > 0 
+                        THEN CAST(male_play_count AS REAL) * 100.0 / (male_play_count + female_play_count)
+                        ELSE NULL 
+                    END as male_play_pct,
+                    CASE 
+                        WHEN (male_time_listened + female_time_listened) > 0 
+                        THEN CAST(male_time_listened AS REAL) * 100.0 / (male_time_listened + female_time_listened)
+                        ELSE NULL 
+                    END as male_time_pct
+                FROM period_summary
+                WHERE 1=1""", periodKeyExpr));
         
-        // Apply filters
-        appendFilters(sql, params,
-            winningGender, winningGenderMode,
-            winningGenre, winningGenreMode,
-            winningEthnicity, winningEthnicityMode,
-            winningLanguage, winningLanguageMode,
-            winningCountry, winningCountryMode,
+        appendInlineSummaryFilters(sql, params,
             artistCountMin, artistCountMax,
             albumCountMin, albumCountMax,
             songCountMin, songCountMax,
@@ -445,6 +472,176 @@ public class TimeframeService {
             maleSongPctMin, maleSongPctMax,
             malePlayPctMin, malePlayPctMax,
             maleTimePctMin, maleTimePctMax);
+        
+        sql.append("\n            )");
+        
+        // Only add winning CTEs if needed for filtering
+        if (needWinningGender) {
+            sql.append("""
+                winning_gender AS (
+                    SELECT 
+                        %s as period_key,
+                        gn.id as gender_id,
+                        ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
+                    INNER JOIN filtered_periods fp ON %s = fp.period_key
+                    WHERE scr.scrobble_date IS NOT NULL AND gn.id IS NOT NULL
+                    GROUP BY period_key, gn.id
+                )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
+        }
+        
+        if (needWinningGenre) {
+            sql.append("""
+                winning_genre AS (
+                    SELECT 
+                        %s as period_key,
+                        gr.id as genre_id,
+                        ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album al ON s.album_id = al.id
+                    LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
+                    INNER JOIN filtered_periods fp ON %s = fp.period_key
+                    WHERE scr.scrobble_date IS NOT NULL AND gr.id IS NOT NULL
+                    GROUP BY period_key, gr.id
+                )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
+        }
+        
+        if (needWinningEthnicity) {
+            sql.append("""
+                winning_ethnicity AS (
+                    SELECT 
+                        %s as period_key,
+                        eth.id as ethnicity_id,
+                        ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
+                    INNER JOIN filtered_periods fp ON %s = fp.period_key
+                    WHERE scr.scrobble_date IS NOT NULL AND eth.id IS NOT NULL
+                    GROUP BY period_key, eth.id
+                )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
+        }
+        
+        if (needWinningLanguage) {
+            sql.append("""
+                winning_language AS (
+                    SELECT 
+                        %s as period_key,
+                        lang.id as language_id,
+                        ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album al ON s.album_id = al.id
+                    LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
+                    INNER JOIN filtered_periods fp ON %s = fp.period_key
+                    WHERE scr.scrobble_date IS NOT NULL AND lang.id IS NOT NULL
+                    GROUP BY period_key, lang.id
+                )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
+        }
+        
+        if (needWinningCountry) {
+            sql.append("""
+                winning_country AS (
+                    SELECT 
+                        %s as period_key,
+                        ar.country as country,
+                        ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    INNER JOIN filtered_periods fp ON %s = fp.period_key
+                    WHERE scr.scrobble_date IS NOT NULL AND ar.country IS NOT NULL
+                    GROUP BY period_key, ar.country
+                )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
+        }
+        
+        sql.append("\n            SELECT COUNT(*) as cnt\n            FROM filtered_periods fp");
+        
+        // Add JOINs only for winning CTEs that were created
+        if (needWinningGender) {
+            sql.append("\n            LEFT JOIN winning_gender wgn ON fp.period_key = wgn.period_key AND wgn.rn = 1");
+        }
+        if (needWinningGenre) {
+            sql.append("\n            LEFT JOIN winning_genre wgr ON fp.period_key = wgr.period_key AND wgr.rn = 1");
+        }
+        if (needWinningEthnicity) {
+            sql.append("\n            LEFT JOIN winning_ethnicity weth ON fp.period_key = weth.period_key AND weth.rn = 1");
+        }
+        if (needWinningLanguage) {
+            sql.append("\n            LEFT JOIN winning_language wlang ON fp.period_key = wlang.period_key AND wlang.rn = 1");
+        }
+        if (needWinningCountry) {
+            sql.append("\n            LEFT JOIN winning_country wcty ON fp.period_key = wcty.period_key AND wcty.rn = 1");
+        }
+        
+        // Apply winning filters  
+        if (needWinningGender || needWinningGenre || needWinningEthnicity || needWinningLanguage || needWinningCountry) {
+            StringBuilder whereClause = new StringBuilder("\n            WHERE 1=1");
+            
+            if (needWinningGender) {
+                String placeholders = String.join(",", winningGender.stream().map(id -> "?").toList());
+                if ("includes".equals(winningGenderMode)) {
+                    whereClause.append(" AND wgn.gender_id IN (").append(placeholders).append(")");
+                    params.addAll(winningGender);
+                } else if ("excludes".equals(winningGenderMode)) {
+                    whereClause.append(" AND (wgn.gender_id NOT IN (").append(placeholders).append(") OR wgn.gender_id IS NULL)");
+                    params.addAll(winningGender);
+                }
+            }
+            
+            if (needWinningGenre) {
+                String placeholders = String.join(",", winningGenre.stream().map(id -> "?").toList());
+                if ("includes".equals(winningGenreMode)) {
+                    whereClause.append(" AND wgr.genre_id IN (").append(placeholders).append(")");
+                    params.addAll(winningGenre);
+                } else if ("excludes".equals(winningGenreMode)) {
+                    whereClause.append(" AND (wgr.genre_id NOT IN (").append(placeholders).append(") OR wgr.genre_id IS NULL)");
+                    params.addAll(winningGenre);
+                }
+            }
+            
+            if (needWinningEthnicity) {
+                String placeholders = String.join(",", winningEthnicity.stream().map(id -> "?").toList());
+                if ("includes".equals(winningEthnicityMode)) {
+                    whereClause.append(" AND weth.ethnicity_id IN (").append(placeholders).append(")");
+                    params.addAll(winningEthnicity);
+                } else if ("excludes".equals(winningEthnicityMode)) {
+                    whereClause.append(" AND (weth.ethnicity_id NOT IN (").append(placeholders).append(") OR weth.ethnicity_id IS NULL)");
+                    params.addAll(winningEthnicity);
+                }
+            }
+            
+            if (needWinningLanguage) {
+                String placeholders = String.join(",", winningLanguage.stream().map(id -> "?").toList());
+                if ("includes".equals(winningLanguageMode)) {
+                    whereClause.append(" AND wlang.language_id IN (").append(placeholders).append(")");
+                    params.addAll(winningLanguage);
+                } else if ("excludes".equals(winningLanguageMode)) {
+                    whereClause.append(" AND (wlang.language_id NOT IN (").append(placeholders).append(") OR wlang.language_id IS NULL)");
+                    params.addAll(winningLanguage);
+                }
+            }
+            
+            if (needWinningCountry) {
+                String placeholders = String.join(",", winningCountry.stream().map(c -> "?").toList());
+                if ("includes".equals(winningCountryMode)) {
+                    whereClause.append(" AND wcty.country IN (").append(placeholders).append(")");
+                    params.addAll(winningCountry);
+                } else if ("excludes".equals(winningCountryMode)) {
+                    whereClause.append(" AND (wcty.country NOT IN (").append(placeholders).append(") OR wcty.country IS NULL)");
+                    params.addAll(winningCountry);
+                }
+            }
+            
+            sql.append(whereClause);
+        }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
@@ -498,6 +695,181 @@ public class TimeframeService {
             case "maletimepct" -> "male_time_pct";
             default -> "ps.period_key";
         };
+    }
+    
+    /**
+     * Append inline summary filters (applied BEFORE pagination in filtered_periods CTE)
+     */
+    private void appendInlineSummaryFilters(StringBuilder sql, List<Object> params,
+            Integer artistCountMin, Integer artistCountMax,
+            Integer albumCountMin, Integer albumCountMax,
+            Integer songCountMin, Integer songCountMax,
+            Integer playsMin, Integer playsMax,
+            Long timeMin, Long timeMax,
+            Double maleArtistPctMin, Double maleArtistPctMax,
+            Double maleAlbumPctMin, Double maleAlbumPctMax,
+            Double maleSongPctMin, Double maleSongPctMax,
+            Double malePlayPctMin, Double malePlayPctMax,
+            Double maleTimePctMin, Double maleTimePctMax) {
+        
+        // Count range filters
+        if (artistCountMin != null) {
+            sql.append(" AND artist_count >= ?");
+            params.add(artistCountMin);
+        }
+        if (artistCountMax != null) {
+            sql.append(" AND artist_count <= ?");
+            params.add(artistCountMax);
+        }
+        if (albumCountMin != null) {
+            sql.append(" AND album_count >= ?");
+            params.add(albumCountMin);
+        }
+        if (albumCountMax != null) {
+            sql.append(" AND album_count <= ?");
+            params.add(albumCountMax);
+        }
+        if (songCountMin != null) {
+            sql.append(" AND song_count >= ?");
+            params.add(songCountMin);
+        }
+        if (songCountMax != null) {
+            sql.append(" AND song_count <= ?");
+            params.add(songCountMax);
+        }
+        if (playsMin != null) {
+            sql.append(" AND play_count >= ?");
+            params.add(playsMin);
+        }
+        if (playsMax != null) {
+            sql.append(" AND play_count <= ?");
+            params.add(playsMax);
+        }
+        if (timeMin != null) {
+            sql.append(" AND time_listened >= ?");
+            params.add(timeMin);
+        }
+        if (timeMax != null) {
+            sql.append(" AND time_listened <= ?");
+            params.add(timeMax);
+        }
+        
+        // Male percentage filters
+        if (maleArtistPctMin != null) {
+            sql.append(" AND male_artist_pct >= ?");
+            params.add(maleArtistPctMin);
+        }
+        if (maleArtistPctMax != null) {
+            sql.append(" AND male_artist_pct <= ?");
+            params.add(maleArtistPctMax);
+        }
+        if (maleAlbumPctMin != null) {
+            sql.append(" AND male_album_pct >= ?");
+            params.add(maleAlbumPctMin);
+        }
+        if (maleAlbumPctMax != null) {
+            sql.append(" AND male_album_pct <= ?");
+            params.add(maleAlbumPctMax);
+        }
+        if (maleSongPctMin != null) {
+            sql.append(" AND male_song_pct >= ?");
+            params.add(maleSongPctMin);
+        }
+        if (maleSongPctMax != null) {
+            sql.append(" AND male_song_pct <= ?");
+            params.add(maleSongPctMax);
+        }
+        if (malePlayPctMin != null) {
+            sql.append(" AND male_play_pct >= ?");
+            params.add(malePlayPctMin);
+        }
+        if (malePlayPctMax != null) {
+            sql.append(" AND male_play_pct <= ?");
+            params.add(malePlayPctMax);
+        }
+        if (maleTimePctMin != null) {
+            sql.append(" AND male_time_pct >= ?");
+            params.add(maleTimePctMin);
+        }
+        if (maleTimePctMax != null) {
+            sql.append(" AND male_time_pct <= ?");
+            params.add(maleTimePctMax);
+        }
+    }
+    
+    /**
+     * Append winning attribute filters (applied after main query)
+     */
+    private void appendWinningFilters(StringBuilder sql, List<Object> params,
+            List<Integer> winningGender, String winningGenderMode,
+            List<Integer> winningGenre, String winningGenreMode,
+            List<Integer> winningEthnicity, String winningEthnicityMode,
+            List<Integer> winningLanguage, String winningLanguageMode,
+            List<String> winningCountry, String winningCountryMode) {
+        
+        // Winning gender filter
+        if (winningGenderMode != null && winningGender != null && !winningGender.isEmpty()) {
+            String placeholders = String.join(",", winningGender.stream().map(id -> "?").toList());
+            if ("includes".equals(winningGenderMode)) {
+                sql.append(" WHERE winning_gender_id IN (").append(placeholders).append(")");
+                params.addAll(winningGender);
+            } else if ("excludes".equals(winningGenderMode)) {
+                sql.append(" WHERE (winning_gender_id NOT IN (").append(placeholders).append(") OR winning_gender_id IS NULL)");
+                params.addAll(winningGender);
+            }
+        }
+        
+        // Winning genre filter
+        if (winningGenreMode != null && winningGenre != null && !winningGenre.isEmpty()) {
+            String placeholders = String.join(",", winningGenre.stream().map(id -> "?").toList());
+            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
+            if ("includes".equals(winningGenreMode)) {
+                sql.append(connector).append("winning_genre_id IN (").append(placeholders).append(")");
+                params.addAll(winningGenre);
+            } else if ("excludes".equals(winningGenreMode)) {
+                sql.append(connector).append("(winning_genre_id NOT IN (").append(placeholders).append(") OR winning_genre_id IS NULL)");
+                params.addAll(winningGenre);
+            }
+        }
+        
+        // Winning ethnicity filter
+        if (winningEthnicityMode != null && winningEthnicity != null && !winningEthnicity.isEmpty()) {
+            String placeholders = String.join(",", winningEthnicity.stream().map(id -> "?").toList());
+            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
+            if ("includes".equals(winningEthnicityMode)) {
+                sql.append(connector).append("winning_ethnicity_id IN (").append(placeholders).append(")");
+                params.addAll(winningEthnicity);
+            } else if ("excludes".equals(winningEthnicityMode)) {
+                sql.append(connector).append("(winning_ethnicity_id NOT IN (").append(placeholders).append(") OR winning_ethnicity_id IS NULL)");
+                params.addAll(winningEthnicity);
+            }
+        }
+        
+        // Winning language filter
+        if (winningLanguageMode != null && winningLanguage != null && !winningLanguage.isEmpty()) {
+            String placeholders = String.join(",", winningLanguage.stream().map(id -> "?").toList());
+            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
+            if ("includes".equals(winningLanguageMode)) {
+                sql.append(connector).append("winning_language_id IN (").append(placeholders).append(")");
+                params.addAll(winningLanguage);
+            } else if ("excludes".equals(winningLanguageMode)) {
+                sql.append(connector).append("(winning_language_id NOT IN (").append(placeholders).append(") OR winning_language_id IS NULL)");
+                params.addAll(winningLanguage);
+            }
+        }
+        
+        // Winning country filter
+        if (winningCountryMode != null && winningCountry != null && !winningCountry.isEmpty()) {
+            String placeholders = String.join(",", winningCountry.stream().map(c -> "?").toList());
+            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
+            if ("includes".equals(winningCountryMode)) {
+                sql.append(connector).append("winning_country IN (").append(placeholders).append(")");
+                params.addAll(winningCountry);
+            } else if ("excludes".equals(winningCountryMode)) {
+                sql.append(connector).append("(winning_country NOT IN (").append(placeholders).append(") OR winning_country IS NULL)");
+                params.addAll(winningCountry);
+            }
+        }
     }
     
     /**
@@ -679,14 +1051,32 @@ public class TimeframeService {
                 }
                 case "weeks" -> {
                     // Format: "2024-W01" -> "Jan 1 - Jan 7, 2024"
+                    // Using SQLite's %W convention: week 01 starts from first Monday of year
                     String[] parts = periodKey.split("-W");
                     if (parts.length == 2) {
                         int year = Integer.parseInt(parts[0]);
                         int week = Integer.parseInt(parts[1]);
-                        LocalDate firstDay = LocalDate.ofYearDay(year, 1)
-                            .with(java.time.temporal.WeekFields.ISO.weekOfYear(), week)
-                            .with(java.time.DayOfWeek.MONDAY);
-                        LocalDate lastDay = firstDay.plusDays(6);
+                        
+                        // Find the first Monday of the year (matches SQLite's %W week 01)
+                        LocalDate jan1 = LocalDate.of(year, 1, 1);
+                        LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
+                        
+                        LocalDate firstDay;
+                        LocalDate lastDay;
+                        
+                        if (week == 0) {
+                            // Week 00: Jan 1 to the day before the first Monday
+                            firstDay = jan1;
+                            lastDay = firstMonday.minusDays(1);
+                            if (lastDay.isBefore(firstDay)) {
+                                yield periodKey; // Week 00 is empty
+                            }
+                        } else {
+                            // Week N: first Monday + (N-1)*7 days, for 7 days
+                            firstDay = firstMonday.plusWeeks(week - 1);
+                            lastDay = firstDay.plusDays(6);
+                        }
+                        
                         String startStr = firstDay.format(DateTimeFormatter.ofPattern("MMM d"));
                         String endStr = lastDay.format(DateTimeFormatter.ofPattern("MMM d"));
                         // If same month, only show month once
@@ -721,6 +1111,11 @@ public class TimeframeService {
     
     /**
      * Calculate date range for a period (for chart filtering)
+     * 
+     * For weeks: Uses SQLite's %W week numbering convention:
+     * - Week 00: Days before the first Monday of the year
+     * - Week 01: Starts from the first Monday of the year
+     * - Week N: Starts from first Monday + (N-1)*7 days
      */
     private String[] calculateDateRange(String periodType, String periodKey) {
         if (periodKey == null) return new String[]{"", ""};
@@ -730,15 +1125,33 @@ public class TimeframeService {
                 case "days" -> new String[]{periodKey, periodKey};
                 case "weeks" -> {
                     // "2024-W01" - calculate first and last day of that week
+                    // Using SQLite's %W convention: week 01 starts from first Monday of year
                     String[] parts = periodKey.split("-W");
                     if (parts.length == 2) {
                         int year = Integer.parseInt(parts[0]);
                         int week = Integer.parseInt(parts[1]);
-                        // Week starts Monday (ISO)
-                        LocalDate firstDay = LocalDate.ofYearDay(year, 1)
-                            .with(java.time.temporal.WeekFields.ISO.weekOfYear(), week)
-                            .with(java.time.DayOfWeek.MONDAY);
-                        LocalDate lastDay = firstDay.plusDays(6);
+                        
+                        // Find the first Monday of the year (matches SQLite's %W week 01)
+                        LocalDate jan1 = LocalDate.of(year, 1, 1);
+                        LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
+                        
+                        LocalDate firstDay;
+                        LocalDate lastDay;
+                        
+                        if (week == 0) {
+                            // Week 00: Jan 1 to the day before the first Monday
+                            firstDay = jan1;
+                            lastDay = firstMonday.minusDays(1);
+                            // If first Monday IS Jan 1, week 00 is empty - return empty range
+                            if (lastDay.isBefore(firstDay)) {
+                                yield new String[]{"", ""};
+                            }
+                        } else {
+                            // Week N: first Monday + (N-1)*7 days, for 7 days
+                            firstDay = firstMonday.plusWeeks(week - 1);
+                            lastDay = firstDay.plusDays(6);
+                        }
+                        
                         yield new String[]{firstDay.toString(), lastDay.toString()};
                     }
                     yield new String[]{"", ""};

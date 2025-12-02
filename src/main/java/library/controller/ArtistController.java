@@ -3,6 +3,7 @@ package library.controller;
 import library.dto.ArtistCardDTO;
 import library.entity.Artist;
 import library.service.ArtistService;
+import library.service.ChartService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +18,11 @@ import java.util.Optional;
 public class ArtistController {
     
     private final ArtistService artistService;
+    private final ChartService chartService;
     
-    public ArtistController(ArtistService artistService) {
+    public ArtistController(ArtistService artistService, ChartService chartService) {
         this.artistService = artistService;
+        this.chartService = chartService;
     }
     
     @GetMapping
@@ -37,6 +40,8 @@ public class ArtistController {
             @RequestParam(required = false) String languageMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String organized,
             @RequestParam(required = false) String firstListenedDate,
             @RequestParam(required = false) String firstListenedDateFrom,
@@ -46,8 +51,8 @@ public class ArtistController {
             @RequestParam(required = false) String lastListenedDateFrom,
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
-            @RequestParam(defaultValue = "name") String sortby,
-            @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(defaultValue = "plays") String sortby,
+            @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "40") int perpage,
             Model model) {
@@ -63,7 +68,7 @@ public class ArtistController {
         // Get filtered and sorted artists
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
-                subgenre, subgenreMode, language, languageMode, country, countryMode, organized,
+                subgenre, subgenreMode, language, languageMode, country, countryMode, account, accountMode, organized,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 sortby, sortdir, page, perpage
@@ -72,7 +77,7 @@ public class ArtistController {
         // Get total count for pagination
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
-                languageMode, country, countryMode, organized,
+                languageMode, country, countryMode, account, accountMode, organized,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
@@ -101,6 +106,8 @@ public class ArtistController {
         model.addAttribute("languageMode", languageMode != null ? languageMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedAccounts", account);
+        model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
         
         // First listened date filter attributes
@@ -198,6 +205,12 @@ public class ArtistController {
             model.addAttribute("scrobblesPageSize", pageSize);
             model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) artistService.countScrobblesForArtist(id) / pageSize));
             model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
+        }
+        
+        // Add chart history for the Chart History tab (separate lists for songs and albums)
+        if ("chart-history".equals(tab)) {
+            model.addAttribute("songChartHistory", chartService.getArtistSongChartHistory(id));
+            model.addAttribute("albumChartHistory", chartService.getArtistAlbumChartHistory(id));
         }
         
         // Get gender name for bar color

@@ -21,6 +21,8 @@ public class ArtistSongDTO {
     private String language;
     private String country;
     private boolean hasImage;
+    private boolean albumHasImage;
+    private boolean isSingle;
     
     public ArtistSongDTO() {}
     
@@ -197,6 +199,18 @@ public class ArtistSongDTO {
         this.hasImage = hasImage;
     }
     
+    public boolean isAlbumHasImage() {
+        return albumHasImage;
+    }
+    
+    public boolean getAlbumHasImage() {
+        return albumHasImage;
+    }
+    
+    public void setAlbumHasImage(boolean albumHasImage) {
+        this.albumHasImage = albumHasImage;
+    }
+    
     // Helper method to calculate and format total listening time
     public void calculateTotalListeningTime() {
         if (length != null && totalPlays != null && length > 0 && totalPlays > 0) {
@@ -218,5 +232,13 @@ public class ArtistSongDTO {
         } else {
             this.totalListeningTime = "-";
         }
+    }
+    
+    public boolean getIsSingle() {
+        return isSingle;
+    }
+    
+    public void setIsSingle(boolean isSingle) {
+        this.isSingle = isSingle;
     }
 }

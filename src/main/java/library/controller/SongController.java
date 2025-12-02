@@ -3,6 +3,7 @@ package library.controller;
 import library.dto.FeaturedArtistDTO;
 import library.dto.SongCardDTO;
 import library.entity.SongNew;
+import library.service.ChartService;
 import library.service.SongService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,9 +21,11 @@ import java.util.Optional;
 public class SongController {
     
     private final SongService songService;
+    private final ChartService chartService;
     
-    public SongController(SongService songService) {
+    public SongController(SongService songService, ChartService chartService) {
         this.songService = songService;
+        this.chartService = chartService;
     }
     
     @InitBinder
@@ -83,6 +86,8 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
@@ -96,8 +101,8 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String organized,
-            @RequestParam(defaultValue = "name") String sortby,
-            @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(defaultValue = "plays") String sortby,
+            @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "40") int perpage,
             Model model) {
@@ -117,7 +122,7 @@ public class SongController {
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, organized,
+                ethnicity, ethnicityMode, country, countryMode, account, accountMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -127,7 +132,7 @@ public class SongController {
         // Get total count for pagination
         long totalCount = songService.countSongs(q, artist, album, 
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, organized,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
@@ -159,6 +164,8 @@ public class SongController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedAccounts", account);
+        model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
@@ -283,6 +290,11 @@ public class SongController {
             model.addAttribute("scrobblesPageSize", pageSize);
             model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) songService.countScrobblesForSong(id) / pageSize));
             model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
+        }
+        
+        // Add chart history for the Chart History tab
+        if ("chart-history".equals(tab)) {
+            model.addAttribute("chartHistory", chartService.getSongChartHistory(id));
         }
         
         return "songs/detail";

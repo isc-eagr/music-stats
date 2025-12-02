@@ -37,6 +37,7 @@ public class SongService {
                                        List<Integer> genderIds, String genderMode,
                                        List<Integer> ethnicityIds, String ethnicityMode,
                                        List<String> countries, String countryMode,
+                                       List<String> accounts, String accountMode,
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
@@ -44,10 +45,13 @@ public class SongService {
                                        String sortBy, String sortDirection, int page, int perPage) {
         int offset = page * perPage;
         
+        // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
+        if (accounts != null && accounts.isEmpty()) accounts = null;
+        
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode, 
+                ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -96,6 +100,12 @@ public class SongService {
             // Set organized (index 26)
             dto.setOrganized(row[26] != null && ((Number) row[26]).intValue() == 1);
             
+            // Set album has image (index 27)
+            dto.setAlbumHasImage(row[27] != null && ((Number) row[27]).intValue() == 1);
+            
+            // Set isSingle (index 28)
+            dto.setIsSingle(row[28] != null && ((Number) row[28]).intValue() == 1);
+            
             // Format length
             if (dto.getLengthSeconds() != null) {
                 int minutes = dto.getLengthSeconds() / 60;
@@ -116,13 +126,17 @@ public class SongService {
                           List<Integer> genderIds, String genderMode,
                           List<Integer> ethnicityIds, String ethnicityMode,
                           List<String> countries, String countryMode,
+                          List<String> accounts, String accountMode,
                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                           String organized) {
+        // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
+        if (accounts != null && accounts.isEmpty()) accounts = null;
+        
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode,
+                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,

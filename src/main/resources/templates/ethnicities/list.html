@@ -104,7 +104,7 @@
             <div th:each="ethnicity : ${ethnicities}" class="catalog-card" style="cursor: pointer;"
                  th:data-id="${ethnicity.id}"
                  th:data-name="${ethnicity.name}"
-                 onclick="openChartsModalWithFilter('ethnicity', this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                 th:onclick="'window.location.href=\'/graphs?filterType=ethnicity&filterId=' + ${ethnicity.id} + '&filterName=' + ${#strings.replace(ethnicity.name, ' ', '%20')} + '\''">
                 <div class="catalog-image">
                     <img th:if="${ethnicity.hasImage}" 
                          th:src="@{'/ethnicities/' + ${ethnicity.id} + '/image'}" 
@@ -400,8 +400,5 @@
             justify-content: flex-end;
         }
     </style>
-    
-    <!-- Charts Modal (included from fragment) -->
-    <th:block th:replace="~{fragments/charts-modal :: charts-modal}"></th:block>
 </body>
 </html>

@@ -79,20 +79,41 @@
 }
 
 .top-table .cover-col {
-    width: 50px;
+    width: 60px;
     padding: 4px 8px;
 }
 
+/* Square cover for albums and songs */
 .top-table .cover-col img {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     object-fit: cover;
     border-radius: 4px;
 }
 
 .top-table .cover-col .cover-placeholder {
+    width: 50px;
+    height: 50px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 18px;
+}
+
+/* Artist cover with 2:3 portrait ratio */
+.top-table .cover-col.artist-cover img {
     width: 40px;
-    height: 40px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.top-table .cover-col.artist-cover .cover-placeholder {
+    width: 40px;
+    height: 60px;
     background: #2a2a2a;
     border-radius: 4px;
     display: flex;

@@ -3,6 +3,7 @@ package library.controller;
 import library.dto.AlbumCardDTO;
 import library.entity.Album;
 import library.service.AlbumService;
+import library.service.ChartService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -19,9 +20,11 @@ import java.util.Optional;
 public class AlbumController {
     
     private final AlbumService albumService;
+    private final ChartService chartService;
     
-    public AlbumController(AlbumService albumService) {
+    public AlbumController(AlbumService albumService, ChartService chartService) {
         this.albumService = albumService;
+        this.chartService = chartService;
     }
     
     @InitBinder
@@ -81,6 +84,8 @@ public class AlbumController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String organized,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
@@ -94,8 +99,8 @@ public class AlbumController {
             @RequestParam(required = false) String lastListenedDateFrom,
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
-            @RequestParam(defaultValue = "name") String sortby,
-            @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(defaultValue = "plays") String sortby,
+            @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "40") int perpage,
             Model model) {
@@ -115,7 +120,7 @@ public class AlbumController {
         List<AlbumCardDTO> albums = albumService.getAlbums(
                 q, artist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-                country, countryMode, organized,
+                country, countryMode, account, accountMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -125,7 +130,7 @@ public class AlbumController {
         // Get total count for pagination
         long totalCount = albumService.countAlbums(q, artist, genre, 
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
-                genderMode, ethnicity, ethnicityMode, country, countryMode, organized,
+                genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode, organized,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
@@ -156,6 +161,8 @@ public class AlbumController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedAccounts", account);
+        model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
         
         // Release date filter attributes
@@ -275,6 +282,12 @@ public class AlbumController {
             model.addAttribute("scrobblesPageSize", pageSize);
             model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) albumService.countScrobblesForAlbum(id) / pageSize));
             model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
+        }
+        
+        // Add chart history for the Chart History tab
+        if ("chart-history".equals(tab)) {
+            model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
+            model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
         }
         
         return "albums/detail";

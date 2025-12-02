@@ -36,6 +36,7 @@ public class AlbumService {
                                          List<Integer> genderIds, String genderMode,
                                          List<Integer> ethnicityIds, String ethnicityMode,
                                          List<String> countries, String countryMode,
+                                         List<String> accounts, String accountMode,
                                          String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                          String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
@@ -43,10 +44,13 @@ public class AlbumService {
                                          String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
         
+        // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
+        if (accounts != null && accounts.isEmpty()) accounts = null;
+        
         List<Object[]> results = albumRepository.findAlbumsWithStats(
                 name, artistName, genreIds, genreMode, 
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode,
+                ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -106,13 +110,17 @@ public class AlbumService {
                            List<Integer> genderIds, String genderMode,
                            List<Integer> ethnicityIds, String ethnicityMode,
                            List<String> countries, String countryMode,
+                           List<String> accounts, String accountMode,
                            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                            String organized) {
+        // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
+        if (accounts != null && accounts.isEmpty()) accounts = null;
+        
         return albumRepository.countAlbumsWithFilters(name, artistName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode,
+                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -400,7 +408,8 @@ public class AlbumService {
                 COALESCE(SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END), 0) as robertlover_plays,
                 COUNT(scr.id) as total_plays,
                 MIN(scr.scrobble_date) as first_listen,
-                MAX(scr.scrobble_date) as last_listen
+                MAX(scr.scrobble_date) as last_listen,
+                s.is_single
             FROM Song s
             INNER JOIN Album alb ON s.album_id = alb.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
@@ -421,7 +430,8 @@ public class AlbumService {
                      COALESCE(g_song.name, g_album.name, g_artist.name), 
                      COALESCE(sg_song.name, sg_album.name, sg_artist.name), 
                      COALESCE(eth_song.name, eth_artist.name), 
-                     COALESCE(l_song.name, l_album.name, l_artist.name)
+                     COALESCE(l_song.name, l_album.name, l_artist.name),
+                     s.is_single
             ORDER BY s.name
             """;
         
@@ -459,6 +469,9 @@ public class AlbumService {
             } else {
                 dto.setTotalListeningTimeSeconds(0);
             }
+            
+            // Set isSingle
+            dto.setIsSingle(rs.getBoolean("is_single"));
             
             return dto;
         }, albumId);
@@ -816,7 +829,8 @@ public class AlbumService {
                 CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
-                COUNT(sfa.song_id) as feature_count
+                COUNT(sfa.song_id) as feature_count,
+                GROUP_CONCAT(s.name, '||') as song_names
             FROM SongFeaturedArtist sfa
             INNER JOIN Song s ON sfa.song_id = s.id
             INNER JOIN Artist a ON sfa.artist_id = a.id
@@ -861,6 +875,11 @@ public class AlbumService {
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
             dto.setFeatureCount(rs.getInt("feature_count"));
+            // Parse song names from GROUP_CONCAT result
+            String songNamesConcat = rs.getString("song_names");
+            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
+                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
+            }
             return dto;
         }, albumId);
     }

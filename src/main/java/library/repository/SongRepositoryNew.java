@@ -22,12 +22,35 @@ public class SongRepositoryNew {
                                               List<Integer> genderIds, String genderMode,
                                               List<Integer> ethnicityIds, String ethnicityMode,
                                               List<String> countries, String countryMode,
+                                              List<String> accounts, String accountMode,
                                               String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                               String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                               String organized,
                                               String sortBy, String sortDirection, int limit, int offset) {
-        StringBuilder sql = new StringBuilder("""
+        // Build account filter subquery for the play_stats join
+        StringBuilder accountFilterClause = new StringBuilder();
+        List<Object> accountParams = new ArrayList<>();
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account NOT IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        }
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("""
             SELECT 
                 s.id,
                 s.name,
@@ -48,14 +71,16 @@ public class SongRepositoryNew {
                 s.length_seconds,
                 CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
-                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id) as play_count,
-                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account = 'vatito') as vatito_play_count,
-                (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account = 'robertlover') as robertlover_play_count,
-                (s.length_seconds * (SELECT COUNT(*) FROM Scrobble scr WHERE scr.song_id = s.id)) as time_listened,
-                (SELECT MIN(scrobble_date) FROM Scrobble WHERE song_id = s.id) as first_listened,
-                (SELECT MAX(scrobble_date) FROM Scrobble WHERE song_id = s.id) as last_listened,
+                COALESCE(play_stats.play_count, 0) as play_count,
+                COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
+                COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
+                COALESCE(s.length_seconds * play_stats.play_count, 0) as time_listened,
+                play_stats.first_listened,
+                play_stats.last_listened,
                 ar.country as country,
-                s.organized
+                s.organized,
+                CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
+                s.is_single
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -70,10 +95,31 @@ public class SongRepositoryNew {
             LEFT JOIN Language l_album ON alb.override_language_id = l_album.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
+            """);
+        
+        // Use INNER JOIN when account filter is includes mode for better performance
+        String playStatsJoinType = (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) ? "INNER JOIN" : "LEFT JOIN";
+        sql.append(playStatsJoinType).append(""" 
+             (
+                SELECT 
+                    scr.song_id,
+                    COUNT(*) as play_count,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
+                    MIN(scr.scrobble_date) as first_listened,
+                    MAX(scr.scrobble_date) as last_listened
+                FROM Scrobble scr
+                WHERE 1=1 """);
+        sql.append(accountFilterClause);
+        sql.append("""
+                GROUP BY scr.song_id
+            ) play_stats ON play_stats.song_id = s.id
             WHERE 1=1
             """);
         
         List<Object> params = new ArrayList<>();
+        // Add account params only once now (play_stats subquery)
+        params.addAll(accountParams);
         
         // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
@@ -320,7 +366,7 @@ public class SongRepositoryNew {
         switch (sortBy != null ? sortBy : "name") {
             case "artist" -> sql.append(" ORDER BY ar.name ").append(dir).append(", s.name");
             case "album" -> sql.append(" ORDER BY alb.name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "release_date" -> sql.append(" ORDER BY s.release_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "release_date" -> sql.append(" ORDER BY COALESCE(s.release_date, alb.release_date) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "length" -> sql.append(" ORDER BY s.length_seconds ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "plays" -> sql.append(" ORDER BY play_count ").append(dir).append(", s.name");
             case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(", s.name");
@@ -334,7 +380,7 @@ public class SongRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
-            Object[] row = new Object[27];
+            Object[] row = new Object[29];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -362,6 +408,8 @@ public class SongRepositoryNew {
             row[24] = rs.getString("last_listened");
             row[25] = rs.getString("country");
             row[26] = rs.getObject("organized");
+            row[27] = rs.getInt("album_has_image");
+            row[28] = rs.getInt("is_single");
             return row;
         });
     }
@@ -373,6 +421,7 @@ public class SongRepositoryNew {
                                       List<Integer> genderIds, String genderMode,
                                       List<Integer> ethnicityIds, String ethnicityMode,
                                       List<String> countries, String countryMode,
+                                      List<String> accounts, String accountMode,
                                       String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                       String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
@@ -520,6 +569,27 @@ public class SongRepositoryNew {
                     sql.append(" AND (ar.country NOT IN (").append(placeholders).append(") OR ar.country IS NULL)");
                     params.addAll(countries);
                 }
+            }
+        }
+        
+        // Account filter - filter to songs that have plays from the selected account(s)
+        if (accounts != null && !accounts.isEmpty()) {
+            if ("includes".equalsIgnoreCase(accountMode)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account IN (");
+                for (int i = 0; i < accounts.size(); i++) {
+                    if (i > 0) sql.append(",");
+                    sql.append("?");
+                    params.add(accounts.get(i));
+                }
+                sql.append("))");
+            } else if ("excludes".equalsIgnoreCase(accountMode)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account IN (");
+                for (int i = 0; i < accounts.size(); i++) {
+                    if (i > 0) sql.append(",");
+                    sql.append("?");
+                    params.add(accounts.get(i));
+                }
+                sql.append("))");
             }
         }
         
@@ -931,6 +1001,36 @@ public class SongRepositoryNew {
     }
     
     private java.util.Map<String, Long> getSongsByGenderFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        // Optimize for no filters - use direct Song table count
+        if (filterClause.trim().isEmpty() && !needsScrobbleJoin) {
+            String sql = """
+                SELECT 
+                    CASE 
+                        WHEN g.name LIKE '%Female%' THEN 'female'
+                        WHEN g.name LIKE '%Male%' THEN 'male'
+                        ELSE 'other'
+                    END as gender,
+                    COUNT(*) as song_count
+                FROM Song s
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                GROUP BY gender
+                """;
+            
+            java.util.Map<String, Long> result = new java.util.HashMap<>();
+            result.put("male", 0L);
+            result.put("female", 0L);
+            result.put("other", 0L);
+            
+            jdbcTemplate.query(sql, rs -> {
+                String gender = rs.getString("gender");
+                long count = rs.getLong("song_count");
+                result.put(gender, count);
+            });
+            
+            return result;
+        }
+        
         String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
@@ -964,6 +1064,35 @@ public class SongRepositoryNew {
     }
     
     private java.util.Map<String, Long> getArtistsByGenderFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        // Optimize for no filters - use direct Artist table instead of going through Song
+        if (filterClause.trim().isEmpty() && !needsScrobbleJoin) {
+            String sql = """
+                SELECT 
+                    CASE 
+                        WHEN g.name LIKE '%Female%' THEN 'female'
+                        WHEN g.name LIKE '%Male%' THEN 'male'
+                        ELSE 'other'
+                    END as gender,
+                    COUNT(*) as artist_count
+                FROM Artist ar
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                GROUP BY gender
+                """;
+            
+            java.util.Map<String, Long> result = new java.util.HashMap<>();
+            result.put("male", 0L);
+            result.put("female", 0L);
+            result.put("other", 0L);
+            
+            jdbcTemplate.query(sql, rs -> {
+                String gender = rs.getString("gender");
+                long count = rs.getLong("artist_count");
+                result.put(gender, count);
+            });
+            
+            return result;
+        }
+        
         String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
@@ -997,6 +1126,36 @@ public class SongRepositoryNew {
     }
     
     private java.util.Map<String, Long> getAlbumsByGenderFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
+        // Optimize for no filters - use direct Album table count
+        if (filterClause.trim().isEmpty() && !needsScrobbleJoin) {
+            String sql = """
+                SELECT 
+                    CASE 
+                        WHEN g.name LIKE '%Female%' THEN 'female'
+                        WHEN g.name LIKE '%Male%' THEN 'male'
+                        ELSE 'other'
+                    END as gender,
+                    COUNT(*) as album_count
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                GROUP BY gender
+                """;
+            
+            java.util.Map<String, Long> result = new java.util.HashMap<>();
+            result.put("male", 0L);
+            result.put("female", 0L);
+            result.put("other", 0L);
+            
+            jdbcTemplate.query(sql, rs -> {
+                String gender = rs.getString("gender");
+                long count = rs.getLong("album_count");
+                result.put(gender, count);
+            });
+            
+            return result;
+        }
+        
         String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n            " : "";
         String sql = """
             SELECT 
@@ -2559,8 +2718,8 @@ public class SongRepositoryNew {
             ethnicityIds, ethnicityMode, countries, countryMode);
         
         java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("topArtists", getTopArtistsFiltered(artistFilterClause.toString(), artistFilterParams, limit));
-        result.put("topAlbums", getTopAlbumsFiltered(albumFilterClause.toString(), albumFilterParams, limit));
+        result.put("topArtists", getTopArtistsFiltered(artistFilterClause.toString(), artistFilterParams, listenedDateFrom, listenedDateTo, limit));
+        result.put("topAlbums", getTopAlbumsFiltered(albumFilterClause.toString(), albumFilterParams, listenedDateFrom, listenedDateTo, limit));
         result.put("topSongs", getTopSongsFiltered(filterClause.toString(), filterParams, limit));
         
         return result;
@@ -2706,14 +2865,30 @@ public class SongRepositoryNew {
         }
     }
     
-    private java.util.List<java.util.Map<String, Object>> getTopArtistsFiltered(String filterClause, java.util.List<Object> filterParams, int limit) {
+    private java.util.List<java.util.Map<String, Object>> getTopArtistsFiltered(String filterClause, java.util.List<Object> filterParams, String listenedDateFrom, String listenedDateTo, int limit) {
         java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        
+        // Build date filter clause for scrobble filtering
+        StringBuilder dateFilter = new StringBuilder();
+        java.util.List<Object> dateParams = new java.util.ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            dateFilter.append(" AND DATE(scr.scrobble_date) >= ?");
+            dateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            dateFilter.append(" AND DATE(scr.scrobble_date) <= ?");
+            dateParams.add(listenedDateTo);
+        }
+        
+        // Add date params before limit
+        params.addAll(0, dateParams); // Add at beginning for WHERE clause
         params.add(limit);
         
         String sql = """
             SELECT 
                 ar.id,
                 ar.name,
+                ar.gender_id,
                 ar.genre_id,
                 gen.name as genre,
                 ar.subgenre_id,
@@ -2723,21 +2898,21 @@ public class SongRepositoryNew {
                 ar.language_id,
                 lang.name as language,
                 ar.country,
-                COALESCE(play_stats.plays, 0) as plays,
-                COALESCE(play_stats.primary_plays, 0) as primary_plays,
-                COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
-                COALESCE(play_stats.time_listened, 0) as time_listened,
-                play_stats.first_listened,
-                play_stats.last_listened
+                COALESCE(agg.plays, 0) as plays,
+                COALESCE(agg.primary_plays, 0) as primary_plays,
+                COALESCE(agg.legacy_plays, 0) as legacy_plays,
+                COALESCE(agg.time_listened, 0) as time_listened,
+                agg.first_listened,
+                agg.last_listened
             FROM Artist ar
             LEFT JOIN Genre gen ON ar.genre_id = gen.id
             LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
             LEFT JOIN Language lang ON ar.language_id = lang.id
-            LEFT JOIN (
+            INNER JOIN (
                 SELECT 
                     s.artist_id,
-                    COUNT(scr.id) as plays,
+                    COUNT(*) as plays,
                     SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
                     SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
                     SUM(s.length_seconds) as time_listened,
@@ -2745,8 +2920,9 @@ public class SongRepositoryNew {
                     MAX(scr.scrobble_date) as last_listened
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
+                WHERE 1=1 """ + dateFilter.toString() + """
                 GROUP BY s.artist_id
-            ) play_stats ON ar.id = play_stats.artist_id
+            ) agg ON ar.id = agg.artist_id
             WHERE 1=1 """ + " " + filterClause + """
             ORDER BY plays DESC
             LIMIT ?
@@ -2756,6 +2932,7 @@ public class SongRepositoryNew {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
             row.put("name", rs.getString("name"));
+            row.put("genderId", rs.getObject("gender_id"));
             row.put("genreId", rs.getObject("genre_id"));
             row.put("genre", rs.getString("genre"));
             row.put("subgenreId", rs.getObject("subgenre_id"));
@@ -2777,8 +2954,23 @@ public class SongRepositoryNew {
         });
     }
     
-    private java.util.List<java.util.Map<String, Object>> getTopAlbumsFiltered(String filterClause, java.util.List<Object> filterParams, int limit) {
+    private java.util.List<java.util.Map<String, Object>> getTopAlbumsFiltered(String filterClause, java.util.List<Object> filterParams, String listenedDateFrom, String listenedDateTo, int limit) {
         java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        
+        // Build date filter clause for scrobble filtering
+        StringBuilder dateFilter = new StringBuilder();
+        java.util.List<Object> dateParams = new java.util.ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            dateFilter.append(" AND DATE(scr.scrobble_date) >= ?");
+            dateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            dateFilter.append(" AND DATE(scr.scrobble_date) <= ?");
+            dateParams.add(listenedDateTo);
+        }
+        
+        // Add date params at beginning for WHERE clause
+        params.addAll(0, dateParams);
         params.add(limit);
         
         String sql = """
@@ -2787,6 +2979,7 @@ public class SongRepositoryNew {
                 alb.name,
                 ar.id as artist_id,
                 ar.name as artist_name,
+                ar.gender_id,
                 alb.release_date,
                 COALESCE(alb.override_genre_id, ar.genre_id) as genre_id,
                 COALESCE(g_override.name, g_artist.name) as genre,
@@ -2797,12 +2990,12 @@ public class SongRepositoryNew {
                 COALESCE(alb.override_language_id, ar.language_id) as language_id,
                 COALESCE(l_override.name, l_artist.name) as language,
                 ar.country,
-                COALESCE(play_stats.plays, 0) as plays,
-                COALESCE(play_stats.primary_plays, 0) as primary_plays,
-                COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
-                COALESCE(play_stats.time_listened, 0) as time_listened,
-                play_stats.first_listened,
-                play_stats.last_listened
+                COALESCE(agg.plays, 0) as plays,
+                COALESCE(agg.primary_plays, 0) as primary_plays,
+                COALESCE(agg.legacy_plays, 0) as legacy_plays,
+                COALESCE(agg.time_listened, 0) as time_listened,
+                agg.first_listened,
+                agg.last_listened
             FROM Album alb
             INNER JOIN Artist ar ON alb.artist_id = ar.id
             LEFT JOIN Genre g_override ON alb.override_genre_id = g_override.id
@@ -2812,10 +3005,10 @@ public class SongRepositoryNew {
             LEFT JOIN Language l_override ON alb.override_language_id = l_override.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
-            LEFT JOIN (
+            INNER JOIN (
                 SELECT 
                     s.album_id,
-                    COUNT(scr.id) as plays,
+                    COUNT(*) as plays,
                     SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
                     SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
                     SUM(s.length_seconds) as time_listened,
@@ -2823,9 +3016,9 @@ public class SongRepositoryNew {
                     MAX(scr.scrobble_date) as last_listened
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
-                WHERE s.album_id IS NOT NULL
+                WHERE s.album_id IS NOT NULL """ + dateFilter.toString() + """
                 GROUP BY s.album_id
-            ) play_stats ON alb.id = play_stats.album_id
+            ) agg ON alb.id = agg.album_id
             WHERE 1=1 """ + " " + filterClause + """
             ORDER BY plays DESC
             LIMIT ?
@@ -2837,6 +3030,7 @@ public class SongRepositoryNew {
             row.put("name", rs.getString("name"));
             row.put("artistId", rs.getInt("artist_id"));
             row.put("artistName", rs.getString("artist_name"));
+            row.put("genderId", rs.getObject("gender_id"));
             row.put("releaseDate", formatDate(rs.getString("release_date")));
             row.put("genreId", rs.getObject("genre_id"));
             row.put("genre", rs.getString("genre"));
@@ -2871,6 +3065,7 @@ public class SongRepositoryNew {
                 ar.name as artist_name,
                 s.album_id,
                 alb.name as album_name,
+                COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
                 COALESCE(s.release_date, alb.release_date) as release_date,
                 COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) as genre_id,
                 COALESCE(g_song.name, g_album.name, g_artist.name) as genre,
@@ -2881,6 +3076,9 @@ public class SongRepositoryNew {
                 COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) as language_id,
                 COALESCE(l_song.name, l_album.name, l_artist.name) as language,
                 ar.country,
+                CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
+                CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
+                s.is_single,
                 COUNT(scr.id) as plays,
                 SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
                 SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
@@ -2903,7 +3101,7 @@ public class SongRepositoryNew {
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds
+            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, gender_id, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds, has_image, album_has_image, s.is_single
             ORDER BY plays DESC
             LIMIT ?
             """;
@@ -2916,6 +3114,7 @@ public class SongRepositoryNew {
             row.put("artistName", rs.getString("artist_name"));
             row.put("albumId", rs.getObject("album_id"));
             row.put("albumName", rs.getString("album_name"));
+            row.put("genderId", rs.getObject("gender_id"));
             row.put("releaseDate", formatDate(rs.getString("release_date")));
             row.put("genreId", rs.getObject("genre_id"));
             row.put("genre", rs.getString("genre"));
@@ -2926,6 +3125,9 @@ public class SongRepositoryNew {
             row.put("languageId", rs.getObject("language_id"));
             row.put("language", rs.getString("language"));
             row.put("country", rs.getString("country"));
+            row.put("hasImage", rs.getInt("has_image") == 1);
+            row.put("albumHasImage", rs.getInt("album_has_image") == 1);
+            row.put("isSingle", rs.getBoolean("is_single"));
             row.put("plays", rs.getLong("plays"));
             row.put("primaryPlays", rs.getLong("primary_plays"));
             row.put("legacyPlays", rs.getLong("legacy_plays"));

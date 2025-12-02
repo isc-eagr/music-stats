@@ -6,6 +6,12 @@
 // Chart.js instances storage
 let chartInstances = {};
 
+// Relative scaling mode - when true, bars are scaled relative to the max across all categories
+let useRelativeScaling = false;
+
+// Store data for re-rendering when scaling mode changes
+let lastChartData = {};
+
 // Track which tabs have been loaded
 let loadedTabs = {
     general: false,
@@ -33,6 +39,9 @@ let topSortState = {
     songs: { column: 'plays', direction: 'desc' }
 };
 
+// Current sort state for chart groups (genre, subgenre, etc.)
+let chartSortMetric = 'plays';  // Options: 'artists', 'albums', 'songs', 'plays', 'listeningTime'
+
 // Register datalabels plugin if Chart.js is available
 if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
@@ -58,6 +67,21 @@ function formatListeningTime(totalSeconds) {
     } else {
         return minutes + 'm';
     }
+}
+
+/**
+ * Get inline row style for gender-based coloring
+ * Female (genderId 1) = pink, Male (genderId 2) = blue
+ */
+function getGenderRowStyle(genderId) {
+    if (genderId === 1) {
+        // Female = pink
+        return 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);';
+    } else if (genderId === 2) {
+        // Male = blue
+        return 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);';
+    }
+    return '';
 }
 
 /**
@@ -438,12 +462,25 @@ function updateChartsFiltersDisplay() {
     
     if (!container) return;
     
-    // Remove existing filter chips from charts modal
+    // Copy filter chips from the page's active filters section (if it exists)
+    // This is used when charts modal is opened from song/album/artist list pages
+    const pageFilters = document.getElementById('activeFilters');
+    
+    // If there's no activeFilters element on the page, the filter chips were already
+    // rendered by Thymeleaf (e.g., on the standalone /charts page), so don't touch them
+    if (!pageFilters) {
+        // Just check if we have any filter chips already rendered
+        const existingChips = container.querySelectorAll('.filter-chip');
+        if (existingChips.length > 0) {
+            if (noFiltersMsg) noFiltersMsg.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Remove existing filter chips from charts modal (we'll copy fresh ones from the page)
     container.querySelectorAll('.filter-chip').forEach(el => el.remove());
     
-    // Copy filter chips from the page's active filters section
-    const pageFilters = document.getElementById('activeFilters');
-    const pageChips = pageFilters ? pageFilters.querySelectorAll('.filter-chip') : [];
+    const pageChips = pageFilters.querySelectorAll('.filter-chip');
     
     if (pageChips.length === 0) {
         if (noFiltersMsg) noFiltersMsg.style.display = 'inline';
@@ -687,6 +724,9 @@ function createDynamicStackedBarChart(containerId, canvasId, categoryData, isLis
  * @param {object} allData - Object with artists, albums, songs, plays, listeningTime arrays
  */
 function createCombinedBarChart(containerId, canvasId, allData) {
+    // Cache chart data for re-rendering when scaling mode changes
+    lastChartData[canvasId] = { containerId, allData };
+    
     if (chartInstances[canvasId]) {
         chartInstances[canvasId].destroy();
     }
@@ -722,16 +762,18 @@ function createCombinedBarChart(containerId, canvasId, allData) {
             return yearB - yearA;
         });
     } else {
-        // For non-year charts, sort by total plays descending
-        if (allData.plays) {
-            const playsMap = {};
-            allData.plays.forEach(item => {
-                playsMap[item.name] = (item.male || 0) + (item.female || 0) + (item.other || 0);
+        // For non-year charts, sort by the selected metric descending
+        const sortMetricKey = chartSortMetric;
+        const sortData = allData[sortMetricKey];
+        if (sortData) {
+            const sortMap = {};
+            sortData.forEach(item => {
+                sortMap[item.name] = (item.male || 0) + (item.female || 0) + (item.other || 0);
             });
             categories.sort((a, b) => {
-                const playsA = playsMap[a] || 0;
-                const playsB = playsMap[b] || 0;
-                return playsB - playsA; // Descending order
+                const valA = sortMap[a] || 0;
+                const valB = sortMap[b] || 0;
+                return valB - valA; // Descending order
             });
         }
     }
@@ -794,6 +836,24 @@ function createCombinedBarChart(containerId, canvasId, allData) {
     const rawValues = {};
     const totalsByMetric = {}; // Store totals for each metric per category
 
+    // Calculate global max totals for each metric (used in relative scaling mode)
+    const globalMaxByMetric = {};
+    // Calculate sum of all totals across all categories for each metric (for global percentage)
+    const globalSumByMetric = {};
+    metrics.forEach(metric => {
+        if (!allData[metric.key]) return;
+        const lookup = metric.lookup;
+        let maxTotal = 0;
+        let sumTotal = 0;
+        categories.forEach(cat => {
+            const total = (lookup[cat]?.male || 0) + (lookup[cat]?.female || 0) + (lookup[cat]?.other || 0);
+            if (total > maxTotal) maxTotal = total;
+            sumTotal += total;
+        });
+        globalMaxByMetric[metric.key] = maxTotal;
+        globalSumByMetric[metric.key] = sumTotal;
+    });
+
     metrics.forEach((metric, idx) => {
         if (!allData[metric.key]) return; // Skip if no data (e.g., artists for release year)
         
@@ -805,18 +865,37 @@ function createCombinedBarChart(containerId, canvasId, allData) {
         const totals = categories.map((cat, i) => maleData[i] + femaleData[i] + otherData[i]);
         totalsByMetric[metric.key] = totals;
         
-        // Calculate percentages (including other)
+        // Get global sum for this metric
+        const globalTotal = globalSumByMetric[metric.key] || 0;
+        
+        // Calculate percentages based on scaling mode
+        const globalMax = globalMaxByMetric[metric.key] || 1;
+        
         const malePercentages = categories.map((cat, i) => {
             const total = totals[i];
-            return total > 0 ? (maleData[i] / total) * 100 : 0;
+            if (useRelativeScaling) {
+                // Relative mode: scale bar based on global max of this metric
+                return globalMax > 0 ? (maleData[i] / globalMax) * 100 : 0;
+            } else {
+                // Percentage mode: scale bar to 100% within category
+                return total > 0 ? (maleData[i] / total) * 100 : 0;
+            }
         });
         const femalePercentages = categories.map((cat, i) => {
             const total = totals[i];
-            return total > 0 ? (femaleData[i] / total) * 100 : 0;
+            if (useRelativeScaling) {
+                return globalMax > 0 ? (femaleData[i] / globalMax) * 100 : 0;
+            } else {
+                return total > 0 ? (femaleData[i] / total) * 100 : 0;
+            }
         });
         const otherPercentages = categories.map((cat, i) => {
             const total = totals[i];
-            return total > 0 ? (otherData[i] / total) * 100 : 0;
+            if (useRelativeScaling) {
+                return globalMax > 0 ? (otherData[i] / globalMax) * 100 : 0;
+            } else {
+                return total > 0 ? (otherData[i] / total) * 100 : 0;
+            }
         });
         
         // Store raw values for tooltips
@@ -834,7 +913,8 @@ function createCombinedBarChart(containerId, canvasId, allData) {
             isTime: metric.isTime || false,
             genderType: 'male',
             rawData: maleData,
-            totalData: totals
+            totalData: totals,
+            globalTotal: globalTotal
         });
         
         // Female bar for this metric
@@ -849,7 +929,8 @@ function createCombinedBarChart(containerId, canvasId, allData) {
             isTime: metric.isTime || false,
             genderType: 'female',
             rawData: femaleData,
-            totalData: totals
+            totalData: totals,
+            globalTotal: globalTotal
         });
         
         // Other bar for this metric (only add if there's any "other" data)
@@ -866,7 +947,8 @@ function createCombinedBarChart(containerId, canvasId, allData) {
                 isTime: metric.isTime || false,
                 genderType: 'other',
                 rawData: otherData,
-                totalData: totals
+                totalData: totals,
+                globalTotal: globalTotal
             });
         }
     });
@@ -910,20 +992,7 @@ function createCombinedBarChart(containerId, canvasId, allData) {
             },
             plugins: {
                 legend: {
-                    position: 'top',
-                    labels: {
-                        color: '#e5e7eb',
-                        padding: 12,
-                        font: { size: 11 },
-                        usePointStyle: true,
-                        boxWidth: 12,
-                        filter: function(legendItem, chartData) {
-                            // Remove duplicate legend entries (only show one per metric type)
-                            const label = legendItem.text;
-                            // Keep M, F, O entries but group them visually
-                            return true;
-                        }
-                    }
+                    display: false  // Remove the legend labels at the top
                 },
                 tooltip: {
                     callbacks: {
@@ -931,11 +1000,21 @@ function createCombinedBarChart(containerId, canvasId, allData) {
                             const isTime = context.dataset.isTime;
                             const rawValue = context.dataset.rawData[context.dataIndex];
                             const totalValue = context.dataset.totalData[context.dataIndex];
+                            const globalTotal = context.dataset.globalTotal || 0;
                             const displayValue = isTime ? formatListeningTime(rawValue) : rawValue.toLocaleString();
                             const displayTotal = isTime ? formatListeningTime(totalValue) : totalValue.toLocaleString();
-                            const pct = context.raw.toFixed(2);
+                            const displayGlobalTotal = isTime ? formatListeningTime(globalTotal) : globalTotal.toLocaleString();
                             
-                            return context.dataset.label + ': ' + displayValue + ' (' + pct + '%) | Total: ' + displayTotal;
+                            // Percentage within this category
+                            const catPct = totalValue > 0 ? ((rawValue / totalValue) * 100).toFixed(2) : '0.00';
+                            // Percentage of category vs global
+                            const globalPct = globalTotal > 0 ? ((totalValue / globalTotal) * 100).toFixed(2) : '0.00';
+                            
+                            return [
+                                context.dataset.label + ': ' + displayValue + ' (' + catPct + '%)',
+                                'Category Total: ' + displayTotal,
+                                'Global Total: ' + displayGlobalTotal + ' (' + globalPct + '% of global)'
+                            ];
                         }
                     }
                 },
@@ -1029,6 +1108,51 @@ function createCombinedBarChart(containerId, canvasId, allData) {
 }
 
 /**
+ * Toggles between percentage-based and relative scaling modes
+ * Percentage mode: Each category bar reaches 100% (shows M/F/O distribution within category)
+ * Relative mode: Bars are scaled relative to the largest category (shows cross-category comparison)
+ */
+function toggleRelativeScaling() {
+    useRelativeScaling = !useRelativeScaling;
+    
+    // Update button state
+    const btn = document.getElementById('scalingToggleBtn');
+    if (btn) {
+        btn.classList.toggle('active', useRelativeScaling);
+        btn.textContent = useRelativeScaling ? '📊 Relative Scaling (ON)' : '📊 Relative Scaling (OFF)';
+    }
+    
+    // Re-render all charts that have been loaded with cached data
+    Object.keys(lastChartData).forEach(canvasId => {
+        const data = lastChartData[canvasId];
+        if (data) {
+            createCombinedBarChart(data.containerId, canvasId, data.allData);
+        }
+    });
+}
+
+/**
+ * Changes the sort metric for chart groups and re-renders all charts
+ * @param {string} metric - The metric to sort by: 'artists', 'albums', 'songs', 'plays', 'listeningTime'
+ */
+function changeChartSortMetric(metric) {
+    chartSortMetric = metric;
+    
+    // Update button states
+    document.querySelectorAll('.chart-sort-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.metric === metric);
+    });
+    
+    // Re-render all charts that have been loaded with cached data
+    Object.keys(lastChartData).forEach(canvasId => {
+        const data = lastChartData[canvasId];
+        if (data) {
+            createCombinedBarChart(data.containerId, canvasId, data.allData);
+        }
+    });
+}
+
+/**
  * Resets the charts loaded flags so charts will reload on next open
  * Call this when filters change
  */
@@ -1078,13 +1202,13 @@ function renderTopArtistsTable() {
     }
     
     tbody.innerHTML = data.map((artist, index) => `
-        <tr>
+        <tr style="${getGenderRowStyle(artist.genderId)}">
             <td class="rank-col">${index + 1}</td>
-            <td class="cover-col">
-                <a href="/artists/${artist.id}">
-                    <img src="/artists/${artist.id}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:32px;height:32px;object-fit:cover;border-radius:50%;">
-                    <div style="display:none;width:32px;height:32px;background:#2a2a2a;border-radius:50%;align-items:center;justify-content:center;color:#666;font-size:14px;">🎤</div>
-                </a>
+            <td class="cover-col artist-cover">
+                <div style="cursor:pointer;">
+                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openImageModal('/artists/${artist.id}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
+                    <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎤</div>
+                </div>
             </td>
             <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
             <td>${artist.firstListened || '-'}</td>
@@ -1119,13 +1243,13 @@ function renderTopAlbumsTable() {
     }
     
     tbody.innerHTML = data.map((album, index) => `
-        <tr>
+        <tr style="${getGenderRowStyle(album.genderId)}">
             <td class="rank-col">${index + 1}</td>
             <td class="cover-col">
-                <a href="/albums/${album.id}">
-                    <img src="/albums/${album.id}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">
-                    <div style="display:none;width:32px;height:32px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
-                </a>
+                <div style="cursor:pointer;">
+                    <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openImageModal('/albums/${album.id}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                    <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
+                </div>
             </td>
             <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
@@ -1162,19 +1286,35 @@ function renderTopSongsTable() {
     }
     
     tbody.innerHTML = data.map((song, index) => {
-        const coverHtml = song.albumId 
-            ? `<a href="/albums/${song.albumId}">
-                   <img src="/albums/${song.albumId}/image" alt="" class="inherited-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">
-                   <div style="display:none;width:32px;height:32px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
-               </a>`
-            : `<div style="width:32px;height:32px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>`;
+        let coverHtml;
+        if (song.hasImage && song.albumHasImage && song.albumId) {
+            // Case 1: Song has image AND album has image - show album by default, song on hover
+            coverHtml = `<div class="hover-image-container" style="display:block;position:relative;width:50px;height:50px;cursor:pointer;">
+                <img src="/albums/${song.albumId}/image" alt="" class="album-image-default clickable-image" onclick="openImageModal('/songs/${song.id}/image')" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:1;transition:opacity 0.2s;z-index:2;">
+                <img src="/songs/${song.id}/image" alt="" class="song-image-hover clickable-image" onclick="openImageModal('/songs/${song.id}/image')" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0;transition:opacity 0.2s;z-index:1;">
+            </div>`;
+        } else if (song.hasImage) {
+            // Case 2: Song has image but album doesn't - just show song image
+            coverHtml = `<div style="cursor:pointer;">
+                <img src="/songs/${song.id}/image" alt="" class="clickable-image" onclick="openImageModal('/songs/${song.id}/image')" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+            </div>`;
+        } else if (song.albumId) {
+            // Case 3: Song doesn't have image but album does - show album image
+            coverHtml = `<div style="cursor:pointer;">
+                   <img src="/albums/${song.albumId}/image" alt="" class="inherited-cover clickable-image" onclick="openImageModal('/albums/${song.albumId}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                   <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
+               </div>`;
+        } else {
+            // Case 4: No image available
+            coverHtml = `<div style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>`;
+        }
         return `
-        <tr>
+        <tr style="${getGenderRowStyle(song.genderId)}">
             <td class="rank-col">${index + 1}</td>
             <td class="cover-col">${coverHtml}</td>
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
-            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a></td>
+            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}</td>
             <td>${song.releaseDate || '-'}</td>
             <td>${song.firstListened || '-'}</td>
             <td>${song.lastListened || '-'}</td>
@@ -1189,6 +1329,22 @@ function renderTopSongsTable() {
             <td class="numeric">${song.timeListenedFormatted || '-'}</td>
         </tr>
     `}).join('');
+    
+    // Add hover event listeners for image swap
+    tbody.querySelectorAll('.hover-image-container').forEach(container => {
+        container.addEventListener('mouseenter', function() {
+            const albumImg = this.querySelector('.album-image-default');
+            const songImg = this.querySelector('.song-image-hover');
+            if (albumImg) albumImg.style.opacity = '0';
+            if (songImg) songImg.style.opacity = '1';
+        });
+        container.addEventListener('mouseleave', function() {
+            const albumImg = this.querySelector('.album-image-default');
+            const songImg = this.querySelector('.song-image-hover');
+            if (albumImg) albumImg.style.opacity = '1';
+            if (songImg) songImg.style.opacity = '0';
+        });
+    });
     
     updateSortIndicators('topSongsTable', topSortState.songs);
 }

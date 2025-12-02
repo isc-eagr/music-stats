@@ -10,6 +10,7 @@
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
     <script th:src="@{/js/top-table-sort.js}" defer></script>
+    <script th:src="@{/js/table-sort.js}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -26,7 +27,9 @@
                          th:src="@{'/artists/' + ${artist.id} + '/image'}"
                          th:alt="${artist.name}"
                          id="artistImage"
-                         class="item-image-large">
+                         class="item-image-large clickable-image"
+                         onclick="openImageModal(this.src)"
+                         style="cursor: pointer;">
                     <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
                         <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
                     </div>
@@ -83,6 +86,9 @@
                 <a th:href="@{'/artists/' + ${artist.id} + '?tab=collaborated'}" 
                    th:classappend="${activeTab == 'collaborated'} ? 'active' : ''"
                    class="detail-tab">Collaborated With</a>
+                <a th:href="@{'/artists/' + ${artist.id} + '?tab=chart-history'}" 
+                   th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
+                   class="detail-tab">Chart History</a>
             </div>
             
             <!-- Right side: Two-column layout for General and Statistics -->
@@ -250,10 +256,10 @@
                                         data-totalplays=${album.totalPlays},
                                         data-timelistened=${album.totalListeningTimeSeconds}">
                                 <td class="cover-col">
-                                    <a th:href="@{'/albums/' + ${album.id}}" th:title="${album.name}">
-                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
-                                        <div class="cover-placeholder" style="display:none;width:40px;height:40px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
-                                    </a>
+                                    <div style="cursor:pointer;" th:onclick="|openImageModal('/albums/' + ${album.id} + '/image')|" th:title="${album.name}">
+                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                        <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
+                                    </div>
                                 </td>
                                 <td><a th:href="@{'/albums/' + ${album.id}}" th:text="${album.name}">Album Name</a></td>
                                 <td th:text="${album.releaseDate != null ? album.releaseDate : '-'}">-</td>
@@ -314,22 +320,43 @@
                                         data-totalplays=${song.totalPlays},
                                         data-timelistened=${song.totalListeningTimeSeconds}">
                                 <td class="cover-col">
-                                    <a th:href="@{'/songs/' + ${song.id}}" th:title="${song.name}">
-                                        <img th:if="${song.hasImage}" 
+                                    <div th:title="${song.name}" style="cursor: pointer;">
+                                        <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
+                                        <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container" style="width:50px;height:50px;">
+                                            <img th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
+                                                 th:alt="${song.name}"
+                                                 th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                                                 class="album-image-default clickable-image"
+                                                 style="border-radius:4px;">
+                                            <img th:src="@{'/songs/' + ${song.id} + '/image'}" 
+                                                 th:alt="${song.name}"
+                                                 th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                                                 class="song-image-hover clickable-image"
+                                                 style="border-radius:4px;">
+                                        </div>
+                                        <!-- Case 2: Song has image but album doesn't - just show song image -->
+                                        <img th:if="${song.hasImage and !song.albumHasImage}" 
                                              th:src="@{'/songs/' + ${song.id} + '/image'}" 
                                              th:alt="${song.name}" 
-                                             style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
+                                             th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                                             class="clickable-image"
+                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                        <!-- Case 3: Song doesn't have image but album does - show album image with opacity -->
                                         <img th:if="${!song.hasImage and song.albumId != null}" 
                                              th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
                                              th:alt="${song.name}"
-                                             class="inherited-cover"
+                                             th:onclick="|openImageModal('/albums/' + ${song.albumId} + '/image')|"
+                                             class="inherited-cover clickable-image"
                                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                             style="width:40px;height:40px;object-fit:cover;border-radius:4px;opacity:0.7;">
-                                        <div th:if="${!song.hasImage and song.albumId == null}" class="cover-placeholder" style="width:40px;height:40px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
-                                        <div th:if="${!song.hasImage and song.albumId != null}" class="cover-placeholder" style="display:none;width:40px;height:40px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
-                                    </a>
+                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0.7;">
+                                        <div th:if="${!song.hasImage and song.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
+                                        <div th:if="${!song.hasImage and song.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
+                                    </div>
                                 </td>
-                                <td><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
+                                <td>
+                                    <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
+                                    <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
+                                </td>
                                 <td>
                                     <a th:if="${song.albumId != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${song.albumName}">Album Name</a>
                                     <span th:unless="${song.albumId != null}">-</span>
@@ -434,6 +461,7 @@
                     <div th:if="${collaboratedArtistCards != null and !collaboratedArtistCards.isEmpty()}" class="featured-artist-grid">
                         <div th:each="collab : ${collaboratedArtistCards}" 
                              class="featured-artist-card"
+                             th:title="${collab.songNamesFormatted}"
                              th:classappend="${collab.genderName != null and collab.genderName.toLowerCase().contains('male') and !collab.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${collab.genderName != null and collab.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                             <a th:href="@{'/artists/' + ${collab.id}}" class="featured-artist-image item-image-container">
                                 <img th:if="${collab.hasImage}"
@@ -479,6 +507,107 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Chart History Tab Content -->
+            <div class="featured-tab-content chart-history-content" th:if="${activeTab == 'chart-history'}">
+                    <!-- Albums Chart History -->
+                    <div class="detail-content-card">
+                        <h2 class="section-title">💿 Albums 
+                            <span class="item-count">(<span th:text="${albumChartHistory != null ? albumChartHistory.size() : 0}">0</span>)</span>
+                        </h2>
+                        
+                        <div th:if="${albumChartHistory == null or albumChartHistory.isEmpty()}" class="no-items-message">
+                            <p>No albums have charted yet.</p>
+                        </div>
+                        
+                        <div th:if="${albumChartHistory != null and !albumChartHistory.isEmpty()}" class="table-wrapper">
+                            <table class="table js-sortable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th class="numeric">Peak</th>
+                                        <th class="numeric">Wks@Peak</th>
+                                        <th>Release</th>
+                                        <th>Debut</th>
+                                        <th>Peak Date</th>
+                                        <th class="numeric">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${albumChartHistory}">
+                                        <td>
+                                            <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
+                                        </td>
+                                        <td class="numeric">
+                                            <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
+                                                  th:text="${entry.peakPosition}">#1</span>
+                                        </td>
+                                        <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
+                                        <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
+                                        <td>
+                                            <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
+                                            <span th:unless="${entry.debutWeek != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
+                                            <span th:unless="${entry.peakWeek != null}">-</span>
+                                        </td>
+                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Songs Chart History -->
+                    <div class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">🎵 Songs 
+                            <span class="item-count">(<span th:text="${songChartHistory != null ? songChartHistory.size() : 0}">0</span>)</span>
+                        </h2>
+                        
+                        <div th:if="${songChartHistory == null or songChartHistory.isEmpty()}" class="no-items-message">
+                            <p>No songs have charted yet.</p>
+                        </div>
+                        
+                        <div th:if="${songChartHistory != null and !songChartHistory.isEmpty()}" class="table-wrapper">
+                            <table class="table js-sortable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th class="numeric">Peak</th>
+                                        <th class="numeric">Wks@Peak</th>
+                                        <th>Release</th>
+                                        <th>Debut</th>
+                                        <th>Peak Date</th>
+                                        <th class="numeric">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${songChartHistory}">
+                                        <td>
+                                            <a th:href="@{'/songs/' + ${entry.id}}" th:text="${entry.name}">Song Name</a>
+                                        </td>
+                                        <td class="numeric">
+                                            <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
+                                                  th:text="${entry.peakPosition}">#1</span>
+                                        </td>
+                                        <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
+                                        <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
+                                        <td>
+                                            <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
+                                            <span th:unless="${entry.debutWeek != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
+                                            <span th:unless="${entry.peakWeek != null}">-</span>
+                                        </td>
+                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
             </div>
         </div>
     </div>
@@ -842,6 +971,33 @@
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
+        
+        /* Clickable image cursor */
+        .item-image-large.clickable {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .item-image-large.clickable:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
     </style>
+    
+    <!-- Image Modal -->
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
+    
+    <script>
+        // Make artist image clickable to open modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const artistImage = document.getElementById('artistImage');
+            if (artistImage) {
+                artistImage.classList.add('clickable');
+                artistImage.addEventListener('click', function() {
+                    openImageModal(this.src);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
