@@ -292,7 +292,11 @@ public class SongController {
             model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
         }
         
-        // Add chart history for the Chart History tab
+        // Always load seasonal/yearly chart history for sidebar chips
+        model.addAttribute("seasonalChartHistory", chartService.getSeasonalChartHistoryForSong(id));
+        model.addAttribute("yearlyChartHistory", chartService.getYearlyChartHistoryForSong(id));
+        
+        // Add weekly chart history for the Chart History tab
         if ("chart-history".equals(tab)) {
             model.addAttribute("chartHistory", chartService.getSongChartHistory(id));
         }

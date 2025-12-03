@@ -79,6 +79,25 @@ public class TimeframeCardDTO {
         long total = (maleTimeListened != null ? maleTimeListened : 0L) + (femaleTimeListened != null ? femaleTimeListened : 0L);
         return total > 0 ? (maleTimeListened != null ? maleTimeListened : 0L) * 100.0 / total : null;
     }
+    
+    /**
+     * Check if all male percentages are 100% (perfect male period).
+     * Only really happens for days and weeks.
+     */
+    public Boolean isPerfectMale() {
+        Double artistPct = getMaleArtistPercentage();
+        Double albumPct = getMaleAlbumPercentage();
+        Double songPct = getMaleSongPercentage();
+        Double playPct = getMalePlayPercentage();
+        Double timePct = getMaleTimePercentage();
+        
+        // All percentages must be exactly 100.0
+        return artistPct != null && artistPct == 100.0 &&
+               albumPct != null && albumPct == 100.0 &&
+               songPct != null && songPct == 100.0 &&
+               playPct != null && playPct == 100.0 &&
+               timePct != null && timePct == 100.0;
+    }
 
     // Getters and Setters
     public String getPeriodKey() {
@@ -365,6 +384,12 @@ public class TimeframeCardDTO {
     private Boolean hasChart;
     private Boolean weekComplete;
     
+    // Seasonal/Yearly chart status (for seasons and years)
+    private Boolean hasSeasonalChart;
+    private Boolean seasonalChartFinalized;
+    private Boolean hasYearlyChart;
+    private Boolean yearlyChartFinalized;
+    
     public Boolean getHasChart() {
         return hasChart;
     }
@@ -379,5 +404,57 @@ public class TimeframeCardDTO {
     
     public void setWeekComplete(Boolean weekComplete) {
         this.weekComplete = weekComplete;
+    }
+    
+    public Boolean getHasSeasonalChart() {
+        return hasSeasonalChart;
+    }
+    
+    public void setHasSeasonalChart(Boolean hasSeasonalChart) {
+        this.hasSeasonalChart = hasSeasonalChart;
+    }
+    
+    public Boolean getSeasonalChartFinalized() {
+        return seasonalChartFinalized;
+    }
+    
+    public void setSeasonalChartFinalized(Boolean seasonalChartFinalized) {
+        this.seasonalChartFinalized = seasonalChartFinalized;
+    }
+    
+    public Boolean getHasYearlyChart() {
+        return hasYearlyChart;
+    }
+    
+    public void setHasYearlyChart(Boolean hasYearlyChart) {
+        this.hasYearlyChart = hasYearlyChart;
+    }
+    
+    public Boolean getYearlyChartFinalized() {
+        return yearlyChartFinalized;
+    }
+    
+    public void setYearlyChartFinalized(Boolean yearlyChartFinalized) {
+        this.yearlyChartFinalized = yearlyChartFinalized;
+    }
+    
+    // #1 song/album names for finalized charts
+    private String numberOneSongName;
+    private String numberOneAlbumName;
+    
+    public String getNumberOneSongName() {
+        return numberOneSongName;
+    }
+    
+    public void setNumberOneSongName(String numberOneSongName) {
+        this.numberOneSongName = numberOneSongName;
+    }
+    
+    public String getNumberOneAlbumName() {
+        return numberOneAlbumName;
+    }
+    
+    public void setNumberOneAlbumName(String numberOneAlbumName) {
+        this.numberOneAlbumName = numberOneAlbumName;
     }
 }

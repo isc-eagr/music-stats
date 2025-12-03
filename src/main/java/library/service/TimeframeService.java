@@ -676,11 +676,26 @@ public class TimeframeService {
     }
     
     /**
-     * Get sort column based on sortBy parameter
+     * Get sort column based on sortBy parameter.
+     * Returns expression with 'ps.' prefix which gets replaced as needed:
+     * - For filtered_periods CTE: .replace("ps.", "")
+     * - For final SELECT: .replace("ps.", "fp.")
      */
     private String getSortColumn(String sortBy, String periodType) {
+        // For seasons, use chronological order (year * 10 + season_number)
+        // Use ps.period_key so it can be replaced with correct prefix
+        String seasonSortExpr = """
+            (CAST(SUBSTR(ps.period_key, 1, 4) AS INTEGER) * 10 + 
+             CASE SUBSTR(ps.period_key, 6)
+                 WHEN 'Winter' THEN 1
+                 WHEN 'Spring' THEN 2
+                 WHEN 'Summer' THEN 3
+                 WHEN 'Fall' THEN 4
+                 ELSE 0
+             END)""";
+        
         if (sortBy == null) {
-            return "ps.period_key";
+            return "seasons".equals(periodType) ? seasonSortExpr : "ps.period_key";
         }
         return switch (sortBy.toLowerCase()) {
             case "plays" -> "ps.play_count";
@@ -693,7 +708,7 @@ public class TimeframeService {
             case "malesongpct" -> "male_song_pct";
             case "maleplaypct" -> "male_play_pct";
             case "maletimepct" -> "male_time_pct";
-            default -> "ps.period_key";
+            default -> "seasons".equals(periodType) ? seasonSortExpr : "ps.period_key";
         };
     }
     

@@ -53,6 +53,11 @@ public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer>
     void deleteByChartId(Integer chartId);
     
     /**
+     * Count entries for a chart.
+     */
+    long countByChartId(Integer chartId);
+    
+    /**
      * Find the position of a song in a specific chart (if it exists).
      */
     @Query("SELECT e.position FROM ChartEntry e WHERE e.chartId = :chartId AND e.songId = :songId")
@@ -61,10 +66,11 @@ public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer>
     /**
      * Get chart entries with song and artist names populated.
      * Returns entries with transient fields filled via a native query.
+     * Uses COALESCE to check single_cover first, then fall back to album image.
      */
     @Query(value = "SELECT ce.id, ce.chart_id, ce.position, ce.song_id, ce.album_id, ce.play_count, " +
             "s.name as song_name, a.name as artist_name, " +
-            "CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image, " +
+            "CASE WHEN COALESCE(s.single_cover, (SELECT al.image FROM Album al WHERE al.id = s.album_id)) IS NOT NULL THEN 1 ELSE 0 END as has_image, " +
             "a.id as artist_id " +
             "FROM ChartEntry ce " +
             "INNER JOIN Song s ON ce.song_id = s.id " +

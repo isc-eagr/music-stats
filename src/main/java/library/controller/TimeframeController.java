@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Controller
@@ -66,6 +67,8 @@ public class TimeframeController {
             @RequestParam(required = false) Double malePlayPctMax,
             @RequestParam(required = false) Double maleTimePctMin,
             @RequestParam(required = false) Double maleTimePctMax,
+            // Perfect male filter (100% male across all metrics)
+            @RequestParam(required = false) Boolean perfectMale,
             // Sorting and pagination
             @RequestParam(defaultValue = "period") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
@@ -77,6 +80,21 @@ public class TimeframeController {
         // Validate period type
         if (!VALID_PERIOD_TYPES.contains(periodType)) {
             return "redirect:/years";
+        }
+        
+        // If perfectMale filter is enabled, set all male percentage mins to 100
+        Double effectiveMaleArtistPctMin = maleArtistPctMin;
+        Double effectiveMaleAlbumPctMin = maleAlbumPctMin;
+        Double effectiveMaleSongPctMin = maleSongPctMin;
+        Double effectiveMalePlayPctMin = malePlayPctMin;
+        Double effectiveMaleTimePctMin = maleTimePctMin;
+        
+        if (Boolean.TRUE.equals(perfectMale)) {
+            effectiveMaleArtistPctMin = 100.0;
+            effectiveMaleAlbumPctMin = 100.0;
+            effectiveMaleSongPctMin = 100.0;
+            effectiveMalePlayPctMin = 100.0;
+            effectiveMaleTimePctMin = 100.0;
         }
         
         // Get timeframe cards
@@ -92,11 +110,11 @@ public class TimeframeController {
             songCountMin, songCountMax,
             playsMin, playsMax,
             timeMin, timeMax,
-            maleArtistPctMin, maleArtistPctMax,
-            maleAlbumPctMin, maleAlbumPctMax,
-            maleSongPctMin, maleSongPctMax,
-            malePlayPctMin, malePlayPctMax,
-            maleTimePctMin, maleTimePctMax,
+            effectiveMaleArtistPctMin, maleArtistPctMax,
+            effectiveMaleAlbumPctMin, maleAlbumPctMax,
+            effectiveMaleSongPctMin, maleSongPctMax,
+            effectiveMalePlayPctMin, malePlayPctMax,
+            effectiveMaleTimePctMin, maleTimePctMax,
             sortby, sortdir, page, perpage
         );
         
@@ -113,11 +131,11 @@ public class TimeframeController {
             songCountMin, songCountMax,
             playsMin, playsMax,
             timeMin, timeMax,
-            maleArtistPctMin, maleArtistPctMax,
-            maleAlbumPctMin, maleAlbumPctMax,
-            maleSongPctMin, maleSongPctMax,
-            malePlayPctMin, malePlayPctMax,
-            maleTimePctMin, maleTimePctMax
+            effectiveMaleArtistPctMin, maleArtistPctMax,
+            effectiveMaleAlbumPctMin, maleAlbumPctMax,
+            effectiveMaleSongPctMin, maleSongPctMax,
+            effectiveMalePlayPctMin, malePlayPctMax,
+            effectiveMaleTimePctMin, maleTimePctMax
         );
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
@@ -133,6 +151,46 @@ public class TimeframeController {
             for (TimeframeCardDTO tf : timeframes) {
                 tf.setHasChart(weeksWithCharts.contains(tf.getPeriodKey()));
                 tf.setWeekComplete(chartService.isWeekComplete(tf.getPeriodKey()));
+                // Get #1 song/album if chart exists
+                if (Boolean.TRUE.equals(tf.getHasChart())) {
+                    Map<String, String> topEntries = chartService.getWeeklyChartTopEntries(tf.getPeriodKey());
+                    tf.setNumberOneSongName(topEntries.get("song"));
+                    tf.setNumberOneAlbumName(topEntries.get("album"));
+                }
+            }
+        }
+        
+        // For seasons, populate chart status
+        if ("seasons".equals(periodType)) {
+            Set<String> seasonsWithFinalizedCharts = chartService.getFinalizedChartPeriodKeys("seasonal");
+            Set<String> seasonsWithAnyCharts = chartService.getAllChartPeriodKeys("seasonal");
+            for (TimeframeCardDTO tf : timeframes) {
+                boolean hasChart = seasonsWithAnyCharts.contains(tf.getPeriodKey());
+                boolean finalized = seasonsWithFinalizedCharts.contains(tf.getPeriodKey());
+                tf.setHasSeasonalChart(hasChart);
+                tf.setSeasonalChartFinalized(finalized);
+                // Get #1 song/album if chart is finalized
+                if (finalized) {
+                    tf.setNumberOneSongName(chartService.getNumberOneSongName("seasonal", tf.getPeriodKey()));
+                    tf.setNumberOneAlbumName(chartService.getNumberOneAlbumName("seasonal", tf.getPeriodKey()));
+                }
+            }
+        }
+        
+        // For years, populate chart status
+        if ("years".equals(periodType)) {
+            Set<String> yearsWithFinalizedCharts = chartService.getFinalizedChartPeriodKeys("yearly");
+            Set<String> yearsWithAnyCharts = chartService.getAllChartPeriodKeys("yearly");
+            for (TimeframeCardDTO tf : timeframes) {
+                boolean hasChart = yearsWithAnyCharts.contains(tf.getPeriodKey());
+                boolean finalized = yearsWithFinalizedCharts.contains(tf.getPeriodKey());
+                tf.setHasYearlyChart(hasChart);
+                tf.setYearlyChartFinalized(finalized);
+                // Get #1 song/album if chart is finalized
+                if (finalized) {
+                    tf.setNumberOneSongName(chartService.getNumberOneSongName("yearly", tf.getPeriodKey()));
+                    tf.setNumberOneAlbumName(chartService.getNumberOneAlbumName("yearly", tf.getPeriodKey()));
+                }
             }
         }
         
@@ -186,6 +244,7 @@ public class TimeframeController {
         model.addAttribute("malePlayPctMax", malePlayPctMax);
         model.addAttribute("maleTimePctMin", maleTimePctMin);
         model.addAttribute("maleTimePctMax", maleTimePctMax);
+        model.addAttribute("perfectMale", perfectMale);
         
         // Query string for pagination links (without page param)
         String queryString = request.getQueryString();

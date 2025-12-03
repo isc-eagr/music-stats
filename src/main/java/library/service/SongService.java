@@ -385,9 +385,15 @@ public class SongService {
     }
     
     public byte[] getSongImage(Integer id) {
-        String sql = "SELECT single_cover FROM Song WHERE id = ?";
+        // Use COALESCE to check single_cover first, then fall back to album image
+        String sql = """
+            SELECT COALESCE(s.single_cover, a.image) as image
+            FROM Song s
+            LEFT JOIN Album a ON s.album_id = a.id
+            WHERE s.id = ?
+            """;
         try {
-            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("single_cover"), id);
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("image"), id);
         } catch (Exception e) {
             return null;
         }
@@ -1141,7 +1147,8 @@ public class SongService {
     // Search songs by artist and song name for API
     public List<Map<String, Object>> searchSongs(String artistQuery, String songQuery, int limit) {
         StringBuilder sql = new StringBuilder(
-            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name " +
+            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
+            "CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image " +
             "FROM Song s " +
             "JOIN Artist a ON s.artist_id = a.id " +
             "LEFT JOIN Album al ON s.album_id = al.id " +
@@ -1150,14 +1157,26 @@ public class SongService {
         
         List<Object> params = new ArrayList<>();
         
-        if (artistQuery != null && !artistQuery.trim().isEmpty()) {
-            sql.append("AND LOWER(a.name) LIKE ? ");
-            params.add("%" + artistQuery.toLowerCase() + "%");
-        }
+        // Use OR logic when both artist and song query are the same (unified search)
+        boolean hasArtist = artistQuery != null && !artistQuery.trim().isEmpty();
+        boolean hasSong = songQuery != null && !songQuery.trim().isEmpty();
         
-        if (songQuery != null && !songQuery.trim().isEmpty()) {
-            sql.append("AND LOWER(s.name) LIKE ? ");
+        if (hasArtist && hasSong && artistQuery.equals(songQuery)) {
+            // Unified search: match either artist OR song name
+            sql.append("AND (LOWER(a.name) LIKE ? OR LOWER(s.name) LIKE ?) ");
+            params.add("%" + artistQuery.toLowerCase() + "%");
             params.add("%" + songQuery.toLowerCase() + "%");
+        } else {
+            // Separate filters: match both if provided
+            if (hasArtist) {
+                sql.append("AND LOWER(a.name) LIKE ? ");
+                params.add("%" + artistQuery.toLowerCase() + "%");
+            }
+            
+            if (hasSong) {
+                sql.append("AND LOWER(s.name) LIKE ? ");
+                params.add("%" + songQuery.toLowerCase() + "%");
+            }
         }
         
         sql.append("ORDER BY a.name, s.name ");
@@ -1174,6 +1193,7 @@ public class SongService {
             song.put("name", rs.getString("name"));
             song.put("artistName", rs.getString("artist_name"));
             song.put("albumName", rs.getString("album_name"));
+            song.put("hasImage", rs.getInt("has_image") == 1);
             return song;
         }, params.toArray());
     }

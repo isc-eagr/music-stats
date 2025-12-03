@@ -38,6 +38,12 @@ public class Chart {
     @Column(name = "generated_date")
     private String generatedDate;    // Stored as "yyyy-MM-dd HH:mm:ss"
     
+    @Column(name = "period_type", length = 20, nullable = false)
+    private String periodType = "weekly";  // 'weekly', 'seasonal', or 'yearly'
+    
+    @Column(name = "is_finalized", nullable = false)
+    private Boolean isFinalized = false;  // True when chart is finalized and cannot be edited
+    
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
     // Default constructor
@@ -51,6 +57,19 @@ public class Chart {
         this.periodStartDate = periodStartDate.toString();  // yyyy-MM-dd format
         this.periodEndDate = periodEndDate.toString();      // yyyy-MM-dd format
         this.generatedDate = LocalDateTime.now().format(DATETIME_FORMAT);
+        this.periodType = "weekly";
+        this.isFinalized = true;  // Weekly charts are auto-finalized on generation
+    }
+    
+    // Constructor for seasonal/yearly charts with period type
+    public Chart(String chartType, String periodKey, LocalDate periodStartDate, LocalDate periodEndDate, String periodType) {
+        this.chartType = chartType;
+        this.periodKey = periodKey;
+        this.periodStartDate = periodStartDate.toString();
+        this.periodEndDate = periodEndDate.toString();
+        this.generatedDate = LocalDateTime.now().format(DATETIME_FORMAT);
+        this.periodType = periodType;
+        this.isFinalized = false;  // Seasonal/yearly charts start as drafts
     }
     
     // Getters and setters
@@ -116,6 +135,22 @@ public class Chart {
     
     public void setGeneratedDate(String generatedDate) {
         this.generatedDate = generatedDate;
+    }
+    
+    public String getPeriodType() {
+        return periodType;
+    }
+    
+    public void setPeriodType(String periodType) {
+        this.periodType = periodType;
+    }
+    
+    public Boolean getIsFinalized() {
+        return isFinalized;
+    }
+    
+    public void setIsFinalized(Boolean isFinalized) {
+        this.isFinalized = isFinalized;
     }
     
     /**

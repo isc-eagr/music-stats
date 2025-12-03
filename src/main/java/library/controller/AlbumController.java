@@ -288,6 +288,11 @@ public class AlbumController {
         if ("chart-history".equals(tab)) {
             model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
             model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
+            model.addAttribute("seasonalChartHistory", chartService.getSeasonalChartHistoryForAlbum(id));
+            model.addAttribute("yearlyChartHistory", chartService.getYearlyChartHistoryForAlbum(id));
+            // Songs' seasonal/yearly chart history
+            model.addAttribute("seasonalSongChartHistory", chartService.getSeasonalChartHistoryForAlbumSongs(id));
+            model.addAttribute("yearlySongChartHistory", chartService.getYearlyChartHistoryForAlbumSongs(id));
         }
         
         return "albums/detail";
@@ -373,6 +378,17 @@ public class AlbumController {
     @ResponseBody
     public List<Map<String, Object>> getAlbumsByArtistAlt(@RequestParam Integer artistId) {
         return albumService.getAlbumsByArtistForApi(artistId);
+    }
+    
+    /**
+     * Search albums by name or artist name for the seasonal/yearly chart editor.
+     */
+    @GetMapping("/api/search")
+    @ResponseBody
+    public List<Map<String, Object>> searchAlbumsForApi(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false, defaultValue = "20") int limit) {
+        return albumService.searchAlbums(query, limit);
     }
     
     // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)

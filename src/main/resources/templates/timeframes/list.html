@@ -9,12 +9,47 @@
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <script th:src="@{/js/list-utils.js}"></script>
     <style>
-        /* Chart generation button on week cards */
+        /* Chart status badges - pill style */
         .chart-generate-btn-container {
             position: absolute;
             top: 8px;
             right: 8px;
             z-index: 10;
+        }
+        .chart-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .chart-status-badge:hover {
+            transform: scale(1.05);
+            text-decoration: none;
+        }
+        .chart-status-badge.finalized {
+            background: #1e4a1e;
+            color: #4ade80;
+        }
+        .chart-status-badge.draft {
+            background: #4a4a1e;
+            color: #facc15;
+        }
+        .chart-status-badge.not-started {
+            background: #4a1e1e;
+            color: #f87171;
+        }
+        .chart-status-badge.pending {
+            background: #2a2a2a;
+            color: #888;
+        }
+        .chart-status-badge.pending:hover {
+            transform: none;
         }
         .chart-generate-btn {
             background: #333;
@@ -34,25 +69,72 @@
             opacity: 0.6;
             cursor: wait;
         }
-        .chart-generated-indicator {
-            font-size: 16px;
-            padding: 4px;
-            text-decoration: none;
-            display: inline-block;
-            transition: transform 0.2s ease;
-        }
-        .chart-generated-indicator:hover {
-            transform: scale(1.2);
-            text-decoration: none;
-        }
-        .chart-pending-indicator {
-            font-size: 16px;
-            padding: 4px;
-            opacity: 0.6;
-            cursor: default;
-        }
         .timeframe-card {
             position: relative;
+        }
+        @keyframes metallicShine {
+            0% {
+                background-position: -200% center;
+            }
+            100% {
+                background-position: 200% center;
+            }
+        }
+        .timeframe-card.perfect-male {
+            box-shadow: 0 0 25px 6px rgba(59, 130, 246, 0.6),
+                        0 0 50px 10px rgba(59, 130, 246, 0.3),
+                        inset 0 0 15px rgba(59, 130, 246, 0.1);
+            border-color: rgba(100, 160, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        .timeframe-card.perfect-male::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                110deg,
+                transparent 20%,
+                rgba(120, 180, 255, 0.15) 40%,
+                rgba(180, 220, 255, 0.25) 50%,
+                rgba(120, 180, 255, 0.15) 60%,
+                transparent 80%
+            );
+            background-size: 200% 100%;
+            animation: metallicShine 3s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .timeframe-card.perfect-male:hover {
+            box-shadow: 0 0 35px 10px rgba(59, 130, 246, 0.8),
+                        0 0 60px 15px rgba(59, 130, 246, 0.4),
+                        inset 0 0 20px rgba(59, 130, 246, 0.15);
+            border-color: rgba(130, 180, 255, 1);
+        }
+        .number-one-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #2a2a2a;
+        }
+        .number-one-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #ccc;
+            margin-bottom: 3px;
+        }
+        .number-one-item .label {
+            color: #888;
+            min-width: 20px;
+        }
+        .number-one-item .name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -109,6 +191,19 @@
                                 <input type="hidden" name="sortby" th:value="${sortBy}">
                                 <input type="hidden" name="sortdir" th:value="${sortDir}">
                                 <input type="hidden" name="perpage" th:value="${perPage}">
+                                
+                                <!-- 100% Male Filter (only for days and weeks) -->
+                                <div th:if="${periodType == 'days' or periodType == 'weeks'}" class="filter-item" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(100, 160, 255, 0.05)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; margin-bottom: 12px;">
+                                    <div style="padding: 12px;">
+                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #60a5fa; font-weight: 600;">
+                                            <input type="checkbox" name="perfectMale" value="true" 
+                                                   th:checked="${perfectMale == true}"
+                                                   style="width: 18px; height: 18px; accent-color: #3b82f6;">
+                                            <span>✨ 100% Male Only</span>
+                                        </label>
+                                        <p style="margin: 6px 0 0 28px; font-size: 0.75rem; color: #888;">Show only periods with 100% male across all metrics</p>
+                                    </div>
+                                </div>
                                 
                                 <!-- Album Count Range Filter -->
                                 <div class="filter-item">
@@ -656,42 +751,112 @@
         <div class="catalog-grid">
             <div th:each="tf : ${timeframes}" 
                  class="catalog-card timeframe-card"
-                 th:classappend="${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('male') and !tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-male' : (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-female' : '')"
+                 th:classappend="${tf.perfectMale == true ? 'perfect-male' : ''} + ' ' + (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('male') and !tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-male' : (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-female' : ''))"
                  th:data-date-from="${tf.listenedDateFrom}"
                  th:data-date-to="${tf.listenedDateTo}"
                  th:data-period-label="${tf.periodDisplayName}"
                  th:data-period-key="${tf.periodKey}"
                  onclick="handleTimeframeCardClick(this)">
                 
-                <!-- Generate Chart button (only for weeks) -->
+                <!-- Chart status indicator (only for weeks) -->
                 <div th:if="${periodType == 'weeks'}" class="chart-generate-btn-container">
-                    <!-- Show generate button only if week is complete and chart doesn't exist -->
-                    <button type="button" 
-                            th:if="${tf.hasChart != true and tf.weekComplete == true}"
-                            class="chart-generate-btn chart-not-generated"
-                            th:data-period-key="${tf.periodKey}"
-                            onclick="event.stopPropagation(); generateChart(this);"
-                            title="Generate chart for this week">
-                        📊
-                    </button>
-                    <!-- Show hourglass for ongoing week without chart -->
-                    <span th:if="${tf.hasChart != true and tf.weekComplete != true}"
-                          class="chart-pending-indicator"
-                          title="Week is still ongoing - chart can be generated after the week ends">
-                        ⏳
-                    </span>
+                    <!-- Finalized chart -->
                     <a th:if="${tf.hasChart == true}"
                        th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
                        target="_blank"
-                       class="chart-generated-indicator"
+                       class="chart-status-badge finalized"
                        title="View chart for this week"
                        onclick="event.stopPropagation();">
-                        ✅
+                        ✓ Chart
+                    </a>
+                    <!-- Pending (week in progress) -->
+                    <span th:if="${tf.hasChart != true and tf.weekComplete != true}"
+                          class="chart-status-badge pending"
+                          title="Week is still ongoing">
+                        In Progress
+                    </span>
+                    <!-- Not started (week complete but no chart) -->
+                    <a th:if="${tf.hasChart != true and tf.weekComplete == true}"
+                       th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge not-started"
+                       th:data-period-key="${tf.periodKey}"
+                       onclick="event.stopPropagation(); generateChartFromBadge(event, this);"
+                       title="Generate chart for this week">
+                        No Chart
+                    </a>
+                </div>
+                
+                <!-- Chart status indicator (only for seasons) -->
+                <div th:if="${periodType == 'seasons'}" class="chart-generate-btn-container">
+                    <!-- Finalized -->
+                    <a th:if="${tf.seasonalChartFinalized == true}"
+                       th:href="@{/charts/seasonal/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge finalized"
+                       title="View finalized seasonal chart"
+                       onclick="event.stopPropagation();">
+                        ✓ Finalized
+                    </a>
+                    <!-- Draft -->
+                    <a th:if="${tf.hasSeasonalChart == true and tf.seasonalChartFinalized != true}"
+                       th:href="@{/charts/seasonal/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge draft"
+                       title="View draft seasonal chart"
+                       onclick="event.stopPropagation();">
+                        Draft
+                    </a>
+                    <!-- Not started -->
+                    <a th:if="${tf.hasSeasonalChart != true}"
+                       th:href="@{/charts/seasonal/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge not-started"
+                       title="Create seasonal chart"
+                       onclick="event.stopPropagation();">
+                        Not Started
+                    </a>
+                </div>
+                
+                <!-- Chart status indicator (only for years) -->
+                <div th:if="${periodType == 'years'}" class="chart-generate-btn-container">
+                    <!-- Finalized -->
+                    <a th:if="${tf.yearlyChartFinalized == true}"
+                       th:href="@{/charts/yearly/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge finalized"
+                       title="View finalized yearly chart"
+                       onclick="event.stopPropagation();">
+                        ✓ Finalized
+                    </a>
+                    <!-- Draft -->
+                    <a th:if="${tf.hasYearlyChart == true and tf.yearlyChartFinalized != true}"
+                       th:href="@{/charts/yearly/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge draft"
+                       title="View draft yearly chart"
+                       onclick="event.stopPropagation();">
+                        Draft
+                    </a>
+                    <!-- Not started -->
+                    <a th:if="${tf.hasYearlyChart != true}"
+                       th:href="@{/charts/yearly/{pk}(pk=${tf.periodKey})}"
+                       target="_blank"
+                       class="chart-status-badge not-started"
+                       title="Create yearly chart"
+                       onclick="event.stopPropagation();">
+                        Not Started
                     </a>
                 </div>
                 
                 <div class="catalog-info timeframe-info">
-                    <h3 class="catalog-name timeframe-name" th:text="${tf.periodDisplayName}">Period Name</h3>
+                    <h3 class="catalog-name timeframe-name">
+                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Winter')}">❄️ </span>
+                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Spring')}">🌸 </span>
+                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Summer')}">☀️ </span>
+                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Fall')}">🍂 </span>
+                        <span th:text="${tf.periodDisplayName}">Period Name</span>
+                    </h3>
                     
                     <!-- Winning attributes chips -->
                     <div class="winning-chips">
@@ -801,6 +966,19 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- #1 Song and Album for finalized charts -->
+                    <div th:if="${(periodType == 'weeks' and tf.hasChart == true) or (periodType == 'seasons' and tf.seasonalChartFinalized == true) or (periodType == 'years' and tf.yearlyChartFinalized == true)}" 
+                         class="number-one-info">
+                        <div th:if="${tf.numberOneSongName != null}" class="number-one-item">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${tf.numberOneSongName}" th:title="${tf.numberOneSongName}">Song Name</span>
+                        </div>
+                        <div th:if="${tf.numberOneAlbumName != null}" class="number-one-item">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${tf.numberOneAlbumName}" th:title="${tf.numberOneAlbumName}">Album Name</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -845,14 +1023,15 @@
             window.open('/graphs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel, '_blank');
         }
         
-        // Handler for chart generation button
-        async function generateChart(button) {
-            const periodKey = button.getAttribute('data-period-key');
+        // Handler for chart generation from badge click
+        async function generateChartFromBadge(event, badge) {
+            event.preventDefault();
+            const periodKey = badge.getAttribute('data-period-key');
             if (!periodKey) return;
             
-            button.classList.add('generating');
-            button.disabled = true;
-            button.textContent = '⏳';
+            badge.innerHTML = '⏳';
+            badge.classList.remove('not-started');
+            badge.classList.add('pending');
             
             try {
                 const response = await fetch('/charts/generate/' + encodeURIComponent(periodKey), {
@@ -863,21 +1042,24 @@
                 });
                 
                 if (response.ok) {
-                    // Replace button with green checkmark
-                    const container = button.parentElement;
-                    container.innerHTML = '<span class="chart-generated-indicator" title="Chart generated">✅</span>';
+                    // Change to finalized badge
+                    badge.classList.remove('pending');
+                    badge.classList.add('finalized');
+                    badge.innerHTML = '✓';
+                    badge.title = 'View chart for this week';
+                    badge.onclick = function(e) { e.stopPropagation(); };
                 } else {
                     const error = await response.text();
                     alert('Failed to generate chart: ' + error);
-                    button.classList.remove('generating');
-                    button.disabled = false;
-                    button.textContent = '📊';
+                    badge.classList.remove('pending');
+                    badge.classList.add('not-started');
+                    badge.innerHTML = '✗';
                 }
             } catch (error) {
                 alert('Error generating chart: ' + error.message);
-                button.classList.remove('generating');
-                button.disabled = false;
-                button.textContent = '📊';
+                badge.classList.remove('pending');
+                badge.classList.add('not-started');
+                badge.innerHTML = '✗';
             }
         }
         

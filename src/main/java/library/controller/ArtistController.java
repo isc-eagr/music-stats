@@ -211,6 +211,11 @@ public class ArtistController {
         if ("chart-history".equals(tab)) {
             model.addAttribute("songChartHistory", chartService.getArtistSongChartHistory(id));
             model.addAttribute("albumChartHistory", chartService.getArtistAlbumChartHistory(id));
+            // Seasonal/Yearly chart history
+            model.addAttribute("seasonalSongChartHistory", chartService.getSeasonalChartHistoryForArtist(id));
+            model.addAttribute("yearlySongChartHistory", chartService.getYearlyChartHistoryForArtist(id));
+            model.addAttribute("seasonalAlbumChartHistory", chartService.getSeasonalAlbumChartHistoryForArtist(id));
+            model.addAttribute("yearlyAlbumChartHistory", chartService.getYearlyAlbumChartHistoryForArtist(id));
         }
         
         // Get gender name for bar color

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class ChartsController {
      */
     @GetMapping("/weekly")
     public String weeklyCharts(Model model) {
-        Optional<Chart> latestChart = chartService.getLatestChart("song");
+        Optional<Chart> latestChart = chartService.getLatestWeeklyChart("song");
         
         if (latestChart.isPresent()) {
             return "redirect:/charts/weekly/" + latestChart.get().getPeriodKey();
@@ -213,5 +214,268 @@ public class ChartsController {
         } catch (Exception e) {
             return "redirect:/charts/weekly";
         }
+    }
+    
+    // ========== SEASONAL CHARTS ==========
+    
+    /**
+     * Seasonal charts landing page - redirects to latest chart.
+     */
+    @GetMapping("/seasonal")
+    public String seasonalCharts(Model model) {
+        Optional<Chart> latestChart = chartService.getLatestSeasonalYearlyChart("seasonal", "song");
+        
+        if (latestChart.isPresent()) {
+            return "redirect:/charts/seasonal/" + latestChart.get().getPeriodKey();
+        }
+        
+        // No charts exist - redirect to current season
+        String currentSeason = chartService.getCurrentSeasonPeriodKey();
+        return "redirect:/charts/seasonal/" + currentSeason;
+    }
+
+    /**
+     * View/Edit a specific season's charts.
+     */
+    @GetMapping("/seasonal/{periodKey}")
+    public String seasonalChart(@PathVariable String periodKey, Model model) {
+        // Get or create draft charts
+        Map<String, Chart> charts = chartService.createOrGetDraftCharts("seasonal", periodKey);
+        Chart songChart = charts.get("song");
+        Chart albumChart = charts.get("album");
+        
+        List<ChartEntryDTO> songEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "song", periodKey);
+        List<ChartEntryDTO> albumEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "album", periodKey);
+        
+        boolean isComplete = chartService.isSeasonComplete(periodKey);
+        boolean canFinalize = isComplete 
+            && songEntries.size() == ChartService.SEASONAL_YEARLY_SONGS_COUNT
+            && albumEntries.size() == ChartService.SEASONAL_ALBUMS_COUNT;
+        
+        // Navigation
+        String prevPeriodKey = chartService.getPreviousSeasonPeriodKey(periodKey);
+        String nextPeriodKey = chartService.getNextSeasonPeriodKey(periodKey);
+        // Only show nav if the adjacent season has data
+        if (prevPeriodKey != null && !chartService.hasSeasonData(prevPeriodKey)) {
+            prevPeriodKey = null;
+        }
+        if (nextPeriodKey != null && !chartService.hasSeasonData(nextPeriodKey)) {
+            nextPeriodKey = null;
+        }
+        
+        model.addAttribute("currentSection", "seasonal-charts");
+        model.addAttribute("periodType", "seasonal");
+        model.addAttribute("periodKey", periodKey);
+        model.addAttribute("displayName", chartService.formatSeasonPeriodKey(periodKey));
+        model.addAttribute("songChart", songChart);
+        model.addAttribute("albumChart", albumChart);
+        model.addAttribute("songEntries", songEntries);
+        model.addAttribute("albumEntries", albumEntries);
+        model.addAttribute("isComplete", isComplete);
+        model.addAttribute("canFinalize", canFinalize);
+        model.addAttribute("songChartFinalized", songChart.getIsFinalized());
+        model.addAttribute("albumChartFinalized", albumChart.getIsFinalized());
+        model.addAttribute("maxSongs", ChartService.SEASONAL_YEARLY_SONGS_COUNT);
+        model.addAttribute("maxAlbums", ChartService.SEASONAL_ALBUMS_COUNT);
+        model.addAttribute("prevPeriodKey", prevPeriodKey);
+        model.addAttribute("nextPeriodKey", nextPeriodKey);
+        model.addAttribute("allSeasons", chartService.getAllSeasonsWithData());
+        
+        return "charts/seasonal-edit";
+    }
+    
+    /**
+     * API: Save chart entries for a seasonal chart.
+     */
+    @PostMapping("/seasonal/{periodKey}/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveSeasonalChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            String chartType = (String) payload.get("chartType");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawEntries = (List<Map<String, Object>>) payload.get("entries");
+            
+            Optional<Chart> chartOpt = chartService.getSeasonalChart(chartType, periodKey);
+            if (chartOpt.isEmpty()) {
+                return createErrorResponse("Chart not found");
+            }
+            
+            // Convert entries to expected format
+            List<Map<String, Integer>> entries = new ArrayList<>();
+            for (Map<String, Object> rawEntry : rawEntries) {
+                Map<String, Integer> entry = new HashMap<>();
+                entry.put("position", ((Number) rawEntry.get("position")).intValue());
+                entry.put("itemId", ((Number) rawEntry.get("itemId")).intValue());
+                entries.add(entry);
+            }
+            
+            chartService.saveChartEntries(chartOpt.get().getId(), entries, chartType);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+    
+    /**
+     * API: Finalize a seasonal chart.
+     */
+    @PostMapping("/seasonal/{periodKey}/finalize")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> finalizeSeasonalChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Integer songChartId = ((Number) payload.get("songChartId")).intValue();
+            Integer albumChartId = ((Number) payload.get("albumChartId")).intValue();
+            
+            chartService.finalizeChart(songChartId, albumChartId, "seasonal");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+    
+    // ========== YEARLY CHARTS ==========
+    
+    /**
+     * Yearly charts landing page - redirects to latest chart.
+     */
+    @GetMapping("/yearly")
+    public String yearlyCharts(Model model) {
+        Optional<Chart> latestChart = chartService.getLatestSeasonalYearlyChart("yearly", "song");
+        
+        if (latestChart.isPresent()) {
+            return "redirect:/charts/yearly/" + latestChart.get().getPeriodKey();
+        }
+        
+        // No charts exist - redirect to current year
+        String currentYear = String.valueOf(java.time.LocalDate.now().getYear());
+        return "redirect:/charts/yearly/" + currentYear;
+    }
+
+    /**
+     * View/Edit a specific year's charts.
+     */
+    @GetMapping("/yearly/{periodKey}")
+    public String yearlyChart(@PathVariable String periodKey, Model model) {
+        // Get or create draft charts
+        Map<String, Chart> charts = chartService.createOrGetDraftCharts("yearly", periodKey);
+        Chart songChart = charts.get("song");
+        Chart albumChart = charts.get("album");
+        
+        List<ChartEntryDTO> songEntries = chartService.getSeasonalYearlyChartEntries("yearly", "song", periodKey);
+        List<ChartEntryDTO> albumEntries = chartService.getSeasonalYearlyChartEntries("yearly", "album", periodKey);
+        
+        boolean isComplete = chartService.isYearComplete(periodKey);
+        boolean canFinalize = isComplete 
+            && songEntries.size() == ChartService.SEASONAL_YEARLY_SONGS_COUNT
+            && albumEntries.size() == ChartService.YEARLY_ALBUMS_COUNT;
+        
+        // Navigation
+        String prevPeriodKey = chartService.getPreviousYearPeriodKey(periodKey);
+        String nextPeriodKey = chartService.getNextYearPeriodKey(periodKey);
+        // Only show nav if the adjacent year has data
+        if (prevPeriodKey != null && !chartService.hasYearData(prevPeriodKey)) {
+            prevPeriodKey = null;
+        }
+        if (nextPeriodKey != null && !chartService.hasYearData(nextPeriodKey)) {
+            nextPeriodKey = null;
+        }
+        
+        model.addAttribute("currentSection", "yearly-charts");
+        model.addAttribute("periodType", "yearly");
+        model.addAttribute("periodKey", periodKey);
+        model.addAttribute("displayName", periodKey);
+        model.addAttribute("songChart", songChart);
+        model.addAttribute("albumChart", albumChart);
+        model.addAttribute("songEntries", songEntries);
+        model.addAttribute("albumEntries", albumEntries);
+        model.addAttribute("isComplete", isComplete);
+        model.addAttribute("canFinalize", canFinalize);
+        model.addAttribute("songChartFinalized", songChart.getIsFinalized());
+        model.addAttribute("albumChartFinalized", albumChart.getIsFinalized());
+        model.addAttribute("maxSongs", ChartService.SEASONAL_YEARLY_SONGS_COUNT);
+        model.addAttribute("maxAlbums", ChartService.YEARLY_ALBUMS_COUNT);
+        model.addAttribute("prevPeriodKey", prevPeriodKey);
+        model.addAttribute("nextPeriodKey", nextPeriodKey);
+        model.addAttribute("allYears", chartService.getAllYearsWithData());
+        
+        return "charts/yearly-edit";
+    }
+    
+    /**
+     * API: Save chart entries for a yearly chart.
+     */
+    @PostMapping("/yearly/{periodKey}/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveYearlyChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            String chartType = (String) payload.get("chartType");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawEntries = (List<Map<String, Object>>) payload.get("entries");
+            
+            Optional<Chart> chartOpt = chartService.getYearlyChart(chartType, periodKey);
+            if (chartOpt.isEmpty()) {
+                return createErrorResponse("Chart not found");
+            }
+            
+            // Convert entries to expected format
+            List<Map<String, Integer>> entries = new ArrayList<>();
+            for (Map<String, Object> rawEntry : rawEntries) {
+                Map<String, Integer> entry = new HashMap<>();
+                entry.put("position", ((Number) rawEntry.get("position")).intValue());
+                entry.put("itemId", ((Number) rawEntry.get("itemId")).intValue());
+                entries.add(entry);
+            }
+            
+            chartService.saveChartEntries(chartOpt.get().getId(), entries, chartType);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+    
+    /**
+     * API: Finalize a yearly chart.
+     */
+    @PostMapping("/yearly/{periodKey}/finalize")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> finalizeYearlyChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Integer songChartId = ((Number) payload.get("songChartId")).intValue();
+            Integer albumChartId = ((Number) payload.get("albumChartId")).intValue();
+            
+            chartService.finalizeChart(songChartId, albumChartId, "yearly");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+    
+    // ========== HELPER METHODS ==========
+    
+    private ResponseEntity<Map<String, Object>> createErrorResponse(String errorMessage) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("error", errorMessage);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

@@ -603,6 +603,37 @@ public class AlbumService {
         }, artistId);
     }
     
+    /**
+     * Search albums by name or artist name for chart editor.
+     */
+    public List<Map<String, Object>> searchAlbums(String query, int limit) {
+        if (query == null || query.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        String searchTerm = "%" + query.trim().toLowerCase() + "%";
+        int actualLimit = limit > 0 ? limit : 20;
+        
+        String sql = """
+            SELECT a.id, a.name, ar.name as artist_name, 
+                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image
+            FROM Album a
+            JOIN Artist ar ON a.artist_id = ar.id
+            WHERE LOWER(a.name) LIKE ? OR LOWER(ar.name) LIKE ?
+            ORDER BY a.name
+            LIMIT ?
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> album = new java.util.HashMap<>();
+            album.put("id", rs.getInt("id"));
+            album.put("name", rs.getString("name"));
+            album.put("artistName", rs.getString("artist_name"));
+            album.put("hasImage", rs.getInt("has_image") == 1);
+            return album;
+        }, searchTerm, searchTerm, actualLimit);
+    }
+    
     // Find album by ID
     public Album findById(Integer id) {
         if (id == null) return null;

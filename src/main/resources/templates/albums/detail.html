@@ -485,6 +485,72 @@
                         </table>
                     </div>
                 </div>
+                
+                <!-- Album Seasonal/Yearly Charts Section -->
+                <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                    <h2 class="section-title">📊 Album Seasonal/Yearly Charts</h2>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <!-- Yearly entries first -->
+                        <a th:each="entry : ${yearlyChartHistory}" 
+                           th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
+                           style="background: #1e3a5e; color: #60a5fa; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;"
+                           th:text="${entry.displayName}">
+                            #1 in 2024
+                        </a>
+                        <!-- Seasonal entries second -->
+                        <a th:each="entry : ${seasonalChartHistory}" 
+                           th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
+                           style="background: #1e4a1e; color: #4ade80; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;">
+                            <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
+                            <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
+                            <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
+                            <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
+                            <span th:text="${entry.displayName}">#1 in Winter 2024</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Songs Seasonal/Yearly Charts Section -->
+                <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty()) or (yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                    <h2 class="section-title">🎵 Songs Seasonal/Yearly Charts</h2>
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Song</th>
+                                    <th class="numeric">Position</th>
+                                    <th>Period</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Yearly entries first -->
+                                <tr th:each="entry : ${yearlySongChartHistory}">
+                                    <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                    <td class="numeric" th:text="'#' + ${entry.position}">#1</td>
+                                    <td>
+                                        <a th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
+                                            📅 <span th:text="${entry.displayName}">2024</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <!-- Seasonal entries second -->
+                                <tr th:each="entry : ${seasonalSongChartHistory}">
+                                    <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                    <td class="numeric" th:text="'#' + ${entry.position}">#1</td>
+                                    <td>
+                                        <a th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
+                                            <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
+                                            <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
+                                            <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
+                                            <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
+                                            <span th:text="${entry.displayName}">Winter 2024</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

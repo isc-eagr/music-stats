@@ -36,18 +36,24 @@ public interface ChartRepository extends JpaRepository<Chart, Integer> {
     List<Chart> findLatestByChartType(@Param("chartType") String chartType);
     
     /**
-     * Find previous chart (the one before the given period key).
+     * Find the latest weekly chart (period_type = 'weekly').
      */
-    @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_start_date < " +
-            "(SELECT period_start_date FROM Chart WHERE chart_type = :chartType AND period_key = :periodKey) " +
+    @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_type = 'weekly' ORDER BY period_start_date DESC LIMIT 1", nativeQuery = true)
+    Optional<Chart> findLatestWeeklyChart(@Param("chartType") String chartType);
+    
+    /**
+     * Find previous weekly chart (the one before the given period key, weekly charts only).
+     */
+    @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_type = 'weekly' AND period_start_date < " +
+            "(SELECT period_start_date FROM Chart WHERE chart_type = :chartType AND period_key = :periodKey AND period_type = 'weekly') " +
             "ORDER BY period_start_date DESC LIMIT 1", nativeQuery = true)
     Optional<Chart> findPreviousChart(@Param("chartType") String chartType, @Param("periodKey") String periodKey);
     
     /**
-     * Find next chart (the one after the given period key).
+     * Find next weekly chart (the one after the given period key, weekly charts only).
      */
-    @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_start_date > " +
-            "(SELECT period_start_date FROM Chart WHERE chart_type = :chartType AND period_key = :periodKey) " +
+    @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_type = 'weekly' AND period_start_date > " +
+            "(SELECT period_start_date FROM Chart WHERE chart_type = :chartType AND period_key = :periodKey AND period_type = 'weekly') " +
             "ORDER BY period_start_date ASC LIMIT 1", nativeQuery = true)
     Optional<Chart> findNextChart(@Param("chartType") String chartType, @Param("periodKey") String periodKey);
     
@@ -57,8 +63,53 @@ public interface ChartRepository extends JpaRepository<Chart, Integer> {
     long countByChartType(String chartType);
     
     /**
-     * Find all charts ordered by period for a given type.
+     * Find all weekly charts ordered by period for a given type.
      */
-    @Query("SELECT c FROM Chart c WHERE c.chartType = :chartType ORDER BY c.periodStartDate ASC")
+    @Query("SELECT c FROM Chart c WHERE c.chartType = :chartType AND c.periodType = 'weekly' ORDER BY c.periodStartDate ASC")
     List<Chart> findAllByChartTypeOrderByPeriodStartDateAsc(@Param("chartType") String chartType);
+    
+    // ==================== Seasonal/Yearly Chart Methods ====================
+    
+    /**
+     * Find a chart by type, period type, and period key.
+     */
+    Optional<Chart> findByChartTypeAndPeriodTypeAndPeriodKey(String chartType, String periodType, String periodKey);
+    
+    /**
+     * Check if a chart exists for a given type, period type, and period.
+     */
+    boolean existsByChartTypeAndPeriodTypeAndPeriodKey(String chartType, String periodType, String periodKey);
+    
+    /**
+     * Find all period keys that have finalized charts for a given period type.
+     */
+    @Query("SELECT c.periodKey FROM Chart c WHERE c.periodType = :periodType AND c.isFinalized = true")
+    Set<String> findFinalizedPeriodKeysByPeriodType(@Param("periodType") String periodType);
+    
+    /**
+     * Find all period keys that have any charts (finalized or draft) for a given period type.
+     */
+    @Query("SELECT c.periodKey FROM Chart c WHERE c.periodType = :periodType")
+    Set<String> findAllPeriodKeysByPeriodType(@Param("periodType") String periodType);
+    
+    /**
+     * Find chart by period type and period key (for song or album - returns the chart record).
+     */
+    @Query("SELECT c FROM Chart c WHERE c.periodType = :periodType AND c.periodKey = :periodKey AND c.chartType = :chartType")
+    Optional<Chart> findByPeriodTypeAndPeriodKeyAndChartType(
+            @Param("periodType") String periodType, 
+            @Param("periodKey") String periodKey,
+            @Param("chartType") String chartType);
+    
+    /**
+     * Find latest chart by period type (most recent period_start_date).
+     */
+    @Query("SELECT c FROM Chart c WHERE c.periodType = :periodType AND c.chartType = :chartType AND c.isFinalized = true ORDER BY c.periodStartDate DESC")
+    List<Chart> findLatestByPeriodTypeAndChartType(@Param("periodType") String periodType, @Param("chartType") String chartType);
+    
+    /**
+     * Check if a finalized chart exists for a given period type and period key.
+     */
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Chart c WHERE c.periodType = :periodType AND c.periodKey = :periodKey AND c.isFinalized = true")
+    boolean existsFinalizedChart(@Param("periodType") String periodType, @Param("periodKey") String periodKey);
 }

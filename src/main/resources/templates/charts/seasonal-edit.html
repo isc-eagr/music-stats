@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Seasonal Chart - ' + ${displayName} + ' - Music Stats'">Seasonal Chart - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .chart-editor {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .chart-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .back-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .back-btn:hover {
+            background: #2a2a2a;
+            border-color: #444;
+        }
+        
+        .chart-title {
+            font-size: 1.8rem;
+            color: #fff;
+            margin: 0;
+        }
+        
+        .chart-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #1e40af;
+            color: #fff;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+        
+        .btn-success {
+            background: #15803d;
+            color: #fff;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background: #16a34a;
+        }
+        
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .status-info {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-badge.finalized {
+            background: #1e4a1e;
+            color: #4ade80;
+        }
+        
+        .status-badge.draft {
+            background: #4a4a1e;
+            color: #facc15;
+        }
+        
+        .status-badge.incomplete {
+            background: #4a1e1e;
+            color: #f87171;
+        }
+        
+        .chart-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .chart-sections {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-section {
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #111;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-count {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .search-container {
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #1e40af;
+        }
+        
+        .search-input::placeholder {
+            color: #666;
+        }
+        
+        .search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            border-bottom: 1px solid #2a2a2a;
+            display: none;
+        }
+        
+        .search-results.active {
+            display: block;
+        }
+        
+        .search-result-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-item:hover {
+            background: #1a1a1a;
+        }
+        
+        .search-result-item.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #111;
+        }
+        
+        .result-name {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        
+        .result-meta {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .no-results {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .chart-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .chart-list.finalized {
+            max-height: none;
+            overflow-y: visible;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        
+        .chart-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid #222;
+        }
+        
+        .chart-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .entry-position {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1e40af;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        
+        .entry-image {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #222;
+            flex-shrink: 0;
+        }
+        
+        .entry-placeholder {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .entry-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .entry-name {
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .entry-name a {
+            color: #fff;
+            text-decoration: none;
+        }
+        
+        .entry-name a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        
+        .entry-artist {
+            font-size: 0.85rem;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .entry-artist a {
+            color: #888;
+            text-decoration: none;
+        }
+        
+        .entry-artist a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        
+        .entry-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .entry-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #1a1a1a;
+            color: #888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .entry-btn:hover {
+            background: #2a2a2a;
+            color: #fff;
+        }
+        
+        .entry-btn.remove:hover {
+            background: #4a1e1e;
+            border-color: #f87171;
+            color: #f87171;
+        }
+        
+        .empty-chart {
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .empty-chart-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        
+        .save-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 100;
+        }
+        
+        .save-indicator.saving {
+            display: block;
+            background: #4a4a1e;
+            color: #facc15;
+        }
+        
+        .save-indicator.saved {
+            display: block;
+            background: #1e4a1e;
+            color: #4ade80;
+        }
+        
+        .save-indicator.error {
+            display: block;
+            background: #4a1e1e;
+            color: #f87171;
+        }
+        
+        .season-picker {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+        
+        .season-picker:hover {
+            border-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: nav}"></th:block>
+    
+    <div class="chart-editor">
+        <div class="chart-header">
+            <div class="chart-header-left">
+                <a th:if="${prevPeriodKey != null}" 
+                   th:href="@{/charts/seasonal/{pk}(pk=${prevPeriodKey})}" 
+                   class="back-btn">← Previous</a>
+                <span th:if="${prevPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">← Previous</span>
+                
+                <select class="season-picker" onchange="navigateToSeason(this.value)">
+                    <option th:each="season : ${allSeasons}" 
+                            th:value="${season.periodKey}" 
+                            th:text="${season.displayName}"
+                            th:selected="${season.periodKey == periodKey}">
+                    </option>
+                </select>
+                
+                <a th:if="${nextPeriodKey != null}" 
+                   th:href="@{/charts/seasonal/{pk}(pk=${nextPeriodKey})}" 
+                   class="back-btn">Next →</a>
+                <span th:if="${nextPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">Next →</span>
+            </div>
+            <div class="chart-actions" th:unless="${songChartFinalized and albumChartFinalized}">
+                <button class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
+                <button class="btn btn-success" 
+                        onclick="finalizeCharts()" 
+                        id="finalizeBtn"
+                        th:disabled="${!canFinalize}"
+                        th:title="${!isComplete ? 'Season not yet completed' : (!canFinalize ? 'Fill all positions first' : 'Finalize charts')}">
+                    ✓ Finalize
+                </button>
+            </div>
+        </div>
+        
+        <div class="status-info" th:unless="${songChartFinalized and albumChartFinalized}">
+            <span class="status-badge" th:classappend="${songChartFinalized ? 'finalized' : (songEntries.size() > 0 ? 'draft' : 'incomplete')}">
+                <span th:if="${songChartFinalized}">✓ Songs Finalized</span>
+                <span th:unless="${songChartFinalized}" th:text="'Songs: ' + ${songEntries.size()} + '/' + ${maxSongs}">Songs: 0/30</span>
+            </span>
+            <span class="status-badge" th:classappend="${albumChartFinalized ? 'finalized' : (albumEntries.size() > 0 ? 'draft' : 'incomplete')}">
+                <span th:if="${albumChartFinalized}">✓ Albums Finalized</span>
+                <span th:unless="${albumChartFinalized}" th:text="'Albums: ' + ${albumEntries.size()} + '/' + ${maxAlbums}">Albums: 0/10</span>
+            </span>
+            <span class="status-badge" th:classappend="${isComplete ? 'finalized' : 'incomplete'}">
+                <span th:if="${isComplete}">✓ Season Completed</span>
+                <span th:unless="${isComplete}">⏳ Season In Progress</span>
+            </span>
+        </div>
+        
+        <div class="chart-sections">
+            <!-- Songs Section -->
+            <div class="chart-section">
+                <div class="section-header">
+                    <h2 class="section-title">🎵 Songs</h2>
+                    <span class="section-count" id="songCount" th:text="${songEntries.size()} + '/' + ${maxSongs}">0/30</span>
+                </div>
+                
+                <div class="search-container" th:unless="${songChartFinalized}">
+                    <input type="text" 
+                           class="search-input" 
+                           id="songSearch" 
+                           placeholder="Search for a song by name or artist..."
+                           oninput="searchSongs(this.value)"
+                           onkeydown="handleSearchKeydown(event, 'song')">
+                </div>
+                
+                <div class="search-results" id="songSearchResults">
+                    <div class="no-results">Start typing to search...</div>
+                </div>
+                
+                <div class="chart-list" id="songList" th:classappend="${songChartFinalized ? 'finalized' : ''}">
+                    <div th:if="${#lists.isEmpty(songEntries)}" class="empty-chart">
+                        <div class="empty-chart-icon">🎵</div>
+                        <p>No songs added yet. Search above to add songs.</p>
+                    </div>
+                    <div th:each="entry, stat : ${songEntries}" class="chart-entry" th:data-id="${entry.songId}">
+                        <div class="entry-position" th:text="${entry.position}">1</div>
+                        <div th:if="${entry.hasImage}" class="entry-image-container">
+                            <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                        </div>
+                        <div th:unless="${entry.hasImage}" class="entry-placeholder">🎵</div>
+                        <div class="entry-info">
+                            <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
+                            <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
+                        </div>
+                        <div class="entry-actions" th:unless="${songChartFinalized}">
+                            <button class="entry-btn" onclick="moveUp('song', this)" th:disabled="${stat.first}">↑</button>
+                            <button class="entry-btn" onclick="moveDown('song', this)" th:disabled="${stat.last}">↓</button>
+                            <button class="entry-btn remove" onclick="removeEntry('song', this)">×</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Albums Section -->
+            <div class="chart-section">
+                <div class="section-header">
+                    <h2 class="section-title">💿 Albums</h2>
+                    <span class="section-count" id="albumCount" th:text="${albumEntries.size()} + '/' + ${maxAlbums}">0/10</span>
+                </div>
+                
+                <div class="search-container" th:unless="${albumChartFinalized}">
+                    <input type="text" 
+                           class="search-input" 
+                           id="albumSearch" 
+                           placeholder="Search for an album by name or artist..."
+                           oninput="searchAlbums(this.value)"
+                           onkeydown="handleSearchKeydown(event, 'album')">
+                </div>
+                
+                <div class="search-results" id="albumSearchResults">
+                    <div class="no-results">Start typing to search...</div>
+                </div>
+                
+                <div class="chart-list" id="albumList" th:classappend="${albumChartFinalized ? 'finalized' : ''}">
+                    <div th:if="${#lists.isEmpty(albumEntries)}" class="empty-chart">
+                        <div class="empty-chart-icon">💿</div>
+                        <p>No albums added yet. Search above to add albums.</p>
+                    </div>
+                    <div th:each="entry, stat : ${albumEntries}" class="chart-entry" th:data-id="${entry.albumId}">
+                        <div class="entry-position" th:text="${entry.position}">1</div>
+                        <div th:if="${entry.hasImage}" class="entry-image-container">
+                            <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                        </div>
+                        <div th:unless="${entry.hasImage}" class="entry-placeholder">💿</div>
+                        <div class="entry-info">
+                            <div class="entry-name"><a th:href="@{/albums/{id}(id=${entry.albumId})}" th:text="${entry.albumName}">Album Name</a></div>
+                            <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
+                        </div>
+                        <div class="entry-actions" th:unless="${albumChartFinalized}">
+                            <button class="entry-btn" onclick="moveUp('album', this)" th:disabled="${stat.first}">↑</button>
+                            <button class="entry-btn" onclick="moveDown('album', this)" th:disabled="${stat.last}">↓</button>
+                            <button class="entry-btn remove" onclick="removeEntry('album', this)">×</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="save-indicator" id="saveIndicator"></div>
+    
+    <script th:inline="javascript">
+        const periodKey = [[${periodKey}]];
+        const periodType = [[${periodType}]];
+        const maxSongs = [[${maxSongs}]];
+        const maxAlbums = [[${maxAlbums}]];
+        const songChartId = [[${songChart.id}]];
+        const albumChartId = [[${albumChart.id}]];
+        const isFinalized = [[${songChartFinalized}]] && [[${albumChartFinalized}]];
+        
+        let songSearchTimeout = null;
+        let albumSearchTimeout = null;
+        let hasChanges = false;
+        
+        // Navigate to a different season
+        function navigateToSeason(seasonKey) {
+            if (seasonKey) {
+                window.location.href = `/charts/seasonal/${seasonKey}`;
+            }
+        }
+        
+        // Get current song/album IDs in chart
+        function getChartIds(type) {
+            const list = document.getElementById(type + 'List');
+            return Array.from(list.querySelectorAll('.chart-entry')).map(el => parseInt(el.dataset.id));
+        }
+        
+        // Search songs
+        function searchSongs(query) {
+            clearTimeout(songSearchTimeout);
+            const resultsContainer = document.getElementById('songSearchResults');
+            
+            if (!query || query.length < 2) {
+                resultsContainer.classList.remove('active');
+                return;
+            }
+            
+            songSearchTimeout = setTimeout(() => {
+                fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=20`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const existingIds = getChartIds('song');
+                        resultsContainer.classList.add('active');
+                        
+                        if (!data || data.length === 0) {
+                            resultsContainer.innerHTML = '<div class="no-results">No songs found</div>';
+                            return;
+                        }
+                        
+                        resultsContainer.innerHTML = data.map(s => {
+                            const isInChart = existingIds.includes(s.id);
+                            return `
+                                <div class="search-result-item ${isInChart ? 'disabled' : ''}" 
+                                     data-id="${s.id}" 
+                                     data-name="${escapeHtml(s.name)}"
+                                     data-artist="${escapeHtml(s.artistName || '')}"
+                                     data-has-image="${s.hasImage || false}"
+                                     ${isInChart ? '' : 'onclick="addSong(this)"'}>
+                                    <div class="result-name">${escapeHtml(s.name)}${isInChart ? ' ✓' : ''}</div>
+                                    <div class="result-meta">${escapeHtml(s.artistName || '')}${s.albumName ? ' • ' + escapeHtml(s.albumName) : ''}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    })
+                    .catch(err => {
+                        console.error('Error searching songs:', err);
+                        resultsContainer.innerHTML = '<div class="no-results">Error searching</div>';
+                    });
+            }, 300);
+        }
+        
+        // Search albums
+        function searchAlbums(query) {
+            clearTimeout(albumSearchTimeout);
+            const resultsContainer = document.getElementById('albumSearchResults');
+            
+            if (!query || query.length < 2) {
+                resultsContainer.classList.remove('active');
+                return;
+            }
+            
+            albumSearchTimeout = setTimeout(() => {
+                fetch(`/albums/api/search?query=${encodeURIComponent(query)}&limit=20`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const existingIds = getChartIds('album');
+                        resultsContainer.classList.add('active');
+                        
+                        if (!data || data.length === 0) {
+                            resultsContainer.innerHTML = '<div class="no-results">No albums found</div>';
+                            return;
+                        }
+                        
+                        resultsContainer.innerHTML = data.map(a => {
+                            const isInChart = existingIds.includes(a.id);
+                            return `
+                                <div class="search-result-item ${isInChart ? 'disabled' : ''}" 
+                                     data-id="${a.id}" 
+                                     data-name="${escapeHtml(a.name)}"
+                                     data-artist="${escapeHtml(a.artistName || '')}"
+                                     data-has-image="${a.hasImage || false}"
+                                     ${isInChart ? '' : 'onclick="addAlbum(this)"'}>
+                                    <div class="result-name">${escapeHtml(a.name)}${isInChart ? ' ✓' : ''}</div>
+                                    <div class="result-meta">${escapeHtml(a.artistName || '')}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    })
+                    .catch(err => {
+                        console.error('Error searching albums:', err);
+                        resultsContainer.innerHTML = '<div class="no-results">Error searching</div>';
+                    });
+            }, 300);
+        }
+        
+        // Add song to chart
+        function addSong(element) {
+            const currentCount = getChartIds('song').length;
+            if (currentCount >= maxSongs) {
+                showIndicator('error', `Maximum ${maxSongs} songs allowed`);
+                return;
+            }
+            
+            const id = element.dataset.id;
+            const name = element.dataset.name;
+            const artist = element.dataset.artist;
+            const hasImage = element.dataset.hasImage === 'true';
+            const position = currentCount + 1;
+            
+            const list = document.getElementById('songList');
+            // Remove empty state if present
+            const emptyState = list.querySelector('.empty-chart');
+            if (emptyState) emptyState.remove();
+            
+            const entryHtml = `
+                <div class="chart-entry" data-id="${id}">
+                    <div class="entry-position">${position}</div>
+                    ${hasImage 
+                        ? `<img class="entry-image" src="/songs/${id}/image" alt="">` 
+                        : '<div class="entry-placeholder">🎵</div>'}
+                    <div class="entry-info">
+                        <div class="entry-name">${name}</div>
+                        <div class="entry-artist">${artist}</div>
+                    </div>
+                    <div class="entry-actions">
+                        <button class="entry-btn" onclick="moveUp('song', this)">↑</button>
+                        <button class="entry-btn" onclick="moveDown('song', this)">↓</button>
+                        <button class="entry-btn remove" onclick="removeEntry('song', this)">×</button>
+                    </div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', entryHtml);
+            
+            updateCount('song');
+            markAsChanged();
+            
+            // Clear search
+            document.getElementById('songSearch').value = '';
+            document.getElementById('songSearchResults').classList.remove('active');
+        }
+        
+        // Add album to chart
+        function addAlbum(element) {
+            const currentCount = getChartIds('album').length;
+            if (currentCount >= maxAlbums) {
+                showIndicator('error', `Maximum ${maxAlbums} albums allowed`);
+                return;
+            }
+            
+            const id = element.dataset.id;
+            const name = element.dataset.name;
+            const artist = element.dataset.artist;
+            const hasImage = element.dataset.hasImage === 'true';
+            const position = currentCount + 1;
+            
+            const list = document.getElementById('albumList');
+            // Remove empty state if present
+            const emptyState = list.querySelector('.empty-chart');
+            if (emptyState) emptyState.remove();
+            
+            const entryHtml = `
+                <div class="chart-entry" data-id="${id}">
+                    <div class="entry-position">${position}</div>
+                    ${hasImage 
+                        ? `<img class="entry-image" src="/albums/${id}/image" alt="">` 
+                        : '<div class="entry-placeholder">💿</div>'}
+                    <div class="entry-info">
+                        <div class="entry-name">${name}</div>
+                        <div class="entry-artist">${artist}</div>
+                    </div>
+                    <div class="entry-actions">
+                        <button class="entry-btn" onclick="moveUp('album', this)">↑</button>
+                        <button class="entry-btn" onclick="moveDown('album', this)">↓</button>
+                        <button class="entry-btn remove" onclick="removeEntry('album', this)">×</button>
+                    </div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', entryHtml);
+            
+            updateCount('album');
+            markAsChanged();
+            
+            // Clear search
+            document.getElementById('albumSearch').value = '';
+            document.getElementById('albumSearchResults').classList.remove('active');
+        }
+        
+        // Move entry up
+        function moveUp(type, button) {
+            const entry = button.closest('.chart-entry');
+            const prev = entry.previousElementSibling;
+            if (prev && prev.classList.contains('chart-entry')) {
+                entry.parentNode.insertBefore(entry, prev);
+                updatePositions(type);
+                markAsChanged();
+            }
+        }
+        
+        // Move entry down
+        function moveDown(type, button) {
+            const entry = button.closest('.chart-entry');
+            const next = entry.nextElementSibling;
+            if (next && next.classList.contains('chart-entry')) {
+                entry.parentNode.insertBefore(next, entry);
+                updatePositions(type);
+                markAsChanged();
+            }
+        }
+        
+        // Remove entry
+        function removeEntry(type, button) {
+            const entry = button.closest('.chart-entry');
+            entry.remove();
+            updatePositions(type);
+            updateCount(type);
+            markAsChanged();
+            
+            // Show empty state if no entries
+            const list = document.getElementById(type + 'List');
+            if (!list.querySelector('.chart-entry')) {
+                const icon = type === 'song' ? '🎵' : '💿';
+                list.innerHTML = `
+                    <div class="empty-chart">
+                        <div class="empty-chart-icon">${icon}</div>
+                        <p>No ${type}s added yet. Search above to add ${type}s.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Update positions after reorder
+        function updatePositions(type) {
+            const list = document.getElementById(type + 'List');
+            list.querySelectorAll('.chart-entry').forEach((entry, index) => {
+                entry.querySelector('.entry-position').textContent = index + 1;
+            });
+        }
+        
+        // Update count display
+        function updateCount(type) {
+            const count = getChartIds(type).length;
+            const max = type === 'song' ? maxSongs : maxAlbums;
+            document.getElementById(type + 'Count').textContent = `${count}/${max}`;
+            updateFinalizeButton();
+        }
+        
+        // Update finalize button state
+        function updateFinalizeButton() {
+            const songCount = getChartIds('song').length;
+            const albumCount = getChartIds('album').length;
+            const btn = document.getElementById('finalizeBtn');
+            btn.disabled = songCount < maxSongs || albumCount < maxAlbums || isFinalized;
+        }
+        
+        // Mark as having unsaved changes
+        function markAsChanged() {
+            hasChanges = true;
+        }
+        
+        // Build entries array for saving
+        function buildEntries(type) {
+            const list = document.getElementById(type + 'List');
+            return Array.from(list.querySelectorAll('.chart-entry')).map((entry, index) => ({
+                position: index + 1,
+                itemId: parseInt(entry.dataset.id)
+            }));
+        }
+        
+        // Save chart
+        async function saveChart(type) {
+            const entries = buildEntries(type);
+            
+            const response = await fetch(`/charts/${periodType}/${periodKey}/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chartType: type,
+                    entries: entries
+                })
+            });
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to save');
+            }
+        }
+        
+        // Save all charts
+        async function saveAll() {
+            showIndicator('saving', 'Saving...');
+            
+            try {
+                await saveChart('song');
+                await saveChart('album');
+                showIndicator('saved', 'Saved successfully!');
+                hasChanges = false;
+            } catch (err) {
+                console.error('Error saving:', err);
+                showIndicator('error', 'Failed to save: ' + err.message);
+            }
+        }
+        
+        // Finalize charts
+        async function finalizeCharts() {
+            if (!confirm('Are you sure you want to finalize these charts? This action cannot be undone.')) {
+                return;
+            }
+            
+            showIndicator('saving', 'Finalizing...');
+            
+            try {
+                // Save first
+                await saveChart('song');
+                await saveChart('album');
+                
+                // Then finalize
+                const response = await fetch(`/charts/${periodType}/${periodKey}/finalize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        songChartId: songChartId,
+                        albumChartId: albumChartId
+                    })
+                });
+                
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to finalize');
+                }
+                
+                showIndicator('saved', 'Charts finalized!');
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (err) {
+                console.error('Error finalizing:', err);
+                showIndicator('error', 'Failed to finalize: ' + err.message);
+            }
+        }
+        
+        // Show save indicator
+        function showIndicator(type, message) {
+            const indicator = document.getElementById('saveIndicator');
+            indicator.className = 'save-indicator ' + type;
+            indicator.textContent = message;
+            
+            if (type === 'saved' || type === 'error') {
+                setTimeout(() => {
+                    indicator.className = 'save-indicator';
+                }, 3000);
+            }
+        }
+        
+        // Handle search keydown
+        function handleSearchKeydown(event, type) {
+            if (event.key === 'Escape') {
+                document.getElementById(type + 'SearchResults').classList.remove('active');
+            }
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Warn before leaving with unsaved changes
+        window.addEventListener('beforeunload', (e) => {
+            if (hasChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container') && !e.target.closest('.search-results')) {
+                document.querySelectorAll('.search-results').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
+</body>
+</html>
