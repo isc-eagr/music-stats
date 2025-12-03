@@ -370,7 +370,7 @@ public class AlbumRepositoryNew {
         params.add(limit);
         params.add(offset);
         
-        return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
             Object[] row = new Object[25];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
@@ -398,7 +398,7 @@ public class AlbumRepositoryNew {
             row[23] = rs.getString("country");
             row[24] = rs.getObject("organized");
             return row;
-        });
+        }, params.toArray());
     }
     
     public long countAlbumsWithFilters(String name, String artistName,
@@ -691,7 +691,7 @@ public class AlbumRepositoryNew {
             }
         }
         
-        Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
+        Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
     }
 }

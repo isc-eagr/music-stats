@@ -14,22 +14,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import library.repository.ScrobbleRepository;
-
 @Controller
 @RequestMapping("/scrobbles")
 public class ScrobbleController {
     
     private final ScrobbleService scrobbleService;
-    private final ScrobbleRepository scrobbleRepository;
     private final ArtistService artistService;
     private final AlbumService albumService;
     private final SongService songService;
     
-    public ScrobbleController(ScrobbleService scrobbleService, ScrobbleRepository scrobbleRepository,
+    public ScrobbleController(ScrobbleService scrobbleService,
                               ArtistService artistService, AlbumService albumService, SongService songService) {
         this.scrobbleService = scrobbleService;
-        this.scrobbleRepository = scrobbleRepository;
         this.artistService = artistService;
         this.albumService = albumService;
         this.songService = songService;

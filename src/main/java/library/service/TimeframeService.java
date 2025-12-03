@@ -296,7 +296,7 @@ public class TimeframeService {
             winningCountry, winningCountryMode);
         
         // Execute query and map results
-        List<TimeframeCardDTO> results = jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+        List<TimeframeCardDTO> results = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
             TimeframeCardDTO dto = new TimeframeCardDTO();
             String periodKey = rs.getString("period_key");
             dto.setPeriodKey(periodKey);
@@ -342,7 +342,7 @@ public class TimeframeService {
             dto.setWinningCountry(rs.getString("winning_country"));
             
             return dto;
-        });
+        }, params.toArray());
         
         return results;
     }

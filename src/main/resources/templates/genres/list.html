@@ -105,7 +105,7 @@
             <div th:each="genre : ${genres}" class="catalog-card" style="cursor: pointer;"
                  th:data-id="${genre.id}"
                  th:data-name="${genre.name}"
-                 th:onclick="'window.location.href=\'/graphs?filterType=genre&filterId=' + ${genre.id} + '&filterName=' + ${#strings.replace(genre.name, ' ', '%20')} + '\''">
+                 onclick="navigateToGraph(this, 'genre')">
                 <div class="catalog-image">
                     <img th:if="${genre.hasImage}" 
                          th:src="@{'/genres/' + ${genre.id} + '/image'}" 

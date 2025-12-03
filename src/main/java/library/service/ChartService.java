@@ -1626,6 +1626,7 @@ public class ChartService {
      * Get seasonal chart history for a song (for detail page display).
      * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getSeasonalChartHistoryForSong(Integer songId) {
         return getChartHistoryForItem(songId, "song", "seasonal");
     }
@@ -1634,6 +1635,7 @@ public class ChartService {
      * Get yearly chart history for a song (for detail page display).
      * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getYearlyChartHistoryForSong(Integer songId) {
         return getChartHistoryForItem(songId, "song", "yearly");
     }
@@ -1642,6 +1644,7 @@ public class ChartService {
      * Get seasonal chart history for an album (for detail page display).
      * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getSeasonalChartHistoryForAlbum(Integer albumId) {
         return getChartHistoryForItem(albumId, "album", "seasonal");
     }
@@ -1650,6 +1653,7 @@ public class ChartService {
      * Get yearly chart history for an album (for detail page display).
      * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getYearlyChartHistoryForAlbum(Integer albumId) {
         return getChartHistoryForItem(albumId, "album", "yearly");
     }
@@ -1693,6 +1697,7 @@ public class ChartService {
      * Get seasonal chart history for all songs by an artist.
      * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getSeasonalChartHistoryForArtist(Integer artistId) {
         return getArtistChartHistoryByPeriodType(artistId, "song", "seasonal");
     }
@@ -1701,6 +1706,7 @@ public class ChartService {
      * Get yearly chart history for all songs by an artist.
      * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getYearlyChartHistoryForArtist(Integer artistId) {
         return getArtistChartHistoryByPeriodType(artistId, "song", "yearly");
     }
@@ -1709,6 +1715,7 @@ public class ChartService {
      * Get seasonal chart history for all albums by an artist.
      * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getSeasonalAlbumChartHistoryForArtist(Integer artistId) {
         return getArtistChartHistoryByPeriodType(artistId, "album", "seasonal");
     }
@@ -1717,6 +1724,7 @@ public class ChartService {
      * Get yearly chart history for all albums by an artist.
      * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getYearlyAlbumChartHistoryForArtist(Integer artistId) {
         return getArtistChartHistoryByPeriodType(artistId, "album", "yearly");
     }
@@ -1752,6 +1760,7 @@ public class ChartService {
      * Get seasonal chart history for songs in an album.
      * @deprecated Use {@link #getAlbumSongsChartHistoryByPeriodType(Integer, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getSeasonalChartHistoryForAlbumSongs(Integer albumId) {
         return getAlbumSongsChartHistoryByPeriodType(albumId, "seasonal");
     }
@@ -1760,6 +1769,7 @@ public class ChartService {
      * Get yearly chart history for songs in an album.
      * @deprecated Use {@link #getAlbumSongsChartHistoryByPeriodType(Integer, String)} instead.
      */
+    @Deprecated
     public List<Map<String, Object>> getYearlyChartHistoryForAlbumSongs(Integer albumId) {
         return getAlbumSongsChartHistoryByPeriodType(albumId, "yearly");
     }

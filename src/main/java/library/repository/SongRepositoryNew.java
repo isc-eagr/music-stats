@@ -379,7 +379,7 @@ public class SongRepositoryNew {
         params.add(limit);
         params.add(offset);
         
-        return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
             Object[] row = new Object[29];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
@@ -411,7 +411,7 @@ public class SongRepositoryNew {
             row[27] = rs.getInt("album_has_image");
             row[28] = rs.getInt("is_single");
             return row;
-        });
+        }, params.toArray());
     }
     
     public long countSongsWithFilters(String name, String artistName, String albumName,
@@ -698,7 +698,7 @@ public class SongRepositoryNew {
             }
         }
         
-        Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
+        Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
     }
     
@@ -991,11 +991,11 @@ public class SongRepositoryNew {
         result.put("female", 0L);
         result.put("other", 0L);
         
-        jdbcTemplate.query(sql, filterParams.toArray(), rs -> {
+        jdbcTemplate.query(sql, rs -> {
             String gender = rs.getString("gender");
             long count = rs.getLong("play_count");
             result.put(gender, count);
-        });
+        }, filterParams.toArray());
         
         return result;
     }
@@ -1054,11 +1054,11 @@ public class SongRepositoryNew {
         result.put("female", 0L);
         result.put("other", 0L);
         
-        jdbcTemplate.query(sql, filterParams.toArray(), rs -> {
+        jdbcTemplate.query(sql, rs -> {
             String gender = rs.getString("gender");
             long count = rs.getLong("song_count");
             result.put(gender, count);
-        });
+        }, filterParams.toArray());
         
         return result;
     }
@@ -1116,11 +1116,11 @@ public class SongRepositoryNew {
         result.put("female", 0L);
         result.put("other", 0L);
         
-        jdbcTemplate.query(sql, filterParams.toArray(), rs -> {
+        jdbcTemplate.query(sql, rs -> {
             String gender = rs.getString("gender");
             long count = rs.getLong("artist_count");
             result.put(gender, count);
-        });
+        }, filterParams.toArray());
         
         return result;
     }
@@ -1179,11 +1179,11 @@ public class SongRepositoryNew {
         result.put("female", 0L);
         result.put("other", 0L);
         
-        jdbcTemplate.query(sql, filterParams.toArray(), rs -> {
+        jdbcTemplate.query(sql, rs -> {
             String gender = rs.getString("gender");
             long count = rs.getLong("album_count");
             result.put(gender, count);
-        });
+        }, filterParams.toArray());
         
         return result;
     }
@@ -1208,14 +1208,14 @@ public class SongRepositoryNew {
             LIMIT 10
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByEthnicityAndGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1238,14 +1238,14 @@ public class SongRepositoryNew {
             LIMIT 10
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByLanguageAndGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1268,14 +1268,14 @@ public class SongRepositoryNew {
             LIMIT 10
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByYearAndGenderFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1297,14 +1297,14 @@ public class SongRepositoryNew {
             LIMIT 10
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // ==================== NEW TAB-SPECIFIC CHART DATA METHODS ====================
@@ -1368,11 +1368,11 @@ public class SongRepositoryNew {
         result.put("female", 0L);
         result.put("other", 0L);
         
-        jdbcTemplate.query(sql, filterParams.toArray(), rs -> {
+        jdbcTemplate.query(sql, rs -> {
             String gender = rs.getString("gender");
             long seconds = rs.getLong("total_seconds");
             result.put(gender, seconds);
-        });
+        }, filterParams.toArray());
         
         return result;
     }
@@ -1438,14 +1438,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getAlbumsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -1473,14 +1473,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -1503,14 +1503,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1532,14 +1532,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1561,14 +1561,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Subgenre tab chart data (5 bar charts grouped by subgenre)
@@ -1632,14 +1632,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getAlbumsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -1667,14 +1667,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -1697,14 +1697,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1726,14 +1726,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1755,14 +1755,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Ethnicity tab chart data (5 bar charts grouped by ethnicity)
@@ -1826,14 +1826,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getAlbumsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -1859,14 +1859,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -1889,14 +1889,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1918,14 +1918,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -1947,14 +1947,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Language tab chart data (5 bar charts grouped by language)
@@ -2018,14 +2018,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getAlbumsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -2053,14 +2053,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -2083,14 +2083,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2112,14 +2112,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2141,14 +2141,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Country tab chart data (5 bar charts grouped by country)
@@ -2211,14 +2211,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getAlbumsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -2243,14 +2243,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -2272,14 +2272,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2300,14 +2300,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2328,14 +2328,14 @@ public class SongRepositoryNew {
             ORDER BY (male_count + female_count + other_count) DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Release Year tab chart data (4 bar charts grouped by release year - no Artists)
@@ -2399,14 +2399,14 @@ public class SongRepositoryNew {
             ORDER BY release_year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
@@ -2428,14 +2428,14 @@ public class SongRepositoryNew {
             ORDER BY release_year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2456,14 +2456,14 @@ public class SongRepositoryNew {
             ORDER BY release_year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2484,14 +2484,14 @@ public class SongRepositoryNew {
             ORDER BY release_year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Listen Year tab chart data (5 bar charts grouped by scrobble/listen year)
@@ -2549,14 +2549,14 @@ public class SongRepositoryNew {
             ORDER BY sub.year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getAlbumsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2580,14 +2580,14 @@ public class SongRepositoryNew {
             ORDER BY sub.year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getSongsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2611,14 +2611,14 @@ public class SongRepositoryNew {
             ORDER BY sub.year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getPlaysByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2639,14 +2639,14 @@ public class SongRepositoryNew {
             ORDER BY listen_year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getListeningTimeByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
@@ -2667,14 +2667,14 @@ public class SongRepositoryNew {
             ORDER BY listen_year DESC
             """;
         
-        return jdbcTemplate.query(sql, filterParams.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
             row.put("male", rs.getLong("male_count"));
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        });
+        }, filterParams.toArray());
     }
     
     // Get Top chart data (top artists, albums, songs by play count)
@@ -2928,7 +2928,7 @@ public class SongRepositoryNew {
             LIMIT ?
             """;
         
-        return jdbcTemplate.query(sql, params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
             row.put("name", rs.getString("name"));
@@ -2951,7 +2951,7 @@ public class SongRepositoryNew {
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
-        });
+        }, params.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getTopAlbumsFiltered(String filterClause, java.util.List<Object> filterParams, String listenedDateFrom, String listenedDateTo, int limit) {
@@ -3024,7 +3024,7 @@ public class SongRepositoryNew {
             LIMIT ?
             """;
         
-        return jdbcTemplate.query(sql, params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
             row.put("name", rs.getString("name"));
@@ -3050,7 +3050,7 @@ public class SongRepositoryNew {
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
-        });
+        }, params.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getTopSongsFiltered(String filterClause, java.util.List<Object> filterParams, int limit) {
@@ -3106,7 +3106,7 @@ public class SongRepositoryNew {
             LIMIT ?
             """;
         
-        return jdbcTemplate.query(sql, params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
             row.put("name", rs.getString("name"));
@@ -3137,7 +3137,7 @@ public class SongRepositoryNew {
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
-        });
+        }, params.toArray());
     }
     
     // Helper method to format time in seconds to human-readable format

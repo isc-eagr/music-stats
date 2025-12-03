@@ -191,7 +191,7 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
         params.add(limit);
         params.add(offset);
         
-        return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
             return new Object[] {
                 rs.getInt("id"),
                 rs.getString("name"),
@@ -217,7 +217,7 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
                 rs.getString("last_listened"),
                 rs.getObject("organized")
             };
-        });
+        }, params.toArray());
     }
     
     @Override
@@ -330,7 +330,7 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             }
         }
         
-        Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
+        Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0L;
     }
 }
