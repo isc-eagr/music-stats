@@ -1,8 +1,11 @@
 package library.controller;
 
+import library.dto.AlbumChartRunDTO;
 import library.dto.ChartEntryDTO;
 import library.dto.ChartGenerationProgressDTO;
 import library.dto.ChartRunDTO;
+import library.dto.MostHitsEntryDTO;
+import library.dto.MostWeeksEntryDTO;
 import library.entity.Chart;
 import library.service.ChartService;
 import org.springframework.http.HttpStatus;
@@ -110,6 +113,52 @@ public class ChartsController {
             @PathVariable Integer songId) {
         try {
             ChartRunDTO chartRun = chartService.getSongChartRun(songId, periodKey);
+            return ResponseEntity.ok(chartRun);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * API: Get chart run data for an album (for expandable row).
+     */
+    @GetMapping("/weekly/{periodKey}/album/{albumId}/run")
+    @ResponseBody
+    public ResponseEntity<AlbumChartRunDTO> getAlbumChartRun(
+            @PathVariable String periodKey,
+            @PathVariable Integer albumId) {
+        try {
+            AlbumChartRunDTO chartRun = chartService.getAlbumChartRun(albumId, periodKey);
+            return ResponseEntity.ok(chartRun);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * API: Get chart run data for a song (all-time, no period key required).
+     * Used in song detail page.
+     */
+    @GetMapping("/song/{songId}/run")
+    @ResponseBody
+    public ResponseEntity<ChartRunDTO> getSongChartRunAllTime(@PathVariable Integer songId) {
+        try {
+            ChartRunDTO chartRun = chartService.getSongChartRunAllTime(songId);
+            return ResponseEntity.ok(chartRun);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * API: Get chart run data for an album (all-time, no period key required).
+     * Used in album detail page.
+     */
+    @GetMapping("/album/{albumId}/run")
+    @ResponseBody
+    public ResponseEntity<AlbumChartRunDTO> getAlbumChartRunAllTime(@PathVariable Integer albumId) {
+        try {
+            AlbumChartRunDTO chartRun = chartService.getAlbumChartRun(albumId, null);
             return ResponseEntity.ok(chartRun);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -468,6 +517,58 @@ public class ChartsController {
         } catch (Exception e) {
             return createErrorResponse(e.getMessage());
         }
+    }
+    
+    /**
+     * Most Weeks at Position page - shows songs/albums with most weeks at #1, top 5, etc.
+     */
+    @GetMapping("/most-weeks")
+    public String mostWeeksAtPosition(
+            @RequestParam(defaultValue = "song") String type,
+            @RequestParam(defaultValue = "1") Integer position,
+            @RequestParam(required = false) Integer year,
+            Model model) {
+        
+        // Validate position based on type
+        // Songs: 1, 5, 10, 20 allowed
+        // Albums: 1, 5 allowed
+        if ("album".equals(type) && position > 5) {
+            // Redirect to position 1 if invalid for albums
+            return "redirect:/charts/most-weeks?type=album&position=1" + (year != null ? "&year=" + year : "");
+        }
+        
+        List<MostWeeksEntryDTO> entries = chartService.getMostWeeksAtPosition(type, position, year);
+        List<Map<String, Object>> years = chartService.getChartYearsForMostWeeks();
+        
+        model.addAttribute("currentSection", "most-weeks-charts");
+        model.addAttribute("entries", entries);
+        model.addAttribute("years", years);
+        model.addAttribute("selectedType", type);
+        model.addAttribute("selectedPosition", position);
+        model.addAttribute("selectedYear", year);
+        
+        return "charts/most-weeks";
+    }
+    
+    /**
+     * Most Hits page - shows artists with most songs that reached #1, top 5, top 10, or top 20.
+     */
+    @GetMapping("/most-hits")
+    public String mostHits(
+            @RequestParam(defaultValue = "1") Integer position,
+            @RequestParam(required = false) Integer year,
+            Model model) {
+        
+        List<MostHitsEntryDTO> entries = chartService.getMostHits(position, year);
+        List<Map<String, Object>> years = chartService.getChartYearsForMostWeeks();
+        
+        model.addAttribute("currentSection", "most-hits-charts");
+        model.addAttribute("entries", entries);
+        model.addAttribute("years", years);
+        model.addAttribute("selectedPosition", position);
+        model.addAttribute("selectedYear", year);
+        
+        return "charts/most-hits";
     }
     
     // ========== HELPER METHODS ==========

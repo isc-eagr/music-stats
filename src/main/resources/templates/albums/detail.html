@@ -398,42 +398,49 @@
                         <p>This album has not charted yet.</p>
                     </div>
                     
-                    <div th:if="${chartHistory != null and !chartHistory.isEmpty()}" class="table-wrapper">
-                        <table class="table js-sortable">
-                            <thead>
-                                <tr>
-                                    <th>Album</th>
-                                    <th class="numeric">Peak</th>
-                                    <th class="numeric">Wks@Peak</th>
-                                    <th>Release</th>
-                                    <th>Debut</th>
-                                    <th>Peak Date</th>
-                                    <th class="numeric">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="entry : ${chartHistory}">
-                                    <td>
-                                        <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
-                                    </td>
-                                    <td class="numeric">
-                                        <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
-                                              th:text="${entry.peakPosition}">#1</span>
-                                    </td>
-                                    <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
-                                    <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
-                                    <td>
-                                        <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
-                                        <span th:unless="${entry.debutWeek != null}">-</span>
-                                    </td>
-                                    <td>
-                                        <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
-                                        <span th:unless="${entry.peakWeek != null}">-</span>
-                                    </td>
-                                    <td class="numeric" th:text="${entry.totalWeeks}">5</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div th:if="${chartHistory != null and !chartHistory.isEmpty()}">
+                        <!-- Album Chart Run Display -->
+                        <div id="albumChartRunContainer" class="chart-run-container" style="margin-bottom: 20px;">
+                            <div style="text-align: center; color: #888;">Loading chart run...</div>
+                        </div>
+                        
+                        <div class="table-wrapper">
+                            <table class="table js-sortable">
+                                <thead>
+                                    <tr>
+                                        <th>Album</th>
+                                        <th class="numeric">Peak</th>
+                                        <th class="numeric">Wks@Peak</th>
+                                        <th>Release</th>
+                                        <th>Debut</th>
+                                        <th>Peak Date</th>
+                                        <th class="numeric">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${chartHistory}">
+                                        <td>
+                                            <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
+                                        </td>
+                                        <td class="numeric">
+                                            <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
+                                                  th:text="${entry.peakPosition}">#1</span>
+                                        </td>
+                                        <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
+                                        <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
+                                        <td>
+                                            <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
+                                            <span th:unless="${entry.debutWeek != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
+                                            <span th:unless="${entry.peakWeek != null}">-</span>
+                                        </td>
+                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 
@@ -877,12 +884,103 @@
             transform: scale(1.02);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
+        
+        /* Chart Run Styles */
+        .chart-run-container {
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .chart-run-header {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        
+        .chart-run-header a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        
+        .chart-run-header a:hover {
+            text-decoration: underline;
+        }
+        
+        .chart-run-boxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        
+        .chart-run-box {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #888;
+            border: 1px solid #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .chart-run-box:hover {
+            text-decoration: none;
+        }
+        
+        .chart-run-box.on-chart {
+            background: #1e3a5f;
+            color: #60a5fa;
+            border-color: #3b82f6;
+        }
+        
+        .chart-run-box.absent {
+            color: #555;
+        }
+        
+        .chart-run-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .chart-run-stat {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            text-align: center;
+        }
+        
+        .chart-run-stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        
+        .chart-run-stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+        }
     </style>
     
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
     
-    <script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const albumId = /*[[${album.id}]]*/ null;
+        const activeTab = /*[[${activeTab}]]*/ 'general';
+        const hasChartHistory = /*[[${chartHistory != null and !chartHistory.isEmpty()}]]*/ false;
+        
         // Make album image clickable to open modal
         document.addEventListener('DOMContentLoaded', function() {
             const albumImage = document.getElementById('albumImage');
@@ -892,7 +990,67 @@
                     openImageModal(this.src);
                 });
             }
+            
+            // Load album chart run if on chart-history tab and has chart history
+            if (activeTab === 'chart-history' && hasChartHistory && albumId) {
+                loadAlbumChartRun();
+            }
         });
+        
+        // Load album chart run data
+        async function loadAlbumChartRun() {
+            const container = document.getElementById('albumChartRunContainer');
+            if (!container) return;
+            
+            try {
+                const response = await fetch(`/charts/album/${albumId}/run`);
+                if (!response.ok) throw new Error('Failed to load chart run');
+                
+                const data = await response.json();
+                container.innerHTML = renderAlbumChartRun(data);
+            } catch (error) {
+                console.error('Error loading album chart run:', error);
+                container.innerHTML = '<div style="color: #f87171;">Failed to load chart run data</div>';
+            }
+        }
+        
+        // Render album chart run HTML
+        function renderAlbumChartRun(data) {
+            if (!data.weeks || data.weeks.length === 0) {
+                return '<div style="color: #888;">No chart run data available</div>';
+            }
+            
+            let boxesHtml = data.weeks.map(week => {
+                let classes = 'chart-run-box';
+                if (week.onChart) classes += ' on-chart';
+                if (!week.onChart) classes += ' absent';
+                return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${week.periodKey}">${week.display}</a>`;
+            }).join('');
+            
+            return `
+                <div class="chart-run-header">
+                    Chart-run: <a href="/albums/${data.albumId}">${data.albumName}</a> by ${data.artistName}
+                </div>
+                <div class="chart-run-boxes">
+                    ${boxesHtml}
+                </div>
+                <div class="chart-run-stats">
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 1</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop1}</div>
+                    </div>
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 5</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop5}</div>
+                    </div>
+                    <div class="chart-run-stat">
+                        <div class="chart-run-stat-label">Top 10</div>
+                        <div class="chart-run-stat-value">${data.weeksAtTop10}</div>
+                    </div>
+                </div>
+            `;
+        }
+        /*]]>*/
     </script>
 </body>
 </html>

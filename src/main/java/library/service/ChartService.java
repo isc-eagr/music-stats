@@ -1,9 +1,12 @@
 package library.service;
 
+import library.dto.AlbumChartRunDTO;
 import library.dto.ChartEntryDTO;
 import library.dto.ChartGenerationProgressDTO;
 import library.dto.ChartHistoryDTO;
 import library.dto.ChartRunDTO;
+import library.dto.MostHitsEntryDTO;
+import library.dto.MostWeeksEntryDTO;
 import library.entity.Chart;
 import library.entity.ChartEntry;
 import library.repository.ChartEntryRepository;
@@ -1171,7 +1174,7 @@ public class ChartService {
     // ==================== Seasonal/Yearly Chart Methods ====================
     
     public static final int SEASONAL_YEARLY_SONGS_COUNT = 30;
-    public static final int SEASONAL_ALBUMS_COUNT = 5;
+    public static final int SEASONAL_ALBUMS_COUNT = 10;
     public static final int YEARLY_ALBUMS_COUNT = 10;
     
     /**
@@ -1984,5 +1987,324 @@ public class ChartService {
             map.put("isComplete", isYearComplete(periodKey));
             return map;
         });
+    }
+    
+    /**
+     * Get all years that have weekly chart data (for "Most Weeks at Position" page).
+     */
+    public List<Map<String, Object>> getChartYearsForMostWeeks() {
+        String sql = """
+            SELECT DISTINCT strftime('%Y', c.period_start_date) as year
+            FROM Chart c
+            WHERE c.period_type = 'weekly'
+            ORDER BY year DESC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            String year = rs.getString("year");
+            Map<String, Object> map = new HashMap<>();
+            map.put("year", year);
+            map.put("displayName", year);
+            return map;
+        });
+    }
+    
+    /**
+     * Get songs or albums with the most weeks at a given position threshold.
+     * For example: type="song", maxPosition=1 returns songs with most weeks at #1.
+     * type="song", maxPosition=5 returns songs with most weeks in top 5.
+     * 
+     * @param type "song" or "album"
+     * @param maxPosition The maximum position to count (1 = #1 only, 5 = top 5, etc.)
+     * @param year Optional year filter. If null, returns all-time stats.
+     * @return List of entries sorted by weeks count descending, then by earliest appearance.
+     */
+    public List<MostWeeksEntryDTO> getMostWeeksAtPosition(String type, int maxPosition, Integer year) {
+        List<MostWeeksEntryDTO> results = new ArrayList<>();
+        
+        if ("song".equals(type)) {
+            results = getMostWeeksSongs(maxPosition, year);
+        } else if ("album".equals(type)) {
+            results = getMostWeeksAlbums(maxPosition, year);
+        }
+        
+        // Assign ranks
+        int rank = 1;
+        for (MostWeeksEntryDTO entry : results) {
+            entry.setRank(rank++);
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Get songs with the most weeks at a given position threshold.
+     */
+    private List<MostWeeksEntryDTO> getMostWeeksSongs(int maxPosition, Integer year) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("""
+            SELECT 
+                s.id,
+                s.name,
+                ar.name as artist_name,
+                ar.id as artist_id,
+                COUNT(*) as weeks_count,
+                CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                MIN(c.period_start_date) as first_appearance
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE c.chart_type = 'song'
+              AND c.period_type = 'weekly'
+              AND ce.position <= ?
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(maxPosition);
+        
+        if (year != null) {
+            sql.append(" AND strftime('%Y', c.period_start_date) = ?");
+            params.add(String.valueOf(year));
+        }
+        
+        sql.append("""
+            GROUP BY s.id, s.name, ar.name, ar.id
+            ORDER BY weeks_count DESC, first_appearance ASC
+            """);
+        
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+            MostWeeksEntryDTO dto = new MostWeeksEntryDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setName(rs.getString("name"));
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setWeeksCount(rs.getInt("weeks_count"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setType("song");
+            return dto;
+        }, params.toArray());
+    }
+    
+    /**
+     * Get albums with the most weeks at a given position threshold.
+     */
+    private List<MostWeeksEntryDTO> getMostWeeksAlbums(int maxPosition, Integer year) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("""
+            SELECT 
+                al.id,
+                al.name,
+                ar.name as artist_name,
+                ar.id as artist_id,
+                COUNT(*) as weeks_count,
+                CASE WHEN al.image IS NOT NULL AND LENGTH(al.image) > 0 THEN 1 ELSE 0 END as has_image,
+                MIN(c.period_start_date) as first_appearance
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album al ON ce.album_id = al.id
+            INNER JOIN Artist ar ON al.artist_id = ar.id
+            WHERE c.chart_type = 'album'
+              AND c.period_type = 'weekly'
+              AND ce.position <= ?
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(maxPosition);
+        
+        if (year != null) {
+            sql.append(" AND strftime('%Y', c.period_start_date) = ?");
+            params.add(String.valueOf(year));
+        }
+        
+        sql.append("""
+            GROUP BY al.id, al.name, ar.name, ar.id
+            ORDER BY weeks_count DESC, first_appearance ASC
+            """);
+        
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+            MostWeeksEntryDTO dto = new MostWeeksEntryDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setName(rs.getString("name"));
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setWeeksCount(rs.getInt("weeks_count"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setType("album");
+            return dto;
+        }, params.toArray());
+    }
+    
+    /**
+     * Get artists with the most songs (hits) that reached a given position threshold.
+     * Only considers weekly song charts.
+     * 
+     * @param maxPosition The maximum position to count (1 = #1, 5 = top 5, etc.)
+     * @param year Optional year filter. If null, returns all-time stats.
+     * @return List of artists sorted by songs count descending, then by total weeks.
+     */
+    public List<MostHitsEntryDTO> getMostHits(int maxPosition, Integer year) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("""
+            SELECT 
+                ar.id as artist_id,
+                ar.name as artist_name,
+                COUNT(DISTINCT ce.song_id) as songs_count,
+                COUNT(*) as total_weeks,
+                CASE WHEN ar.image IS NOT NULL AND LENGTH(ar.image) > 0 THEN 1 ELSE 0 END as has_image
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE c.chart_type = 'song'
+              AND c.period_type = 'weekly'
+              AND ce.position <= ?
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(maxPosition);
+        
+        if (year != null) {
+            sql.append(" AND strftime('%Y', c.period_start_date) = ?");
+            params.add(String.valueOf(year));
+        }
+        
+        sql.append("""
+            GROUP BY ar.id, ar.name
+            ORDER BY songs_count DESC, total_weeks DESC
+            """);
+        
+        List<MostHitsEntryDTO> results = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+            MostHitsEntryDTO dto = new MostHitsEntryDTO();
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setSongsCount(rs.getInt("songs_count"));
+            dto.setTotalWeeks(rs.getInt("total_weeks"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            return dto;
+        }, params.toArray());
+        
+        // Assign ranks
+        int rank = 1;
+        for (MostHitsEntryDTO entry : results) {
+            entry.setRank(rank++);
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Get chart run history for an album (for the expandable detail view or detail page).
+     * If currentPeriodKey is null, uses the latest weekly chart as the end point.
+     */
+    public AlbumChartRunDTO getAlbumChartRun(Integer albumId, String currentPeriodKey) {
+        // Get album and artist names
+        List<Map<String, Object>> nameRows = jdbcTemplate.queryForList(
+            "SELECT al.name as album_name, ar.name as artist_name FROM Album al INNER JOIN Artist ar ON al.artist_id = ar.id WHERE al.id = ?", 
+            albumId);
+        
+        AlbumChartRunDTO dto = new AlbumChartRunDTO();
+        dto.setAlbumId(albumId);
+        if (!nameRows.isEmpty()) {
+            dto.setAlbumName((String) nameRows.get(0).get("album_name"));
+            dto.setArtistName((String) nameRows.get(0).get("artist_name"));
+        }
+        
+        // If no currentPeriodKey provided, use the latest weekly chart
+        if (currentPeriodKey == null) {
+            Optional<Chart> latestChart = getLatestWeeklyChart("album");
+            if (latestChart.isPresent()) {
+                currentPeriodKey = latestChart.get().getPeriodKey();
+            } else {
+                // No charts exist
+                dto.setWeeks(new ArrayList<>());
+                dto.setWeeksAtTop1(0);
+                dto.setWeeksAtTop5(0);
+                dto.setWeeksAtTop10(0);
+                dto.setTotalWeeksOnChart(0);
+                return dto;
+            }
+        }
+        
+        String historySql = """
+            SELECT c.period_key, ce.position
+            FROM Chart c
+            LEFT JOIN ChartEntry ce ON c.id = ce.chart_id AND ce.album_id = ?
+            WHERE c.chart_type = 'album'
+            AND c.period_type = 'weekly'
+            ORDER BY c.period_start_date ASC
+            """;
+        
+        List<Map<String, Object>> history = jdbcTemplate.queryForList(historySql, albumId);
+        
+        // Find the first week this album appeared and the current week
+        int firstAppearanceIndex = -1;
+        int currentIndex = -1;
+        for (int i = 0; i < history.size(); i++) {
+            Map<String, Object> row = history.get(i);
+            if (row.get("position") != null && firstAppearanceIndex == -1) {
+                firstAppearanceIndex = i;
+            }
+            if (currentPeriodKey.equals(row.get("period_key"))) {
+                currentIndex = i;
+            }
+        }
+        
+        // Only include weeks from first appearance to current
+        List<AlbumChartRunDTO.ChartRunWeek> weeks = new ArrayList<>();
+        int weeksAtTop1 = 0, weeksAtTop5 = 0, weeksAtTop10 = 0;
+        int peakPosition = Integer.MAX_VALUE;
+        int totalWeeksOnChart = 0;
+        
+        if (firstAppearanceIndex >= 0 && currentIndex >= 0) {
+            for (int i = firstAppearanceIndex; i <= currentIndex; i++) {
+                Map<String, Object> row = history.get(i);
+                String periodKey = (String) row.get("period_key");
+                Integer position = row.get("position") != null ? ((Number) row.get("position")).intValue() : null;
+                
+                boolean isCurrent = periodKey.equals(currentPeriodKey);
+                weeks.add(new AlbumChartRunDTO.ChartRunWeek(periodKey, position, isCurrent));
+                
+                if (position != null) {
+                    totalWeeksOnChart++;
+                    if (position <= 1) weeksAtTop1++;
+                    if (position <= 5) weeksAtTop5++;
+                    if (position <= 10) weeksAtTop10++;
+                    if (position < peakPosition) peakPosition = position;
+                }
+            }
+        }
+        
+        dto.setWeeks(weeks);
+        dto.setWeeksAtTop1(weeksAtTop1);
+        dto.setWeeksAtTop5(weeksAtTop5);
+        dto.setWeeksAtTop10(weeksAtTop10);
+        dto.setTotalWeeksOnChart(totalWeeksOnChart);
+        dto.setPeakPosition(peakPosition == Integer.MAX_VALUE ? null : peakPosition);
+        
+        return dto;
+    }
+    
+    /**
+     * Get chart run history for a song without specifying a period key.
+     * Uses the latest weekly chart as the end point.
+     */
+    public ChartRunDTO getSongChartRunAllTime(Integer songId) {
+        // Get the latest weekly chart for songs
+        Optional<Chart> latestChart = getLatestWeeklyChart("song");
+        if (latestChart.isPresent()) {
+            return getSongChartRun(songId, latestChart.get().getPeriodKey());
+        }
+        
+        // No charts exist - return empty DTO
+        ChartRunDTO dto = new ChartRunDTO();
+        dto.setSongId(songId);
+        dto.setWeeks(new ArrayList<>());
+        dto.setWeeksAtTop1(0);
+        dto.setWeeksAtTop5(0);
+        dto.setWeeksAtTop10(0);
+        dto.setWeeksAtTop20(0);
+        dto.setTotalWeeksOnChart(0);
+        return dto;
     }
 }
