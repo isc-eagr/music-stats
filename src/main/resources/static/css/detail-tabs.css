@@ -8,7 +8,8 @@
     margin-top: 95px; /* Align with the image */
     border-bottom: 1px solid #374151;
     align-self: start;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    min-width: 0; /* Allow shrinking */
 }
 
 .detail-tab {
@@ -21,6 +22,7 @@
     transition: all 0.2s ease;
     margin-bottom: -1px;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .detail-tab:hover {
@@ -33,13 +35,23 @@
     border-bottom-color: var(--text);
 }
 
+/* Toggles container - groups multiple toggles together */
+.toggles-container {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    padding: 8px 0;
+}
+
 /* Include Groups Toggle - positioned at the end of tabs */
 .include-groups-toggle {
-    margin-left: auto;
-    padding: 8px 16px;
+    padding: 0 12px;
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 /* Gender-specific active tab colors */

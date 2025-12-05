@@ -144,7 +144,7 @@ WHERE scr.account IN (?)
 - Single table scan instead of nested loop
 - Filter is applied during the JOIN, not after
 
-#### B. Album Count Query Optimization (`AlbumRepositoryNew.java`)
+#### B. Album Count Query Optimization (`AlbumRepository.java`)
 Applied the same JOIN-based filtering for album counts.
 
 **Expected Performance Gain**: **80-95% faster** when filtering by account
@@ -164,7 +164,7 @@ INNER JOIN Artist ar ON s.artist_id = ar.id
 
 ### Solution Applied
 
-#### Optimized Chart Queries (`SongRepositoryNew.java`)
+#### Optimized Chart Queries (`SongRepository.java`)
 **Added fast-path for no-filter scenario**:
 
 ```java
@@ -271,10 +271,10 @@ The script includes `CREATE INDEX IF NOT EXISTS` so it's safe to run multiple ti
 2. `src/main/java/library/repository/ArtistRepositoryCustomImpl.java`
    - JOIN-based account filtering
 
-3. `src/main/java/library/repository/AlbumRepositoryNew.java`
+3. `src/main/java/library/repository/AlbumRepository.java`
    - JOIN-based account filtering
 
-4. `src/main/java/library/repository/SongRepositoryNew.java`
+4. `src/main/java/library/repository/SongRepository.java`
    - Fast-path for no-filter chart queries
    - Optimized Top tab queries (INNER JOIN, covering indexes)
 

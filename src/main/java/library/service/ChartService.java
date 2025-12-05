@@ -1590,6 +1590,63 @@ public class ChartService {
     }
     
     /**
+     * Get ALL chart entries for a seasonal/yearly chart for the edit page.
+     * Returns all entries regardless of position (for drafts that may have more than 30).
+     * Does not include play count - use for draft editing only.
+     */
+    public List<ChartEntryDTO> getAllChartEntriesForEdit(String periodType, String chartType, String periodKey) {
+        String itemTable = "song".equals(chartType) ? "Song" : "Album";
+        String itemIdCol = "song".equals(chartType) ? "song_id" : "album_id";
+        String imageCol = "song".equals(chartType) 
+            ? "COALESCE(item.single_cover, (SELECT image FROM Album WHERE id = item.album_id))" 
+            : "item.image";
+        
+        String sql = String.format("""
+            SELECT ce.position, ce.%s as item_id, 
+                   item.name as item_name,
+                   ar.id as artist_id, ar.name as artist_name,
+                   ar.gender_id as gender_id,
+                   %s as item_image,
+                   %s
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN %s item ON ce.%s = item.id
+            INNER JOIN Artist ar ON item.artist_id = ar.id
+            WHERE c.period_type = ? AND c.chart_type = ? AND c.period_key = ?
+            ORDER BY ce.position ASC
+            """,
+            itemIdCol,
+            imageCol,
+            "song".equals(chartType) ? "item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name" : "NULL as album_id, NULL as album_name",
+            itemTable,
+            itemIdCol
+        );
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            ChartEntryDTO dto = new ChartEntryDTO();
+            dto.setPosition(rs.getInt("position"));
+            
+            if ("song".equals(chartType)) {
+                dto.setSongId(rs.getInt("item_id"));
+                dto.setSongName(rs.getString("item_name"));
+                dto.setAlbumId(rs.getObject("album_id") != null ? rs.getInt("album_id") : null);
+                dto.setAlbumName(rs.getString("album_name"));
+            } else {
+                dto.setAlbumId(rs.getInt("item_id"));
+                dto.setAlbumName(rs.getString("item_name"));
+            }
+            
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            dto.setHasImage(rs.getBytes("item_image") != null);
+            dto.setPlayCount(0); // No play count for draft editing
+            
+            return dto;
+        }, periodType, chartType, periodKey);
+    }
+    
+    /**
      * Get chart entries for a seasonal/yearly chart with song/album details.
      * Returns only main entries (position 1-30), not extras.
      * Includes play count for the period if chart is finalized.
@@ -1723,42 +1780,6 @@ public class ChartService {
             return entry;
         }, itemId, periodType, chartType);
     }
-
-    /**
-     * Get seasonal chart history for a song (for detail page display).
-     * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getSeasonalChartHistoryForSong(Integer songId) {
-        return getChartHistoryForItem(songId, "song", "seasonal");
-    }
-    
-    /**
-     * Get yearly chart history for a song (for detail page display).
-     * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getYearlyChartHistoryForSong(Integer songId) {
-        return getChartHistoryForItem(songId, "song", "yearly");
-    }
-    
-    /**
-     * Get seasonal chart history for an album (for detail page display).
-     * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getSeasonalChartHistoryForAlbum(Integer albumId) {
-        return getChartHistoryForItem(albumId, "album", "seasonal");
-    }
-    
-    /**
-     * Get yearly chart history for an album (for detail page display).
-     * @deprecated Use {@link #getChartHistoryForItem(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getYearlyChartHistoryForAlbum(Integer albumId) {
-        return getChartHistoryForItem(albumId, "album", "yearly");
-    }
     
     /**
      * Get chart history for all songs/albums by an artist on a specific period type.
@@ -1798,42 +1819,6 @@ public class ChartService {
     }
 
     /**
-     * Get seasonal chart history for all songs by an artist.
-     * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getSeasonalChartHistoryForArtist(Integer artistId) {
-        return getArtistChartHistoryByPeriodType(artistId, "song", "seasonal");
-    }
-    
-    /**
-     * Get yearly chart history for all songs by an artist.
-     * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getYearlyChartHistoryForArtist(Integer artistId) {
-        return getArtistChartHistoryByPeriodType(artistId, "song", "yearly");
-    }
-    
-    /**
-     * Get seasonal chart history for all albums by an artist.
-     * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getSeasonalAlbumChartHistoryForArtist(Integer artistId) {
-        return getArtistChartHistoryByPeriodType(artistId, "album", "seasonal");
-    }
-    
-    /**
-     * Get yearly chart history for all albums by an artist.
-     * @deprecated Use {@link #getArtistChartHistoryByPeriodType(Integer, String, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getYearlyAlbumChartHistoryForArtist(Integer artistId) {
-        return getArtistChartHistoryByPeriodType(artistId, "album", "yearly");
-    }
-    
-    /**
      * Get chart history for songs in an album on a specific period type.
      * @param albumId The album ID
      * @param periodType "seasonal" or "yearly"
@@ -1860,24 +1845,6 @@ public class ChartService {
             entry.put("songName", rs.getString("song_name"));
             return entry;
         }, albumId, periodType);
-    }
-
-    /**
-     * Get seasonal chart history for songs in an album.
-     * @deprecated Use {@link #getAlbumSongsChartHistoryByPeriodType(Integer, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getSeasonalChartHistoryForAlbumSongs(Integer albumId) {
-        return getAlbumSongsChartHistoryByPeriodType(albumId, "seasonal");
-    }
-    
-    /**
-     * Get yearly chart history for songs in an album.
-     * @deprecated Use {@link #getAlbumSongsChartHistoryByPeriodType(Integer, String)} instead.
-     */
-    @Deprecated
-    public List<Map<String, Object>> getYearlyChartHistoryForAlbumSongs(Integer albumId) {
-        return getAlbumSongsChartHistoryByPeriodType(albumId, "yearly");
     }
     
     /**

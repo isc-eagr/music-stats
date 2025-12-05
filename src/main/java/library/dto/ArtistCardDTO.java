@@ -25,6 +25,7 @@ public class ArtistCardDTO {
     private String timeListenedFormatted;
     private boolean hasImage;
     private Boolean organized;
+    private Integer featuredSongCount; // Count of songs where this artist is featured
 
     // Getters and Setters
     public Integer getId() {
@@ -221,5 +222,13 @@ public class ArtistCardDTO {
 
     public void setOrganized(Boolean organized) {
         this.organized = organized;
+    }
+    
+    public Integer getFeaturedSongCount() {
+        return featuredSongCount;
+    }
+
+    public void setFeaturedSongCount(Integer featuredSongCount) {
+        this.featuredSongCount = featuredSongCount;
     }
 }

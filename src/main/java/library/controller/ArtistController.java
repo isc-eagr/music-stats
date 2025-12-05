@@ -1,6 +1,7 @@
 package library.controller;
 
 import library.dto.ArtistCardDTO;
+import library.dto.ArtistSongDTO;
 import library.dto.FeaturedArtistCardDTO;
 import library.entity.Artist;
 import library.service.ArtistService;
@@ -54,12 +55,16 @@ public class ArtistController {
             @RequestParam(required = false) String lastListenedDateFrom,
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
             @RequestParam(required = false) Integer albumCountMin,
             @RequestParam(required = false) Integer albumCountMax,
             @RequestParam(required = false) Integer songCountMin,
             @RequestParam(required = false) Integer songCountMax,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -73,16 +78,21 @@ public class ArtistController {
         String lastListenedDateConverted = convertDateFormat(lastListenedDate);
         String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
         String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
+        String listenedDateFromConverted = convertDateFormat(listenedDateFrom);
+        String listenedDateToConverted = convertDateFormat(listenedDateTo);
         
         // Get filtered and sorted artists
+        // TODO: Add includeGroups and includeFeatured support to getArtists method for aggregated play counts
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, country, countryMode, account, accountMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax,
+                includeGroups, includeFeatured,
                 sortby, sortdir, page, perpage
         );
         
@@ -92,6 +102,7 @@ public class ArtistController {
                 languageMode, country, countryMode, account, accountMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax);
@@ -151,8 +162,18 @@ public class ArtistController {
         model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
         
+        // Listened date filter attributes (filters by actual scrobble date)
+        model.addAttribute("listenedDateFrom", listenedDateFrom);
+        model.addAttribute("listenedDateTo", listenedDateTo);
+        model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
+        model.addAttribute("listenedDateToFormatted", formatDateForDisplay(listenedDateTo));
+        
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        
+        // Include toggles
+        model.addAttribute("includeGroups", includeGroups);
+        model.addAttribute("includeFeatured", includeFeatured);
         
         // Add filter options
         model.addAttribute("genders", artistService.getGenders());
@@ -170,6 +191,7 @@ public class ArtistController {
                             @RequestParam(defaultValue = "general") String tab,
                             @RequestParam(defaultValue = "0") int playsPage,
                             @RequestParam(defaultValue = "false") boolean includeGroups,
+                            @RequestParam(defaultValue = "false") boolean includeFeatured,
                             Model model) {
         Optional<Artist> artist = artistService.getArtistById(id);
         
@@ -200,6 +222,11 @@ public class ArtistController {
         model.addAttribute("hasGroups", hasGroups);
         model.addAttribute("includeGroups", includeGroups);
         
+        // Add featured songs data
+        boolean hasFeaturedSongs = artistService.hasFeaturedSongs(id);
+        model.addAttribute("hasFeaturedSongs", hasFeaturedSongs);
+        model.addAttribute("includeFeatured", includeFeatured);
+        
         // Get group/member cards for Artist Associations tab
         List<FeaturedArtistCardDTO> groupArtistCards = artistService.getGroupsForArtist(id);
         List<FeaturedArtistCardDTO> memberArtistCards = artistService.getMembersForArtist(id);
@@ -212,25 +239,31 @@ public class ArtistController {
         // Use aggregated data if includeGroups is true and artist has groups
         List<Integer> effectiveGroupIds = (includeGroups && hasGroups) ? groupIds : null;
         
+        // Calculate featured additions (when includeFeatured is true)
+        int featuredSongCountAddition = (includeFeatured && hasFeaturedSongs) ? artistService.getFeaturedSongCount(id) : 0;
+        int featuredPlayCountAddition = (includeFeatured && hasFeaturedSongs) ? artistService.getFeaturedPlayCount(id) : 0;
+        int featuredVatitoPlayAddition = (includeFeatured && hasFeaturedSongs) ? artistService.getFeaturedVatitoPlayCount(id) : 0;
+        int featuredRobertloverPlayAddition = (includeFeatured && hasFeaturedSongs) ? artistService.getFeaturedRobertloverPlayCount(id) : 0;
+        
         // Add album and song counts for quick stats
         if (effectiveGroupIds != null) {
             model.addAttribute("albumCount", artistService.getAggregatedAlbumCount(id, effectiveGroupIds));
-            model.addAttribute("songCount", artistService.getAggregatedSongCount(id, effectiveGroupIds));
+            model.addAttribute("songCount", artistService.getAggregatedSongCount(id, effectiveGroupIds) + featuredSongCountAddition);
         } else {
             int[] counts = artistService.getAlbumAndSongCounts(id);
             model.addAttribute("albumCount", counts[0]);
-            model.addAttribute("songCount", counts[1]);
+            model.addAttribute("songCount", counts[1] + featuredSongCountAddition);
         }
         
-        // Add play count for artist (aggregated if toggle is on)
+        // Add play count for artist (aggregated if toggle is on, plus featured)
         if (effectiveGroupIds != null) {
-            model.addAttribute("artistPlayCount", artistService.getAggregatedPlayCount(id, effectiveGroupIds));
-            model.addAttribute("artistVatitoPlayCount", artistService.getAggregatedVatitoPlayCount(id, effectiveGroupIds));
-            model.addAttribute("artistRobertloverPlayCount", artistService.getAggregatedRobertloverPlayCount(id, effectiveGroupIds));
+            model.addAttribute("artistPlayCount", artistService.getAggregatedPlayCount(id, effectiveGroupIds) + featuredPlayCountAddition);
+            model.addAttribute("artistVatitoPlayCount", artistService.getAggregatedVatitoPlayCount(id, effectiveGroupIds) + featuredVatitoPlayAddition);
+            model.addAttribute("artistRobertloverPlayCount", artistService.getAggregatedRobertloverPlayCount(id, effectiveGroupIds) + featuredRobertloverPlayAddition);
         } else {
-            model.addAttribute("artistPlayCount", artistService.getPlayCountForArtist(id));
-            model.addAttribute("artistVatitoPlayCount", artistService.getVatitoPlayCountForArtist(id));
-            model.addAttribute("artistRobertloverPlayCount", artistService.getRobertloverPlayCountForArtist(id));
+            model.addAttribute("artistPlayCount", artistService.getPlayCountForArtist(id) + featuredPlayCountAddition);
+            model.addAttribute("artistVatitoPlayCount", artistService.getVatitoPlayCountForArtist(id) + featuredVatitoPlayAddition);
+            model.addAttribute("artistRobertloverPlayCount", artistService.getRobertloverPlayCountForArtist(id) + featuredRobertloverPlayAddition);
         }
         // Add per-account breakdown string for tooltip
         model.addAttribute("artistPlaysByAccount", artistService.getPlaysByAccountForArtist(id));
@@ -246,6 +279,10 @@ public class ArtistController {
             model.addAttribute("lastListenedDate", artistService.getLastListenedDateForArtist(id));
         }
         
+        // Add average song length and average plays per song statistics
+        model.addAttribute("averageSongLength", artistService.getAverageSongLengthFormatted(id));
+        model.addAttribute("averagePlaysPerSong", artistService.getAveragePlaysPerSong(id));
+        
         // Add albums list for the artist (aggregated if toggle is on)
         if (effectiveGroupIds != null) {
             model.addAttribute("albums", artistService.getAggregatedAlbumsForArtist(id, effectiveGroupIds));
@@ -253,12 +290,23 @@ public class ArtistController {
             model.addAttribute("albums", artistService.getAlbumsForArtist(id));
         }
         
-        // Add songs list for the artist (aggregated if toggle is on)
+        // Add songs list for the artist (aggregated if toggle is on, plus featured)
+        List<ArtistSongDTO> songs;
         if (effectiveGroupIds != null) {
-            model.addAttribute("songs", artistService.getAggregatedSongsForArtist(id, effectiveGroupIds));
+            songs = artistService.getAggregatedSongsForArtist(id, effectiveGroupIds);
         } else {
-            model.addAttribute("songs", artistService.getSongsForArtist(id));
+            songs = artistService.getSongsForArtist(id);
         }
+        // Add featured songs if toggle is on
+        if (includeFeatured && hasFeaturedSongs) {
+            List<ArtistSongDTO> featuredSongs = artistService.getFeaturedSongsForArtist(id);
+            songs = new java.util.ArrayList<>(songs);
+            songs.addAll(featuredSongs);
+            // Re-sort by total plays descending
+            songs.sort((a, b) -> Integer.compare(b.getTotalPlays() != null ? b.getTotalPlays() : 0, 
+                                                  a.getTotalPlays() != null ? a.getTotalPlays() : 0));
+        }
+        model.addAttribute("songs", songs);
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
@@ -274,25 +322,37 @@ public class ArtistController {
         
         if ("plays".equals(tab)) {
             int pageSize = 100;
+            // For featured songs, the counts are already updated above. 
+            // The scrobble list and year chart show base data only for simplicity.
             if (effectiveGroupIds != null) {
                 model.addAttribute("scrobbles", artistService.getAggregatedScrobblesForArtist(id, effectiveGroupIds, playsPage, pageSize));
                 long totalCount = artistService.getAggregatedScrobbleCount(id, effectiveGroupIds);
+                if (includeFeatured && hasFeaturedSongs) {
+                    totalCount += artistService.countFeaturedScrobblesForArtist(id);
+                }
                 model.addAttribute("scrobblesTotalCount", totalCount);
                 model.addAttribute("scrobblesPage", playsPage);
                 model.addAttribute("scrobblesPageSize", pageSize);
                 model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(id, effectiveGroupIds));
             } else {
+                long baseCount = artistService.countScrobblesForArtist(id);
+                long totalCount = baseCount;
+                if (includeFeatured && hasFeaturedSongs) {
+                    totalCount += artistService.countFeaturedScrobblesForArtist(id);
+                }
                 model.addAttribute("scrobbles", artistService.getScrobblesForArtist(id, playsPage, pageSize));
-                model.addAttribute("scrobblesTotalCount", artistService.countScrobblesForArtist(id));
+                model.addAttribute("scrobblesTotalCount", totalCount);
                 model.addAttribute("scrobblesPage", playsPage);
                 model.addAttribute("scrobblesPageSize", pageSize);
-                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) artistService.countScrobblesForArtist(id) / pageSize));
+                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
             }
         }
         
         // Add chart history for the Chart History tab (separate lists for songs and albums)
+        // Note: Chart history for featured songs would require additional service methods
+        // to find chart entries where the song has this artist as a featured artist
         if ("chart-history".equals(tab)) {
             if (effectiveGroupIds != null) {
                 model.addAttribute("songChartHistory", chartService.getAggregatedArtistSongChartHistory(id, effectiveGroupIds));
@@ -304,10 +364,10 @@ public class ArtistController {
             } else {
                 model.addAttribute("songChartHistory", chartService.getArtistSongChartHistory(id));
                 model.addAttribute("albumChartHistory", chartService.getArtistAlbumChartHistory(id));
-                model.addAttribute("seasonalSongChartHistory", chartService.getSeasonalChartHistoryForArtist(id));
-                model.addAttribute("yearlySongChartHistory", chartService.getYearlyChartHistoryForArtist(id));
-                model.addAttribute("seasonalAlbumChartHistory", chartService.getSeasonalAlbumChartHistoryForArtist(id));
-                model.addAttribute("yearlyAlbumChartHistory", chartService.getYearlyAlbumChartHistoryForArtist(id));
+                model.addAttribute("seasonalSongChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "song", "seasonal"));
+                model.addAttribute("yearlySongChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "song", "yearly"));
+                model.addAttribute("seasonalAlbumChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "album", "seasonal"));
+                model.addAttribute("yearlyAlbumChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "album", "yearly"));
             }
         }
         

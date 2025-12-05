@@ -6,7 +6,7 @@ import library.dto.FeaturedArtistCardDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.entity.Album;
-import library.repository.AlbumRepositoryNew;
+import library.repository.AlbumRepository;
 import library.repository.LookupRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -19,11 +19,11 @@ import java.util.Optional;
 @Service
 public class AlbumService {
     
-    private final AlbumRepositoryNew albumRepository;
+    private final AlbumRepository albumRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public AlbumService(AlbumRepositoryNew albumRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public AlbumService(AlbumRepository albumRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.albumRepository = albumRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -40,6 +40,7 @@ public class AlbumService {
                                          String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                          String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                         String listenedDateFrom, String listenedDateTo,
                                          String organized, String hasImage, String hasFeaturedArtists, String isBand,
                                          Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                          String sortBy, String sortDir, int page, int perPage) {
@@ -55,6 +56,7 @@ public class AlbumService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 sortBy, sortDir, perPage, offset
@@ -78,26 +80,32 @@ public class AlbumService {
             dto.setReleaseYear((String) row[12]);
             dto.setReleaseDate(row[13] != null ? formatDate((String) row[13]) : null);
             dto.setSongCount(row[14] != null ? ((Number) row[14]).intValue() : 0);
-            dto.setHasImage(row[15] != null && ((Number) row[15]).intValue() == 1);
-            dto.setGenderName((String) row[16]);
-            dto.setPlayCount(row[17] != null ? ((Number) row[17]).intValue() : 0);
-            dto.setVatitoPlayCount(row[18] != null ? ((Number) row[18]).intValue() : 0);
-            dto.setRobertloverPlayCount(row[19] != null ? ((Number) row[19]).intValue() : 0);
+            
+            // Set album length and format it (index 15)
+            long albumLength = row[15] != null ? ((Number) row[15]).longValue() : 0L;
+            dto.setAlbumLength(albumLength);
+            dto.setAlbumLengthFormatted(formatTime(albumLength));
+            
+            dto.setHasImage(row[16] != null && ((Number) row[16]).intValue() == 1);
+            dto.setGenderName((String) row[17]);
+            dto.setPlayCount(row[18] != null ? ((Number) row[18]).intValue() : 0);
+            dto.setVatitoPlayCount(row[19] != null ? ((Number) row[19]).intValue() : 0);
+            dto.setRobertloverPlayCount(row[20] != null ? ((Number) row[20]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[20] != null ? ((Number) row[20]).longValue() : 0L;
+            long timeListened = row[21] != null ? ((Number) row[21]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(formatTime(timeListened));
             
-            // Set first and last listened dates (indices 21 and 22)
-            dto.setFirstListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
-            dto.setLastListenedDate(row[22] != null ? formatDate((String) row[22]) : null);
+            // Set first and last listened dates (indices 22 and 23)
+            dto.setFirstListenedDate(row[22] != null ? formatDate((String) row[22]) : null);
+            dto.setLastListenedDate(row[23] != null ? formatDate((String) row[23]) : null);
             
-            // Set country (inherited from artist, index 23)
-            dto.setCountry((String) row[23]);
+            // Set country (inherited from artist, index 24)
+            dto.setCountry((String) row[24]);
             
-            // Set organized (index 24)
-            dto.setOrganized(row[24] != null && ((Number) row[24]).intValue() == 1);
+            // Set organized (index 25)
+            dto.setOrganized(row[25] != null && ((Number) row[25]).intValue() == 1);
             
             albums.add(dto);
         }
@@ -116,6 +124,7 @@ public class AlbumService {
                            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                           String listenedDateFrom, String listenedDateTo,
                            String organized, String hasImage, String hasFeaturedArtists, String isBand,
                            Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
@@ -127,6 +136,7 @@ public class AlbumService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax);
     }
@@ -479,6 +489,62 @@ public class AlbumService {
             
             return dto;
         }, albumId);
+    }
+    
+    // Get formatted album length (sum of all song lengths in mm:ss or h:mm:ss format)
+    public String getAlbumLengthFormatted(int albumId) {
+        String sql = "SELECT SUM(length_seconds) FROM Song WHERE album_id = ?";
+        Long totalSeconds = jdbcTemplate.queryForObject(sql, Long.class, albumId);
+        if (totalSeconds == null || totalSeconds == 0) {
+            return null;
+        }
+        return formatTime(totalSeconds);
+    }
+    
+    // Get album length in seconds (for sorting/calculations)
+    public Long getAlbumLengthSeconds(int albumId) {
+        String sql = "SELECT SUM(length_seconds) FROM Song WHERE album_id = ?";
+        return jdbcTemplate.queryForObject(sql, Long.class, albumId);
+    }
+    
+    // Get average song length for an album (formatted as mm:ss)
+    public String getAverageSongLengthFormatted(int albumId) {
+        String sql = "SELECT AVG(length_seconds) FROM Song WHERE album_id = ? AND length_seconds IS NOT NULL";
+        Double avgSeconds = jdbcTemplate.queryForObject(sql, Double.class, albumId);
+        if (avgSeconds == null || avgSeconds == 0) {
+            return "-";
+        }
+        int totalSeconds = (int) Math.round(avgSeconds);
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return String.format("%d:%02d", minutes, seconds);
+    }
+    
+    // Get average plays per song for an album
+    public String getAveragePlaysPerSong(int albumId) {
+        String sql = """
+            SELECT AVG(play_count) FROM (
+                SELECT COALESCE(COUNT(scr.id), 0) as play_count
+                FROM Song s
+                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                WHERE s.album_id = ?
+                GROUP BY s.id
+            )
+            """;
+        try {
+            Double avgPlays = jdbcTemplate.queryForObject(sql, Double.class, albumId);
+            if (avgPlays == null || avgPlays == 0) {
+                return "-";
+            }
+            // Format with one decimal place if not a whole number
+            if (avgPlays == Math.floor(avgPlays)) {
+                return String.format("%.0f", avgPlays);
+            } else {
+                return String.format("%.1f", avgPlays);
+            }
+        } catch (Exception e) {
+            return "-";
+        }
     }
     
     // Calculate total listening time for an album (sum of all songs' listening time)

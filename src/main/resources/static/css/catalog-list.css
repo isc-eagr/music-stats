@@ -256,11 +256,23 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    text-decoration: none;
+    transition: filter 0.2s ease;
+}
+
+a.winning-chip:hover {
+    filter: brightness(1.2);
+    text-decoration: none;
 }
 
 .winning-chip.genre {
     background-color: rgba(139, 92, 246, 0.3);
     border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+.winning-chip.subgenre {
+    background-color: rgba(167, 139, 250, 0.3);
+    border: 1px solid rgba(167, 139, 250, 0.5);
 }
 
 .winning-chip.ethnicity {

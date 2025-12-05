@@ -33,12 +33,12 @@
                     <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
                         <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
                         <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                            <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
+                            <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
-                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
-                            <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
-                            <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
+                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
                         </select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
                                 th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">

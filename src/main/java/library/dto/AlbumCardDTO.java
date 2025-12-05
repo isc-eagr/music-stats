@@ -27,6 +27,8 @@ public class AlbumCardDTO {
     private String genderName;
     private String country;
     private Boolean organized;
+    private Long albumLength; // in seconds (sum of song lengths)
+    private String albumLengthFormatted;
 
     // Getters and Setters
     public Integer getId() {
@@ -239,5 +241,21 @@ public class AlbumCardDTO {
 
     public void setOrganized(Boolean organized) {
         this.organized = organized;
+    }
+
+    public Long getAlbumLength() {
+        return albumLength;
+    }
+
+    public void setAlbumLength(Long albumLength) {
+        this.albumLength = albumLength;
+    }
+
+    public String getAlbumLengthFormatted() {
+        return albumLengthFormatted;
+    }
+
+    public void setAlbumLengthFormatted(String albumLengthFormatted) {
+        this.albumLengthFormatted = albumLengthFormatted;
     }
 }

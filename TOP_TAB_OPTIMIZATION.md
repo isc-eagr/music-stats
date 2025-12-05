@@ -265,7 +265,7 @@ All from the index - **zero table lookups**!
 
 ## Files Modified
 
-1. `src/main/java/library/repository/SongRepositoryNew.java`
+1. `src/main/java/library/repository/SongRepository.java`
    - Optimized `getTopArtistsFiltered()` - INNER JOIN, COUNT(*)
    - Optimized `getTopAlbumsFiltered()` - INNER JOIN, COUNT(*)
    - Fixed parameter ordering for date filters

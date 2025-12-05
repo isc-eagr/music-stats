@@ -190,6 +190,7 @@ public class ScrobbleService {
      * Assigns all matching unmatched scrobbles to a song.
      * Matches by artist, album, and song name (case-insensitive) across ALL accounts.
      * Only updates scrobbles that don't already have a song_id.
+     * Also updates the scrobble's artist, album, and song fields to match the canonical song data.
      * 
      * @param account The account name (ignored - matches all accounts)
      * @param artist The artist name from the scrobble
@@ -199,14 +200,37 @@ public class ScrobbleService {
      * @return The number of scrobbles updated
      */
     public int assignScrobblesToSong(String account, String artist, String album, String song, Integer songId) {
-        String sql = "UPDATE scrobble SET song_id = ? " +
+        // First, fetch the canonical names from the song
+        String lookupSql = "SELECT s.name as song_name, ar.name as artist_name, COALESCE(al.name, '') as album_name " +
+                           "FROM song s " +
+                           "JOIN artist ar ON s.artist_id = ar.id " +
+                           "LEFT JOIN album al ON s.album_id = al.id " +
+                           "WHERE s.id = ?";
+        
+        Map<String, Object> songData = null;
+        try {
+            songData = jdbcTemplate.queryForMap(lookupSql, songId);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            // Song not found
+            return 0;
+        }
+        
+        String canonicalArtist = (String) songData.get("artist_name");
+        String canonicalAlbum = (String) songData.get("album_name");
+        String canonicalSong = (String) songData.get("song_name");
+        
+        // Update scrobbles with song_id AND canonical names
+        String sql = "UPDATE scrobble SET song_id = ?, artist = ?, album = ?, song = ? " +
                      "WHERE song_id IS NULL " +
                      "AND COALESCE(LOWER(artist),'') = LOWER(?) " +
                      "AND COALESCE(LOWER(album),'') = LOWER(?) " +
                      "AND COALESCE(LOWER(song),'') = LOWER(?)";
         
         return jdbcTemplate.update(sql, 
-            songId, 
+            songId,
+            canonicalArtist,
+            canonicalAlbum != null ? canonicalAlbum : "",
+            canonicalSong,
             artist != null ? artist : "",
             album != null ? album : "",
             song != null ? song : ""

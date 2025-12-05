@@ -55,16 +55,6 @@ public class LookupRepository {
         return subgenres;
     }
     
-    public Map<Integer, String> getSubGenresByGenre(Integer genreId) {
-        Map<Integer, String> subgenres = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM SubGenre WHERE parent_genre_id = ? ORDER BY name";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            subgenres.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        }, genreId);
-        return subgenres;
-    }
-    
     public Map<Integer, String> getAllLanguages() {
         Map<Integer, String> languages = new LinkedHashMap<>();
         String sql = "SELECT id, name FROM Language ORDER BY name";

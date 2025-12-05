@@ -42,6 +42,10 @@ let topSortState = {
 // Current sort state for chart groups (genre, subgenre, etc.)
 let chartSortMetric = 'plays';  // Options: 'artists', 'albums', 'songs', 'plays', 'listeningTime'
 
+// State for artist include toggles (Top Artists section)
+let artistIncludeGroups = false;
+let artistIncludeFeatured = false;
+
 // Register datalabels plugin if Chart.js is available
 if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
@@ -181,7 +185,7 @@ function updateChartsFiltersDisplayWithEntity(filterType, filterName) {
 
 /**
  * Opens the charts modal with specific date range filter
- * Called from timeframe cards to filter charts by listened date range
+ * Called from timeframe cards to filter charts by listened date
  * @param {string} listenedDateFrom - Start date in yyyy-MM-dd format
  * @param {string} listenedDateTo - End date in yyyy-MM-dd format  
  * @param {string} periodLabel - Display label for the time period (optional)
@@ -302,6 +306,13 @@ function loadTabData(tabName, forceReload = false) {
     // Add top limit for top tab
     if (tabName === 'top') {
         params.set('limit', getTopLimit());
+        // Add artist include toggles for top artists
+        if (artistIncludeGroups) {
+            params.set('includeGroups', 'true');
+        }
+        if (artistIncludeFeatured) {
+            params.set('includeFeatured', 'true');
+        }
     }
     
     const apiUrl = '/songs/api/charts/' + tabName + '?' + params.toString();
@@ -1238,7 +1249,7 @@ function renderTopAlbumsTable() {
     const data = sortTopData(topTabData.albums, topSortState.albums);
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>';
         return;
     }
     
@@ -1253,6 +1264,7 @@ function renderTopAlbumsTable() {
             </td>
             <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
+            <td class="numeric">${album.lengthFormatted || '-'}</td>
             <td>${album.releaseDate || '-'}</td>
             <td>${album.firstListened || '-'}</td>
             <td>${album.lastListened || '-'}</td>
@@ -1281,7 +1293,7 @@ function renderTopSongsTable() {
     const data = sortTopData(topTabData.songs, topSortState.songs);
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="18" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>';
         return;
     }
     
@@ -1315,6 +1327,7 @@ function renderTopSongsTable() {
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
             <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}</td>
+            <td class="numeric">${song.lengthFormatted || '-'}</td>
             <td>${song.releaseDate || '-'}</td>
             <td>${song.firstListened || '-'}</td>
             <td>${song.lastListened || '-'}</td>
@@ -1505,7 +1518,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Initialize modal close on click outside
+// Initialize modal close on click outside and read URL params for toggles
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('chartsModal');
     if (modal) {
@@ -1515,4 +1528,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Read URL params for artist include toggles (passed from artist list page)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('artistIncludeGroups') === 'true') {
+        artistIncludeGroups = true;
+        const toggle = document.getElementById('includeGroupsToggle');
+        if (toggle) toggle.checked = true;
+    }
+    if (urlParams.get('artistIncludeFeatured') === 'true') {
+        artistIncludeFeatured = true;
+        const toggle = document.getElementById('includeFeaturedToggle');
+        if (toggle) toggle.checked = true;
+    }
 });
+
+/**
+ * Toggles the includeGroups setting for Top Artists and reloads
+ */
+function toggleArtistIncludeGroups(checked) {
+    artistIncludeGroups = checked;
+    reloadTopData();
+}
+
+/**
+ * Toggles the includeFeatured setting for Top Artists and reloads
+ */
+function toggleArtistIncludeFeatured(checked) {
+    artistIncludeFeatured = checked;
+    reloadTopData();
+}

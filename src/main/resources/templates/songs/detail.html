@@ -49,6 +49,9 @@
                          class="item-image-large clickable-image"
                          onclick="openImageModal(this.src)"
                          style="cursor: pointer;">
+                      <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
+                          class="length-overlay"
+                          th:text="${song.lengthFormatted}"></span>
                     <img th:if="${!hasImage and song.albumId != null}"
                          th:src="@{'/albums/' + ${song.albumId} + '/image'}"
                          th:alt="${song.name}"
@@ -216,10 +219,12 @@
                                     <input type="text" id="status" name="status" th:field="*{status}" class="editable-input" style="display:none;" />
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="isSingle">Is Single</label>
+                                <div class="form-group form-group-checkbox">
                                     <span class="attribute-text" data-field="isSingle" th:text="${song.isSingle != null and song.isSingle ? 'Yes' : 'No'}">No</span>
-                                    <input type="checkbox" id="isSingle" name="isSingle" th:field="*{isSingle}" style="display:none;" />
+                                    <label class="inline-checkbox-label" style="display:none;">
+                                        <input type="checkbox" id="isSingle" name="isSingle" th:field="*{isSingle}" />
+                                        Is Single
+                                    </label>
                                 </div>
                                 
                                 <div class="form-group">
@@ -302,10 +307,12 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="organized">Organized</label>
+                                <div class="form-group form-group-checkbox">
                                     <span class="attribute-text" data-field="organized" th:text="${song.organized != null and song.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
-                                    <input type="checkbox" id="organized" name="organized" th:field="*{organized}" style="display:none;" />
+                                    <label class="inline-checkbox-label" style="display:none;">
+                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
+                                        Organized
+                                    </label>
                                 </div>
                                 
                                 <!-- Featured Artists field (spans full width) - only shown in edit mode -->
@@ -761,6 +768,11 @@
                     input.style.display = 'inline-block';
                 });
                 
+                // Show inline checkbox labels
+                document.querySelectorAll('.inline-checkbox-label').forEach(label => {
+                    label.style.display = 'inline-flex';
+                });
+                
                 // Show selects
                 selects.forEach(select => {
                     select.removeAttribute('disabled');
@@ -1086,6 +1098,57 @@
             color: #888;
         }
         
+        /* Checkbox styling (compact inline) */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0;
+            flex-wrap: nowrap;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: #e5e7eb;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        /* Inline layout for checkbox form-groups (compact) */
+        .form-group.form-group-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .form-group.form-group-checkbox .field-label {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .form-group.form-group-checkbox .attribute-text {
+            margin-left: 4px;
+        }
+
+        .form-group.form-group-checkbox .checkbox-container {
+            margin: 0;
+            padding: 0;
+        }
+
+        .form-group.form-group-checkbox .checkbox-label { display: none; }
+
+        .form-group.form-group-checkbox .inline-checkbox-label {
+            justify-content: flex-start;
+        }
+        
         /* Name and Album field styling */
         .name-field-group,
         .album-field-group {
@@ -1266,6 +1329,12 @@
         .item-image-large.clickable:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Hide length overlay on image hover so upload/remove buttons can appear */
+        .item-image-container:hover .length-overlay {
+            opacity: 0;
+            transition: opacity 0.15s ease;
         }
         
         /* Chart Run Styles */

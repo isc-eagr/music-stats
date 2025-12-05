@@ -102,6 +102,7 @@ public class PlaylistController {
                 null, null, null, null,     // releaseDate, from, to, mode
                 null, null, null, null,     // firstListenedDate, from, to, mode
                 null, null, null, null,     // lastListenedDate, from, to, mode
+                null, null,                 // listenedDateFrom, listenedDateTo
                 null, null, null, null, null, // organized, hasImage, hasFeaturedArtists, isBand, isSingle
                 null, null,                 // playCountMin, playCountMax
                 "name", "asc", page, perpage

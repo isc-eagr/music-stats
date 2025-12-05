@@ -7,7 +7,7 @@ import library.dto.FeaturedArtistCardDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.entity.Artist;
-import library.repository.ArtistRepositoryNew;
+import library.repository.ArtistRepository;
 import library.repository.LookupRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -23,11 +23,11 @@ import java.util.TreeSet;
 @Service
 public class ArtistService {
     
-    private final ArtistRepositoryNew artistRepository;
+    private final ArtistRepository artistRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public ArtistService(ArtistRepositoryNew artistRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public ArtistService(ArtistRepository artistRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.artistRepository = artistRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -42,10 +42,12 @@ public class ArtistService {
                                           List<String> accounts, String accountMode,
                                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                          String listenedDateFrom, String listenedDateTo,
                                           String organized, String hasImage, String isBand,
                                           Integer playCountMin, Integer playCountMax,
                                           Integer albumCountMin, Integer albumCountMax,
                                           Integer songCountMin, Integer songCountMax,
+                                          boolean includeGroups, boolean includeFeatured,
                                           String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
 
@@ -64,9 +66,11 @@ public class ArtistService {
                 countries, countryMode, accounts, accountMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
                 organized, hasImage, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax,
+                includeGroups, includeFeatured,
                 sortBy, sortDir, perPage, offset
         );
         
@@ -105,6 +109,9 @@ public class ArtistService {
             // Set organized (index 22)
             dto.setOrganized(row[22] != null && ((Number) row[22]).intValue() == 1);
             
+            // Set featured song count (index 23)
+            dto.setFeaturedSongCount(row[23] != null ? ((Number) row[23]).intValue() : 0);
+            
             artists.add(dto);
         }
         
@@ -120,6 +127,7 @@ public class ArtistService {
                             List<String> accounts, String accountMode,
                             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                             String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                            String listenedDateFrom, String listenedDateTo,
                             String organized, String hasImage, String isBand,
                             Integer playCountMin, Integer playCountMax,
                             Integer albumCountMin, Integer albumCountMax,
@@ -138,6 +146,7 @@ public class ArtistService {
                 languageIds, languageMode, countries, countryMode, accounts, accountMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
                 organized, hasImage, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax);
@@ -446,6 +455,50 @@ public class ArtistService {
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
             return formatDate(date);
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+    
+    // Get average song length for an artist (formatted as mm:ss)
+    public String getAverageSongLengthFormatted(int artistId) {
+        String sql = "SELECT AVG(length_seconds) FROM Song WHERE artist_id = ? AND length_seconds IS NOT NULL";
+        try {
+            Double avgSeconds = jdbcTemplate.queryForObject(sql, Double.class, artistId);
+            if (avgSeconds == null || avgSeconds == 0) {
+                return "-";
+            }
+            int totalSeconds = (int) Math.round(avgSeconds);
+            int minutes = totalSeconds / 60;
+            int seconds = totalSeconds % 60;
+            return String.format("%d:%02d", minutes, seconds);
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+    
+    // Get average plays per song for an artist
+    public String getAveragePlaysPerSong(int artistId) {
+        String sql = """
+            SELECT AVG(play_count) FROM (
+                SELECT COALESCE(COUNT(scr.id), 0) as play_count
+                FROM Song s
+                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                WHERE s.artist_id = ?
+                GROUP BY s.id
+            )
+            """;
+        try {
+            Double avgPlays = jdbcTemplate.queryForObject(sql, Double.class, artistId);
+            if (avgPlays == null || avgPlays == 0) {
+                return "-";
+            }
+            // Format with one decimal place if not a whole number
+            if (avgPlays == Math.floor(avgPlays)) {
+                return String.format("%.0f", avgPlays);
+            } else {
+                return String.format("%.1f", avgPlays);
+            }
         } catch (Exception e) {
             return "-";
         }
@@ -1186,14 +1239,6 @@ public class ArtistService {
     }
     
     /**
-     * Get the IDs of members that belong to this group artist
-     */
-    public List<Integer> getMemberIdsForArtist(int artistId) {
-        String sql = "SELECT member_artist_id FROM ArtistMember WHERE group_artist_id = ?";
-        return jdbcTemplate.queryForList(sql, Integer.class, artistId);
-    }
-    
-    /**
      * Save the groups that an artist belongs to.
      * Deletes all existing memberships and inserts new ones.
      */
@@ -1429,6 +1474,7 @@ public class ArtistService {
             ORDER BY total_plays DESC
             """.formatted(placeholders);
         
+        final int mainArtistId = artistId; // Capture for use in lambda
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             ArtistSongDTO dto = new ArtistSongDTO();
             dto.setId(rs.getInt("id"));
@@ -1471,6 +1517,14 @@ public class ArtistService {
             
             // Set isSingle
             dto.setIsSingle(rs.getBoolean("is_single"));
+            
+            // Check if song is from a group (artist_id != main artist id)
+            int songArtistId = rs.getInt("artist_id");
+            if (songArtistId != mainArtistId) {
+                dto.setFromGroup(true);
+                dto.setSourceArtistId(songArtistId);
+                dto.setSourceArtistName(rs.getString("artist_name"));
+            }
             
             return dto;
         }, allArtistIds.toArray());
@@ -1540,6 +1594,7 @@ public class ArtistService {
             ORDER BY total_plays DESC
             """.formatted(placeholders);
         
+        final int mainArtistId = artistId; // Capture for use in lambda
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             ArtistAlbumDTO dto = new ArtistAlbumDTO();
             dto.setId(rs.getInt("id"));
@@ -1593,6 +1648,14 @@ public class ArtistService {
             } else {
                 dto.setTotalListeningTime("-");
                 dto.setTotalListeningTimeSeconds(0);
+            }
+            
+            // Check if album is from a group (artist_id != main artist id)
+            int albumArtistId = rs.getInt("artist_id");
+            if (albumArtistId != mainArtistId) {
+                dto.setFromGroup(true);
+                dto.setSourceArtistId(albumArtistId);
+                dto.setSourceArtistName(rs.getString("artist_name"));
             }
             
             return dto;
@@ -1783,5 +1846,289 @@ public class ArtistService {
             }
             return dto;
         }, allArtistIds.toArray());
+    }
+    
+    // ===== FEATURED SONGS METHODS =====
+    
+    /**
+     * Check if an artist has any songs where they are featured (not the main artist)
+     */
+    public boolean hasFeaturedSongs(int artistId) {
+        String sql = """
+            SELECT COUNT(*) > 0 
+            FROM SongFeaturedArtist sfa
+            WHERE sfa.artist_id = ?
+            """;
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, artistId));
+    }
+    
+    /**
+     * Get count of songs where this artist is featured
+     */
+    public int getFeaturedSongCount(int artistId) {
+        String sql = """
+            SELECT COUNT(DISTINCT sfa.song_id)
+            FROM SongFeaturedArtist sfa
+            WHERE sfa.artist_id = ?
+            """;
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get play count for songs where this artist is featured
+     */
+    public int getFeaturedPlayCount(int artistId) {
+        String sql = """
+            SELECT COUNT(*) 
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ?
+            """;
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get primary (vatito) play count for songs where this artist is featured
+     */
+    public int getFeaturedVatitoPlayCount(int artistId) {
+        String sql = """
+            SELECT COUNT(*) 
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ? AND sc.account = 'vatito'
+            """;
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get legacy (robertlover) play count for songs where this artist is featured
+     */
+    public int getFeaturedRobertloverPlayCount(int artistId) {
+        String sql = """
+            SELECT COUNT(*) 
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ? AND sc.account = 'robertlover'
+            """;
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get total listening time for songs where this artist is featured
+     */
+    public String getFeaturedListeningTime(int artistId) {
+        String sql = """
+            SELECT COALESCE(SUM(s.length_seconds), 0)
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            INNER JOIN Song s ON sc.song_id = s.id
+            WHERE sfa.artist_id = ?
+            """;
+        Integer totalSeconds = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return formatTime(totalSeconds != null ? totalSeconds : 0);
+    }
+    
+    /**
+     * Get first listened date for songs where this artist is featured
+     */
+    public String getFeaturedFirstListenedDate(int artistId) {
+        String sql = """
+            SELECT MIN(sc.scrobble_date)
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ?
+            """;
+        String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
+        return formatDate(date);
+    }
+    
+    /**
+     * Get last listened date for songs where this artist is featured
+     */
+    public String getFeaturedLastListenedDate(int artistId) {
+        String sql = """
+            SELECT MAX(sc.scrobble_date)
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ?
+            """;
+        String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
+        return formatDate(date);
+    }
+    
+    /**
+     * Get songs where this artist is featured (for Songs table in General tab)
+     */
+    public List<ArtistSongDTO> getFeaturedSongsForArtist(int artistId) {
+        String sql = """
+            SELECT 
+                s.id,
+                s.name,
+                s.length_seconds,
+                s.single_cover IS NOT NULL as has_image,
+                a.image IS NOT NULL as album_has_image,
+                COALESCE(s.release_date, a.release_date) as release_date,
+                a.name as album_name,
+                a.id as album_id,
+                ar.id as primary_artist_id,
+                ar.name as primary_artist_name,
+                ar.country,
+                COALESCE(g_song.name, g_album.name, g_artist.name) as genre,
+                COALESCE(sg_song.name, sg_album.name, sg_artist.name) as subgenre,
+                COALESCE(eth_song.name, eth_artist.name) as ethnicity,
+                COALESCE(l_song.name, l_album.name, l_artist.name) as language,
+                COALESCE(play_stats.vatito_plays, 0) as vatito_plays,
+                COALESCE(play_stats.robertlover_plays, 0) as robertlover_plays,
+                COALESCE(play_stats.total_plays, 0) as total_plays,
+                play_stats.first_listen,
+                play_stats.last_listen,
+                s.is_single
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Song s ON sfa.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album a ON s.album_id = a.id
+            LEFT JOIN (
+                SELECT 
+                    song_id,
+                    SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                    SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
+                    COUNT(*) as total_plays,
+                    MIN(scrobble_date) as first_listen,
+                    MAX(scrobble_date) as last_listen
+                FROM Scrobble
+                GROUP BY song_id
+            ) play_stats ON s.id = play_stats.song_id
+            LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
+            LEFT JOIN Genre g_album ON a.override_genre_id = g_album.id
+            LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
+            LEFT JOIN SubGenre sg_song ON s.override_subgenre_id = sg_song.id
+            LEFT JOIN SubGenre sg_album ON a.override_subgenre_id = sg_album.id
+            LEFT JOIN SubGenre sg_artist ON ar.subgenre_id = sg_artist.id
+            LEFT JOIN Language l_song ON s.override_language_id = l_song.id
+            LEFT JOIN Language l_album ON a.override_language_id = l_album.id
+            LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
+            LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
+            LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
+            WHERE sfa.artist_id = ?
+            ORDER BY total_plays DESC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            ArtistSongDTO dto = new ArtistSongDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setName(rs.getString("name"));
+            dto.setHasImage(rs.getBoolean("has_image"));
+            dto.setAlbumHasImage(rs.getBoolean("album_has_image"));
+            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setCountry(rs.getString("country"));
+            dto.setGenre(rs.getString("genre"));
+            dto.setSubgenre(rs.getString("subgenre"));
+            dto.setEthnicity(rs.getString("ethnicity"));
+            dto.setLanguage(rs.getString("language"));
+            dto.setFeaturedOn(true); // Mark as featured song
+            dto.setPrimaryArtistId(rs.getInt("primary_artist_id"));
+            dto.setPrimaryArtistName(rs.getString("primary_artist_name"));
+            
+            int albumId = rs.getInt("album_id");
+            dto.setAlbumId(rs.wasNull() ? null : albumId);
+            dto.setAlbumName(rs.getString("album_name"));
+            
+            int length = rs.getInt("length_seconds");
+            dto.setLength(rs.wasNull() ? null : length);
+            
+            dto.setVatitoPlays(rs.getInt("vatito_plays"));
+            dto.setRobertloverPlays(rs.getInt("robertlover_plays"));
+            dto.setTotalPlays(rs.getInt("total_plays"));
+            
+            dto.setFirstListenedDate(formatDate(rs.getString("first_listen")));
+            dto.setLastListenedDate(formatDate(rs.getString("last_listen")));
+            
+            dto.calculateTotalListeningTime();
+            if (dto.getLength() != null && dto.getTotalPlays() != null) {
+                dto.setTotalListeningTimeSeconds(dto.getLength() * dto.getTotalPlays());
+            } else {
+                dto.setTotalListeningTimeSeconds(0);
+            }
+            
+            dto.setIsSingle(rs.getBoolean("is_single"));
+            
+            return dto;
+        }, artistId);
+    }
+    
+    /**
+     * Get scrobbles for songs where this artist is featured
+     */
+    public List<ScrobbleDTO> getFeaturedScrobblesForArtist(int artistId, int page, int pageSize) {
+        String sql = """
+            SELECT sc.id, sc.scrobble_date, sc.account,
+                   s.id as song_id, s.name as song_name,
+                   ar.id as artist_id, ar.name as artist_name,
+                   a.id as album_id, a.name as album_name
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            INNER JOIN Song s ON sc.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album a ON s.album_id = a.id
+            WHERE sfa.artist_id = ?
+            ORDER BY sc.scrobble_date DESC
+            LIMIT ? OFFSET ?
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            ScrobbleDTO dto = new ScrobbleDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setScrobbleDate(rs.getString("scrobble_date"));
+            dto.setAccount(rs.getString("account"));
+            dto.setSongId(rs.getInt("song_id"));
+            dto.setSongName(rs.getString("song_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setArtistName(rs.getString("artist_name"));
+            Integer albumId = rs.getInt("album_id");
+            dto.setAlbumId(rs.wasNull() ? null : albumId);
+            dto.setAlbumName(rs.getString("album_name"));
+            return dto;
+        }, artistId, pageSize, page * pageSize);
+    }
+    
+    /**
+     * Count scrobbles for songs where this artist is featured
+     */
+    public long countFeaturedScrobblesForArtist(int artistId) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ?
+            """;
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, artistId);
+        return count != null ? count : 0L;
+    }
+    
+    /**
+     * Get plays by year for songs where this artist is featured
+     */
+    public java.util.Map<Integer, Integer> getFeaturedPlaysByYear(int artistId) {
+        String sql = """
+            SELECT strftime('%Y', sc.scrobble_date) as year, COUNT(*) as count
+            FROM Scrobble sc
+            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            WHERE sfa.artist_id = ?
+            GROUP BY year
+            ORDER BY year
+            """;
+        
+        java.util.Map<Integer, Integer> result = new java.util.LinkedHashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            String yearStr = rs.getString("year");
+            if (yearStr != null) {
+                result.put(Integer.parseInt(yearStr), rs.getInt("count"));
+            }
+        }, artistId);
+        return result;
     }
 }

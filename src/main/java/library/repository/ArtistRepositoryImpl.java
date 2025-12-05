@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
+public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
     
     private final JdbcTemplate jdbcTemplate;
     
-    public ArtistRepositoryNewImpl(JdbcTemplate jdbcTemplate) {
+    public ArtistRepositoryImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
     
@@ -42,6 +42,8 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
             String lastListenedDateFrom,
             String lastListenedDateTo,
             String lastListenedDateMode,
+            String listenedDateFrom,
+            String listenedDateTo,
             String organized,
             String hasImage,
             String isBand,
@@ -51,6 +53,8 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
             Integer albumCountMax,
             Integer songCountMin,
             Integer songCountMax,
+            boolean includeGroups,
+            boolean includeFeatured,
             String sortBy,
             String sortDir,
             int limit,
@@ -77,6 +81,18 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
             accountFilterClause.append(")");
         }
         
+        // Build listened date filter for the play_stats subquery
+        StringBuilder listenedDateFilterClause = new StringBuilder();
+        List<Object> listenedDateParams = new ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateParams.add(listenedDateTo);
+        }
+        
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ");
         sql.append("    a.id, ");
@@ -101,7 +117,8 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
         sql.append("    COALESCE(play_stats.time_listened, 0) as time_listened, ");
         sql.append("    play_stats.first_listened, ");
         sql.append("    play_stats.last_listened, ");
-        sql.append("    a.organized ");
+        sql.append("    a.organized, ");
+        sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count ");
         sql.append("FROM Artist a ");
         sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
         sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
@@ -110,28 +127,88 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
         sql.append("LEFT JOIN Language l ON a.language_id = l.id ");
         sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as song_count FROM Song GROUP BY artist_id) song_stats ON song_stats.artist_id = a.id ");
         sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) album_stats ON album_stats.artist_id = a.id ");
+        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as featured_song_count FROM SongFeaturedArtist GROUP BY artist_id) featured_stats ON featured_stats.artist_id = a.id ");
         
-        // Use INNER JOIN when account filter is includes mode for better performance
-        String playStatsJoinType = (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) ? "INNER JOIN" : "LEFT JOIN";
-        sql.append(playStatsJoinType).append(" ( ");
-        sql.append("    SELECT ");
-        sql.append("        song.artist_id, ");
-        sql.append("        COUNT(*) as play_count, ");
-        sql.append("        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
-        sql.append("        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
-        sql.append("        SUM(song.length_seconds) as time_listened, ");
-        sql.append("        MIN(scr.scrobble_date) as first_listened, ");
-        sql.append("        MAX(scr.scrobble_date) as last_listened ");
-        sql.append("    FROM Scrobble scr ");
-        sql.append("    JOIN Song song ON scr.song_id = song.id ");
-        sql.append("    WHERE 1=1 ").append(accountFilterClause).append(" ");
-        sql.append("    GROUP BY song.artist_id ");
-        sql.append(") play_stats ON play_stats.artist_id = a.id ");
+        // Use INNER JOIN when account filter is includes mode or when listened date filter is applied
+        boolean hasListenedDateFilter = (listenedDateFrom != null && !listenedDateFrom.isEmpty()) || 
+                                        (listenedDateTo != null && !listenedDateTo.isEmpty());
+        String playStatsJoinType = ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) ? "INNER JOIN" : "LEFT JOIN";
+        
+        // Build play_stats subquery based on includeGroups and includeFeatured flags
+        if (!includeGroups && !includeFeatured) {
+            // Standard query - direct plays only
+            sql.append(playStatsJoinType).append(" ( ");
+            sql.append("    SELECT ");
+            sql.append("        song.artist_id, ");
+            sql.append("        COUNT(*) as play_count, ");
+            sql.append("        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
+            sql.append("        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
+            sql.append("        SUM(song.length_seconds) as time_listened, ");
+            sql.append("        MIN(scr.scrobble_date) as first_listened, ");
+            sql.append("        MAX(scr.scrobble_date) as last_listened ");
+            sql.append("    FROM Scrobble scr ");
+            sql.append("    JOIN Song song ON scr.song_id = song.id ");
+            sql.append("    WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause).append(" ");
+            sql.append("    GROUP BY song.artist_id ");
+            sql.append(") play_stats ON play_stats.artist_id = a.id ");
+        } else {
+            // Build union query to aggregate plays from groups and/or featured songs
+            sql.append(playStatsJoinType).append(" ( ");
+            sql.append("    SELECT ");
+            sql.append("        attributed_artist_id as artist_id, ");
+            sql.append("        COUNT(*) as play_count, ");
+            sql.append("        SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
+            sql.append("        SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
+            sql.append("        SUM(length_seconds) as time_listened, ");
+            sql.append("        MIN(scrobble_date) as first_listened, ");
+            sql.append("        MAX(scrobble_date) as last_listened ");
+            sql.append("    FROM ( ");
+            
+            // Part 1: Direct artist plays
+            sql.append("        SELECT song.artist_id as attributed_artist_id, scr.account, song.length_seconds, scr.scrobble_date ");
+            sql.append("        FROM Scrobble scr ");
+            sql.append("        JOIN Song song ON scr.song_id = song.id ");
+            sql.append("        WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause);
+            
+            if (includeGroups) {
+                // Part 2: Group plays - attribute to group members
+                sql.append("        UNION ALL ");
+                sql.append("        SELECT am.member_artist_id as attributed_artist_id, scr.account, song.length_seconds, scr.scrobble_date ");
+                sql.append("        FROM Scrobble scr ");
+                sql.append("        JOIN Song song ON scr.song_id = song.id ");
+                sql.append("        JOIN ArtistMember am ON song.artist_id = am.group_artist_id ");
+                sql.append("        WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause);
+            }
+            
+            if (includeFeatured) {
+                // Part 3: Featured plays - attribute to featured artists
+                sql.append("        UNION ALL ");
+                sql.append("        SELECT sfa.artist_id as attributed_artist_id, scr.account, song.length_seconds, scr.scrobble_date ");
+                sql.append("        FROM Scrobble scr ");
+                sql.append("        JOIN Song song ON scr.song_id = song.id ");
+                sql.append("        JOIN SongFeaturedArtist sfa ON song.id = sfa.song_id ");
+                sql.append("        WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause);
+            }
+            
+            sql.append("    ) ");
+            sql.append("    GROUP BY attributed_artist_id ");
+            sql.append(") play_stats ON play_stats.artist_id = a.id ");
+        }
+        
         sql.append("WHERE 1=1 ");
         
         List<Object> params = new ArrayList<>();
-        // Add account params only once now (play_stats subquery)
-        params.addAll(accountParams); // play_stats
+        // Add account params and listened date params for each part of the query
+        params.addAll(accountParams); // first part
+        params.addAll(listenedDateParams); // first part listened date
+        if (includeGroups) {
+            params.addAll(accountParams); // group part
+            params.addAll(listenedDateParams); // group part listened date
+        }
+        if (includeFeatured) {
+            params.addAll(accountParams); // featured part
+            params.addAll(listenedDateParams); // featured part listened date
+        }
         
         // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {
@@ -227,6 +304,8 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
         sql.append(" ORDER BY ");
         if ("songs".equals(sortBy)) {
             sql.append(" song_count " + direction + ", a.name ASC");
+        } else if ("featured".equals(sortBy)) {
+            sql.append(" featured_song_count " + direction + ", a.name ASC");
         } else if ("albums".equals(sortBy)) {
             sql.append(" album_count " + direction + ", a.name ASC");
         } else if ("plays".equals(sortBy)) {
@@ -271,7 +350,8 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
                 rs.getLong("time_listened"),
                 rs.getString("first_listened"),
                 rs.getString("last_listened"),
-                rs.getObject("organized")
+                rs.getObject("organized"),
+                rs.getInt("featured_song_count")
             };
         }, params.toArray());
     }
@@ -301,6 +381,8 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
             String lastListenedDateFrom,
             String lastListenedDateTo,
             String lastListenedDateMode,
+            String listenedDateFrom,
+            String listenedDateTo,
             String organized,
             String hasImage,
             String isBand,
@@ -311,21 +393,40 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
             Integer songCountMin,
             Integer songCountMax
     ) {
+        // Build listened date filter clause
+        StringBuilder listenedDateFilterClause = new StringBuilder();
+        List<Object> listenedDateParams = new ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateParams.add(listenedDateTo);
+        }
+        
+        boolean hasListenedDateFilter = (listenedDateFrom != null && !listenedDateFrom.isEmpty()) || 
+                                        (listenedDateTo != null && !listenedDateTo.isEmpty());
+        
         StringBuilder sql = new StringBuilder();
         
-        // Use a more efficient approach with JOIN for account filtering
-        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+        // Use a more efficient approach with JOIN for account filtering or listened date filtering
+        if ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) {
             sql.append(
                 "SELECT COUNT(DISTINCT a.id) " +
                 "FROM Artist a " +
                 "INNER JOIN Song s ON s.artist_id = a.id " +
                 "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
-                "WHERE scr.account IN (");
-            for (int i = 0; i < accounts.size(); i++) {
-                if (i > 0) sql.append(",");
-                sql.append("?");
+                "WHERE 1=1 ");
+            if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+                sql.append("AND scr.account IN (");
+                for (int i = 0; i < accounts.size(); i++) {
+                    if (i > 0) sql.append(",");
+                    sql.append("?");
+                }
+                sql.append(") ");
             }
-            sql.append(") ");
+            sql.append(listenedDateFilterClause);
         } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
             sql.append(
                 "SELECT COUNT(DISTINCT a.id) " +
@@ -348,8 +449,16 @@ public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
         
         List<Object> params = new ArrayList<>();
         
-        // Account params first if using includes or excludes mode
-        if (accounts != null && !accounts.isEmpty()) {
+        // Account params first if using includes mode
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            params.addAll(accounts);
+        }
+        // Listened date params
+        if (hasListenedDateFilter) {
+            params.addAll(listenedDateParams);
+        }
+        // Account params for excludes mode
+        if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
             params.addAll(accounts);
         }
         

@@ -1,13 +1,14 @@
 package library.service;
 
+import library.dto.ChartFilterDTO;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.FeaturedArtistDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.dto.SongCardDTO;
-import library.entity.SongNew;
+import library.entity.Song;
 import library.repository.LookupRepository;
-import library.repository.SongRepositoryNew;
+import library.repository.SongRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +21,11 @@ import java.util.Optional;
 @Service
 public class SongService {
     
-    private final SongRepositoryNew songRepository;
+    private final SongRepository songRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public SongService(SongRepositoryNew songRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public SongService(SongRepository songRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.songRepository = songRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -41,6 +42,7 @@ public class SongService {
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                       String listenedDateFrom, String listenedDateTo,
                                        String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                                        Integer playCountMin, Integer playCountMax,
                                        String sortBy, String sortDirection, int page, int perPage) {
@@ -56,6 +58,7 @@ public class SongService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
                 sortBy, sortDirection, perPage, offset
@@ -132,6 +135,7 @@ public class SongService {
                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                          String listenedDateFrom, String listenedDateTo,
                           String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                           Integer playCountMin, Integer playCountMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
@@ -143,11 +147,12 @@ public class SongService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax);
     }
     
-    public Optional<SongNew> getSongById(Integer id) {
+    public Optional<Song> getSongById(Integer id) {
         String sql = """
             SELECT s.id, s.artist_id, s.album_id, s.name, s.status, s.length_seconds, s.is_single,
                    s.override_genre_id, s.override_subgenre_id, s.override_language_id,
@@ -167,8 +172,8 @@ public class SongService {
             WHERE s.id = ?
             """;
         
-        List<SongNew> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            SongNew song = new SongNew();
+        List<Song> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Song song = new Song();
             song.setId(rs.getInt("id"));
             song.setArtistId(rs.getInt("artist_id"));
             
@@ -264,7 +269,7 @@ public class SongService {
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
     
-    public SongNew saveSong(SongNew song) {
+    public Song saveSong(Song song) {
         // Get the old song data to check if name or album changed
         String oldName = null;
         Integer oldAlbumId = null;
@@ -351,7 +356,7 @@ public class SongService {
      * Try to match unmatched scrobbles to this song.
      * Looks for scrobbles where artist, album, and song name match.
      */
-    private void tryMatchUnmatchedScrobblesForSong(SongNew song) {
+    private void tryMatchUnmatchedScrobblesForSong(Song song) {
         // Get artist name
         String artistName = getArtistName(song.getArtistId());
         if (artistName == null) return;
@@ -606,7 +611,7 @@ public class SongService {
     }
     
     // Create a new song
-    public SongNew createSong(SongNew song) {
+    public Song createSong(Song song) {
         String sql = """
             INSERT INTO Song (artist_id, album_id, name, release_date, length_seconds, 
                              is_single, status, override_genre_id, override_subgenre_id, 
@@ -646,7 +651,7 @@ public class SongService {
     
     // Create song from map (for API)
     public Integer createSong(java.util.Map<String, Object> data) {
-        SongNew song = new SongNew();
+        Song song = new Song();
         song.setName((String) data.get("name"));
         if (data.get("artistId") != null) {
             song.setArtistId(((Number) data.get("artistId")).intValue());
@@ -654,7 +659,7 @@ public class SongService {
         if (data.get("albumId") != null) {
             song.setAlbumId(((Number) data.get("albumId")).intValue());
         }
-        SongNew created = createSong(song);
+        Song created = createSong(song);
         return created.getId();
     }
     
@@ -727,229 +732,54 @@ public class SongService {
         }
     }
     
-    // Get filtered chart data for gender breakdown
-    public Map<String, Object> getFilteredChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getFilteredChartData(
-            name, artistName, albumName,
-            genreIds, genreMode,
-            subgenreIds, subgenreMode,
-            languageIds, languageMode,
-            genderIds, genderMode,
-            ethnicityIds, ethnicityMode,
-            countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    // Get filtered chart data for gender breakdown (using ChartFilterDTO)
+    public Map<String, Object> getFilteredChartData(ChartFilterDTO filter) {
+        return songRepository.getFilteredChartData(filter);
     }
     
     // Get General tab chart data (5 pie charts: Artists, Albums, Songs, Plays, Listening Time)
-    public Map<String, Object> getGeneralChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getGeneralChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getGeneralChartData(ChartFilterDTO filter) {
+        return songRepository.getGeneralChartData(filter);
     }
     
     // Get Genre tab chart data (5 bar charts grouped by genre)
-    public Map<String, Object> getGenreChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getGenreChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getGenreChartData(ChartFilterDTO filter) {
+        return songRepository.getGenreChartData(filter);
     }
     
     // Get Subgenre tab chart data (5 bar charts grouped by subgenre)
-    public Map<String, Object> getSubgenreChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getSubgenreChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getSubgenreChartData(ChartFilterDTO filter) {
+        return songRepository.getSubgenreChartData(filter);
     }
     
     // Get Ethnicity tab chart data (5 bar charts grouped by ethnicity)
-    public Map<String, Object> getEthnicityChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getEthnicityChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getEthnicityChartData(ChartFilterDTO filter) {
+        return songRepository.getEthnicityChartData(filter);
     }
     
     // Get Language tab chart data (5 bar charts grouped by language)
-    public Map<String, Object> getLanguageChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getLanguageChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getLanguageChartData(ChartFilterDTO filter) {
+        return songRepository.getLanguageChartData(filter);
     }
     
     // Get Country tab chart data (5 bar charts grouped by country)
-    public Map<String, Object> getCountryChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getCountryChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getCountryChartData(ChartFilterDTO filter) {
+        return songRepository.getCountryChartData(filter);
     }
     
     // Get Release Year tab chart data (4 bar charts grouped by release year - no artists)
-    public Map<String, Object> getReleaseYearChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getReleaseYearChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getReleaseYearChartData(ChartFilterDTO filter) {
+        return songRepository.getReleaseYearChartData(filter);
     }
     
     // Get Listen Year tab chart data (5 bar charts grouped by year listened)
-    public Map<String, Object> getListenYearChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo) {
-        
-        return songRepository.getListenYearChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo
-        );
+    public Map<String, Object> getListenYearChartData(ChartFilterDTO filter) {
+        return songRepository.getListenYearChartData(filter);
     }
     
     // Get Top tab data (top artists, albums, songs by play count)
-    public Map<String, Object> getTopChartData(
-            String name, String artistName, String albumName,
-            List<Integer> genreIds, String genreMode,
-            List<Integer> subgenreIds, String subgenreMode,
-            List<Integer> languageIds, String languageMode,
-            List<Integer> genderIds, String genderMode,
-            List<Integer> ethnicityIds, String ethnicityMode,
-            List<String> countries, String countryMode,
-            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-            String listenedDateFrom, String listenedDateTo,
-            int limit) {
-        
-        return songRepository.getTopChartData(
-            name, artistName, albumName,
-            genreIds, genreMode, subgenreIds, subgenreMode,
-            languageIds, languageMode, genderIds, genderMode,
-            ethnicityIds, ethnicityMode, countries, countryMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            listenedDateFrom, listenedDateTo,
-            limit
-        );
+    public Map<String, Object> getTopChartData(ChartFilterDTO filter) {
+        return songRepository.getTopChartData(filter);
     }
     
     // Get scrobbles for a song with pagination

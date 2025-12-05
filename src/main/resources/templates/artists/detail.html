@@ -16,7 +16,7 @@
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
-    <div class="container-wide" th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : '')">
+    <div class="container-wide artist-detail" th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : '')">
         <div class="detail-grid">
             <!-- Left column: Image with name overlay -->
             <div class="detail-sidebar">
@@ -78,29 +78,44 @@
             
             <!-- Tab Navigation -->
             <div class="detail-tabs">
-                <a th:href="@{/artists/{id}(id=${artist.id}, includeGroups=${includeGroups ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
                    th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
                    class="detail-tab">General</a>
-                <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', includeGroups=${includeGroups ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
                    class="detail-tab">Plays</a>
-                <a th:href="@{/artists/{id}(id=${artist.id}, tab='collaborated', includeGroups=${includeGroups ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='collaborated', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
                    th:classappend="${activeTab == 'collaborated'} ? 'active' : ''"
                    class="detail-tab">Artist Associations</a>
-                <a th:href="@{/artists/{id}(id=${artist.id}, tab='chart-history', includeGroups=${includeGroups ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='chart-history', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
                    th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
                    class="detail-tab">Chart History</a>
                 
-                <!-- Include Groups Toggle (only shown if artist has groups) -->
-                <div th:if="${hasGroups}" class="include-groups-toggle">
-                    <label class="toggle-label">
-                        <input type="checkbox" 
-                               id="includeGroupsToggle" 
-                               th:checked="${includeGroups}"
-                               onchange="toggleIncludeGroups(this.checked)">
-                        <span class="toggle-slider"></span>
-                        <span class="toggle-text">Include groups</span>
-                    </label>
+                <!-- Toggles Container -->
+                <div class="toggles-container" th:if="${hasGroups or hasFeaturedSongs}">
+                    <!-- Include Groups Toggle (only shown if artist has groups) -->
+                    <div th:if="${hasGroups}" class="include-groups-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" 
+                                   id="includeGroupsToggle" 
+                                   th:checked="${includeGroups}"
+                                   onchange="toggleIncludeGroups(this.checked)">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-text">Include groups</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Include Featured Songs Toggle (only shown if artist has featured songs) -->
+                    <div th:if="${hasFeaturedSongs}" class="include-groups-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" 
+                                   id="includeFeaturedToggle" 
+                                   th:checked="${includeFeatured}"
+                                   onchange="toggleIncludeFeatured(this.checked)">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-text">Include featured</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             
@@ -193,22 +208,20 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="isBand">Is Band</label>
+                                <div class="form-group form-group-checkbox">
                                     <span class="attribute-text" data-field="isBand" th:text="${artist.isBand != null and artist.isBand ? 'Yes' : 'No'}">No</span>
-                                    <div class="checkbox-container" style="display:none;">
-                                        <input type="checkbox" id="isBand" name="isBand" th:field="*{isBand}" disabled />
-                                        <label for="isBand" class="checkbox-label">This artist is a band or group</label>
-                                    </div>
+                                    <label class="inline-checkbox-label" style="display:none;">
+                                        <input type="checkbox" id="isBand" name="isBand" th:field="*{isBand}" />
+                                        Is Band
+                                    </label>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="organized">Organized</label>
+                                <div class="form-group form-group-checkbox">
                                     <span class="attribute-text" data-field="organized" th:text="${artist.organized != null and artist.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
-                                    <div class="checkbox-container" style="display:none;">
-                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" disabled />
-                                        <label for="organized" class="checkbox-label">This artist is organized</label>
-                                    </div>
+                                    <label class="inline-checkbox-label" style="display:none;">
+                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
+                                        Organized
+                                    </label>
                                 </div>
                                 
                                 <!-- Groups field (spans full width) - only shown in edit mode -->
@@ -260,6 +273,14 @@
                             <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
                         </div>
                         <div class="stat-item">
+                            <span class="stat-label">Average Song Length</span>
+                            <span class="stat-value" th:text="${averageSongLength}">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Average Plays per Song</span>
+                            <span class="stat-value" th:text="${averagePlaysPerSong}">-</span>
+                        </div>
+                        <div class="stat-item">
                             <span class="stat-label">First Listened</span>
                             <span class="stat-value" th:text="${firstListenedDate}">-</span>
                         </div>
@@ -280,6 +301,7 @@
                             <tr>
                                 <th class="cover-col">Cover</th>
                                 <th data-sort="name">Album Name</th>
+                                <th data-sort="length" class="numeric">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
@@ -291,7 +313,9 @@
                         </thead>
                         <tbody id="albumsTableBody">
                             <tr th:each="album : ${albums}"
+                                th:classappend="${includeGroups and album.fromGroup} ? 'group-item-row' : ''"
                                 th:attr="data-name=${album.name},
+                                        data-length=${album.totalLengthSeconds != null ? album.totalLengthSeconds : 0},
                                         data-releasedate=${album.releaseDate},
                                         data-firstlistened=${album.firstListenedDate},
                                         data-lastlistened=${album.lastListenedDate},
@@ -305,7 +329,14 @@
                                         <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
                                     </div>
                                 </td>
-                                <td><a th:href="@{'/albums/' + ${album.id}}" th:text="${album.name}">Album Name</a></td>
+                                <td>
+                                    <a th:href="@{'/albums/' + ${album.id}}" th:text="${album.name}">Album Name</a>
+                                    <span th:if="${includeGroups and album.fromGroup and album.sourceArtistName != null}" 
+                                          class="group-artist-label">
+                                        (by <a th:href="@{'/artists/' + ${album.sourceArtistId}}" th:text="${album.sourceArtistName}">Group</a>)
+                                    </span>
+                                </td>
+                                <td class="numeric" th:text="${album.totalLength != null ? album.totalLength : '-'}">-</td>
                                 <td th:text="${album.releaseDate != null ? album.releaseDate : '-'}">-</td>
                                 <td th:text="${album.firstListenedDate != null ? album.firstListenedDate : '-'}">-</td>
                                 <td th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
@@ -315,11 +346,12 @@
                                 <td class="numeric" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
                             </tr>
                             <tr class="no-data" th:if="${#lists.isEmpty(albums)}">
-                                <td colspan="9"><em>No albums</em></td>
+                                <td colspan="10"><em>No albums</em></td>
                             </tr>
                             <tr id="noAlbumSummaryRow" class="summary-row" style="display:none;">
                                 <td class="cover-col"></td>
                                 <td><strong>No Album Songs</strong></td>
+                                <td class="numeric">-</td>
                                 <td id="noAlbumReleaseDate">-</td>
                                 <td id="noAlbumFirstListened">-</td>
                                 <td id="noAlbumLastListened">-</td>
@@ -338,11 +370,12 @@
                 <h2 class="section-title">Songs</h2>
                 <div class="top-table-container">
                     <table class="top-table" id="songsTable">
-                        <thead>
-                            <tr>
-                                <th class="cover-col">Cover</th>
-                                <th data-sort="name">Song Name</th>
+                            <thead>
+                                <tr>
+                                    <th class="cover-col">Cover</th>
+                                    <th data-sort="name" class="song-name-col">Song Name</th>
                                 <th data-sort="albumname">Album</th>
+                                <th data-sort="length" class="numeric">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
@@ -354,8 +387,10 @@
                         </thead>
                         <tbody id="songsTableBody">
                             <tr th:each="song : ${songs}"
+                                th:classappend="${(includeFeatured and song.featuredOn) ? 'featured-song-row' : ''} + ${(includeGroups and song.fromGroup) ? ' group-item-row' : ''}"
                                 th:attr="data-name=${song.name},
                                         data-albumname=${song.albumName},
+                                        data-length=${song.length != null ? song.length : 0},
                                         data-releasedate=${song.releaseDate},
                                         data-firstlistened=${song.firstListenedDate},
                                         data-lastlistened=${song.lastListenedDate},
@@ -397,14 +432,23 @@
                                         <div th:if="${!song.hasImage and song.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="song-name-col">
                                     <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
+                                    <span th:if="${includeFeatured and song.featuredOn and song.primaryArtistName != null}" 
+                                          class="featured-artist-label">
+                                        (feat. on <a th:href="@{'/artists/' + ${song.primaryArtistId}}" th:text="${song.primaryArtistName}">Artist</a>)
+                                    </span>
+                                    <span th:if="${includeGroups and song.fromGroup and song.sourceArtistName != null}" 
+                                          class="group-artist-label">
+                                        (by <a th:href="@{'/artists/' + ${song.sourceArtistId}}" th:text="${song.sourceArtistName}">Group</a>)
+                                    </span>
                                 </td>
                                 <td>
                                     <a th:if="${song.albumId != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${song.albumName}">Album Name</a>
                                     <span th:unless="${song.albumId != null}">-</span>
                                 </td>
+                                <td class="numeric" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
                                 <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
                                 <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
                                 <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
@@ -546,6 +590,58 @@
                     </div>
                 </div>
                 
+                <!-- Members Section (Artists that are part of this group) - MOVED BEFORE Collaborated With -->
+                <div th:if="${memberArtistCards != null and !memberArtistCards.isEmpty()}" class="detail-content-card">
+                    <h2 class="section-title">Members 
+                        <span class="item-count">(<span th:text="${memberArtistCards.size()}">0</span>)</span>
+                    </h2>
+                    
+                    <div class="featured-artist-grid">
+                        <div th:each="member : ${memberArtistCards}" 
+                             class="featured-artist-card"
+                             th:classappend="${member.genderName != null and member.genderName.toLowerCase().contains('male') and !member.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${member.genderName != null and member.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                            <a th:href="@{'/artists/' + ${member.id}}" class="featured-artist-image item-image-container">
+                                <img th:if="${member.hasImage}"
+                                     th:src="@{'/artists/' + ${member.id} + '/image'}"
+                                     th:alt="${member.name}">
+                                <div th:unless="${member.hasImage}" class="no-image">
+                                    <span th:text="${#strings.substring(member.name, 0, 1)}"></span>
+                                </div>
+                                <span class="flag-overlay" th:if="${member.country != null and @countryCodeMapper.getCode(member.country) != null}"
+                                      th:title="${member.country}">
+                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(member.country)})}"
+                                         th:alt="${member.country}" />
+                                </span>
+                            </a>
+                            <div class="featured-artist-info">
+                                <a th:href="@{'/artists/' + ${member.id}}">
+                                    <h3 class="featured-artist-name" th:text="${member.name}">Member Name</h3>
+                                </a>
+                                <div class="featured-artist-details" th:if="${member.genderName != null or member.ethnicityName != null}">
+                                    <span th:if="${member.genderName != null}" th:text="${member.genderName}"></span>
+                                    <span th:if="${member.genderName != null and member.ethnicityName != null}"> • </span>
+                                    <span th:if="${member.ethnicityName != null}" th:text="${member.ethnicityName}"></span>
+                                </div>
+                                <div class="featured-artist-metadata" th:if="${member.genreName != null or member.country != null}">
+                                    <span th:if="${member.genreName != null}" th:text="${member.genreName}"></span>
+                                    <span th:if="${member.genreName != null and member.country != null}"> • </span>
+                                    <span th:if="${member.country != null}" th:text="${member.country}"></span>
+                                </div>
+                                <div class="featured-artist-stats">
+                                    <div class="stat">
+                                        <span class="stat-icon">🎵</span>
+                                        <span class="stat-value" th:text="${member.songCount}">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-icon total-plays">⏵</span>
+                                        <span class="stat-value" th:text="${member.playCount}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Collaborated With Section -->
                 <div class="detail-content-card">
                     <h2 class="section-title">Collaborated With 
@@ -599,58 +695,6 @@
                                     <div class="stat">
                                         <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${collab.playCount}">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Members Section (Artists that are part of this group) -->
-                <div th:if="${memberArtistCards != null and !memberArtistCards.isEmpty()}" class="detail-content-card">
-                    <h2 class="section-title">Members 
-                        <span class="item-count">(<span th:text="${memberArtistCards.size()}">0</span>)</span>
-                    </h2>
-                    
-                    <div class="featured-artist-grid">
-                        <div th:each="member : ${memberArtistCards}" 
-                             class="featured-artist-card"
-                             th:classappend="${member.genderName != null and member.genderName.toLowerCase().contains('male') and !member.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${member.genderName != null and member.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
-                            <a th:href="@{'/artists/' + ${member.id}}" class="featured-artist-image item-image-container">
-                                <img th:if="${member.hasImage}"
-                                     th:src="@{'/artists/' + ${member.id} + '/image'}"
-                                     th:alt="${member.name}">
-                                <div th:unless="${member.hasImage}" class="no-image">
-                                    <span th:text="${#strings.substring(member.name, 0, 1)}"></span>
-                                </div>
-                                <span class="flag-overlay" th:if="${member.country != null and @countryCodeMapper.getCode(member.country) != null}"
-                                      th:title="${member.country}">
-                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(member.country)})}"
-                                         th:alt="${member.country}" />
-                                </span>
-                            </a>
-                            <div class="featured-artist-info">
-                                <a th:href="@{'/artists/' + ${member.id}}">
-                                    <h3 class="featured-artist-name" th:text="${member.name}">Member Name</h3>
-                                </a>
-                                <div class="featured-artist-details" th:if="${member.genderName != null or member.ethnicityName != null}">
-                                    <span th:if="${member.genderName != null}" th:text="${member.genderName}"></span>
-                                    <span th:if="${member.genderName != null and member.ethnicityName != null}"> • </span>
-                                    <span th:if="${member.ethnicityName != null}" th:text="${member.ethnicityName}"></span>
-                                </div>
-                                <div class="featured-artist-metadata" th:if="${member.genreName != null or member.country != null}">
-                                    <span th:if="${member.genreName != null}" th:text="${member.genreName}"></span>
-                                    <span th:if="${member.genreName != null and member.country != null}"> • </span>
-                                    <span th:if="${member.country != null}" th:text="${member.country}"></span>
-                                </div>
-                                <div class="featured-artist-stats">
-                                    <div class="stat">
-                                        <span class="stat-icon">🎵</span>
-                                        <span class="stat-value" th:text="${member.songCount}">0</span>
-                                    </div>
-                                    <div class="stat">
-                                        <span class="stat-icon total-plays">⏵</span>
-                                        <span class="stat-value" th:text="${member.playCount}">0</span>
                                     </div>
                                 </div>
                             </div>
@@ -975,8 +1019,7 @@
             const formActions = document.getElementById('formActions');
             const selects = document.querySelectorAll('#artistForm select');
             const textInputs = document.querySelectorAll('#artistForm input.editable-input');
-            const checkboxContainers = document.querySelectorAll('.checkbox-container');
-            const checkboxes = document.querySelectorAll('#artistForm input[type="checkbox"]');
+            const inlineCheckboxLabels = document.querySelectorAll('.inline-checkbox-label');
             const attributeTexts = document.querySelectorAll('.attribute-text');
             
             if (isEditing) {
@@ -999,11 +1042,8 @@
                     select.removeAttribute('disabled');
                     select.style.display = 'block';
                 });
-                checkboxContainers.forEach(container => {
-                    container.style.display = 'block';
-                });
-                checkboxes.forEach(checkbox => {
-                    checkbox.removeAttribute('disabled');
+                inlineCheckboxLabels.forEach(label => {
+                    label.style.display = 'inline-flex';
                 });
                 attributeTexts.forEach(text => {
                     if (text.dataset.field) {
@@ -1376,20 +1416,51 @@
         .checkbox-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 0;
+            gap: 8px;
+            padding: 0;
+            flex-wrap: nowrap;
         }
-        
+
         .checkbox-container input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
         }
-        
+
         .checkbox-label {
             font-size: 14px;
             color: #e5e7eb;
             cursor: pointer;
+            white-space: nowrap;
+        }
+        /* Inline layout for checkbox form-groups (compact) */
+        .form-group.form-group-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .form-group.form-group-checkbox .field-label {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .form-group.form-group-checkbox .attribute-text {
+            margin-left: 4px;
+        }
+
+        .form-group.form-group-checkbox .checkbox-container {
+            margin: 0;
+            padding: 0;
+        }
+
+        .form-group.form-group-checkbox .checkbox-label { display: none; }
+
+        .form-group.form-group-checkbox .inline-checkbox-label {
+            justify-content: flex-start;
         }
         
         /* Name field styling */
@@ -1425,9 +1496,17 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
         
+        /* Toggles Container */
+        .toggles-container {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+        
         /* Include Groups Toggle */
         .include-groups-toggle {
-            margin-left: auto;
             display: flex;
             align-items: center;
         }
@@ -1502,6 +1581,63 @@
         
         .container-wide.gender-female .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
             color: #f472b6; /* light pink for female */
+        }
+        
+        /* Featured song row highlighting - slightly brighter dark teal tint */
+        .featured-song-row {
+            background: rgba(28, 170, 170, 0.14) !important;
+        }
+        
+        .featured-song-row:hover {
+            background: rgba(28, 170, 170, 0.26) !important;
+        }
+        
+        .featured-artist-label {
+            font-size: 11px;
+            color: #45cfc9;
+            font-style: italic;
+            margin-left: 6px;
+        }
+        
+        .featured-artist-label a {
+            color: #45cfc9;
+        }
+        
+        .featured-artist-label a:hover {
+            color: #7fe6e0;
+        }
+        
+        /* Group item row highlighting - different shade of dark teal */
+        .group-item-row {
+            background: rgba(50, 110, 120, 0.12) !important;
+        }
+        
+        .group-item-row:hover {
+            background: rgba(50, 110, 120, 0.20) !important;
+        }
+        
+        /* When both featured and group classes apply, prioritize featured */
+        .featured-song-row.group-item-row {
+            background: rgba(20, 130, 130, 0.12) !important;
+        }
+        
+        .featured-song-row.group-item-row:hover {
+            background: rgba(20, 130, 130, 0.20) !important;
+        }
+        
+        .group-artist-label {
+            font-size: 11px;
+            color: #5d9ca5;
+            font-style: italic;
+            margin-left: 6px;
+        }
+        
+        .group-artist-label a {
+            color: #5d9ca5;
+        }
+        
+        .group-artist-label a:hover {
+            color: #8fc4cc;
         }
         
         /* Groups chip component */
@@ -1627,6 +1763,16 @@
         .group-artist-link:hover {
             text-decoration: underline;
         }
+        
+        /* Responsive styles for tabs and toggles */
+        @media (max-width: 1200px) {
+            .toggles-container {
+                gap: 12px;
+            }
+            .toggle-text {
+                font-size: 12px;
+            }
+        }
     </style>
     
     <!-- Image Modal -->
@@ -1651,6 +1797,17 @@
                 url.searchParams.set('includeGroups', 'true');
             } else {
                 url.searchParams.delete('includeGroups');
+            }
+            window.location.href = url.toString();
+        }
+        
+        // Toggle include featured songs functionality
+        function toggleIncludeFeatured(checked) {
+            const url = new URL(window.location.href);
+            if (checked) {
+                url.searchParams.set('includeFeatured', 'true');
+            } else {
+                url.searchParams.delete('includeFeatured');
             }
             window.location.href = url.toString();
         }

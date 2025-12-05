@@ -75,20 +75,6 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
 .breadcrumbs .sep { margin: 0 6px; color: var(--text-muted); }
 
 /* Filters */
-.filters {
-  margin: 16px 0 24px;
-}
-.filters__form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  align-items: end;
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius);
-  padding: 12px;
-  box-shadow: var(--shadow);
-}
 .field { display: grid; gap: 6px; }
 .field span { font-size: 12px; color: var(--text-muted); }
 .field input[type="text"] {
@@ -186,27 +172,6 @@ select:focus {
   box-shadow: 0 4px 8px rgba(92, 26, 26, 0.4);
 }
 
-/* Neutral action buttons - slate theme for Search, Clear, Cancel, Back, etc. */
-.btn-neutral {
-  padding: 10px 18px;
-  min-height: 40px;
-  background-color: var(--slate);
-  color: white;
-  border: 1px solid #5a6b7a;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.3);
-}
-
-.btn-neutral:hover {
-  background-color: var(--slate-hover);
-  border-color: #6b7b8a;
-  box-shadow: 0 4px 8px rgba(71, 85, 105, 0.4);
-}
-
 /* Primary button - green for positive actions */
 .btn-primary {
   padding: 10px 18px;
@@ -249,13 +214,6 @@ select:focus {
   box-shadow: 0 4px 8px rgba(71, 85, 105, 0.4);
 }
 
-/* Small button variant for compact contexts */
-.btn-sm {
-  padding: 6px 12px !important;
-  min-height: 32px !important;
-  font-size: 13px !important;
-}
-
 /* Sort direction toggle button */
 .sort-dir-btn {
   display: inline-flex;
@@ -284,40 +242,8 @@ select:focus {
   transform: scale(0.95);
 }
 
-/* Cards */
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.card {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius);
-  padding: 14px;
-  box-shadow: var(--shadow);
-}
-.card h3 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-.metric { font-size: 22px; font-weight: 650; }
-.list-compact { margin: 0; padding-left: 18px; }
-.list-compact li { margin: 4px 0; }
-
 /* Groups and charts */
 .section-title { margin: 24px 0 8px; font-size: 18px; }
-.group-section { margin-bottom: 20px; }
-.chart-card {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius);
-  padding: 8px;
-  box-shadow: var(--shadow);
-}
 
 /* Tables */
 .table-wrapper { overflow-x: auto; border-radius: var(--radius); }
@@ -408,155 +334,6 @@ select:focus {
   pointer-events: none;
   transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
   will-change: opacity, transform;
-}
-
-/* Global Data Table Styles - Reusable for songs, albums, etc. */
-.table-container {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.data-table thead {
-  background-color: rgba(255, 255, 255, 0.04);
-}
-
-.data-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #999999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* Sortable table headers */
-.data-table th.sortable {
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  padding-right: 30px;
-  transition: color 0.2s;
-}
-
-.data-table th.sortable:hover {
-  color: #e5e7eb;
-  background-color: rgba(255, 255, 255, 0.06);
-}
-
-.data-table th.sortable .sort-indicator {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.3;
-}
-
-.data-table th.sortable .sort-indicator::before {
-  content: '⇅';
-  font-size: 14px;
-}
-
-.data-table th.sortable.sort-asc .sort-indicator {
-  opacity: 1;
-}
-
-.data-table th.sortable.sort-asc .sort-indicator::before {
-  content: '↑';
-  color: var(--success);
-}
-
-.data-table th.sortable.sort-desc .sort-indicator {
-  opacity: 1;
-}
-
-.data-table th.sortable.sort-desc .sort-indicator::before {
-  content: '↓';
-  color: var(--success);
-}
-
-.data-table td {
-  padding: 12px 16px;
-  color: #e5e7eb;
-  font-size: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.data-table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.03);
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* Table column classes */
-.track-col {
-  width: 50px;
-  text-align: center;
-  color: #999999;
-}
-
-.name-col {
-  width: auto;
-}
-
-.plays-col {
-  width: 100px;
-  text-align: right;
-}
-
-.duration-col {
-  width: 80px;
-  text-align: right;
-  color: #999999;
-}
-
-.time-col {
-  width: 120px;
-  text-align: right;
-  color: #999999;
-}
-
-.date-col {
-  width: 110px;
-  text-align: center;
-  color: #999999;
-  font-size: 13px;
-}
-
-/* Item link styling (for song names, etc.) */
-.item-link {
-  color: #e5e7eb;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.item-link:hover {
-  color: #ffffff;
-  text-decoration: none;
-}
-
-/* Section titles for content areas */
-.songs-section {
-  margin-top: 40px;
-  padding-top: 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.section-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 20px;
 }
 
 
@@ -824,6 +601,8 @@ select:focus {
 .artist-card.gender-male,
 .catalog-card.gender-male {
     border-left: 4px solid rgba(59, 130, 246, 0.6);
+    /* Fill top-left corner gap with inset shadow */
+    box-shadow: inset 1px 1px 0 0 rgba(59, 130, 246, 0.6), var(--shadow);
 }
 
 .album-card.gender-female,
@@ -831,6 +610,8 @@ select:focus {
 .artist-card.gender-female,
 .catalog-card.gender-female {
     border-left: 4px solid rgba(236, 72, 153, 0.6);
+    /* Fill top-left corner gap with inset shadow */
+    box-shadow: inset 1px 1px 0 0 rgba(236, 72, 153, 0.6), var(--shadow);
 }
 
 .album-card.gender-male:hover,
@@ -839,6 +620,7 @@ select:focus {
 .catalog-card.gender-male:hover {
     border-left: 4px solid rgba(59, 130, 246, 0.6);
     box-shadow: 
+        inset 1px 1px 0 0 rgba(59, 130, 246, 0.6),
         -10px 0 20px rgba(59, 130, 246, 0.2),
         10px 0 20px rgba(59, 130, 246, 0.15),
         0 10px 20px rgba(59, 130, 246, 0.15),
@@ -851,6 +633,7 @@ select:focus {
 .catalog-card.gender-female:hover {
     border-left: 4px solid rgba(236, 72, 153, 0.6);
     box-shadow: 
+        inset 1px 1px 0 0 rgba(236, 72, 153, 0.6),
         -10px 0 20px rgba(236, 72, 153, 0.2),
         10px 0 20px rgba(236, 72, 153, 0.15),
         0 10px 20px rgba(236, 72, 153, 0.15),
@@ -873,7 +656,7 @@ select:focus {
 /* Main detail grid layout */
 .detail-grid {
     display: grid;
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: 360px minmax(0, 1fr);
     grid-template-rows: auto auto;
     gap: 32px;
     align-items: start;
@@ -940,6 +723,21 @@ select:focus {
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* Length overlay (bottom-right of images on list cards) */
+.length-overlay {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  pointer-events: none;
 }
 
 .item-image-large {
@@ -1040,7 +838,7 @@ select:focus {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 32px;
-    align-items: stretch;
+    align-items: start;
     grid-row: 1;
     grid-column: 2;
     margin-top: 95px; /* Align with the image */
@@ -1053,7 +851,6 @@ select:focus {
     border-radius: var(--radius);
     padding: 28px;
     box-shadow: var(--shadow);
-    height: 100%;
 }
 
 /* Section header with title and action button */
@@ -1075,9 +872,9 @@ select:focus {
 
 /* Statistics grid */
 .stats-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 32px;
 }
 
 .stat-item {
@@ -1116,6 +913,13 @@ select:focus {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+/* Checkbox form-groups in attributes-grid should align left */
+.attributes-grid .form-group.form-group-checkbox {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .attributes-grid .form-group label {
@@ -2308,142 +2112,6 @@ select:focus {
     font-size: 14px;
     font-weight: 400;
     color: var(--text-muted);
-}
-
-/* ==========================================
-   SHARED ITEM CARD STYLES
-   Used by album, artist, and song list cards
-   ========================================== */
-
-/* Parameterized item grid - set --grid-min-width for different card sizes */
-.item-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--grid-min-width, 180px), 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-/* Base card styling shared by all item cards */
-.item-card {
-    background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: all 0.3s;
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-}
-
-.item-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-    border-color: rgba(255,255,255,0.12);
-}
-
-.item-card a {
-    text-decoration: none;
-}
-
-.item-card a:hover {
-    text-decoration: none;
-}
-
-/* Shared image container for cards */
-.item-card-image {
-    width: 100%;
-    background-color: #0a0a0a;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: var(--image-aspect-ratio, 1/1);
-    margin-bottom: 0;
-    border-radius: 0;
-}
-
-.item-card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.item-card-image .no-image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    color: #666666;
-    font-size: 48px;
-}
-
-/* Shared info section for cards */
-.item-card-info {
-    padding: 8px 16px 16px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Shared stats section for cards */
-.item-card-stats {
-    display: flex;
-    gap: 12px;
-    font-size: 11px;
-    color: #999;
-    margin-top: auto;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.item-card-stats-row2 {
-    border-top: none;
-    padding-top: 4px;
-}
-
-.item-card-stats .stat {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.item-card-stats .stat-icon {
-    font-size: 11px;
-}
-
-.item-card-stats .stat-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: #fff;
-}
-
-/* Shared dates section for cards */
-.item-card-dates {
-    font-size: 11px;
-    color: #777;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.item-card-dates .date-item {
-    display: flex;
-    justify-content: space-between;
-}
-
-.item-card-dates .date-label {
-    color: #666;
-}
-
-.item-card-dates .date-value {
-    color: #999;
 }
 
 /* ==========================================

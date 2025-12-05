@@ -100,6 +100,8 @@ public class AlbumController {
             @RequestParam(required = false) String lastListenedDateFrom,
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) Integer playCountMin,
@@ -122,6 +124,8 @@ public class AlbumController {
         String lastListenedDateConverted = convertDateFormat(lastListenedDate);
         String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
         String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
+        String listenedDateFromConverted = convertDateFormat(listenedDateFrom);
+        String listenedDateToConverted = convertDateFormat(listenedDateTo);
         
         // Get filtered and sorted albums
         List<AlbumCardDTO> albums = albumService.getAlbums(
@@ -131,6 +135,7 @@ public class AlbumController {
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 sortby, sortdir, page, perpage
@@ -143,6 +148,7 @@ public class AlbumController {
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
@@ -206,6 +212,12 @@ public class AlbumController {
         model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
         model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        
+        // Listened date filter attributes (filters by actual scrobble date)
+        model.addAttribute("listenedDateFrom", listenedDateFrom);
+        model.addAttribute("listenedDateTo", listenedDateTo);
+        model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
+        model.addAttribute("listenedDateToFormatted", formatDateForDisplay(listenedDateTo));
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
@@ -273,6 +285,13 @@ public class AlbumController {
         // Add per-account breakdown string for tooltip
         model.addAttribute("albumPlaysByAccount", albumService.getPlaysByAccountForAlbum(id));
         
+        // Add album length formatted
+        model.addAttribute("albumLengthFormatted", albumService.getAlbumLengthFormatted(id));
+        
+        // Add average song length and average plays per song for statistics
+        model.addAttribute("averageSongLength", albumService.getAverageSongLengthFormatted(id));
+        model.addAttribute("averagePlaysPerSong", albumService.getAveragePlaysPerSong(id));
+        
         // Add songs list
         model.addAttribute("songs", albumService.getSongsForAlbum(id));
         model.addAttribute("songCount", songCount);
@@ -288,8 +307,8 @@ public class AlbumController {
         model.addAttribute("activeTab", tab);
         
         // Add seasonal/yearly chart history for chips display (always needed)
-        model.addAttribute("seasonalChartHistory", chartService.getSeasonalChartHistoryForAlbum(id));
-        model.addAttribute("yearlyChartHistory", chartService.getYearlyChartHistoryForAlbum(id));
+        model.addAttribute("seasonalChartHistory", chartService.getChartHistoryForItem(id, "album", "seasonal"));
+        model.addAttribute("yearlyChartHistory", chartService.getChartHistoryForItem(id, "album", "yearly"));
         
         // Add featured artist cards (for the Featured Artists tab)
         if ("featured".equals(tab)) {
@@ -311,8 +330,8 @@ public class AlbumController {
             model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
             model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
             // Songs' seasonal/yearly chart history
-            model.addAttribute("seasonalSongChartHistory", chartService.getSeasonalChartHistoryForAlbumSongs(id));
-            model.addAttribute("yearlySongChartHistory", chartService.getYearlyChartHistoryForAlbumSongs(id));
+            model.addAttribute("seasonalSongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "seasonal"));
+            model.addAttribute("yearlySongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "yearly"));
         }
         
         return "albums/detail";

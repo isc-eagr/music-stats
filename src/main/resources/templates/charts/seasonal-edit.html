@@ -145,6 +145,13 @@
             background: #111;
             border-bottom: 1px solid #2a2a2a;
         }
+
+        /* Tighter spacing: remove gap between section header, search box and first row */
+        .chart-section .section-header { margin-bottom: 0; }
+        .chart-section .search-container { padding: 8px 20px; margin: 0; border-bottom: 1px solid #2a2a2a; }
+        .chart-section .chart-list { margin-top: 0; }
+        .chart-list .chart-entry:first-child { margin-top: 0; }
+        .chart-section .search-container .search-input { margin-bottom: 0; }
         
         .section-title {
             font-size: 1.2rem;
@@ -813,9 +820,9 @@
         // Add song to chart
         function addSong(element) {
             const currentCount = getChartIds('song').length;
+            // Allow unlimited entries in draft mode - validation happens on finalize
             if (currentCount >= maxSongs) {
-                showIndicator('error', `Maximum ${maxSongs} songs allowed`);
-                return;
+                showIndicator('warning', `Over limit: ${currentCount + 1}/${maxSongs} songs`);
             }
             
             const id = element.dataset.id;
@@ -859,9 +866,9 @@
         // Add album to chart
         function addAlbum(element) {
             const currentCount = getChartIds('album').length;
+            // Allow unlimited entries in draft mode - validation happens on finalize
             if (currentCount >= maxAlbums) {
-                showIndicator('error', `Maximum ${maxAlbums} albums allowed`);
-                return;
+                showIndicator('warning', `Over limit: ${currentCount + 1}/${maxAlbums} albums`);
             }
             
             const id = element.dataset.id;
@@ -949,9 +956,9 @@
         // Add extra song
         function addExtraSong(element) {
             const currentCount = getExtraIds().length;
+            // Allow unlimited entries in draft mode - validation happens on finalize
             if (currentCount >= maxExtraSongs) {
-                showIndicator('error', `Maximum ${maxExtraSongs} extra songs allowed`);
-                return;
+                showIndicator('warning', `Over limit: ${currentCount + 1}/${maxExtraSongs} extra songs`);
             }
             
             const id = element.dataset.id;
@@ -1010,7 +1017,10 @@
         // Update extra count
         function updateExtraCount() {
             const count = getExtraIds().length;
-            document.getElementById('extraCount').textContent = `${count}/${maxExtraSongs}`;
+            const countEl = document.getElementById('extraCount');
+            countEl.textContent = `${count}/${maxExtraSongs}`;
+            // Visual indicator for over-limit
+            countEl.style.color = count > maxExtraSongs ? '#ff6b6b' : '';
         }
         
         // Move entry up
@@ -1079,7 +1089,10 @@
         function updateCount(type) {
             const count = getChartIds(type).length;
             const max = type === 'song' ? maxSongs : maxAlbums;
-            document.getElementById(type + 'Count').textContent = `${count}/${max}`;
+            const countEl = document.getElementById(type + 'Count');
+            countEl.textContent = `${count}/${max}`;
+            // Visual indicator for over-limit
+            countEl.style.color = count > max ? '#ff6b6b' : '';
             updateFinalizeButton();
         }
         
@@ -1088,7 +1101,8 @@
             const songCount = getChartIds('song').length;
             const albumCount = getChartIds('album').length;
             const btn = document.getElementById('finalizeBtn');
-            btn.disabled = songCount < maxSongs || albumCount < maxAlbums || isFinalized;
+            // Disable if under OR over the required counts, or if already finalized
+            btn.disabled = songCount !== maxSongs || albumCount !== maxAlbums || isFinalized;
         }
         
         // Mark as having unsaved changes

@@ -22,7 +22,7 @@ src/main/java/library/
 ├── controller/     # Spring MVC controllers (REST + Thymeleaf views)
 ├── service/        # Business logic layer
 ├── repository/     # JPA repositories + custom JDBC implementations
-├── entity/         # JPA entities (Artist, Album, SongNew, Scrobble)
+├── entity/         # JPA entities (Artist, Album, Song, Scrobble)
 └── dto/            # Data transfer objects for list cards (AlbumCardDTO, ArtistCardDTO, SongCardDTO, etc.)
 ```
 
@@ -33,7 +33,7 @@ src/main/java/library/
 - `SongRepositoryImpl` provides aggregate statistics (counts, total listening time)
 
 ### Entity Notes
-- `SongNew.java`, `Artist.java`, `Album.java`: Normalized schema with foreign keys to lookup tables
+- `Song.java`, `Artist.java`, `Album.java`: Normalized schema with foreign keys to lookup tables
 - `Scrobble.java`: Play history with `@CsvBindByPosition` annotations for Last.fm CSV import
 - `@Transient` fields on entities populate display names and computed stats
 

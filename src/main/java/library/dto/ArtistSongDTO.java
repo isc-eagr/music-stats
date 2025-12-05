@@ -23,6 +23,12 @@ public class ArtistSongDTO {
     private boolean hasImage;
     private boolean albumHasImage;
     private boolean isSingle;
+    private boolean featuredOn; // true if this is a featured song (artist is featured, not the main artist)
+    private Integer primaryArtistId; // the main artist's ID when this is a featured song
+    private String primaryArtistName; // the main artist's name when this is a featured song
+    private boolean fromGroup; // true if this song is from a group the artist belongs to
+    private Integer sourceArtistId; // the group artist's ID when this is a group song
+    private String sourceArtistName; // the group artist's name when this is a group song
     
     public ArtistSongDTO() {}
     
@@ -240,5 +246,53 @@ public class ArtistSongDTO {
     
     public void setIsSingle(boolean isSingle) {
         this.isSingle = isSingle;
+    }
+    
+    public boolean isFeaturedOn() {
+        return featuredOn;
+    }
+    
+    public void setFeaturedOn(boolean featuredOn) {
+        this.featuredOn = featuredOn;
+    }
+    
+    public Integer getPrimaryArtistId() {
+        return primaryArtistId;
+    }
+    
+    public void setPrimaryArtistId(Integer primaryArtistId) {
+        this.primaryArtistId = primaryArtistId;
+    }
+    
+    public String getPrimaryArtistName() {
+        return primaryArtistName;
+    }
+    
+    public void setPrimaryArtistName(String primaryArtistName) {
+        this.primaryArtistName = primaryArtistName;
+    }
+    
+    public boolean isFromGroup() {
+        return fromGroup;
+    }
+    
+    public void setFromGroup(boolean fromGroup) {
+        this.fromGroup = fromGroup;
+    }
+    
+    public Integer getSourceArtistId() {
+        return sourceArtistId;
+    }
+    
+    public void setSourceArtistId(Integer sourceArtistId) {
+        this.sourceArtistId = sourceArtistId;
+    }
+    
+    public String getSourceArtistName() {
+        return sourceArtistName;
+    }
+    
+    public void setSourceArtistName(String sourceArtistName) {
+        this.sourceArtistName = sourceArtistName;
     }
 }

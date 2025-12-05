@@ -32,3 +32,88 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Artist Include Toggles */
+.artist-toggles-section {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: 20px;
+    vertical-align: middle;
+}
+
+.include-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    width: 40px;
+    height: 22px;
+    background: #374151;
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.3s ease;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #9ca3af;
+    border-radius: 50%;
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-slider {
+    background: #22c55e;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-slider::after {
+    transform: translateX(18px);
+    background: white;
+}
+
+.toggle-text {
+    font-size: 13px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.toggle-label input[type="checkbox"]:checked ~ .toggle-text {
+    color: #22c55e;
+}
+
+/* Featured songs icon color (dark teal) */
+.stat-icon.featured {
+    color: #006d66;
+}
+
+/* Ensure SVG icons inside .stat-icon size correctly and inherit color */
+.stat-icon svg {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+.stat-icon svg path {
+    fill: currentColor;
+}

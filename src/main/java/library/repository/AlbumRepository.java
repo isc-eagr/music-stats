@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class AlbumRepositoryNew {
+public class AlbumRepository {
     
     private final JdbcTemplate jdbcTemplate;
     
-    public AlbumRepositoryNew(JdbcTemplate jdbcTemplate) {
+    public AlbumRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
     
@@ -26,6 +26,7 @@ public class AlbumRepositoryNew {
                                                String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                                String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                                String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                               String listenedDateFrom, String listenedDateTo,
                                                String organized, String hasImage, String hasFeaturedArtists, String isBand,
                                                Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                                String sortBy, String sortDir, int limit, int offset) {
@@ -50,6 +51,18 @@ public class AlbumRepositoryNew {
             accountFilterClause.append(")");
         }
         
+        // Build listened date filter for the play_stats subquery
+        StringBuilder listenedDateFilterClause = new StringBuilder();
+        List<Object> listenedDateParams = new ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateParams.add(listenedDateTo);
+        }
+        
         StringBuilder sql = new StringBuilder();
         sql.append("""
             SELECT 
@@ -68,6 +81,7 @@ public class AlbumRepositoryNew {
                 CAST(strftime('%Y', a.release_date) AS TEXT) as release_year,
                 a.release_date as release_date,
                 COALESCE(song_stats.song_count, 0) as song_count,
+                COALESCE(song_stats.album_length, 0) as album_length,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
                 COALESCE(play_stats.play_count, 0) as play_count,
@@ -88,11 +102,12 @@ public class AlbumRepositoryNew {
             LEFT JOIN Language l_override ON a.override_language_id = l_override.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
-            LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song GROUP BY album_id) song_stats ON song_stats.album_id = a.id
+            LEFT JOIN (SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as album_length FROM Song GROUP BY album_id) song_stats ON song_stats.album_id = a.id
             """);
         
-        // Use INNER JOIN when account filter is includes mode for better performance
-        String playStatsJoinType = (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) ? "INNER JOIN" : "LEFT JOIN";
+        // Use INNER JOIN when account filter is includes mode OR when listened date filter is active (for better performance)
+        boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
+        String playStatsJoinType = ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) ? "INNER JOIN" : "LEFT JOIN";
         sql.append(playStatsJoinType).append(""" 
              (
                 SELECT 
@@ -107,6 +122,7 @@ public class AlbumRepositoryNew {
                 JOIN Song song ON scr.song_id = song.id
                 WHERE song.album_id IS NOT NULL """);
         sql.append(accountFilterClause);
+        sql.append(listenedDateFilterClause);
         sql.append("""
                 GROUP BY song.album_id
             ) play_stats ON play_stats.album_id = a.id
@@ -114,8 +130,9 @@ public class AlbumRepositoryNew {
             """);
         
         List<Object> params = new ArrayList<>();
-        // Add account params only once now (play_stats subquery)
-        params.addAll(accountParams); // play_stats
+        // Add account params and listened date params for play_stats subquery
+        params.addAll(accountParams);
+        params.addAll(listenedDateParams);
         
         // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
@@ -407,6 +424,7 @@ public class AlbumRepositoryNew {
             case "artist" -> sql.append(" ORDER BY ar.name " + direction + ", a.name");
             case "release_date" -> sql.append(" ORDER BY a.release_date " + direction + " NULLS LAST, a.name");
             case "song_count" -> sql.append(" ORDER BY song_count " + direction + ", a.name");
+            case "album_length" -> sql.append(" ORDER BY album_length " + direction + ", a.name");
             case "plays" -> sql.append(" ORDER BY play_count " + direction + ", a.name");
             case "time" -> sql.append(" ORDER BY time_listened " + direction + ", a.name");
             case "first_listened" -> sql.append(" ORDER BY first_listened " + direction + " NULLS LAST, a.name");
@@ -419,7 +437,7 @@ public class AlbumRepositoryNew {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[25];
+            Object[] row = new Object[26];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -435,16 +453,17 @@ public class AlbumRepositoryNew {
             row[12] = rs.getString("release_year");
             row[13] = rs.getString("release_date");
             row[14] = rs.getInt("song_count");
-            row[15] = rs.getInt("has_image");
-            row[16] = rs.getString("gender_name");
-            row[17] = rs.getInt("play_count");
-            row[18] = rs.getInt("vatito_play_count");
-            row[19] = rs.getInt("robertlover_play_count");
-            row[20] = rs.getLong("time_listened");
-            row[21] = rs.getString("first_listened");
-            row[22] = rs.getString("last_listened");
-            row[23] = rs.getString("country");
-            row[24] = rs.getObject("organized");
+            row[15] = rs.getLong("album_length");
+            row[16] = rs.getInt("has_image");
+            row[17] = rs.getString("gender_name");
+            row[18] = rs.getInt("play_count");
+            row[19] = rs.getInt("vatito_play_count");
+            row[20] = rs.getInt("robertlover_play_count");
+            row[21] = rs.getLong("time_listened");
+            row[22] = rs.getString("first_listened");
+            row[23] = rs.getString("last_listened");
+            row[24] = rs.getString("country");
+            row[25] = rs.getObject("organized");
             return row;
         }, params.toArray());
     }
@@ -460,11 +479,25 @@ public class AlbumRepositoryNew {
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                       String listenedDateFrom, String listenedDateTo,
                                        String organized, String hasImage, String hasFeaturedArtists, String isBand,
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax) {
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
+        
+        // Build listened date filter clause for play_stats subquery
+        StringBuilder listenedDateFilterClause = new StringBuilder();
+        List<Object> listenedDateParams = new ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateParams.add(listenedDateTo);
+        }
+        boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
             accountFilterClause.append(" AND scr.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
@@ -492,8 +525,8 @@ public class AlbumRepositoryNew {
                 "FROM Album a " +
                 "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
             
-            // Add play_stats JOIN if we need to filter by play count
-            if (playCountMin != null || playCountMax != null) {
+            // Add play_stats JOIN if we need to filter by play count or listened date
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
@@ -501,6 +534,7 @@ public class AlbumRepositoryNew {
                         JOIN Song s ON scr.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
                 sql.append("""
                         GROUP BY s.album_id
                     ) play_stats ON play_stats.album_id = a.id
@@ -521,8 +555,8 @@ public class AlbumRepositoryNew {
                 "FROM Album a " +
                 "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
             
-            // Add play_stats JOIN if we need to filter by play count
-            if (playCountMin != null || playCountMax != null) {
+            // Add play_stats JOIN if we need to filter by play count or listened date
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
@@ -530,6 +564,7 @@ public class AlbumRepositoryNew {
                         JOIN Song s ON scr.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
                 sql.append("""
                         GROUP BY s.album_id
                     ) play_stats ON play_stats.album_id = a.id
@@ -551,8 +586,8 @@ public class AlbumRepositoryNew {
                 "FROM Album a " +
                 "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
             
-            // Add play_stats JOIN if we need to filter by play count
-            if (playCountMin != null || playCountMax != null) {
+            // Add play_stats JOIN if we need to filter by play count or listened date
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
@@ -560,6 +595,7 @@ public class AlbumRepositoryNew {
                         JOIN Song s ON scr.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
                 sql.append("""
                         GROUP BY s.album_id
                     ) play_stats ON play_stats.album_id = a.id
@@ -572,8 +608,9 @@ public class AlbumRepositoryNew {
         List<Object> params = new ArrayList<>();
         
         // Add account params for play_stats subquery
-        if (playCountMin != null || playCountMax != null) {
+        if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
             params.addAll(accountParams);
+            params.addAll(listenedDateParams);
         }
         
         // Account params for main query if using includes or excludes mode

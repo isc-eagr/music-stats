@@ -147,3 +147,22 @@
     padding: 20px;
     font-style: italic;
 }
+
+/* Songs table: make Song Name column fixed width and allow multi-line wrapping to avoid horizontal overflow */
+/* Only apply fixed-layout song-name column on the artist detail page to avoid
+   changing table behavior on album detail pages */
+.artist-detail #songsTable {
+    table-layout: fixed; /* enable fixed column widths so our .song-name-col width is respected */
+}
+
+.artist-detail #songsTable th.song-name-col,
+.artist-detail #songsTable td.song-name-col {
+    width: 360px; /* fixed width for song name column */
+    max-width: 360px;
+    white-space: normal; /* allow wrapping */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Slightly reduce padding inside song name column to give more room for text */
+.artist-detail #songsTable td.song-name-col { padding-right: 8px; padding-left: 8px; }

@@ -6,7 +6,7 @@ import java.sql.Timestamp;
 
 @Entity
 @Table(name = "Song")
-public class SongNew {
+public class Song {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -41,6 +41,9 @@
                          class="item-image-large clickable-image"
                          onclick="openImageModal(this.src)"
                          style="cursor: pointer;">
+                      <span th:if="${albumLengthFormatted != null and !#strings.isEmpty(albumLengthFormatted)}"
+                          class="length-overlay"
+                          th:text="${albumLengthFormatted}"></span>
                     <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
                         <span>💿</span>
                     </div>
@@ -200,13 +203,12 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="organized">Organized</label>
+                                <div class="form-group form-group-checkbox">
                                     <span class="attribute-text" data-field="organized" th:text="${album.organized != null and album.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
-                                    <div class="checkbox-container" style="display:none;">
-                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" disabled />
-                                        <label for="organized" class="checkbox-label">This album is organized</label>
-                                    </div>
+                                    <label class="inline-checkbox-label" style="display:none;">
+                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
+                                        Organized
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -225,6 +227,14 @@
                         <div class="stat-item">
                             <span class="stat-label">Total Listening Time</span>
                             <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Average Song Length</span>
+                            <span class="stat-value" th:text="${averageSongLength}">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Average Plays per Song</span>
+                            <span class="stat-value" th:text="${averagePlaysPerSong}">-</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">First Listened</span>
@@ -246,6 +256,7 @@
                         <thead>
                             <tr>
                                 <th data-sort="name">Song Name</th>
+                                <th data-sort="length" class="numeric">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
@@ -258,6 +269,7 @@
                         <tbody id="songsTableBody">
                             <tr th:each="song : ${songs}"
                                 th:attr="data-name=${song.name},
+                                        data-length=${song.length != null ? song.length : 0},
                                         data-releasedate=${song.releaseDate},
                                         data-firstlistened=${song.firstListenedDate},
                                         data-lastlistened=${song.lastListenedDate},
@@ -269,12 +281,13 @@
                                     <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
                                 </td>
+                                <td class="numeric" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
                                 <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
                                 <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
                                 <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
                                 <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
                                 <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td class="numeric" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
                                 <td class="numeric" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
@@ -668,8 +681,7 @@
             const formActions = document.getElementById('formActions');
             const textInputs = document.querySelectorAll('#albumForm input.editable-input, #albumForm input[type="date"], #albumForm input[type="text"]:not([type="hidden"])');
             const selects = document.querySelectorAll('#albumForm select');
-            const checkboxContainers = document.querySelectorAll('.checkbox-container');
-            const checkboxes = document.querySelectorAll('#albumForm input[type="checkbox"]');
+            const inlineCheckboxLabels = document.querySelectorAll('.inline-checkbox-label');
             const attributeTexts = document.querySelectorAll('.attribute-text');
             
             if (isEditing) {
@@ -696,11 +708,8 @@
                     select.removeAttribute('disabled');
                     select.style.display = 'block';
                 });
-                checkboxContainers.forEach(container => {
-                    container.style.display = 'block';
-                });
-                checkboxes.forEach(checkbox => {
-                    checkbox.removeAttribute('disabled');
+                inlineCheckboxLabels.forEach(label => {
+                    label.style.display = 'inline-flex';
                 });
                 attributeTexts.forEach(text => {
                     if (text.dataset.field) {
@@ -897,20 +906,51 @@
         .checkbox-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 0;
+            gap: 8px;
+            padding: 0;
+            flex-wrap: nowrap;
         }
-        
+
         .checkbox-container input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
         }
-        
+
         .checkbox-label {
             font-size: 14px;
             color: #e5e7eb;
             cursor: pointer;
+            white-space: nowrap;
+        }
+        /* Inline layout for checkbox form-groups (compact) */
+        .form-group.form-group-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .form-group.form-group-checkbox .field-label {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .form-group.form-group-checkbox .attribute-text {
+            margin-left: 4px;
+        }
+
+        .form-group.form-group-checkbox .checkbox-container {
+            margin: 0;
+            padding: 0;
+        }
+
+        .form-group.form-group-checkbox .checkbox-label { display: none; }
+
+        .form-group.form-group-checkbox .inline-checkbox-label {
+            justify-content: flex-start;
         }
         
         /* Clickable image cursor */
@@ -930,6 +970,11 @@
             border: 1px solid #2a2a2a;
             border-radius: 8px;
             padding: 16px;
+        }
+        /* Hide length overlay on image hover so upload/remove buttons can appear */
+        .item-image-container:hover .length-overlay {
+            opacity: 0;
+            transition: opacity 0.15s ease;
         }
         
         .chart-run-header {

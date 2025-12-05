@@ -19,6 +19,9 @@ public class ArtistAlbumDTO {
     private String ethnicity;
     private String language;
     private String country;
+    private boolean fromGroup; // true if this album is from a group the artist belongs to
+    private Integer sourceArtistId; // the group artist's ID when this is a group album
+    private String sourceArtistName; // the group artist's name when this is a group album
     
     public ArtistAlbumDTO() {}
     
@@ -199,5 +202,29 @@ public class ArtistAlbumDTO {
         } else {
             this.totalListeningTime = "-";
         }
+    }
+    
+    public boolean isFromGroup() {
+        return fromGroup;
+    }
+    
+    public void setFromGroup(boolean fromGroup) {
+        this.fromGroup = fromGroup;
+    }
+    
+    public Integer getSourceArtistId() {
+        return sourceArtistId;
+    }
+    
+    public void setSourceArtistId(Integer sourceArtistId) {
+        this.sourceArtistId = sourceArtistId;
+    }
+    
+    public String getSourceArtistName() {
+        return sourceArtistName;
+    }
+    
+    public void setSourceArtistName(String sourceArtistName) {
+        this.sourceArtistName = sourceArtistName;
     }
 }

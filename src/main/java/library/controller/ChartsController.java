@@ -293,13 +293,32 @@ public class ChartsController {
         Chart songChart = charts.get("song");
         Chart albumChart = charts.get("album");
         
-        List<ChartEntryDTO> songEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "song", periodKey);
-        List<ChartEntryDTO> albumEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "album", periodKey);
-        List<ChartEntryDTO> extraSongEntries = chartService.getSeasonalExtraSongEntries(periodKey);
+        // For drafts, load ALL entries (unlimited). For finalized, load just 1-30.
+        List<ChartEntryDTO> songEntries;
+        List<ChartEntryDTO> albumEntries;
+        List<ChartEntryDTO> extraSongEntries;
+        
+        if (Boolean.TRUE.equals(songChart.getIsFinalized())) {
+            songEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "song", periodKey);
+            extraSongEntries = chartService.getSeasonalExtraSongEntries(periodKey);
+        } else {
+            // Get all entries for draft editing (no position limit)
+            songEntries = chartService.getAllChartEntriesForEdit("seasonal", "song", periodKey);
+            extraSongEntries = java.util.Collections.emptyList();
+        }
+        
+        if (Boolean.TRUE.equals(albumChart.getIsFinalized())) {
+            albumEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "album", periodKey);
+        } else {
+            albumEntries = chartService.getAllChartEntriesForEdit("seasonal", "album", periodKey);
+        }
         
         boolean isComplete = chartService.isSeasonComplete(periodKey);
+        // Can finalize only if exactly the right counts
+        int mainSongCount = (int) songEntries.stream().filter(e -> e.getPosition() <= ChartService.SEASONAL_YEARLY_SONGS_COUNT).count();
+        int extraSongCount = (int) songEntries.stream().filter(e -> e.getPosition() > ChartService.SEASONAL_YEARLY_SONGS_COUNT).count();
         boolean canFinalize = isComplete 
-            && songEntries.size() == ChartService.SEASONAL_YEARLY_SONGS_COUNT
+            && mainSongCount == ChartService.SEASONAL_YEARLY_SONGS_COUNT
             && albumEntries.size() == ChartService.SEASONAL_ALBUMS_COUNT;
         
         // Navigation
@@ -436,8 +455,21 @@ public class ChartsController {
         Chart songChart = charts.get("song");
         Chart albumChart = charts.get("album");
         
-        List<ChartEntryDTO> songEntries = chartService.getSeasonalYearlyChartEntries("yearly", "song", periodKey);
-        List<ChartEntryDTO> albumEntries = chartService.getSeasonalYearlyChartEntries("yearly", "album", periodKey);
+        // For drafts, load ALL entries (unlimited). For finalized, load just 1-30.
+        List<ChartEntryDTO> songEntries;
+        List<ChartEntryDTO> albumEntries;
+        
+        if (Boolean.TRUE.equals(songChart.getIsFinalized())) {
+            songEntries = chartService.getSeasonalYearlyChartEntries("yearly", "song", periodKey);
+        } else {
+            songEntries = chartService.getAllChartEntriesForEdit("yearly", "song", periodKey);
+        }
+        
+        if (Boolean.TRUE.equals(albumChart.getIsFinalized())) {
+            albumEntries = chartService.getSeasonalYearlyChartEntries("yearly", "album", periodKey);
+        } else {
+            albumEntries = chartService.getAllChartEntriesForEdit("yearly", "album", periodKey);
+        }
         
         boolean isComplete = chartService.isYearComplete(periodKey);
         boolean canFinalize = isComplete 
