@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
+public class ArtistRepositoryNewImpl implements ArtistRepositoryCustom {
     
     private final JdbcTemplate jdbcTemplate;
     
-    public ArtistRepositoryCustomImpl(JdbcTemplate jdbcTemplate) {
+    public ArtistRepositoryNewImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
     
@@ -43,6 +43,14 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String lastListenedDateTo,
             String lastListenedDateMode,
             String organized,
+            String hasImage,
+            String isBand,
+            Integer playCountMin,
+            Integer playCountMax,
+            Integer albumCountMin,
+            Integer albumCountMax,
+            Integer songCountMin,
+            Integer songCountMax,
             String sortBy,
             String sortDir,
             int limit,
@@ -166,6 +174,54 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             }
         }
         
+        // Has Image filter
+        if (hasImage != null && !hasImage.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NOT NULL ");
+            } else if ("false".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NULL ");
+            }
+        }
+        
+        // Is Band filter
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND a.is_band = 1 ");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND a.is_band = 0 ");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ? ");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
+            params.add(playCountMax);
+        }
+        
+        // Album count filter
+        if (albumCountMin != null) {
+            sql.append(" AND COALESCE(album_stats.album_count, 0) >= ? ");
+            params.add(albumCountMin);
+        }
+        if (albumCountMax != null) {
+            sql.append(" AND COALESCE(album_stats.album_count, 0) <= ? ");
+            params.add(albumCountMax);
+        }
+        
+        // Song count filter
+        if (songCountMin != null) {
+            sql.append(" AND COALESCE(song_stats.song_count, 0) >= ? ");
+            params.add(songCountMin);
+        }
+        if (songCountMax != null) {
+            sql.append(" AND COALESCE(song_stats.song_count, 0) <= ? ");
+            params.add(songCountMax);
+        }
+        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         sql.append(" ORDER BY ");
@@ -245,7 +301,15 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             String lastListenedDateFrom,
             String lastListenedDateTo,
             String lastListenedDateMode,
-            String organized
+            String organized,
+            String hasImage,
+            String isBand,
+            Integer playCountMin,
+            Integer playCountMax,
+            Integer albumCountMin,
+            Integer albumCountMax,
+            Integer songCountMin,
+            Integer songCountMax
     ) {
         StringBuilder sql = new StringBuilder();
         
@@ -328,6 +392,54 @@ public class ArtistRepositoryCustomImpl implements ArtistRepositoryCustom {
             } else if ("false".equalsIgnoreCase(organized)) {
                 sql.append(" AND (a.organized = 0 OR a.organized IS NULL) ");
             }
+        }
+        
+        // Has Image filter
+        if (hasImage != null && !hasImage.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NOT NULL ");
+            } else if ("false".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NULL ");
+            }
+        }
+        
+        // Is Band filter
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND a.is_band = 1 ");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND a.is_band = 0 ");
+            }
+        }
+        
+        // Play count filter (uses subquery since count query doesn't have play_stats join)
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Scrobble scr JOIN Song song ON scr.song_id = song.id WHERE song.artist_id = a.id), 0) >= ? ");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Scrobble scr JOIN Song song ON scr.song_id = song.id WHERE song.artist_id = a.id), 0) <= ? ");
+            params.add(playCountMax);
+        }
+        
+        // Album count filter
+        if (albumCountMin != null) {
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Album WHERE artist_id = a.id), 0) >= ? ");
+            params.add(albumCountMin);
+        }
+        if (albumCountMax != null) {
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Album WHERE artist_id = a.id), 0) <= ? ");
+            params.add(albumCountMax);
+        }
+        
+        // Song count filter
+        if (songCountMin != null) {
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Song WHERE artist_id = a.id), 0) >= ? ");
+            params.add(songCountMin);
+        }
+        if (songCountMax != null) {
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Song WHERE artist_id = a.id), 0) <= ? ");
+            params.add(songCountMax);
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());

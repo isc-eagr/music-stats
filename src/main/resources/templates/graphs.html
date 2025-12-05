@@ -64,8 +64,8 @@
         }
         
         .charts-tab-btn.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
+            color: #e5e7eb;
+            border-bottom-color: #e5e7eb;
         }
         
         .charts-body {
@@ -93,7 +93,7 @@
             width: 40px;
             height: 40px;
             border: 3px solid #2a2a2a;
-            border-top-color: #3b82f6;
+            border-top-color: #22c55e;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 16px;
@@ -115,7 +115,7 @@
         .tab-error button {
             margin-top: 16px;
             padding: 8px 16px;
-            background: #3b82f6;
+            background: #2d5016;
             color: white;
             border: none;
             border-radius: 6px;
@@ -123,7 +123,7 @@
         }
         
         .tab-error button:hover {
-            background: #2563eb;
+            background: #3d6b1e;
         }
         
         .charts-row {
@@ -294,7 +294,7 @@
         
         .top-controls input[type="number"]:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: #22c55e;
         }
         
         .top-section {
@@ -345,13 +345,13 @@
         .top-table th.sorted-asc::after {
             content: ' ▲';
             font-size: 10px;
-            color: #3b82f6;
+            color: #22c55e;
         }
         
         .top-table th.sorted-desc::after {
             content: ' ▼';
             font-size: 10px;
-            color: #3b82f6;
+            color: #22c55e;
         }
         
         .top-table td {
@@ -406,6 +406,28 @@
         
         .clear-filters-btn:hover {
             background: #b91c1c;
+        }
+        
+        .top-playlist-btn {
+            padding: 8px 16px;
+            background: #2d5016;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .top-playlist-btn:hover {
+            background: #3d6b1e;
+        }
+        
+        /* Gold styling for high play counts (>= 1000 plays) */
+        .high-plays {
+            color: #fbbf24 !important;
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+            font-weight: 600;
         }
     </style>
 </head>
@@ -761,8 +783,8 @@
                     </div>
                     
                     <div class="filter-actions">
-                        <button type="submit" class="btn-action">Apply Filters</button>
-                        <button type="button" class="btn-negative" onclick="clearAllFilters()">Clear All</button>
+                        <button type="button" class="btn-clear" onclick="clearAllFilters()">Clear</button>
+                        <button type="button" class="btn-apply" onclick="applyFilters()">Apply</button>
                     </div>
                 </form>
             </div>
@@ -947,7 +969,10 @@
                         </div>
                         
                         <div class="top-section">
-                            <h3>Top Songs</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">Top Songs</h3>
+                                <button type="button" class="top-playlist-btn" onclick="openTopSongsPlaylistGenerator()">🎵 Generate Playlist</button>
+                            </div>
                             <div class="top-table-container" id="topSongsTableContainer">
                                 <table class="top-table" id="topSongsTable">
                                     <thead>
@@ -1169,6 +1194,10 @@
             window.location.href = '/graphs';
         }
         
+        function applyFilters() {
+            document.getElementById('filterForm').submit();
+        }
+        
         function toggleFilters() {
             const filterPanel = document.getElementById('filterPanel');
             if (filterPanel) {
@@ -1310,9 +1339,47 @@
                 labelElement.style.display = 'block';
             }
         }
+        
+        /**
+         * Open playlist generator for the top songs currently displayed
+         */
+        function openTopSongsPlaylistGenerator() {
+            // Get the current top songs from the topTabData (already loaded)
+            if (!topTabData || !topTabData.songs || topTabData.songs.length === 0) {
+                alert('No songs loaded. Please wait for the data to load.');
+                return;
+            }
+            
+            // Convert to the format expected by the playlist generator
+            const songs = topTabData.songs.map(song => ({
+                id: song.id,
+                name: song.name,
+                artist: song.artistName,
+                album: song.albumName
+            }));
+            
+            // Generate default playlist name
+            const limit = document.getElementById('topLimitInput').value || 10;
+            let defaultName = 'Top ' + limit + ' Songs';
+            
+            // Add filter context if any
+            if (chartsDateRange && chartsDateRange.from) {
+                defaultName += ' (' + chartsDateRange.from;
+                if (chartsDateRange.to) defaultName += ' - ' + chartsDateRange.to;
+                defaultName += ')';
+            } else if (chartsEntityFilter && chartsEntityFilter.name) {
+                defaultName += ' - ' + chartsEntityFilter.name;
+            }
+            
+            // Open the playlist generator modal
+            openPlaylistGeneratorModal(songs, defaultName);
+        }
     </script>
     
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
+    
+    <!-- Playlist Generator Modal -->
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
 </body>
 </html>

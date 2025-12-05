@@ -42,6 +42,12 @@ public interface ChartRepository extends JpaRepository<Chart, Integer> {
     Optional<Chart> findLatestWeeklyChart(@Param("chartType") String chartType);
     
     /**
+     * Find the latest finalized weekly chart (period_type = 'weekly' AND is_finalized = 1).
+     */
+    @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_type = 'weekly' AND is_finalized = 1 ORDER BY period_start_date DESC LIMIT 1", nativeQuery = true)
+    Optional<Chart> findLatestFinalizedWeeklyChart(@Param("chartType") String chartType);
+    
+    /**
      * Find previous weekly chart (the one before the given period key, weekly charts only).
      */
     @Query(value = "SELECT * FROM Chart WHERE chart_type = :chartType AND period_type = 'weekly' AND period_start_date < " +

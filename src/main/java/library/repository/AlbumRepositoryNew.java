@@ -26,7 +26,8 @@ public class AlbumRepositoryNew {
                                                String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                                String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                                String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                               String organized,
+                                               String organized, String hasImage, String hasFeaturedArtists, String isBand,
+                                               Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                                String sortBy, String sortDir, int limit, int offset) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
@@ -353,6 +354,53 @@ public class AlbumRepositoryNew {
             }
         }
         
+        // Has Image filter
+        if (hasImage != null && !hasImage.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NOT NULL ");
+            } else if ("false".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NULL ");
+            }
+        }
+        
+        // Has Featured Artists filter (check if any song in the album has featured artists)
+        if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song s ON sfa.song_id = s.id WHERE s.album_id = a.id) ");
+            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song s ON sfa.song_id = s.id WHERE s.album_id = a.id) ");
+            }
+        }
+        
+        // Is Band filter (from artist)
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 1 ");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 0 ");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ? ");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
+            params.add(playCountMax);
+        }
+        
+        // Song count filter
+        if (songCountMin != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song WHERE album_id = a.id) >= ? ");
+            params.add(songCountMin);
+        }
+        if (songCountMax != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song WHERE album_id = a.id) <= ? ");
+            params.add(songCountMax);
+        }
+        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         switch (sortBy != null ? sortBy : "name") {
@@ -412,7 +460,29 @@ public class AlbumRepositoryNew {
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                       String organized) {
+                                       String organized, String hasImage, String hasFeaturedArtists, String isBand,
+                                       Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax) {
+        // Build account filter subquery for play_stats if we need play count filter
+        StringBuilder accountFilterClause = new StringBuilder();
+        List<Object> accountParams = new ArrayList<>();
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account NOT IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        }
+        
         StringBuilder sql = new StringBuilder();
         
         // Use a more efficient approach with JOIN for account filtering
@@ -420,8 +490,24 @@ public class AlbumRepositoryNew {
             sql.append(
                 "SELECT COUNT(DISTINCT a.id) " +
                 "FROM Album a " +
-                "LEFT JOIN Artist ar ON a.artist_id = ar.id " +
-                "INNER JOIN Song s ON s.album_id = a.id " +
+                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
+            
+            // Add play_stats JOIN if we need to filter by play count
+            if (playCountMin != null || playCountMax != null) {
+                sql.append("""
+                    LEFT JOIN (
+                        SELECT s.album_id, COUNT(*) as play_count
+                        FROM Scrobble scr
+                        JOIN Song s ON scr.song_id = s.id
+                        WHERE 1=1 """);
+                sql.append(accountFilterClause);
+                sql.append("""
+                        GROUP BY s.album_id
+                    ) play_stats ON play_stats.album_id = a.id
+                    """);
+            }
+            
+            sql.append("INNER JOIN Song s ON s.album_id = a.id " +
                 "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
                 "WHERE scr.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
@@ -433,8 +519,24 @@ public class AlbumRepositoryNew {
             sql.append(
                 "SELECT COUNT(DISTINCT a.id) " +
                 "FROM Album a " +
-                "LEFT JOIN Artist ar ON a.artist_id = ar.id " +
-                "WHERE NOT EXISTS ( " +
+                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
+            
+            // Add play_stats JOIN if we need to filter by play count
+            if (playCountMin != null || playCountMax != null) {
+                sql.append("""
+                    LEFT JOIN (
+                        SELECT s.album_id, COUNT(*) as play_count
+                        FROM Scrobble scr
+                        JOIN Song s ON scr.song_id = s.id
+                        WHERE 1=1 """);
+                sql.append(accountFilterClause);
+                sql.append("""
+                        GROUP BY s.album_id
+                    ) play_stats ON play_stats.album_id = a.id
+                    """);
+            }
+            
+            sql.append("WHERE NOT EXISTS ( " +
                 "    SELECT 1 FROM Scrobble scr " +
                 "    JOIN Song song ON scr.song_id = song.id " +
                 "    WHERE song.album_id = a.id AND scr.account IN (");
@@ -447,13 +549,34 @@ public class AlbumRepositoryNew {
             sql.append(
                 "SELECT COUNT(*) " +
                 "FROM Album a " +
-                "LEFT JOIN Artist ar ON a.artist_id = ar.id " +
-                "WHERE 1=1 ");
+                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
+            
+            // Add play_stats JOIN if we need to filter by play count
+            if (playCountMin != null || playCountMax != null) {
+                sql.append("""
+                    LEFT JOIN (
+                        SELECT s.album_id, COUNT(*) as play_count
+                        FROM Scrobble scr
+                        JOIN Song s ON scr.song_id = s.id
+                        WHERE 1=1 """);
+                sql.append(accountFilterClause);
+                sql.append("""
+                        GROUP BY s.album_id
+                    ) play_stats ON play_stats.album_id = a.id
+                    """);
+            }
+            
+            sql.append("WHERE 1=1 ");
         }
         
         List<Object> params = new ArrayList<>();
         
-        // Account params first if using includes or excludes mode
+        // Add account params for play_stats subquery
+        if (playCountMin != null || playCountMax != null) {
+            params.addAll(accountParams);
+        }
+        
+        // Account params for main query if using includes or excludes mode
         if (accounts != null && !accounts.isEmpty()) {
             params.addAll(accounts);
         }
@@ -578,8 +701,8 @@ public class AlbumRepositoryNew {
             }
         }
         
-        // Country filter - always from artist (no overrides for country)
-        if (countryMode != null) {
+        // Release Date filter
+        if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
             switch (releaseDateMode) {
                 case "exact":
                     if (releaseDate != null && !releaseDate.isEmpty()) {
@@ -689,6 +812,53 @@ public class AlbumRepositoryNew {
             } else if ("false".equalsIgnoreCase(organized)) {
                 sql.append(" AND (a.organized = 0 OR a.organized IS NULL) ");
             }
+        }
+        
+        // Has Image filter
+        if (hasImage != null && !hasImage.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NOT NULL ");
+            } else if ("false".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND a.image IS NULL ");
+            }
+        }
+        
+        // Has Featured Artists filter (check if any song in the album has featured artists)
+        if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song s ON sfa.song_id = s.id WHERE s.album_id = a.id) ");
+            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song s ON sfa.song_id = s.id WHERE s.album_id = a.id) ");
+            }
+        }
+        
+        // Is Band filter (from artist)
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 1 ");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 0 ");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ? ");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
+            params.add(playCountMax);
+        }
+        
+        // Song count filter
+        if (songCountMin != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song WHERE album_id = a.id) >= ? ");
+            params.add(songCountMin);
+        }
+        if (songCountMax != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song WHERE album_id = a.id) <= ? ");
+            params.add(songCountMax);
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());

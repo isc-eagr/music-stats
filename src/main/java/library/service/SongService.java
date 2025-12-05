@@ -41,7 +41,8 @@ public class SongService {
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                       String organized,
+                                       String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                                       Integer playCountMin, Integer playCountMax,
                                        String sortBy, String sortDirection, int page, int perPage) {
         int offset = page * perPage;
         
@@ -55,7 +56,8 @@ public class SongService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                organized,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                playCountMin, playCountMax,
                 sortBy, sortDirection, perPage, offset
         );
         
@@ -130,7 +132,8 @@ public class SongService {
                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                          String organized) {
+                          String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                          Integer playCountMin, Integer playCountMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -140,7 +143,8 @@ public class SongService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                organized);
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                playCountMin, playCountMax);
     }
     
     public Optional<SongNew> getSongById(Integer id) {
@@ -693,7 +697,8 @@ public class SongService {
                 String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
                 
-                return day + " " + monthNames[month - 1] + " " + year;
+                // Format as DD-Mon-YYYY (e.g., "01-Nov-2025") with zero-padded day
+                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
             }
         } catch (Exception e) {
             // If parsing fails, return as is

@@ -40,7 +40,8 @@ public class AlbumService {
                                          String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                          String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                         String organized,
+                                         String organized, String hasImage, String hasFeaturedArtists, String isBand,
+                                         Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                          String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
         
@@ -54,7 +55,8 @@ public class AlbumService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                organized,
+                organized, hasImage, hasFeaturedArtists, isBand,
+                playCountMin, playCountMax, songCountMin, songCountMax,
                 sortBy, sortDir, perPage, offset
         );
         
@@ -114,7 +116,8 @@ public class AlbumService {
                            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                           String organized) {
+                           String organized, String hasImage, String hasFeaturedArtists, String isBand,
+                           Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -124,7 +127,8 @@ public class AlbumService {
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                organized);
+                organized, hasImage, hasFeaturedArtists, isBand,
+                playCountMin, playCountMax, songCountMin, songCountMax);
     }
     
     public Optional<Album> getAlbumById(Integer id) {
@@ -594,11 +598,28 @@ public class AlbumService {
     
     // Get albums by artist for API (id and name only)
     public List<Map<String, Object>> getAlbumsByArtistForApi(Integer artistId) {
-        String sql = "SELECT id, name FROM Album WHERE artist_id = ? ORDER BY name";
+        String sql = """
+            SELECT a.id, a.name, 
+                   a.override_genre_id, g.name as override_genre_name,
+                   a.override_subgenre_id, sg.name as override_subgenre_name,
+                   a.override_language_id, l.name as override_language_name
+            FROM Album a
+            LEFT JOIN Genre g ON a.override_genre_id = g.id
+            LEFT JOIN SubGenre sg ON a.override_subgenre_id = sg.id
+            LEFT JOIN Language l ON a.override_language_id = l.id
+            WHERE a.artist_id = ? 
+            ORDER BY a.name
+            """;
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> album = new java.util.HashMap<>();
             album.put("id", rs.getInt("id"));
             album.put("name", rs.getString("name"));
+            album.put("overrideGenreId", rs.getObject("override_genre_id"));
+            album.put("overrideGenreName", rs.getString("override_genre_name"));
+            album.put("overrideSubgenreId", rs.getObject("override_subgenre_id"));
+            album.put("overrideSubgenreName", rs.getString("override_subgenre_name"));
+            album.put("overrideLanguageId", rs.getObject("override_language_id"));
+            album.put("overrideLanguageName", rs.getString("override_language_name"));
             return album;
         }, artistId);
     }
@@ -689,8 +710,8 @@ public class AlbumService {
                 String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
                 
-                // Format as DD Mon YYYY (e.g., "21 Nov 2025")
-                return day + " " + monthNames[month - 1] + " " + year;
+                // Format as DD-Mon-YYYY (e.g., "01-Nov-2025") with zero-padded day
+                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
             }
             
             return datePart;

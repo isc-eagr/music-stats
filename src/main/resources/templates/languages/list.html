@@ -130,7 +130,7 @@
                             <span class="stat-value" th:text="${language.songCount}">0</span>
                         </div>
                     </div>
-                    <div class="catalog-stats catalog-stats-row2">
+                    <div class="catalog-stats catalog-stats-plays">
                         <div class="stat" title="Primary plays">
                             <span class="stat-icon primary-plays">⏵</span>
                             <span class="stat-value" th:text="${language.vatitoPlayCount}">0</span>
@@ -140,9 +140,11 @@
                             <span class="stat-value" th:text="${language.robertloverPlayCount}">0</span>
                         </div>
                         <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">▶️</span>
+                            <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${language.playCount}">0</span>
                         </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
                         <div class="stat">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${language.timeListenedFormatted}">0m</span>
@@ -194,7 +196,7 @@
                             </div>
                         </div>
                         <div class="gender-bar-row" th:if="${language.malePlayCount > 0 or language.femalePlayCount > 0 or language.otherPlayCount > 0}">
-                            <span class="gender-bar-icon" title="Plays">▶️</span>
+                            <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
                             <div class="gender-bar" th:with="total=${language.malePlayCount + language.femalePlayCount + language.otherPlayCount}">
                                 <div class="gender-male-bar" 
                                      th:style="'width: ' + (${total > 0} ? (${language.malePlayCount} * 100 / ${total}) : 0) + '%'"

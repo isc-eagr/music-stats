@@ -56,8 +56,8 @@
         }
         
         .type-toggle-btn.active {
-            background: #1e40af;
-            border-color: #3b82f6;
+            background: #2d5016;
+            border-color: #3d6b1e;
             color: #fff;
         }
         
@@ -102,8 +102,8 @@
         }
         
         .position-tab.active {
-            background: #1e40af;
-            border-color: #3b82f6;
+            background: #2d5016;
+            border-color: #3d6b1e;
             color: #fff;
         }
         
@@ -149,7 +149,7 @@
         
         .year-picker:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: #22c55e;
         }
         
         .year-picker option {
@@ -220,7 +220,7 @@
             width: 100px;
             text-align: right;
             font-weight: 600;
-            color: #60a5fa;
+            color: #22c55e;
             font-size: 1.1rem;
         }
         
@@ -258,7 +258,7 @@
         }
         
         .title-text:hover {
-            color: #60a5fa;
+            color: #22c55e;
             text-decoration: underline;
         }
         
@@ -354,7 +354,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="entry : ${entries}">
+                    <tr th:each="entry : ${entries}"
+                        th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <td class="col-rank" th:text="${entry.rank}">1</td>
                         <td class="col-title">
                             <div class="title-cell">

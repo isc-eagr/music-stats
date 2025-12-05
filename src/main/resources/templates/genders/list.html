@@ -100,11 +100,13 @@
         <!-- Gender cards grid -->
         <div class="catalog-grid">
             <div th:each="gender : ${genders}" class="catalog-card" style="cursor: pointer;"
+                 th:classappend="${gender.name != null and gender.name.toLowerCase().contains('male') and !gender.name.toLowerCase().contains('female')} ? 'gender-male' : (${gender.name != null and gender.name.toLowerCase().contains('female')} ? 'gender-female' : '')"
                  th:data-id="${gender.id}"
                  th:data-name="${gender.name}"
-                 th:onclick="'window.location.href=\'/graphs?filterType=gender&filterId=' + ${gender.id} + '&filterName=' + ${#strings.replace(gender.name, ' ', '%20')} + '\''">
+                 onclick="navigateToGraph(this, 'gender')">
                 <div class="catalog-image">
-                    <div class="catalog-icon" title="Gender">
+                    <div class="catalog-icon" title="Gender"
+                         th:text="${gender.name != null and gender.name.toLowerCase().contains('male') and !gender.name.toLowerCase().contains('female')} ? '♂' : (${gender.name != null and gender.name.toLowerCase().contains('female')} ? '♀' : '⚥')">
                         ⚥
                     </div>
                 </div>
@@ -126,7 +128,7 @@
                             <span class="stat-value" th:text="${gender.songCount}">0</span>
                         </div>
                     </div>
-                    <div class="catalog-stats catalog-stats-row2">
+                    <div class="catalog-stats catalog-stats-plays">
                         <div class="stat" title="Primary plays">
                             <span class="stat-icon primary-plays">⏵</span>
                             <span class="stat-value" th:text="${gender.vatitoPlayCount}">0</span>
@@ -136,9 +138,11 @@
                             <span class="stat-value" th:text="${gender.robertloverPlayCount}">0</span>
                         </div>
                         <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">▶️</span>
+                            <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${gender.playCount}">0</span>
                         </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
                         <div class="stat">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${gender.timeListenedFormatted}">0m</span>
@@ -212,6 +216,12 @@
             const url = new URL(window.location);
             url.searchParams.set('page', pageNum);
             window.location.href = url.toString();
+        }
+        
+        function navigateToGraph(element, filterType) {
+            const id = element.getAttribute('data-id');
+            const name = encodeURIComponent(element.getAttribute('data-name'));
+            window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + id + '&filterName=' + name;
         }
     </script>
 </body>

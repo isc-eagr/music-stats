@@ -69,6 +69,13 @@ public class ChartService {
     }
     
     /**
+     * Get the latest finalized weekly chart.
+     */
+    public Optional<Chart> getLatestFinalizedWeeklyChart(String chartType) {
+        return chartRepository.findLatestFinalizedWeeklyChart(chartType);
+    }
+    
+    /**
      * Get a chart by type and period key.
      */
     public Optional<Chart> getChart(String chartType, String periodKey) {
@@ -260,6 +267,8 @@ public class ChartService {
             dto.setArtistName((String) row[7]);
             dto.setHasImage(((Number) row[8]).intValue() == 1);
             dto.setArtistId((Integer) row[9]);
+            dto.setAlbumName((String) row[10]); // Album name for playlist export
+            dto.setGenderId(row[11] != null ? ((Number) row[11]).intValue() : null);
             
             Integer songId = dto.getSongId();
             
@@ -326,6 +335,7 @@ public class ChartService {
             dto.setArtistName((String) row[7]);
             dto.setHasImage(((Number) row[8]).intValue() == 1);
             dto.setArtistId((Integer) row[9]);
+            dto.setGenderId(row[10] != null ? ((Number) row[10]).intValue() : null);
             
             Integer albumId = dto.getAlbumId();
             
@@ -495,7 +505,7 @@ public class ChartService {
         }
         
         String historySql = """
-            SELECT c.period_key, ce.position
+            SELECT c.period_key, ce.position, c.period_start_date, c.period_end_date
             FROM Chart c
             LEFT JOIN ChartEntry ce ON c.id = ce.chart_id AND ce.song_id = ?
             WHERE c.chart_type = 'song'
@@ -529,9 +539,12 @@ public class ChartService {
                 Map<String, Object> row = history.get(i);
                 String periodKey = (String) row.get("period_key");
                 Integer position = row.get("position") != null ? ((Number) row.get("position")).intValue() : null;
+                String startDate = (String) row.get("period_start_date");
+                String endDate = (String) row.get("period_end_date");
+                String dateRange = formatDateRange(startDate, endDate);
                 
                 boolean isCurrent = periodKey.equals(currentPeriodKey);
-                weeks.add(new ChartRunDTO.ChartRunWeek(periodKey, position, isCurrent));
+                weeks.add(new ChartRunDTO.ChartRunWeek(periodKey, position, isCurrent, dateRange));
                 
                 if (position != null) {
                     totalWeeksOnChart++;
@@ -1075,9 +1088,11 @@ public class ChartService {
     private String getFirstPeakDate(Integer itemId, Integer position, String chartType) {
         String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
         String sql = String.format("""
-            SELECT MIN(c.period_start_date) FROM ChartEntry ce
+            SELECT c.period_end_date FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             WHERE ce.%s = ? AND ce.position = ? AND c.chart_type = ? AND c.period_type = 'weekly'
+            ORDER BY c.period_start_date ASC
+            LIMIT 1
             """, idColumn);
         String dateStr = jdbcTemplate.queryForObject(sql, String.class, itemId, position, chartType);
         return formatPeakDate(dateStr);
@@ -1107,15 +1122,18 @@ public class ChartService {
 
     /**
      * Get the first date an item appeared on the chart (debut date, weekly charts only).
+     * Uses period_end_date to show the week ending date.
      * @param itemId The song or album ID
      * @param chartType "song" or "album"
      */
     private String getDebutDate(Integer itemId, String chartType) {
         String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
         String sql = String.format("""
-            SELECT MIN(c.period_start_date) FROM ChartEntry ce
+            SELECT c.period_end_date FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             WHERE ce.%s = ? AND c.chart_type = ? AND c.period_type = 'weekly'
+            ORDER BY c.period_start_date ASC
+            LIMIT 1
             """, idColumn);
         String dateStr = jdbcTemplate.queryForObject(sql, String.class, itemId, chartType);
         return formatPeakDate(dateStr);
@@ -1148,8 +1166,13 @@ public class ChartService {
      * @param itemType "song" or "album"
      */
     private String getReleaseDate(Integer itemId, String itemType) {
-        String table = "song".equals(itemType) ? "Song" : "Album";
-        String sql = String.format("SELECT release_date FROM %s WHERE id = ?", table);
+        String sql;
+        if ("song".equals(itemType)) {
+            // For songs, fall back to album release date if song's release date is null
+            sql = "SELECT COALESCE(s.release_date, a.release_date) FROM Song s LEFT JOIN Album a ON s.album_id = a.id WHERE s.id = ?";
+        } else {
+            sql = "SELECT release_date FROM Album WHERE id = ?";
+        }
         try {
             String dateStr = jdbcTemplate.queryForObject(sql, String.class, itemId);
             return formatPeakDate(dateStr);
@@ -1159,15 +1182,37 @@ public class ChartService {
     }
 
     /**
-     * Format a date string (yyyy-MM-dd) to a display format (d MMM yyyy).
+     * Format a date string (yyyy-MM-dd) to a display format (dd-MMM-yyyy).
      */
     private String formatPeakDate(String dateStr) {
         if (dateStr == null) return null;
         try {
             LocalDate date = LocalDate.parse(dateStr);
-            return date.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"));
+            return date.format(java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy"));
         } catch (Exception e) {
             return dateStr;
+        }
+    }
+    
+    /**
+     * Format a date range for display in chart run tooltips.
+     * Converts "2025-11-06" to "Nov 6" and shows "Nov 6 - Nov 12, 2025"
+     */
+    private String formatDateRange(String startDate, String endDate) {
+        if (startDate == null || endDate == null) return null;
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            java.time.format.DateTimeFormatter monthDay = java.time.format.DateTimeFormatter.ofPattern("MMM d");
+            java.time.format.DateTimeFormatter monthDayYear = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy");
+            
+            if (start.getYear() == end.getYear()) {
+                return start.format(monthDay) + " - " + end.format(monthDayYear);
+            } else {
+                return start.format(monthDayYear) + " - " + end.format(monthDayYear);
+            }
+        } catch (Exception e) {
+            return startDate + " - " + endDate;
         }
     }
     
@@ -1176,6 +1221,7 @@ public class ChartService {
     public static final int SEASONAL_YEARLY_SONGS_COUNT = 30;
     public static final int SEASONAL_ALBUMS_COUNT = 10;
     public static final int YEARLY_ALBUMS_COUNT = 10;
+    public static final int SEASONAL_EXTRA_SONGS_COUNT = 5;  // Extra songs for playlist, not in main chart
     
     /**
      * Get a seasonal chart by chart type (song/album) and period key.
@@ -1545,6 +1591,8 @@ public class ChartService {
     
     /**
      * Get chart entries for a seasonal/yearly chart with song/album details.
+     * Returns only main entries (position 1-30), not extras.
+     * Includes play count for the period if chart is finalized.
      */
     public List<ChartEntryDTO> getSeasonalYearlyChartEntries(String periodType, String chartType, String periodKey) {
         String itemTable = "song".equals(chartType) ? "Song" : "Album";
@@ -1554,24 +1602,34 @@ public class ChartService {
             ? "COALESCE(item.single_cover, (SELECT image FROM Album WHERE id = item.album_id))" 
             : "item.image";
         
+        // Subquery to count plays within the period date range
+        String playCountSubquery = "song".equals(chartType)
+            ? "(SELECT COUNT(*) FROM Scrobble sc WHERE sc.song_id = item.id AND DATE(sc.scrobble_date) >= c.period_start_date AND DATE(sc.scrobble_date) <= c.period_end_date)"
+            : "(SELECT COUNT(*) FROM Scrobble sc INNER JOIN Song s ON sc.song_id = s.id WHERE s.album_id = item.id AND DATE(sc.scrobble_date) >= c.period_start_date AND DATE(sc.scrobble_date) <= c.period_end_date)";
+        
         String sql = String.format("""
             SELECT ce.position, ce.%s as item_id, 
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
+                   ar.gender_id as gender_id,
                    %s as item_image,
-                   %s
+                   %s,
+                   %s as play_count
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN %s item ON ce.%s = item.id
             INNER JOIN Artist ar ON item.artist_id = ar.id
             WHERE c.period_type = ? AND c.chart_type = ? AND c.period_key = ?
+              AND ce.position <= %d
             ORDER BY ce.position ASC
             """,
             itemIdCol,
             imageCol,
             "song".equals(chartType) ? "item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name" : "NULL as album_id, NULL as album_name",
+            playCountSubquery,
             itemTable,
-            itemIdCol
+            itemIdCol,
+            SEASONAL_YEARLY_SONGS_COUNT
         );
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -1590,10 +1648,49 @@ public class ChartService {
             
             dto.setArtistId(rs.getInt("artist_id"));
             dto.setArtistName(rs.getString("artist_name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setHasImage(rs.getBytes("item_image") != null);
+            dto.setPlayCount(rs.getInt("play_count"));
             
             return dto;
         }, periodType, chartType, periodKey);
+    }
+    
+    /**
+     * Get extra song entries for a seasonal chart (positions 31-35).
+     * These are bonus songs added to the playlist but not counted in chart stats.
+     */
+    public List<ChartEntryDTO> getSeasonalExtraSongEntries(String periodKey) {
+        String sql = """
+            SELECT ce.position, ce.song_id as item_id, 
+                   item.name as item_name,
+                   ar.id as artist_id, ar.name as artist_name,
+                   ar.gender_id as gender_id,
+                   COALESCE(item.single_cover, (SELECT image FROM Album WHERE id = item.album_id)) as item_image,
+                   item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song item ON ce.song_id = item.id
+            INNER JOIN Artist ar ON item.artist_id = ar.id
+            WHERE c.period_type = 'seasonal' AND c.chart_type = 'song' AND c.period_key = ?
+              AND ce.position > ?
+            ORDER BY ce.position ASC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            ChartEntryDTO dto = new ChartEntryDTO();
+            dto.setPosition(rs.getInt("position"));
+            dto.setSongId(rs.getInt("item_id"));
+            dto.setSongName(rs.getString("item_name"));
+            dto.setAlbumId(rs.getObject("album_id") != null ? rs.getInt("album_id") : null);
+            dto.setAlbumName(rs.getString("album_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            dto.setHasImage(rs.getBytes("item_image") != null);
+            
+            return dto;
+        }, periodKey, SEASONAL_YEARLY_SONGS_COUNT);
     }
     
     /**
@@ -1605,13 +1702,15 @@ public class ChartService {
      */
     public List<Map<String, Object>> getChartHistoryForItem(Integer itemId, String chartType, String periodType) {
         String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
+        // Exclude extra songs (position > 30) from chart history
         String sql = String.format("""
             SELECT ce.position, c.period_key
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             WHERE ce.%s = ? AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
+              AND ce.position <= %d
             ORDER BY c.period_start_date DESC
-            """, idColumn);
+            """, idColumn, SEASONAL_YEARLY_SONGS_COUNT);
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> entry = new HashMap<>();
@@ -1675,14 +1774,16 @@ public class ChartService {
         String itemIdKey = "song".equals(chartType) ? "songId" : "albumId";
         String itemNameKey = "song".equals(chartType) ? "songName" : "albumName";
         
+        // Exclude extra songs (position > 30) from chart history
         String sql = String.format("""
             SELECT ce.position, c.period_key, %s.id as item_id, %s.name as item_name
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN %s %s ON ce.%s = %s.id
             WHERE %s.artist_id = ? AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
+              AND ce.position <= %d
             ORDER BY c.period_key DESC, ce.position ASC
-            """, itemAlias, itemAlias, itemTable, itemAlias, idColumn, itemAlias, itemAlias);
+            """, itemAlias, itemAlias, itemTable, itemAlias, idColumn, itemAlias, itemAlias, SEASONAL_YEARLY_SONGS_COUNT);
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> entry = new HashMap<>();
@@ -1738,14 +1839,16 @@ public class ChartService {
      * @param periodType "seasonal" or "yearly"
      */
     public List<Map<String, Object>> getAlbumSongsChartHistoryByPeriodType(Integer albumId, String periodType) {
-        String sql = """
+        // Exclude extra songs (position > 30) from chart history
+        String sql = String.format("""
             SELECT ce.position, c.period_key, s.id as song_id, s.name as song_name
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             WHERE s.album_id = ? AND c.period_type = ? AND c.chart_type = 'song' AND c.is_finalized = 1
+              AND ce.position <= %d
             ORDER BY c.period_key DESC, ce.position ASC
-            """;
+            """, SEASONAL_YEARLY_SONGS_COUNT);
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> entry = new HashMap<>();
@@ -2048,6 +2151,7 @@ public class ChartService {
                 s.name,
                 ar.name as artist_name,
                 ar.id as artist_id,
+                ar.gender_id,
                 COUNT(*) as weeks_count,
                 CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
                 MIN(c.period_start_date) as first_appearance
@@ -2079,6 +2183,7 @@ public class ChartService {
             dto.setName(rs.getString("name"));
             dto.setArtistName(rs.getString("artist_name"));
             dto.setArtistId(rs.getInt("artist_id"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setWeeksCount(rs.getInt("weeks_count"));
             dto.setHasImage(rs.getInt("has_image") == 1);
             dto.setType("song");
@@ -2097,6 +2202,7 @@ public class ChartService {
                 al.name,
                 ar.name as artist_name,
                 ar.id as artist_id,
+                ar.gender_id,
                 COUNT(*) as weeks_count,
                 CASE WHEN al.image IS NOT NULL AND LENGTH(al.image) > 0 THEN 1 ELSE 0 END as has_image,
                 MIN(c.period_start_date) as first_appearance
@@ -2128,6 +2234,7 @@ public class ChartService {
             dto.setName(rs.getString("name"));
             dto.setArtistName(rs.getString("artist_name"));
             dto.setArtistId(rs.getInt("artist_id"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setWeeksCount(rs.getInt("weeks_count"));
             dto.setHasImage(rs.getInt("has_image") == 1);
             dto.setType("album");
@@ -2149,6 +2256,7 @@ public class ChartService {
             SELECT 
                 ar.id as artist_id,
                 ar.name as artist_name,
+                ar.gender_id,
                 COUNT(DISTINCT ce.song_id) as songs_count,
                 COUNT(*) as total_weeks,
                 CASE WHEN ar.image IS NOT NULL AND LENGTH(ar.image) > 0 THEN 1 ELSE 0 END as has_image
@@ -2178,6 +2286,7 @@ public class ChartService {
             MostHitsEntryDTO dto = new MostHitsEntryDTO();
             dto.setArtistId(rs.getInt("artist_id"));
             dto.setArtistName(rs.getString("artist_name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setSongsCount(rs.getInt("songs_count"));
             dto.setTotalWeeks(rs.getInt("total_weeks"));
             dto.setHasImage(rs.getInt("has_image") == 1);
@@ -2227,7 +2336,7 @@ public class ChartService {
         }
         
         String historySql = """
-            SELECT c.period_key, ce.position
+            SELECT c.period_key, ce.position, c.period_start_date, c.period_end_date
             FROM Chart c
             LEFT JOIN ChartEntry ce ON c.id = ce.chart_id AND ce.album_id = ?
             WHERE c.chart_type = 'album'
@@ -2261,9 +2370,12 @@ public class ChartService {
                 Map<String, Object> row = history.get(i);
                 String periodKey = (String) row.get("period_key");
                 Integer position = row.get("position") != null ? ((Number) row.get("position")).intValue() : null;
+                String startDate = (String) row.get("period_start_date");
+                String endDate = (String) row.get("period_end_date");
+                String dateRange = formatDateRange(startDate, endDate);
                 
                 boolean isCurrent = periodKey.equals(currentPeriodKey);
-                weeks.add(new AlbumChartRunDTO.ChartRunWeek(periodKey, position, isCurrent));
+                weeks.add(new AlbumChartRunDTO.ChartRunWeek(periodKey, position, isCurrent, dateRange));
                 
                 if (position != null) {
                     totalWeeksOnChart++;
@@ -2306,5 +2418,180 @@ public class ChartService {
         dto.setWeeksAtTop20(0);
         dto.setTotalWeeksOnChart(0);
         return dto;
+    }
+    
+    // =====================================
+    // AGGREGATED CHART HISTORY METHODS
+    // For including group artists' chart history
+    // =====================================
+    
+    /**
+     * Get aggregated weekly song chart history for an artist including all groups
+     */
+    public List<ChartHistoryDTO> getAggregatedArtistSongChartHistory(Integer artistId, List<Integer> groupIds) {
+        List<Integer> allArtistIds = new ArrayList<>();
+        allArtistIds.add(artistId);
+        if (groupIds != null) {
+            allArtistIds.addAll(groupIds);
+        }
+        
+        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
+        
+        String sql = """
+            SELECT s.id, s.name, ar.name as artist_name, MIN(ce.position) as peak_position, 
+                   COUNT(*) as total_weeks
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE s.artist_id IN (%s) AND c.chart_type = 'song' AND c.period_type = 'weekly'
+            GROUP BY s.id, s.name, ar.name
+            """.formatted(placeholders);
+        
+        List<ChartHistoryDTO> result = new ArrayList<>();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, allArtistIds.toArray());
+        
+        for (Map<String, Object> row : rows) {
+            Integer songId = ((Number) row.get("id")).intValue();
+            Integer peakPosition = ((Number) row.get("peak_position")).intValue();
+            Integer totalWeeks = ((Number) row.get("total_weeks")).intValue();
+            Integer weeksAtPeak = countWeeksAtPosition(songId, peakPosition, "song");
+            String releaseDate = getReleaseDate(songId, "song");
+            String peakDate = getFirstPeakDate(songId, peakPosition, "song");
+            String debutDate = getDebutDate(songId, "song");
+            String peakWeek = getFirstPeakWeek(songId, peakPosition, "song");
+            String debutWeek = getDebutWeek(songId, "song");
+            
+            result.add(new ChartHistoryDTO(
+                songId,
+                (String) row.get("name"),
+                (String) row.get("artist_name"),
+                peakPosition,
+                weeksAtPeak,
+                totalWeeks,
+                "song",
+                releaseDate,
+                peakDate,
+                debutDate,
+                peakWeek,
+                debutWeek
+            ));
+        }
+        
+        result.sort((a, b) -> {
+            int peakCompare = a.getPeakPosition().compareTo(b.getPeakPosition());
+            if (peakCompare != 0) return peakCompare;
+            return b.getWeeksAtPeak().compareTo(a.getWeeksAtPeak());
+        });
+        
+        return result;
+    }
+    
+    /**
+     * Get aggregated weekly album chart history for an artist including all groups
+     */
+    public List<ChartHistoryDTO> getAggregatedArtistAlbumChartHistory(Integer artistId, List<Integer> groupIds) {
+        List<Integer> allArtistIds = new ArrayList<>();
+        allArtistIds.add(artistId);
+        if (groupIds != null) {
+            allArtistIds.addAll(groupIds);
+        }
+        
+        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
+        
+        String sql = """
+            SELECT al.id, al.name, ar.name as artist_name, MIN(ce.position) as peak_position, 
+                   COUNT(*) as total_weeks
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album al ON ce.album_id = al.id
+            INNER JOIN Artist ar ON al.artist_id = ar.id
+            WHERE al.artist_id IN (%s) AND c.chart_type = 'album' AND c.period_type = 'weekly'
+            GROUP BY al.id, al.name, ar.name
+            """.formatted(placeholders);
+        
+        List<ChartHistoryDTO> result = new ArrayList<>();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, allArtistIds.toArray());
+        
+        for (Map<String, Object> row : rows) {
+            Integer albumId = ((Number) row.get("id")).intValue();
+            Integer peakPosition = ((Number) row.get("peak_position")).intValue();
+            Integer totalWeeks = ((Number) row.get("total_weeks")).intValue();
+            Integer weeksAtPeak = countWeeksAtPosition(albumId, peakPosition, "album");
+            String releaseDate = getReleaseDate(albumId, "album");
+            String peakDate = getFirstPeakDate(albumId, peakPosition, "album");
+            String debutDate = getDebutDate(albumId, "album");
+            String peakWeek = getFirstPeakWeek(albumId, peakPosition, "album");
+            String debutWeek = getDebutWeek(albumId, "album");
+            
+            result.add(new ChartHistoryDTO(
+                albumId,
+                (String) row.get("name"),
+                (String) row.get("artist_name"),
+                peakPosition,
+                weeksAtPeak,
+                totalWeeks,
+                "album",
+                releaseDate,
+                peakDate,
+                debutDate,
+                peakWeek,
+                debutWeek
+            ));
+        }
+        
+        result.sort((a, b) -> {
+            int peakCompare = a.getPeakPosition().compareTo(b.getPeakPosition());
+            if (peakCompare != 0) return peakCompare;
+            return b.getWeeksAtPeak().compareTo(a.getWeeksAtPeak());
+        });
+        
+        return result;
+    }
+    
+    /**
+     * Get aggregated seasonal/yearly chart history for an artist including all groups
+     */
+    public List<Map<String, Object>> getAggregatedArtistChartHistoryByPeriodType(Integer artistId, List<Integer> groupIds, String chartType, String periodType) {
+        List<Integer> allArtistIds = new ArrayList<>();
+        allArtistIds.add(artistId);
+        if (groupIds != null) {
+            allArtistIds.addAll(groupIds);
+        }
+        
+        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
+        String itemTable = "song".equals(chartType) ? "Song" : "Album";
+        String itemAlias = "song".equals(chartType) ? "s" : "a";
+        String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
+        String itemIdKey = "song".equals(chartType) ? "songId" : "albumId";
+        String itemNameKey = "song".equals(chartType) ? "songName" : "albumName";
+        
+        String sql = String.format("""
+            SELECT ce.position, c.period_key, %s.id as item_id, %s.name as item_name, ar.name as artist_name
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN %s %s ON ce.%s = %s.id
+            INNER JOIN Artist ar ON %s.artist_id = ar.id
+            WHERE %s.artist_id IN (%s) AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
+              AND ce.position <= %d
+            ORDER BY c.period_key DESC, ce.position ASC
+            """, itemAlias, itemAlias, itemTable, itemAlias, idColumn, itemAlias, itemAlias, itemAlias, placeholders, SEASONAL_YEARLY_SONGS_COUNT);
+        
+        List<Object> params = new ArrayList<>(allArtistIds);
+        params.add(periodType);
+        params.add(chartType);
+        
+        String finalPeriodType = periodType;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("position", rs.getInt("position"));
+            String periodKey = rs.getString("period_key");
+            entry.put("periodKey", periodKey);
+            entry.put("displayName", "seasonal".equals(finalPeriodType) ? formatSeasonPeriodKey(periodKey) : periodKey);
+            entry.put(itemIdKey, rs.getInt("item_id"));
+            entry.put(itemNameKey, rs.getString("item_name"));
+            entry.put("artistName", rs.getString("artist_name"));
+            return entry;
+        }, params.toArray());
     }
 }

@@ -90,12 +90,17 @@
 }
 
 .catalog-name:hover {
-    color: #4a9eff;
+    color: #22c55e;
 }
 
 .catalog-stats {
     display: flex;
     gap: 12px;
+    margin-bottom: 6px;
+}
+
+.catalog-stats-plays {
+    margin-top: 0;
     margin-bottom: 6px;
 }
 

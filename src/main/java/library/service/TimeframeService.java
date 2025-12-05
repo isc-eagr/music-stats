@@ -8,9 +8,8 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TimeframeService {
@@ -44,6 +43,16 @@ public class TimeframeService {
         
         int offset = page * perPage;
         String sortDirection = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
+        
+        // Check if we need to merge with all periods (for 0-play period support)
+        // If so, skip SQL pagination and do it in Java after the merge
+        boolean needsMergeWithAllPeriods = ("days".equals(periodType) || "weeks".equals(periodType) || 
+                "months".equals(periodType) || "seasons".equals(periodType) || "years".equals(periodType)) 
+                && !hasRestrictiveFilters(
+                    winningGender, winningGenderMode, winningGenre, winningGenreMode,
+                    winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
+                    winningCountry, winningCountryMode, artistCountMin, albumCountMin, songCountMin,
+                    playsMin, timeMin);
         
         // Build period key expression based on type
         String periodKeyExpr = getPeriodKeyExpression(periodType);
@@ -152,9 +161,14 @@ public class TimeframeService {
             maleTimePctMin, maleTimePctMax);
         
         sql.append("\n                ORDER BY ").append(sortColumn.replace("ps.", "")).append(" ").append(sortDirection);
-        sql.append("\n                LIMIT ? OFFSET ?");
-        params.add(perPage);
-        params.add(offset);
+        
+        // Only apply SQL pagination if we're NOT going to merge with all periods
+        // When merging, we need ALL results from DB, then do pagination in Java
+        if (!needsMergeWithAllPeriods) {
+            sql.append("\n                LIMIT ? OFFSET ?");
+            params.add(perPage);
+            params.add(offset);
+        }
         sql.append("\n            ),");
         
         // Now compute winning attributes ONLY for the filtered/paginated periods
@@ -344,7 +358,42 @@ public class TimeframeService {
             return dto;
         }, params.toArray());
         
+        // For days, weeks, months, seasons, and years with no restrictive filters, include 0-play periods
+        // We already skipped SQL pagination above, so merge will handle it
+        if (needsMergeWithAllPeriods) {
+            return mergeWithAllPeriods(periodType, results, sortBy, sortDir, page, perPage);
+        }
+        
         return results;
+    }
+    
+    /**
+     * Check if any filters are set that would exclude 0-play periods
+     */
+    private boolean hasRestrictiveFilters(
+            List<Integer> winningGender, String winningGenderMode,
+            List<Integer> winningGenre, String winningGenreMode,
+            List<Integer> winningEthnicity, String winningEthnicityMode,
+            List<Integer> winningLanguage, String winningLanguageMode,
+            List<String> winningCountry, String winningCountryMode,
+            Integer artistCountMin, Integer albumCountMin, Integer songCountMin,
+            Integer playsMin, Long timeMin) {
+        
+        // Winning attribute filters would exclude 0-play periods
+        if (winningGenderMode != null && !"excludes".equals(winningGenderMode) && winningGender != null && !winningGender.isEmpty()) return true;
+        if (winningGenreMode != null && !"excludes".equals(winningGenreMode) && winningGenre != null && !winningGenre.isEmpty()) return true;
+        if (winningEthnicityMode != null && !"excludes".equals(winningEthnicityMode) && winningEthnicity != null && !winningEthnicity.isEmpty()) return true;
+        if (winningLanguageMode != null && !"excludes".equals(winningLanguageMode) && winningLanguage != null && !winningLanguage.isEmpty()) return true;
+        if (winningCountryMode != null && !"excludes".equals(winningCountryMode) && winningCountry != null && !winningCountry.isEmpty()) return true;
+        
+        // Min count filters would exclude 0-play periods
+        if (artistCountMin != null && artistCountMin > 0) return true;
+        if (albumCountMin != null && albumCountMin > 0) return true;
+        if (songCountMin != null && songCountMin > 0) return true;
+        if (playsMin != null && playsMin > 0) return true;
+        if (timeMin != null && timeMin > 0) return true;
+        
+        return false;
     }
     
     /**
@@ -644,7 +693,334 @@ public class TimeframeService {
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
-        return count != null ? count : 0;
+        long baseCount = count != null ? count : 0;
+        
+        // For days, weeks, months, seasons, and years with no restrictive filters, include 0-play periods in the count
+        if (("days".equals(periodType) || "weeks".equals(periodType) || "months".equals(periodType) ||
+             "seasons".equals(periodType) || "years".equals(periodType)) && !hasRestrictiveFilters(
+                winningGender, winningGenderMode, winningGenre, winningGenreMode,
+                winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
+                winningCountry, winningCountryMode, artistCountMin, albumCountMin, songCountMin,
+                playsMin, timeMin)) {
+            // Return count of all possible periods
+            List<String> allPeriods = switch (periodType) {
+                case "days" -> generateAllDayKeys();
+                case "weeks" -> generateAllWeekKeys();
+                case "months" -> generateAllMonthKeys();
+                case "seasons" -> generateAllSeasonKeys();
+                case "years" -> generateAllYearKeys();
+                default -> null;
+            };
+            return allPeriods != null ? allPeriods.size() : baseCount;
+        }
+        
+        return baseCount;
+    }
+    
+    /**
+     * Get the earliest scrobble date from the database
+     */
+    private LocalDate getEarliestScrobbleDate() {
+        String sql = "SELECT MIN(DATE(scrobble_date)) FROM Scrobble WHERE scrobble_date IS NOT NULL";
+        String dateStr = jdbcTemplate.queryForObject(sql, String.class);
+        return dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
+    }
+    
+    /**
+     * Generate all possible season period keys from earliest scrobble to current season
+     */
+    private List<String> generateAllSeasonKeys() {
+        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate now = LocalDate.now();
+        
+        List<String> seasons = new ArrayList<>();
+        String[] seasonNames = {"Winter", "Spring", "Summer", "Fall"};
+        
+        // Determine the season for the earliest date
+        int startYear = earliest.getYear();
+        int startMonth = earliest.getMonthValue();
+        int startSeasonIdx;
+        if (startMonth == 12) {
+            startSeasonIdx = 0; // Winter of next year
+            startYear++;
+        } else if (startMonth >= 1 && startMonth <= 2) {
+            startSeasonIdx = 0; // Winter
+        } else if (startMonth >= 3 && startMonth <= 5) {
+            startSeasonIdx = 1; // Spring
+        } else if (startMonth >= 6 && startMonth <= 8) {
+            startSeasonIdx = 2; // Summer
+        } else {
+            startSeasonIdx = 3; // Fall
+        }
+        
+        // Determine current season
+        int endYear = now.getYear();
+        int endMonth = now.getMonthValue();
+        int endSeasonIdx;
+        if (endMonth == 12) {
+            endSeasonIdx = 0;
+            endYear++;
+        } else if (endMonth >= 1 && endMonth <= 2) {
+            endSeasonIdx = 0;
+        } else if (endMonth >= 3 && endMonth <= 5) {
+            endSeasonIdx = 1;
+        } else if (endMonth >= 6 && endMonth <= 8) {
+            endSeasonIdx = 2;
+        } else {
+            endSeasonIdx = 3;
+        }
+        
+        // Generate all seasons from start to current
+        int year = startYear;
+        int seasonIdx = startSeasonIdx;
+        while (year < endYear || (year == endYear && seasonIdx <= endSeasonIdx)) {
+            seasons.add(year + "-" + seasonNames[seasonIdx]);
+            seasonIdx++;
+            if (seasonIdx > 3) {
+                seasonIdx = 0;
+                year++;
+            }
+        }
+        
+        return seasons;
+    }
+    
+    /**
+     * Generate all possible year period keys from earliest scrobble to current year
+     */
+    private List<String> generateAllYearKeys() {
+        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate now = LocalDate.now();
+        
+        List<String> years = new ArrayList<>();
+        for (int year = earliest.getYear(); year <= now.getYear(); year++) {
+            years.add(String.valueOf(year));
+        }
+        
+        return years;
+    }
+    
+    /**
+     * Generate all possible week period keys from earliest scrobble to current week
+     * Uses SQLite's %W week numbering convention
+     */
+    private List<String> generateAllWeekKeys() {
+        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate now = LocalDate.now();
+        
+        List<String> weeks = new ArrayList<>();
+        LocalDate current = earliest;
+        
+        while (!current.isAfter(now)) {
+            // Calculate week number using SQLite's %W convention
+            // Week 01 starts from first Monday of the year
+            int year = current.getYear();
+            LocalDate jan1 = LocalDate.of(year, 1, 1);
+            LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
+            
+            int weekNum;
+            if (current.isBefore(firstMonday)) {
+                weekNum = 0;
+            } else {
+                long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, current);
+                weekNum = (int) (daysSinceFirstMonday / 7) + 1;
+            }
+            
+            String weekKey = String.format("%d-W%02d", year, weekNum);
+            if (weeks.isEmpty() || !weeks.get(weeks.size() - 1).equals(weekKey)) {
+                weeks.add(weekKey);
+            }
+            
+            current = current.plusDays(1);
+        }
+        
+        return weeks;
+    }
+    
+    /**
+     * Generate all possible day period keys from earliest scrobble to today
+     */
+    private List<String> generateAllDayKeys() {
+        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate now = LocalDate.now();
+        
+        List<String> days = new ArrayList<>();
+        LocalDate current = earliest;
+        
+        while (!current.isAfter(now)) {
+            days.add(current.toString());
+            current = current.plusDays(1);
+        }
+        
+        return days;
+    }
+    
+    /**
+     * Generate all possible month period keys from earliest scrobble to current month
+     */
+    private List<String> generateAllMonthKeys() {
+        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate now = LocalDate.now();
+        
+        List<String> months = new ArrayList<>();
+        YearMonth current = YearMonth.from(earliest);
+        YearMonth end = YearMonth.from(now);
+        
+        while (!current.isAfter(end)) {
+            months.add(current.toString());
+            current = current.plusMonths(1);
+        }
+        
+        return months;
+    }
+    
+    /**
+     * Create an empty TimeframeCardDTO for a period with no scrobbles
+     */
+    private TimeframeCardDTO createEmptyTimeframeCard(String periodType, String periodKey) {
+        TimeframeCardDTO dto = new TimeframeCardDTO();
+        dto.setPeriodKey(periodKey);
+        dto.setPeriodType(periodType);
+        dto.setPeriodDisplayName(formatPeriodDisplayName(periodType, periodKey));
+        
+        String[] dateRange = calculateDateRange(periodType, periodKey);
+        dto.setListenedDateFrom(dateRange[0]);
+        dto.setListenedDateTo(dateRange[1]);
+        
+        // All counts are 0
+        dto.setPlayCount(0);
+        dto.setTimeListened(0L);
+        dto.setTimeListenedFormatted("0m");
+        dto.setArtistCount(0);
+        dto.setAlbumCount(0);
+        dto.setSongCount(0);
+        dto.setMaleCount(0);
+        dto.setFemaleCount(0);
+        dto.setOtherCount(0);
+        dto.setMaleArtistCount(0);
+        dto.setFemaleArtistCount(0);
+        dto.setOtherArtistCount(0);
+        dto.setMaleAlbumCount(0);
+        dto.setFemaleAlbumCount(0);
+        dto.setOtherAlbumCount(0);
+        dto.setMalePlayCount(0);
+        dto.setFemalePlayCount(0);
+        dto.setOtherPlayCount(0);
+        dto.setMaleTimeListened(0L);
+        dto.setFemaleTimeListened(0L);
+        dto.setOtherTimeListened(0L);
+        
+        return dto;
+    }
+    
+    /**
+     * Merge existing results with all possible period keys, filling in empty DTOs for missing periods.
+     * Applies to days, weeks, months, seasons, and years period types.
+     */
+    private List<TimeframeCardDTO> mergeWithAllPeriods(String periodType, List<TimeframeCardDTO> existingResults, 
+            String sortBy, String sortDir, int page, int perPage) {
+        
+        // Generate all possible period keys based on period type
+        List<String> allPeriodKeys = switch (periodType) {
+            case "days" -> generateAllDayKeys();
+            case "weeks" -> generateAllWeekKeys();
+            case "months" -> generateAllMonthKeys();
+            case "seasons" -> generateAllSeasonKeys();
+            case "years" -> generateAllYearKeys();
+            default -> null;
+        };
+        
+        if (allPeriodKeys == null) {
+            return existingResults;
+        }
+        
+        // Create a map of existing results
+        Map<String, TimeframeCardDTO> existingMap = new HashMap<>();
+        for (TimeframeCardDTO dto : existingResults) {
+            existingMap.put(dto.getPeriodKey(), dto);
+        }
+        
+        // Build full list with empty DTOs for missing periods
+        List<TimeframeCardDTO> fullList = new ArrayList<>();
+        for (String periodKey : allPeriodKeys) {
+            TimeframeCardDTO dto = existingMap.get(periodKey);
+            if (dto == null) {
+                dto = createEmptyTimeframeCard(periodType, periodKey);
+            }
+            fullList.add(dto);
+        }
+        
+        // Sort the full list
+        Comparator<TimeframeCardDTO> comparator = getComparator(sortBy, periodType);
+        if ("desc".equalsIgnoreCase(sortDir)) {
+            comparator = comparator.reversed();
+        }
+        fullList.sort(comparator);
+        
+        // Apply pagination
+        int start = page * perPage;
+        int end = Math.min(start + perPage, fullList.size());
+        if (start >= fullList.size()) {
+            return new ArrayList<>();
+        }
+        
+        return new ArrayList<>(fullList.subList(start, end));
+    }
+    
+    /**
+     * Get a comparator for sorting TimeframeCardDTOs
+     */
+    private Comparator<TimeframeCardDTO> getComparator(String sortBy, String periodType) {
+        if (sortBy == null || sortBy.isEmpty()) {
+            // Default: sort by period key (chronological for seasons, lexicographic for years)
+            if ("seasons".equals(periodType)) {
+                return (a, b) -> {
+                    // Parse season key for chronological order
+                    int orderA = getSeasonOrder(a.getPeriodKey());
+                    int orderB = getSeasonOrder(b.getPeriodKey());
+                    return Integer.compare(orderA, orderB);
+                };
+            }
+            return Comparator.comparing(TimeframeCardDTO::getPeriodKey);
+        }
+        
+        return switch (sortBy.toLowerCase()) {
+            case "plays" -> Comparator.comparing(TimeframeCardDTO::getPlayCount);
+            case "time" -> Comparator.comparing(TimeframeCardDTO::getTimeListened);
+            case "artists" -> Comparator.comparing(TimeframeCardDTO::getArtistCount);
+            case "albums" -> Comparator.comparing(TimeframeCardDTO::getAlbumCount);
+            case "songs" -> Comparator.comparing(TimeframeCardDTO::getSongCount);
+            default -> {
+                if ("seasons".equals(periodType)) {
+                    yield (Comparator<TimeframeCardDTO>) (a, b) -> {
+                        int orderA = getSeasonOrder(a.getPeriodKey());
+                        int orderB = getSeasonOrder(b.getPeriodKey());
+                        return Integer.compare(orderA, orderB);
+                    };
+                }
+                yield Comparator.comparing(TimeframeCardDTO::getPeriodKey);
+            }
+        };
+    }
+    
+    /**
+     * Convert season period key to a sortable integer (e.g., "2024-Spring" -> 20242)
+     */
+    private int getSeasonOrder(String periodKey) {
+        if (periodKey == null) return 0;
+        String[] parts = periodKey.split("-");
+        if (parts.length != 2) return 0;
+        
+        int year = Integer.parseInt(parts[0]);
+        int seasonNum = switch (parts[1]) {
+            case "Winter" -> 1;
+            case "Spring" -> 2;
+            case "Summer" -> 3;
+            case "Fall" -> 4;
+            default -> 0;
+        };
+        
+        return year * 10 + seasonNum;
     }
     
     /**

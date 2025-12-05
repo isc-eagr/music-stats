@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Playlist Generator Modal Fragment</title>
+</head>
+<body>
+    <!-- Playlist Generator Modal Fragment -->
+    <th:block th:fragment="playlist-generator-modal">
+        <div id="playlistGeneratorModal" class="playlist-gen-modal">
+            <div class="playlist-gen-modal-content">
+                <div class="playlist-gen-modal-header">
+                    <h2>🎵 Generate iTunes Playlist</h2>
+                    <button class="playlist-gen-modal-close" onclick="closePlaylistGeneratorModal()">&times;</button>
+                </div>
+                
+                <div class="playlist-gen-modal-body">
+                    <!-- Step 1: Loading -->
+                    <div id="playlistGenLoading" class="playlist-gen-step">
+                        <div class="playlist-gen-spinner"></div>
+                        <p>Validating songs against iTunes Library...</p>
+                        <p class="playlist-gen-progress" id="playlistGenProgress">0 / 0 songs checked</p>
+                    </div>
+                    
+                    <!-- Step 2: Results -->
+                    <div id="playlistGenResults" class="playlist-gen-step" style="display: none;">
+                        <div class="playlist-gen-summary">
+                            <div class="playlist-gen-stat playlist-gen-stat-success">
+                                <span class="playlist-gen-stat-number" id="playlistGenMatchedCount">0</span>
+                                <span class="playlist-gen-stat-label">Found in iTunes</span>
+                            </div>
+                            <div class="playlist-gen-stat playlist-gen-stat-warning">
+                                <span class="playlist-gen-stat-number" id="playlistGenUnmatchedCount">0</span>
+                                <span class="playlist-gen-stat-label">Not Found</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Unmatched songs list -->
+                        <div id="playlistGenUnmatchedSection" class="playlist-gen-unmatched-section" style="display: none;">
+                            <h3>⚠️ Songs not found in iTunes:</h3>
+                            <div class="playlist-gen-unmatched-list" id="playlistGenUnmatchedList">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Playlist name input -->
+                        <div class="playlist-gen-name-section">
+                            <label for="playlistGenName">Playlist Name:</label>
+                            <input type="text" id="playlistGenName" placeholder="My Playlist" value="">
+                        </div>
+                        
+                        <!-- Info about manual import -->
+                        <div class="playlist-gen-info">
+                            <p>📁 The .txt file will be downloaded to your Downloads folder.</p>
+                            <p>📥 In iTunes: File → Library → Import Playlist...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Error state -->
+                    <div id="playlistGenError" class="playlist-gen-step" style="display: none;">
+                        <div class="playlist-gen-error-icon">❌</div>
+                        <p class="playlist-gen-error-message" id="playlistGenErrorMessage">An error occurred</p>
+                        <p class="playlist-gen-error-hint">Make sure the iTunes Library XML file exists at:</p>
+                        <code id="playlistGenLibraryPath"></code>
+                    </div>
+                </div>
+                
+                <div class="playlist-gen-modal-footer">
+                    <button id="playlistGenDownloadBtn" class="playlist-gen-btn playlist-gen-btn-primary" onclick="downloadPlaylistFile()" style="display: none;">
+                        Download .txt
+                    </button>
+                    <button class="playlist-gen-btn playlist-gen-btn-secondary" onclick="closePlaylistGeneratorModal()">Close</button>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            .playlist-gen-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .playlist-gen-modal.show {
+                display: flex;
+            }
+            
+            .playlist-gen-modal-content {
+                background: #1a1a1a;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 600px;
+                max-height: 85vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                border: 1px solid #333;
+            }
+            
+            .playlist-gen-modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 24px;
+                border-bottom: 1px solid #333;
+            }
+            
+            .playlist-gen-modal-header h2 {
+                margin: 0;
+                color: #fff;
+                font-size: 1.3rem;
+            }
+            
+            .playlist-gen-modal-close {
+                background: transparent;
+                border: none;
+                color: #888;
+                font-size: 28px;
+                cursor: pointer;
+                padding: 0;
+                line-height: 1;
+                transition: color 0.2s ease;
+            }
+            
+            .playlist-gen-modal-close:hover {
+                color: #fff;
+            }
+            
+            .playlist-gen-modal-body {
+                padding: 24px;
+                overflow-y: auto;
+                flex: 1;
+            }
+            
+            .playlist-gen-step {
+                text-align: center;
+            }
+            
+            .playlist-gen-spinner {
+                width: 48px;
+                height: 48px;
+                border: 4px solid #333;
+                border-top-color: #22c55e;
+                border-radius: 50%;
+                animation: playlist-gen-spin 1s linear infinite;
+                margin: 0 auto 20px;
+            }
+            
+            @keyframes playlist-gen-spin {
+                to { transform: rotate(360deg); }
+            }
+            
+            .playlist-gen-progress {
+                color: #888;
+                font-size: 0.9rem;
+            }
+            
+            .playlist-gen-summary {
+                display: flex;
+                gap: 20px;
+                justify-content: center;
+                margin-bottom: 24px;
+            }
+            
+            .playlist-gen-stat {
+                text-align: center;
+                padding: 16px 24px;
+                border-radius: 8px;
+                min-width: 140px;
+            }
+            
+            .playlist-gen-stat-success {
+                background: rgba(34, 197, 94, 0.15);
+                border: 1px solid rgba(34, 197, 94, 0.3);
+            }
+            
+            .playlist-gen-stat-warning {
+                background: rgba(234, 179, 8, 0.15);
+                border: 1px solid rgba(234, 179, 8, 0.3);
+            }
+            
+            .playlist-gen-stat-number {
+                display: block;
+                font-size: 2rem;
+                font-weight: bold;
+                color: #fff;
+                margin-bottom: 4px;
+            }
+            
+            .playlist-gen-stat-label {
+                font-size: 0.85rem;
+                color: #888;
+            }
+            
+            .playlist-gen-unmatched-section {
+                margin-bottom: 24px;
+                text-align: left;
+            }
+            
+            .playlist-gen-unmatched-section h3 {
+                color: #eab308;
+                font-size: 1rem;
+                margin-bottom: 12px;
+            }
+            
+            .playlist-gen-unmatched-list {
+                max-height: 200px;
+                overflow-y: auto;
+                background: #111;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            
+            .playlist-gen-unmatched-item {
+                padding: 8px 12px;
+                border-bottom: 1px solid #222;
+                font-size: 0.9rem;
+            }
+            
+            .playlist-gen-unmatched-item:last-child {
+                border-bottom: none;
+            }
+            
+            .playlist-gen-unmatched-song {
+                color: #fff;
+            }
+            
+            .playlist-gen-unmatched-artist {
+                color: #888;
+                font-size: 0.85rem;
+            }
+            
+            .playlist-gen-name-section {
+                text-align: left;
+                margin-bottom: 20px;
+            }
+            
+            .playlist-gen-name-section label {
+                display: block;
+                color: #888;
+                margin-bottom: 8px;
+                font-size: 0.9rem;
+            }
+            
+            .playlist-gen-name-section input {
+                width: 100%;
+                padding: 12px;
+                background: #111;
+                border: 1px solid #333;
+                border-radius: 6px;
+                color: #fff;
+                font-size: 1rem;
+            }
+            
+            .playlist-gen-name-section input:focus {
+                outline: none;
+                border-color: #22c55e;
+            }
+            
+            .playlist-gen-info {
+                background: rgba(59, 130, 246, 0.1);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                border-radius: 6px;
+                padding: 12px 16px;
+                text-align: left;
+            }
+            
+            .playlist-gen-info p {
+                margin: 4px 0;
+                color: #93c5fd;
+                font-size: 0.85rem;
+            }
+            
+            .playlist-gen-error-icon {
+                font-size: 3rem;
+                margin-bottom: 16px;
+            }
+            
+            .playlist-gen-error-message {
+                color: #f87171;
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+            
+            .playlist-gen-error-hint {
+                color: #888;
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+            
+            #playlistGenLibraryPath {
+                display: block;
+                background: #111;
+                padding: 8px 12px;
+                border-radius: 4px;
+                color: #888;
+                font-size: 0.8rem;
+                word-break: break-all;
+            }
+            
+            .playlist-gen-modal-footer {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+                padding: 16px 24px;
+                border-top: 1px solid #333;
+            }
+            
+            .playlist-gen-btn {
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-size: 0.95rem;
+                cursor: pointer;
+                border: none;
+                transition: all 0.2s ease;
+            }
+            
+            .playlist-gen-btn-primary {
+                background: #15803d;
+                color: #fff;
+            }
+            
+            .playlist-gen-btn-primary:hover {
+                background: #166534;
+            }
+            
+            .playlist-gen-btn-secondary {
+                background: #333;
+                color: #fff;
+            }
+            
+            .playlist-gen-btn-secondary:hover {
+                background: #444;
+            }
+        </style>
+        
+        <script>
+            // Playlist generator state
+            let playlistGenSongs = [];
+            let playlistGenMatchedSongs = [];
+            
+            /**
+             * Open the playlist generator modal with a list of songs
+             * @param {Array} songs - Array of song objects with {id, name, artist, album}
+             * @param {string} defaultName - Default playlist name
+             */
+            function openPlaylistGeneratorModal(songs, defaultName) {
+                playlistGenSongs = songs;
+                playlistGenMatchedSongs = [];
+                
+                // Set default name
+                document.getElementById('playlistGenName').value = defaultName || 'My Playlist';
+                
+                // Reset to loading state
+                document.getElementById('playlistGenLoading').style.display = 'block';
+                document.getElementById('playlistGenResults').style.display = 'none';
+                document.getElementById('playlistGenError').style.display = 'none';
+                document.getElementById('playlistGenDownloadBtn').style.display = 'none';
+                document.getElementById('playlistGenProgress').textContent = `0 / ${songs.length} songs checked`;
+                
+                // Show modal
+                document.getElementById('playlistGeneratorModal').classList.add('show');
+                
+                // Start validation
+                validateSongsAgainstiTunes(songs);
+            }
+            
+            /**
+             * Close the playlist generator modal
+             */
+            function closePlaylistGeneratorModal() {
+                document.getElementById('playlistGeneratorModal').classList.remove('show');
+            }
+            
+            /**
+             * Validate songs against iTunes library
+             */
+            async function validateSongsAgainstiTunes(songs) {
+                try {
+                    const response = await fetch('/playlists/validate-itunes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(songs)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        showPlaylistGenError(result.error, result.libraryPath);
+                        return;
+                    }
+                    
+                    // Store matched songs for download
+                    playlistGenMatchedSongs = result.matched || [];
+                    
+                    // Show results
+                    showPlaylistGenResults(result);
+                } catch (error) {
+                    showPlaylistGenError('Failed to validate songs: ' + error.message);
+                }
+            }
+            
+            /**
+             * Show validation results
+             */
+            function showPlaylistGenResults(result) {
+                document.getElementById('playlistGenLoading').style.display = 'none';
+                document.getElementById('playlistGenResults').style.display = 'block';
+                document.getElementById('playlistGenDownloadBtn').style.display = 'inline-block';
+                
+                // Update counts
+                document.getElementById('playlistGenMatchedCount').textContent = result.matchedCount || 0;
+                document.getElementById('playlistGenUnmatchedCount').textContent = result.unmatchedCount || 0;
+                
+                // Show unmatched songs if any
+                const unmatched = result.unmatched || [];
+                const unmatchedSection = document.getElementById('playlistGenUnmatchedSection');
+                const unmatchedList = document.getElementById('playlistGenUnmatchedList');
+                
+                if (unmatched.length > 0) {
+                    unmatchedSection.style.display = 'block';
+                    unmatchedList.innerHTML = unmatched.map(song => `
+                        <div class="playlist-gen-unmatched-item">
+                            <div class="playlist-gen-unmatched-song">${escapeHtmlPG(song.name)}</div>
+                            <div class="playlist-gen-unmatched-artist">${escapeHtmlPG(song.artist || 'Unknown Artist')} — ${escapeHtmlPG(song.album || 'Unknown Album')}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    unmatchedSection.style.display = 'none';
+                }
+            }
+            
+            /**
+             * Show error state
+             */
+            function showPlaylistGenError(message, libraryPath) {
+                document.getElementById('playlistGenLoading').style.display = 'none';
+                document.getElementById('playlistGenError').style.display = 'block';
+                document.getElementById('playlistGenErrorMessage').textContent = message;
+                document.getElementById('playlistGenLibraryPath').textContent = libraryPath || 'Unknown';
+            }
+            
+            /**
+             * Download the playlist file
+             */
+            function downloadPlaylistFile() {
+                const playlistName = document.getElementById('playlistGenName').value.trim() || 'playlist';
+                
+                // Use matched songs only
+                const songIds = playlistGenMatchedSongs.map(s => s.id);
+                
+                if (songIds.length === 0) {
+                    alert('No songs to export - all songs are missing from iTunes library');
+                    return;
+                }
+                
+                // Create form and submit to download
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/playlists/generate-itunes';
+                form.style.display = 'none';
+                
+                // Add song IDs
+                songIds.forEach(id => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'songIds';
+                    input.value = id;
+                    form.appendChild(input);
+                });
+                
+                // Add playlist name
+                const nameInput = document.createElement('input');
+                nameInput.type = 'hidden';
+                nameInput.name = 'name';
+                nameInput.value = playlistName;
+                form.appendChild(nameInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+                
+                // Close modal after short delay
+                setTimeout(() => closePlaylistGeneratorModal(), 500);
+            }
+            
+            /**
+             * Escape HTML for safe display
+             */
+            function escapeHtmlPG(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        </script>
+    </th:block>
+</body>
+</html>

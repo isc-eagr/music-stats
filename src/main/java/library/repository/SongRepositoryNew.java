@@ -26,7 +26,8 @@ public class SongRepositoryNew {
                                               String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                               String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                              String organized,
+                                              String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                                              Integer playCountMin, Integer playCountMax,
                                               String sortBy, String sortDirection, int limit, int offset) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
@@ -358,6 +359,52 @@ public class SongRepositoryNew {
             }
         }
         
+        // Has Image filter (checks single_cover directly on song)
+        if (hasImage != null && !hasImage.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND s.single_cover IS NOT NULL ");
+            } else if ("false".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND s.single_cover IS NULL ");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ? ");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
+            params.add(playCountMax);
+        }
+        
+        // Has Featured Artists filter
+        if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) ");
+            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) ");
+            }
+        }
+        
+        // Is Band filter (from artist)
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 1 ");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 0 ");
+            }
+        }
+        
+        // Is Single filter
+        if (isSingle != null && !isSingle.isEmpty()) {
+            if ("true".equalsIgnoreCase(isSingle)) {
+                sql.append(" AND s.is_single = 1 ");
+            } else if ("false".equalsIgnoreCase(isSingle)) {
+                sql.append(" AND s.is_single = 0 ");
+            }
+        }
+        
         // Determine sort direction
         String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
         String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
@@ -425,16 +472,58 @@ public class SongRepositoryNew {
                                       String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                       String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                      String organized) {
-        StringBuilder sql = new StringBuilder("""
+                                      String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                                      Integer playCountMin, Integer playCountMax) {
+        // Build account filter subquery for play_stats if we need play count filter
+        StringBuilder accountFilterClause = new StringBuilder();
+        List<Object> accountParams = new ArrayList<>();
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account NOT IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        }
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("""
             SELECT COUNT(*)
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
-            WHERE 1=1
             """);
         
+        // Add play_stats JOIN if we need to filter by play count
+        if (playCountMin != null || playCountMax != null) {
+            sql.append("""
+                LEFT JOIN (
+                    SELECT scr.song_id, COUNT(*) as play_count
+                    FROM Scrobble scr
+                    WHERE 1=1 """);
+            sql.append(accountFilterClause);
+            sql.append("""
+                    GROUP BY scr.song_id
+                ) play_stats ON play_stats.song_id = s.id
+                """);
+        }
+        
+        sql.append(" WHERE 1=1 ");
+        
         List<Object> params = new ArrayList<>();
+        // Add account params for play_stats subquery
+        if (playCountMin != null || playCountMax != null) {
+            params.addAll(accountParams);
+        }
         
         // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {
@@ -696,6 +785,52 @@ public class SongRepositoryNew {
             } else if ("false".equalsIgnoreCase(organized)) {
                 sql.append(" AND (s.organized = 0 OR s.organized IS NULL) ");
             }
+        }
+        
+        // Has Image filter (checks single_cover directly on song)
+        if (hasImage != null && !hasImage.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND s.single_cover IS NOT NULL ");
+            } else if ("false".equalsIgnoreCase(hasImage)) {
+                sql.append(" AND s.single_cover IS NULL ");
+            }
+        }
+        
+        // Has Featured Artists filter
+        if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) ");
+            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) ");
+            }
+        }
+        
+        // Is Band filter (from artist)
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 1 ");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 0 ");
+            }
+        }
+        
+        // Is Single filter
+        if (isSingle != null && !isSingle.isEmpty()) {
+            if ("true".equalsIgnoreCase(isSingle)) {
+                sql.append(" AND s.is_single = 1 ");
+            } else if ("false".equalsIgnoreCase(isSingle)) {
+                sql.append(" AND s.is_single = 0 ");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ? ");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
+            params.add(playCountMax);
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());

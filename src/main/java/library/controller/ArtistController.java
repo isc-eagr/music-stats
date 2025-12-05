@@ -1,6 +1,7 @@
 package library.controller;
 
 import library.dto.ArtistCardDTO;
+import library.dto.FeaturedArtistCardDTO;
 import library.entity.Artist;
 import library.service.ArtistService;
 import library.service.ChartService;
@@ -43,6 +44,8 @@ public class ArtistController {
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String organized,
+            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String firstListenedDate,
             @RequestParam(required = false) String firstListenedDateFrom,
             @RequestParam(required = false) String firstListenedDateTo,
@@ -51,6 +54,12 @@ public class ArtistController {
             @RequestParam(required = false) String lastListenedDateFrom,
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) Integer playCountMin,
+            @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) Integer albumCountMin,
+            @RequestParam(required = false) Integer albumCountMax,
+            @RequestParam(required = false) Integer songCountMin,
+            @RequestParam(required = false) Integer songCountMax,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -68,18 +77,24 @@ public class ArtistController {
         // Get filtered and sorted artists
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
-                subgenre, subgenreMode, language, languageMode, country, countryMode, account, accountMode, organized,
+                subgenre, subgenreMode, language, languageMode, country, countryMode, account, accountMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                organized, hasImage, isBand,
+                playCountMin, playCountMax,
+                albumCountMin, albumCountMax, songCountMin, songCountMax,
                 sortby, sortdir, page, perpage
         );
         
         // Get total count for pagination
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
-                languageMode, country, countryMode, account, accountMode, organized,
+                languageMode, country, countryMode, account, accountMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
-                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                organized, hasImage, isBand,
+                playCountMin, playCountMax,
+                albumCountMin, albumCountMax, songCountMin, songCountMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -109,6 +124,14 @@ public class ArtistController {
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
+        model.addAttribute("selectedHasImage", hasImage);
+        model.addAttribute("selectedIsBand", isBand);
+        model.addAttribute("playCountMin", playCountMin);
+        model.addAttribute("playCountMax", playCountMax);
+        model.addAttribute("albumCountMin", albumCountMin);
+        model.addAttribute("albumCountMax", albumCountMax);
+        model.addAttribute("songCountMin", songCountMin);
+        model.addAttribute("songCountMax", songCountMax);
         
         // First listened date filter attributes
         model.addAttribute("firstListenedDate", firstListenedDate);
@@ -146,12 +169,17 @@ public class ArtistController {
     public String viewArtist(@PathVariable Integer id, 
                             @RequestParam(defaultValue = "general") String tab,
                             @RequestParam(defaultValue = "0") int playsPage,
+                            @RequestParam(defaultValue = "false") boolean includeGroups,
                             Model model) {
         Optional<Artist> artist = artistService.getArtistById(id);
         
         if (artist.isEmpty()) {
             return "redirect:/artists";
         }
+        
+        // Get the groups this artist belongs to (for aggregation)
+        List<Integer> groupIds = artistService.getGroupIdsForArtist(id);
+        boolean hasGroups = !groupIds.isEmpty();
         
         // Check if artist has an image
         byte[] image = artistService.getArtistImage(id);
@@ -167,55 +195,120 @@ public class ArtistController {
         model.addAttribute("languages", artistService.getLanguages());
         // Add dynamic countries list
         model.addAttribute("countries", artistService.getCountries());
+        
+        // Add group membership data
+        model.addAttribute("hasGroups", hasGroups);
+        model.addAttribute("includeGroups", includeGroups);
+        
+        // Get group/member cards for Artist Associations tab
+        List<FeaturedArtistCardDTO> groupArtistCards = artistService.getGroupsForArtist(id);
+        List<FeaturedArtistCardDTO> memberArtistCards = artistService.getMembersForArtist(id);
+        boolean hasMembers = !memberArtistCards.isEmpty();
+        
+        model.addAttribute("groupArtistCards", groupArtistCards);
+        model.addAttribute("memberArtistCards", memberArtistCards);
+        model.addAttribute("hasMembers", hasMembers);
+        
+        // Use aggregated data if includeGroups is true and artist has groups
+        List<Integer> effectiveGroupIds = (includeGroups && hasGroups) ? groupIds : null;
+        
         // Add album and song counts for quick stats
-        int[] counts = artistService.getAlbumAndSongCounts(id);
-        model.addAttribute("albumCount", counts[0]);
-        model.addAttribute("songCount", counts[1]);
-        // Add play count for artist
-        model.addAttribute("artistPlayCount", artistService.getPlayCountForArtist(id));
-        model.addAttribute("artistVatitoPlayCount", artistService.getVatitoPlayCountForArtist(id));
-        model.addAttribute("artistRobertloverPlayCount", artistService.getRobertloverPlayCountForArtist(id));
+        if (effectiveGroupIds != null) {
+            model.addAttribute("albumCount", artistService.getAggregatedAlbumCount(id, effectiveGroupIds));
+            model.addAttribute("songCount", artistService.getAggregatedSongCount(id, effectiveGroupIds));
+        } else {
+            int[] counts = artistService.getAlbumAndSongCounts(id);
+            model.addAttribute("albumCount", counts[0]);
+            model.addAttribute("songCount", counts[1]);
+        }
+        
+        // Add play count for artist (aggregated if toggle is on)
+        if (effectiveGroupIds != null) {
+            model.addAttribute("artistPlayCount", artistService.getAggregatedPlayCount(id, effectiveGroupIds));
+            model.addAttribute("artistVatitoPlayCount", artistService.getAggregatedVatitoPlayCount(id, effectiveGroupIds));
+            model.addAttribute("artistRobertloverPlayCount", artistService.getAggregatedRobertloverPlayCount(id, effectiveGroupIds));
+        } else {
+            model.addAttribute("artistPlayCount", artistService.getPlayCountForArtist(id));
+            model.addAttribute("artistVatitoPlayCount", artistService.getVatitoPlayCountForArtist(id));
+            model.addAttribute("artistRobertloverPlayCount", artistService.getRobertloverPlayCountForArtist(id));
+        }
         // Add per-account breakdown string for tooltip
         model.addAttribute("artistPlaysByAccount", artistService.getPlaysByAccountForArtist(id));
         
-        // Add statistics for the artist
-        model.addAttribute("totalListeningTime", artistService.getTotalListeningTimeForArtist(id));
-        model.addAttribute("firstListenedDate", artistService.getFirstListenedDateForArtist(id));
-        model.addAttribute("lastListenedDate", artistService.getLastListenedDateForArtist(id));
+        // Add statistics for the artist (aggregated if toggle is on)
+        if (effectiveGroupIds != null) {
+            model.addAttribute("totalListeningTime", artistService.getAggregatedListeningTime(id, effectiveGroupIds));
+            model.addAttribute("firstListenedDate", artistService.getAggregatedFirstListenedDate(id, effectiveGroupIds));
+            model.addAttribute("lastListenedDate", artistService.getAggregatedLastListenedDate(id, effectiveGroupIds));
+        } else {
+            model.addAttribute("totalListeningTime", artistService.getTotalListeningTimeForArtist(id));
+            model.addAttribute("firstListenedDate", artistService.getFirstListenedDateForArtist(id));
+            model.addAttribute("lastListenedDate", artistService.getLastListenedDateForArtist(id));
+        }
         
-        // Add albums list for the artist
-        model.addAttribute("albums", artistService.getAlbumsForArtist(id));
+        // Add albums list for the artist (aggregated if toggle is on)
+        if (effectiveGroupIds != null) {
+            model.addAttribute("albums", artistService.getAggregatedAlbumsForArtist(id, effectiveGroupIds));
+        } else {
+            model.addAttribute("albums", artistService.getAlbumsForArtist(id));
+        }
         
-        // Add songs list for the artist
-        model.addAttribute("songs", artistService.getSongsForArtist(id));
+        // Add songs list for the artist (aggregated if toggle is on)
+        if (effectiveGroupIds != null) {
+            model.addAttribute("songs", artistService.getAggregatedSongsForArtist(id, effectiveGroupIds));
+        } else {
+            model.addAttribute("songs", artistService.getSongsForArtist(id));
+        }
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
         
-        // Add collaborated artist cards (for the Collaborated With tab)
+        // Add collaborated artist cards (for the Artist Associations tab)
         if ("collaborated".equals(tab)) {
-            model.addAttribute("collaboratedArtistCards", artistService.getCollaboratedArtistsForArtist(id));
+            if (effectiveGroupIds != null) {
+                model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(id, effectiveGroupIds));
+            } else {
+                model.addAttribute("collaboratedArtistCards", artistService.getCollaboratedArtistsForArtist(id));
+            }
         }
         
         if ("plays".equals(tab)) {
             int pageSize = 100;
-            model.addAttribute("scrobbles", artistService.getScrobblesForArtist(id, playsPage, pageSize));
-            model.addAttribute("scrobblesTotalCount", artistService.countScrobblesForArtist(id));
-            model.addAttribute("scrobblesPage", playsPage);
-            model.addAttribute("scrobblesPageSize", pageSize);
-            model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) artistService.countScrobblesForArtist(id) / pageSize));
-            model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
+            if (effectiveGroupIds != null) {
+                model.addAttribute("scrobbles", artistService.getAggregatedScrobblesForArtist(id, effectiveGroupIds, playsPage, pageSize));
+                long totalCount = artistService.getAggregatedScrobbleCount(id, effectiveGroupIds);
+                model.addAttribute("scrobblesTotalCount", totalCount);
+                model.addAttribute("scrobblesPage", playsPage);
+                model.addAttribute("scrobblesPageSize", pageSize);
+                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
+                model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(id, effectiveGroupIds));
+            } else {
+                model.addAttribute("scrobbles", artistService.getScrobblesForArtist(id, playsPage, pageSize));
+                model.addAttribute("scrobblesTotalCount", artistService.countScrobblesForArtist(id));
+                model.addAttribute("scrobblesPage", playsPage);
+                model.addAttribute("scrobblesPageSize", pageSize);
+                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) artistService.countScrobblesForArtist(id) / pageSize));
+                model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
+            }
         }
         
         // Add chart history for the Chart History tab (separate lists for songs and albums)
         if ("chart-history".equals(tab)) {
-            model.addAttribute("songChartHistory", chartService.getArtistSongChartHistory(id));
-            model.addAttribute("albumChartHistory", chartService.getArtistAlbumChartHistory(id));
-            // Seasonal/Yearly chart history
-            model.addAttribute("seasonalSongChartHistory", chartService.getSeasonalChartHistoryForArtist(id));
-            model.addAttribute("yearlySongChartHistory", chartService.getYearlyChartHistoryForArtist(id));
-            model.addAttribute("seasonalAlbumChartHistory", chartService.getSeasonalAlbumChartHistoryForArtist(id));
-            model.addAttribute("yearlyAlbumChartHistory", chartService.getYearlyAlbumChartHistoryForArtist(id));
+            if (effectiveGroupIds != null) {
+                model.addAttribute("songChartHistory", chartService.getAggregatedArtistSongChartHistory(id, effectiveGroupIds));
+                model.addAttribute("albumChartHistory", chartService.getAggregatedArtistAlbumChartHistory(id, effectiveGroupIds));
+                model.addAttribute("seasonalSongChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "song", "seasonal"));
+                model.addAttribute("yearlySongChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "song", "yearly"));
+                model.addAttribute("seasonalAlbumChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "album", "seasonal"));
+                model.addAttribute("yearlyAlbumChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "album", "yearly"));
+            } else {
+                model.addAttribute("songChartHistory", chartService.getArtistSongChartHistory(id));
+                model.addAttribute("albumChartHistory", chartService.getArtistAlbumChartHistory(id));
+                model.addAttribute("seasonalSongChartHistory", chartService.getSeasonalChartHistoryForArtist(id));
+                model.addAttribute("yearlySongChartHistory", chartService.getYearlyChartHistoryForArtist(id));
+                model.addAttribute("seasonalAlbumChartHistory", chartService.getSeasonalAlbumChartHistoryForArtist(id));
+                model.addAttribute("yearlyAlbumChartHistory", chartService.getYearlyAlbumChartHistoryForArtist(id));
+            }
         }
         
         // Get gender name for bar color
@@ -309,6 +402,30 @@ public class ArtistController {
             @RequestParam String q,
             @RequestParam(required = false, defaultValue = "20") int limit) {
         return artistService.searchArtists(q, limit);
+    }
+    
+    /**
+     * Save the groups that an artist belongs to
+     */
+    @PostMapping("/{id}/api/groups")
+    @ResponseBody
+    public String saveArtistGroups(@PathVariable Integer id, @RequestBody List<Integer> groupIds) {
+        try {
+            artistService.saveArtistGroups(id, groupIds);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+    
+    /**
+     * Get the groups that an artist belongs to (for initial form population)
+     */
+    @GetMapping("/{id}/groups")
+    @ResponseBody
+    public List<Integer> getArtistGroups(@PathVariable Integer id) {
+        return artistService.getGroupIdsForArtist(id);
     }
     
     // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)

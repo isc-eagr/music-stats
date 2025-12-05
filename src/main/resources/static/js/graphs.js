@@ -1215,7 +1215,7 @@ function renderTopArtistsTable() {
             <td>${artist.lastListened || '-'}</td>
             <td class="numeric">${(artist.primaryPlays || 0).toLocaleString()}</td>
             <td class="numeric">${(artist.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(artist.plays || 0).toLocaleString()}</td>
+            <td class="numeric${(artist.plays || 0) >= 1000 ? ' high-plays' : ''}">${(artist.plays || 0).toLocaleString()}</td>
             <td>${artist.genreId ? `<a href="/genres/${artist.genreId}">${escapeHtml(artist.genre)}</a>` : '-'}</td>
             <td>${artist.subgenreId ? `<a href="/subgenres/${artist.subgenreId}">${escapeHtml(artist.subgenre)}</a>` : '-'}</td>
             <td>${artist.ethnicityId ? `<a href="/ethnicities/${artist.ethnicityId}">${escapeHtml(artist.ethnicity)}</a>` : '-'}</td>
@@ -1258,7 +1258,7 @@ function renderTopAlbumsTable() {
             <td>${album.lastListened || '-'}</td>
             <td class="numeric">${(album.primaryPlays || 0).toLocaleString()}</td>
             <td class="numeric">${(album.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(album.plays || 0).toLocaleString()}</td>
+            <td class="numeric${(album.plays || 0) >= 1000 ? ' high-plays' : ''}">${(album.plays || 0).toLocaleString()}</td>
             <td>${album.genreId ? `<a href="/genres/${album.genreId}">${escapeHtml(album.genre)}</a>` : '-'}</td>
             <td>${album.subgenreId ? `<a href="/subgenres/${album.subgenreId}">${escapeHtml(album.subgenre)}</a>` : '-'}</td>
             <td>${album.ethnicityId ? `<a href="/ethnicities/${album.ethnicityId}">${escapeHtml(album.ethnicity)}</a>` : '-'}</td>
@@ -1320,7 +1320,7 @@ function renderTopSongsTable() {
             <td>${song.lastListened || '-'}</td>
             <td class="numeric">${(song.primaryPlays || 0).toLocaleString()}</td>
             <td class="numeric">${(song.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(song.plays || 0).toLocaleString()}</td>
+            <td class="numeric${(song.plays || 0) >= 100 ? ' high-plays' : ''}">${(song.plays || 0).toLocaleString()}</td>
             <td>${song.genreId ? `<a href="/genres/${song.genreId}">${escapeHtml(song.genre)}</a>` : '-'}</td>
             <td>${song.subgenreId ? `<a href="/subgenres/${song.subgenreId}">${escapeHtml(song.subgenre)}</a>` : '-'}</td>
             <td>${song.ethnicityId ? `<a href="/ethnicities/${song.ethnicityId}">${escapeHtml(song.ethnicity)}</a>` : '-'}</td>

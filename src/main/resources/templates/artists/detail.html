@@ -11,6 +11,7 @@
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
     <script th:src="@{/js/top-table-sort.js}" defer></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
+    <script th:src="@{/js/searchable-select.js}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -69,7 +70,7 @@
                         <span class="stat-value" th:text="${artistRobertloverPlayCount != null ? artistRobertloverPlayCount : 0}">0</span>
                     </div>
                     <div class="stat" title="Total plays">
-                        <span class="stat-icon total-plays">▶️</span>
+                        <span class="stat-icon total-plays">⏵</span>
                         <span class="stat-value" th:text="${artistPlayCount != null ? artistPlayCount : 0}">0</span>
                     </div>
                 </div>
@@ -77,18 +78,30 @@
             
             <!-- Tab Navigation -->
             <div class="detail-tabs">
-                <a th:href="@{'/artists/' + ${artist.id}}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, includeGroups=${includeGroups ? 'true' : null})}" 
                    th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
                    class="detail-tab">General</a>
-                <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays'}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', includeGroups=${includeGroups ? 'true' : null})}" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
                    class="detail-tab">Plays</a>
-                <a th:href="@{'/artists/' + ${artist.id} + '?tab=collaborated'}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='collaborated', includeGroups=${includeGroups ? 'true' : null})}" 
                    th:classappend="${activeTab == 'collaborated'} ? 'active' : ''"
-                   class="detail-tab">Collaborated With</a>
-                <a th:href="@{'/artists/' + ${artist.id} + '?tab=chart-history'}" 
+                   class="detail-tab">Artist Associations</a>
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='chart-history', includeGroups=${includeGroups ? 'true' : null})}" 
                    th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
                    class="detail-tab">Chart History</a>
+                
+                <!-- Include Groups Toggle (only shown if artist has groups) -->
+                <div th:if="${hasGroups}" class="include-groups-toggle">
+                    <label class="toggle-label">
+                        <input type="checkbox" 
+                               id="includeGroupsToggle" 
+                               th:checked="${includeGroups}"
+                               onchange="toggleIncludeGroups(this.checked)">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Include groups</span>
+                    </label>
+                </div>
             </div>
             
             <!-- Right side: Two-column layout for General and Statistics -->
@@ -197,6 +210,37 @@
                                         <label for="organized" class="checkbox-label">This artist is organized</label>
                                     </div>
                                 </div>
+                                
+                                <!-- Groups field (spans full width) - only shown in edit mode -->
+                                <div class="form-group form-group-full-width" id="groupsField" style="display:none;">
+                                    <label>Is Part Of (Groups)</label>
+                                    <span class="attribute-text groups-display" data-field="groups" style="display:none;">
+                                        <th:block th:if="${groupArtistCards != null and !groupArtistCards.isEmpty()}">
+                                            <th:block th:each="group, stat : ${groupArtistCards}">
+                                                <a th:href="@{'/artists/' + ${group.id}}" 
+                                                   class="group-artist-link"
+                                                   th:text="${group.name}"></a><th:block th:if="${!stat.last}">, </th:block>
+                                            </th:block>
+                                        </th:block>
+                                        <th:block th:if="${groupArtistCards == null or groupArtistCards.isEmpty()}">-</th:block>
+                                    </span>
+                                    <!-- Groups multi-select component (shown in edit mode) -->
+                                    <div id="groupsContainer" class="groups-container" style="display:none;">
+                                        <div class="chips-input-wrapper">
+                                            <div id="groupsChips" class="chips-container">
+                                                <!-- Chips will be added here dynamically -->
+                                            </div>
+                                            <input type="text" 
+                                                   id="groupsInput" 
+                                                   class="chips-text-input"
+                                                   placeholder="Search groups..."
+                                                   autocomplete="off" />
+                                        </div>
+                                        <div id="groupsDropdown" class="chips-dropdown" style="display:none;">
+                                            <!-- Search results will appear here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -267,7 +311,7 @@
                                 <td th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
                                 <td class="numeric" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
                                 <td class="numeric" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
+                                <td class="numeric" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
                                 <td class="numeric" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
                             </tr>
                             <tr class="no-data" th:if="${#lists.isEmpty(albums)}">
@@ -348,7 +392,7 @@
                                              th:onclick="|openImageModal('/albums/' + ${song.albumId} + '/image')|"
                                              class="inherited-cover clickable-image"
                                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0.7;">
+                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                         <div th:if="${!song.hasImage and song.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
                                         <div th:if="${!song.hasImage and song.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
                                     </div>
@@ -366,7 +410,7 @@
                                 <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
                                 <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
                                 <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td class="numeric" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
                                 <td class="numeric" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
@@ -447,8 +491,62 @@
                 </div>
             </div>
             
-            <!-- Collaborated With Tab Content -->
+            <!-- Artist Associations Tab Content -->
             <div class="featured-tab-content" th:if="${activeTab == 'collaborated'}">
+                
+                <!-- Is Part Of Section (Groups this artist belongs to) -->
+                <div th:if="${groupArtistCards != null and !groupArtistCards.isEmpty()}" class="detail-content-card">
+                    <h2 class="section-title">Is Part Of 
+                        <span class="item-count">(<span th:text="${groupArtistCards.size()}">0</span>)</span>
+                    </h2>
+                    
+                    <div class="featured-artist-grid">
+                        <div th:each="group : ${groupArtistCards}" 
+                             class="featured-artist-card"
+                             th:classappend="${group.genderName != null and group.genderName.toLowerCase().contains('male') and !group.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${group.genderName != null and group.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                            <a th:href="@{'/artists/' + ${group.id}}" class="featured-artist-image item-image-container">
+                                <img th:if="${group.hasImage}"
+                                     th:src="@{'/artists/' + ${group.id} + '/image'}"
+                                     th:alt="${group.name}">
+                                <div th:unless="${group.hasImage}" class="no-image">
+                                    <span th:text="${#strings.substring(group.name, 0, 1)}"></span>
+                                </div>
+                                <span class="flag-overlay" th:if="${group.country != null and @countryCodeMapper.getCode(group.country) != null}"
+                                      th:title="${group.country}">
+                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(group.country)})}"
+                                         th:alt="${group.country}" />
+                                </span>
+                            </a>
+                            <div class="featured-artist-info">
+                                <a th:href="@{'/artists/' + ${group.id}}">
+                                    <h3 class="featured-artist-name" th:text="${group.name}">Group Name</h3>
+                                </a>
+                                <div class="featured-artist-details" th:if="${group.genderName != null or group.ethnicityName != null}">
+                                    <span th:if="${group.genderName != null}" th:text="${group.genderName}"></span>
+                                    <span th:if="${group.genderName != null and group.ethnicityName != null}"> • </span>
+                                    <span th:if="${group.ethnicityName != null}" th:text="${group.ethnicityName}"></span>
+                                </div>
+                                <div class="featured-artist-metadata" th:if="${group.genreName != null or group.country != null}">
+                                    <span th:if="${group.genreName != null}" th:text="${group.genreName}"></span>
+                                    <span th:if="${group.genreName != null and group.country != null}"> • </span>
+                                    <span th:if="${group.country != null}" th:text="${group.country}"></span>
+                                </div>
+                                <div class="featured-artist-stats">
+                                    <div class="stat">
+                                        <span class="stat-icon">🎵</span>
+                                        <span class="stat-value" th:text="${group.songCount}">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-icon total-plays">⏵</span>
+                                        <span class="stat-value" th:text="${group.playCount}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Collaborated With Section -->
                 <div class="detail-content-card">
                     <h2 class="section-title">Collaborated With 
                         <span class="item-count">(<span th:text="${collaboratedArtistCards != null ? collaboratedArtistCards.size() : 0}">0</span>)</span>
@@ -499,8 +597,60 @@
                                         <span class="stat-value" th:text="${collab.songCount}">0</span>
                                     </div>
                                     <div class="stat">
-                                        <span class="stat-icon">▶️</span>
+                                        <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${collab.playCount}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Members Section (Artists that are part of this group) -->
+                <div th:if="${memberArtistCards != null and !memberArtistCards.isEmpty()}" class="detail-content-card">
+                    <h2 class="section-title">Members 
+                        <span class="item-count">(<span th:text="${memberArtistCards.size()}">0</span>)</span>
+                    </h2>
+                    
+                    <div class="featured-artist-grid">
+                        <div th:each="member : ${memberArtistCards}" 
+                             class="featured-artist-card"
+                             th:classappend="${member.genderName != null and member.genderName.toLowerCase().contains('male') and !member.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${member.genderName != null and member.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                            <a th:href="@{'/artists/' + ${member.id}}" class="featured-artist-image item-image-container">
+                                <img th:if="${member.hasImage}"
+                                     th:src="@{'/artists/' + ${member.id} + '/image'}"
+                                     th:alt="${member.name}">
+                                <div th:unless="${member.hasImage}" class="no-image">
+                                    <span th:text="${#strings.substring(member.name, 0, 1)}"></span>
+                                </div>
+                                <span class="flag-overlay" th:if="${member.country != null and @countryCodeMapper.getCode(member.country) != null}"
+                                      th:title="${member.country}">
+                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(member.country)})}"
+                                         th:alt="${member.country}" />
+                                </span>
+                            </a>
+                            <div class="featured-artist-info">
+                                <a th:href="@{'/artists/' + ${member.id}}">
+                                    <h3 class="featured-artist-name" th:text="${member.name}">Member Name</h3>
+                                </a>
+                                <div class="featured-artist-details" th:if="${member.genderName != null or member.ethnicityName != null}">
+                                    <span th:if="${member.genderName != null}" th:text="${member.genderName}"></span>
+                                    <span th:if="${member.genderName != null and member.ethnicityName != null}"> • </span>
+                                    <span th:if="${member.ethnicityName != null}" th:text="${member.ethnicityName}"></span>
+                                </div>
+                                <div class="featured-artist-metadata" th:if="${member.genreName != null or member.country != null}">
+                                    <span th:if="${member.genreName != null}" th:text="${member.genreName}"></span>
+                                    <span th:if="${member.genreName != null and member.country != null}"> • </span>
+                                    <span th:if="${member.country != null}" th:text="${member.country}"></span>
+                                </div>
+                                <div class="featured-artist-stats">
+                                    <div class="stat">
+                                        <span class="stat-icon">🎵</span>
+                                        <span class="stat-value" th:text="${member.songCount}">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-icon total-plays">⏵</span>
+                                        <span class="stat-value" th:text="${member.playCount}">0</span>
                                     </div>
                                 </div>
                             </div>
@@ -531,7 +681,7 @@
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
-                                        <th class="numeric">Total</th>
+                                        <th class="numeric">Total Weeks</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -543,7 +693,10 @@
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
+                                        <td class="numeric">
+                                            <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
+                                                  th:text="${entry.weeksAtPeak}">1</span>
+                                        </td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -580,7 +733,7 @@
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
-                                        <th class="numeric">Total</th>
+                                        <th class="numeric">Total Weeks</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -592,7 +745,10 @@
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
+                                        <td class="numeric">
+                                            <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
+                                                  th:text="${entry.weeksAtPeak}">1</span>
+                                        </td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -760,8 +916,57 @@
         });
     </script>
     
-    <script>
+    <script th:inline="javascript">
         let isEditing = false;
+        
+        // Groups state
+        let selectedGroups = [];
+        let groupSearchTimeout = null;
+        
+        // Initialize groups from server data
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeGroups();
+            setupGroupsInputListener();
+        });
+        
+        function initializeGroups() {
+            // Convert server data to our format
+            const serverData = /*[[${groupArtistCards}]]*/ [];
+            if (serverData && serverData.length > 0) {
+                selectedGroups = serverData.map(g => ({
+                    id: g.id,
+                    name: g.name
+                }));
+            }
+        }
+        
+        function setupGroupsInputListener() {
+            const input = document.getElementById('groupsInput');
+            if (input) {
+                input.addEventListener('input', function(e) {
+                    if (groupSearchTimeout) {
+                        clearTimeout(groupSearchTimeout);
+                    }
+                    groupSearchTimeout = setTimeout(() => {
+                        searchGroups(e.target.value);
+                    }, 200);
+                });
+                
+                input.addEventListener('focus', function() {
+                    if (this.value.trim().length >= 1) {
+                        searchGroups(this.value);
+                    }
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('groupsContainer');
+                if (container && !container.contains(e.target)) {
+                    hideGroupsDropdown();
+                }
+            });
+        }
         
         function toggleEdit() {
             isEditing = !isEditing;
@@ -805,10 +1010,163 @@
                         text.style.display = 'none';
                     }
                 });
+                
+                // Show groups field and container
+                const groupsField = document.getElementById('groupsField');
+                if (groupsField) {
+                    groupsField.style.display = 'block';
+                }
+                const groupsContainer = document.getElementById('groupsContainer');
+                if (groupsContainer) {
+                    groupsContainer.style.display = 'block';
+                }
+                
+                // Render group chips
+                renderGroupChips();
+                
+                // Initialize searchable selects for dropdowns
+                setTimeout(function() {
+                    initSearchableSelect('genderId');
+                    initSearchableSelect('ethnicityId');
+                    initSearchableSelect('country');
+                    initSearchableSelect('genreId');
+                    initSearchableSelect('subgenreId');
+                    initSearchableSelect('languageId');
+                }, 50);
             } else {
                 window.location.reload();
             }
         }
+        
+        // ============================================
+        // Groups (Is Part Of) Functions
+        // ============================================
+        
+        function renderGroupChips() {
+            const chipsContainer = document.getElementById('groupsChips');
+            if (!chipsContainer) return;
+            
+            chipsContainer.innerHTML = '';
+            
+            selectedGroups.forEach(group => {
+                const chip = document.createElement('span');
+                chip.className = 'artist-chip';
+                chip.innerHTML = `
+                    ${escapeHtml(group.name)}
+                    <button type="button" class="chip-remove" onclick="removeGroup(${group.id})">&times;</button>
+                `;
+                chipsContainer.appendChild(chip);
+            });
+        }
+        
+        function removeGroup(groupId) {
+            selectedGroups = selectedGroups.filter(g => g.id !== groupId);
+            renderGroupChips();
+        }
+        
+        function addGroup(groupId, groupName) {
+            // Check if already added
+            if (selectedGroups.some(g => g.id === groupId)) {
+                return;
+            }
+            
+            selectedGroups.push({ id: groupId, name: groupName });
+            renderGroupChips();
+            
+            // Clear input and hide dropdown
+            const input = document.getElementById('groupsInput');
+            if (input) {
+                input.value = '';
+            }
+            hideGroupsDropdown();
+        }
+        
+        function searchGroups(query) {
+            if (!query || query.trim().length < 1) {
+                hideGroupsDropdown();
+                return;
+            }
+            
+            // Get current artist ID to exclude from search
+            const currentArtistId = window.location.pathname.split('/').pop();
+            
+            fetch(`/artists/api/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(artists => {
+                    const dropdown = document.getElementById('groupsDropdown');
+                    if (!dropdown) return;
+                    
+                    // Filter out already selected groups and the current artist
+                    const availableArtists = artists.filter(a => 
+                        a.id != currentArtistId && !selectedGroups.some(sg => sg.id === a.id)
+                    );
+                    
+                    if (availableArtists.length === 0) {
+                        dropdown.innerHTML = '<div class="dropdown-item no-results">No artists found</div>';
+                    } else {
+                        dropdown.innerHTML = availableArtists.map(a => `
+                            <div class="dropdown-item" onclick="addGroup(${a.id}, '${escapeHtml(a.name).replace(/'/g, "\\'")}')">
+                                ${escapeHtml(a.name)}
+                            </div>
+                        `).join('');
+                    }
+                    
+                    dropdown.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error searching artists:', error);
+                    hideGroupsDropdown();
+                });
+        }
+        
+        function hideGroupsDropdown() {
+            const dropdown = document.getElementById('groupsDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function saveGroups() {
+            const artistId = window.location.pathname.split('/').pop();
+            const groupIds = selectedGroups.map(g => g.id);
+            
+            return fetch(`/artists/${artistId}/api/groups`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(groupIds)
+            })
+            .then(response => response.text())
+            .then(data => {
+                return data === 'success';
+            })
+            .catch(error => {
+                console.error('Error saving groups:', error);
+                return false;
+            });
+        }
+        
+        // Override form submission to save groups first
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('artistForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Save groups first, then submit the form
+                    saveGroups().then(() => {
+                        form.submit();
+                    });
+                });
+            }
+        });
         
         function cancelEdit() {
             window.location.reload();
@@ -1052,8 +1410,8 @@
         
         .editable-input:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
         }
         
         /* Clickable image cursor */
@@ -1065,6 +1423,209 @@
         .item-image-large.clickable:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Include Groups Toggle */
+        .include-groups-toggle {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .toggle-label input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            width: 44px;
+            height: 24px;
+            background: #374151;
+            border-radius: 12px;
+            position: relative;
+            transition: background 0.3s ease;
+        }
+        
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: #9ca3af;
+            border-radius: 50%;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+        
+        /* Gender-based toggle colors */
+        .toggle-label input[type="checkbox"]:checked + .toggle-slider {
+            background: #475569; /* neutral gray default */
+        }
+        
+        .container-wide.gender-male .toggle-label input[type="checkbox"]:checked + .toggle-slider {
+            background: #1e40af; /* dark blue for male */
+        }
+        
+        .container-wide.gender-female .toggle-label input[type="checkbox"]:checked + .toggle-slider {
+            background: #9d174d; /* dark pink for female */
+        }
+        
+        .toggle-label input[type="checkbox"]:checked + .toggle-slider::after {
+            transform: translateX(20px);
+            background: white;
+        }
+        
+        .toggle-text {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+        
+        /* Gender-based toggle text colors */
+        .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
+            color: #94a3b8; /* neutral gray default */
+        }
+        
+        .container-wide.gender-male .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
+            color: #60a5fa; /* light blue for male */
+        }
+        
+        .container-wide.gender-female .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
+            color: #f472b6; /* light pink for female */
+        }
+        
+        /* Groups chip component */
+        .groups-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .chips-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            min-height: 42px;
+        }
+        
+        .chips-input-wrapper:focus-within {
+            border-color: #6b7280;
+            box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+        }
+        
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .artist-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #334155;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+        
+        .chip-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            padding: 0;
+            margin-left: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .chip-remove:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        
+        .chips-text-input {
+            flex: 1;
+            min-width: 120px;
+            padding: 4px 0;
+            background: transparent;
+            border: none;
+            color: #e5e7eb;
+            font-size: 0.9em;
+            outline: none;
+        }
+        
+        .chips-text-input::placeholder {
+            color: #6b7280;
+        }
+        
+        .chips-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dropdown-item {
+            padding: 10px 12px;
+            color: #e5e7eb;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        .dropdown-item:hover {
+            background: #374151;
+        }
+        
+        .dropdown-item.no-results {
+            color: #6b7280;
+            font-style: italic;
+            cursor: default;
+        }
+        
+        .dropdown-item.no-results:hover {
+            background: transparent;
+        }
+        
+        /* Group artist links in view mode */
+        .group-artist-link {
+            color: #94a3b8;
+            text-decoration: none;
+        }
+        
+        .group-artist-link:hover {
+            text-decoration: underline;
         }
     </style>
     
@@ -1082,6 +1643,17 @@
                 });
             }
         });
+        
+        // Toggle include groups functionality
+        function toggleIncludeGroups(checked) {
+            const url = new URL(window.location.href);
+            if (checked) {
+                url.searchParams.set('includeGroups', 'true');
+            } else {
+                url.searchParams.delete('includeGroups');
+            }
+            window.location.href = url.toString();
+        }
     </script>
 </body>
 </html>

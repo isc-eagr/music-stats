@@ -14,6 +14,7 @@ public class MostWeeksEntryDTO {
     private int weeksCount;
     private boolean hasImage;
     private String type; // "song" or "album"
+    private Integer genderId;
     
     public int getRank() {
         return rank;
@@ -77,5 +78,13 @@ public class MostWeeksEntryDTO {
     
     public void setType(String type) {
         this.type = type;
+    }
+    
+    public Integer getGenderId() {
+        return genderId;
+    }
+    
+    public void setGenderId(Integer genderId) {
+        this.genderId = genderId;
     }
 }

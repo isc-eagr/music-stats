@@ -10,6 +10,8 @@
   --primary-strong: #f5f5f5; /* neutral-100 for buttons */
   --accent: #a3a3a3;       /* subtle accent */
   --success: #22c55e;      /* keep readable green */
+  --slate: #475569;        /* slate neutral for buttons */
+  --slate-hover: #5a6b7a;  /* slate hover state */
   --radius: 10px;
   --shadow: 0 10px 20px rgba(0,0,0,0.45);
 }
@@ -133,18 +135,19 @@ select:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  padding: 0 14px;
+  min-height: 40px;
+  padding: 10px 18px;
   border: 0;
   border-radius: 8px;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
 }
-.btn-primary { background: var(--primary-strong); color: #0a0a0a; }
-.btn-primary:hover { filter: brightness(1.1); }
 
-/* Action buttons - dark green theme for Edit, Upload, Apply, etc. */
+/* Action buttons - dark green theme for Edit, Upload, Apply, Save, Match, etc. */
 .btn-action {
-  padding: 12px 24px;
+  padding: 10px 18px;
+  min-height: 40px;
   background-color: #2d5016;
   color: white;
   border: 1px solid #3d6b1f;
@@ -162,9 +165,10 @@ select:focus {
   box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
 }
 
-/* Negative action buttons - dark red theme for Cancel, Delete, etc. */
+/* Negative action buttons - dark red theme for Delete, etc. */
 .btn-negative {
-  padding: 12px 24px;
+  padding: 10px 18px;
+  min-height: 40px;
   background-color: #5c1a1a;
   color: white;
   border: 1px solid #7a2424;
@@ -180,6 +184,76 @@ select:focus {
   background-color: #7a2424;
   border-color: #9a2e2e;
   box-shadow: 0 4px 8px rgba(92, 26, 26, 0.4);
+}
+
+/* Neutral action buttons - slate theme for Search, Clear, Cancel, Back, etc. */
+.btn-neutral {
+  padding: 10px 18px;
+  min-height: 40px;
+  background-color: var(--slate);
+  color: white;
+  border: 1px solid #5a6b7a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.3);
+}
+
+.btn-neutral:hover {
+  background-color: var(--slate-hover);
+  border-color: #6b7b8a;
+  box-shadow: 0 4px 8px rgba(71, 85, 105, 0.4);
+}
+
+/* Primary button - green for positive actions */
+.btn-primary {
+  padding: 10px 18px;
+  min-height: 40px;
+  background-color: #2d5016;
+  color: white;
+  border: 1px solid #3d6b1e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(45, 80, 22, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: #3d6b1e;
+  border-color: #4a8024;
+  box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
+}
+
+/* Secondary button - slate for neutral actions */
+.btn-secondary {
+  padding: 10px 18px;
+  min-height: 40px;
+  background-color: var(--slate);
+  color: white;
+  border: 1px solid #5a6b7a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.3);
+}
+
+.btn-secondary:hover {
+  background-color: var(--slate-hover);
+  border-color: #6b7b8a;
+  box-shadow: 0 4px 8px rgba(71, 85, 105, 0.4);
+}
+
+/* Small button variant for compact contexts */
+.btn-sm {
+  padding: 6px 12px !important;
+  min-height: 32px !important;
+  font-size: 13px !important;
 }
 
 /* Sort direction toggle button */
@@ -397,7 +471,7 @@ select:focus {
 
 .data-table th.sortable.sort-asc .sort-indicator::before {
   content: '↑';
-  color: #4299e1;
+  color: var(--success);
 }
 
 .data-table th.sortable.sort-desc .sort-indicator {
@@ -406,7 +480,7 @@ select:focus {
 
 .data-table th.sortable.sort-desc .sort-indicator::before {
   content: '↓';
-  color: #4299e1;
+  color: var(--success);
 }
 
 .data-table td {
@@ -548,15 +622,15 @@ select:focus {
     padding: 20px 20px 20px 60px;
 }
 
-/* Gender-based visual effects - applied to image container only */
-.container.gender-male .item-image-container,
-.container-wide.gender-male .item-image-container {
+/* Gender-based visual effects - applied to main image container only, NOT featured artist cards */
+.container.gender-male > .detail-grid > .detail-sidebar > .item-image-container,
+.container-wide.gender-male > .detail-grid > .detail-sidebar > .item-image-container {
     border-left: 4px solid rgba(59, 130, 246, 0.6);
     box-shadow: -12px 0 20px rgba(59, 130, 246, 0.15);
 }
 
-.container.gender-female .item-image-container,
-.container-wide.gender-female .item-image-container {
+.container.gender-female > .detail-grid > .detail-sidebar > .item-image-container,
+.container-wide.gender-female > .detail-grid > .detail-sidebar > .item-image-container {
     border-left: 4px solid rgba(236, 72, 153, 0.6);
     box-shadow: -12px 0 20px rgba(236, 72, 153, 0.15);
 }
@@ -653,6 +727,14 @@ select:focus {
     border-top: 1px solid rgba(255,255,255,0.06);
 }
 
+.album-stats-plays,
+.song-stats-plays,
+.artist-stats-plays {
+    border-top: none;
+    padding-top: 4px;
+    margin-top: 0;
+}
+
 .album-stats-row2,
 .song-stats-row2,
 .artist-stats-row2 {
@@ -739,19 +821,22 @@ select:focus {
 /* Gender border styling */
 .album-card.gender-male,
 .song-card.gender-male,
-.artist-card.gender-male {
+.artist-card.gender-male,
+.catalog-card.gender-male {
     border-left: 4px solid rgba(59, 130, 246, 0.6);
 }
 
 .album-card.gender-female,
 .song-card.gender-female,
-.artist-card.gender-female {
+.artist-card.gender-female,
+.catalog-card.gender-female {
     border-left: 4px solid rgba(236, 72, 153, 0.6);
 }
 
 .album-card.gender-male:hover,
 .song-card.gender-male:hover,
-.artist-card.gender-male:hover {
+.artist-card.gender-male:hover,
+.catalog-card.gender-male:hover {
     border-left: 4px solid rgba(59, 130, 246, 0.6);
     box-shadow: 
         -10px 0 20px rgba(59, 130, 246, 0.2),
@@ -762,7 +847,8 @@ select:focus {
 
 .album-card.gender-female:hover,
 .song-card.gender-female:hover,
-.artist-card.gender-female:hover {
+.artist-card.gender-female:hover,
+.catalog-card.gender-female:hover {
     border-left: 4px solid rgba(236, 72, 153, 0.6);
     box-shadow: 
         -10px 0 20px rgba(236, 72, 153, 0.2),
@@ -882,9 +968,9 @@ select:focus {
 .btn-upload-image {
     flex: 1;
     padding: 8px 12px;
-    background-color: #2a2a2a;
+    background-color: #2d5016;
     color: white;
-    border: 1px solid #404040;
+    border: 1px solid #3d6b1f;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
@@ -893,8 +979,8 @@ select:focus {
 }
 
 .btn-upload-image:hover {
-    background-color: #3a3a3a;
-    border-color: #4a4a4a;
+    background-color: #3d6b1f;
+    border-color: #4d8028;
 }
 
 .btn-remove-image {
@@ -1165,7 +1251,7 @@ select:focus {
 .multi-select-dropdown::-webkit-scrollbar-thumb { background: #333333; border-radius: 4px; }
 .multi-select-dropdown::-webkit-scrollbar-thumb:hover { background: #444444; }
 /* End shared multi-select styles */
-#subgenreDropdown.show { outline: 2px solid #4299e1; }
+#subgenreDropdown.show { outline: 2px solid var(--slate); }
 /* Navigation: moved from fragments/navigation.html to global.css
    This keeps all layout variables and site-wide styles in one place.
 */
@@ -1659,13 +1745,27 @@ select:focus {
   gap: 8px;
 }
 
-.filter-item-chevron {
-  color: #666666;
+.filter-item-title::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid #666666;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
   transition: transform 0.2s;
 }
 
-.filter-item-chevron.expanded {
+.filter-item-header.active .filter-item-title::before {
   transform: rotate(90deg);
+}
+
+.filter-item-chevron {
+  display: none;
+}
+
+.filter-item-chevron.expanded {
+  display: none;
 }
 
 .filter-item-content {
@@ -1799,19 +1899,20 @@ select:focus {
 .btn-clear {
   flex: 1;
   padding: 10px;
+  min-height: 40px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: transparent;
-  color: #999999;
-  border: 1px solid #333333;
+  background-color: var(--slate);
+  color: white;
+  border: 1px solid #5a6b7a;
 }
 
 .btn-clear:hover {
-  background-color: #1a1a1a;
-  color: #e7e7eb;
+  background-color: var(--slate-hover);
+  border-color: #6b7b8a;
 }
 
 .btn-apply {
@@ -1991,6 +2092,9 @@ select:focus {
 
 .featured-tab-content {
     grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 .featured-artist-grid {
@@ -2346,9 +2450,9 @@ select:focus {
    PLAY COUNT ICONS (Primary / Legacy / Total)
    ========================================== */
 
-/* Primary plays icon - default green tint for current account (vatito) */
+/* Primary plays icon - light blue for current account (vatito) */
 .stat-icon.primary-plays {
-    color: #22c55e; /* green-500 */
+    color: #38bdf8; /* sky-400 - light blue */
 }
 
 /* Legacy plays icon - amber color for legacy account (robertlover) */
@@ -2356,9 +2460,9 @@ select:focus {
     color: #f59e0b; /* amber-500 */
 }
 
-/* Total plays icon - keeps default color (neutral) */
+/* Total plays icon - green for combined total */
 .stat-icon.total-plays {
-    /* No specific color override, uses default */
+    color: #22c55e; /* green-500 */
 }
 
 /* ==========================================
@@ -2400,3 +2504,256 @@ select:focus {
 .hover-image-container:hover .song-image-hover {
     opacity: 1;
 }
+
+/* ==================== Flatpickr Dark Theme Overrides ==================== */
+/* Custom dark theme to match app's color scheme */
+.flatpickr-calendar {
+    background: var(--surface) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 8px !important;
+}
+
+.flatpickr-calendar.arrowTop:before,
+.flatpickr-calendar.arrowTop:after {
+    border-bottom-color: var(--surface) !important;
+}
+
+.flatpickr-months {
+    background: var(--surface) !important;
+    border-radius: 8px 8px 0 0 !important;
+}
+
+.flatpickr-months .flatpickr-month {
+    background: transparent !important;
+    color: var(--text) !important;
+}
+
+.flatpickr-current-month {
+    color: var(--text) !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.flatpickr-current-month input.cur-year {
+    color: var(--text) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    color: var(--text-muted) !important;
+    fill: var(--text-muted) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+    color: var(--text) !important;
+    fill: var(--text) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month svg,
+.flatpickr-months .flatpickr-next-month svg {
+    fill: currentColor !important;
+}
+
+.flatpickr-weekdays {
+    background: var(--surface) !important;
+}
+
+.flatpickr-weekday {
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+}
+
+.flatpickr-days {
+    background: var(--surface) !important;
+    border: none !important;
+}
+
+.dayContainer {
+    background: var(--surface) !important;
+}
+
+.flatpickr-day {
+    color: var(--text) !important;
+    border-radius: 4px !important;
+}
+
+.flatpickr-day:hover {
+    background: var(--surface-2) !important;
+    border-color: var(--surface-2) !important;
+}
+
+.flatpickr-day.today {
+    border-color: var(--slate) !important;
+}
+
+.flatpickr-day.today:hover {
+    background: var(--slate) !important;
+    border-color: var(--slate) !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: #2d5016 !important;
+    border-color: #3d6b1f !important;
+    color: white !important;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: var(--text-muted) !important;
+    opacity: 0.5;
+}
+
+.flatpickr-day.disabled,
+.flatpickr-day.disabled:hover {
+    color: var(--text-muted) !important;
+    opacity: 0.3;
+}
+
+.flatpickr-innerContainer {
+    background: var(--surface) !important;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+
+.numInputWrapper:hover {
+    background: var(--surface-2) !important;
+}
+
+.numInputWrapper span {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.numInputWrapper span:hover {
+    background: var(--surface-2) !important;
+}
+
+.numInputWrapper span.arrowUp:after {
+    border-bottom-color: var(--text-muted) !important;
+}
+
+.numInputWrapper span.arrowDown:after {
+    border-top-color: var(--text-muted) !important;
+}
+
+/* Date input field styling */
+input.flatpickr-input {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+}
+
+input.flatpickr-input:focus {
+    border-color: var(--slate) !important;
+    outline: none !important;
+}
+
+/* Golden play count styling for high play counts */
+.golden-plays {
+    color: #fbbf24 !important;
+    font-weight: 700;
+    font-size: 1.1em;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.7), 0 0 20px rgba(251, 191, 36, 0.5), 0 0 30px rgba(251, 191, 36, 0.3);
+}
+
+/* Searchable Select Component */
+.searchable-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.searchable-select-display {
+    width: 100%;
+    padding: 8px 12px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #9ca3af;
+    font-size: 0.95em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.searchable-select-display.has-value {
+    color: #e5e7eb;
+}
+
+.searchable-select-display::after {
+    content: '▼';
+    font-size: 10px;
+    color: #6b7280;
+    margin-left: 8px;
+}
+
+.searchable-select-wrapper.open .searchable-select-display::after {
+    content: '▲';
+}
+
+.searchable-select-input {
+    display: none;
+    width: 100%;
+    padding: 8px 12px;
+    background: #1f2937;
+    border: 1px solid #6b7280;
+    border-radius: 6px 6px 0 0;
+    color: #e5e7eb;
+    font-size: 0.95em;
+    outline: none;
+    margin-top: 4px;
+}
+
+.searchable-select-wrapper.open .searchable-select-display {
+    display: none;
+}
+
+.searchable-select-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 250px;
+    overflow-y: auto;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.searchable-select-option {
+    padding: 10px 12px;
+    color: #e5e7eb;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.searchable-select-option:hover,
+.searchable-select-option.highlighted {
+    background: #374151;
+}
+
+.searchable-select-option.selected {
+    background: #374151;
+    color: #e5e7eb;
+    font-weight: 500;
+}
+
+.searchable-select-no-results {
+    padding: 10px 12px;
+    color: #6b7280;
+    font-style: italic;
+}
+

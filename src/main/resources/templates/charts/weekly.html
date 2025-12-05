@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weekly Charts - Music Stats</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
+    <!-- Flatpickr Date Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <style>
         .charts-page {
@@ -54,11 +57,6 @@
         
         .date-picker-input:hover {
             border-color: #444;
-        }
-        
-        .date-picker-input::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            cursor: pointer;
         }
         
         .nav-btn {
@@ -112,8 +110,8 @@
         }
         
         .chart-toggle-btn.active {
-            background: #1e40af;
-            border-color: #3b82f6;
+            background: #2d5016;
+            border-color: #3d6b1e;
             color: #fff;
         }
         
@@ -180,6 +178,7 @@
         .chart-section-title {
             font-size: 1.3rem;
             font-weight: 600;
+            flex: 1;
             color: #fff;
             margin: 0;
         }
@@ -206,7 +205,7 @@
         }
         
         .chart-link-primary:hover {
-            color: #60a5fa;
+            color: #22c55e;
         }
         
         .chart-link-secondary {
@@ -314,12 +313,12 @@
         .peak-position {
             font-size: 1.1rem;
             font-weight: bold;
-            color: #fbbf24;
+            color: #e5e7eb;
         }
         
         .peak-position.peak-number-one {
-            color: #22c55e;
-            text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
         }
         
         .peak-times {
@@ -346,8 +345,8 @@
         }
         
         .expand-btn.expanded {
-            background: #1e40af;
-            border-color: #3b82f6;
+            background: #2d5016;
+            border-color: #3d6b1e;
             color: #fff;
         }
         
@@ -372,7 +371,7 @@
         }
         
         .chart-run-header a {
-            color: #60a5fa;
+            color: #22c55e;
             text-decoration: none;
         }
         
@@ -410,19 +409,34 @@
         }
         
         .chart-run-box.on-chart {
-            background: #1e3a5f;
-            color: #60a5fa;
-            border-color: #3b82f6;
+            background: #1a1a2e;
+            color: #e5e7eb;
+            border-color: #333;
+        }
+        
+        .chart-run-box.on-chart.peak-one {
+            background: #3d3012;
+            color: #fbbf24;
+            border-color: #6b5c1f;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
         }
         
         .chart-run-box.current {
-            background: #3b82f6;
+            background: #2d5016;
             color: #fff;
-            border-color: #60a5fa;
+            border-color: #22c55e;
         }
         
         .chart-run-box.absent {
             color: #555;
+        }
+        
+        .chart-run-box.absent.consolidated {
+            background: #2a2a2a;
+            color: #888;
+            font-size: 11px;
+            padding: 4px 8px;
+            cursor: default;
         }
         
         .chart-run-stats {
@@ -474,7 +488,7 @@
         }
         
         .generate-all-btn {
-            background: #1e40af;
+            background: #2d5016;
             color: #fff;
             border: none;
             padding: 12px 24px;
@@ -483,12 +497,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .generate-all-btn:hover {
-            background: #2563eb;
-        }
-        
-        /* Progress modal */
+            background: #3d6b1e;
+        }        /* Progress modal */
         .progress-modal {
             display: none;
             position: fixed;
@@ -531,7 +543,7 @@
         
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #1e40af, #3b82f6);
+            background: linear-gradient(90deg, #2d5016, #22c55e);
             transition: width 0.3s ease;
             border-radius: 8px;
         }
@@ -542,7 +554,7 @@
         }
         
         .progress-current-week {
-            color: #60a5fa;
+            color: #22c55e;
             font-weight: 600;
         }
         
@@ -571,12 +583,28 @@
         }
         
         .action-btn.primary {
-            background: #1e40af;
-            border-color: #3b82f6;
+            background: #2d5016;
+            border-color: #3d6b1e;
+        }
+
+        .action-btn.primary:hover {
+            background: #3d6b1e;
         }
         
-        .action-btn.primary:hover {
-            background: #2563eb;
+        .chart-playlist-btn {
+            padding: 8px 16px;
+            background: #2d5016;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            margin-left: auto;
+        }
+        
+        .chart-playlist-btn:hover {
+            background: #3d6b1e;
         }
     </style>
 </head>
@@ -617,11 +645,11 @@
                 <span th:if="${prevPeriodKey == null}" class="nav-btn disabled">← Previous</span>
                 
                 <div class="charts-nav-center">
-                    <input type="date" 
+                    <input type="text" 
                            id="chartDatePicker" 
                            class="date-picker-input"
-                           title="Jump to a specific week"
-                           onchange="navigateToDate(this.value)">
+                           placeholder="dd/mm/yyyy"
+                           title="Jump to a specific week">
                 </div>
                 
                 <a th:if="${nextPeriodKey != null}" 
@@ -666,6 +694,7 @@
                 <div class="chart-section-header">
                     <span class="chart-section-icon">🎵</span>
                     <h2 class="chart-section-title">Top 20 Songs</h2>
+                    <button type="button" class="chart-playlist-btn" onclick="openWeeklySongsPlaylistGenerator()">🎵 Generate Playlist</button>
                 </div>
                 <div class="charts-table-container">
                     <table class="charts-table">
@@ -683,7 +712,8 @@
                     <tbody>
                         <th:block th:each="entry : ${entries}">
                             <!-- Main row -->
-                            <tr th:data-song-id="${entry.songId}">
+                            <tr th:data-song-id="${entry.songId}" th:data-album="${entry.albumName}"
+                                th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                 <td class="col-expand">
                                     <button class="expand-btn" 
                                             th:data-song-id="${entry.songId}"
@@ -776,7 +806,8 @@
                         <tbody>
                             <th:block th:each="entry : ${albumEntries}">
                                 <!-- Main row -->
-                                <tr th:data-album-id="${entry.albumId}">
+                                <tr th:data-album-id="${entry.albumId}"
+                                    th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                     <td class="col-expand">
                                         <button class="expand-btn" 
                                                 th:data-album-id="${entry.albumId}"
@@ -924,14 +955,53 @@
             }
         }
         
+        // Helper to consolidate consecutive absent weeks into a single box
+        function consolidateAbsentWeeks(weeks, currentPeriodKey) {
+            const result = [];
+            let i = 0;
+            while (i < weeks.length) {
+                if (weeks[i].onChart) {
+                    result.push(weeks[i]);
+                    i++;
+                } else {
+                    // Count consecutive absent weeks
+                    let count = 0;
+                    let startIdx = i;
+                    let hasCurrent = false;
+                    while (i < weeks.length && !weeks[i].onChart) {
+                        if (weeks[i].current) hasCurrent = true;
+                        count++;
+                        i++;
+                    }
+                    // Create a consolidated absent entry
+                    result.push({
+                        onChart: false,
+                        consolidated: true,
+                        count: count,
+                        periodKey: weeks[startIdx].periodKey,
+                        current: hasCurrent
+                    });
+                }
+            }
+            return result;
+        }
+        
         // Render chart run HTML
         function renderChartRun(data) {
-            let boxesHtml = data.weeks.map(week => {
+            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks, currentPeriodKey);
+            let boxesHtml = consolidatedWeeks.map(week => {
                 let classes = 'chart-run-box';
-                if (week.onChart) classes += ' on-chart';
-                if (week.current) classes += ' current';
-                if (!week.onChart) classes += ' absent';
-                return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${week.periodKey}">${week.display}</a>`;
+                if (week.onChart) {
+                    classes += ' on-chart';
+                    if (week.position === 1) classes += ' peak-one';
+                    if (week.current) classes += ' current';
+                    const tooltip = week.dateRange || week.periodKey;
+                    return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${tooltip}">${week.display}</a>`;
+                } else {
+                    classes += ' absent consolidated';
+                    if (week.current) classes += ' current';
+                    return `<span class="${classes}" title="${week.count} weeks off chart">${week.count}×</span>`;
+                }
             }).join('');
             
             return `
@@ -1006,12 +1076,20 @@
         
         // Render album chart run HTML
         function renderAlbumChartRun(data) {
-            let boxesHtml = data.weeks.map(week => {
+            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks, currentPeriodKey);
+            let boxesHtml = consolidatedWeeks.map(week => {
                 let classes = 'chart-run-box';
-                if (week.onChart) classes += ' on-chart';
-                if (week.current) classes += ' current';
-                if (!week.onChart) classes += ' absent';
-                return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${week.periodKey}">${week.display}</a>`;
+                if (week.onChart) {
+                    classes += ' on-chart';
+                    if (week.position === 1) classes += ' peak-one';
+                    if (week.current) classes += ' current';
+                    const tooltip = week.dateRange || week.periodKey;
+                    return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${tooltip}">${week.display}</a>`;
+                } else {
+                    classes += ' absent consolidated';
+                    if (week.current) classes += ' current';
+                    return `<span class="${classes}" title="${week.count} weeks off chart">${week.count}×</span>`;
+                }
             }).join('');
             
             return `
@@ -1111,7 +1189,86 @@
             document.getElementById('progressTotal').textContent = progress.totalWeeks;
             document.getElementById('progressCurrentWeek').textContent = progress.currentWeek || 'Finishing...';
         }
+        
+        // Initialize Flatpickr date picker
+        document.addEventListener('DOMContentLoaded', function() {
+            const picker = document.getElementById('chartDatePicker');
+            if (picker) {
+                const fp = flatpickr(picker, {
+                    dateFormat: 'd/m/Y',
+                    allowInput: true,
+                    theme: 'dark',
+                    onChange: function(selectedDates, dateStr, instance) {
+                        if (selectedDates.length > 0) {
+                            // Convert to yyyy-mm-dd for the API
+                            const d = selectedDates[0];
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            navigateToDate(`${year}-${month}-${day}`);
+                        }
+                    }
+                });
+                
+                // Handle Enter key when user types a date manually
+                picker.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Parse the typed date (dd/mm/yyyy format)
+                        const parts = picker.value.split('/');
+                        if (parts.length === 3) {
+                            const day = parts[0].padStart(2, '0');
+                            const month = parts[1].padStart(2, '0');
+                            const year = parts[2];
+                            navigateToDate(`${year}-${month}-${day}`);
+                        }
+                    }
+                });
+            }
+        });
+        
+        /**
+         * Open playlist generator for the weekly songs chart
+         */
+        function openWeeklySongsPlaylistGenerator() {
+            // Get song data from the table
+            const songs = [];
+            const rows = document.querySelectorAll('#songsSection .charts-table tbody tr:not(.chart-run-row)');
+            
+            rows.forEach(row => {
+                const songId = row.getAttribute('data-song-id');
+                if (!songId) return;
+                
+                const titleLink = row.querySelector('.col-title a');
+                const artistLink = row.querySelector('.col-artist a');
+                const albumName = row.getAttribute('data-album') || '';
+                
+                if (titleLink && artistLink) {
+                    songs.push({
+                        id: parseInt(songId),
+                        name: titleLink.textContent.trim(),
+                        artist: artistLink.textContent.trim(),
+                        album: albumName
+                    });
+                }
+            });
+            
+            if (songs.length === 0) {
+                alert('No songs found in the chart');
+                return;
+            }
+            
+            // Generate default name based on the period
+            const periodText = document.querySelector('.charts-period');
+            const defaultName = 'Weekly Chart' + (periodText ? ' - ' + periodText.textContent.trim() : '');
+            
+            // Open the playlist generator modal
+            openPlaylistGeneratorModal(songs, defaultName);
+        }
         /*]]>*/
     </script>
+    
+    <!-- Playlist Generator Modal -->
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
 </body>
 </html>

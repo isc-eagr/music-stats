@@ -15,6 +15,7 @@ public class ChartEntryDTO {
     private Integer artistId;
     private Integer playCount;
     private boolean hasImage;
+    private Integer genderId;  // For gender-based row coloring
     
     // Calculated stats from comparing with previous charts
     private Integer lastWeekPosition;      // null = new entry, -1 = re-entry
@@ -97,6 +98,14 @@ public class ChartEntryDTO {
     
     public void setHasImage(boolean hasImage) {
         this.hasImage = hasImage;
+    }
+    
+    public Integer getGenderId() {
+        return genderId;
+    }
+    
+    public void setGenderId(Integer genderId) {
+        this.genderId = genderId;
     }
     
     public Integer getLastWeekPosition() {

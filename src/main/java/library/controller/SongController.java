@@ -101,6 +101,12 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String organized,
+            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) String hasFeaturedArtists,
+            @RequestParam(required = false) String isBand,
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer playCountMin,
+            @RequestParam(required = false) Integer playCountMax,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -122,20 +128,24 @@ public class SongController {
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, account, accountMode, organized,
+                ethnicity, ethnicityMode, country, countryMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                playCountMin, playCountMax,
                 sortby, sortdir, page, perpage
         );
         
         // Get total count for pagination
         long totalCount = songService.countSongs(q, artist, album, 
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode, organized,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
-                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode);
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                playCountMin, playCountMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -167,6 +177,12 @@ public class SongController {
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
+        model.addAttribute("selectedHasImage", hasImage);
+        model.addAttribute("selectedHasFeaturedArtists", hasFeaturedArtists);
+        model.addAttribute("selectedIsBand", isBand);
+        model.addAttribute("selectedIsSingle", isSingle);
+        model.addAttribute("playCountMin", playCountMin);
+        model.addAttribute("playCountMax", playCountMax);
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
         model.addAttribute("releaseDateTo", releaseDateTo);
@@ -830,5 +846,87 @@ public class SongController {
             @RequestParam(required = false) String song,
             @RequestParam(required = false, defaultValue = "0") int limit) {
         return songService.searchSongs(artist, song, limit);
+    }
+    
+    /**
+     * Get all songs matching the current filters for playlist export (no pagination)
+     * Returns minimal data needed for iTunes validation: id, name, artist, album
+     */
+    @GetMapping("/api/export")
+    @ResponseBody
+    public List<Map<String, Object>> getFilteredSongsForExport(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String organized,
+            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) String hasFeaturedArtists,
+            @RequestParam(required = false) String isBand,
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer playCountMin,
+            @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(defaultValue = "plays") String sortby,
+            @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(defaultValue = "10000") int limit) {
+        
+        // Convert date formats
+        String releaseDateConverted = convertDateFormat(releaseDate);
+        String releaseDateFromConverted = convertDateFormat(releaseDateFrom);
+        String releaseDateToConverted = convertDateFormat(releaseDateTo);
+        String firstListenedDateConverted = convertDateFormat(firstListenedDate);
+        String firstListenedDateFromConverted = convertDateFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = convertDateFormat(firstListenedDateTo);
+        String lastListenedDateConverted = convertDateFormat(lastListenedDate);
+        String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
+        
+        // Get all songs matching filters (using a large limit instead of pagination)
+        List<SongCardDTO> songs = songService.getSongs(
+                q, artist, album, genre, genreMode, 
+                subgenre, subgenreMode, language, languageMode, gender, genderMode,
+                ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                playCountMin, playCountMax,
+                sortby, sortdir, 0, limit
+        );
+        
+        // Convert to minimal export format
+        return songs.stream().map(song -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", song.getId());
+            map.put("name", song.getName());
+            map.put("artist", song.getArtistName());
+            map.put("album", song.getAlbumName());
+            return map;
+        }).toList();
     }
 }

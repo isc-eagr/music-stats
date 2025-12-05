@@ -29,6 +29,14 @@ public interface ArtistRepositoryCustom {
             String lastListenedDateTo,
             String lastListenedDateMode,
             String organized,
+            String hasImage,
+            String isBand,
+            Integer playCountMin,
+            Integer playCountMax,
+            Integer albumCountMin,
+            Integer albumCountMax,
+            Integer songCountMin,
+            Integer songCountMax,
             String sortBy,
             String sortDir,
             int limit,
@@ -59,6 +67,14 @@ public interface ArtistRepositoryCustom {
             String lastListenedDateFrom,
             String lastListenedDateTo,
             String lastListenedDateMode,
-            String organized
+            String organized,
+            String hasImage,
+            String isBand,
+            Integer playCountMin,
+            Integer playCountMax,
+            Integer albumCountMin,
+            Integer albumCountMax,
+            Integer songCountMin,
+            Integer songCountMax
     );
 }

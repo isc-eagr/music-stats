@@ -21,6 +21,10 @@
         .btn-delete { background: transparent; border: 1px solid #dc3545; color: #dc3545; }
         .btn-delete:hover { background: #dc3545; color: white; }
         
+        /* Clickable links in table */
+        td a { transition: color 0.2s ease; }
+        td a:hover { color: #60a5fa !important; text-decoration: underline !important; }
+        
         /* Delete confirmation modal */
         .delete-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .delete-modal-overlay.active { display: flex; }
@@ -93,9 +97,24 @@
                     <tbody id="unmatchedTableBody">
                         <tr th:each="row, iter : ${unmatched}" th:data-index="${iter.index}">
                             <td th:text="${row.account}">account</td>
-                            <td th:text="${row.artist}">Artist</td>
-                            <td th:text="${row.album}">Album</td>
-                            <td th:text="${row.song}">Song</td>
+                            <td>
+                                <a th:href="@{/artists(q=${row.artist})}" 
+                                   th:text="${row.artist}"
+                                   target="_blank"
+                                   style="color: inherit; text-decoration: none;">Artist</a>
+                            </td>
+                            <td>
+                                <a th:href="@{/albums(q=${row.album})}" 
+                                   th:text="${row.album}"
+                                   target="_blank"
+                                   style="color: inherit; text-decoration: none;">Album</a>
+                            </td>
+                            <td>
+                                <a th:href="@{/songs(q=${row.song})}" 
+                                   th:text="${row.song}"
+                                   target="_blank"
+                                   style="color: inherit; text-decoration: none;">Song</a>
+                            </td>
                             <td class="count" th:text="${row.cnt}">0</td>
                             <td class="action-col">
                                 <button class="btn btn-action" 

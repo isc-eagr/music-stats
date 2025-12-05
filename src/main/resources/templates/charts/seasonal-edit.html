@@ -65,12 +65,12 @@
         }
         
         .btn-primary {
-            background: #1e40af;
+            background: #2d5016;
             color: #fff;
         }
         
         .btn-primary:hover:not(:disabled) {
-            background: #1d4ed8;
+            background: #3d6b1e;
         }
         
         .btn-success {
@@ -178,7 +178,7 @@
         
         .search-input:focus {
             outline: none;
-            border-color: #1e40af;
+            border-color: #2d5016;
         }
         
         .search-input::placeholder {
@@ -242,8 +242,6 @@
         .chart-list.finalized {
             max-height: none;
             overflow-y: visible;
-            display: flex;
-            flex-direction: column-reverse;
         }
         
         .chart-entry {
@@ -264,7 +262,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #1e40af;
+            background: #2d5016;
             border-radius: 50%;
             font-weight: 700;
             font-size: 0.85rem;
@@ -313,7 +311,7 @@
         }
         
         .entry-name a:hover {
-            color: #60a5fa;
+            color: #22c55e;
             text-decoration: underline;
         }
         
@@ -331,8 +329,15 @@
         }
         
         .entry-artist a:hover {
-            color: #60a5fa;
+            color: #22c55e;
             text-decoration: underline;
+        }
+        
+        .entry-plays {
+            color: #888;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            padding-right: 12px;
         }
         
         .entry-actions {
@@ -419,12 +424,84 @@
         .season-picker:hover {
             border-color: #444;
         }
+        
+        .page-title {
+            font-size: 2rem;
+            color: #fff;
+            margin: 0 0 24px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .chart-playlist-btn {
+            padding: 6px 12px;
+            background: #2d5016;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+            margin-left: auto;
+        }
+        
+        .chart-playlist-btn:hover {
+            background: #3d6b1e;
+        }
+        
+        /* Extras Section Styles */
+        .extras-section {
+            border-top: 1px dashed #333;
+            margin-top: 16px;
+        }
+        
+        .extras-header {
+            background: #0d0d0d !important;
+            padding: 12px 20px !important;
+        }
+        
+        .extras-title {
+            font-size: 1rem !important;
+            color: #888 !important;
+        }
+        
+        .extras-list {
+            max-height: 250px !important;
+            background: #080808;
+        }
+        
+        .extras-empty {
+            padding: 20px !important;
+        }
+        
+        .extras-empty p {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0;
+        }
+        
+        .extra-entry {
+            background: rgba(45, 80, 22, 0.1);
+        }
+        
+        .extra-position {
+            background: #1a3a0a !important;
+            color: #6b8f4a !important;
+        }
     </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: nav}"></th:block>
     
     <div class="chart-editor">
+        <h1 class="page-title">
+            <span th:if="${#strings.contains(displayName, 'Winter')}">❄️</span>
+            <span th:if="${#strings.contains(displayName, 'Spring')}">🌸</span>
+            <span th:if="${#strings.contains(displayName, 'Summer')}">☀️</span>
+            <span th:if="${#strings.contains(displayName, 'Fall')}">🍂</span>
+            <span th:text="'Seasonal Chart: ' + ${displayName}">Seasonal Chart: Fall 2025</span>
+        </h1>
+        
         <div class="chart-header">
             <div class="chart-header-left">
                 <a th:if="${prevPeriodKey != null}" 
@@ -457,27 +534,16 @@
             </div>
         </div>
         
-        <div class="status-info" th:unless="${songChartFinalized and albumChartFinalized}">
-            <span class="status-badge" th:classappend="${songChartFinalized ? 'finalized' : (songEntries.size() > 0 ? 'draft' : 'incomplete')}">
-                <span th:if="${songChartFinalized}">✓ Songs Finalized</span>
-                <span th:unless="${songChartFinalized}" th:text="'Songs: ' + ${songEntries.size()} + '/' + ${maxSongs}">Songs: 0/30</span>
-            </span>
-            <span class="status-badge" th:classappend="${albumChartFinalized ? 'finalized' : (albumEntries.size() > 0 ? 'draft' : 'incomplete')}">
-                <span th:if="${albumChartFinalized}">✓ Albums Finalized</span>
-                <span th:unless="${albumChartFinalized}" th:text="'Albums: ' + ${albumEntries.size()} + '/' + ${maxAlbums}">Albums: 0/10</span>
-            </span>
-            <span class="status-badge" th:classappend="${isComplete ? 'finalized' : 'incomplete'}">
-                <span th:if="${isComplete}">✓ Season Completed</span>
-                <span th:unless="${isComplete}">⏳ Season In Progress</span>
-            </span>
-        </div>
-        
         <div class="chart-sections">
             <!-- Songs Section -->
             <div class="chart-section">
                 <div class="section-header">
                     <h2 class="section-title">🎵 Songs</h2>
-                    <span class="section-count" id="songCount" th:text="${songEntries.size()} + '/' + ${maxSongs}">0/30</span>
+                    <span class="section-count" id="songCount" th:unless="${songChartFinalized}">
+                        <span th:if="${songEntries.size() == maxSongs}" style="color: #22c55e;">✓ </span>
+                        <span th:text="${songEntries.size()} + '/' + ${maxSongs}">0/30</span>
+                    </span>
+                    <button th:if="${songChartFinalized}" type="button" class="chart-playlist-btn" onclick="openSeasonalSongsPlaylistGenerator()">🎵 Playlist</button>
                 </div>
                 
                 <div class="search-container" th:unless="${songChartFinalized}">
@@ -498,7 +564,8 @@
                         <div class="empty-chart-icon">🎵</div>
                         <p>No songs added yet. Search above to add songs.</p>
                     </div>
-                    <div th:each="entry, stat : ${songEntries}" class="chart-entry" th:data-id="${entry.songId}">
+                    <div th:each="entry, stat : ${songEntries}" class="chart-entry" th:data-id="${entry.songId}" th:data-album="${entry.albumName}"
+                         th:style="${songChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${songChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <div class="entry-position" th:text="${entry.position}">1</div>
                         <div th:if="${entry.hasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
@@ -508,10 +575,54 @@
                             <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
                             <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
                         </div>
+                        <div class="entry-plays" th:if="${songChartFinalized}">
+                            <span th:text="${entry.playCount} + ' plays'">0 plays</span>
+                        </div>
                         <div class="entry-actions" th:unless="${songChartFinalized}">
                             <button class="entry-btn" onclick="moveUp('song', this)" th:disabled="${stat.first}">↑</button>
                             <button class="entry-btn" onclick="moveDown('song', this)" th:disabled="${stat.last}">↓</button>
                             <button class="entry-btn remove" onclick="removeEntry('song', this)">×</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Extras Section (playlist bonus songs) -->
+                <div class="extras-section">
+                    <div class="section-header extras-header">
+                        <h3 class="section-title extras-title">🎁 Extras</h3>
+                        <span class="section-count" id="extraCount" th:unless="${songChartFinalized}" th:text="${extraSongEntries.size()} + '/' + ${maxExtraSongs}">0/5</span>
+                    </div>
+                    
+                    <div class="search-container" th:unless="${songChartFinalized}">
+                        <input type="text" 
+                               class="search-input" 
+                               id="extraSearch" 
+                               placeholder="Search for extra songs..."
+                               oninput="searchExtraSongs(this.value)"
+                               onkeydown="handleSearchKeydown(event, 'extra')">
+                    </div>
+                    
+                    <div class="search-results" id="extraSearchResults">
+                        <div class="no-results">Start typing to search...</div>
+                    </div>
+                    
+                    <div class="chart-list extras-list" id="extraList">
+                        <div th:if="${#lists.isEmpty(extraSongEntries)}" class="empty-chart extras-empty">
+                            <p>No extras. Add bonus songs for the playlist.</p>
+                        </div>
+                        <div th:each="entry, stat : ${extraSongEntries}" class="chart-entry extra-entry" th:data-id="${entry.songId}" th:data-album="${entry.albumName}">
+                            <div class="entry-position extra-position">+</div>
+                            <div th:if="${entry.hasImage}" class="entry-image-container">
+                                <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                            </div>
+                            <div th:unless="${entry.hasImage}" class="entry-placeholder">🎵</div>
+                            <div class="entry-info">
+                                <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
+                                <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
+                            </div>
+                            <div class="entry-actions" th:unless="${songChartFinalized}">
+                                <button class="entry-btn remove" onclick="removeExtraEntry(this)">×</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -521,7 +632,10 @@
             <div class="chart-section">
                 <div class="section-header">
                     <h2 class="section-title">💿 Albums</h2>
-                    <span class="section-count" id="albumCount" th:text="${albumEntries.size()} + '/' + ${maxAlbums}">0/10</span>
+                    <span class="section-count" id="albumCount" th:unless="${albumChartFinalized}">
+                        <span th:if="${albumEntries.size() == maxAlbums}" style="color: #22c55e;">✓ </span>
+                        <span th:text="${albumEntries.size()} + '/' + ${maxAlbums}">0/10</span>
+                    </span>
                 </div>
                 
                 <div class="search-container" th:unless="${albumChartFinalized}">
@@ -542,7 +656,8 @@
                         <div class="empty-chart-icon">💿</div>
                         <p>No albums added yet. Search above to add albums.</p>
                     </div>
-                    <div th:each="entry, stat : ${albumEntries}" class="chart-entry" th:data-id="${entry.albumId}">
+                    <div th:each="entry, stat : ${albumEntries}" class="chart-entry" th:data-id="${entry.albumId}"
+                         th:style="${albumChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${albumChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <div class="entry-position" th:text="${entry.position}">1</div>
                         <div th:if="${entry.hasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
@@ -551,6 +666,9 @@
                         <div class="entry-info">
                             <div class="entry-name"><a th:href="@{/albums/{id}(id=${entry.albumId})}" th:text="${entry.albumName}">Album Name</a></div>
                             <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
+                        </div>
+                        <div class="entry-plays" th:if="${albumChartFinalized}">
+                            <span th:text="${entry.playCount} + ' plays'">0 plays</span>
                         </div>
                         <div class="entry-actions" th:unless="${albumChartFinalized}">
                             <button class="entry-btn" onclick="moveUp('album', this)" th:disabled="${stat.first}">↑</button>
@@ -570,12 +688,14 @@
         const periodType = [[${periodType}]];
         const maxSongs = [[${maxSongs}]];
         const maxAlbums = [[${maxAlbums}]];
+        const maxExtraSongs = [[${maxExtraSongs}]];
         const songChartId = [[${songChart.id}]];
         const albumChartId = [[${albumChart.id}]];
         const isFinalized = [[${songChartFinalized}]] && [[${albumChartFinalized}]];
         
         let songSearchTimeout = null;
         let albumSearchTimeout = null;
+        let extraSearchTimeout = null;
         let hasChanges = false;
         
         // Navigate to a different season
@@ -589,6 +709,17 @@
         function getChartIds(type) {
             const list = document.getElementById(type + 'List');
             return Array.from(list.querySelectorAll('.chart-entry')).map(el => parseInt(el.dataset.id));
+        }
+        
+        // Get extra song IDs
+        function getExtraIds() {
+            const list = document.getElementById('extraList');
+            return Array.from(list.querySelectorAll('.chart-entry')).map(el => parseInt(el.dataset.id));
+        }
+        
+        // Get all song IDs (chart + extras)
+        function getAllSongIds() {
+            return [...getChartIds('song'), ...getExtraIds()];
         }
         
         // Search songs
@@ -605,7 +736,7 @@
                 fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=20`)
                     .then(r => r.json())
                     .then(data => {
-                        const existingIds = getChartIds('song');
+                        const existingIds = getAllSongIds();
                         resultsContainer.classList.add('active');
                         
                         if (!data || data.length === 0) {
@@ -771,6 +902,117 @@
             document.getElementById('albumSearchResults').classList.remove('active');
         }
         
+        // Search extra songs
+        function searchExtraSongs(query) {
+            clearTimeout(extraSearchTimeout);
+            const resultsContainer = document.getElementById('extraSearchResults');
+            
+            if (!query || query.length < 2) {
+                resultsContainer.classList.remove('active');
+                return;
+            }
+            
+            extraSearchTimeout = setTimeout(() => {
+                fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=20`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const existingIds = getAllSongIds();
+                        resultsContainer.classList.add('active');
+                        
+                        if (!data || data.length === 0) {
+                            resultsContainer.innerHTML = '<div class="no-results">No songs found</div>';
+                            return;
+                        }
+                        
+                        resultsContainer.innerHTML = data.map(s => {
+                            const isInChart = existingIds.includes(s.id);
+                            return `
+                                <div class="search-result-item ${isInChart ? 'disabled' : ''}" 
+                                     data-id="${s.id}" 
+                                     data-name="${escapeHtml(s.name)}"
+                                     data-artist="${escapeHtml(s.artistName || '')}"
+                                     data-has-image="${s.hasImage || false}"
+                                     ${isInChart ? '' : 'onclick="addExtraSong(this)"'}>
+                                    <div class="result-name">${escapeHtml(s.name)}${isInChart ? ' ✓' : ''}</div>
+                                    <div class="result-meta">${escapeHtml(s.artistName || '')}${s.albumName ? ' • ' + escapeHtml(s.albumName) : ''}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    })
+                    .catch(err => {
+                        console.error('Error searching songs:', err);
+                        resultsContainer.innerHTML = '<div class="no-results">Error searching</div>';
+                    });
+            }, 300);
+        }
+        
+        // Add extra song
+        function addExtraSong(element) {
+            const currentCount = getExtraIds().length;
+            if (currentCount >= maxExtraSongs) {
+                showIndicator('error', `Maximum ${maxExtraSongs} extra songs allowed`);
+                return;
+            }
+            
+            const id = element.dataset.id;
+            const name = element.dataset.name;
+            const artist = element.dataset.artist;
+            const hasImage = element.dataset.hasImage === 'true';
+            
+            const list = document.getElementById('extraList');
+            // Remove empty state if present
+            const emptyState = list.querySelector('.extras-empty');
+            if (emptyState) emptyState.remove();
+            
+            const entryHtml = `
+                <div class="chart-entry extra-entry" data-id="${id}">
+                    <div class="entry-position extra-position">+</div>
+                    ${hasImage 
+                        ? `<img class="entry-image" src="/songs/${id}/image" alt="">` 
+                        : '<div class="entry-placeholder">🎵</div>'}
+                    <div class="entry-info">
+                        <div class="entry-name">${name}</div>
+                        <div class="entry-artist">${artist}</div>
+                    </div>
+                    <div class="entry-actions">
+                        <button class="entry-btn remove" onclick="removeExtraEntry(this)">×</button>
+                    </div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', entryHtml);
+            
+            updateExtraCount();
+            markAsChanged();
+            
+            // Clear search
+            document.getElementById('extraSearch').value = '';
+            document.getElementById('extraSearchResults').classList.remove('active');
+        }
+        
+        // Remove extra entry
+        function removeExtraEntry(button) {
+            const entry = button.closest('.chart-entry');
+            entry.remove();
+            updateExtraCount();
+            markAsChanged();
+            
+            // Show empty state if no entries
+            const list = document.getElementById('extraList');
+            if (!list.querySelector('.chart-entry')) {
+                list.innerHTML = `
+                    <div class="empty-chart extras-empty">
+                        <p>No extras. Add bonus songs for the playlist.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Update extra count
+        function updateExtraCount() {
+            const count = getExtraIds().length;
+            document.getElementById('extraCount').textContent = `${count}/${maxExtraSongs}`;
+        }
+        
         // Move entry up
         function moveUp(type, button) {
             const entry = button.closest('.chart-entry');
@@ -817,8 +1059,19 @@
         // Update positions after reorder
         function updatePositions(type) {
             const list = document.getElementById(type + 'List');
-            list.querySelectorAll('.chart-entry').forEach((entry, index) => {
+            const entries = list.querySelectorAll('.chart-entry');
+            entries.forEach((entry, index) => {
                 entry.querySelector('.entry-position').textContent = index + 1;
+                // Update disabled state of move buttons
+                const actions = entry.querySelector('.entry-actions');
+                if (actions) {
+                    const buttons = actions.querySelectorAll('.entry-btn');
+                    // First button is move up, second is move down
+                    if (buttons.length >= 2) {
+                        buttons[0].disabled = (index === 0); // Disable up for first
+                        buttons[1].disabled = (index === entries.length - 1); // Disable down for last
+                    }
+                }
             });
         }
         
@@ -852,17 +1105,31 @@
             }));
         }
         
+        // Build extra entries array for saving
+        function buildExtraEntries() {
+            const list = document.getElementById('extraList');
+            return Array.from(list.querySelectorAll('.chart-entry')).map((entry) => ({
+                itemId: parseInt(entry.dataset.id)
+            }));
+        }
+        
         // Save chart
         async function saveChart(type) {
             const entries = buildEntries(type);
+            const payload = {
+                chartType: type,
+                entries: entries
+            };
+            
+            // Include extra entries for song charts
+            if (type === 'song') {
+                payload.extraEntries = buildExtraEntries();
+            }
             
             const response = await fetch(`/charts/${periodType}/${periodKey}/save`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chartType: type,
-                    entries: entries
-                })
+                body: JSON.stringify(payload)
             });
             
             const result = await response.json();
@@ -964,6 +1231,77 @@
                 document.querySelectorAll('.search-results').forEach(el => el.classList.remove('active'));
             }
         });
+        
+        /**
+         * Open playlist generator for the seasonal songs chart (includes extras)
+         */
+        function openSeasonalSongsPlaylistGenerator() {
+            // Get song data from the chart entries
+            const songs = [];
+            const entries = document.querySelectorAll('#songList .chart-entry');
+            
+            entries.forEach(entry => {
+                const songId = entry.getAttribute('data-id');
+                if (!songId) return;
+                
+                const nameEl = entry.querySelector('.entry-name');
+                const artistEl = entry.querySelector('.entry-artist');
+                const albumName = entry.getAttribute('data-album') || '';
+                
+                if (nameEl && artistEl) {
+                    // Handle both linked (finalized) and plain text (draft) entries
+                    const nameLink = nameEl.querySelector('a');
+                    const artistLink = artistEl.querySelector('a');
+                    songs.push({
+                        id: parseInt(songId),
+                        name: (nameLink || nameEl).textContent.trim(),
+                        artist: (artistLink || artistEl).textContent.trim(),
+                        album: albumName
+                    });
+                }
+            });
+            
+            if (songs.length === 0) {
+                alert('No songs found in the chart');
+                return;
+            }
+            
+            // Reverse the array to match visual order (finalized charts display 30→1 via CSS column-reverse)
+            // So playlist will be in countdown order matching the visual display
+            songs.reverse();
+            
+            // Add extra songs at the end (they don't need reversing as they're displayed in order)
+            const extraEntries = document.querySelectorAll('#extraList .chart-entry');
+            extraEntries.forEach(entry => {
+                const songId = entry.getAttribute('data-id');
+                if (!songId) return;
+                
+                const nameEl = entry.querySelector('.entry-name');
+                const artistEl = entry.querySelector('.entry-artist');
+                const albumName = entry.getAttribute('data-album') || '';
+                
+                if (nameEl && artistEl) {
+                    const nameLink = nameEl.querySelector('a');
+                    const artistLink = artistEl.querySelector('a');
+                    songs.push({
+                        id: parseInt(songId),
+                        name: (nameLink || nameEl).textContent.trim(),
+                        artist: (artistLink || artistEl).textContent.trim(),
+                        album: albumName
+                    });
+                }
+            });
+            
+            // Generate default name based on the period
+            const pageTitle = document.querySelector('.page-title');
+            const defaultName = pageTitle ? pageTitle.textContent.trim().replace('Seasonal Chart: ', 'Seasonal - ') : 'Seasonal Chart';
+            
+            // Open the playlist generator modal
+            openPlaylistGeneratorModal(songs, defaultName);
+        }
     </script>
+    
+    <!-- Playlist Generator Modal -->
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
 </body>
 </html>

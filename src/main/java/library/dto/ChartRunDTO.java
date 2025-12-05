@@ -113,6 +113,7 @@ public class ChartRunDTO {
         private boolean onChart;
         private Integer position;  // null if not on chart
         private boolean isCurrent; // true if this is the current week being viewed
+        private String dateRange;  // Human-readable date range, e.g., "Nov 6 - Nov 12, 2025"
         
         public ChartRunWeek() {}
         
@@ -122,6 +123,11 @@ public class ChartRunDTO {
             this.onChart = position != null;
             this.display = position != null ? String.valueOf(position) : "x";
             this.isCurrent = isCurrent;
+        }
+        
+        public ChartRunWeek(String periodKey, Integer position, boolean isCurrent, String dateRange) {
+            this(periodKey, position, isCurrent);
+            this.dateRange = dateRange;
         }
         
         public String getPeriodKey() {
@@ -162,6 +168,14 @@ public class ChartRunDTO {
         
         public void setCurrent(boolean current) {
             isCurrent = current;
+        }
+        
+        public String getDateRange() {
+            return dateRange;
+        }
+        
+        public void setDateRange(String dateRange) {
+            this.dateRange = dateRange;
         }
     }
 }

@@ -51,6 +51,14 @@
         .chart-status-badge.pending:hover {
             transform: none;
         }
+        .chart-status-badge.zero-plays {
+            background: #1a1a1a;
+            color: #555;
+            cursor: default;
+        }
+        .chart-status-badge.zero-plays:hover {
+            transform: none;
+        }
         .chart-generate-btn {
             background: #333;
             border: 1px solid #555;
@@ -601,8 +609,8 @@
                                 </div>
                                 
                                 <div class="filter-actions">
-                                    <button type="submit" class="btn-action">Apply Filters</button>
-                                    <button type="button" class="btn-negative" onclick="clearFilters()">Clear All</button>
+                                    <button type="button" class="btn-clear" onclick="clearFilters()">Clear</button>
+                                    <button type="button" class="btn-apply" onclick="applyFilters()">Apply</button>
                                 </div>
                             </form>
                         </div>
@@ -770,13 +778,13 @@
                         ✓ Chart
                     </a>
                     <!-- Pending (week in progress) -->
-                    <span th:if="${tf.hasChart != true and tf.weekComplete != true}"
+                    <span th:if="${tf.hasChart != true and tf.weekComplete != true and tf.playCount > 0}"
                           class="chart-status-badge pending"
                           title="Week is still ongoing">
                         In Progress
                     </span>
-                    <!-- Not started (week complete but no chart) -->
-                    <a th:if="${tf.hasChart != true and tf.weekComplete == true}"
+                    <!-- Not started (week complete but no chart) - only show if there are plays -->
+                    <a th:if="${tf.hasChart != true and tf.weekComplete == true and tf.playCount > 0}"
                        th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
                        target="_blank"
                        class="chart-status-badge not-started"
@@ -785,6 +793,12 @@
                        title="Generate chart for this week">
                         No Chart
                     </a>
+                    <!-- Zero plays indicator -->
+                    <span th:if="${tf.playCount == 0}"
+                          class="chart-status-badge zero-plays"
+                          title="No plays this week">
+                        No Plays
+                    </span>
                 </div>
                 
                 <!-- Chart status indicator (only for seasons) -->
@@ -884,7 +898,7 @@
                     </div>
                     <div class="catalog-stats catalog-stats-row2">
                         <div class="stat">
-                            <span class="stat-icon">▶️</span>
+                            <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${tf.playCount}">0</span>
                         </div>
                         <div class="stat">
@@ -938,7 +952,7 @@
                             </div>
                         </div>
                         <div class="gender-bar-row" th:if="${tf.malePlayCount > 0 or tf.femalePlayCount > 0 or tf.otherPlayCount > 0}">
-                            <span class="gender-bar-icon" title="Plays">▶️</span>
+                            <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
                             <div class="gender-bar" th:with="total=${tf.malePlayCount + tf.femalePlayCount + tf.otherPlayCount}">
                                 <div class="gender-male-bar" 
                                      th:style="'width: ' + (${total > 0} ? (${tf.malePlayCount} * 100 / ${total}) : 0) + '%'"
@@ -1209,6 +1223,10 @@
         
         function clearFilters() {
             window.location.href = '/' + periodType + '?sortby=' + document.getElementById('sortBySelect').value + '&sortdir=' + (new URL(window.location).searchParams.get('sortdir') || 'desc');
+        }
+        
+        function applyFilters() {
+            document.getElementById('filterForm').submit();
         }
         
         function removeFilter(...paramNames) {

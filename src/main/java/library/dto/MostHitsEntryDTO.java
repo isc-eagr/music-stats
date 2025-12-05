@@ -12,6 +12,7 @@ public class MostHitsEntryDTO {
     private int songsCount;
     private int totalWeeks;
     private boolean hasImage;
+    private Integer genderId;
     
     public int getRank() {
         return rank;
@@ -59,5 +60,13 @@ public class MostHitsEntryDTO {
     
     public void setHasImage(boolean hasImage) {
         this.hasImage = hasImage;
+    }
+    
+    public Integer getGenderId() {
+        return genderId;
+    }
+    
+    public void setGenderId(Integer genderId) {
+        this.genderId = genderId;
     }
 }

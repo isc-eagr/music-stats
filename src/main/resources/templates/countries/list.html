@@ -101,7 +101,7 @@
         <div class="catalog-grid">
             <div th:each="country : ${countries}" class="catalog-card" style="cursor: pointer;"
                  th:data-name="${country.name}"
-                 th:onclick="'window.location.href=\\'/graphs?filterType=country&filterId=' + ${#strings.replace(country.name, ' ', '%20')} + '&filterName=' + ${#strings.replace(country.name, ' ', '%20')} + '\\''">
+                 onclick="navigateToGraphByName(this, 'country')">
                 <div class="catalog-image">
                     <div class="catalog-icon" title="Country">
                         🌐
@@ -125,7 +125,7 @@
                             <span class="stat-value" th:text="${country.songCount}">0</span>
                         </div>
                     </div>
-                    <div class="catalog-stats catalog-stats-row2">
+                    <div class="catalog-stats catalog-stats-plays">
                         <div class="stat" title="Primary plays">
                             <span class="stat-icon primary-plays">⏵</span>
                             <span class="stat-value" th:text="${country.vatitoPlayCount}">0</span>
@@ -135,9 +135,11 @@
                             <span class="stat-value" th:text="${country.robertloverPlayCount}">0</span>
                         </div>
                         <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">▶️</span>
+                            <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${country.playCount}">0</span>
                         </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
                         <div class="stat">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${country.timeListenedFormatted}">0m</span>
@@ -189,7 +191,7 @@
                             </div>
                         </div>
                         <div class="gender-bar-row" th:if="${country.malePlayCount > 0 or country.femalePlayCount > 0 or country.otherPlayCount > 0}">
-                            <span class="gender-bar-icon" title="Plays">▶️</span>
+                            <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
                             <div class="gender-bar" th:with="total=${country.malePlayCount + country.femalePlayCount + country.otherPlayCount}">
                                 <div class="gender-male-bar" 
                                      th:style="'width: ' + (${total > 0} ? (${country.malePlayCount} * 100 / ${total}) : 0) + '%'"
@@ -285,6 +287,11 @@
             const url = new URL(window.location);
             url.searchParams.set('page', pageNum);
             window.location.href = url.toString();
+        }
+        
+        function navigateToGraphByName(element, filterType) {
+            const name = encodeURIComponent(element.getAttribute('data-name'));
+            window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + name + '&filterName=' + name;
         }
     </script>
 </body>

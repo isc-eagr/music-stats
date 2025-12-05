@@ -10,7 +10,11 @@
     <link rel="stylesheet" th:href="@{/css/song-detail.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
+    <!-- Flatpickr Date Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
+    <script th:src="@{/js/searchable-select.js}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -50,7 +54,7 @@
                          th:alt="${song.name}"
                          id="albumImage"
                          class="item-image-large clickable-image"
-                         style="opacity: 0.7; cursor: pointer;"
+                         style="cursor: pointer;"
                          onclick="openImageModal(this.src)"
                          onerror="this.style.display='none'; document.getElementById('noImagePlaceholder').style.display='flex';">
                     <div th:if="${!hasImage and song.albumId == null}" class="no-image-large" id="noImagePlaceholder">
@@ -87,7 +91,7 @@
                         <span class="stat-value" th:text="${songRobertloverPlayCount != null ? songRobertloverPlayCount : 0}">0</span>
                     </div>
                     <div class="stat" title="Total plays">
-                        <span class="stat-icon total-plays">▶️</span>
+                        <span class="stat-icon total-plays">⏵</span>
                         <span class="stat-value" th:text="${songPlayCount != null ? songPlayCount : 0}">0</span>
                     </div>
                 </div>
@@ -98,14 +102,14 @@
                     <!-- Yearly entries first -->
                     <a th:each="entry : ${yearlyChartHistory}" 
                        th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                       style="background: #1e3a5e; color: #60a5fa; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; text-decoration: none; white-space: nowrap;"
+                       style="background: #3a2e1e; color: #f59e0b; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; text-decoration: none; white-space: nowrap;"
                        th:text="${entry.displayName}">
                         #1 in 2024
                     </a>
                     <!-- Seasonal entries -->
                     <a th:each="entry : ${seasonalChartHistory}" 
                        th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
-                       style="background: #1e4a1e; color: #4ade80; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; text-decoration: none; white-space: nowrap;">
+                       style="background: #134e4a; color: #5eead4; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; text-decoration: none; white-space: nowrap;">
                         <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
                         <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
                         <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
@@ -476,7 +480,7 @@
                                         <span class="stat-value" th:text="${artist.songCount}">0</span>
                                     </div>
                                     <div class="stat">
-                                        <span class="stat-icon">▶️</span>
+                                        <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${artist.playCount}">0</span>
                                     </div>
                                 </div>
@@ -507,7 +511,7 @@
                                     <th>Release</th>
                                     <th>Debut</th>
                                     <th>Peak Date</th>
-                                    <th class="numeric">Total</th>
+                                    <th class="numeric">Total Weeks</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -519,7 +523,10 @@
                                         <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                               th:text="${entry.peakPosition}">#1</span>
                                     </td>
-                                    <td class="numeric" th:text="${entry.weeksAtPeak}">1</td>
+                                    <td class="numeric">
+                                        <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
+                                              th:text="${entry.weeksAtPeak}">1</span>
+                                    </td>
                                     <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                     <td>
                                         <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -548,14 +555,14 @@
                         <!-- Yearly entries first -->
                         <a th:each="entry : ${yearlyChartHistory}" 
                            th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                           style="background: #1e3a5e; color: #60a5fa; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;"
+                           style="background: #3a2e1e; color: #f59e0b; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;"
                            th:text="${entry.displayName}">
                             #1 in 2024
                         </a>
                         <!-- Seasonal entries second -->
                         <a th:each="entry : ${seasonalChartHistory}" 
                            th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
-                           style="background: #1e4a1e; color: #4ade80; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;">
+                           style="background: #134e4a; color: #5eead4; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;">
                             <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
                             <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
                             <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
@@ -779,6 +786,16 @@
                 if (featuredArtistsContainer) {
                     featuredArtistsContainer.style.display = 'block';
                 }
+                
+                // Initialize searchable selects for dropdowns
+                setTimeout(function() {
+                    initSearchableSelect('albumId');
+                    initSearchableSelect('overrideGenreId');
+                    initSearchableSelect('overrideSubgenreId');
+                    initSearchableSelect('overrideLanguageId');
+                    initSearchableSelect('overrideGenderId');
+                    initSearchableSelect('overrideEthnicityId');
+                }, 100); // Slightly longer delay to wait for album dropdown to populate
             } else {
                 window.location.reload();
             }
@@ -1087,8 +1104,8 @@
         
         .editable-input:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
         }
         
         #albumId {
@@ -1103,8 +1120,8 @@
         
         #albumId:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
         }
         
         /* Featured Artists Styles */
@@ -1145,8 +1162,8 @@
         }
         
         .chips-input-wrapper:focus-within {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
         }
         
         .chips-container {
@@ -1160,7 +1177,7 @@
             align-items: center;
             gap: 4px;
             padding: 4px 8px;
-            background: #3b82f6;
+            background: #334155;
             color: #fff;
             border-radius: 4px;
             font-size: 0.85em;
@@ -1292,13 +1309,28 @@
         }
         
         .chart-run-box.on-chart {
-            background: #1e3a5f;
-            color: #60a5fa;
-            border-color: #3b82f6;
+            background: #1a1a2e;
+            color: #e5e7eb;
+            border-color: #333;
+        }
+        
+        .chart-run-box.on-chart.peak-one {
+            background: #3d3012;
+            color: #fbbf24;
+            border-color: #6b5c1f;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
         }
         
         .chart-run-box.absent {
             color: #555;
+        }
+        
+        .chart-run-box.absent.consolidated {
+            background: #2a2a2a;
+            color: #888;
+            font-size: 11px;
+            padding: 4px 8px;
+            cursor: default;
         }
         
         .chart-run-stats {
@@ -1376,6 +1408,34 @@
                 });
         }
         
+        // Helper to consolidate consecutive absent weeks into a single box
+        function consolidateAbsentWeeks(weeks) {
+            const result = [];
+            let i = 0;
+            while (i < weeks.length) {
+                if (weeks[i].onChart) {
+                    result.push(weeks[i]);
+                    i++;
+                } else {
+                    // Count consecutive absent weeks
+                    let count = 0;
+                    let startIdx = i;
+                    while (i < weeks.length && !weeks[i].onChart) {
+                        count++;
+                        i++;
+                    }
+                    // Create a consolidated absent entry
+                    result.push({
+                        onChart: false,
+                        consolidated: true,
+                        count: count,
+                        periodKey: weeks[startIdx].periodKey
+                    });
+                }
+            }
+            return result;
+        }
+        
         function renderSongChartRun(data) {
             const container = document.getElementById('songChartRunContainer');
             if (!data || !data.weeks || data.weeks.length === 0) {
@@ -1383,11 +1443,20 @@
                 return;
             }
             
-            let boxesHtml = data.weeks.map(week => {
+            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks);
+            let boxesHtml = consolidatedWeeks.map(week => {
                 let classes = 'chart-run-box';
-                if (week.onChart) classes += ' on-chart';
-                if (!week.onChart) classes += ' absent';
-                return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${week.periodKey}">${week.display}</a>`;
+                if (week.onChart) {
+                    classes += ' on-chart';
+                    if (week.position === 1) {
+                        classes += ' peak-one';
+                    }
+                    const tooltip = week.dateRange || week.periodKey;
+                    return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${tooltip}">${week.display}</a>`;
+                } else {
+                    classes += ' absent consolidated';
+                    return `<span class="${classes}" title="${week.count} weeks off chart">${week.count}×</span>`;
+                }
             }).join('');
             
             let html = `
@@ -1417,6 +1486,18 @@
             
             container.innerHTML = html;
         }
+        
+        // Initialize Flatpickr on releaseDate input
+        document.addEventListener('DOMContentLoaded', function() {
+            const releaseDateInput = document.getElementById('releaseDate');
+            if (releaseDateInput) {
+                flatpickr(releaseDateInput, {
+                    dateFormat: 'd/m/Y',
+                    allowInput: true,
+                    theme: 'dark'
+                });
+            }
+        });
     </script>
 </body>
 </html>

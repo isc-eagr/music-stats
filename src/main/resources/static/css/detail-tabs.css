@@ -8,6 +8,7 @@
     margin-top: 95px; /* Align with the image */
     border-bottom: 1px solid #374151;
     align-self: start;
+    flex-wrap: nowrap;
 }
 
 .detail-tab {
@@ -19,6 +20,7 @@
     border-bottom: 2px solid transparent;
     transition: all 0.2s ease;
     margin-bottom: -1px;
+    flex-shrink: 0;
 }
 
 .detail-tab:hover {
@@ -28,7 +30,16 @@
 
 .detail-tab.active {
     color: #fff;
-    border-bottom-color: #3b82f6;
+    border-bottom-color: var(--text);
+}
+
+/* Include Groups Toggle - positioned at the end of tabs */
+.include-groups-toggle {
+    margin-left: auto;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 /* Gender-specific active tab colors */
@@ -209,11 +220,11 @@
     white-space: nowrap;
 }
 
-/* Green styling for #1 peak positions */
+/* Golden styling for #1 peak positions */
 .peak-number-one {
-    color: #22c55e !important;
+    color: #fbbf24 !important;
     font-weight: 700;
-    text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
 }
 
 @media (max-width: 1100px) {

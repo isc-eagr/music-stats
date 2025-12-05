@@ -295,6 +295,7 @@ public class ChartsController {
         
         List<ChartEntryDTO> songEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "song", periodKey);
         List<ChartEntryDTO> albumEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "album", periodKey);
+        List<ChartEntryDTO> extraSongEntries = chartService.getSeasonalExtraSongEntries(periodKey);
         
         boolean isComplete = chartService.isSeasonComplete(periodKey);
         boolean canFinalize = isComplete 
@@ -320,12 +321,14 @@ public class ChartsController {
         model.addAttribute("albumChart", albumChart);
         model.addAttribute("songEntries", songEntries);
         model.addAttribute("albumEntries", albumEntries);
+        model.addAttribute("extraSongEntries", extraSongEntries);
         model.addAttribute("isComplete", isComplete);
         model.addAttribute("canFinalize", canFinalize);
         model.addAttribute("songChartFinalized", songChart.getIsFinalized());
         model.addAttribute("albumChartFinalized", albumChart.getIsFinalized());
         model.addAttribute("maxSongs", ChartService.SEASONAL_YEARLY_SONGS_COUNT);
         model.addAttribute("maxAlbums", ChartService.SEASONAL_ALBUMS_COUNT);
+        model.addAttribute("maxExtraSongs", ChartService.SEASONAL_EXTRA_SONGS_COUNT);
         model.addAttribute("prevPeriodKey", prevPeriodKey);
         model.addAttribute("nextPeriodKey", nextPeriodKey);
         model.addAttribute("allSeasons", chartService.getAllSeasonsWithData());
@@ -345,6 +348,8 @@ public class ChartsController {
             String chartType = (String) payload.get("chartType");
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> rawEntries = (List<Map<String, Object>>) payload.get("entries");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawExtraEntries = (List<Map<String, Object>>) payload.get("extraEntries");
             
             Optional<Chart> chartOpt = chartService.getSeasonalChart(chartType, periodKey);
             if (chartOpt.isEmpty()) {
@@ -358,6 +363,17 @@ public class ChartsController {
                 entry.put("position", ((Number) rawEntry.get("position")).intValue());
                 entry.put("itemId", ((Number) rawEntry.get("itemId")).intValue());
                 entries.add(entry);
+            }
+            
+            // Add extra entries (positions 31-35) if this is a song chart
+            if ("song".equals(chartType) && rawExtraEntries != null) {
+                int extraPosition = ChartService.SEASONAL_YEARLY_SONGS_COUNT + 1;
+                for (Map<String, Object> rawEntry : rawExtraEntries) {
+                    Map<String, Integer> entry = new HashMap<>();
+                    entry.put("position", extraPosition++);
+                    entry.put("itemId", ((Number) rawEntry.get("itemId")).intValue());
+                    entries.add(entry);
+                }
             }
             
             chartService.saveChartEntries(chartOpt.get().getId(), entries, chartType);
