@@ -912,26 +912,12 @@
                     
                     <!-- Attribute chips -->
                     <div class="winning-chips">
-                        <a th:if="${artist.genderName != null and !#strings.isEmpty(artist.genderName)}" 
-                           th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${artist.genderName})}"
-                           class="winning-chip gender"
-                           th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'female' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('male')} ? 'male' : '')"
-                           th:text="${artist.genderName}" title="Gender"></a>
                         <a th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}" 
                            th:href="@{/graphs(filterType='genre',filterId=${artist.genreId},filterName=${artist.genreName})}"
                            class="winning-chip genre" th:text="${artist.genreName}" title="Genre"></a>
                         <a th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}" 
                            th:href="@{/graphs(filterType='subgenre',filterId=${artist.subgenreId},filterName=${artist.subgenreName})}"
                            class="winning-chip subgenre" th:text="${artist.subgenreName}" title="Subgenre"></a>
-                        <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}" 
-                           th:href="@{/graphs(filterType='ethnicity',filterId=${artist.ethnicityId},filterName=${artist.ethnicityName})}"
-                           class="winning-chip ethnicity" th:text="${artist.ethnicityName}" title="Ethnicity"></a>
-                        <a th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}" 
-                           th:href="@{/graphs(filterType='language',filterId=${artist.languageId},filterName=${artist.languageName})}"
-                           class="winning-chip language" th:text="${artist.languageName}" title="Language"></a>
-                        <a th:if="${artist.country != null and !#strings.isEmpty(artist.country)}" 
-                           th:href="@{/graphs(filterType='country',filterName=${artist.country})}"
-                           class="winning-chip country" th:text="${artist.country}" title="Country"></a>
                     </div>
                     
                     <div class="artist-stats">

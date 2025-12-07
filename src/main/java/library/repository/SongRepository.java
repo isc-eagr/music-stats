@@ -84,7 +84,7 @@ public class SongRepository {
                 CAST(strftime('%Y', COALESCE(s.release_date, alb.release_date)) AS TEXT) as release_year,
                 COALESCE(s.release_date, alb.release_date) as release_date,
                 s.length_seconds,
-                CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
+                CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
                 COALESCE(play_stats.play_count, 0) as play_count,
                 COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
@@ -94,7 +94,7 @@ public class SongRepository {
                 play_stats.last_listened,
                 ar.country as country,
                 s.organized,
-                CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
+                CASE WHEN LENGTH(alb.image) > 0 THEN 1 ELSE 0 END as album_has_image,
                 s.is_single
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
@@ -381,9 +381,9 @@ public class SongRepository {
         // Has Image filter (checks single_cover directly on song)
         if (hasImage != null && !hasImage.isEmpty()) {
             if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NOT NULL ");
+                sql.append(" AND LENGTH(s.single_cover) > 0 ");
             } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NULL ");
+                sql.append(" AND (s.single_cover IS NULL OR LENGTH(s.single_cover) = 0) ");
             }
         }
         
@@ -828,9 +828,9 @@ public class SongRepository {
         // Has Image filter (checks single_cover directly on song)
         if (hasImage != null && !hasImage.isEmpty()) {
             if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NOT NULL ");
+                sql.append(" AND LENGTH(s.single_cover) > 0 ");
             } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NULL ");
+                sql.append(" AND (s.single_cover IS NULL OR LENGTH(s.single_cover) = 0) ");
             }
         }
         
@@ -3763,8 +3763,6 @@ public class SongRepository {
                 COALESCE(l_song.name, l_album.name, l_artist.name) as language,
                 ar.country,
                 s.length_seconds,
-                CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
                 s.is_single,
                 COUNT(scr.id) as plays,
                 SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
@@ -3788,7 +3786,7 @@ public class SongRepository {
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, gender_id, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds, has_image, album_has_image, s.is_single
+            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, gender_id, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds, s.is_single
             ORDER BY plays DESC
             LIMIT ?
             """;
@@ -3812,8 +3810,8 @@ public class SongRepository {
             row.put("languageId", rs.getObject("language_id"));
             row.put("language", rs.getString("language"));
             row.put("country", rs.getString("country"));
-            row.put("hasImage", rs.getInt("has_image") == 1);
-            row.put("albumHasImage", rs.getInt("album_has_image") == 1);
+            row.put("hasImage", false); // Removed expensive BLOB check
+            row.put("albumHasImage", false); // Removed expensive BLOB check
             row.put("isSingle", rs.getBoolean("is_single"));
             // Add song length
             int lengthSeconds = rs.getInt("length_seconds");

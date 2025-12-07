@@ -1505,7 +1505,33 @@ function reloadTopData() {
  */
 function getTopLimit() {
     const input = document.getElementById('topLimitInput');
-    return input ? parseInt(input.value) || 10 : 10;
+    return input ? parseInt(input.value) || 50 : 50;
+}
+
+/**
+ * Switches between Artists, Albums, and Songs sub-tabs in the Top tab
+ */
+function switchTopSubTab(subtab) {
+    // Update button states
+    const buttons = document.querySelectorAll('.top-subtabs .charts-tab-btn');
+    buttons.forEach(btn => {
+        if (btn.getAttribute('data-subtab') === subtab) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Show/hide content sections
+    const sections = document.querySelectorAll('.top-subtab-content');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    const activeSection = document.getElementById('top-subtab-' + subtab);
+    if (activeSection) {
+        activeSection.style.display = 'block';
+    }
 }
 
 /**

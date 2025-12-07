@@ -2,7 +2,9 @@ package library.controller;
 
 import library.dto.AlbumCardDTO;
 import library.entity.Album;
+import library.entity.Artist;
 import library.service.AlbumService;
+import library.service.ArtistService;
 import library.service.ChartService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,10 +23,12 @@ public class AlbumController {
     
     private final AlbumService albumService;
     private final ChartService chartService;
+    private final ArtistService artistService;
     
-    public AlbumController(AlbumService albumService, ChartService chartService) {
+    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService) {
         this.albumService = albumService;
         this.chartService = chartService;
+        this.artistService = artistService;
     }
     
     @InitBinder
@@ -263,14 +267,22 @@ public class AlbumController {
         model.addAttribute("artistGender", artistGender);
         model.addAttribute("artistCountry", artistCountry);
         
+        // Add artist entity for ranking chips
+        Artist artist = artistService.findById(album.get().getArtistId());
+        model.addAttribute("artist", artist);
+        
         // Add lookup maps
         Map<Integer, String> genres = albumService.getGenres();
         Map<Integer, String> subgenres = albumService.getSubGenres();
         Map<Integer, String> languages = albumService.getLanguages();
+        Map<Integer, String> genders = albumService.getGenders();
+        Map<Integer, String> ethnicities = albumService.getEthnicities();
         
         model.addAttribute("genres", genres);
         model.addAttribute("subgenres", subgenres);
         model.addAttribute("languages", languages);
+        model.addAttribute("genders", genders);
+        model.addAttribute("ethnicities", ethnicities);
         
         // Add effective (resolved) value names for display
         Album a = album.get();
@@ -333,6 +345,16 @@ public class AlbumController {
             model.addAttribute("seasonalSongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "seasonal"));
             model.addAttribute("yearlySongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "yearly"));
         }
+        
+        // Add ranking chips data - optimized single query
+        java.util.Map<String, Integer> rankings = albumService.getAllAlbumRankings(id);
+        model.addAttribute("rankByGender", rankings.get("gender"));
+        model.addAttribute("rankByGenre", rankings.get("genre"));
+        model.addAttribute("rankBySubgenre", rankings.get("subgenre"));
+        model.addAttribute("rankByEthnicity", rankings.get("ethnicity"));
+        model.addAttribute("rankByLanguage", rankings.get("language"));
+        model.addAttribute("rankByCountry", rankings.get("country"));
+        model.addAttribute("ranksByYear", albumService.getAlbumRanksByYear(id));
         
         return "albums/detail";
     }

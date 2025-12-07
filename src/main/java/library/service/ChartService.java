@@ -818,12 +818,14 @@ public class ChartService {
         
         String songSql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
-                   COUNT(*) as total_weeks
+                   COUNT(*) as total_weeks,
+                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             WHERE s.artist_id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name
+            GROUP BY s.id, s.name, has_image, s.album_id
             """;
         
         List<Map<String, Object>> songRows = jdbcTemplate.queryForList(songSql, artistId);
@@ -837,8 +839,10 @@ public class ChartService {
             String debutDate = getDebutDate(songId, "song");
             String peakWeek = getFirstPeakWeek(songId, peakPosition, "song");
             String debutWeek = getDebutWeek(songId, "song");
+            boolean hasImage = ((Number) row.get("has_image")).intValue() == 1;
+            Integer albumId = row.get("album_id") != null ? ((Number) row.get("album_id")).intValue() : null;
             
-            result.add(new ChartHistoryDTO(
+            ChartHistoryDTO dto = new ChartHistoryDTO(
                 songId,
                 (String) row.get("name"),
                 null,
@@ -851,7 +855,10 @@ public class ChartService {
                 debutDate,
                 peakWeek,
                 debutWeek
-            ));
+            );
+            dto.setHasImage(hasImage);
+            dto.setAlbumId(albumId);
+            result.add(dto);
         }
         
         result.sort((a, b) -> {
@@ -1022,12 +1029,14 @@ public class ChartService {
     public List<ChartHistoryDTO> getSongChartHistory(Integer songId) {
         String sql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
-                   COUNT(*) as total_weeks
+                   COUNT(*) as total_weeks,
+                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             WHERE s.id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name
+            GROUP BY s.id, s.name, has_image, s.album_id
             """;
         
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, songId);
@@ -1043,8 +1052,10 @@ public class ChartService {
             String debutDate = getDebutDate(id, "song");
             String peakWeek = getFirstPeakWeek(id, peakPosition, "song");
             String debutWeek = getDebutWeek(id, "song");
+            boolean hasImage = ((Number) row.get("has_image")).intValue() == 1;
+            Integer albumId = row.get("album_id") != null ? ((Number) row.get("album_id")).intValue() : null;
             
-            result.add(new ChartHistoryDTO(
+            ChartHistoryDTO dto = new ChartHistoryDTO(
                 id,
                 (String) row.get("name"),
                 null,
@@ -1057,7 +1068,10 @@ public class ChartService {
                 debutDate,
                 peakWeek,
                 debutWeek
-            ));
+            );
+            dto.setHasImage(hasImage);
+            dto.setAlbumId(albumId);
+            result.add(dto);
         }
         
         return result;
@@ -2406,13 +2420,15 @@ public class ChartService {
         
         String sql = """
             SELECT s.id, s.name, ar.name as artist_name, MIN(ce.position) as peak_position, 
-                   COUNT(*) as total_weeks
+                   COUNT(*) as total_weeks,
+                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             WHERE s.artist_id IN (%s) AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name, ar.name
+            GROUP BY s.id, s.name, ar.name, has_image, s.album_id
             """.formatted(placeholders);
         
         List<ChartHistoryDTO> result = new ArrayList<>();
@@ -2428,8 +2444,10 @@ public class ChartService {
             String debutDate = getDebutDate(songId, "song");
             String peakWeek = getFirstPeakWeek(songId, peakPosition, "song");
             String debutWeek = getDebutWeek(songId, "song");
+            boolean hasImage = ((Number) row.get("has_image")).intValue() == 1;
+            Integer albumId = row.get("album_id") != null ? ((Number) row.get("album_id")).intValue() : null;
             
-            result.add(new ChartHistoryDTO(
+            ChartHistoryDTO dto = new ChartHistoryDTO(
                 songId,
                 (String) row.get("name"),
                 (String) row.get("artist_name"),
@@ -2442,7 +2460,10 @@ public class ChartService {
                 debutDate,
                 peakWeek,
                 debutWeek
-            ));
+            );
+            dto.setHasImage(hasImage);
+            dto.setAlbumId(albumId);
+            result.add(dto);
         }
         
         result.sort((a, b) -> {

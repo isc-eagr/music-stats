@@ -18,6 +18,8 @@ public class ChartHistoryDTO {
     private String debutDate;     // First date the song/album appeared on the chart (formatted)
     private String peakWeek;      // Period key for peak date (e.g., "2024-W48") for linking
     private String debutWeek;     // Period key for debut date (e.g., "2024-W48") for linking
+    private boolean hasImage;     // Whether the song/album has an image
+    private Integer albumId;      // For songs: the album ID (for fallback image display)
     
     public ChartHistoryDTO() {}
     
@@ -140,6 +142,22 @@ public class ChartHistoryDTO {
     
     public void setDebutWeek(String debutWeek) {
         this.debutWeek = debutWeek;
+    }
+    
+    public boolean isHasImage() {
+        return hasImage;
+    }
+    
+    public void setHasImage(boolean hasImage) {
+        this.hasImage = hasImage;
+    }
+    
+    public Integer getAlbumId() {
+        return albumId;
+    }
+    
+    public void setAlbumId(Integer albumId) {
+        this.albumId = albumId;
     }
     
     /**

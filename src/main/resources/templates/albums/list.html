@@ -944,26 +944,12 @@
                     
                     <!-- Attribute chips -->
                     <div class="winning-chips">
-                        <a th:if="${album.genderName != null and !#strings.isEmpty(album.genderName)}" 
-                           th:href="@{/graphs(filterType='gender',filterName=${album.genderName})}"
-                           class="winning-chip gender"
-                           th:classappend="${album.genderName != null and album.genderName.toLowerCase().contains('female')} ? 'female' : (${album.genderName != null and album.genderName.toLowerCase().contains('male')} ? 'male' : '')"
-                           th:text="${album.genderName}" title="Gender"></a>
                         <a th:if="${album.genreName != null and !#strings.isEmpty(album.genreName)}" 
                            th:href="@{/graphs(filterType='genre',filterId=${album.genreId},filterName=${album.genreName})}"
                            class="winning-chip genre" th:text="${album.genreName}" title="Genre"></a>
                         <a th:if="${album.subgenreName != null and !#strings.isEmpty(album.subgenreName)}" 
                            th:href="@{/graphs(filterType='subgenre',filterId=${album.subgenreId},filterName=${album.subgenreName})}"
                            class="winning-chip subgenre" th:text="${album.subgenreName}" title="Subgenre"></a>
-                        <a th:if="${album.ethnicityName != null and !#strings.isEmpty(album.ethnicityName)}" 
-                           th:href="@{/graphs(filterType='ethnicity',filterId=${album.ethnicityId},filterName=${album.ethnicityName})}"
-                           class="winning-chip ethnicity" th:text="${album.ethnicityName}" title="Ethnicity"></a>
-                        <a th:if="${album.languageName != null and !#strings.isEmpty(album.languageName)}" 
-                           th:href="@{/graphs(filterType='language',filterId=${album.languageId},filterName=${album.languageName})}"
-                           class="winning-chip language" th:text="${album.languageName}" title="Language"></a>
-                        <a th:if="${album.country != null and !#strings.isEmpty(album.country)}" 
-                           th:href="@{/graphs(filterType='country',filterName=${album.country})}"
-                           class="winning-chip country" th:text="${album.country}" title="Country"></a>
                     </div>
                     
                     <div class="album-stats">

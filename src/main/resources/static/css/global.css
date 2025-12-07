@@ -657,8 +657,8 @@ select:focus {
 .detail-grid {
     display: grid;
     grid-template-columns: 360px minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    gap: 32px;
+    column-gap: 32px;
+    row-gap: 24px;
     align-items: start;
 }
 
@@ -667,7 +667,8 @@ select:focus {
     position: sticky;
     top: 20px;
     align-self: start;
-    grid-row: 1 / -1; /* Span all rows */
+    grid-column: 1;
+    grid-row: 1 / 100; /* Span many rows to cover all content */
 }
 
 /* Name overlay above image */
@@ -708,7 +709,7 @@ select:focus {
   top: 6px;
   left: 6px;
   width: 28px;
-  height: auto;
+  height: 21px;
   border-radius: 4px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.45);
   background: rgba(0,0,0,0.25);
@@ -722,7 +723,8 @@ select:focus {
 .flag-overlay img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Length overlay (bottom-right of images on list cards) */
@@ -833,15 +835,16 @@ select:focus {
     font-weight: 600;
 }
 
+/* Ranking chips section - prevent from affecting grid layout */
+.ranking-chips-section {
+    margin-bottom: -20px; /* Pull up to compensate for its space */
+}
+
 /* Right section (General + Statistics in two columns) */
 .detail-right-section {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 32px;
-    align-items: start;
-    grid-row: 1;
-    grid-column: 2;
-    margin-top: 95px; /* Align with the image */
 }
 
 /* Content cards (General, Statistics) */

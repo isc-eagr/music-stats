@@ -3,7 +3,11 @@ package library.controller;
 import library.dto.ChartFilterDTO;
 import library.dto.FeaturedArtistDTO;
 import library.dto.SongCardDTO;
+import library.entity.Album;
+import library.entity.Artist;
 import library.entity.Song;
+import library.service.AlbumService;
+import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.SongService;
 import org.springframework.stereotype.Controller;
@@ -23,10 +27,14 @@ public class SongController {
     
     private final SongService songService;
     private final ChartService chartService;
+    private final ArtistService artistService;
+    private final AlbumService albumService;
     
-    public SongController(SongService songService, ChartService chartService) {
+    public SongController(SongService songService, ChartService chartService, ArtistService artistService, AlbumService albumService) {
         this.songService = songService;
         this.chartService = chartService;
+        this.artistService = artistService;
+        this.albumService = albumService;
     }
     
     @InitBinder
@@ -267,6 +275,13 @@ public class SongController {
         model.addAttribute("artistCountry", artistCountry);
         model.addAttribute("albumName", albumName);
         
+        // Add artist and album entities for ranking chips
+        Artist artist = artistService.findById(song.get().getArtistId());
+        model.addAttribute("artist", artist);
+        Album album = song.get().getAlbumId() != null ? 
+                      albumService.getAlbumById(song.get().getAlbumId()).orElse(null) : null;
+        model.addAttribute("album", album);
+        
         // NEW: add song play count
         model.addAttribute("songPlayCount", songService.getPlayCountForSong(id));
         model.addAttribute("songVatitoPlayCount", songService.getVatitoPlayCountForSong(id));
@@ -279,7 +294,7 @@ public class SongController {
         model.addAttribute("firstListenedDate", songService.getFirstListenedDateForSong(id));
         model.addAttribute("lastListenedDate", songService.getLastListenedDateForSong(id));
         
-        // Add lookup maps
+        // Add lookup maps for ranking chips
         Map<Integer, String> genres = songService.getGenres();
         Map<Integer, String> subgenres = songService.getSubGenres();
         Map<Integer, String> languages = songService.getLanguages();
@@ -329,6 +344,16 @@ public class SongController {
         if ("chart-history".equals(tab)) {
             model.addAttribute("chartHistory", chartService.getSongChartHistory(id));
         }
+        
+        // Add ranking chips data - optimized single query
+        java.util.Map<String, Integer> rankings = songService.getAllSongRankings(id);
+        model.addAttribute("rankByGender", rankings.get("gender"));
+        model.addAttribute("rankByGenre", rankings.get("genre"));
+        model.addAttribute("rankBySubgenre", rankings.get("subgenre"));
+        model.addAttribute("rankByEthnicity", rankings.get("ethnicity"));
+        model.addAttribute("rankByLanguage", rankings.get("language"));
+        model.addAttribute("rankByCountry", rankings.get("country"));
+        model.addAttribute("ranksByYear", songService.getSongRanksByYear(id));
         
         return "songs/detail";
     }

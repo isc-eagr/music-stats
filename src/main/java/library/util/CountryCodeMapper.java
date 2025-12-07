@@ -13,6 +13,7 @@ public class CountryCodeMapper {
     public CountryCodeMapper() {
         String[] iso = Locale.getISOCountries();
         for (String code : iso) {
+            @SuppressWarnings("deprecation")
             Locale loc = new Locale("", code);
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {
@@ -31,10 +32,42 @@ public class CountryCodeMapper {
         return s == null ? null : s.trim().toLowerCase();
     }
 
-    public String getCode(String countryName) {
-        if (countryName == null) return null;
-        String code = nameToCode.get(normalize(countryName));
-        return code;
+    public String getCode(String countryNameOrCode) {
+        if (countryNameOrCode == null) return null;
+        
+        String normalized = normalize(countryNameOrCode);
+        
+        // Check if it's already a valid ISO code (2 letters)
+        if (normalized.length() == 2) {
+            // Verify it's a valid ISO country code
+            String[] isoCodes = Locale.getISOCountries();
+            for (String code : isoCodes) {
+                if (code.equalsIgnoreCase(normalized)) {
+                    return normalized;
+                }
+            }
+        }
+        
+        // Try to look up by country name
+        String code = nameToCode.get(normalized);
+        
+        // If found, return it
+        if (code != null) {
+            return code;
+        }
+        
+        // Last resort: check if the input is already a country name that matches a Locale
+        // Try to find the code by checking all ISO countries
+        for (String isoCode : Locale.getISOCountries()) {
+            @SuppressWarnings("deprecation")
+            Locale locale = new Locale("", isoCode);
+            String countryName = locale.getDisplayCountry(Locale.ENGLISH);
+            if (countryName.equalsIgnoreCase(countryNameOrCode)) {
+                return isoCode.toLowerCase();
+            }
+        }
+        
+        return null;
     }
 
     public Map<String, String> getNameToCodeMap() {

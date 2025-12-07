@@ -6,6 +6,7 @@
     <title th:text="${artist.name} + ' - Music Stats'">Artist Detail</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/artist-detail.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
@@ -72,6 +73,62 @@
                     <div class="stat" title="Total plays">
                         <span class="stat-icon total-plays">⏵</span>
                         <span class="stat-value" th:text="${artistPlayCount != null ? artistPlayCount : 0}">0</span>
+                    </div>
+                </div>
+                
+                <!-- Ranking Chips -->
+                <div class="ranking-chips-section" style="margin-top: 15px; text-align: center;">
+                    <div class="winning-chips chips-expandable">
+                        <!-- Gender Rank -->
+                        <a th:if="${rankByGender != null and artist.genderId != null}" 
+                           th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
+                           class="winning-chip rank-chip gender"
+                           th:classappend="${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'female' : (${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male')} ? 'male' : '')"
+                           th:text="'#' + ${rankByGender} + ' ' + ${genders.get(artist.genderId)}" 
+                           th:title="'Rank #' + ${rankByGender} + ' among ' + ${genders.get(artist.genderId)} + ' artists'"></a>
+                        
+                        <!-- Genre Rank -->
+                        <a th:if="${rankByGenre != null and artist.genreId != null}" 
+                           th:href="@{/graphs(filterType='genre',filterId=${artist.genreId},filterName=${genres.get(artist.genreId)})}"
+                           class="winning-chip rank-chip genre" 
+                           th:text="'#' + ${rankByGenre} + ' ' + ${genres.get(artist.genreId)}" 
+                           th:title="'Rank #' + ${rankByGenre} + ' among ' + ${genres.get(artist.genreId)} + ' artists'"></a>
+                        
+                        <!-- Subgenre Rank -->
+                        <a th:if="${rankBySubgenre != null and artist.subgenreId != null}" 
+                           th:href="@{/graphs(filterType='subgenre',filterId=${artist.subgenreId},filterName=${subgenres.get(artist.subgenreId)})}"
+                           class="winning-chip rank-chip subgenre" 
+                           th:text="'#' + ${rankBySubgenre} + ' ' + ${subgenres.get(artist.subgenreId)}" 
+                           th:title="'Rank #' + ${rankBySubgenre} + ' among ' + ${subgenres.get(artist.subgenreId)} + ' artists'"></a>
+                        
+                        <!-- Ethnicity Rank -->
+                        <a th:if="${rankByEthnicity != null and artist.ethnicityId != null}" 
+                           th:href="@{/graphs(filterType='ethnicity',filterId=${artist.ethnicityId},filterName=${ethnicities.get(artist.ethnicityId)})}"
+                           class="winning-chip rank-chip ethnicity" 
+                           th:text="'#' + ${rankByEthnicity} + ' ' + ${ethnicities.get(artist.ethnicityId)}" 
+                           th:title="'Rank #' + ${rankByEthnicity} + ' among ' + ${ethnicities.get(artist.ethnicityId)} + ' artists'"></a>
+                        
+                        <!-- Language Rank -->
+                        <a th:if="${rankByLanguage != null and artist.languageId != null}" 
+                           th:href="@{/graphs(filterType='language',filterId=${artist.languageId},filterName=${languages.get(artist.languageId)})}"
+                           class="winning-chip rank-chip language" 
+                           th:text="'#' + ${rankByLanguage} + ' ' + ${languages.get(artist.languageId)}" 
+                           th:title="'Rank #' + ${rankByLanguage} + ' among ' + ${languages.get(artist.languageId)} + ' artists'"></a>
+                        
+                        <!-- Country Rank -->
+                        <a th:if="${rankByCountry != null and artist.country != null}" 
+                           th:href="@{/graphs(country=${artist.country},countryMode='includes')}"
+                           class="winning-chip rank-chip country" 
+                           th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
+                           th:title="'Rank #' + ${rankByCountry} + ' among ' + ${artist.country} + ' artists'"></a>
+                        
+                        <!-- Year Ranks (only if <= 100) -->
+                        <a th:each="yearEntry : ${ranksByYear}" 
+                           th:if="${yearEntry.value != null and yearEntry.value <= 100}"
+                           th:href="@{/graphs(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31')}"
+                           class="winning-chip rank-chip year-rank" 
+                           th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 
+                           th:title="'Rank #' + ${yearEntry.value} + ' most listened artist in year ' + ${yearEntry.key}"></a>
                     </div>
                 </div>
             </div>
@@ -719,6 +776,7 @@
                             <table class="table js-sortable">
                                 <thead>
                                     <tr>
+                                        <th class="cover-col">Cover</th>
                                         <th>Name</th>
                                         <th class="numeric">Peak</th>
                                         <th class="numeric">Wks@Peak</th>
@@ -730,6 +788,12 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${albumChartHistory}">
+                                        <td class="cover-col">
+                                            <div style="cursor:pointer;" th:onclick="|openImageModal('/albums/' + ${entry.id} + '/image')| " th:title="${entry.name}">
+                                                <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                                <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
+                                            </div>
+                                        </td>
                                         <td>
                                             <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
                                         </td>
@@ -771,6 +835,7 @@
                             <table class="table js-sortable">
                                 <thead>
                                     <tr>
+                                        <th class="cover-col">Cover</th>
                                         <th>Name</th>
                                         <th class="numeric">Peak</th>
                                         <th class="numeric">Wks@Peak</th>
@@ -782,6 +847,38 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${songChartHistory}">
+                                        <td class="cover-col">
+                                            <div th:title="${entry.name}" style="cursor: pointer;">
+                                                <!-- If song has image - show it -->
+                                                <div th:if="${entry.hasImage}" class="hover-image-container" style="width:50px;height:50px;">
+                                                    <!-- Show album by default if it exists -->
+                                                    <img th:if="${entry.albumId != null}"
+                                                         th:src="@{'/albums/' + ${entry.albumId} + '/image'}" 
+                                                         th:alt="${entry.name}"
+                                                         th:onclick="|openImageModal('/songs/' + ${entry.id} + '/image')|"
+                                                         class="album-image-default clickable-image"
+                                                         onerror="this.style.display='none';"
+                                                         style="border-radius:4px;">
+                                                    <!-- Show song image on hover or if no album -->
+                                                    <img th:src="@{'/songs/' + ${entry.id} + '/image'}" 
+                                                         th:alt="${entry.name}"
+                                                         th:onclick="|openImageModal('/songs/' + ${entry.id} + '/image')|"
+                                                         th:class="${entry.albumId != null} ? 'song-image-hover clickable-image' : 'clickable-image'"
+                                                         style="border-radius:4px;">
+                                                </div>
+                                                <!-- If song doesn't have image but has album - show album image -->
+                                                <img th:if="${!entry.hasImage and entry.albumId != null}" 
+                                                     th:src="@{'/albums/' + ${entry.albumId} + '/image'}" 
+                                                     th:alt="${entry.name}"
+                                                     th:onclick="|openImageModal('/albums/' + ${entry.albumId} + '/image')|"
+                                                     class="inherited-cover clickable-image"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                                     style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                                <!-- Placeholder if no images -->
+                                                <div th:if="${!entry.hasImage and entry.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
+                                                <div th:if="${!entry.hasImage and entry.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
+                                            </div>
+                                        </td>
                                         <td>
                                             <a th:href="@{'/songs/' + ${entry.id}}" th:text="${entry.name}">Song Name</a>
                                         </td>
@@ -1811,6 +1908,77 @@
             }
             window.location.href = url.toString();
         }
+        
+        // Chips expandable modal functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const chipsContainer = document.querySelector('.chips-expandable');
+            if (!chipsContainer) return;
+            
+            // Check if content is overflowing
+            function checkOverflow() {
+                if (chipsContainer.scrollHeight > chipsContainer.clientHeight) {
+                    chipsContainer.classList.add('has-overflow');
+                    chipsContainer.style.cursor = 'pointer';
+                } else {
+                    chipsContainer.classList.remove('has-overflow');
+                    chipsContainer.style.cursor = 'default';
+                }
+            }
+            
+            checkOverflow();
+            window.addEventListener('resize', checkOverflow);
+            
+            // Click to show modal
+            chipsContainer.addEventListener('click', function(e) {
+                if (!chipsContainer.classList.contains('has-overflow')) return;
+                
+                // Create modal
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
+                
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = 'background:#1a1a1a;border-radius:12px;padding:32px;max-width:800px;max-height:80vh;overflow-y:auto;position:relative;border:1px solid #333;';
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.innerHTML = '×';
+                closeBtn.style.cssText = 'position:absolute;top:12px;right:16px;background:none;border:none;color:#999;font-size:32px;cursor:pointer;padding:0;width:32px;height:32px;line-height:32px;';
+                closeBtn.onmouseover = () => closeBtn.style.color = '#fff';
+                closeBtn.onmouseout = () => closeBtn.style.color = '#999';
+                closeBtn.onclick = () => document.body.removeChild(modal);
+                
+                const title = document.createElement('h3');
+                title.textContent = 'All Rankings';
+                title.style.cssText = 'margin:0 0 24px 0;color:#fff;font-size:20px;';
+                
+                const chipsClone = chipsContainer.cloneNode(true);
+                chipsClone.classList.remove('chips-expandable', 'has-overflow');
+                chipsClone.style.cssText = 'max-height:none;overflow:visible;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
+                chipsClone.style.cursor = 'default';
+                
+                modalContent.appendChild(closeBtn);
+                modalContent.appendChild(title);
+                modalContent.appendChild(chipsClone);
+                modal.appendChild(modalContent);
+                
+                // Close on background click
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+                
+                // Close on ESC key
+                const escHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        document.body.removeChild(modal);
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+                
+                document.body.appendChild(modal);
+            });
+        });
     </script>
 </body>
 </html>

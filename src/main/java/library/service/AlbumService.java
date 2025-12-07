@@ -1001,4 +1001,266 @@ public class AlbumService {
             return dto;
         }, albumId);
     }
+    
+    // ============= RANKING METHODS =============
+    
+    /**
+     * Get all rankings for an album in a single query (optimized)
+     * Returns a Map with keys: "gender", "genre", "subgenre", "ethnicity", "language", "country"
+     */
+    public java.util.Map<String, Integer> getAllAlbumRankings(int albumId) {
+        String sql = """
+            WITH album_play_counts AS (
+                SELECT alb.id, 
+                       ar.gender_id,
+                       COALESCE(alb.override_genre_id, ar.genre_id) as effective_genre_id,
+                       COALESCE(alb.override_subgenre_id, ar.subgenre_id) as effective_subgenre_id,
+                       ar.ethnicity_id,
+                       COALESCE(alb.override_language_id, ar.language_id) as effective_language_id,
+                       ar.country,
+                       COALESCE(COUNT(sc.id), 0) as play_count
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY alb.id, ar.gender_id, effective_genre_id, effective_subgenre_id, 
+                         ar.ethnicity_id, effective_language_id, ar.country
+            ),
+            ranked_albums AS (
+                SELECT id,
+                       gender_id,
+                       effective_genre_id,
+                       effective_subgenre_id,
+                       ethnicity_id,
+                       effective_language_id,
+                       country,
+                       play_count,
+                       CASE WHEN gender_id IS NOT NULL 
+                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC) 
+                            END as gender_rank,
+                       CASE WHEN effective_genre_id IS NOT NULL 
+                            THEN ROW_NUMBER() OVER (PARTITION BY effective_genre_id ORDER BY play_count DESC) 
+                            END as genre_rank,
+                       CASE WHEN effective_subgenre_id IS NOT NULL 
+                            THEN ROW_NUMBER() OVER (PARTITION BY effective_subgenre_id ORDER BY play_count DESC) 
+                            END as subgenre_rank,
+                       CASE WHEN ethnicity_id IS NOT NULL 
+                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC) 
+                            END as ethnicity_rank,
+                       CASE WHEN effective_language_id IS NOT NULL 
+                            THEN ROW_NUMBER() OVER (PARTITION BY effective_language_id ORDER BY play_count DESC) 
+                            END as language_rank,
+                       CASE WHEN country IS NOT NULL 
+                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC) 
+                            END as country_rank
+                FROM album_play_counts
+            )
+            SELECT gender_rank, genre_rank, subgenre_rank, ethnicity_rank, language_rank, country_rank
+            FROM ranked_albums
+            WHERE id = ?
+            """;
+        
+        java.util.Map<String, Integer> rankings = new java.util.HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            Integer genderRank = (Integer) rs.getObject("gender_rank");
+            Integer genreRank = (Integer) rs.getObject("genre_rank");
+            Integer subgenreRank = (Integer) rs.getObject("subgenre_rank");
+            Integer ethnicityRank = (Integer) rs.getObject("ethnicity_rank");
+            Integer languageRank = (Integer) rs.getObject("language_rank");
+            Integer countryRank = (Integer) rs.getObject("country_rank");
+            
+            if (genderRank != null) rankings.put("gender", genderRank);
+            if (genreRank != null) rankings.put("genre", genreRank);
+            if (subgenreRank != null) rankings.put("subgenre", subgenreRank);
+            if (ethnicityRank != null) rankings.put("ethnicity", ethnicityRank);
+            if (languageRank != null) rankings.put("language", languageRank);
+            if (countryRank != null) rankings.put("country", countryRank);
+        }, albumId);
+        
+        return rankings;
+    }
+    
+    /**
+     * Get album rank by gender (position within same artist gender based on play count)
+     * @deprecated Use getAllAlbumRankings() instead for better performance
+     */
+    @Deprecated
+    public Integer getAlbumRankByGender(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (PARTITION BY ar.gender_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE ar.gender_id IS NOT NULL
+                GROUP BY alb.id, ar.gender_id
+            ) ranked
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get album rank by genre (position within same genre based on play count, considering overrides)
+     */
+    public Integer getAlbumRankByGenre(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (PARTITION BY COALESCE(alb.override_genre_id, ar.genre_id) 
+                                          ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE COALESCE(alb.override_genre_id, ar.genre_id) IS NOT NULL
+                GROUP BY alb.id, COALESCE(alb.override_genre_id, ar.genre_id)
+            ) ranked
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get album rank by subgenre (position within same subgenre based on play count, considering overrides)
+     */
+    public Integer getAlbumRankBySubgenre(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (PARTITION BY COALESCE(alb.override_subgenre_id, ar.subgenre_id) 
+                                          ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE COALESCE(alb.override_subgenre_id, ar.subgenre_id) IS NOT NULL
+                GROUP BY alb.id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)
+            ) ranked
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get album rank by ethnicity (position within same artist ethnicity based on play count)
+     */
+    public Integer getAlbumRankByEthnicity(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (PARTITION BY ar.ethnicity_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE ar.ethnicity_id IS NOT NULL
+                GROUP BY alb.id, ar.ethnicity_id
+            ) ranked
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get album rank by language (position within same language based on play count, considering overrides)
+     */
+    public Integer getAlbumRankByLanguage(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (PARTITION BY COALESCE(alb.override_language_id, ar.language_id) 
+                                          ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE COALESCE(alb.override_language_id, ar.language_id) IS NOT NULL
+                GROUP BY alb.id, COALESCE(alb.override_language_id, ar.language_id)
+            ) ranked
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get album rank by country (position within same artist country based on play count)
+     */
+    public Integer getAlbumRankByCountry(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE ar.country IS NOT NULL
+                GROUP BY alb.id, ar.country
+            ) ranked
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get album ranks by year (position within albums that had plays in each year)
+     * Returns a map of year -> rank
+     */
+    public Map<Integer, Integer> getAlbumRanksByYear(int albumId) {
+        String sql = """
+            SELECT year, rank FROM (
+                SELECT alb.id, 
+                       strftime('%Y', sc.scrobble_date) as year,
+                       ROW_NUMBER() OVER (PARTITION BY strftime('%Y', sc.scrobble_date) ORDER BY COUNT(sc.id) DESC) as rank
+                FROM Album alb
+                INNER JOIN Song s ON s.album_id = alb.id
+                INNER JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY alb.id, strftime('%Y', sc.scrobble_date)
+            ) ranked
+            WHERE id = ?
+            ORDER BY year
+            """;
+        
+        java.util.Map<Integer, Integer> result = new java.util.LinkedHashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            String yearStr = rs.getString("year");
+            if (yearStr != null) {
+                result.put(Integer.parseInt(yearStr), rs.getInt("rank"));
+            }
+        }, albumId);
+        return result;
+    }
 }

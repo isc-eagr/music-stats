@@ -374,6 +374,16 @@ public class ArtistController {
         // Get gender name for bar color
         model.addAttribute("artistGenderName", artistService.getArtistGenderName(id));
         
+        // Add ranking chips data - optimized single query
+        java.util.Map<String, Integer> rankings = artistService.getAllArtistRankings(id);
+        model.addAttribute("rankByGender", rankings.get("gender"));
+        model.addAttribute("rankByGenre", rankings.get("genre"));
+        model.addAttribute("rankBySubgenre", rankings.get("subgenre"));
+        model.addAttribute("rankByEthnicity", rankings.get("ethnicity"));
+        model.addAttribute("rankByLanguage", rankings.get("language"));
+        model.addAttribute("rankByCountry", rankings.get("country"));
+        model.addAttribute("ranksByYear", artistService.getArtistRanksByYear(id));
+        
         return "artists/detail";
     }
     

@@ -4,8 +4,3 @@
 .detail-sidebar .item-image-container {
     aspect-ratio: 2/3;
 }
-
-/* Adjust right section alignment for artist detail page */
-.detail-right-section {
-    margin-top: 64px; /* Align with image top (accounting for name overlay) */
-}

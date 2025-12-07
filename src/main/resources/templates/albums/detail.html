@@ -6,6 +6,7 @@
     <title th:text="${album.name} + ' - Music Stats'">Album Detail</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/album-detail.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
@@ -84,25 +85,74 @@
                     </div>
                 </div>
                 
-                <!-- Seasonal/Yearly Chart Chips -->
-                <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" 
-                     style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; justify-content: center;">
-                    <!-- Yearly entries first -->
+                <!-- All Chips - Flowing Together -->
+                <div class="winning-chips" style="margin-top: 15px; padding: 0 10px;">
+                    <!-- Gender Rank -->
+                    <a th:if="${rankByGender != null and album.artistId != null and artist != null and artist.genderId != null}" 
+                       th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
+                       class="winning-chip rank-chip gender"
+                       th:classappend="${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'female' : (${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male')} ? 'male' : '')"
+                       th:text="'#' + ${rankByGender} + ' ' + ${genders.get(artist.genderId)}" 
+                       th:title="'Rank #' + ${rankByGender} + ' among albums by ' + ${genders.get(artist.genderId)} + ' artists'"></a>
+                    
+                    <!-- Genre Rank -->
+                    <a th:if="${rankByGenre != null and (album.overrideGenreId != null or (artist != null and artist.genreId != null))}" 
+                       th:href="@{/graphs(filterType='genre',filterId=${album.overrideGenreId != null ? album.overrideGenreId : artist.genreId},filterName=${genres.get(album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)})}"
+                       class="winning-chip rank-chip genre" 
+                       th:text="'#' + ${rankByGenre} + ' ' + ${genres.get(album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)}" 
+                       th:title="'Rank #' + ${rankByGenre} + ' among ' + ${genres.get(album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)} + ' albums'"></a>
+                    
+                    <!-- Subgenre Rank -->
+                    <a th:if="${rankBySubgenre != null and (album.overrideSubgenreId != null or (artist != null and artist.subgenreId != null))}" 
+                       th:href="@{/graphs(filterType='subgenre',filterId=${album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId},filterName=${subgenres.get(album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)})}"
+                       class="winning-chip rank-chip subgenre" 
+                       th:text="'#' + ${rankBySubgenre} + ' ' + ${subgenres.get(album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)}" 
+                       th:title="'Rank #' + ${rankBySubgenre} + ' among ' + ${subgenres.get(album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)} + ' albums'"></a>
+                    
+                    <!-- Ethnicity Rank -->
+                    <a th:if="${rankByEthnicity != null and artist != null and artist.ethnicityId != null}" 
+                       th:href="@{/graphs(filterType='ethnicity',filterId=${artist.ethnicityId},filterName=${ethnicities.get(artist.ethnicityId)})}"
+                       class="winning-chip rank-chip ethnicity" 
+                       th:text="'#' + ${rankByEthnicity} + ' ' + ${ethnicities.get(artist.ethnicityId)}" 
+                       th:title="'Rank #' + ${rankByEthnicity} + ' among albums by ' + ${ethnicities.get(artist.ethnicityId)} + ' artists'"></a>
+                    
+                    <!-- Language Rank -->
+                    <a th:if="${rankByLanguage != null and (album.overrideLanguageId != null or (artist != null and artist.languageId != null))}" 
+                       th:href="@{/graphs(filterType='language',filterId=${album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId},filterName=${languages.get(album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)})}"
+                       class="winning-chip rank-chip language" 
+                       th:text="'#' + ${rankByLanguage} + ' ' + ${languages.get(album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)}" 
+                       th:title="'#' + ${rankByLanguage} + ' among ' + ${languages.get(album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)} + ' albums'"></a>
+                    
+                    <!-- Country Rank -->
+                    <a th:if="${rankByCountry != null and artist != null and artist.country != null}" 
+                       th:href="@{/graphs(country=${artist.country},countryMode='includes')}"
+                       class="winning-chip rank-chip country" 
+                       th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
+                       th:title="'Rank #' + ${rankByCountry} + ' among albums by ' + ${artist.country} + ' artists'"></a>
+                    
+                    <!-- Year Ranks (only if <= 100) -->
+                    <a th:each="yearEntry : ${ranksByYear}" 
+                       th:if="${yearEntry.value != null and yearEntry.value <= 100}"
+                       th:href="@{/graphs(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31')}"
+                       class="winning-chip rank-chip year-rank" 
+                       th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 
+                       th:title="'Rank #' + ${yearEntry.value} + ' most listened album in year ' + ${yearEntry.key}"></a>
+                    
+                    <!-- Yearly Chart Placements -->
                     <a th:each="entry : ${yearlyChartHistory}" 
                        th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                       style="background: #3a2e1e; color: #f59e0b; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; text-decoration: none; white-space: nowrap;"
-                       th:text="${entry.displayName}">
-                        #1 in 2024
-                    </a>
-                    <!-- Seasonal entries -->
+                       class="winning-chip chart-chip yearly-chart"
+                       th:text="${entry.displayName}"></a>
+                    
+                    <!-- Seasonal Chart Placements -->
                     <a th:each="entry : ${seasonalChartHistory}" 
                        th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
-                       style="background: #134e4a; color: #5eead4; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; text-decoration: none; white-space: nowrap;">
+                       class="winning-chip chart-chip seasonal-chart">
                         <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
                         <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
                         <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
                         <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
-                        <span th:text="${entry.displayName}">#1 in Spring 2025</span>
+                        <span th:text="${entry.displayName}"></span>
                     </a>
                 </div>
             </div>
@@ -378,7 +428,7 @@
                         <div th:each="artist : ${featuredArtistCards}" 
                              class="featured-artist-card"
                              th:title="${artist.songNamesFormatted}"
-                             th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">>
+                             th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                             <a th:href="@{'/artists/' + ${artist.id}}" class="featured-artist-image item-image-container">
                                 <img th:if="${artist.hasImage}"
                                      th:src="@{'/artists/' + ${artist.id} + '/image'}"
@@ -541,18 +591,18 @@
                 <!-- Album Seasonal/Yearly Charts Section -->
                 <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                     <h2 class="section-title">📊 Album Seasonal/Yearly Charts</h2>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div class="winning-chips" style="justify-content: flex-start;">
                         <!-- Yearly entries first -->
                         <a th:each="entry : ${yearlyChartHistory}" 
                            th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                           style="background: #3a2e1e; color: #f59e0b; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;"
+                           class="winning-chip chart-chip yearly-chart"
                            th:text="${entry.displayName}">
                             #1 in 2024
                         </a>
                         <!-- Seasonal entries second -->
                         <a th:each="entry : ${seasonalChartHistory}" 
                            th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
-                           style="background: #134e4a; color: #5eead4; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; text-decoration: none;">
+                           class="winning-chip chart-chip seasonal-chart">
                             <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
                             <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
                             <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
