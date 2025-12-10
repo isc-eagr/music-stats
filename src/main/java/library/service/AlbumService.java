@@ -43,6 +43,7 @@ public class AlbumService {
                                          String listenedDateFrom, String listenedDateTo,
                                          String organized, String hasImage, String hasFeaturedArtists, String isBand,
                                          Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
+                                         Integer lengthMin, Integer lengthMax, String lengthMode,
                                          String sortBy, String sortDir, int page, int perPage) {
         int offset = page * perPage;
         
@@ -59,6 +60,7 @@ public class AlbumService {
                 listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax,
+                lengthMin, lengthMax, lengthMode,
                 sortBy, sortDir, perPage, offset
         );
         
@@ -126,7 +128,8 @@ public class AlbumService {
                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                            String listenedDateFrom, String listenedDateTo,
                            String organized, String hasImage, String hasFeaturedArtists, String isBand,
-                           Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax) {
+                           Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
+                           Integer lengthMin, Integer lengthMax, String lengthMode) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -138,7 +141,8 @@ public class AlbumService {
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand,
-                playCountMin, playCountMax, songCountMin, songCountMax);
+                playCountMin, playCountMax, songCountMin, songCountMax,
+                lengthMin, lengthMax, lengthMode);
     }
     
     public Optional<Album> getAlbumById(Integer id) {
@@ -195,6 +199,28 @@ public class AlbumService {
         }, id);
         
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    /**
+     * Find an album release_date (YYYY-MM-DD) by album name and artist name.
+     * Returns the date string (first 10 chars) or null if not found.
+     */
+    public String findAlbumReleaseDateByNameAndArtist(String albumName, String artistName) {
+        if (albumName == null || albumName.trim().isEmpty() || artistName == null || artistName.trim().isEmpty()) {
+            return null;
+        }
+
+        String sql = "SELECT a.release_date FROM Album a INNER JOIN Artist ar ON a.artist_id = ar.id WHERE lower(a.name) = lower(?) AND lower(ar.name) = lower(?) LIMIT 1";
+        try {
+            String releaseDate = jdbcTemplate.queryForObject(sql, String.class, albumName.trim(), artistName.trim());
+            if (releaseDate == null) return null;
+            // Normalize to YYYY-MM-DD if possible
+            if (releaseDate.contains("T")) releaseDate = releaseDate.replace('T', ' ');
+            if (releaseDate.length() >= 10) return releaseDate.substring(0, 10);
+            return releaseDate;
+        } catch (Exception e) {
+            return null;
+        }
     }
     
     public Album saveAlbum(Album album) {

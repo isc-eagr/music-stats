@@ -993,6 +993,43 @@
                         </div>
                     </div>
                     
+                    <!-- Length Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Length
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="entity-selector" style="margin-bottom: 10px;">
+                                <label style="margin-right: 12px;"><input type="radio" name="lengthEntity" value="album" th:checked="${lengthEntity == 'album'}"> Album</label>
+                                <label><input type="radio" name="lengthEntity" value="song" th:checked="${lengthEntity == null || lengthEntity == 'song'}"> Song</label>
+                            </div>
+                            <div class="filter-modifiers">
+                                <button type="button" class="filter-modifier" data-filter="length" data-mode="range"
+                                        th:classappend="${lengthMode == 'range' || lengthMode == null} ? 'active' : ''">Range</button>
+                                <button type="button" class="filter-modifier" data-filter="length" data-mode="lt"
+                                        th:classappend="${lengthMode == 'lt'} ? 'active' : ''">Less Than</button>
+                                <button type="button" class="filter-modifier" data-filter="length" data-mode="gt"
+                                        th:classappend="${lengthMode == 'gt'} ? 'active' : ''">Greater Than</button>
+                                <button type="button" class="filter-modifier" data-filter="length" data-mode="zero"
+                                        th:classappend="${lengthMode == 'zero'} ? 'active' : ''">Zero/Null</button>
+                                <button type="button" class="filter-modifier" data-filter="length" data-mode="nonzero"
+                                        th:classappend="${lengthMode == 'nonzero'} ? 'active' : ''">Non-Zero</button>
+                            </div>
+                            <input type="hidden" name="lengthMode" id="lengthModeInput" th:value="${lengthMode}" />
+                            <div class="filter-group" id="lengthInputs">
+                                <label class="field"><span>Min (seconds)</span>
+                                    <input type="number" name="lengthMin" th:value="${lengthMin}" placeholder="0" min="0" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Max (seconds)</span>
+                                    <input type="number" name="lengthMax" th:value="${lengthMax}" placeholder="∞" min="0" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Play Count Filter -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -1243,6 +1280,24 @@
                                 <span th:if="${playCountMin != null}" th:text="${playCountMin}"></span>
                                 <span th:if="${playCountMin != null && playCountMax != null}"> - </span>
                                 <span th:if="${playCountMax != null}" th:text="${playCountMax}"></span>
+                            </span>
+                        </span>
+                        
+                        <!-- Length filter chip -->
+                        <span class="filter-chip" th:if="${lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero'))}">
+                            <span class="filter-chip-label" th:text="'Length (' + (lengthEntity != null ? lengthEntity : 'song') + ')'">Length</span>
+                            <span class="filter-chip-value">
+                                <span th:if="${lengthMode == 'zero'}">Zero/Null</span>
+                                <span th:if="${lengthMode == 'nonzero'}">Non-Zero</span>
+                                <span th:if="${lengthMode == 'lt' and lengthMax != null}" th:text="'&lt; ' + ${lengthMax} + 's'"></span>
+                                <span th:if="${lengthMode == 'gt' and lengthMin != null}" th:text="'&gt; ' + ${lengthMin} + 's'"></span>
+                                <span th:if="${lengthMode != 'zero' and lengthMode != 'nonzero' and lengthMode != 'lt' and lengthMode != 'gt'}">
+                                    <span th:if="${lengthMin != null}" th:text="${lengthMin} + 's'"></span>
+                                    <span th:if="${lengthMin == null}">0s</span>
+                                    <span th:if="${lengthMax != null}"> - </span>
+                                    <span th:if="${lengthMax != null}" th:text="${lengthMax} + 's'"></span>
+                                    <span th:if="${lengthMax == null}"> - ∞</span>
+                                </span>
                             </span>
                         </span>
                         

@@ -10,6 +10,7 @@ import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.SongService;
+import library.service.iTunesLibraryService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -29,12 +30,15 @@ public class SongController {
     private final ChartService chartService;
     private final ArtistService artistService;
     private final AlbumService albumService;
+    private final iTunesLibraryService iTunesLibraryService;
     
-    public SongController(SongService songService, ChartService chartService, ArtistService artistService, AlbumService albumService) {
+    public SongController(SongService songService, ChartService chartService, ArtistService artistService, 
+                         AlbumService albumService, iTunesLibraryService iTunesLibraryService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
         this.albumService = albumService;
+        this.iTunesLibraryService = iTunesLibraryService;
     }
     
     @InitBinder
@@ -118,6 +122,9 @@ public class SongController {
             @RequestParam(required = false) String isSingle,
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) Integer lengthMin,
+            @RequestParam(required = false) Integer lengthMax,
+            @RequestParam(required = false) String lengthMode,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -148,6 +155,7 @@ public class SongController {
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
+                lengthMin, lengthMax, lengthMode,
                 sortby, sortdir, page, perpage
         );
         
@@ -160,7 +168,8 @@ public class SongController {
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
-                playCountMin, playCountMax);
+                playCountMin, playCountMax,
+                lengthMin, lengthMax, lengthMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -198,6 +207,9 @@ public class SongController {
         model.addAttribute("selectedIsSingle", isSingle);
         model.addAttribute("playCountMin", playCountMin);
         model.addAttribute("playCountMax", playCountMax);
+        model.addAttribute("lengthMin", lengthMin);
+        model.addAttribute("lengthMax", lengthMax);
+        model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
         model.addAttribute("releaseDateTo", releaseDateTo);
@@ -282,6 +294,11 @@ public class SongController {
                       albumService.getAlbumById(song.get().getAlbumId()).orElse(null) : null;
         model.addAttribute("album", album);
         
+        // Add album release date for inheritance display
+        String albumReleaseDate = (album != null && album.getReleaseDateFormatted() != null) ? 
+                                  album.getReleaseDateFormatted() : null;
+        model.addAttribute("albumReleaseDate", albumReleaseDate);
+        
         // NEW: add song play count
         model.addAttribute("songPlayCount", songService.getPlayCountForSong(id));
         model.addAttribute("songVatitoPlayCount", songService.getVatitoPlayCountForSong(id));
@@ -314,6 +331,19 @@ public class SongController {
         model.addAttribute("effectiveLanguageName", s.getEffectiveLanguageId() != null ? languages.get(s.getEffectiveLanguageId()) : null);
         model.addAttribute("effectiveGenderName", s.getEffectiveGenderId() != null ? genders.get(s.getEffectiveGenderId()) : null);
         model.addAttribute("effectiveEthnicityName", s.getEffectiveEthnicityId() != null ? ethnicities.get(s.getEffectiveEthnicityId()) : null);
+        
+        // Add inherited value names (what would be used if no song override) for dropdown "Inherit" options
+        Integer inheritedGenreId = s.getAlbumGenreId() != null ? s.getAlbumGenreId() : s.getArtistGenreId();
+        Integer inheritedSubgenreId = s.getAlbumSubgenreId() != null ? s.getAlbumSubgenreId() : s.getArtistSubgenreId();
+        Integer inheritedLanguageId = s.getAlbumLanguageId() != null ? s.getAlbumLanguageId() : s.getArtistLanguageId();
+        Integer inheritedGenderId = s.getArtistGenderId();
+        Integer inheritedEthnicityId = s.getArtistEthnicityId();
+        
+        model.addAttribute("inheritedGenreName", inheritedGenreId != null ? genres.get(inheritedGenreId) : null);
+        model.addAttribute("inheritedSubgenreName", inheritedSubgenreId != null ? subgenres.get(inheritedSubgenreId) : null);
+        model.addAttribute("inheritedLanguageName", inheritedLanguageId != null ? languages.get(inheritedLanguageId) : null);
+        model.addAttribute("inheritedGenderName", inheritedGenderId != null ? genders.get(inheritedGenderId) : null);
+        model.addAttribute("inheritedEthnicityName", inheritedEthnicityId != null ? ethnicities.get(inheritedEthnicityId) : null);
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
@@ -411,6 +441,135 @@ public class SongController {
             e.printStackTrace();
             return "error";
         }
+    }
+    
+    /**
+     * Fetch release date and song length from iTunes XML for a specific song.
+     * Returns JSON with releaseDate (YYYY-MM-DD) and lengthSeconds.
+     */
+    @PostMapping("/{id}/fetch-itunes-data")
+    @ResponseBody
+    public Map<String, Object> fetchItunesData(@PathVariable Integer id) {
+        Map<String, Object> response = new java.util.HashMap<>();
+        
+        try {
+            // Get the song details
+            Optional<Song> songOpt = songService.getSongById(id);
+            if (!songOpt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "Song not found");
+                return response;
+            }
+            
+            Song song = songOpt.get();
+            
+            // Get artist and album names
+            String artistName = null;
+            String albumName = null;
+            
+            if (song.getArtistId() != null) {
+                Optional<Artist> artistOpt = artistService.getArtistById(song.getArtistId());
+                if (artistOpt.isPresent()) {
+                    artistName = artistOpt.get().getName();
+                }
+            }
+            
+            if (song.getAlbumId() != null) {
+                Optional<Album> albumOpt = albumService.getAlbumById(song.getAlbumId());
+                if (albumOpt.isPresent()) {
+                    albumName = albumOpt.get().getName();
+                }
+            }
+            
+            // Look up in iTunes XML
+            iTunesLibraryService.iTunesTrackData trackData = 
+                iTunesLibraryService.findTrackData(song.getName(), artistName, albumName);
+            
+            if (trackData != null) {
+                response.put("success", true);
+                response.put("releaseDate", trackData.releaseDate);
+                response.put("lengthSeconds", trackData.lengthSeconds);
+                
+                // Format length as mm:ss for display
+                if (trackData.lengthSeconds != null) {
+                    int minutes = trackData.lengthSeconds / 60;
+                    int seconds = trackData.lengthSeconds % 60;
+                    response.put("lengthFormatted", String.format("%d:%02d", minutes, seconds));
+                }
+            } else {
+                response.put("success", false);
+                response.put("message", "Song not found in iTunes library");
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "Error: " + e.getMessage());
+        }
+        
+        return response;
+    }
+
+    /**
+     * Fetch release date and song length from iTunes XML by artist/album/song names.
+     * Accepts JSON body: { "songName": "...", "artistName": "...", "albumName": "..." }
+     */
+    @PostMapping("/fetch-itunes-by-fields")
+    @ResponseBody
+    public Map<String, Object> fetchItunesByFields(@RequestBody Map<String, String> payload) {
+        Map<String, Object> response = new java.util.HashMap<>();
+
+        try {
+            String songName = payload.get("songName");
+            String artistName = payload.get("artistName");
+            String albumName = payload.get("albumName");
+
+            if ((songName == null || songName.trim().isEmpty()) && (artistName == null || artistName.trim().isEmpty())) {
+                response.put("success", false);
+                response.put("message", "Missing song or artist name");
+                return response;
+            }
+
+            iTunesLibraryService.iTunesTrackData trackData =
+                    iTunesLibraryService.findTrackData(songName, artistName, albumName);
+
+            if (trackData != null) {
+                // Determine whether we should populate the song's release date
+                String albumReleaseDate = null;
+                if (albumName != null && artistName != null && !albumName.trim().isEmpty() && !artistName.trim().isEmpty()) {
+                    albumReleaseDate = albumService.findAlbumReleaseDateByNameAndArtist(albumName, artistName);
+                }
+
+                boolean populateReleaseDate = false;
+                if (albumReleaseDate == null || albumReleaseDate.trim().isEmpty()) {
+                    // No album release date -> safe to populate
+                    populateReleaseDate = true;
+                } else if (trackData.releaseDate != null && !trackData.releaseDate.equals(albumReleaseDate)) {
+                    // Only populate if different from album release date
+                    populateReleaseDate = true;
+                }
+
+                response.put("success", true);
+                response.put("releaseDate", trackData.releaseDate);
+                response.put("lengthSeconds", trackData.lengthSeconds);
+                response.put("populateReleaseDate", populateReleaseDate);
+                if (trackData.lengthSeconds != null) {
+                    int minutes = trackData.lengthSeconds / 60;
+                    int seconds = trackData.lengthSeconds % 60;
+                    response.put("lengthFormatted", String.format("%d:%02d", minutes, seconds));
+                }
+            } else {
+                response.put("success", false);
+                response.put("message", "Song not found in iTunes library");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "Error: " + e.getMessage());
+        }
+
+        return response;
     }
     
     @PostMapping("/create")
@@ -1246,6 +1405,7 @@ public class SongController {
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
+                null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
                 sortby, sortdir, 0, limit
         );
         

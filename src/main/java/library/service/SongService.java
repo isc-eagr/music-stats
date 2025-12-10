@@ -45,6 +45,7 @@ public class SongService {
                                        String listenedDateFrom, String listenedDateTo,
                                        String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                                        Integer playCountMin, Integer playCountMax,
+                                       Integer lengthMin, Integer lengthMax, String lengthMode,
                                        String sortBy, String sortDirection, int page, int perPage) {
         int offset = page * perPage;
         
@@ -61,6 +62,7 @@ public class SongService {
                 listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
+                lengthMin, lengthMax, lengthMode,
                 sortBy, sortDirection, perPage, offset
         );
         
@@ -137,7 +139,8 @@ public class SongService {
                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                           String listenedDateFrom, String listenedDateTo,
                           String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
-                          Integer playCountMin, Integer playCountMax) {
+                          Integer playCountMin, Integer playCountMax,
+                          Integer lengthMin, Integer lengthMax, String lengthMode) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -149,7 +152,8 @@ public class SongService {
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
-                playCountMin, playCountMax);
+                playCountMin, playCountMax,
+                lengthMin, lengthMax, lengthMode);
     }
     
     public Optional<Song> getSongById(Integer id) {

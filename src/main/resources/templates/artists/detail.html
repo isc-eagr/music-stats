@@ -266,6 +266,7 @@
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
+                                    <label class="field-label label-view">Is Band</label>
                                     <span class="attribute-text" data-field="isBand" th:text="${artist.isBand != null and artist.isBand ? 'Yes' : 'No'}">No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" id="isBand" name="isBand" th:field="*{isBand}" />
@@ -274,6 +275,7 @@
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
+                                    <label>Organized</label>
                                     <span class="attribute-text" data-field="organized" th:text="${artist.organized != null and artist.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />

@@ -112,6 +112,9 @@ public class AlbumController {
             @RequestParam(required = false) Integer playCountMax,
             @RequestParam(required = false) Integer songCountMin,
             @RequestParam(required = false) Integer songCountMax,
+            @RequestParam(required = false) Integer lengthMin,
+            @RequestParam(required = false) Integer lengthMax,
+            @RequestParam(required = false) String lengthMode,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -142,6 +145,7 @@ public class AlbumController {
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax,
+                lengthMin, lengthMax, lengthMode,
                 sortby, sortdir, page, perpage
         );
         
@@ -154,7 +158,8 @@ public class AlbumController {
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand,
-                playCountMin, playCountMax, songCountMin, songCountMax);
+                playCountMin, playCountMax, songCountMin, songCountMax,
+                lengthMin, lengthMax, lengthMode);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -192,6 +197,9 @@ public class AlbumController {
         model.addAttribute("playCountMax", playCountMax);
         model.addAttribute("songCountMin", songCountMin);
         model.addAttribute("songCountMax", songCountMax);
+        model.addAttribute("lengthMin", lengthMin);
+        model.addAttribute("lengthMax", lengthMax);
+        model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
         
         // Release date filter attributes
         model.addAttribute("releaseDate", releaseDate);
@@ -289,6 +297,11 @@ public class AlbumController {
         model.addAttribute("effectiveGenreName", a.getEffectiveGenreId() != null ? genres.get(a.getEffectiveGenreId()) : null);
         model.addAttribute("effectiveSubgenreName", a.getEffectiveSubgenreId() != null ? subgenres.get(a.getEffectiveSubgenreId()) : null);
         model.addAttribute("effectiveLanguageName", a.getEffectiveLanguageId() != null ? languages.get(a.getEffectiveLanguageId()) : null);
+        
+        // Add inherited value names (what would be used if no album override) for dropdown "Inherit" options
+        model.addAttribute("inheritedGenreName", a.getArtistGenreId() != null ? genres.get(a.getArtistGenreId()) : null);
+        model.addAttribute("inheritedSubgenreName", a.getArtistSubgenreId() != null ? subgenres.get(a.getArtistSubgenreId()) : null);
+        model.addAttribute("inheritedLanguageName", a.getArtistLanguageId() != null ? languages.get(a.getArtistLanguageId()) : null);
         
         // NEW: add album play count
         model.addAttribute("albumPlayCount", albumService.getPlayCountForAlbum(id));

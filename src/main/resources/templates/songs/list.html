@@ -510,6 +510,39 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Length Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Length
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="length" data-mode="range"
+                                                    th:classappend="${lengthMode == 'range' || lengthMode == null} ? 'active' : ''">Range</button>
+                                            <button type="button" class="filter-modifier" data-filter="length" data-mode="lt"
+                                                    th:classappend="${lengthMode == 'lt'} ? 'active' : ''">Less Than</button>
+                                            <button type="button" class="filter-modifier" data-filter="length" data-mode="gt"
+                                                    th:classappend="${lengthMode == 'gt'} ? 'active' : ''">Greater Than</button>
+                                            <button type="button" class="filter-modifier" data-filter="length" data-mode="zero"
+                                                    th:classappend="${lengthMode == 'zero'} ? 'active' : ''">Zero/Null</button>
+                                            <button type="button" class="filter-modifier" data-filter="length" data-mode="nonzero"
+                                                    th:classappend="${lengthMode == 'nonzero'} ? 'active' : ''">Non-Zero</button>
+                                        </div>
+                                        <input type="hidden" name="lengthMode" id="lengthModeInput" th:value="${lengthMode}" />
+                                        <div class="filter-group" id="lengthInputs">
+                                            <label class="field"><span>Min (seconds)</span>
+                                                <input type="number" name="lengthMin" th:value="${lengthMin}" placeholder="0" min="0" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Max (seconds)</span>
+                                                <input type="number" name="lengthMax" th:value="${lengthMax}" placeholder="∞" min="0" style="width: 100%;" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <!-- Listened Date Filter (for scrobbles) -->
                                 <div class="filter-item">
@@ -909,6 +942,25 @@
                 <button class="filter-chip-remove" onclick="removeFilter('playCountMin'); removeFilter('playCountMax');" type="button">×</button>
             </div>
             
+            <!-- Length filter chip -->
+            <div class="filter-chip" th:if="${lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero'))}">
+                <span class="filter-chip-label">
+                    ⏱️ Length:
+                    <span th:if="${lengthMode == 'zero'}">Zero/Null</span>
+                    <span th:if="${lengthMode == 'nonzero'}">Non-Zero</span>
+                    <span th:if="${lengthMode == 'lt' and lengthMax != null}" th:text="'&lt; ' + ${lengthMax} + 's'"></span>
+                    <span th:if="${lengthMode == 'gt' and lengthMin != null}" th:text="'&gt; ' + ${lengthMin} + 's'"></span>
+                    <span th:if="${lengthMode != 'zero' and lengthMode != 'nonzero' and lengthMode != 'lt' and lengthMode != 'gt'}">
+                        <span th:if="${lengthMin != null}" th:text="${lengthMin} + 's'"></span>
+                        <span th:if="${lengthMin == null}">0s</span>
+                        -
+                        <span th:if="${lengthMax != null}" th:text="${lengthMax} + 's'"></span>
+                        <span th:if="${lengthMax == null}">∞</span>
+                    </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('lengthMin'); removeFilter('lengthMax'); removeFilter('lengthMode');" type="button">×</button>
+            </div>
+            
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
                     th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or (selectedHasImage != null and !selectedHasImage.isEmpty()) or selectedHasFeaturedArtists != null or selectedIsBand != null or selectedIsSingle != null or playCountMin != null or playCountMax != null}">
                 Clear
@@ -961,6 +1013,9 @@
                              th:alt="${song.name}"
                              th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
                              class="song-image-hover clickable-image">
+                        <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
+                              class="length-overlay"
+                              th:text="${song.lengthFormatted}"></span>
                     </div>
                     
                     <!-- Case 2: Song has image but album doesn't - just show song image -->
@@ -992,7 +1047,7 @@
                             th:alt="${song.country}" />
                     </a>
                     
-                    <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
+                    <span th:if="${(song.hasImage and !song.albumHasImage) or (!song.hasImage and (song.albumId != null or song.albumId == null))} and ${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
                           class="length-overlay"
                           th:text="${song.lengthFormatted}"></span>
                 </div>
@@ -1723,6 +1778,9 @@
                 }
                 if (currentUrl.searchParams.has('releaseDate') || currentUrl.searchParams.has('releaseDateFrom')) {
                     chartsUrl.searchParams.set('releaseDateEntity', 'song');
+                }
+                if (currentUrl.searchParams.has('lengthMin') || currentUrl.searchParams.has('lengthMax') || currentUrl.searchParams.has('lengthMode')) {
+                    chartsUrl.searchParams.set('lengthEntity', 'song');
                 }
                 chartsLink.href = chartsUrl.toString();
             }

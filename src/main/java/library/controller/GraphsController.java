@@ -74,6 +74,11 @@ public class GraphsController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            // Length filter (with entity type: album, song)
+            @RequestParam(required = false) Integer lengthMin,
+            @RequestParam(required = false) Integer lengthMax,
+            @RequestParam(required = false) String lengthMode,
+            @RequestParam(required = false) String lengthEntity,
             // Play Count filter (with entity type: artist, album, song)
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
@@ -157,6 +162,12 @@ public class GraphsController {
         model.addAttribute("lastListenedDateTo", lastListenedDateTo);
         model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
         model.addAttribute("lastListenedDateEntity", lastListenedDateEntity != null ? lastListenedDateEntity : "song");
+        
+        // Length filter
+        model.addAttribute("lengthMin", lengthMin);
+        model.addAttribute("lengthMax", lengthMax);
+        model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
+        model.addAttribute("lengthEntity", lengthEntity != null ? lengthEntity : "song");
         
         // Play Count filter
         model.addAttribute("playCountMin", playCountMin);

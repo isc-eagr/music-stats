@@ -205,6 +205,9 @@
                     
                     <form method="post" th:action="@{'/songs/' + ${song.id}}" th:object="${song}" id="songForm">
                         <input type="hidden" id="artistId" name="artistId" th:field="*{artistId}" />
+                            <input type="hidden" id="songNameHidden" th:value="${song.name}" />
+                            <input type="hidden" id="artistNameHidden" th:value="${artistName}" />
+                            <input type="hidden" id="albumNameHidden" th:value="${albumName}" />
                         
                         <div class="form-section">
                             <div class="attributes-grid">
@@ -230,18 +233,30 @@
                                 
                                 <div class="form-group">
                                     <label for="releaseDate">Release Date</label>
-                                    <span class="attribute-text" data-field="releaseDate">
+                                    <span class="attribute-text" data-field="releaseDate"
+                                          th:classappend="${song.releaseDateFormatted != null ? '' : (albumReleaseDate != null ? 'attribute-inherited' : '')}">
                                         <th:block th:if="${song.releaseDateFormatted != null}" th:text="${song.releaseDateFormatted}"></th:block>
-                                        <th:block th:if="${song.releaseDateFormatted == null}">-</th:block>
+                                        <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate != null}" th:text="${albumReleaseDate}"></th:block>
+                                        <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate == null}">-</th:block>
                                     </span>
-                                    <input type="text" 
-                                           id="releaseDate" 
-                                           name="releaseDate" 
-                                           th:value="${song.releaseDateInput != null ? song.releaseDateInput : ''}" 
-                                           placeholder="dd/MM/yyyy"
-                                           pattern="\d{2}/\d{2}/\d{4}"
-                                           class="editable-input"
-                                           style="display:none;" />
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="text" 
+                                               id="releaseDate" 
+                                               name="releaseDate" 
+                                               th:value="${song.releaseDateInput != null ? song.releaseDateInput : ''}" 
+                                               placeholder="dd/MM/yyyy"
+                                               pattern="\d{2}/\d{2}/\d{4}"
+                                               class="editable-input"
+                                               style="display:none; flex: 1;" />
+                                        <button type="button" 
+                                                id="fetchItunesDataBtn" 
+                                                class="btn-action" 
+                                                onclick="fetchItunesData()"
+                                                style="display:none; white-space: nowrap; padding: 6px 12px; font-size: 0.85em;"
+                                                title="Fetch release date and length from iTunes library">
+                                            🎵 Fetch from iTunes
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -270,6 +285,7 @@
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
+                                    <label class="field-label label-view">Is Single</label>
                                     <span class="attribute-text" data-field="isSingle" th:text="${song.isSingle != null and song.isSingle ? 'Yes' : 'No'}">No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" id="isSingle" name="isSingle" th:field="*{isSingle}" />
@@ -285,10 +301,11 @@
                                     <span class="attribute-text" data-field="overrideGenreId"
                                           th:classappend="${song.overrideGenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideGenreId != null ? genres.get(song.overrideGenreId) : (effectiveGenreName != null ? effectiveGenreName : '-')}">-</span>
-                                    <select id="overrideGenreId" name="overrideGenreId" th:field="*{overrideGenreId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit (' + (${effectiveGenreName} != null ? ${effectiveGenreName} : 'none') + ')'">Inherit</option>
+                                    <select id="overrideGenreId" name="overrideGenreId" disabled style="display:none;">
+                                        <option value="" th:selected="${song.overrideGenreId == null}" th:text="'Inherit (' + (${inheritedGenreName} != null ? ${inheritedGenreName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${genres}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${song.overrideGenreId != null and song.overrideGenreId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
@@ -301,10 +318,11 @@
                                     <span class="attribute-text" data-field="overrideSubgenreId"
                                           th:classappend="${song.overrideSubgenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideSubgenreId != null ? subgenres.get(song.overrideSubgenreId) : (effectiveSubgenreName != null ? effectiveSubgenreName : '-')}">-</span>
-                                    <select id="overrideSubgenreId" name="overrideSubgenreId" th:field="*{overrideSubgenreId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit (' + (${effectiveSubgenreName} != null ? ${effectiveSubgenreName} : 'none') + ')'">Inherit</option>
+                                    <select id="overrideSubgenreId" name="overrideSubgenreId" disabled style="display:none;">
+                                        <option value="" th:selected="${song.overrideSubgenreId == null}" th:text="'Inherit (' + (${inheritedSubgenreName} != null ? ${inheritedSubgenreName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${subgenres}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${song.overrideSubgenreId != null and song.overrideSubgenreId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
@@ -317,10 +335,11 @@
                                     <span class="attribute-text" data-field="overrideLanguageId"
                                           th:classappend="${song.overrideLanguageId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideLanguageId != null ? languages.get(song.overrideLanguageId) : (effectiveLanguageName != null ? effectiveLanguageName : '-')}">-</span>
-                                    <select id="overrideLanguageId" name="overrideLanguageId" th:field="*{overrideLanguageId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit (' + (${effectiveLanguageName} != null ? ${effectiveLanguageName} : 'none') + ')'">Inherit</option>
+                                    <select id="overrideLanguageId" name="overrideLanguageId" disabled style="display:none;">
+                                        <option value="" th:selected="${song.overrideLanguageId == null}" th:text="'Inherit (' + (${inheritedLanguageName} != null ? ${inheritedLanguageName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${languages}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${song.overrideLanguageId != null and song.overrideLanguageId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
@@ -333,10 +352,11 @@
                                     <span class="attribute-text" data-field="overrideGenderId"
                                           th:classappend="${song.overrideGenderId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideGenderId != null ? genders.get(song.overrideGenderId) : (effectiveGenderName != null ? effectiveGenderName : '-')}">-</span>
-                                    <select id="overrideGenderId" name="overrideGenderId" th:field="*{overrideGenderId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit (' + (${effectiveGenderName} != null ? ${effectiveGenderName} : 'none') + ')'">Inherit</option>
+                                    <select id="overrideGenderId" name="overrideGenderId" disabled style="display:none;">
+                                        <option value="" th:selected="${song.overrideGenderId == null}" th:text="'Inherit (' + (${inheritedGenderName} != null ? ${inheritedGenderName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${genders}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${song.overrideGenderId != null and song.overrideGenderId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
@@ -349,15 +369,17 @@
                                     <span class="attribute-text" data-field="overrideEthnicityId"
                                           th:classappend="${song.overrideEthnicityId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${song.overrideEthnicityId != null ? ethnicities.get(song.overrideEthnicityId) : (effectiveEthnicityName != null ? effectiveEthnicityName : '-')}">-</span>
-                                    <select id="overrideEthnicityId" name="overrideEthnicityId" th:field="*{overrideEthnicityId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit (' + (${effectiveEthnicityName} != null ? ${effectiveEthnicityName} : 'none') + ')'">Inherit</option>
+                                    <select id="overrideEthnicityId" name="overrideEthnicityId" disabled style="display:none;">
+                                        <option value="" th:selected="${song.overrideEthnicityId == null}" th:text="'Inherit (' + (${inheritedEthnicityName} != null ? ${inheritedEthnicityName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${ethnicities}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${song.overrideEthnicityId != null and song.overrideEthnicityId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
+                                    <label class="field-label label-view">Organized</label>
                                     <span class="attribute-text" data-field="organized" th:text="${song.organized != null and song.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
@@ -764,6 +786,7 @@
             const editBtn = document.getElementById('editBtn');
             const deleteBtn = document.getElementById('deleteBtn');
             const formActions = document.getElementById('formActions');
+            const fetchItunesDataBtn = document.getElementById('fetchItunesDataBtn');
             
             // Get all editable inputs by class and type
             const textInputs = document.querySelectorAll('#songForm .editable-input');
@@ -776,6 +799,9 @@
                 editBtn.style.display = 'none';
                 deleteBtn.style.display = 'none';
                 formActions.style.display = 'flex';
+                if (fetchItunesDataBtn) {
+                    fetchItunesDataBtn.style.display = 'inline-block';
+                }
                 
                 // Populate length formatted field with mm:ss value
                 const lengthSeconds = document.getElementById('lengthSeconds').value;
@@ -851,6 +877,17 @@
                 
                 // Initialize searchable selects for dropdowns
                 setTimeout(function() {
+                    // Set select values based on selected options before initializing searchable selects
+                    ['overrideGenreId', 'overrideSubgenreId', 'overrideLanguageId', 'overrideGenderId', 'overrideEthnicityId'].forEach(function(selectId) {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            const selectedOption = select.querySelector('option[selected]');
+                            if (selectedOption) {
+                                select.value = selectedOption.value;
+                            }
+                        }
+                    });
+                    
                     initSearchableSelect('albumId');
                     initSearchableSelect('overrideGenreId');
                     initSearchableSelect('overrideSubgenreId');
@@ -1604,6 +1641,79 @@
             `;
             
             container.innerHTML = html;
+        }
+        
+        // Fetch release date and song length from iTunes XML (by fields)
+        function fetchItunesData() {
+            const button = document.getElementById('fetchItunesDataBtn');
+            const songName = document.getElementById('songNameHidden') ? document.getElementById('songNameHidden').value : '';
+            const artistName = document.getElementById('artistNameHidden') ? document.getElementById('artistNameHidden').value : '';
+            const albumName = document.getElementById('albumNameHidden') ? document.getElementById('albumNameHidden').value : '';
+
+            if ((!songName || songName.trim() === '') && (!artistName || artistName.trim() === '')) {
+                alert('Missing song or artist name for lookup');
+                return;
+            }
+
+            // Disable button and show loading state
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '⏳ Fetching...';
+
+            fetch(`/songs/fetch-itunes-by-fields`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ songName: songName, artistName: artistName, albumName: albumName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+
+                if (data.success) {
+                    // Populate release date if found and allowed
+                    if (data.releaseDate && data.populateReleaseDate) {
+                        // Convert YYYY-MM-DD to dd/MM/yyyy format
+                        const parts = data.releaseDate.split('-');
+                        if (parts.length === 3) {
+                            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                            document.getElementById('releaseDate').value = formatted;
+                        }
+                    }
+
+                    // Populate length if found
+                    if (data.lengthSeconds) {
+                        const ls = document.getElementById('lengthSeconds');
+                        const lf = document.getElementById('lengthFormatted');
+                        if (ls) ls.value = data.lengthSeconds;
+                        if (lf && data.lengthFormatted) lf.value = data.lengthFormatted;
+                    }
+
+                    // Show success message
+                    let message = 'Successfully fetched from iTunes:\n';
+                    if (data.releaseDate) {
+                        message += `- Release Date: ${data.releaseDate}`;
+                        if (!data.populateReleaseDate) {
+                            message += ' (skipped - same as album release date)';
+                        }
+                        message += '\n';
+                    }
+                    if (data.lengthFormatted) {
+                        message += `- Length: ${data.lengthFormatted}`;
+                    }
+                    alert(message);
+                } else {
+                    alert(data.message || 'Failed to fetch data from iTunes library');
+                }
+            })
+            .catch(error => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+                console.error('Error fetching iTunes data:', error);
+                alert('Error fetching data from iTunes library');
+            });
         }
         
         // Initialize Flatpickr on releaseDate input

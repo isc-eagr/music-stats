@@ -52,7 +52,8 @@ function initSearchableSelect(selectId) {
             
             const optionDiv = document.createElement('div');
             optionDiv.className = 'searchable-select-option';
-            if (option.value === select.value) {
+            // Mark selected option either by the option.selected flag or by value match
+            if (option.selected || option.value === select.value) {
                 optionDiv.classList.add('selected');
             }
             optionDiv.textContent = option.text;
@@ -87,7 +88,8 @@ function initSearchableSelect(selectId) {
     
     function updateDisplay() {
         const selectedOption = select.options[select.selectedIndex];
-        if (selectedOption && selectedOption.value) {
+        if (selectedOption) {
+            // Always display the selected option's text (even if its value is empty)
             display.textContent = selectedOption.text;
             display.classList.add('has-value');
         } else {

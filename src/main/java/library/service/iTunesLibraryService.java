@@ -213,4 +213,179 @@ public class iTunesLibraryService {
     public String getDefaultLibraryPath() {
         return DEFAULT_ITUNES_LIBRARY_PATH;
     }
+
+    /**
+     * Represents iTunes track data (release date and length)
+     */
+    public static class iTunesTrackData {
+        public final String releaseDate; // YYYY-MM-DD format
+        public final Integer lengthSeconds; // song length in seconds
+
+        public iTunesTrackData(String releaseDate, Integer lengthSeconds) {
+            this.releaseDate = releaseDate;
+            this.lengthSeconds = lengthSeconds;
+        }
+    }
+
+    /**
+     * Find release date and length for a specific song from iTunes XML.
+     * Returns iTunesTrackData with release date (YYYY-MM-DD) and length in seconds, or null if not found.
+     */
+    public iTunesTrackData findTrackData(String songName, String artistName, String albumName) {
+        return findTrackData(DEFAULT_ITUNES_LIBRARY_PATH, songName, artistName, albumName);
+    }
+
+    /**
+     * Find release date and length for a specific song from iTunes XML.
+     * Returns iTunesTrackData with release date (YYYY-MM-DD) and length in seconds, or null if not found.
+     */
+    public iTunesTrackData findTrackData(String libraryPath, String songName, String artistName, String albumName) {
+        try {
+            File xmlFile = new File(libraryPath);
+            if (!xmlFile.exists()) {
+                System.err.println("iTunes library not found at: " + libraryPath);
+                return null;
+            }
+
+            // Read XML file as string for regex matching (similar to ReleaseDateMatcher)
+            String xmlContent = java.nio.file.Files.readString(
+                java.nio.file.Path.of(libraryPath), 
+                java.nio.charset.StandardCharsets.UTF_8
+            );
+
+            // Pattern to match each track dict
+            java.util.regex.Pattern trackPattern = java.util.regex.Pattern.compile(
+                "<key>(\\d+)</key>\\s*<dict>(.*?)</dict>", 
+                java.util.regex.Pattern.DOTALL
+            );
+            java.util.regex.Matcher trackMatcher = trackPattern.matcher(xmlContent);
+
+            while (trackMatcher.find()) {
+                String trackDict = trackMatcher.group(2);
+
+                String name = extractStringValue(trackDict, "Name");
+                String artist = extractStringValue(trackDict, "Artist");
+                String album = extractStringValue(trackDict, "Album");
+
+                if (name == null || artist == null) {
+                    continue;
+                }
+
+                // Build lookup keys (normalized: lowercase, trimmed)
+                String trackKey = buildLookupKey(artist, album, name);
+                String searchKey = buildLookupKey(
+                    artistName != null ? artistName : "",
+                    albumName != null ? albumName : "",
+                    songName != null ? songName : ""
+                );
+
+                // Also try without album for matching
+                String trackKeyNoAlbum = buildLookupKey(artist, "", name);
+                String searchKeyNoAlbum = buildLookupKey(
+                    artistName != null ? artistName : "",
+                    "",
+                    songName != null ? songName : ""
+                );
+
+                if (trackKey.equals(searchKey) || trackKeyNoAlbum.equals(searchKeyNoAlbum)) {
+                    // Found a match! Extract release date and length
+                    String releaseDateRaw = extractDateValue(trackDict, "Release Date");
+                    String yearRaw = extractIntegerValue(trackDict, "Year");
+                    String totalTimeMs = extractIntegerValue(trackDict, "Total Time");
+
+                    // Determine release date
+                    String releaseDate = null;
+                    if (releaseDateRaw != null && releaseDateRaw.length() >= 10) {
+                        releaseDate = releaseDateRaw.substring(0, 10); // Format: 2016-03-18T12:00:00Z -> 2016-03-18
+                    } else if (yearRaw != null) {
+                        releaseDate = yearRaw + "-01-01";
+                    }
+
+                    // Convert total time from milliseconds to seconds
+                    Integer lengthSeconds = null;
+                    if (totalTimeMs != null) {
+                        try {
+                            lengthSeconds = Integer.parseInt(totalTimeMs) / 1000;
+                        } catch (NumberFormatException e) {
+                            System.err.println("Failed to parse Total Time: " + totalTimeMs);
+                        }
+                    }
+
+                    return new iTunesTrackData(releaseDate, lengthSeconds);
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error finding track data in iTunes library: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return null; // Not found
+    }
+
+    /**
+     * Extract a string value from iTunes dict XML
+     */
+    private String extractStringValue(String dict, String key) {
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+            "<key>" + java.util.regex.Pattern.quote(key) + "</key>\\s*<string>(.*?)</string>", 
+            java.util.regex.Pattern.DOTALL
+        );
+        java.util.regex.Matcher m = p.matcher(dict);
+        if (m.find()) {
+            return decodeXmlEntities(m.group(1));
+        }
+        return null;
+    }
+
+    /**
+     * Extract a date value from iTunes dict XML
+     */
+    private String extractDateValue(String dict, String key) {
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+            "<key>" + java.util.regex.Pattern.quote(key) + "</key>\\s*<date>(.*?)</date>"
+        );
+        java.util.regex.Matcher m = p.matcher(dict);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    /**
+     * Extract an integer value from iTunes dict XML
+     */
+    private String extractIntegerValue(String dict, String key) {
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+            "<key>" + java.util.regex.Pattern.quote(key) + "</key>\\s*<integer>(.*?)</integer>"
+        );
+        java.util.regex.Matcher m = p.matcher(dict);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    /**
+     * Decode XML entities
+     */
+    private String decodeXmlEntities(String s) {
+        if (s == null) return null;
+        return s.replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&#38;", "&");
+    }
+
+    /**
+     * Build a normalized lookup key
+     */
+    private String buildLookupKey(String artist, String album, String song) {
+        String a = artist == null ? "" : artist.toLowerCase().trim();
+        String b = album == null ? "" : album.toLowerCase().trim();
+        String s = song == null ? "" : song.toLowerCase().trim();
+        return a + "||" + b + "||" + s;
+    }
 }

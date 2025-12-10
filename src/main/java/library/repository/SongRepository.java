@@ -30,6 +30,7 @@ public class SongRepository {
                                               String listenedDateFrom, String listenedDateTo,
                                               String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                                               Integer playCountMin, Integer playCountMax,
+                                              Integer lengthMin, Integer lengthMax, String lengthMode,
                                               String sortBy, String sortDirection, int limit, int offset) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
@@ -424,6 +425,31 @@ public class SongRepository {
             }
         }
         
+        // Length filter (song length_seconds)
+        if (lengthMode != null && !lengthMode.isEmpty()) {
+            if ("null".equalsIgnoreCase(lengthMode) || "zero".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND (s.length_seconds IS NULL OR s.length_seconds = 0) ");
+            } else if ("notnull".equalsIgnoreCase(lengthMode) || "nonzero".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND (s.length_seconds IS NOT NULL AND s.length_seconds > 0) ");
+            } else if ("lt".equalsIgnoreCase(lengthMode) && lengthMax != null) {
+                sql.append(" AND s.length_seconds < ? ");
+                params.add(lengthMax);
+            } else if ("gt".equalsIgnoreCase(lengthMode) && lengthMin != null) {
+                sql.append(" AND s.length_seconds > ? ");
+                params.add(lengthMin);
+            } else {
+                // Default "range" mode
+                if (lengthMin != null) {
+                    sql.append(" AND s.length_seconds >= ? ");
+                    params.add(lengthMin);
+                }
+                if (lengthMax != null) {
+                    sql.append(" AND s.length_seconds <= ? ");
+                    params.add(lengthMax);
+                }
+            }
+        }
+        
         // Determine sort direction
         String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
         String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
@@ -493,7 +519,8 @@ public class SongRepository {
                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                       String listenedDateFrom, String listenedDateTo,
                                       String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
-                                      Integer playCountMin, Integer playCountMax) {
+                                      Integer playCountMin, Integer playCountMax,
+                                      Integer lengthMin, Integer lengthMax, String lengthMode) {
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -869,6 +896,31 @@ public class SongRepository {
         if (playCountMax != null) {
             sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
             params.add(playCountMax);
+        }
+        
+        // Length filter (song length_seconds)
+        if (lengthMode != null && !lengthMode.isEmpty()) {
+            if ("null".equalsIgnoreCase(lengthMode) || "zero".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND (s.length_seconds IS NULL OR s.length_seconds = 0) ");
+            } else if ("notnull".equalsIgnoreCase(lengthMode) || "nonzero".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND (s.length_seconds IS NOT NULL AND s.length_seconds > 0) ");
+            } else if ("lt".equalsIgnoreCase(lengthMode) && lengthMax != null) {
+                sql.append(" AND s.length_seconds < ? ");
+                params.add(lengthMax);
+            } else if ("gt".equalsIgnoreCase(lengthMode) && lengthMin != null) {
+                sql.append(" AND s.length_seconds > ? ");
+                params.add(lengthMin);
+            } else {
+                // Default "range" mode
+                if (lengthMin != null) {
+                    sql.append(" AND s.length_seconds >= ? ");
+                    params.add(lengthMin);
+                }
+                if (lengthMax != null) {
+                    sql.append(" AND s.length_seconds <= ? ");
+                    params.add(lengthMax);
+                }
+            }
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());

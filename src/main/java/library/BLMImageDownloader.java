@@ -17,8 +17,8 @@ import org.jsoup.select.Elements;
 
 public class BLMImageDownloader {
 	
-	static int startInclusive = 937;
-	static int endInclusive = 949;
+	static int startInclusive = 951;
+	static int endInclusive = 955;
 	
 	public static void mainBLMPics(String... args) throws IOException{
 		
@@ -103,7 +103,7 @@ public static void main/*NakedPapis*/(String... args) throws IOException{
 			//numberString = numberString.length()==1?"00"+numberString:numberString;
 			
 		//String url = "https://nakedpapis.com/members/sexpics/pictures01/papi"+numberString+"/";
-			String url = "https://nakedpapis.com/members/sexpics/pictures01/papi"+numberString+"/";
+			String url = "https://nakedpapis.com/members/solopics/pictures01/papi"+numberString+"/";
 		
 		String[] urlSegments = url.split("/");
 		String dirName = urlSegments[urlSegments.length-1];

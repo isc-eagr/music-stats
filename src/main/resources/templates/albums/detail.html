@@ -213,10 +213,11 @@
                                     <span class="attribute-text" data-field="overrideGenreId" 
                                           th:classappend="${album.overrideGenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${album.overrideGenreId != null ? genres.get(album.overrideGenreId) : (effectiveGenreName != null ? effectiveGenreName : '-')}">-</span>
-                                    <select id="overrideGenreId" name="overrideGenreId" th:field="*{overrideGenreId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit from artist (' + (${effectiveGenreName} != null ? ${effectiveGenreName} : 'none') + ')'">Inherit from artist</option>
+                                    <select id="overrideGenreId" name="overrideGenreId" disabled style="display:none;">
+                                        <option value="" th:selected="${album.overrideGenreId == null}" th:text="'Inherit from artist (' + (${inheritedGenreName} != null ? ${inheritedGenreName} : 'none') + ')'">Inherit from artist</option>
                                         <option th:each="entry : ${genres}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${album.overrideGenreId != null and album.overrideGenreId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
@@ -229,10 +230,11 @@
                                     <span class="attribute-text" data-field="overrideSubgenreId"
                                           th:classappend="${album.overrideSubgenreId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${album.overrideSubgenreId != null ? subgenres.get(album.overrideSubgenreId) : (effectiveSubgenreName != null ? effectiveSubgenreName : '-')}">-</span>
-                                    <select id="overrideSubgenreId" name="overrideSubgenreId" th:field="*{overrideSubgenreId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit from artist (' + (${effectiveSubgenreName} != null ? ${effectiveSubgenreName} : 'none') + ')'">Inherit from artist</option>
+                                    <select id="overrideSubgenreId" name="overrideSubgenreId" disabled style="display:none;">
+                                        <option value="" th:selected="${album.overrideSubgenreId == null}" th:text="'Inherit from artist (' + (${inheritedSubgenreName} != null ? ${inheritedSubgenreName} : 'none') + ')'">Inherit from artist</option>
                                         <option th:each="entry : ${subgenres}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${album.overrideSubgenreId != null and album.overrideSubgenreId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
@@ -245,15 +247,17 @@
                                     <span class="attribute-text" data-field="overrideLanguageId"
                                           th:classappend="${album.overrideLanguageId != null ? 'attribute-overridden' : 'attribute-inherited'}"
                                           th:text="${album.overrideLanguageId != null ? languages.get(album.overrideLanguageId) : (effectiveLanguageName != null ? effectiveLanguageName : '-')}">-</span>
-                                    <select id="overrideLanguageId" name="overrideLanguageId" th:field="*{overrideLanguageId}" disabled style="display:none;">
-                                        <option value="" th:text="'Inherit from artist (' + (${effectiveLanguageName} != null ? ${effectiveLanguageName} : 'none') + ')'">Inherit from artist</option>
+                                    <select id="overrideLanguageId" name="overrideLanguageId" disabled style="display:none;">
+                                        <option value="" th:selected="${album.overrideLanguageId == null}" th:text="'Inherit from artist (' + (${effectiveLanguageName} != null ? ${effectiveLanguageName} : 'none') + ')'">Inherit from artist</option>
                                         <option th:each="entry : ${languages}" 
                                                 th:value="${entry.key}" 
+                                                th:selected="${album.overrideLanguageId != null and album.overrideLanguageId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
+                                    <label class="field-label label-view">Organized</label>
                                     <span class="attribute-text" data-field="organized" th:text="${album.organized != null and album.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
@@ -769,6 +773,17 @@
                 
                 // Initialize searchable selects for dropdowns
                 setTimeout(function() {
+                    // Set select values based on selected options before initializing searchable selects
+                    ['overrideGenreId', 'overrideSubgenreId', 'overrideLanguageId'].forEach(function(selectId) {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            const selectedOption = select.querySelector('option[selected]');
+                            if (selectedOption) {
+                                select.value = selectedOption.value;
+                            }
+                        }
+                    });
+                    
                     initSearchableSelect('overrideGenreId');
                     initSearchableSelect('overrideSubgenreId');
                     initSearchableSelect('overrideLanguageId');
