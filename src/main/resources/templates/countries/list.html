@@ -150,11 +150,13 @@
                     <div class="gender-bars-container">
                         <div class="gender-bar-row" th:if="${country.maleArtistCount > 0 or country.femaleArtistCount > 0 or country.otherArtistCount > 0}">
                             <span class="gender-bar-icon" title="Artists">🎤</span>
-                            <div class="gender-bar" th:with="total=${country.maleArtistCount + country.femaleArtistCount + country.otherArtistCount}">
-                                <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.maleArtistCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Male: ' + ${country.maleArtistCount} + ' (' + ${#numbers.formatDecimal((country.maleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-female-bar" 
+                            <div class="gender-bar" th:with="total=${country.maleArtistCount + country.femaleArtistCount + country.otherArtistCount}, malePct=${total > 0 ? (country.maleArtistCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${country.maleArtistCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
                                      th:style="'width: ' + (${total > 0} ? (${country.femaleArtistCount} * 100 / ${total}) : 0) + '%'"
                                      th:title="'Female: ' + ${country.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((country.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-other-bar" 
@@ -164,11 +166,13 @@
                         </div>
                         <div class="gender-bar-row" th:if="${country.maleAlbumCount > 0 or country.femaleAlbumCount > 0 or country.otherAlbumCount > 0}">
                             <span class="gender-bar-icon" title="Albums">💿</span>
-                            <div class="gender-bar" th:with="total=${country.maleAlbumCount + country.femaleAlbumCount + country.otherAlbumCount}">
-                                <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.maleAlbumCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Male: ' + ${country.maleAlbumCount} + ' (' + ${#numbers.formatDecimal((country.maleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-female-bar" 
+                            <div class="gender-bar" th:with="total=${country.maleAlbumCount + country.femaleAlbumCount + country.otherAlbumCount}, malePct=${total > 0 ? (country.maleAlbumCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${country.maleAlbumCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
                                      th:style="'width: ' + (${total > 0} ? (${country.femaleAlbumCount} * 100 / ${total}) : 0) + '%'"
                                      th:title="'Female: ' + ${country.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((country.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-other-bar" 
@@ -178,11 +182,13 @@
                         </div>
                         <div class="gender-bar-row" th:if="${country.maleCount > 0 or country.femaleCount > 0 or country.otherCount > 0}">
                             <span class="gender-bar-icon" title="Songs">🎵</span>
-                            <div class="gender-bar" th:with="total=${country.maleCount + country.femaleCount + country.otherCount}">
-                                <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.maleCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Male: ' + ${country.maleCount} + ' (' + ${#numbers.formatDecimal((country.maleCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-female-bar" 
+                            <div class="gender-bar" th:with="total=${country.maleCount + country.femaleCount + country.otherCount}, malePct=${total > 0 ? (country.maleCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${country.maleCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
                                      th:style="'width: ' + (${total > 0} ? (${country.femaleCount} * 100 / ${total}) : 0) + '%'"
                                      th:title="'Female: ' + ${country.femaleCount} + ' (' + ${#numbers.formatDecimal((country.femaleCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-other-bar" 
@@ -192,11 +198,13 @@
                         </div>
                         <div class="gender-bar-row" th:if="${country.malePlayCount > 0 or country.femalePlayCount > 0 or country.otherPlayCount > 0}">
                             <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
-                            <div class="gender-bar" th:with="total=${country.malePlayCount + country.femalePlayCount + country.otherPlayCount}">
-                                <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.malePlayCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Male: ' + ${country.malePlayCount} + ' (' + ${#numbers.formatDecimal((country.malePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-female-bar" 
+                            <div class="gender-bar" th:with="total=${country.malePlayCount + country.femalePlayCount + country.otherPlayCount}, malePct=${total > 0 ? (country.malePlayCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${country.malePlayCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
                                      th:style="'width: ' + (${total > 0} ? (${country.femalePlayCount} * 100 / ${total}) : 0) + '%'"
                                      th:title="'Female: ' + ${country.femalePlayCount} + ' (' + ${#numbers.formatDecimal((country.femalePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
                                 <div class="gender-other-bar" 
@@ -206,11 +214,13 @@
                         </div>
                         <div class="gender-bar-row" th:if="${country.maleTimeListened > 0 or country.femaleTimeListened > 0 or country.otherTimeListened > 0}">
                             <span class="gender-bar-icon" title="Listening Time">🕒</span>
-                            <div class="gender-bar" th:with="total=${country.maleTimeListened + country.femaleTimeListened + country.otherTimeListened}">
-                                <div class="gender-male-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.maleTimeListened} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal((country.maleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
-                                <div class="gender-female-bar" 
+                            <div class="gender-bar" th:with="total=${country.maleTimeListened + country.femaleTimeListened + country.otherTimeListened}, malePct=${total > 0 ? (country.maleTimeListened * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
                                      th:style="'width: ' + (${total > 0} ? (${country.femaleTimeListened} * 100 / ${total}) : 0) + '%'"
                                      th:title="'Female: ' + ${#numbers.formatDecimal((country.femaleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                                 <div class="gender-other-bar" 

@@ -461,7 +461,7 @@ public class AlbumController {
     @ResponseBody
     public List<Map<String, Object>> searchAlbumsForApi(
             @RequestParam(required = false) String query,
-            @RequestParam(required = false, defaultValue = "20") int limit) {
+            @RequestParam(required = false, defaultValue = "0") int limit) {
         return albumService.searchAlbums(query, limit);
     }
     

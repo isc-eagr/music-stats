@@ -7,6 +7,8 @@ Do not ever do pulls or pushes to the repository. The user will handle all git o
 
 Always apply small changes at a time. Don't work on huge tasks in one go, because we will get rate-limited. Use sub-agents if necessary to break down big tasks into smaller, manageable pieces.
 
+Gender is heavily built into the application. Most calculations and statistics are separated by gender, and it's displayed heavily in the UI via blue/pink colors. Always keep this in mind when making changes or suggestions.
+
 ## Project Overview
 A Spring Boot 3.3 music library management application with Thymeleaf UI for tracking artists, albums, songs, and Last.fm scrobble data. Uses SQLite database stored externally at `C:/Music Stats DB/music-stats.db`.
 
@@ -69,6 +71,8 @@ Controllers accept multi-value filter parameters with modes:
 
 Filter logic centralizes in service layer, builds SQL dynamically via `appendFilterCondition()` helpers.
 
+Filters are always displayed in alphabetical order for consistency.
+
 ### Scrobble Import Flow
 1. Upload CSV via `/scrobbles/upload` (file format: Last.fm export with positions 0=id, 1=date, 2=artist, 4=album, 6=song)
 2. Stream-parse with OpenCSV (`CsvBindByPosition` annotations on `Scrobble.java`)
@@ -77,6 +81,7 @@ Filter logic centralizes in service layer, builds SQL dynamically via `appendFil
 
 ### Date/Timezone Handling
 Scrobble dates from Last.fm are converted from UTC to Mexico City timezone. See `Scrobble.setScrobbleDate()` for pattern parsing logic.
+dd/MM/yyyy format is used throughout the application. For displaying dates, they're displayed as dd MMM yyyy in most places so those should be preferred. mm/dd/yyyy should be avoided everywhere.
 
 ### Lookup Tables
 `LookupRepository` provides maps (id→name) for: Gender, Ethnicity, Genre, SubGenre, Language. These populate dropdowns and resolve FK display names.

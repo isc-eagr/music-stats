@@ -150,11 +150,12 @@
 
 .gender-bar {
     display: flex;
-    height: 4px;
-    border-radius: 2px;
-    overflow: hidden;
+    height: 17px;
+    border-radius: 4px;
+    overflow: visible;
     background-color: #333;
     flex: 1;
+    position: relative;
 }
 
 .gender-male-bar {
@@ -162,10 +163,26 @@
     height: 100%;
     cursor: help;
     transition: opacity 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    border-radius: 4px 0 0 4px;
 }
 
 .gender-male-bar:hover {
     opacity: 0.8;
+}
+
+.gender-male-bar-text {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    padding: 0 4px;
+    pointer-events: none;
 }
 
 .gender-female-bar {
@@ -184,6 +201,7 @@
     height: 100%;
     cursor: help;
     transition: opacity 0.2s;
+    border-radius: 0 4px 4px 0;
 }
 
 .gender-other-bar:hover {
@@ -387,4 +405,3 @@ a.winning-chip:hover {
 .range-inputs input {
     width: 100%;
 }
-

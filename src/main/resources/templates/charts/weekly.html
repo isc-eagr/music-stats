@@ -606,6 +606,40 @@
         .chart-playlist-btn:hover {
             background: #3d6b1e;
         }
+
+        /* Gender percentage badge styling */
+        .gender-pct {
+            color: #3b82f6; /* lighter blue */
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-left: 12px;
+            transition: text-shadow 0.2s ease, color 0.2s ease;
+            text-shadow: 0 0 6px rgba(59,130,246,0.45), 0 0 12px rgba(59,130,246,0.25);
+        }
+
+        .gender-pct--full {
+            /* shimmer the text itself using a moving gradient */
+            color: transparent;
+            background-image: linear-gradient(110deg, rgba(59,130,246,0.95) 20%, rgba(255,255,255,0.95) 45%, rgba(59,130,246,0.95) 75%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: metallicShine 2.6s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(59,130,246,0.5);
+        }
+
+        @keyframes metallicShine {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .gender-pct {
+            position: relative;
+            display: inline-block;
+            z-index: 2;
+        }
+
+        /* removed ::before overlay; shimmer applied directly to text via background-clip */
     </style>
 </head>
 <body>
@@ -694,6 +728,7 @@
                 <div class="chart-section-header">
                     <span class="chart-section-icon">🎵</span>
                     <h2 class="chart-section-title">Top 20 Songs</h2>
+                    <div id="songsGenderPct" class="gender-pct"></div>
                     <button type="button" class="chart-playlist-btn" onclick="openWeeklySongsPlaylistGenerator()">🎵 Generate Playlist</button>
                 </div>
                 <div class="charts-table-container">
@@ -713,6 +748,7 @@
                         <th:block th:each="entry : ${entries}">
                             <!-- Main row -->
                             <tr th:data-song-id="${entry.songId}" th:data-album="${entry.albumName}"
+                                th:attr="data-gender=${entry.genderId}"
                                 th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                 <td class="col-expand">
                                     <button class="expand-btn" 
@@ -789,6 +825,7 @@
                 <div class="chart-section-header">
                     <span class="chart-section-icon">💿</span>
                     <h2 class="chart-section-title">Top 10 Albums</h2>
+                    <div id="albumsGenderPct" class="gender-pct"></div>
                 </div>
                 <div class="charts-table-container">
                     <table class="charts-table">
@@ -807,6 +844,7 @@
                             <th:block th:each="entry : ${albumEntries}">
                                 <!-- Main row -->
                                 <tr th:data-album-id="${entry.albumId}"
+                                    th:attr="data-gender=${entry.genderId}"
                                     th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                     <td class="col-expand">
                                         <button class="expand-btn" 
@@ -1268,6 +1306,41 @@
         /*]]>*/
     </script>
     
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        function computeMalePct(listSelector, rowSelector, targetId) {
+            const rows = document.querySelectorAll(listSelector + ' ' + rowSelector);
+            let male = 0, total = 0;
+            rows.forEach(r => {
+                const g = r.getAttribute('data-gender');
+                if (g != null) {
+                    total++;
+                    if (g === '2') male++;
+                }
+            });
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            if (total === 0) {
+                el.textContent = '';
+                el.classList.remove('gender-pct--full');
+                el.classList.remove('gender-pct');
+            } else {
+                const malePct = Math.round((male / total) * 100);
+                el.textContent = `${malePct}%`;
+                el.classList.add('gender-pct');
+                if (malePct === 100) el.classList.add('gender-pct--full');
+                else el.classList.remove('gender-pct--full');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Songs table: exclude detail rows
+            computeMalePct('#songsSection .charts-table tbody', 'tr[data-song-id]', 'songsGenderPct');
+            computeMalePct('#albumsSection .charts-table tbody', 'tr[data-album-id]', 'albumsGenderPct');
+        });
+        /*]]>*/
+    </script>
+
     <!-- Playlist Generator Modal -->
     <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
 </body>

@@ -49,7 +49,19 @@ public final class StringNormalizer {
         if (input == null) {
             return null;
         }
-        return stripAccents(input.toLowerCase().trim());
+        String result = stripAccents(input.toLowerCase().trim());
+        // Remove content in parentheses and brackets
+        result = result.replaceAll("\\([^)]*\\)", "");
+        result = result.replaceAll("\\[[^\\]]*\\]", "");
+        // Remove common featuring tokens
+        result = result.replaceAll("\\bfeaturing\\b", "");
+        result = result.replaceAll("\\bfeat\\.?\\b", "");
+        result = result.replaceAll("\\bft\\.?\\b", "");
+        // Remove punctuation characters
+        result = result.replaceAll("[\\\\.,'!\"\\-_:;\\/()\\[\\]&%]", "");
+        // Collapse whitespace
+        result = result.replaceAll("\\s+", " ").trim();
+        return result;
     }
     
     /**
@@ -97,7 +109,7 @@ public final class StringNormalizer {
             {"\u00F5", "o"}, // õ
             {"\u00F4", "o"}, // ô
             {"\u00FA", "u"}, // ú
-            {"\u00FC", "u"}, // ü
+            {"\u00FC", "u"} // ü
         };
         
         // Build nested REPLACE chain, then apply LOWER at the end

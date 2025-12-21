@@ -495,6 +495,40 @@
             background: #1a3a0a !important;
             color: #6b8f4a !important;
         }
+
+        /* Gender percentage badge styling */
+        .gender-pct {
+            color: #3b82f6; /* lighter blue */
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-left: 12px;
+            transition: text-shadow 0.2s ease, color 0.2s ease;
+            text-shadow: 0 0 6px rgba(59,130,246,0.45), 0 0 12px rgba(59,130,246,0.25);
+        }
+
+        .gender-pct--full {
+            /* shimmer the text itself using a moving gradient */
+            color: transparent;
+            background-image: linear-gradient(110deg, rgba(59,130,246,0.95) 20%, rgba(255,255,255,0.95) 45%, rgba(59,130,246,0.95) 75%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: metallicShine 2.6s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(59,130,246,0.5);
+        }
+
+        @keyframes metallicShine {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .gender-pct {
+            position: relative;
+            display: inline-block;
+            z-index: 2;
+        }
+
+        /* removed ::before overlay; shimmer applied directly to text via background-clip */
     </style>
 </head>
 <body>
@@ -546,6 +580,7 @@
             <div class="chart-section">
                 <div class="section-header">
                     <h2 class="section-title">🎵 Songs</h2>
+                    <div id="seasonalSongsGenderPct" th:if="${songChartFinalized}" class="gender-pct"></div>
                     <span class="section-count" id="songCount" th:unless="${songChartFinalized}">
                         <span th:if="${songEntries.size() == maxSongs}" style="color: #22c55e;">✓ </span>
                         <span th:text="${songEntries.size()} + '/' + ${maxSongs}">0/30</span>
@@ -572,7 +607,8 @@
                         <p>No songs added yet. Search above to add songs.</p>
                     </div>
                     <div th:each="entry, stat : ${songEntries}" class="chart-entry" th:data-id="${entry.songId}" th:data-album="${entry.albumName}"
-                         th:style="${songChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${songChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                        th:attr="data-gender=${entry.genderId}"
+                        th:style="${songChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${songChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <div class="entry-position" th:text="${entry.position}">1</div>
                         <div th:if="${entry.hasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
@@ -639,6 +675,7 @@
             <div class="chart-section">
                 <div class="section-header">
                     <h2 class="section-title">💿 Albums</h2>
+                    <div id="seasonalAlbumsGenderPct" th:if="${albumChartFinalized}" class="gender-pct"></div>
                     <span class="section-count" id="albumCount" th:unless="${albumChartFinalized}">
                         <span th:if="${albumEntries.size() == maxAlbums}" style="color: #22c55e;">✓ </span>
                         <span th:text="${albumEntries.size()} + '/' + ${maxAlbums}">0/10</span>
@@ -664,7 +701,8 @@
                         <p>No albums added yet. Search above to add albums.</p>
                     </div>
                     <div th:each="entry, stat : ${albumEntries}" class="chart-entry" th:data-id="${entry.albumId}"
-                         th:style="${albumChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${albumChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                        th:attr="data-gender=${entry.genderId}"
+                        th:style="${albumChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${albumChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <div class="entry-position" th:text="${entry.position}">1</div>
                         <div th:if="${entry.hasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
@@ -740,7 +778,7 @@
             }
             
             songSearchTimeout = setTimeout(() => {
-                fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=20`)
+                fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=0`)
                     .then(r => r.json())
                     .then(data => {
                         const existingIds = getAllSongIds();
@@ -784,7 +822,7 @@
             }
             
             albumSearchTimeout = setTimeout(() => {
-                fetch(`/albums/api/search?query=${encodeURIComponent(query)}&limit=20`)
+                fetch(`/albums/api/search?query=${encodeURIComponent(query)}&limit=0`)
                     .then(r => r.json())
                     .then(data => {
                         const existingIds = getChartIds('album');
@@ -1315,6 +1353,37 @@
         }
     </script>
     
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        function computeMalePctForList(listSelector, targetId) {
+            const rows = document.querySelectorAll(listSelector + ' .chart-entry');
+            let male = 0, total = 0;
+            rows.forEach(r => {
+                const g = r.getAttribute('data-gender');
+                if (g != null) {
+                    total++;
+                    if (g === '2') male++;
+                }
+            });
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            if (total === 0) el.textContent = '';
+            else {
+                const malePct = Math.round((male / total) * 100);
+                el.textContent = `${malePct}%`;
+                el.classList.add('gender-pct');
+                if (malePct === 100) el.classList.add('gender-pct--full');
+                else el.classList.remove('gender-pct--full');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            computeMalePctForList('#songList', 'seasonalSongsGenderPct');
+            computeMalePctForList('#albumList', 'seasonalAlbumsGenderPct');
+        });
+        /*]]>*/
+    </script>
+
     <!-- Playlist Generator Modal -->
     <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
 </body>

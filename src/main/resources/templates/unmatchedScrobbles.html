@@ -86,6 +86,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th style="width:32px"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"></th>
                             <th>Account</th>
                             <th>Artist</th>
                             <th>Album</th>
@@ -96,6 +97,7 @@
                     </thead>
                     <tbody id="unmatchedTableBody">
                         <tr th:each="row, iter : ${unmatched}" th:data-index="${iter.index}">
+                            <td><input type="checkbox" class="rowCheckbox" th:data-index="${iter.index}" onchange="toggleRowSelection(this)"></td>
                             <td th:text="${row.account}">account</td>
                             <td>
                                 <a th:href="@{/artists(q=${row.artist})}" 
@@ -138,6 +140,11 @@
                 </table>
             </div>
 
+            <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
+                <button id="bulkDeleteBtn" class="btn btn-delete" style="padding:6px 10px;" disabled onclick="openBulkDeleteConfirmation()">Delete Selected</button>
+                <span id="selectedCountHint" style="color:var(--text-muted); font-size:13px;">0 selected</span>
+            </div>
+
             <div style="margin-top:12px">
             </div>
         </div>
@@ -174,6 +181,26 @@
             <div class="btn-row">
                 <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
                 <button class="btn-confirm-delete" id="confirmDeleteBtn" disabled onclick="executeDelete()">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bulk Delete Confirmation Modal -->
+    <div id="bulkDeleteModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+            <h3><span class="warning-icon">⚠️</span> Delete Selected Scrobbles</h3>
+            <p>You are about to permanently delete the following selected scrobble groups:</p>
+            <div class="scrobble-info" id="bulkScrobbleList" style="max-height:220px; overflow:auto;"></div>
+            <p class="warning-text">⚠️ This action cannot be undone! These scrobbles will be permanently deleted from the database.</p>
+            <div class="final-confirm">
+                <div class="checkbox-row">
+                    <input type="checkbox" id="confirmBulkDeleteCheckbox" onchange="updateBulkDeleteButtonState()">
+                    <label for="confirmBulkDeleteCheckbox">I understand this is permanent and want to delete these scrobbles</label>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeBulkDeleteModal()">Cancel</button>
+                <button class="btn-confirm-delete" id="confirmBulkDeleteBtn" disabled onclick="executeBulkDelete()">Delete Permanently</button>
             </div>
         </div>
     </div>
@@ -263,10 +290,88 @@
             }
         }
         
+        // Selection tracking for bulk actions
+        const selectedIndices = new Set();
+
+        function toggleRowSelection(checkbox) {
+            const idx = parseInt(checkbox.dataset.index);
+            if (checkbox.checked) selectedIndices.add(idx); else selectedIndices.delete(idx);
+            updateSelectedCount();
+        }
+
+        function toggleSelectAll(master) {
+            const checks = document.querySelectorAll('.rowCheckbox');
+            checks.forEach(cb => { cb.checked = master.checked; const idx = parseInt(cb.dataset.index); if (master.checked) selectedIndices.add(idx); else selectedIndices.delete(idx); });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = selectedIndices.size;
+            document.getElementById('selectedCountHint').textContent = count + ' selected';
+            document.getElementById('bulkDeleteBtn').disabled = count === 0;
+            const master = document.getElementById('selectAllCheckbox');
+            if (master) {
+                const total = document.querySelectorAll('.rowCheckbox').length;
+                master.checked = total > 0 && count === total;
+            }
+        }
+
+        function openBulkDeleteConfirmation() {
+            if (selectedIndices.size === 0) return;
+            const listEl = document.getElementById('bulkScrobbleList');
+            listEl.innerHTML = '';
+            const items = Array.from(selectedIndices).sort();
+            let totalCount = 0;
+            items.forEach(i => {
+                const row = unmatchedList[i];
+                totalCount += row.cnt || 0;
+                const p = document.createElement('p');
+                p.style.margin = '6px 0';
+                p.textContent = `${row.account || '(blank)'} / ${row.artist || '(blank)'} / ${row.album || '(blank)'} / ${row.song || '(blank)'} — ${row.cnt || 0}`;
+                listEl.appendChild(p);
+            });
+            document.getElementById('confirmBulkDeleteCheckbox').checked = false;
+            document.getElementById('confirmBulkDeleteBtn').disabled = true;
+            document.getElementById('bulkDeleteModal').classList.add('active');
+        }
+
+        function closeBulkDeleteModal() {
+            document.getElementById('bulkDeleteModal').classList.remove('active');
+        }
+
+        function updateBulkDeleteButtonState() {
+            const checkbox = document.getElementById('confirmBulkDeleteCheckbox');
+            document.getElementById('confirmBulkDeleteBtn').disabled = !checkbox.checked;
+        }
+
+        async function executeBulkDelete() {
+            const btn = document.getElementById('confirmBulkDeleteBtn');
+            btn.disabled = true; btn.textContent = 'Deleting...';
+            try {
+                const items = Array.from(selectedIndices).map(i => unmatchedList[i]).map(r => ({ account: r.account, artist: r.artist, album: r.album, song: r.song }));
+                const response = await fetch('/scrobbles/api/unmatched/delete-selected', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    closeBulkDeleteModal();
+                    location.reload();
+                } else {
+                    alert('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
+                    btn.disabled = false; btn.textContent = 'Delete Permanently';
+                }
+            } catch (err) {
+                alert('Error deleting scrobbles: ' + err.message);
+                btn.disabled = false; btn.textContent = 'Delete Permanently';
+            }
+        }
+
         // Close modal on escape key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && document.getElementById('deleteModal').classList.contains('active')) {
-                closeDeleteModal();
+            if (e.key === 'Escape') {
+                if (document.getElementById('deleteModal').classList.contains('active')) closeDeleteModal();
+                if (document.getElementById('bulkDeleteModal').classList.contains('active')) closeBulkDeleteModal();
             }
         });
         

@@ -124,6 +124,43 @@ public class ScrobbleController {
             ));
         }
     }
+
+    /**
+     * Batch delete endpoint to remove multiple unmatched groups at once.
+     * POST /scrobbles/api/unmatched/delete-selected
+     * Body: { items: [ { account, artist, album, song }, ... ] }
+     */
+    @PostMapping("/api/unmatched/delete-selected")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteSelectedUnmatched(@RequestBody Map<String, Object> request) {
+        try {
+            Object rawItems = request.get("items");
+            int totalDeleted = 0;
+            if (rawItems instanceof java.util.List) {
+                java.util.List items = (java.util.List) rawItems;
+                for (Object o : items) {
+                    if (!(o instanceof java.util.Map)) continue;
+                    java.util.Map m = (java.util.Map) o;
+                    String account = m.get("account") != null ? m.get("account").toString() : null;
+                    String artist = m.get("artist") != null ? m.get("artist").toString() : null;
+                    String album = m.get("album") != null ? m.get("album").toString() : null;
+                    String song = m.get("song") != null ? m.get("song").toString() : null;
+                    totalDeleted += scrobbleService.deleteUnmatchedScrobbles(account, artist, album, song);
+                }
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "deletedCount", totalDeleted
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
+    }
     
     /**
      * API endpoint to assign unmatched scrobbles to an existing song.

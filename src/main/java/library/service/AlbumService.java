@@ -723,20 +723,21 @@ public class AlbumService {
         if (query == null || query.trim().isEmpty()) {
             return new ArrayList<>();
         }
-        
-        String searchTerm = "%" + query.trim().toLowerCase() + "%";
-        int actualLimit = limit > 0 ? limit : 20;
-        
-        String sql = """
-            SELECT a.id, a.name, ar.name as artist_name, 
-                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Album a
-            JOIN Artist ar ON a.artist_id = ar.id
-            WHERE LOWER(a.name) LIKE ? OR LOWER(ar.name) LIKE ?
-            ORDER BY a.name
-            LIMIT ?
-            """;
-        
+        String normalized = library.util.StringNormalizer.normalizeForSearch(query);
+        String searchTerm = "%" + normalized + "%";
+
+        String sql = "SELECT a.id, a.name, ar.name as artist_name, "
+            + "CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image "
+            + "FROM Album a "
+            + "JOIN Artist ar ON a.artist_id = ar.id "
+            + "WHERE " + library.util.StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ? OR " + library.util.StringNormalizer.sqlNormalizeColumn("ar.name") + " LIKE ? "
+            + "ORDER BY a.name";
+
+        boolean applyLimit = limit > 0;
+        if (applyLimit) {
+            sql = sql + " LIMIT ?";
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> album = new java.util.HashMap<>();
             album.put("id", rs.getInt("id"));
@@ -744,7 +745,7 @@ public class AlbumService {
             album.put("artistName", rs.getString("artist_name"));
             album.put("hasImage", rs.getInt("has_image") == 1);
             return album;
-        }, searchTerm, searchTerm, actualLimit);
+        }, applyLimit ? new Object[]{searchTerm, searchTerm, limit} : new Object[]{searchTerm, searchTerm});
     }
     
     // Find album by ID

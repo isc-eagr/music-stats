@@ -996,25 +996,27 @@ public class SongService {
         
         List<Object> params = new ArrayList<>();
         
-        // Use OR logic when both artist and song query are the same (unified search)
+        // Use normalized search (strip accents and special chars) and SQL normalization
         boolean hasArtist = artistQuery != null && !artistQuery.trim().isEmpty();
         boolean hasSong = songQuery != null && !songQuery.trim().isEmpty();
-        
-        if (hasArtist && hasSong && artistQuery.equals(songQuery)) {
+        String normalizedArtist = hasArtist ? library.util.StringNormalizer.normalizeForSearch(artistQuery) : null;
+        String normalizedSong = hasSong ? library.util.StringNormalizer.normalizeForSearch(songQuery) : null;
+
+        if (hasArtist && hasSong && normalizedArtist != null && normalizedArtist.equals(normalizedSong)) {
             // Unified search: match either artist OR song name
-            sql.append("AND (LOWER(a.name) LIKE ? OR LOWER(s.name) LIKE ?) ");
-            params.add("%" + artistQuery.toLowerCase() + "%");
-            params.add("%" + songQuery.toLowerCase() + "%");
+            sql.append("AND (" + library.util.StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ? OR " + library.util.StringNormalizer.sqlNormalizeColumn("s.name") + " LIKE ?) ");
+            params.add("%" + normalizedArtist + "%");
+            params.add("%" + normalizedSong + "%");
         } else {
             // Separate filters: match both if provided
             if (hasArtist) {
-                sql.append("AND LOWER(a.name) LIKE ? ");
-                params.add("%" + artistQuery.toLowerCase() + "%");
+                sql.append("AND " + library.util.StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ? ");
+                params.add("%" + normalizedArtist + "%");
             }
-            
+
             if (hasSong) {
-                sql.append("AND LOWER(s.name) LIKE ? ");
-                params.add("%" + songQuery.toLowerCase() + "%");
+                sql.append("AND " + library.util.StringNormalizer.sqlNormalizeColumn("s.name") + " LIKE ? ");
+                params.add("%" + normalizedSong + "%");
             }
         }
         
