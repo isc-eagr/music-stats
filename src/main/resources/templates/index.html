@@ -322,6 +322,109 @@
                     <div class="stat-label">Time Listening</div>
                 </div>
             </div>
+
+            <!-- Gender Breakdown Bars -->
+            <div class="gender-section" style="margin-top: 48px;">
+                <h3 style="font-size: 24px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 24px;">Gender Breakdown</h3>
+                <div class="gender-bars-main-container" style="max-width: 600px; margin: 0 auto;">
+                    <!-- Artists bar -->
+                    <div class="gender-bar-row-main" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;"
+                         th:with="maleCount=${artistsByGender.get('male') ?: 0}, femaleCount=${artistsByGender.get('female') ?: 0}, otherCount=${artistsByGender.get('other') ?: 0}, total=${(artistsByGender.get('male') ?: 0) + (artistsByGender.get('female') ?: 0) + (artistsByGender.get('other') ?: 0)}">
+                        <span style="width: 80px; font-size: 14px; color: #999;">🎤 Artists</span>
+                        <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
+                             th:if="${total > 0}">
+                            <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                            </div>
+                            <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                            <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Albums bar -->
+                    <div class="gender-bar-row-main" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;"
+                         th:with="maleCount=${albumsByGender.get('male') ?: 0}, femaleCount=${albumsByGender.get('female') ?: 0}, otherCount=${albumsByGender.get('other') ?: 0}, total=${(albumsByGender.get('male') ?: 0) + (albumsByGender.get('female') ?: 0) + (albumsByGender.get('other') ?: 0)}">
+                        <span style="width: 80px; font-size: 14px; color: #999;">💿 Albums</span>
+                        <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
+                             th:if="${total > 0}">
+                            <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                            </div>
+                            <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                            <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Songs bar -->
+                    <div class="gender-bar-row-main" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;"
+                         th:with="maleCount=${songsByGender.get('male') ?: 0}, femaleCount=${songsByGender.get('female') ?: 0}, otherCount=${songsByGender.get('other') ?: 0}, total=${(songsByGender.get('male') ?: 0) + (songsByGender.get('female') ?: 0) + (songsByGender.get('other') ?: 0)}">
+                        <span style="width: 80px; font-size: 14px; color: #999;">🎵 Songs</span>
+                        <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
+                             th:if="${total > 0}">
+                            <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                            </div>
+                            <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                            <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Plays bar -->
+                    <div class="gender-bar-row-main" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;"
+                         th:with="maleCount=${playsByGender.get('male') ?: 0}, femaleCount=${playsByGender.get('female') ?: 0}, otherCount=${playsByGender.get('other') ?: 0}, total=${(playsByGender.get('male') ?: 0) + (playsByGender.get('female') ?: 0) + (playsByGender.get('other') ?: 0)}">
+                        <span style="width: 80px; font-size: 14px; color: #999;">⏵ Plays</span>
+                        <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
+                             th:if="${total > 0}">
+                            <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                            </div>
+                            <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                            <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Listening Time bar -->
+                    <div class="gender-bar-row-main" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;"
+                         th:with="maleTime=${listeningTimeByGender.get('male') ?: 0}, femaleTime=${listeningTimeByGender.get('female') ?: 0}, otherTime=${listeningTimeByGender.get('other') ?: 0}, total=${(listeningTimeByGender.get('male') ?: 0) + (listeningTimeByGender.get('female') ?: 0) + (listeningTimeByGender.get('other') ?: 0)}">
+                        <span style="width: 80px; font-size: 14px; color: #999;">🕒 Time</span>
+                        <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
+                             th:if="${total > 0}">
+                            <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleTime * 100.0 / total} + '%'"
+                                 th:title="'Male: ' + ${#numbers.formatDecimal(maleTime * 100.0 / total, 1, 1)} + '%'">
+                                <span th:if="${maleTime * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
+                                      th:text="${#numbers.formatDecimal(maleTime * 100.0 / total, 1, 1)} + '%'"></span>
+                            </div>
+                            <div th:style="'background-color: #ff6b9d; width: ' + ${femaleTime * 100.0 / total} + '%'"
+                                 th:title="'Female: ' + ${#numbers.formatDecimal(femaleTime * 100.0 / total, 1, 1)} + '%'"></div>
+                            <div th:style="'background-color: #6b7280; width: ' + ${otherTime * 100.0 / total} + '%'"
+                                 th:title="'Other: ' + ${#numbers.formatDecimal(otherTime * 100.0 / total, 1, 1)} + '%'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div style="display: flex; justify-content: center; gap: 24px; margin-top: 16px; font-size: 12px; color: #999;">
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background-color: #4a9eff; border-radius: 2px; margin-right: 6px;"></span>Male</span>
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background-color: #ff6b9d; border-radius: 2px; margin-right: 6px;"></span>Female</span>
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background-color: #6b7280; border-radius: 2px; margin-right: 6px;"></span>Other</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     

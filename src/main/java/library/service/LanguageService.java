@@ -31,29 +31,51 @@ public class LanguageService {
         // Determine sort direction
         String sortColumn = "l.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
-        
+        String nullsHandling = " NULLS LAST";
+
         if (sortBy != null) {
             switch (sortBy.toLowerCase()) {
                 case "plays":
                     sortColumn = "play_count";
+                    nullsHandling = "";
                     break;
                 case "time":
                     sortColumn = "time_listened";
+                    nullsHandling = "";
                     break;
                 case "artists":
                     sortColumn = "artist_count";
+                    nullsHandling = "";
                     break;
                 case "songs":
                     sortColumn = "song_count";
+                    nullsHandling = "";
                     break;
                 case "albums":
                     sortColumn = "album_count";
+                    nullsHandling = "";
+                    break;
+                case "maleartistpct":
+                    sortColumn = "male_artist_pct";
+                    break;
+                case "malealbumpct":
+                    sortColumn = "male_album_pct";
+                    break;
+                case "malesongpct":
+                    sortColumn = "male_song_pct";
+                    break;
+                case "maleplaypct":
+                    sortColumn = "male_play_pct";
+                    break;
+                case "maletimepct":
+                    sortColumn = "male_time_pct";
                     break;
                 default:
                     sortColumn = "l.name";
+                    nullsHandling = "";
             }
         }
-        
+
         String sql = """
             SELECT 
                 l.id,
@@ -80,7 +102,22 @@ public class LanguageService {
                 COALESCE(stats.other_play_count, 0) as other_play_count,
                 COALESCE(stats.male_time_listened, 0) as male_time_listened,
                 COALESCE(stats.female_time_listened, 0) as female_time_listened,
-                COALESCE(stats.other_time_listened, 0) as other_time_listened
+                COALESCE(stats.other_time_listened, 0) as other_time_listened,
+                CASE WHEN COALESCE(stats.male_artist_count, 0) + COALESCE(stats.female_artist_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_artist_count, 0) AS REAL) / (COALESCE(stats.male_artist_count, 0) + COALESCE(stats.female_artist_count, 0)) 
+                     ELSE NULL END as male_artist_pct,
+                CASE WHEN COALESCE(stats.male_album_count, 0) + COALESCE(stats.female_album_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_album_count, 0) AS REAL) / (COALESCE(stats.male_album_count, 0) + COALESCE(stats.female_album_count, 0)) 
+                     ELSE NULL END as male_album_pct,
+                CASE WHEN COALESCE(stats.male_song_count, 0) + COALESCE(stats.female_song_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_song_count, 0) AS REAL) / (COALESCE(stats.male_song_count, 0) + COALESCE(stats.female_song_count, 0)) 
+                     ELSE NULL END as male_song_pct,
+                CASE WHEN COALESCE(stats.male_play_count, 0) + COALESCE(stats.female_play_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_play_count, 0) AS REAL) / (COALESCE(stats.male_play_count, 0) + COALESCE(stats.female_play_count, 0)) 
+                     ELSE NULL END as male_play_pct,
+                CASE WHEN COALESCE(stats.male_time_listened, 0) + COALESCE(stats.female_time_listened, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_time_listened, 0) AS REAL) / (COALESCE(stats.male_time_listened, 0) + COALESCE(stats.female_time_listened, 0)) 
+                     ELSE NULL END as male_time_pct
             FROM Language l
             LEFT JOIN (
                 SELECT 
@@ -116,8 +153,8 @@ public class LanguageService {
                 GROUP BY effective_language_id
             ) stats ON l.id = stats.effective_language_id
             WHERE (? IS NULL OR l.name LIKE '%' || ? || '%')
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
-        
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[25];
             row[0] = rs.getInt("id");
@@ -180,9 +217,125 @@ public class LanguageService {
             languages.add(dto);
         }
         
+        // Fetch top artist/album/song for all languages on this page
+        if (!languages.isEmpty()) {
+            populateTopItems(languages);
+        }
+
         return languages;
     }
     
+    /**
+     * Populates the top artist, album, and song for each language in the list.
+     */
+    private void populateTopItems(List<LanguageCardDTO> languages) {
+        List<Integer> languageIds = languages.stream().map(LanguageCardDTO::getId).toList();
+        if (languageIds.isEmpty()) return;
+
+        String placeholders = String.join(",", languageIds.stream().map(id -> "?").toList());
+
+        // Query for top artist per language
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as language_id, " +
+            "        ar.id as artist_id, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) IN (" + placeholders + ") " +
+            "    GROUP BY language_id, ar.id, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT language_id, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("language_id"), rs.getInt("artist_id"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            languageIds.toArray()
+        );
+
+        // Query for top album per language
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as language_id, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE al.id IS NOT NULL AND COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) IN (" + placeholders + ") " +
+            "    GROUP BY language_id, al.id, al.name, ar.name " +
+            ") " +
+            "SELECT language_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("language_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            languageIds.toArray()
+        );
+
+        // Query for top song per language
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as language_id, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) IN (" + placeholders + ") " +
+            "    GROUP BY language_id, s.id, s.name, ar.name " +
+            ") " +
+            "SELECT language_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("language_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            languageIds.toArray()
+        );
+
+        // Map results to languages
+        for (LanguageCardDTO lang : languages) {
+            for (Object[] row : artistResults) {
+                if (lang.getId().equals(row[0])) {
+                    lang.setTopArtistId((Integer) row[1]);
+                    lang.setTopArtistName((String) row[2]);
+                    lang.setTopArtistGenderId((Integer) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : albumResults) {
+                if (lang.getId().equals(row[0])) {
+                    lang.setTopAlbumId((Integer) row[1]);
+                    lang.setTopAlbumName((String) row[2]);
+                    lang.setTopAlbumArtistName((String) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (lang.getId().equals(row[0])) {
+                    lang.setTopSongId((Integer) row[1]);
+                    lang.setTopSongName((String) row[2]);
+                    lang.setTopSongArtistName((String) row[3]);
+                    break;
+                }
+            }
+        }
+    }
+
     public long countLanguages(String name) {
         String sql = """
             SELECT COUNT(*)

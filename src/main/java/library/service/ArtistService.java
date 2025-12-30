@@ -1757,8 +1757,11 @@ public class ArtistService {
             int albumId = rs.getInt("album_id");
             dto.setAlbumId(rs.wasNull() ? null : albumId);
             dto.setArtistName(rs.getString("artist_name"));
-            dto.setArtistId(rs.getInt("artist_id"));
+            int fetchedArtistId = rs.getInt("artist_id");
+            dto.setArtistId(fetchedArtistId);
             dto.setAccount(rs.getString("account"));
+            // Mark as from group if the artist is not the main artist
+            dto.setFromGroup(fetchedArtistId != artistId);
             return dto;
         }, params.toArray());
     }
@@ -2091,6 +2094,7 @@ public class ArtistService {
             Integer albumId = rs.getInt("album_id");
             dto.setAlbumId(rs.wasNull() ? null : albumId);
             dto.setAlbumName(rs.getString("album_name"));
+            dto.setFromFeatured(true);
             return dto;
         }, artistId, pageSize, page * pageSize);
     }
@@ -2381,5 +2385,73 @@ public class ArtistService {
             }
         }, artistId);
         return result;
+    }
+
+    /**
+     * Get artist's overall position among all artists by play count.
+     */
+    public Integer getArtistOverallPosition(int artistId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT a.id, 
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Artist a
+                LEFT JOIN Song s ON s.artist_id = a.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY a.id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get artist rank for Spanish Rap (artists with genre=Rap and language=Spanish).
+     * This is a special combined ranking for a subculture/scene.
+     */
+    public Integer getArtistSpanishRapRank(int artistId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT a.id, 
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Artist a
+                INNER JOIN Genre g ON a.genre_id = g.id
+                INNER JOIN Language l ON a.language_id = l.id
+                LEFT JOIN Song s ON s.artist_id = a.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE g.name = 'Rap' AND l.name = 'Spanish'
+                GROUP BY a.id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Check if an artist is in the Spanish Rap category (genre=Rap AND language=Spanish)
+     */
+    public boolean isArtistSpanishRap(int artistId) {
+        String sql = """
+            SELECT COUNT(*) FROM Artist a
+            INNER JOIN Genre g ON a.genre_id = g.id
+            INNER JOIN Language l ON a.language_id = l.id
+            WHERE a.id = ? AND g.name = 'Rap' AND l.name = 'Spanish'
+            """;
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+            return count != null && count > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -66,14 +66,15 @@ public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer>
     /**
      * Get chart entries with song and artist names populated.
      * Returns entries with transient fields filled via a native query.
-     * Uses COALESCE to check single_cover first, then fall back to album image.
+     * Returns separate has_image (song's single_cover) and album_has_image for hover pattern.
      */
-    @Query(value = "SELECT ce.id, ce.chart_id, ce.position, ce.song_id, ce.album_id, ce.play_count, " +
+    @Query(value = "SELECT ce.id, ce.chart_id, ce.position, ce.song_id, s.album_id, ce.play_count, " +
             "s.name as song_name, a.name as artist_name, " +
-            "CASE WHEN LENGTH(COALESCE(s.single_cover, (SELECT al.image FROM Album al WHERE al.id = s.album_id))) > 0 THEN 1 ELSE 0 END as has_image, " +
+            "CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image, " +
             "a.id as artist_id, " +
             "(SELECT al.name FROM Album al WHERE al.id = s.album_id) as album_name, " +
-            "a.gender_id " +
+            "a.gender_id, " +
+            "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = s.album_id AND al.image IS NOT NULL AND LENGTH(al.image) > 0) THEN 1 ELSE 0 END as album_has_image " +
             "FROM ChartEntry ce " +
             "INNER JOIN Song s ON ce.song_id = s.id " +
             "INNER JOIN Artist a ON s.artist_id = a.id " +

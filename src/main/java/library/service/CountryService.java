@@ -22,29 +22,51 @@ public class CountryService {
         // Determine sort direction
         String sortColumn = "country";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
-        
+        String nullsHandling = " NULLS LAST";
+
         if (sortBy != null) {
             switch (sortBy.toLowerCase()) {
                 case "plays":
                     sortColumn = "play_count";
+                    nullsHandling = "";
                     break;
                 case "time":
                     sortColumn = "time_listened";
+                    nullsHandling = "";
                     break;
                 case "artists":
                     sortColumn = "artist_count";
+                    nullsHandling = "";
                     break;
                 case "songs":
                     sortColumn = "song_count";
+                    nullsHandling = "";
                     break;
                 case "albums":
                     sortColumn = "album_count";
+                    nullsHandling = "";
+                    break;
+                case "maleartistpct":
+                    sortColumn = "male_artist_pct";
+                    break;
+                case "malealbumpct":
+                    sortColumn = "male_album_pct";
+                    break;
+                case "malesongpct":
+                    sortColumn = "male_song_pct";
+                    break;
+                case "maleplaypct":
+                    sortColumn = "male_play_pct";
+                    break;
+                case "maletimepct":
+                    sortColumn = "male_time_pct";
                     break;
                 default:
                     sortColumn = "country";
+                    nullsHandling = "";
             }
         }
-        
+
         String sql = """
             SELECT 
                 ar.country,
@@ -69,7 +91,22 @@ public class CountryService {
                 COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count,
                 SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
                 SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
-                SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened
+                SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened,
+                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END) > 0 
+                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END)) 
+                     ELSE NULL END as male_artist_pct,
+                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) > 0 
+                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END)) 
+                     ELSE NULL END as male_album_pct,
+                CASE WHEN SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END) > 0 
+                     THEN CAST(SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) AS REAL) / (SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END)) 
+                     ELSE NULL END as male_song_pct,
+                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) > 0 
+                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END)) 
+                     ELSE NULL END as male_play_pct,
+                CASE WHEN SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) > 0 
+                     THEN CAST(SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) AS REAL) / (SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END)) 
+                     ELSE NULL END as male_time_pct
             FROM Artist ar
             JOIN Song s ON ar.id = s.artist_id
             LEFT JOIN Album al ON s.album_id = al.id
@@ -78,8 +115,8 @@ public class CountryService {
             WHERE ar.country IS NOT NULL AND ar.country != ''
                 AND (? IS NULL OR ar.country LIKE '%' || ? || '%')
             GROUP BY ar.country
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
-        
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[23];
             row[0] = rs.getString("country");
@@ -138,9 +175,123 @@ public class CountryService {
             countries.add(dto);
         }
         
+        // Fetch top artist/album/song for all countries on this page
+        if (!countries.isEmpty()) {
+            populateTopItems(countries);
+        }
+
         return countries;
     }
     
+    /**
+     * Populates the top artist, album, and song for each country in the list.
+     */
+    private void populateTopItems(List<CountryCardDTO> countries) {
+        List<String> countryNames = countries.stream().map(CountryCardDTO::getName).toList();
+        if (countryNames.isEmpty()) return;
+
+        String placeholders = String.join(",", countryNames.stream().map(id -> "?").toList());
+
+        // Query for top artist per country
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
+            "    SELECT " +
+            "        ar.country as country, " +
+            "        ar.id as artist_id, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE ar.country IN (" + placeholders + ") " +
+            "    GROUP BY ar.country, ar.id, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT country, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getString("country"), rs.getInt("artist_id"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            countryNames.toArray()
+        );
+
+        // Query for top album per country
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        ar.country as country, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE al.id IS NOT NULL AND ar.country IN (" + placeholders + ") " +
+            "    GROUP BY ar.country, al.id, al.name, ar.name " +
+            ") " +
+            "SELECT country, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getString("country"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            countryNames.toArray()
+        );
+
+        // Query for top song per country
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        ar.country as country, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE ar.country IN (" + placeholders + ") " +
+            "    GROUP BY ar.country, s.id, s.name, ar.name " +
+            ") " +
+            "SELECT country, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getString("country"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            countryNames.toArray()
+        );
+
+        // Map results to countries
+        for (CountryCardDTO ctry : countries) {
+            for (Object[] row : artistResults) {
+                if (ctry.getName().equals(row[0])) {
+                    ctry.setTopArtistId((Integer) row[1]);
+                    ctry.setTopArtistName((String) row[2]);
+                    ctry.setTopArtistGenderId((Integer) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : albumResults) {
+                if (ctry.getName().equals(row[0])) {
+                    ctry.setTopAlbumId((Integer) row[1]);
+                    ctry.setTopAlbumName((String) row[2]);
+                    ctry.setTopAlbumArtistName((String) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (ctry.getName().equals(row[0])) {
+                    ctry.setTopSongId((Integer) row[1]);
+                    ctry.setTopSongName((String) row[2]);
+                    ctry.setTopSongArtistName((String) row[3]);
+                    break;
+                }
+            }
+        }
+    }
+
     public long countCountries(String name) {
         String sql = """
             SELECT COUNT(DISTINCT ar.country)

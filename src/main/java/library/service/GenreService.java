@@ -31,29 +31,51 @@ public class GenreService {
         // Determine sort direction
         String sortColumn = "g.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
-        
+        String nullsHandling = " NULLS LAST";
+
         if (sortBy != null) {
             switch (sortBy.toLowerCase()) {
                 case "plays":
                     sortColumn = "play_count";
+                    nullsHandling = "";
                     break;
                 case "time":
                     sortColumn = "time_listened";
+                    nullsHandling = "";
                     break;
                 case "artists":
                     sortColumn = "artist_count";
+                    nullsHandling = "";
                     break;
                 case "songs":
                     sortColumn = "song_count";
+                    nullsHandling = "";
                     break;
                 case "albums":
                     sortColumn = "album_count";
+                    nullsHandling = "";
+                    break;
+                case "maleartistpct":
+                    sortColumn = "male_artist_pct";
+                    break;
+                case "malealbumpct":
+                    sortColumn = "male_album_pct";
+                    break;
+                case "malesongpct":
+                    sortColumn = "male_song_pct";
+                    break;
+                case "maleplaypct":
+                    sortColumn = "male_play_pct";
+                    break;
+                case "maletimepct":
+                    sortColumn = "male_time_pct";
                     break;
                 default:
                     sortColumn = "g.name";
+                    nullsHandling = "";
             }
         }
-        
+
         String sql = """
             SELECT 
                 g.id,
@@ -80,7 +102,22 @@ public class GenreService {
                 COALESCE(stats.other_play_count, 0) as other_play_count,
                 COALESCE(stats.male_time_listened, 0) as male_time_listened,
                 COALESCE(stats.female_time_listened, 0) as female_time_listened,
-                COALESCE(stats.other_time_listened, 0) as other_time_listened
+                COALESCE(stats.other_time_listened, 0) as other_time_listened,
+                CASE WHEN COALESCE(artist_stats.male_artist_count, 0) + COALESCE(artist_stats.female_artist_count, 0) > 0 
+                     THEN CAST(COALESCE(artist_stats.male_artist_count, 0) AS REAL) / (COALESCE(artist_stats.male_artist_count, 0) + COALESCE(artist_stats.female_artist_count, 0)) 
+                     ELSE NULL END as male_artist_pct,
+                CASE WHEN COALESCE(album_stats.male_album_count, 0) + COALESCE(album_stats.female_album_count, 0) > 0 
+                     THEN CAST(COALESCE(album_stats.male_album_count, 0) AS REAL) / (COALESCE(album_stats.male_album_count, 0) + COALESCE(album_stats.female_album_count, 0)) 
+                     ELSE NULL END as male_album_pct,
+                CASE WHEN COALESCE(stats.male_song_count, 0) + COALESCE(stats.female_song_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_song_count, 0) AS REAL) / (COALESCE(stats.male_song_count, 0) + COALESCE(stats.female_song_count, 0)) 
+                     ELSE NULL END as male_song_pct,
+                CASE WHEN COALESCE(stats.male_play_count, 0) + COALESCE(stats.female_play_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_play_count, 0) AS REAL) / (COALESCE(stats.male_play_count, 0) + COALESCE(stats.female_play_count, 0)) 
+                     ELSE NULL END as male_play_pct,
+                CASE WHEN COALESCE(stats.male_time_listened, 0) + COALESCE(stats.female_time_listened, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_time_listened, 0) AS REAL) / (COALESCE(stats.male_time_listened, 0) + COALESCE(stats.female_time_listened, 0)) 
+                     ELSE NULL END as male_time_pct
             FROM Genre g
             LEFT JOIN (
                 SELECT 
@@ -133,8 +170,8 @@ public class GenreService {
                 GROUP BY effective_genre_id
             ) album_stats ON g.id = album_stats.effective_genre_id
             WHERE (? IS NULL OR g.name LIKE '%' || ? || '%')
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
-        
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[25];
             row[0] = rs.getInt("id");
@@ -197,9 +234,127 @@ public class GenreService {
             genres.add(dto);
         }
         
+        // Fetch top artist/album/song for all genres on this page
+        if (!genres.isEmpty()) {
+            populateTopItems(genres);
+        }
+
         return genres;
     }
     
+    /**
+     * Populates the top artist, album, and song for each genre in the list.
+     * Runs a single efficient query for all genres at once.
+     */
+    private void populateTopItems(List<GenreCardDTO> genres) {
+        List<Integer> genreIds = genres.stream().map(GenreCardDTO::getId).toList();
+        if (genreIds.isEmpty()) return;
+
+        // Build placeholders for IN clause
+        String placeholders = String.join(",", genreIds.stream().map(id -> "?").toList());
+
+        // Query for top artist per genre
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as genre_id, " +
+            "        ar.id as artist_id, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IN (" + placeholders + ") " +
+            "    GROUP BY genre_id, ar.id, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT genre_id, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("genre_id"), rs.getInt("artist_id"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            genreIds.toArray()
+        );
+
+        // Query for top album per genre
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as genre_id, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE al.id IS NOT NULL AND COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IN (" + placeholders + ") " +
+            "    GROUP BY genre_id, al.id, al.name, ar.name " +
+            ") " +
+            "SELECT genre_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("genre_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            genreIds.toArray()
+        );
+
+        // Query for top song per genre
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as genre_id, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IN (" + placeholders + ") " +
+            "    GROUP BY genre_id, s.id, s.name, ar.name " +
+            ") " +
+            "SELECT genre_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("genre_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            genreIds.toArray()
+        );
+
+        // Map results to genres
+        for (GenreCardDTO genre : genres) {
+            for (Object[] row : artistResults) {
+                if (genre.getId().equals(row[0])) {
+                    genre.setTopArtistId((Integer) row[1]);
+                    genre.setTopArtistName((String) row[2]);
+                    genre.setTopArtistGenderId((Integer) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : albumResults) {
+                if (genre.getId().equals(row[0])) {
+                    genre.setTopAlbumId((Integer) row[1]);
+                    genre.setTopAlbumName((String) row[2]);
+                    genre.setTopAlbumArtistName((String) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (genre.getId().equals(row[0])) {
+                    genre.setTopSongId((Integer) row[1]);
+                    genre.setTopSongName((String) row[2]);
+                    genre.setTopSongArtistName((String) row[3]);
+                    break;
+                }
+            }
+        }
+    }
+
     public long countGenres(String name) {
         String sql = """
             SELECT COUNT(*)

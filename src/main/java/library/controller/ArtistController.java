@@ -4,6 +4,7 @@ import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
 import library.dto.FeaturedArtistCardDTO;
 import library.entity.Artist;
+import library.repository.LookupRepository;
 import library.service.ArtistService;
 import library.service.ChartService;
 import org.springframework.stereotype.Controller;
@@ -21,10 +22,12 @@ public class ArtistController {
     
     private final ArtistService artistService;
     private final ChartService chartService;
-    
-    public ArtistController(ArtistService artistService, ChartService chartService) {
+    private final LookupRepository lookupRepository;
+
+    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository) {
         this.artistService = artistService;
         this.chartService = chartService;
+        this.lookupRepository = lookupRepository;
     }
     
     @GetMapping
@@ -322,14 +325,24 @@ public class ArtistController {
         
         if ("plays".equals(tab)) {
             int pageSize = 100;
-            // For featured songs, the counts are already updated above. 
-            // The scrobble list and year chart show base data only for simplicity.
+            // Get base scrobbles
+            List<library.dto.ScrobbleDTO> scrobbles;
             if (effectiveGroupIds != null) {
-                model.addAttribute("scrobbles", artistService.getAggregatedScrobblesForArtist(id, effectiveGroupIds, playsPage, pageSize));
+                scrobbles = new java.util.ArrayList<>(artistService.getAggregatedScrobblesForArtist(id, effectiveGroupIds, playsPage, pageSize));
                 long totalCount = artistService.getAggregatedScrobbleCount(id, effectiveGroupIds);
                 if (includeFeatured && hasFeaturedSongs) {
+                    // Add featured scrobbles
+                    List<library.dto.ScrobbleDTO> featuredScrobbles = artistService.getFeaturedScrobblesForArtist(id, 0, pageSize);
+                    scrobbles.addAll(featuredScrobbles);
+                    // Re-sort by date descending
+                    scrobbles.sort((a, b) -> b.getScrobbleDate().compareTo(a.getScrobbleDate()));
+                    // Limit to page size
+                    if (scrobbles.size() > pageSize) {
+                        scrobbles = scrobbles.subList(0, pageSize);
+                    }
                     totalCount += artistService.countFeaturedScrobblesForArtist(id);
                 }
+                model.addAttribute("scrobbles", scrobbles);
                 model.addAttribute("scrobblesTotalCount", totalCount);
                 model.addAttribute("scrobblesPage", playsPage);
                 model.addAttribute("scrobblesPageSize", pageSize);
@@ -338,10 +351,20 @@ public class ArtistController {
             } else {
                 long baseCount = artistService.countScrobblesForArtist(id);
                 long totalCount = baseCount;
+                scrobbles = new java.util.ArrayList<>(artistService.getScrobblesForArtist(id, playsPage, pageSize));
                 if (includeFeatured && hasFeaturedSongs) {
+                    // Add featured scrobbles
+                    List<library.dto.ScrobbleDTO> featuredScrobbles = artistService.getFeaturedScrobblesForArtist(id, 0, pageSize);
+                    scrobbles.addAll(featuredScrobbles);
+                    // Re-sort by date descending
+                    scrobbles.sort((a, b) -> b.getScrobbleDate().compareTo(a.getScrobbleDate()));
+                    // Limit to page size
+                    if (scrobbles.size() > pageSize) {
+                        scrobbles = scrobbles.subList(0, pageSize);
+                    }
                     totalCount += artistService.countFeaturedScrobblesForArtist(id);
                 }
-                model.addAttribute("scrobbles", artistService.getScrobblesForArtist(id, playsPage, pageSize));
+                model.addAttribute("scrobbles", scrobbles);
                 model.addAttribute("scrobblesTotalCount", totalCount);
                 model.addAttribute("scrobblesPage", playsPage);
                 model.addAttribute("scrobblesPageSize", pageSize);
@@ -351,24 +374,53 @@ public class ArtistController {
         }
         
         // Add chart history for the Chart History tab (separate lists for songs and albums)
-        // Note: Chart history for featured songs would require additional service methods
-        // to find chart entries where the song has this artist as a featured artist
         if ("chart-history".equals(tab)) {
+            List<library.dto.ChartHistoryDTO> songHistory;
+            List<library.dto.ChartHistoryDTO> albumHistory;
+            List<java.util.Map<String, Object>> seasonalSongHistory;
+            List<java.util.Map<String, Object>> yearlySongHistory;
+            List<java.util.Map<String, Object>> seasonalAlbumHistory;
+            List<java.util.Map<String, Object>> yearlyAlbumHistory;
+
             if (effectiveGroupIds != null) {
-                model.addAttribute("songChartHistory", chartService.getAggregatedArtistSongChartHistory(id, effectiveGroupIds));
-                model.addAttribute("albumChartHistory", chartService.getAggregatedArtistAlbumChartHistory(id, effectiveGroupIds));
-                model.addAttribute("seasonalSongChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "song", "seasonal"));
-                model.addAttribute("yearlySongChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "song", "yearly"));
-                model.addAttribute("seasonalAlbumChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "album", "seasonal"));
-                model.addAttribute("yearlyAlbumChartHistory", chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "album", "yearly"));
+                songHistory = chartService.getAggregatedArtistSongChartHistory(id, effectiveGroupIds);
+                albumHistory = chartService.getAggregatedArtistAlbumChartHistory(id, effectiveGroupIds);
+                seasonalSongHistory = new java.util.ArrayList<>(chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "song", "seasonal"));
+                yearlySongHistory = new java.util.ArrayList<>(chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "song", "yearly"));
+                seasonalAlbumHistory = chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "album", "seasonal");
+                yearlyAlbumHistory = chartService.getAggregatedArtistChartHistoryByPeriodType(id, effectiveGroupIds, "album", "yearly");
             } else {
-                model.addAttribute("songChartHistory", chartService.getArtistSongChartHistory(id));
-                model.addAttribute("albumChartHistory", chartService.getArtistAlbumChartHistory(id));
-                model.addAttribute("seasonalSongChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "song", "seasonal"));
-                model.addAttribute("yearlySongChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "song", "yearly"));
-                model.addAttribute("seasonalAlbumChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "album", "seasonal"));
-                model.addAttribute("yearlyAlbumChartHistory", chartService.getArtistChartHistoryByPeriodType(id, "album", "yearly"));
+                songHistory = chartService.getArtistSongChartHistory(id);
+                albumHistory = chartService.getArtistAlbumChartHistory(id);
+                seasonalSongHistory = new java.util.ArrayList<>(chartService.getArtistChartHistoryByPeriodType(id, "song", "seasonal"));
+                yearlySongHistory = new java.util.ArrayList<>(chartService.getArtistChartHistoryByPeriodType(id, "song", "yearly"));
+                seasonalAlbumHistory = chartService.getArtistChartHistoryByPeriodType(id, "album", "seasonal");
+                yearlyAlbumHistory = chartService.getArtistChartHistoryByPeriodType(id, "album", "yearly");
             }
+
+            // Add featured song chart history if includeFeatured is on
+            if (includeFeatured && hasFeaturedSongs) {
+                List<library.dto.ChartHistoryDTO> featuredSongHistory = chartService.getFeaturedArtistSongChartHistory(id);
+                songHistory = new java.util.ArrayList<>(songHistory);
+                songHistory.addAll(featuredSongHistory);
+                // Re-sort by peak position, then weeks at peak descending
+                songHistory.sort((a, b) -> {
+                    int peakCompare = a.getPeakPosition().compareTo(b.getPeakPosition());
+                    if (peakCompare != 0) return peakCompare;
+                    return b.getWeeksAtPeak().compareTo(a.getWeeksAtPeak());
+                });
+
+                // Add featured seasonal/yearly song history
+                seasonalSongHistory.addAll(chartService.getFeaturedArtistChartHistoryByPeriodType(id, "seasonal"));
+                yearlySongHistory.addAll(chartService.getFeaturedArtistChartHistoryByPeriodType(id, "yearly"));
+            }
+
+            model.addAttribute("songChartHistory", songHistory);
+            model.addAttribute("albumChartHistory", albumHistory);
+            model.addAttribute("seasonalSongChartHistory", seasonalSongHistory);
+            model.addAttribute("yearlySongChartHistory", yearlySongHistory);
+            model.addAttribute("seasonalAlbumChartHistory", seasonalAlbumHistory);
+            model.addAttribute("yearlyAlbumChartHistory", yearlyAlbumHistory);
         }
         
         // Get gender name for bar color
@@ -384,6 +436,16 @@ public class ArtistController {
         model.addAttribute("rankByCountry", rankings.get("country"));
         model.addAttribute("ranksByYear", artistService.getArtistRanksByYear(id));
         
+        // Add Spanish Rap rank (special combination)
+        if (artistService.isArtistSpanishRap(id)) {
+            model.addAttribute("rankBySpanishRap", artistService.getArtistSpanishRapRank(id));
+            model.addAttribute("rapGenreId", lookupRepository.getGenreIdByName("Rap"));
+            model.addAttribute("spanishLanguageId", lookupRepository.getLanguageIdByName("Spanish"));
+        }
+
+        // Add new ranking chips
+        model.addAttribute("overallPosition", artistService.getArtistOverallPosition(id));
+
         return "artists/detail";
     }
     

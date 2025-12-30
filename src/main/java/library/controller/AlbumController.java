@@ -3,6 +3,7 @@ package library.controller;
 import library.dto.AlbumCardDTO;
 import library.entity.Album;
 import library.entity.Artist;
+import library.repository.LookupRepository;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
@@ -24,11 +25,13 @@ public class AlbumController {
     private final AlbumService albumService;
     private final ChartService chartService;
     private final ArtistService artistService;
-    
-    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService) {
+    private final LookupRepository lookupRepository;
+
+    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService, LookupRepository lookupRepository) {
         this.albumService = albumService;
         this.chartService = chartService;
         this.artistService = artistService;
+        this.lookupRepository = lookupRepository;
     }
     
     @InitBinder
@@ -369,6 +372,20 @@ public class AlbumController {
         model.addAttribute("rankByCountry", rankings.get("country"));
         model.addAttribute("ranksByYear", albumService.getAlbumRanksByYear(id));
         
+        // Add Spanish Rap rank (special combination)
+        if (albumService.isAlbumSpanishRap(id)) {
+            model.addAttribute("rankBySpanishRap", albumService.getAlbumSpanishRapRank(id));
+            model.addAttribute("rapGenreId", lookupRepository.getGenreIdByName("Rap"));
+            model.addAttribute("spanishLanguageId", lookupRepository.getLanguageIdByName("Spanish"));
+        }
+
+        // Add new ranking chips
+        model.addAttribute("weeklyChartStats", chartService.getAlbumWeeklyChartStats(id));
+        model.addAttribute("overallPosition", albumService.getAlbumOverallPosition(id));
+        model.addAttribute("rankByReleaseYear", albumService.getAlbumRankByReleaseYear(id));
+        model.addAttribute("releaseYear", albumService.getAlbumReleaseYear(id));
+        model.addAttribute("rankByArtist", albumService.getAlbumRankByArtist(id));
+
         return "albums/detail";
     }
     

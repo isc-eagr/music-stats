@@ -148,6 +148,23 @@
                             <span class="stat-value" th:text="${gender.timeListenedFormatted}">0m</span>
                         </div>
                     </div>
+
+                    <!-- Top artist/album/song for this gender -->
+                    <div th:if="${gender.topArtistName != null or gender.topAlbumName != null or gender.topSongName != null}"
+                         class="number-one-info">
+                        <a th:if="${gender.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${gender.topArtistId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎤</span>
+                            <span class="name" th:text="${gender.topArtistName}" th:title="${gender.topArtistName}">Artist Name</span>
+                        </a>
+                        <a th:if="${gender.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${gender.topAlbumId}}" onclick="event.stopPropagation();">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${gender.topAlbumArtistName + ' - ' + gender.topAlbumName}" th:title="${gender.topAlbumArtistName + ' - ' + gender.topAlbumName}">Artist - Album</span>
+                        </a>
+                        <a th:if="${gender.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${gender.topSongId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${gender.topSongArtistName + ' - ' + gender.topSongName}" th:title="${gender.topSongArtistName + ' - ' + gender.topSongName}">Artist - Song</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

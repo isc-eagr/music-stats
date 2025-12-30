@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - Music Stats'">Years - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <script th:src="@{/js/list-utils.js}"></script>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container">
+        <!-- Header with search and filters -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1 style="margin: 0;" th:text="${pageTitle}">Years</h1>
+            </div>
+            <div class="controls">
+                <div class="sort-section">
+                    <!-- Sort By Dropdown -->
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                        <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                            <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
+                            <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
+                            <option value="malealbumpct" th:selected="${sortBy == 'malealbumpct'}">Male Album %</option>
+                            <option value="maleartistpct" th:selected="${sortBy == 'maleartistpct'}">Male Artist %</option>
+                            <option value="maleplaypct" th:selected="${sortBy == 'maleplaypct'}">Male Play %</option>
+                            <option value="malesongpct" th:selected="${sortBy == 'malesongpct'}">Male Song %</option>
+                            <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
+                            <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
+                            <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="year" th:selected="${sortBy == 'year'}">Year</option>
+                        </select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()"
+                                th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir == 'desc'}">↓</span>
+                            <span th:if="${sortDir != 'desc'}">↑</span>
+                        </button>
+                    </div>
+
+                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
+                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500"
+                               style="width: 70px;" onchange="changePageSize(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination controls (top) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+
+            <a th:if="${currentPage > 0}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}"
+                       onchange="goToPage(this.value - 1)" style="width: 60px;">
+                of <span th:text="${totalPages}"></span>
+            </span>
+
+            <a th:if="${currentPage < totalPages - 1}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+
+            <a th:if="${currentPage < totalPages - 1}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+
+        <!-- Pagination info -->
+        <div class="pagination-info">
+            <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
+        </div>
+
+        <!-- Year cards grid -->
+        <div class="catalog-grid">
+            <div th:each="year : ${years}" class="catalog-card">
+                <div class="catalog-image">
+                    <div class="catalog-icon year-icon" th:title="${yearType == 'listen' ? 'Listen Year' : 'Release Year'}">
+                        <span th:text="${year.year}">2024</span>
+                    </div>
+                </div>
+
+                <div class="catalog-info">
+                    <h3 class="catalog-name">
+                        <a th:if="${yearType == 'listen'}"
+                           th:href="@{/graphs(accountMode='includes', listenedDateFrom=${year.year + '-01-01'}, listenedDateTo=${year.year + '-12-31'})}"
+                           th:text="${year.year}"
+                           class="year-link"
+                           title="View graphs for this listen year">2024</a>
+                        <a th:if="${yearType == 'release'}"
+                           th:href="@{/graphs(releaseDateMode='between', releaseDateFrom=${'01/01/' + year.year}, releaseDateTo=${'31/12/' + year.year}, releaseDateEntity='song')}"
+                           th:text="${year.year}"
+                           class="year-link"
+                           title="View graphs for this release year">2024</a>
+                    </h3>
+
+                    <div class="catalog-stats">
+                        <div class="stat">
+                            <span class="stat-icon">🎤</span>
+                            <span class="stat-value" th:text="${year.artistCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">💿</span>
+                            <span class="stat-value" th:text="${year.albumCount}">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🎵</span>
+                            <span class="stat-value" th:text="${year.songCount}">0</span>
+                        </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-plays">
+                        <div class="stat" title="Primary plays">
+                            <span class="stat-icon primary-plays">⏵</span>
+                            <span class="stat-value" th:text="${year.vatitoPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Legacy plays">
+                            <span class="stat-icon legacy-plays">⏵</span>
+                            <span class="stat-value" th:text="${year.robertloverPlayCount}">0</span>
+                        </div>
+                        <div class="stat" title="Total plays">
+                            <span class="stat-icon total-plays">⏵</span>
+                            <span class="stat-value" th:text="${year.playCount}">0</span>
+                        </div>
+                    </div>
+                    <div class="catalog-stats catalog-stats-row2">
+                        <div class="stat">
+                            <span class="stat-icon">🕒</span>
+                            <span class="stat-value" th:text="${year.timeListenedFormatted}">0m</span>
+                        </div>
+                    </div>
+
+                    <!-- Gender breakdown bars -->
+                    <div class="gender-bars-container">
+                        <div class="gender-bar-row" th:if="${year.maleArtistCount > 0 or year.femaleArtistCount > 0 or year.otherArtistCount > 0}">
+                            <span class="gender-bar-icon" title="Artists">🎤</span>
+                            <div class="gender-bar" th:with="total=${year.maleArtistCount + year.femaleArtistCount + year.otherArtistCount}, malePct=${total > 0 ? (year.maleArtistCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${year.maleArtistCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.femaleArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${year.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((year.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.otherArtistCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${year.otherArtistCount} + ' (' + ${#numbers.formatDecimal((year.otherArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${year.maleAlbumCount > 0 or year.femaleAlbumCount > 0 or year.otherAlbumCount > 0}">
+                            <span class="gender-bar-icon" title="Albums">💿</span>
+                            <div class="gender-bar" th:with="total=${year.maleAlbumCount + year.femaleAlbumCount + year.otherAlbumCount}, malePct=${total > 0 ? (year.maleAlbumCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${year.maleAlbumCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.femaleAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${year.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((year.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.otherAlbumCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${year.otherAlbumCount} + ' (' + ${#numbers.formatDecimal((year.otherAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${year.maleCount > 0 or year.femaleCount > 0 or year.otherCount > 0}">
+                            <span class="gender-bar-icon" title="Songs">🎵</span>
+                            <div class="gender-bar" th:with="total=${year.maleCount + year.femaleCount + year.otherCount}, malePct=${total > 0 ? (year.maleCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${year.maleCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.femaleCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${year.femaleCount} + ' (' + ${#numbers.formatDecimal((year.femaleCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.otherCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${year.otherCount} + ' (' + ${#numbers.formatDecimal((year.otherCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${year.malePlayCount > 0 or year.femalePlayCount > 0 or year.otherPlayCount > 0}">
+                            <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
+                            <div class="gender-bar" th:with="total=${year.malePlayCount + year.femalePlayCount + year.otherPlayCount}, malePct=${total > 0 ? (year.malePlayCount * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${year.malePlayCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.femalePlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${year.femalePlayCount} + ' (' + ${#numbers.formatDecimal((year.femalePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                                <div class="gender-other-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.otherPlayCount} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${year.otherPlayCount} + ' (' + ${#numbers.formatDecimal((year.otherPlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
+                            </div>
+                        </div>
+                        <div class="gender-bar-row" th:if="${year.maleTimeListened > 0 or year.femaleTimeListened > 0 or year.otherTimeListened > 0}">
+                            <span class="gender-bar-icon" title="Listening Time">🕒</span>
+                            <div class="gender-bar" th:with="total=${year.maleTimeListened + year.femaleTimeListened + year.otherTimeListened}, malePct=${total > 0 ? (year.maleTimeListened * 100.0 / total) : 0}">
+                                <div class="gender-male-bar"
+                                     th:style="'width: ' + ${malePct} + '%'"
+                                     th:title="'Male: ' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%'">
+                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
+                                </div>
+                                <div class="gender-female-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.femaleTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Female: ' + ${#numbers.formatDecimal((year.femaleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
+                                <div class="gender-other-bar"
+                                     th:style="'width: ' + (${total > 0} ? (${year.otherTimeListened} * 100 / ${total}) : 0) + '%'"
+                                     th:title="'Other: ' + ${#numbers.formatDecimal((year.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top artist/album/song for this year -->
+                    <div th:if="${year.topArtistName != null or year.topAlbumName != null or year.topSongName != null}"
+                         class="number-one-info">
+                        <a th:if="${year.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${year.topArtistId}}">
+                            <span class="label">🎤</span>
+                            <span class="name" th:text="${year.topArtistName}" th:title="${year.topArtistName}">Artist Name</span>
+                        </a>
+                        <a th:if="${year.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${year.topAlbumId}}">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${year.topAlbumArtistName + ' - ' + year.topAlbumName}" th:title="${year.topAlbumArtistName + ' - ' + year.topAlbumName}">Artist - Album</span>
+                        </a>
+                        <a th:if="${year.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${year.topSongId}}">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${year.topSongArtistName + ' - ' + year.topSongName}" th:title="${year.topSongArtistName + ' - ' + year.topSongName}">Artist - Song</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination controls (bottom) -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 0}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               class="page-btn">«</a>
+
+            <a th:if="${currentPage > 0}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               class="page-btn">‹</a>
+
+            <span class="page-info">
+                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}"
+                       onchange="goToPage(this.value - 1)" style="width: 60px;">
+                of <span th:text="${totalPages}"></span>
+            </span>
+
+            <a th:if="${currentPage < totalPages - 1}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               class="page-btn">›</a>
+
+            <a th:if="${currentPage < totalPages - 1}"
+               th:href="@{'/' + ${yearType} + '-years'(sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               class="page-btn">»</a>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const yearType = /*[[${yearType}]]*/ 'listen';
+        const basePath = '/' + yearType + '-years';
+
+        function changeSortBy(sortValue) {
+            const url = new URL(window.location);
+            url.searchParams.set('sortby', sortValue);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+
+        function toggleSortDirection() {
+            const url = new URL(window.location);
+            const currentDir = url.searchParams.get('sortdir') || 'asc';
+            url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+
+        function changePageSize(newSize) {
+            const url = new URL(window.location);
+            url.searchParams.set('perpage', newSize);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+
+        function goToPage(pageNum) {
+            const url = new URL(window.location);
+            url.searchParams.set('page', pageNum);
+            window.location.href = url.toString();
+        }
+    </script>
+
+    <style>
+        .year-icon {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</body>
+</html>
+

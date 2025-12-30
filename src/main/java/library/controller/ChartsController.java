@@ -57,14 +57,49 @@ public class ChartsController {
      * Display a specific week's chart.
      */
     @GetMapping("/weekly/{periodKey}")
-    public String weeklyChart(@PathVariable String periodKey, Model model) {
+    public String weeklyChart(@PathVariable String periodKey,
+                              @RequestParam(required = false) Boolean preview,
+                              Model model) {
         Optional<Chart> chartOpt = chartService.getChart("song", periodKey);
         
         if (chartOpt.isEmpty()) {
-            // Chart doesn't exist for this week
+            // Chart doesn't exist for this week - check if we can show a preview
+            boolean weekComplete = chartService.isWeekComplete(periodKey);
+            boolean isPreviewMode = Boolean.TRUE.equals(preview) && !weekComplete;
+
+            if (isPreviewMode) {
+                // Show preview of in-progress week
+                List<ChartEntryDTO> entries = chartService.getWeeklySongChartPreview(periodKey);
+                List<ChartEntryDTO> albumEntries = chartService.getWeeklyAlbumChartPreview(periodKey);
+
+                // Get formatted period for display
+                String formattedPeriod = chartService.formatPeriodKey(periodKey);
+
+                model.addAttribute("currentSection", "weekly-charts");
+                model.addAttribute("hasChart", false);
+                model.addAttribute("isPreview", true);
+                model.addAttribute("entries", entries);
+                model.addAttribute("albumEntries", albumEntries);
+                model.addAttribute("periodKey", periodKey);
+                model.addAttribute("formattedPeriod", formattedPeriod);
+                model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
+
+                // Get #1 for display
+                if (!entries.isEmpty()) {
+                    model.addAttribute("numberOneSong", entries.get(0));
+                }
+                if (!albumEntries.isEmpty()) {
+                    model.addAttribute("numberOneAlbum", albumEntries.get(0));
+                }
+
+                return "charts/weekly";
+            }
+
+            // Not a preview - show empty state with option to view preview if week is in progress
             model.addAttribute("currentSection", "weekly-charts");
             model.addAttribute("hasChart", false);
             model.addAttribute("periodKey", periodKey);
+            model.addAttribute("weekComplete", weekComplete);
             model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
             return "charts/weekly";
         }
@@ -215,6 +250,39 @@ public class ChartsController {
         return ResponseEntity.ok(progress);
     }
     
+    /**
+     * API: Start bulk regeneration of ALL existing weekly charts.
+     * This deletes all existing charts and regenerates them from scratch.
+     */
+    @PostMapping("/regenerate-all")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> regenerateAllCharts() {
+        try {
+            String sessionId = chartService.startBulkRegeneration();
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("sessionId", sessionId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * API: Get count of existing weekly charts (for regeneration confirmation).
+     */
+    @GetMapping("/weekly/count")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getWeeklyChartsCount() {
+        int count = chartService.getWeeksWithCharts().size();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * API: Get #1 song image for a week.
      */
@@ -579,8 +647,8 @@ public class ChartsController {
         
         // Validate position based on type
         // Songs: 1, 5, 10, 20 allowed
-        // Albums: 1, 5 allowed
-        if ("album".equals(type) && position > 5) {
+        // Albums: 1, 5, 10 allowed
+        if ("album".equals(type) && position > 10) {
             // Redirect to position 1 if invalid for albums
             return "redirect:/charts/most-weeks?type=album&position=1" + (year != null ? "&year=" + year : "");
         }

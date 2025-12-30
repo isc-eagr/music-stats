@@ -116,14 +116,16 @@
                  <li><a href="/songs" class="app-nav-link" th:classappend="${currentSection == 'songs'} ? 'active' : ''">Songs</a></li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'genders' or currentSection == 'genres' or currentSection == 'subgenres' or currentSection == 'ethnicities' or currentSection == 'languages' or currentSection == 'countries'} ? 'active' : ''">Catalogs ▾</a>
+                        th:classappend="${currentSection == 'genders' or currentSection == 'genres' or currentSection == 'subgenres' or currentSection == 'ethnicities' or currentSection == 'languages' or currentSection == 'countries' or currentSection == 'listen-years' or currentSection == 'release-years'} ? 'active' : ''">Catalogs ▾</a>
                      <ul class="app-nav-dropdown-menu">
+                         <li><a href="/countries" class="app-nav-dropdown-link" th:classappend="${currentSection == 'countries'} ? 'active' : ''">Countries</a></li>
+                         <li><a href="/ethnicities" class="app-nav-dropdown-link" th:classappend="${currentSection == 'ethnicities'} ? 'active' : ''">Ethnicities</a></li>
                          <li><a href="/genders" class="app-nav-dropdown-link" th:classappend="${currentSection == 'genders'} ? 'active' : ''">Genders</a></li>
                          <li><a href="/genres" class="app-nav-dropdown-link" th:classappend="${currentSection == 'genres'} ? 'active' : ''">Genres</a></li>
-                         <li><a href="/subgenres" class="app-nav-dropdown-link" th:classappend="${currentSection == 'subgenres'} ? 'active' : ''">Subgenres</a></li>
-                         <li><a href="/ethnicities" class="app-nav-dropdown-link" th:classappend="${currentSection == 'ethnicities'} ? 'active' : ''">Ethnicities</a></li>
                          <li><a href="/languages" class="app-nav-dropdown-link" th:classappend="${currentSection == 'languages'} ? 'active' : ''">Languages</a></li>
-                         <li><a href="/countries" class="app-nav-dropdown-link" th:classappend="${currentSection == 'countries'} ? 'active' : ''">Countries</a></li>
+                         <li><a href="/listen-years" class="app-nav-dropdown-link" th:classappend="${currentSection == 'listen-years'} ? 'active' : ''">Listen Years</a></li>
+                         <li><a href="/release-years" class="app-nav-dropdown-link" th:classappend="${currentSection == 'release-years'} ? 'active' : ''">Release Years</a></li>
+                         <li><a href="/subgenres" class="app-nav-dropdown-link" th:classappend="${currentSection == 'subgenres'} ? 'active' : ''">Subgenres</a></li>
                      </ul>
                  </li>
                  <li class="app-nav-dropdown">

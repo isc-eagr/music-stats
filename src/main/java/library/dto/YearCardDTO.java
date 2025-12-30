@@ -1,9 +1,15 @@
 package library.dto;
 
-public class GenreCardDTO {
-    private Integer id;
-    private String name;
-    private boolean hasImage;
+/**
+ * DTO for Listen Year and Release Year cards.
+ * Used to display yearly statistics for both listen years (when songs were played)
+ * and release years (when songs/albums were released).
+ */
+public class YearCardDTO {
+    private Integer year;
+    private String yearType; // "listen" or "release"
+
+    // Core stats
     private Integer playCount;
     private Integer vatitoPlayCount;
     private Integer robertloverPlayCount;
@@ -12,49 +18,64 @@ public class GenreCardDTO {
     private Integer artistCount;
     private Integer albumCount;
     private Integer songCount;
+
+    // Gender breakdown for songs
     private Integer maleCount;
     private Integer femaleCount;
+    private Integer otherCount;
+
+    // Gender breakdown for artists
     private Integer maleArtistCount;
     private Integer femaleArtistCount;
+    private Integer otherArtistCount;
+
+    // Gender breakdown for albums
     private Integer maleAlbumCount;
     private Integer femaleAlbumCount;
+    private Integer otherAlbumCount;
+
+    // Gender breakdown for plays
     private Integer malePlayCount;
     private Integer femalePlayCount;
+    private Integer otherPlayCount;
+
+    // Gender breakdown for listening time
     private Long maleTimeListened;
     private Long femaleTimeListened;
-    private Integer otherCount;
-    private Integer otherArtistCount;
-    private Integer otherAlbumCount;
-    private Integer otherPlayCount;
     private Long otherTimeListened;
 
+    // Top/winning artist, album, song for this year
+    private Integer topArtistId;
+    private String topArtistName;
+    private Integer topArtistGenderId;
+    private Integer topAlbumId;
+    private String topAlbumName;
+    private String topAlbumArtistName;
+    private Integer topSongId;
+    private String topSongName;
+    private String topSongArtistName;
+
+    // Winning attributes
+    private Integer winningGenderId;
+    private String winningGenderName;
+    private Integer winningGenreId;
+    private String winningGenreName;
+
     // Getters and Setters
-    public Integer getId() {
-        return id;
+    public Integer getYear() {
+        return year;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public void setYear(Integer year) {
+        this.year = year;
     }
 
-    public String getName() {
-        return name;
+    public String getYearType() {
+        return yearType;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public boolean isHasImage() {
-        return hasImage;
-    }
-
-    public boolean getHasImage() {
-        return hasImage;
-    }
-
-    public void setHasImage(boolean hasImage) {
-        this.hasImage = hasImage;
+    public void setYearType(String yearType) {
+        this.yearType = yearType;
     }
 
     public Integer getPlayCount() {
@@ -137,6 +158,14 @@ public class GenreCardDTO {
         this.femaleCount = femaleCount;
     }
 
+    public Integer getOtherCount() {
+        return otherCount;
+    }
+
+    public void setOtherCount(Integer otherCount) {
+        this.otherCount = otherCount;
+    }
+
     public Integer getMaleArtistCount() {
         return maleArtistCount;
     }
@@ -151,6 +180,14 @@ public class GenreCardDTO {
 
     public void setFemaleArtistCount(Integer femaleArtistCount) {
         this.femaleArtistCount = femaleArtistCount;
+    }
+
+    public Integer getOtherArtistCount() {
+        return otherArtistCount;
+    }
+
+    public void setOtherArtistCount(Integer otherArtistCount) {
+        this.otherArtistCount = otherArtistCount;
     }
 
     public Integer getMaleAlbumCount() {
@@ -169,6 +206,14 @@ public class GenreCardDTO {
         this.femaleAlbumCount = femaleAlbumCount;
     }
 
+    public Integer getOtherAlbumCount() {
+        return otherAlbumCount;
+    }
+
+    public void setOtherAlbumCount(Integer otherAlbumCount) {
+        this.otherAlbumCount = otherAlbumCount;
+    }
+
     public Integer getMalePlayCount() {
         return malePlayCount;
     }
@@ -183,6 +228,14 @@ public class GenreCardDTO {
 
     public void setFemalePlayCount(Integer femalePlayCount) {
         this.femalePlayCount = femalePlayCount;
+    }
+
+    public Integer getOtherPlayCount() {
+        return otherPlayCount;
+    }
+
+    public void setOtherPlayCount(Integer otherPlayCount) {
+        this.otherPlayCount = otherPlayCount;
     }
 
     public Long getMaleTimeListened() {
@@ -201,38 +254,6 @@ public class GenreCardDTO {
         this.femaleTimeListened = femaleTimeListened;
     }
 
-    public Integer getOtherCount() {
-        return otherCount;
-    }
-
-    public void setOtherCount(Integer otherCount) {
-        this.otherCount = otherCount;
-    }
-
-    public Integer getOtherArtistCount() {
-        return otherArtistCount;
-    }
-
-    public void setOtherArtistCount(Integer otherArtistCount) {
-        this.otherArtistCount = otherArtistCount;
-    }
-
-    public Integer getOtherAlbumCount() {
-        return otherAlbumCount;
-    }
-
-    public void setOtherAlbumCount(Integer otherAlbumCount) {
-        this.otherAlbumCount = otherAlbumCount;
-    }
-
-    public Integer getOtherPlayCount() {
-        return otherPlayCount;
-    }
-
-    public void setOtherPlayCount(Integer otherPlayCount) {
-        this.otherPlayCount = otherPlayCount;
-    }
-
     public Long getOtherTimeListened() {
         return otherTimeListened;
     }
@@ -240,17 +261,6 @@ public class GenreCardDTO {
     public void setOtherTimeListened(Long otherTimeListened) {
         this.otherTimeListened = otherTimeListened;
     }
-
-    // Top/winning artist, album, song for this category
-    private Integer topArtistId;
-    private String topArtistName;
-    private Integer topArtistGenderId;
-    private Integer topAlbumId;
-    private String topAlbumName;
-    private String topAlbumArtistName;
-    private Integer topSongId;
-    private String topSongName;
-    private String topSongArtistName;
 
     public Integer getTopArtistId() {
         return topArtistId;
@@ -324,8 +334,39 @@ public class GenreCardDTO {
         this.topSongArtistName = topSongArtistName;
     }
 
+    public Integer getWinningGenderId() {
+        return winningGenderId;
+    }
+
+    public void setWinningGenderId(Integer winningGenderId) {
+        this.winningGenderId = winningGenderId;
+    }
+
+    public String getWinningGenderName() {
+        return winningGenderName;
+    }
+
+    public void setWinningGenderName(String winningGenderName) {
+        this.winningGenderName = winningGenderName;
+    }
+
+    public Integer getWinningGenreId() {
+        return winningGenreId;
+    }
+
+    public void setWinningGenreId(Integer winningGenreId) {
+        this.winningGenreId = winningGenreId;
+    }
+
+    public String getWinningGenreName() {
+        return winningGenreName;
+    }
+
+    public void setWinningGenreName(String winningGenreName) {
+        this.winningGenreName = winningGenreName;
+    }
+
     // Computed male percentages (for sorting and display)
-    // These include "other" in the denominator to match UI display
     public Double getMaleArtistPercentage() {
         int total = (maleArtistCount != null ? maleArtistCount : 0) +
                     (femaleArtistCount != null ? femaleArtistCount : 0) +
@@ -361,3 +402,4 @@ public class GenreCardDTO {
         return total > 0 ? (maleTimeListened != null ? maleTimeListened : 0L) * 100.0 / total : null;
     }
 }
+

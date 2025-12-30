@@ -15,6 +15,7 @@ public class ChartEntryDTO {
     private Integer artistId;
     private Integer playCount;
     private boolean hasImage;
+    private boolean albumHasImage;
     private Integer genderId;  // For gender-based row coloring
     
     // Calculated stats from comparing with previous charts
@@ -99,7 +100,15 @@ public class ChartEntryDTO {
     public void setHasImage(boolean hasImage) {
         this.hasImage = hasImage;
     }
-    
+
+    public boolean isAlbumHasImage() {
+        return albumHasImage;
+    }
+
+    public void setAlbumHasImage(boolean albumHasImage) {
+        this.albumHasImage = albumHasImage;
+    }
+
     public Integer getGenderId() {
         return genderId;
     }

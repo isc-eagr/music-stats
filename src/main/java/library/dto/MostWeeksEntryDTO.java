@@ -15,7 +15,10 @@ public class MostWeeksEntryDTO {
     private boolean hasImage;
     private String type; // "song" or "album"
     private Integer genderId;
-    
+    private Integer peakPosition;
+    private Integer albumId;
+    private boolean albumHasImage;
+
     public int getRank() {
         return rank;
     }
@@ -86,5 +89,29 @@ public class MostWeeksEntryDTO {
     
     public void setGenderId(Integer genderId) {
         this.genderId = genderId;
+    }
+
+    public Integer getPeakPosition() {
+        return peakPosition;
+    }
+
+    public void setPeakPosition(Integer peakPosition) {
+        this.peakPosition = peakPosition;
+    }
+
+    public Integer getAlbumId() {
+        return albumId;
+    }
+
+    public void setAlbumId(Integer albumId) {
+        this.albumId = albumId;
+    }
+
+    public boolean isAlbumHasImage() {
+        return albumHasImage;
+    }
+
+    public void setAlbumHasImage(boolean albumHasImage) {
+        this.albumHasImage = albumHasImage;
     }
 }

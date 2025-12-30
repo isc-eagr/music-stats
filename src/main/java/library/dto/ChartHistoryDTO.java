@@ -21,6 +21,12 @@ public class ChartHistoryDTO {
     private boolean hasImage;     // Whether the song/album has an image
     private Integer albumId;      // For songs: the album ID (for fallback image display)
     
+    // For tracking featured/group songs in chart history
+    private boolean featuredOn;       // True if song where this artist is featured
+    private boolean fromGroup;        // True if from group artist
+    private Integer sourceArtistId;   // The group or primary artist ID
+    private String sourceArtistName;  // The group or primary artist name
+
     public ChartHistoryDTO() {}
     
     public ChartHistoryDTO(Integer id, String name, String artistName, Integer peakPosition, Integer weeksAtPeak, Integer totalWeeks, String chartType) {
@@ -165,5 +171,37 @@ public class ChartHistoryDTO {
      */
     public boolean isPeakNumberOne() {
         return peakPosition != null && peakPosition == 1;
+    }
+
+    public boolean isFeaturedOn() {
+        return featuredOn;
+    }
+
+    public void setFeaturedOn(boolean featuredOn) {
+        this.featuredOn = featuredOn;
+    }
+
+    public boolean isFromGroup() {
+        return fromGroup;
+    }
+
+    public void setFromGroup(boolean fromGroup) {
+        this.fromGroup = fromGroup;
+    }
+
+    public Integer getSourceArtistId() {
+        return sourceArtistId;
+    }
+
+    public void setSourceArtistId(Integer sourceArtistId) {
+        this.sourceArtistId = sourceArtistId;
+    }
+
+    public String getSourceArtistName() {
+        return sourceArtistName;
+    }
+
+    public void setSourceArtistName(String sourceArtistName) {
+        this.sourceArtistName = sourceArtistName;
     }
 }

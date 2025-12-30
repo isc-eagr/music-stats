@@ -1290,4 +1290,139 @@ public class AlbumService {
         }, albumId);
         return result;
     }
+
+    /**
+     * Get album's overall position among all albums by play count.
+     */
+    public Integer getAlbumOverallPosition(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY alb.id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get album's position among albums released in the same year.
+     */
+    public Integer getAlbumRankByReleaseYear(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id,
+                       strftime('%Y', alb.release_date) as release_year,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY strftime('%Y', alb.release_date) 
+                           ORDER BY COALESCE(COUNT(sc.id), 0) DESC
+                       ) as rank
+                FROM Album alb
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE alb.release_date IS NOT NULL
+                GROUP BY alb.id, release_year
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the release year for an album.
+     */
+    public Integer getAlbumReleaseYear(int albumId) {
+        String sql = "SELECT strftime('%Y', release_date) FROM Album WHERE id = ?";
+
+        try {
+            String yearStr = jdbcTemplate.queryForObject(sql, String.class, albumId);
+            return yearStr != null ? Integer.parseInt(yearStr) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get album's position among all albums by the same artist.
+     */
+    public Integer getAlbumRankByArtist(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id,
+                       alb.artist_id,
+                       ROW_NUMBER() OVER (PARTITION BY alb.artist_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY alb.id, alb.artist_id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get album rank for Spanish Rap (albums with effective genre=Rap and effective language=Spanish).
+     */
+    public Integer getAlbumSpanishRapRank(int albumId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT alb.id, 
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Album alb
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                INNER JOIN Genre g ON COALESCE(alb.override_genre_id, ar.genre_id) = g.id
+                INNER JOIN Language l ON COALESCE(alb.override_language_id, ar.language_id) = l.id
+                LEFT JOIN Song s ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE g.name = 'Rap' AND l.name = 'Spanish'
+                GROUP BY alb.id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Check if an album is in the Spanish Rap category (effective genre=Rap AND effective language=Spanish)
+     */
+    public boolean isAlbumSpanishRap(int albumId) {
+        String sql = """
+            SELECT COUNT(*) FROM Album alb
+            INNER JOIN Artist ar ON alb.artist_id = ar.id
+            INNER JOIN Genre g ON COALESCE(alb.override_genre_id, ar.genre_id) = g.id
+            INNER JOIN Language l ON COALESCE(alb.override_language_id, ar.language_id) = l.id
+            WHERE alb.id = ? AND g.name = 'Rap' AND l.name = 'Spanish'
+            """;
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+            return count != null && count > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

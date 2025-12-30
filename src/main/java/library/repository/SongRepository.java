@@ -3350,7 +3350,7 @@ public class SongRepository {
                     WHERE 1=1 """ + songFilterClause.toString() + """
                     GROUP BY s.artist_id
                 ) agg ON ar.id = agg.artist_id
-                ORDER BY agg.plays DESC
+                ORDER BY agg.plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
         } else {
@@ -3458,7 +3458,7 @@ public class SongRepository {
                     )
                     GROUP BY attributed_artist_id
                 ) agg ON ar.id = agg.attributed_artist_id
-                ORDER BY agg.plays DESC
+                ORDER BY agg.plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
         }
@@ -3554,7 +3554,7 @@ public class SongRepository {
                 WHERE s.album_id IS NOT NULL """ + songFilterClause.toString() + """
                 GROUP BY s.album_id
             ) agg ON alb.id = agg.album_id
-            ORDER BY agg.plays DESC
+            ORDER BY agg.plays DESC, agg.last_listened ASC
             LIMIT ?
             """;
         
@@ -3662,7 +3662,7 @@ public class SongRepository {
                 GROUP BY s.artist_id
             ) agg ON ar.id = agg.artist_id
             WHERE 1=1 """ + " " + filterClause + """
-            ORDER BY plays DESC
+            ORDER BY plays DESC, last_listened ASC
             LIMIT ?
             """;
         
@@ -3758,7 +3758,7 @@ public class SongRepository {
                 GROUP BY s.album_id
             ) agg ON alb.id = agg.album_id
             WHERE 1=1 """ + " " + filterClause + """
-            ORDER BY plays DESC
+            ORDER BY plays DESC, last_listened ASC
             LIMIT ?
             """;
         
@@ -3816,6 +3816,8 @@ public class SongRepository {
                 ar.country,
                 s.length_seconds,
                 s.is_single,
+                CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                CASE WHEN alb.image IS NOT NULL AND LENGTH(alb.image) > 0 THEN 1 ELSE 0 END as album_has_image,
                 COUNT(scr.id) as plays,
                 SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
                 SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
@@ -3838,8 +3840,8 @@ public class SongRepository {
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, gender_id, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds, s.is_single
-            ORDER BY plays DESC
+            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, gender_id, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds, s.is_single, has_image, album_has_image
+            ORDER BY plays DESC, last_listened ASC
             LIMIT ?
             """;
         
@@ -3862,8 +3864,8 @@ public class SongRepository {
             row.put("languageId", rs.getObject("language_id"));
             row.put("language", rs.getString("language"));
             row.put("country", rs.getString("country"));
-            row.put("hasImage", false); // Removed expensive BLOB check
-            row.put("albumHasImage", false); // Removed expensive BLOB check
+            row.put("hasImage", rs.getInt("has_image") == 1);
+            row.put("albumHasImage", rs.getInt("album_has_image") == 1);
             row.put("isSingle", rs.getBoolean("is_single"));
             // Add song length
             int lengthSeconds = rs.getInt("length_seconds");

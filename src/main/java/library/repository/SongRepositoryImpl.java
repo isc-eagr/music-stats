@@ -124,19 +124,18 @@ public class SongRepositoryImpl {
 		java.util.Map<String, Long> result = new java.util.HashMap<>();
 		result.put("male", 0L);
 		result.put("female", 0L);
-		
+		result.put("other", 0L);
+
 		template.query(sql, rs -> {
 			String gender = rs.getString("gender");
 			long count = rs.getLong("play_count");
-			if ("male".equals(gender) || "female".equals(gender)) {
-				result.put(gender, count);
-			}
+			result.put(gender, count);
 		});
 		
 		return result;
 	}
 
-	// Get listening time by gender (returns map with male, female times in seconds)
+	// Get listening time by gender (returns map with male, female, other times in seconds)
 	public java.util.Map<String, Long> getListeningTimeByGender() {
 		String sql = """
 			SELECT 
@@ -161,13 +160,12 @@ public class SongRepositoryImpl {
 		java.util.Map<String, Long> result = new java.util.HashMap<>();
 		result.put("male", 0L);
 		result.put("female", 0L);
-		
+		result.put("other", 0L);
+
 		template.query(sql, rs -> {
 			String gender = rs.getString("gender");
 			long seconds = rs.getLong("total_seconds");
-			if ("male".equals(gender) || "female".equals(gender)) {
-				result.put(gender, seconds);
-			}
+			result.put(gender, seconds);
 		});
 		
 		return result;
@@ -196,13 +194,12 @@ public class SongRepositoryImpl {
 		java.util.Map<String, Long> result = new java.util.HashMap<>();
 		result.put("male", 0L);
 		result.put("female", 0L);
-		
+		result.put("other", 0L);
+
 		template.query(sql, rs -> {
 			String gender = rs.getString("gender");
 			long count = rs.getLong("artist_count");
-			if ("male".equals(gender) || "female".equals(gender)) {
-				result.put(gender, count);
-			}
+			result.put(gender, count);
 		});
 		
 		return result;
@@ -232,13 +229,12 @@ public class SongRepositoryImpl {
 		java.util.Map<String, Long> result = new java.util.HashMap<>();
 		result.put("male", 0L);
 		result.put("female", 0L);
-		
+		result.put("other", 0L);
+
 		template.query(sql, rs -> {
 			String gender = rs.getString("gender");
 			long count = rs.getLong("song_count");
-			if ("male".equals(gender) || "female".equals(gender)) {
-				result.put(gender, count);
-			}
+			result.put(gender, count);
 		});
 		
 		return result;
@@ -268,13 +264,12 @@ public class SongRepositoryImpl {
 		java.util.Map<String, Long> result = new java.util.HashMap<>();
 		result.put("male", 0L);
 		result.put("female", 0L);
-		
+		result.put("other", 0L);
+
 		template.query(sql, rs -> {
 			String gender = rs.getString("gender");
 			long count = rs.getLong("album_count");
-			if ("male".equals(gender) || "female".equals(gender)) {
-				result.put(gender, count);
-			}
+			result.put(gender, count);
 		});
 		
 		return result;

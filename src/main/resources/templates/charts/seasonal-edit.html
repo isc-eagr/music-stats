@@ -286,6 +286,39 @@
             flex-shrink: 0;
         }
         
+        .entry-image-container {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+        }
+
+        .entry-image-container .album-image-default {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+
+        .entry-image-container .song-image-hover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+
+        .entry-image-container:hover .album-image-default {
+            opacity: 0;
+        }
+
+        .entry-image-container:hover .song-image-hover {
+            opacity: 1;
+        }
+
         .entry-placeholder {
             width: 48px;
             height: 48px;
@@ -610,10 +643,21 @@
                         th:attr="data-gender=${entry.genderId}"
                         th:style="${songChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${songChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <div class="entry-position" th:text="${entry.position}">1</div>
-                        <div th:if="${entry.hasImage}" class="entry-image-container">
+                        <!-- Case 1: Song has single_cover AND album has image - show album by default, song on hover -->
+                        <div th:if="${entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="entry-image-container">
+                            <img class="entry-image album-image-default" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                            <img class="entry-image song-image-hover" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                        </div>
+                        <!-- Case 2: Song has single_cover but album doesn't have image - just show song image -->
+                        <div th:if="${entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
                         </div>
-                        <div th:unless="${entry.hasImage}" class="entry-placeholder">🎵</div>
+                        <!-- Case 3: Song doesn't have single_cover but album does - show album image -->
+                        <div th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="entry-image-container">
+                            <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                        </div>
+                        <!-- Case 4: No image available -->
+                        <div th:if="${!entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}" class="entry-placeholder">🎵</div>
                         <div class="entry-info">
                             <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
                             <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
@@ -655,10 +699,21 @@
                         </div>
                         <div th:each="entry, stat : ${extraSongEntries}" class="chart-entry extra-entry" th:data-id="${entry.songId}" th:data-album="${entry.albumName}">
                             <div class="entry-position extra-position">+</div>
-                            <div th:if="${entry.hasImage}" class="entry-image-container">
+                            <!-- Case 1: Song has single_cover AND album has image - show album by default, song on hover -->
+                            <div th:if="${entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="entry-image-container">
+                                <img class="entry-image album-image-default" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                                <img class="entry-image song-image-hover" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                            </div>
+                            <!-- Case 2: Song has single_cover but album doesn't have image - just show song image -->
+                            <div th:if="${entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}" class="entry-image-container">
                                 <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
                             </div>
-                            <div th:unless="${entry.hasImage}" class="entry-placeholder">🎵</div>
+                            <!-- Case 3: Song doesn't have single_cover but album does - show album image -->
+                            <div th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="entry-image-container">
+                                <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                            </div>
+                            <!-- Case 4: No image available -->
+                            <div th:if="${!entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}" class="entry-placeholder">🎵</div>
                             <div class="entry-info">
                                 <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
                                 <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>

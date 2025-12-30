@@ -34,6 +34,11 @@
                         <select id="sortBySelect" onchange="changeSortBy(this.value)">
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
+                            <option value="malealbumpct" th:selected="${sortBy == 'malealbumpct'}">Male Album %</option>
+                            <option value="maleartistpct" th:selected="${sortBy == 'maleartistpct'}">Male Artist %</option>
+                            <option value="maleplaypct" th:selected="${sortBy == 'maleplaypct'}">Male Play %</option>
+                            <option value="malesongpct" th:selected="${sortBy == 'malesongpct'}">Male Song %</option>
+                            <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
@@ -234,6 +239,23 @@
                                      th:title="'Other: ' + ${#numbers.formatDecimal((ethnicity.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Top artist/album/song for this ethnicity -->
+                    <div th:if="${ethnicity.topArtistName != null or ethnicity.topAlbumName != null or ethnicity.topSongName != null}"
+                         class="number-one-info">
+                        <a th:if="${ethnicity.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${ethnicity.topArtistId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎤</span>
+                            <span class="name" th:text="${ethnicity.topArtistName}" th:title="${ethnicity.topArtistName}">Artist Name</span>
+                        </a>
+                        <a th:if="${ethnicity.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${ethnicity.topAlbumId}}" onclick="event.stopPropagation();">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${ethnicity.topAlbumArtistName + ' - ' + ethnicity.topAlbumName}" th:title="${ethnicity.topAlbumArtistName + ' - ' + ethnicity.topAlbumName}">Artist - Album</span>
+                        </a>
+                        <a th:if="${ethnicity.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${ethnicity.topSongId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${ethnicity.topSongArtistName + ' - ' + ethnicity.topSongName}" th:title="${ethnicity.topSongArtistName + ' - ' + ethnicity.topSongName}">Artist - Song</span>
+                        </a>
                     </div>
                 </div>
             </div>

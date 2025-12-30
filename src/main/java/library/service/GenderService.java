@@ -111,9 +111,120 @@ public class GenderService {
             genders.add(dto);
         }
         
+        // Fetch top artist/album/song for all genders on this page
+        if (!genders.isEmpty()) {
+            populateTopItems(genders);
+        }
+
         return genders;
     }
     
+    /**
+     * Populates the top artist, album, and song for each gender in the list.
+     */
+    private void populateTopItems(List<GenderCardDTO> genders) {
+        List<Integer> genderIds = genders.stream().map(GenderCardDTO::getId).toList();
+        if (genderIds.isEmpty()) return;
+
+        String placeholders = String.join(",", genderIds.stream().map(id -> "?").toList());
+
+        // Query for top artist per gender
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_gender_id, ar.gender_id) as gender_id, " +
+            "        ar.id as artist_id, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
+            "    GROUP BY gender_id, ar.id, ar.name " +
+            ") " +
+            "SELECT gender_id, artist_id, artist_name FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("gender_id"), rs.getInt("artist_id"), rs.getString("artist_name")},
+            genderIds.toArray()
+        );
+
+        // Query for top album per gender
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_gender_id, ar.gender_id) as gender_id, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE al.id IS NOT NULL AND COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
+            "    GROUP BY gender_id, al.id, al.name, ar.name " +
+            ") " +
+            "SELECT gender_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("gender_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            genderIds.toArray()
+        );
+
+        // Query for top song per gender
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_gender_id, ar.gender_id) as gender_id, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
+            "    GROUP BY gender_id, s.id, s.name, ar.name " +
+            ") " +
+            "SELECT gender_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("gender_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            genderIds.toArray()
+        );
+
+        // Map results to genders
+        for (GenderCardDTO gnd : genders) {
+            for (Object[] row : artistResults) {
+                if (gnd.getId().equals(row[0])) {
+                    gnd.setTopArtistId((Integer) row[1]);
+                    gnd.setTopArtistName((String) row[2]);
+                    break;
+                }
+            }
+            for (Object[] row : albumResults) {
+                if (gnd.getId().equals(row[0])) {
+                    gnd.setTopAlbumId((Integer) row[1]);
+                    gnd.setTopAlbumName((String) row[2]);
+                    gnd.setTopAlbumArtistName((String) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (gnd.getId().equals(row[0])) {
+                    gnd.setTopSongId((Integer) row[1]);
+                    gnd.setTopSongName((String) row[2]);
+                    gnd.setTopSongArtistName((String) row[3]);
+                    break;
+                }
+            }
+        }
+    }
+
     public long countGenders(String name) {
         String sql = """
             SELECT COUNT(*)

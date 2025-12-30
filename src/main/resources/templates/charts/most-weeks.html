@@ -216,6 +216,14 @@
             min-width: 150px;
         }
         
+        .col-peak {
+            width: 80px;
+            text-align: center;
+            font-weight: 600;
+            color: #fbbf24;
+            font-size: 1rem;
+        }
+
         .col-weeks {
             width: 100px;
             text-align: right;
@@ -300,7 +308,7 @@
             
             <!-- Type toggle (Albums/Songs) -->
             <div class="type-toggle">
-                <a th:href="@{/charts/most-weeks(type='album', position=${selectedType == 'album' ? selectedPosition : (selectedPosition > 5 ? 1 : selectedPosition)}, year=${selectedYear})}"
+                <a th:href="@{/charts/most-weeks(type='album', position=${selectedType == 'album' ? selectedPosition : (selectedPosition > 10 ? 1 : selectedPosition)}, year=${selectedYear})}"
                    class="type-toggle-btn"
                    th:classappend="${selectedType == 'album'} ? 'active' : ''"
                    title="Albums">💿</a>
@@ -318,8 +326,7 @@
                 <a th:href="@{/charts/most-weeks(type=${selectedType}, position=5, year=${selectedYear})}"
                    class="position-tab"
                    th:classappend="${selectedPosition == 5} ? 'active' : ''">Top 5</a>
-                <a th:if="${selectedType == 'song'}"
-                   th:href="@{/charts/most-weeks(type=${selectedType}, position=10, year=${selectedYear})}"
+                <a th:href="@{/charts/most-weeks(type=${selectedType}, position=10, year=${selectedYear})}"
                    class="position-tab"
                    th:classappend="${selectedPosition == 10} ? 'active' : ''">Top 10</a>
                 <a th:if="${selectedType == 'song'}"
@@ -350,6 +357,7 @@
                         <th class="col-rank"># ↕</th>
                         <th class="col-title">Title <span class="sort-icon">↕</span></th>
                         <th class="col-artist">Artist <span class="sort-icon">↕</span></th>
+                        <th th:if="${selectedPosition > 1}" class="col-peak">Peak <span class="sort-icon">↕</span></th>
                         <th class="col-weeks">Total <span class="sort-icon">↕</span></th>
                     </tr>
                 </thead>
@@ -359,17 +367,41 @@
                         <td class="col-rank" th:text="${entry.rank}">1</td>
                         <td class="col-title">
                             <div class="title-cell">
-                                <!-- Image or placeholder -->
-                                <img th:if="${entry.hasImage and entry.type == 'song'}" 
-                                     th:src="@{'/songs/' + ${entry.id} + '/image'}" 
-                                     alt="" class="title-image">
-                                <img th:if="${entry.hasImage and entry.type == 'album'}" 
-                                     th:src="@{'/albums/' + ${entry.id} + '/image'}" 
-                                     alt="" class="title-image">
-                                <div th:unless="${entry.hasImage}" class="title-placeholder">
-                                    <span th:if="${entry.type == 'song'}">🎵</span>
-                                    <span th:if="${entry.type == 'album'}">💿</span>
-                                </div>
+                                <!-- Song with hover pattern: show album by default, song on hover -->
+                                <th:block th:if="${entry.type == 'song'}">
+                                    <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
+                                    <div th:if="${entry.hasImage and entry.albumHasImage}" class="hover-image-container" style="width:40px;height:40px;">
+                                        <img th:src="@{'/albums/' + ${entry.albumId} + '/image'}"
+                                             alt="" class="album-image-default title-image">
+                                        <img th:src="@{'/songs/' + ${entry.id} + '/image'}"
+                                             alt="" class="song-image-hover title-image">
+                                    </div>
+                                    <!-- Case 2: Song has image but album doesn't - just show song image -->
+                                    <img th:if="${entry.hasImage and !entry.albumHasImage}"
+                                         th:src="@{'/songs/' + ${entry.id} + '/image'}"
+                                         alt="" class="title-image">
+                                    <!-- Case 3: Song doesn't have image but album does - show album image -->
+                                    <img th:if="${!entry.hasImage and entry.albumId != null}"
+                                         th:src="@{'/albums/' + ${entry.albumId} + '/image'}"
+                                         alt="" class="title-image inherited-cover"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <!-- Case 4: No image available -->
+                                    <div th:if="${!entry.hasImage and entry.albumId == null}" class="title-placeholder">
+                                        <span>🎵</span>
+                                    </div>
+                                    <div th:if="${!entry.hasImage and entry.albumId != null}" class="title-placeholder" style="display: none;">
+                                        <span>🎵</span>
+                                    </div>
+                                </th:block>
+                                <!-- Album - just show album image -->
+                                <th:block th:if="${entry.type == 'album'}">
+                                    <img th:if="${entry.hasImage}"
+                                         th:src="@{'/albums/' + ${entry.id} + '/image'}"
+                                         alt="" class="title-image">
+                                    <div th:unless="${entry.hasImage}" class="title-placeholder">
+                                        <span>💿</span>
+                                    </div>
+                                </th:block>
                                 <!-- Title link -->
                                 <a th:if="${entry.type == 'song'}" 
                                    th:href="@{'/songs/' + ${entry.id}}" 
@@ -386,6 +418,7 @@
                                th:text="${entry.artistName}"
                                class="artist-link">Artist Name</a>
                         </td>
+                        <td th:if="${selectedPosition > 1}" class="col-peak" th:text="'#' + ${entry.peakPosition}">1</td>
                         <td class="col-weeks" th:text="${entry.weeksCount}">10</td>
                     </tr>
                 </tbody>

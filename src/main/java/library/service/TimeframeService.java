@@ -120,28 +120,28 @@ public class TimeframeService {
                     female_time_listened,
                     other_time_listened,
                     CASE 
-                        WHEN (male_artist_count + female_artist_count) > 0 
-                        THEN CAST(male_artist_count AS REAL) * 100.0 / (male_artist_count + female_artist_count)
+                        WHEN (male_artist_count + female_artist_count + other_artist_count) > 0 
+                        THEN CAST(male_artist_count AS REAL) * 100.0 / (male_artist_count + female_artist_count + other_artist_count)
                         ELSE NULL 
                     END as male_artist_pct,
                     CASE 
-                        WHEN (male_album_count + female_album_count) > 0 
-                        THEN CAST(male_album_count AS REAL) * 100.0 / (male_album_count + female_album_count)
+                        WHEN (male_album_count + female_album_count + other_album_count) > 0 
+                        THEN CAST(male_album_count AS REAL) * 100.0 / (male_album_count + female_album_count + other_album_count)
                         ELSE NULL 
                     END as male_album_pct,
                     CASE 
-                        WHEN (male_song_count + female_song_count) > 0 
-                        THEN CAST(male_song_count AS REAL) * 100.0 / (male_song_count + female_song_count)
+                        WHEN (male_song_count + female_song_count + other_song_count) > 0 
+                        THEN CAST(male_song_count AS REAL) * 100.0 / (male_song_count + female_song_count + other_song_count)
                         ELSE NULL 
                     END as male_song_pct,
                     CASE 
-                        WHEN (male_play_count + female_play_count) > 0 
-                        THEN CAST(male_play_count AS REAL) * 100.0 / (male_play_count + female_play_count)
+                        WHEN (male_play_count + female_play_count + other_play_count) > 0 
+                        THEN CAST(male_play_count AS REAL) * 100.0 / (male_play_count + female_play_count + other_play_count)
                         ELSE NULL 
                     END as male_play_pct,
                     CASE 
-                        WHEN (male_time_listened + female_time_listened) > 0 
-                        THEN CAST(male_time_listened AS REAL) * 100.0 / (male_time_listened + female_time_listened)
+                        WHEN (male_time_listened + female_time_listened + other_time_listened) > 0 
+                        THEN CAST(male_time_listened AS REAL) * 100.0 / (male_time_listened + female_time_listened + other_time_listened)
                         ELSE NULL 
                     END as male_time_pct
                 FROM period_summary
@@ -161,7 +161,7 @@ public class TimeframeService {
             maleTimePctMin, maleTimePctMax);
         
         sql.append("\n                ORDER BY ").append(sortColumn.replace("ps.", "")).append(" ").append(sortDirection);
-        
+
         // Only apply SQL pagination if we're NOT going to merge with all periods
         // When merging, we need ALL results from DB, then do pagination in Java
         if (!needsMergeWithAllPeriods) {
@@ -361,12 +361,134 @@ public class TimeframeService {
         // For days, weeks, months, seasons, and years with no restrictive filters, include 0-play periods
         // We already skipped SQL pagination above, so merge will handle it
         if (needsMergeWithAllPeriods) {
-            return mergeWithAllPeriods(periodType, results, sortBy, sortDir, page, perPage);
+            List<TimeframeCardDTO> mergedResults = mergeWithAllPeriods(periodType, results, sortBy, sortDir, page, perPage);
+            if (!mergedResults.isEmpty()) {
+                populateTopItems(mergedResults, periodType);
+            }
+            return mergedResults;
+        }
+
+        // Populate top artist/album/song for the results
+        if (!results.isEmpty()) {
+            populateTopItems(results, periodType);
         }
         
         return results;
     }
     
+    /**
+     * Populates the top artist, album, and song for each timeframe in the list.
+     */
+    private void populateTopItems(List<TimeframeCardDTO> timeframes, String periodType) {
+        List<String> periodKeys = timeframes.stream()
+            .filter(t -> t.getPlayCount() != null && t.getPlayCount() > 0)
+            .map(TimeframeCardDTO::getPeriodKey)
+            .toList();
+        if (periodKeys.isEmpty()) return;
+
+        String periodKeyExpr = getPeriodKeyExpression(periodType);
+        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
+
+        // Query for top artist per period
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        ar.id as artist_id, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY period_key, ar.id, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT period_key, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("artist_id"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            periodKeys.toArray()
+        );
+
+        // Query for top album per period
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE al.id IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY period_key, al.id, al.name, ar.name " +
+            ") " +
+            "SELECT period_key, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            periodKeys.toArray()
+        );
+
+        // Query for top song per period
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY period_key, s.id, s.name, ar.name " +
+            ") " +
+            "SELECT period_key, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            periodKeys.toArray()
+        );
+
+        // Map results to timeframes
+        for (TimeframeCardDTO tf : timeframes) {
+            for (Object[] row : artistResults) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setTopArtistId((Integer) row[1]);
+                    tf.setTopArtistName((String) row[2]);
+                    tf.setTopArtistGenderId((Integer) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : albumResults) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setTopAlbumId((Integer) row[1]);
+                    tf.setTopAlbumName((String) row[2]);
+                    tf.setTopAlbumArtistName((String) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setTopSongId((Integer) row[1]);
+                    tf.setTopSongName((String) row[2]);
+                    tf.setTopSongArtistName((String) row[3]);
+                    break;
+                }
+            }
+        }
+    }
+
     /**
      * Check if any filters are set that would exclude 0-play periods
      */
@@ -483,28 +605,28 @@ public class TimeframeService {
                     female_time_listened,
                     other_time_listened,
                     CASE 
-                        WHEN (male_artist_count + female_artist_count) > 0 
-                        THEN CAST(male_artist_count AS REAL) * 100.0 / (male_artist_count + female_artist_count)
+                        WHEN (male_artist_count + female_artist_count + other_artist_count) > 0 
+                        THEN CAST(male_artist_count AS REAL) * 100.0 / (male_artist_count + female_artist_count + other_artist_count)
                         ELSE NULL 
                     END as male_artist_pct,
                     CASE 
-                        WHEN (male_album_count + female_album_count) > 0 
-                        THEN CAST(male_album_count AS REAL) * 100.0 / (male_album_count + female_album_count)
+                        WHEN (male_album_count + female_album_count + other_album_count) > 0 
+                        THEN CAST(male_album_count AS REAL) * 100.0 / (male_album_count + female_album_count + other_album_count)
                         ELSE NULL 
                     END as male_album_pct,
                     CASE 
-                        WHEN (male_song_count + female_song_count) > 0 
-                        THEN CAST(male_song_count AS REAL) * 100.0 / (male_song_count + female_song_count)
+                        WHEN (male_song_count + female_song_count + other_song_count) > 0 
+                        THEN CAST(male_song_count AS REAL) * 100.0 / (male_song_count + female_song_count + other_song_count)
                         ELSE NULL 
                     END as male_song_pct,
                     CASE 
-                        WHEN (male_play_count + female_play_count) > 0 
-                        THEN CAST(male_play_count AS REAL) * 100.0 / (male_play_count + female_play_count)
+                        WHEN (male_play_count + female_play_count + other_play_count) > 0 
+                        THEN CAST(male_play_count AS REAL) * 100.0 / (male_play_count + female_play_count + other_play_count)
                         ELSE NULL 
                     END as male_play_pct,
                     CASE 
-                        WHEN (male_time_listened + female_time_listened) > 0 
-                        THEN CAST(male_time_listened AS REAL) * 100.0 / (male_time_listened + female_time_listened)
+                        WHEN (male_time_listened + female_time_listened + other_time_listened) > 0 
+                        THEN CAST(male_time_listened AS REAL) * 100.0 / (male_time_listened + female_time_listened + other_time_listened)
                         ELSE NULL 
                     END as male_time_pct
                 FROM period_summary
@@ -705,7 +827,7 @@ public class TimeframeService {
             // Return count of all possible periods
             List<String> allPeriods = switch (periodType) {
                 case "days" -> generateAllDayKeys();
-                case "weeks" -> generateAllWeekKeys();
+                case "weeks" -> generateAllWeekKeysWithoutWeekZero(); // Exclude Week 00 since it's merged
                 case "months" -> generateAllMonthKeys();
                 case "seasons" -> generateAllSeasonKeys();
                 case "years" -> generateAllYearKeys();
@@ -801,8 +923,8 @@ public class TimeframeService {
     }
     
     /**
-     * Generate all possible week period keys from earliest scrobble to current week
-     * Uses SQLite's %W week numbering convention
+     * Generate all possible week period keys from earliest scrobble to current week.
+     * Uses SQLite's %W week numbering convention.
      */
     private List<String> generateAllWeekKeys() {
         LocalDate earliest = getEarliestScrobbleDate();
@@ -817,7 +939,7 @@ public class TimeframeService {
             int year = current.getYear();
             LocalDate jan1 = LocalDate.of(year, 1, 1);
             LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
-            
+
             int weekNum;
             if (current.isBefore(firstMonday)) {
                 weekNum = 0;
@@ -825,7 +947,7 @@ public class TimeframeService {
                 long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, current);
                 weekNum = (int) (daysSinceFirstMonday / 7) + 1;
             }
-            
+
             String weekKey = String.format("%d-W%02d", year, weekNum);
             if (weeks.isEmpty() || !weeks.get(weeks.size() - 1).equals(weekKey)) {
                 weeks.add(weekKey);
@@ -837,6 +959,127 @@ public class TimeframeService {
         return weeks;
     }
     
+    /**
+     * Generate all possible week period keys, but exclude Week 00 entries.
+     * Week 00 data should be merged into the last week of the previous year.
+     */
+    private List<String> generateAllWeekKeysWithoutWeekZero() {
+        List<String> allWeeks = generateAllWeekKeys();
+        // Filter out Week 00 entries
+        return allWeeks.stream()
+            .filter(key -> !key.endsWith("-W00"))
+            .toList();
+    }
+
+    /**
+     * Merge Week 00 data into the last week of the previous year.
+     * Week 00 is the partial week (days before first Monday) which should be combined
+     * with the last week of the previous year for a complete 7-day display.
+     */
+    private List<TimeframeCardDTO> mergeWeekZeroIntoPreviousYear(List<TimeframeCardDTO> results) {
+        Map<String, TimeframeCardDTO> resultMap = new HashMap<>();
+        List<TimeframeCardDTO> weekZeros = new ArrayList<>();
+
+        for (TimeframeCardDTO dto : results) {
+            String key = dto.getPeriodKey();
+            if (key != null && key.endsWith("-W00")) {
+                weekZeros.add(dto);
+            } else {
+                resultMap.put(key, dto);
+            }
+        }
+
+        // For each Week 00, find the last week of the previous year and merge
+        for (TimeframeCardDTO week0 : weekZeros) {
+            String key = week0.getPeriodKey(); // e.g., "2025-W00"
+            int year = Integer.parseInt(key.split("-W")[0]);
+            int prevYear = year - 1;
+
+            // Find the last week of the previous year
+            // December 31 of prev year tells us what week that is
+            LocalDate dec31 = LocalDate.of(prevYear, 12, 31);
+            LocalDate jan1PrevYear = LocalDate.of(prevYear, 1, 1);
+            LocalDate firstMondayPrevYear = jan1PrevYear.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
+
+            int lastWeekNum;
+            if (dec31.isBefore(firstMondayPrevYear)) {
+                lastWeekNum = 0;
+            } else {
+                long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMondayPrevYear, dec31);
+                lastWeekNum = (int) (daysSinceFirstMonday / 7) + 1;
+            }
+
+            String lastWeekKey = String.format("%d-W%02d", prevYear, lastWeekNum);
+
+            TimeframeCardDTO targetWeek = resultMap.get(lastWeekKey);
+            if (targetWeek != null) {
+                // Merge Week 00 counts into the target week
+                mergeTimeframeCounts(targetWeek, week0);
+                // Update the display name to show the full range
+                updateWeekDisplayNameForMerge(targetWeek, week0);
+            } else {
+                // No data for last week of prev year - just use week 0 data but relabel it
+                week0.setPeriodKey(lastWeekKey);
+                week0.setPeriodDisplayName(formatPeriodDisplayName("weeks", lastWeekKey));
+                String[] dateRange = calculateDateRange("weeks", lastWeekKey);
+                week0.setListenedDateFrom(dateRange[0]);
+                week0.setListenedDateTo(dateRange[1]);
+                resultMap.put(lastWeekKey, week0);
+            }
+        }
+
+        return new ArrayList<>(resultMap.values());
+    }
+
+    /**
+     * Merge counts from source into target TimeframeCardDTO.
+     */
+    private void mergeTimeframeCounts(TimeframeCardDTO target, TimeframeCardDTO source) {
+        target.setPlayCount(safeAdd(target.getPlayCount(), source.getPlayCount()));
+        target.setTimeListened(safeAddLong(target.getTimeListened(), source.getTimeListened()));
+        target.setTimeListenedFormatted(formatTime(target.getTimeListened()));
+        target.setArtistCount(safeAdd(target.getArtistCount(), source.getArtistCount()));
+        target.setAlbumCount(safeAdd(target.getAlbumCount(), source.getAlbumCount()));
+        target.setSongCount(safeAdd(target.getSongCount(), source.getSongCount()));
+        target.setMaleCount(safeAdd(target.getMaleCount(), source.getMaleCount()));
+        target.setFemaleCount(safeAdd(target.getFemaleCount(), source.getFemaleCount()));
+        target.setOtherCount(safeAdd(target.getOtherCount(), source.getOtherCount()));
+        target.setMaleArtistCount(safeAdd(target.getMaleArtistCount(), source.getMaleArtistCount()));
+        target.setFemaleArtistCount(safeAdd(target.getFemaleArtistCount(), source.getFemaleArtistCount()));
+        target.setOtherArtistCount(safeAdd(target.getOtherArtistCount(), source.getOtherArtistCount()));
+        target.setMaleAlbumCount(safeAdd(target.getMaleAlbumCount(), source.getMaleAlbumCount()));
+        target.setFemaleAlbumCount(safeAdd(target.getFemaleAlbumCount(), source.getFemaleAlbumCount()));
+        target.setOtherAlbumCount(safeAdd(target.getOtherAlbumCount(), source.getOtherAlbumCount()));
+        target.setMalePlayCount(safeAdd(target.getMalePlayCount(), source.getMalePlayCount()));
+        target.setFemalePlayCount(safeAdd(target.getFemalePlayCount(), source.getFemalePlayCount()));
+        target.setOtherPlayCount(safeAdd(target.getOtherPlayCount(), source.getOtherPlayCount()));
+        target.setMaleTimeListened(safeAddLong(target.getMaleTimeListened(), source.getMaleTimeListened()));
+        target.setFemaleTimeListened(safeAddLong(target.getFemaleTimeListened(), source.getFemaleTimeListened()));
+        target.setOtherTimeListened(safeAddLong(target.getOtherTimeListened(), source.getOtherTimeListened()));
+    }
+
+    private Integer safeAdd(Integer a, Integer b) {
+        return (a != null ? a : 0) + (b != null ? b : 0);
+    }
+
+    private Long safeAddLong(Long a, Long b) {
+        return (a != null ? a : 0L) + (b != null ? b : 0L);
+    }
+
+    /**
+     * Update the target week's display name and date range to include the merged Week 00 days.
+     */
+    private void updateWeekDisplayNameForMerge(TimeframeCardDTO target, TimeframeCardDTO week0) {
+        // The merged week should show the full range from the target week's start
+        // to the end of Week 00's range (which is the day before first Monday of next year)
+        // Actually, the target week already has the correct date range for its period key
+        // We just need to make sure the date range includes both
+        String[] targetRange = calculateDateRange("weeks", target.getPeriodKey());
+        target.setListenedDateFrom(targetRange[0]);
+        target.setListenedDateTo(targetRange[1]);
+        target.setPeriodDisplayName(formatPeriodDisplayName("weeks", target.getPeriodKey()));
+    }
+
     /**
      * Generate all possible day period keys from earliest scrobble to today
      */
@@ -916,14 +1159,21 @@ public class TimeframeService {
     /**
      * Merge existing results with all possible period keys, filling in empty DTOs for missing periods.
      * Applies to days, weeks, months, seasons, and years period types.
+     *
+     * For weeks: Merges "Week 00" (partial week before first Monday) into the last week of the previous year.
      */
     private List<TimeframeCardDTO> mergeWithAllPeriods(String periodType, List<TimeframeCardDTO> existingResults, 
             String sortBy, String sortDir, int page, int perPage) {
         
+        // For weeks, first merge any Week 00 data into the last week of the previous year
+        if ("weeks".equals(periodType)) {
+            existingResults = mergeWeekZeroIntoPreviousYear(existingResults);
+        }
+
         // Generate all possible period keys based on period type
         List<String> allPeriodKeys = switch (periodType) {
             case "days" -> generateAllDayKeys();
-            case "weeks" -> generateAllWeekKeys();
+            case "weeks" -> generateAllWeekKeysWithoutWeekZero(); // Exclude Week 00 since we merged it
             case "months" -> generateAllMonthKeys();
             case "seasons" -> generateAllSeasonKeys();
             case "years" -> generateAllYearKeys();
@@ -951,10 +1201,7 @@ public class TimeframeService {
         }
         
         // Sort the full list
-        Comparator<TimeframeCardDTO> comparator = getComparator(sortBy, periodType);
-        if ("desc".equalsIgnoreCase(sortDir)) {
-            comparator = comparator.reversed();
-        }
+        Comparator<TimeframeCardDTO> comparator = getComparator(sortBy, periodType, sortDir);
         fullList.sort(comparator);
         
         // Apply pagination
@@ -968,41 +1215,131 @@ public class TimeframeService {
     }
     
     /**
-     * Get a comparator for sorting TimeframeCardDTOs
+     * Get a comparator for sorting TimeframeCardDTOs.
+     * Zero-play periods are always sorted to the END regardless of sort direction.
      */
-    private Comparator<TimeframeCardDTO> getComparator(String sortBy, String periodType) {
+    private Comparator<TimeframeCardDTO> getComparator(String sortBy, String periodType, String sortDir) {
+        boolean isDesc = "desc".equalsIgnoreCase(sortDir);
+
+        // Helper to check if a timeframe has zero plays (should always be last)
+        java.util.function.Function<TimeframeCardDTO, Boolean> hasPlays =
+            dto -> dto.getPlayCount() != null && dto.getPlayCount() > 0;
+
         if (sortBy == null || sortBy.isEmpty()) {
             // Default: sort by period key (chronological for seasons, lexicographic for years)
+            Comparator<TimeframeCardDTO> defaultComparator;
             if ("seasons".equals(periodType)) {
-                return (a, b) -> {
+                defaultComparator = (a, b) -> {
                     // Parse season key for chronological order
                     int orderA = getSeasonOrder(a.getPeriodKey());
                     int orderB = getSeasonOrder(b.getPeriodKey());
                     return Integer.compare(orderA, orderB);
                 };
+            } else {
+                defaultComparator = Comparator.comparing(TimeframeCardDTO::getPeriodKey);
             }
-            return Comparator.comparing(TimeframeCardDTO::getPeriodKey);
+            return isDesc ? defaultComparator.reversed() : defaultComparator;
         }
-        
+
         return switch (sortBy.toLowerCase()) {
-            case "plays" -> Comparator.comparing(TimeframeCardDTO::getPlayCount);
-            case "time" -> Comparator.comparing(TimeframeCardDTO::getTimeListened);
-            case "artists" -> Comparator.comparing(TimeframeCardDTO::getArtistCount);
-            case "albums" -> Comparator.comparing(TimeframeCardDTO::getAlbumCount);
-            case "songs" -> Comparator.comparing(TimeframeCardDTO::getSongCount);
+            case "plays" -> {
+                // Zero plays always last, then sort by play count
+                Comparator<TimeframeCardDTO> c = Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(TimeframeCardDTO::getPlayCount);
+                yield isDesc ? Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(Comparator.comparing(TimeframeCardDTO::getPlayCount).reversed()) : c;
+            }
+            case "time" -> {
+                Comparator<TimeframeCardDTO> c = Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(TimeframeCardDTO::getTimeListened);
+                yield isDesc ? Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(Comparator.comparing(TimeframeCardDTO::getTimeListened).reversed()) : c;
+            }
+            case "artists" -> {
+                Comparator<TimeframeCardDTO> c = Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(TimeframeCardDTO::getArtistCount);
+                yield isDesc ? Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(Comparator.comparing(TimeframeCardDTO::getArtistCount).reversed()) : c;
+            }
+            case "albums" -> {
+                Comparator<TimeframeCardDTO> c = Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(TimeframeCardDTO::getAlbumCount);
+                yield isDesc ? Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(Comparator.comparing(TimeframeCardDTO::getAlbumCount).reversed()) : c;
+            }
+            case "songs" -> {
+                Comparator<TimeframeCardDTO> c = Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(TimeframeCardDTO::getSongCount);
+                yield isDesc ? Comparator.comparing(hasPlays, Comparator.reverseOrder())
+                    .thenComparing(Comparator.comparing(TimeframeCardDTO::getSongCount).reversed()) : c;
+            }
+            case "maleartistpct" -> {
+                // Sort by male artist percentage. Nulls (from zero-play cards) always go last.
+                yield (a, b) -> {
+                    Double pctA = a.getMaleArtistPercentage();
+                    Double pctB = b.getMaleArtistPercentage();
+                    if (pctA == null && pctB == null) return 0;
+                    if (pctA == null) return 1;  // nulls last
+                    if (pctB == null) return -1; // nulls last
+                    return isDesc ? Double.compare(pctB, pctA) : Double.compare(pctA, pctB);
+                };
+            }
+            case "malealbumpct" -> {
+                yield (a, b) -> {
+                    Double pctA = a.getMaleAlbumPercentage();
+                    Double pctB = b.getMaleAlbumPercentage();
+                    if (pctA == null && pctB == null) return 0;
+                    if (pctA == null) return 1;
+                    if (pctB == null) return -1;
+                    return isDesc ? Double.compare(pctB, pctA) : Double.compare(pctA, pctB);
+                };
+            }
+            case "malesongpct" -> {
+                yield (a, b) -> {
+                    Double pctA = a.getMaleSongPercentage();
+                    Double pctB = b.getMaleSongPercentage();
+                    if (pctA == null && pctB == null) return 0;
+                    if (pctA == null) return 1;
+                    if (pctB == null) return -1;
+                    return isDesc ? Double.compare(pctB, pctA) : Double.compare(pctA, pctB);
+                };
+            }
+            case "maleplaypct" -> {
+                yield (a, b) -> {
+                    Double pctA = a.getMalePlayPercentage();
+                    Double pctB = b.getMalePlayPercentage();
+                    if (pctA == null && pctB == null) return 0;
+                    if (pctA == null) return 1;
+                    if (pctB == null) return -1;
+                    return isDesc ? Double.compare(pctB, pctA) : Double.compare(pctA, pctB);
+                };
+            }
+            case "maletimepct" -> {
+                yield (a, b) -> {
+                    Double pctA = a.getMaleTimePercentage();
+                    Double pctB = b.getMaleTimePercentage();
+                    if (pctA == null && pctB == null) return 0;
+                    if (pctA == null) return 1;
+                    if (pctB == null) return -1;
+                    return isDesc ? Double.compare(pctB, pctA) : Double.compare(pctA, pctB);
+                };
+            }
             default -> {
+                Comparator<TimeframeCardDTO> defaultComparator;
                 if ("seasons".equals(periodType)) {
-                    yield (Comparator<TimeframeCardDTO>) (a, b) -> {
+                    defaultComparator = (a, b) -> {
                         int orderA = getSeasonOrder(a.getPeriodKey());
                         int orderB = getSeasonOrder(b.getPeriodKey());
                         return Integer.compare(orderA, orderB);
                     };
+                } else {
+                    defaultComparator = Comparator.comparing(TimeframeCardDTO::getPeriodKey);
                 }
-                yield Comparator.comparing(TimeframeCardDTO::getPeriodKey);
+                yield isDesc ? defaultComparator.reversed() : defaultComparator;
             }
         };
     }
-    
+
     /**
      * Convert season period key to a sortable integer (e.g., "2024-Spring" -> 20242)
      */
@@ -1079,11 +1416,11 @@ public class TimeframeService {
             case "artists" -> "ps.artist_count";
             case "albums" -> "ps.album_count";
             case "songs" -> "ps.song_count";
-            case "maleartistpct" -> "male_artist_pct";
-            case "malealbumpct" -> "male_album_pct";
-            case "malesongpct" -> "male_song_pct";
-            case "maleplaypct" -> "male_play_pct";
-            case "maletimepct" -> "male_time_pct";
+            case "maleartistpct" -> "ps.male_artist_pct";
+            case "malealbumpct" -> "ps.male_album_pct";
+            case "malesongpct" -> "ps.male_song_pct";
+            case "maleplaypct" -> "ps.male_play_pct";
+            case "maletimepct" -> "ps.male_time_pct";
             default -> "seasons".equals(periodType) ? seasonSortExpr : "ps.period_key";
         };
     }
@@ -1387,43 +1724,43 @@ public class TimeframeService {
         
         // Male percentage filters
         if (maleArtistPctMin != null) {
-            sql.append(" AND (CAST(ps.male_artist_count AS REAL) * 100.0 / NULLIF(ps.male_artist_count + ps.female_artist_count, 0)) >= ?");
+            sql.append(" AND (CAST(ps.male_artist_count AS REAL) * 100.0 / NULLIF(ps.male_artist_count + ps.female_artist_count + ps.other_artist_count, 0)) >= ?");
             params.add(maleArtistPctMin);
         }
         if (maleArtistPctMax != null) {
-            sql.append(" AND (CAST(ps.male_artist_count AS REAL) * 100.0 / NULLIF(ps.male_artist_count + ps.female_artist_count, 0)) <= ?");
+            sql.append(" AND (CAST(ps.male_artist_count AS REAL) * 100.0 / NULLIF(ps.male_artist_count + ps.female_artist_count + ps.other_artist_count, 0)) <= ?");
             params.add(maleArtistPctMax);
         }
         if (maleAlbumPctMin != null) {
-            sql.append(" AND (CAST(ps.male_album_count AS REAL) * 100.0 / NULLIF(ps.male_album_count + ps.female_album_count, 0)) >= ?");
+            sql.append(" AND (CAST(ps.male_album_count AS REAL) * 100.0 / NULLIF(ps.male_album_count + ps.female_album_count + ps.other_album_count, 0)) >= ?");
             params.add(maleAlbumPctMin);
         }
         if (maleAlbumPctMax != null) {
-            sql.append(" AND (CAST(ps.male_album_count AS REAL) * 100.0 / NULLIF(ps.male_album_count + ps.female_album_count, 0)) <= ?");
+            sql.append(" AND (CAST(ps.male_album_count AS REAL) * 100.0 / NULLIF(ps.male_album_count + ps.female_album_count + ps.other_album_count, 0)) <= ?");
             params.add(maleAlbumPctMax);
         }
         if (maleSongPctMin != null) {
-            sql.append(" AND (CAST(ps.male_song_count AS REAL) * 100.0 / NULLIF(ps.male_song_count + ps.female_song_count, 0)) >= ?");
+            sql.append(" AND (CAST(ps.male_song_count AS REAL) * 100.0 / NULLIF(ps.male_song_count + ps.female_song_count + ps.other_song_count, 0)) >= ?");
             params.add(maleSongPctMin);
         }
         if (maleSongPctMax != null) {
-            sql.append(" AND (CAST(ps.male_song_count AS REAL) * 100.0 / NULLIF(ps.male_song_count + ps.female_song_count, 0)) <= ?");
+            sql.append(" AND (CAST(ps.male_song_count AS REAL) * 100.0 / NULLIF(ps.male_song_count + ps.female_song_count + ps.other_song_count, 0)) <= ?");
             params.add(maleSongPctMax);
         }
         if (malePlayPctMin != null) {
-            sql.append(" AND (CAST(ps.male_play_count AS REAL) * 100.0 / NULLIF(ps.male_play_count + ps.female_play_count, 0)) >= ?");
+            sql.append(" AND (CAST(ps.male_play_count AS REAL) * 100.0 / NULLIF(ps.male_play_count + ps.female_play_count + ps.other_play_count, 0)) >= ?");
             params.add(malePlayPctMin);
         }
         if (malePlayPctMax != null) {
-            sql.append(" AND (CAST(ps.male_play_count AS REAL) * 100.0 / NULLIF(ps.male_play_count + ps.female_play_count, 0)) <= ?");
+            sql.append(" AND (CAST(ps.male_play_count AS REAL) * 100.0 / NULLIF(ps.male_play_count + ps.female_play_count + ps.other_play_count, 0)) <= ?");
             params.add(malePlayPctMax);
         }
         if (maleTimePctMin != null) {
-            sql.append(" AND (CAST(ps.male_time_listened AS REAL) * 100.0 / NULLIF(ps.male_time_listened + ps.female_time_listened, 0)) >= ?");
+            sql.append(" AND (CAST(ps.male_time_listened AS REAL) * 100.0 / NULLIF(ps.male_time_listened + ps.female_time_listened + ps.other_time_listened, 0)) >= ?");
             params.add(maleTimePctMin);
         }
         if (maleTimePctMax != null) {
-            sql.append(" AND (CAST(ps.male_time_listened AS REAL) * 100.0 / NULLIF(ps.male_time_listened + ps.female_time_listened, 0)) <= ?");
+            sql.append(" AND (CAST(ps.male_time_listened AS REAL) * 100.0 / NULLIF(ps.male_time_listened + ps.female_time_listened + ps.other_time_listened, 0)) <= ?");
             params.add(maleTimePctMax);
         }
     }
@@ -1441,20 +1778,20 @@ public class TimeframeService {
                     yield date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"));
                 }
                 case "weeks" -> {
-                    // Format: "2024-W01" -> "Jan 1 - Jan 7, 2024"
+                    // Format: "2024-W01" -> "Jan 6 - Jan 12, 2024"
                     // Using SQLite's %W convention: week 01 starts from first Monday of year
                     String[] parts = periodKey.split("-W");
                     if (parts.length == 2) {
                         int year = Integer.parseInt(parts[0]);
                         int week = Integer.parseInt(parts[1]);
-                        
+
                         // Find the first Monday of the year (matches SQLite's %W week 01)
                         LocalDate jan1 = LocalDate.of(year, 1, 1);
                         LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
-                        
+
                         LocalDate firstDay;
                         LocalDate lastDay;
-                        
+
                         if (week == 0) {
                             // Week 00: Jan 1 to the day before the first Monday
                             firstDay = jan1;
@@ -1467,14 +1804,16 @@ public class TimeframeService {
                             firstDay = firstMonday.plusWeeks(week - 1);
                             lastDay = firstDay.plusDays(6);
                         }
-                        
+
                         String startStr = firstDay.format(DateTimeFormatter.ofPattern("MMM d"));
                         String endStr = lastDay.format(DateTimeFormatter.ofPattern("MMM d"));
                         // If same month, only show month once
                         if (firstDay.getMonth() == lastDay.getMonth()) {
                             endStr = String.valueOf(lastDay.getDayOfMonth());
                         }
-                        yield startStr + " - " + endStr + ", " + year;
+                        // Use the calendar year of the last day for display
+                        int displayYear = lastDay.getYear();
+                        yield startStr + " - " + endStr + ", " + displayYear;
                     }
                     yield periodKey;
                 }
@@ -1521,14 +1860,14 @@ public class TimeframeService {
                     if (parts.length == 2) {
                         int year = Integer.parseInt(parts[0]);
                         int week = Integer.parseInt(parts[1]);
-                        
+
                         // Find the first Monday of the year (matches SQLite's %W week 01)
                         LocalDate jan1 = LocalDate.of(year, 1, 1);
                         LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
-                        
+
                         LocalDate firstDay;
                         LocalDate lastDay;
-                        
+
                         if (week == 0) {
                             // Week 00: Jan 1 to the day before the first Monday
                             firstDay = jan1;
@@ -1542,7 +1881,7 @@ public class TimeframeService {
                             firstDay = firstMonday.plusWeeks(week - 1);
                             lastDay = firstDay.plusDays(6);
                         }
-                        
+
                         yield new String[]{firstDay.toString(), lastDay.toString()};
                     }
                     yield new String[]{"", ""};

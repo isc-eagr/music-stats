@@ -1296,4 +1296,169 @@ public class SongService {
         }, songId);
         return result;
     }
+
+    /**
+     * Get song's overall position among all songs by play count.
+     */
+    public Integer getSongOverallPosition(int songId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT s.id, 
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Song s
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY s.id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get song's position among songs released in the same year.
+     * Uses the song's release date, or falls back to album's release date.
+     */
+    public Integer getSongRankByReleaseYear(int songId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT s.id,
+                       strftime('%Y', COALESCE(s.release_date, alb.release_date)) as release_year,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY strftime('%Y', COALESCE(s.release_date, alb.release_date)) 
+                           ORDER BY COALESCE(COUNT(sc.id), 0) DESC
+                       ) as rank
+                FROM Song s
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE COALESCE(s.release_date, alb.release_date) IS NOT NULL
+                GROUP BY s.id, release_year
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the release year for a song (from song's release_date or album's release_date).
+     */
+    public Integer getSongReleaseYear(int songId) {
+        String sql = """
+            SELECT strftime('%Y', COALESCE(s.release_date, alb.release_date)) as release_year
+            FROM Song s
+            LEFT JOIN Album alb ON s.album_id = alb.id
+            WHERE s.id = ?
+            """;
+
+        try {
+            String yearStr = jdbcTemplate.queryForObject(sql, String.class, songId);
+            return yearStr != null ? Integer.parseInt(yearStr) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get song's position among all songs by the same artist.
+     */
+    public Integer getSongRankByArtist(int songId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT s.id,
+                       s.artist_id,
+                       ROW_NUMBER() OVER (PARTITION BY s.artist_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Song s
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                GROUP BY s.id, s.artist_id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get song's position among all songs in the same album.
+     * Returns null if the song doesn't have an album.
+     */
+    public Integer getSongRankByAlbum(int songId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT s.id,
+                       s.album_id,
+                       ROW_NUMBER() OVER (PARTITION BY s.album_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Song s
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE s.album_id IS NOT NULL
+                GROUP BY s.id, s.album_id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get song rank for Spanish Rap (songs with effective genre=Rap and effective language=Spanish).
+     */
+    public Integer getSongSpanishRapRank(int songId) {
+        String sql = """
+            SELECT rank FROM (
+                SELECT s.id, 
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                FROM Song s
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                INNER JOIN Genre g ON COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) = g.id
+                INNER JOIN Language l ON COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) = l.id
+                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                WHERE g.name = 'Rap' AND l.name = 'Spanish'
+                GROUP BY s.id
+            ) ranked
+            WHERE id = ?
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Check if a song is in the Spanish Rap category (effective genre=Rap AND effective language=Spanish)
+     */
+    public boolean isSongSpanishRap(int songId) {
+        String sql = """
+            SELECT COUNT(*) FROM Song s
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album alb ON s.album_id = alb.id
+            INNER JOIN Genre g ON COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) = g.id
+            INNER JOIN Language l ON COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) = l.id
+            WHERE s.id = ? AND g.name = 'Rap' AND l.name = 'Spanish'
+            """;
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return count != null && count > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

@@ -102,6 +102,41 @@
                 
                 <!-- All Chips - Flowing Together -->
                 <div class="winning-chips" style="margin-top: 15px; padding: 0 10px;">
+                    <!-- Overall Position -->
+                    <a th:if="${overallPosition != null}"
+                       th:href="@{/songs}"
+                       class="winning-chip rank-chip overall"
+                       th:text="'#' + ${overallPosition} + ' overall'"
+                       th:title="'Rank #' + ${overallPosition} + ' among all songs'"></a>
+
+                    <!-- Weekly Chart Stats -->
+                    <span th:if="${weeklyChartStats != null and weeklyChartStats.hasCharted()}"
+                          class="winning-chip rank-chip chart-stats"
+                          th:text="${weeklyChartStats.totalWeeks} + ' weeks (Peak #' + ${weeklyChartStats.peakPosition} + ' for ' + ${weeklyChartStats.weeksAtPeak} + (${weeklyChartStats.weeksAtPeak} == 1 ? ' week)' : ' weeks)')"
+                          th:title="'Spent ' + ${weeklyChartStats.totalWeeks} + ' weeks on the weekly chart with a peak of #' + ${weeklyChartStats.peakPosition}">
+                    </span>
+
+                    <!-- Position by Release Year -->
+                    <span th:if="${rankByReleaseYear != null and releaseYear != null}"
+                          class="winning-chip rank-chip release-year"
+                          th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"
+                          th:title="'Rank #' + ${rankByReleaseYear} + ' among songs released in ' + ${releaseYear}">
+                    </span>
+
+                    <!-- Position Among Artist's Songs -->
+                    <a th:if="${rankByArtist != null and artistName != null}"
+                       th:href="@{'/artists/' + ${song.artistId}}"
+                       class="winning-chip rank-chip artist-rank"
+                       th:text="'#' + ${rankByArtist} + ' ' + ${artistName} + ' song'"
+                       th:title="'Rank #' + ${rankByArtist} + ' among all ' + ${artistName} + ' songs'"></a>
+
+                    <!-- Position Among Album's Songs -->
+                    <a th:if="${rankByAlbum != null and albumName != null and song.albumId != null}"
+                       th:href="@{'/albums/' + ${song.albumId}}"
+                       class="winning-chip rank-chip album-rank"
+                       th:text="'#' + ${rankByAlbum} + ' ' + ${albumName} + ' song'"
+                       th:title="'Rank #' + ${rankByAlbum} + ' among all songs in ' + ${albumName}"></a>
+
                     <!-- Gender Rank -->
                     <a th:if="${rankByGender != null and artist != null and artist.genderId != null}" 
                        th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
@@ -138,6 +173,13 @@
                        th:text="'#' + ${rankByLanguage} + ' ' + ${languages.get(song.overrideLanguageId != null ? song.overrideLanguageId : (album != null and album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId))}" 
                        th:title="'#' + ${rankByLanguage} + ' among ' + ${languages.get(song.overrideLanguageId != null ? song.overrideLanguageId : (album != null and album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId))} + ' songs'"></a>
                     
+                    <!-- Spanish Rap Rank (special combination) -->
+                    <a th:if="${rankBySpanishRap != null}"
+                       th:href="@{/graphs(genre=${rapGenreId},genreMode='includes',language=${spanishLanguageId},languageMode='includes')}"
+                       class="winning-chip rank-chip spanish-rap"
+                       th:text="'#' + ${rankBySpanishRap} + ' Spanish Rap'"
+                       th:title="'Rank #' + ${rankBySpanishRap} + ' among Spanish Rap songs'"></a>
+
                     <!-- Country Rank -->
                     <a th:if="${rankByCountry != null and artist != null and artist.country != null}" 
                        th:href="@{/graphs(country=${artist.country},countryMode='includes')}"

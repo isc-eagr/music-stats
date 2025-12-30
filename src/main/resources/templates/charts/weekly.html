@@ -145,6 +145,38 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
         
+        .number-one-hover-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .number-one-hover-container .album-image-default {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+
+        .number-one-hover-container .song-image-hover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+
+        .number-one-hover-container:hover .album-image-default {
+            opacity: 0;
+        }
+
+        .number-one-hover-container:hover .song-image-hover {
+            opacity: 1;
+        }
+
         .number-one-placeholder {
             width: 200px;
             height: 200px;
@@ -248,12 +280,66 @@
         /* Column widths */
         .col-expand { width: 40px; text-align: center; }
         .col-position { width: 80px; text-align: center; }
+        .col-image { width: 50px; text-align: center; }
         .col-title { min-width: 200px; }
         .col-artist { min-width: 150px; }
         .col-plays { width: 100px; text-align: right; }
         .col-peak { width: 80px; text-align: center; }
         .col-weeks { width: 80px; text-align: center; }
         
+        /* Table entry images */
+        .chart-entry-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            object-fit: cover;
+            background: #222;
+        }
+
+        .chart-entry-image-container {
+            position: relative;
+            width: 40px;
+            height: 40px;
+        }
+
+        .chart-entry-image-container .album-image-default {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+
+        .chart-entry-image-container .song-image-hover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+
+        .chart-entry-image-container:hover .album-image-default {
+            opacity: 0;
+        }
+
+        .chart-entry-image-container:hover .song-image-hover {
+            opacity: 1;
+        }
+
+        .chart-entry-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 1rem;
+        }
+
         /* Position cell */
         .position-cell {
             display: flex;
@@ -668,7 +754,7 @@
                 <h1 class="charts-title">Weekly Charts</h1>
                 <div class="charts-period" th:text="${formattedPeriod}">Nov 16 - Nov 22, 2025</div>
             </div>
-            
+
             <!-- Navigation -->
             <div class="charts-nav">
                 <a th:if="${prevPeriodKey != null}" 
@@ -677,15 +763,15 @@
                     ← Previous
                 </a>
                 <span th:if="${prevPeriodKey == null}" class="nav-btn disabled">← Previous</span>
-                
+
                 <div class="charts-nav-center">
-                    <input type="text" 
-                           id="chartDatePicker" 
+                    <input type="text"
+                           id="chartDatePicker"
                            class="date-picker-input"
                            placeholder="dd/mm/yyyy"
                            title="Jump to a specific week">
                 </div>
-                
+
                 <a th:if="${nextPeriodKey != null}" 
                    th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey})}" 
                    class="nav-btn">
@@ -717,11 +803,27 @@
                 <div class="number-one-section" th:if="${numberOneSong != null}">
                     <div class="number-one-card">
                         <div class="number-one-label">🎵 #1 Song</div>
-                        <img th:if="${numberOneSong.hasImage}" 
-                             th:src="@{/songs/{id}/image(id=${numberOneSong.songId})}" 
+                        <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
+                        <div th:if="${numberOneSong.hasImage and numberOneSong.albumHasImage and numberOneSong.albumId != null}" class="hover-image-container number-one-hover-container">
+                            <img th:src="@{/albums/{id}/image(id=${numberOneSong.albumId})}"
+                                 alt="Number 1 Song"
+                                 class="album-image-default number-one-image">
+                            <img th:src="@{/songs/{id}/image(id=${numberOneSong.songId})}"
+                                 alt="Number 1 Song"
+                                 class="song-image-hover number-one-image">
+                        </div>
+                        <!-- Case 2: Song has image but album doesn't - just show song image -->
+                        <img th:if="${numberOneSong.hasImage and (!numberOneSong.albumHasImage or numberOneSong.albumId == null)}"
+                             th:src="@{/songs/{id}/image(id=${numberOneSong.songId})}"
                              alt="Number 1 Song"
                              class="number-one-image">
-                        <div th:unless="${numberOneSong.hasImage}" class="number-one-placeholder">🎵</div>
+                        <!-- Case 3: Song doesn't have image but album does - show album image -->
+                        <img th:if="${!numberOneSong.hasImage and numberOneSong.albumHasImage and numberOneSong.albumId != null}"
+                             th:src="@{/albums/{id}/image(id=${numberOneSong.albumId})}"
+                             alt="Number 1 Song"
+                             class="number-one-image inherited-cover">
+                        <!-- Case 4: No image available -->
+                        <div th:if="${!numberOneSong.hasImage and (!numberOneSong.albumHasImage or numberOneSong.albumId == null)}" class="number-one-placeholder">🎵</div>
                     </div>
                 </div>
                 
@@ -737,6 +839,7 @@
                             <tr>
                                 <th class="col-expand"></th>
                                 <th class="col-position">Position</th>
+                                <th class="col-image"></th>
                                 <th class="col-title">Title</th>
                                 <th class="col-artist">Artist</th>
                                 <th class="col-plays">Plays</th>
@@ -751,7 +854,7 @@
                                 th:attr="data-gender=${entry.genderId}"
                                 th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                 <td class="col-expand">
-                                    <button class="expand-btn" 
+                                    <button class="expand-btn"
                                             th:data-song-id="${entry.songId}"
                                             onclick="toggleChartRun(this)">+</button>
                                 </td>
@@ -768,8 +871,23 @@
                                         </span>
                                     </div>
                                 </td>
+                                <td class="col-image">
+                                    <!-- Case 1: Song has single_cover AND album has image - show album by default, song on hover -->
+                                    <div th:if="${entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="chart-entry-image-container">
+                                        <img class="chart-entry-image album-image-default" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                                        <img class="chart-entry-image song-image-hover" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                                    </div>
+                                    <!-- Case 2: Song has single_cover but album doesn't - just show song image -->
+                                    <img th:if="${entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}"
+                                         class="chart-entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                                    <!-- Case 3: Song doesn't have single_cover but album does - show album image -->
+                                    <img th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}"
+                                         class="chart-entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                                    <!-- Case 4: No image available -->
+                                    <div th:if="${!entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}" class="chart-entry-placeholder">🎵</div>
+                                </td>
                                 <td class="col-title">
-                                    <a th:href="@{/songs/{id}(id=${entry.songId})}" 
+                                    <a th:href="@{/songs/{id}(id=${entry.songId})}"
                                        class="chart-link chart-link-primary"
                                        th:text="${entry.songName}">Song Name</a>
                                 </td>
@@ -781,7 +899,7 @@
                                 <td class="col-plays">
                                     <div class="plays-cell">
                                         <span class="plays-count" th:text="${entry.playCount}">10</span>
-                                        <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}" 
+                                        <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}"
                                               th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
                                     </div>
                                 </td>
@@ -795,7 +913,7 @@
                             </tr>
                             <!-- Chart run detail row (hidden by default) -->
                             <tr class="chart-run-row" th:data-song-id="${entry.songId}">
-                                <td colspan="7" class="chart-run-cell">
+                                <td colspan="8" class="chart-run-cell">
                                     <div class="chart-run-content" th:id="'chart-run-' + ${entry.songId}">
                                         <!-- Content loaded via AJAX -->
                                         <div style="text-align: center; color: #888;">Loading chart run...</div>
@@ -807,7 +925,7 @@
                 </table>
             </div>
             </div>
-            
+
             <!-- Top 10 Albums Section -->
             <div id="albumsSection" class="chart-section" style="display: none;" th:if="${albumEntries != null && !albumEntries.isEmpty()}">
                 <!-- #1 Album Image -->
@@ -833,6 +951,7 @@
                             <tr>
                                 <th class="col-expand"></th>
                                 <th class="col-position">Position</th>
+                                <th class="col-image"></th>
                                 <th class="col-title">Album</th>
                                 <th class="col-artist">Artist</th>
                                 <th class="col-plays">Plays</th>
@@ -847,7 +966,7 @@
                                     th:attr="data-gender=${entry.genderId}"
                                     th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                     <td class="col-expand">
-                                        <button class="expand-btn" 
+                                        <button class="expand-btn"
                                                 th:data-album-id="${entry.albumId}"
                                                 onclick="toggleAlbumChartRun(this)">+</button>
                                     </td>
@@ -864,8 +983,12 @@
                                             </span>
                                         </div>
                                     </td>
+                                    <td class="col-image">
+                                        <img th:if="${entry.hasImage}" class="chart-entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                                        <div th:unless="${entry.hasImage}" class="chart-entry-placeholder">💿</div>
+                                    </td>
                                     <td class="col-title">
-                                        <a th:href="@{/albums/{id}(id=${entry.albumId})}" 
+                                        <a th:href="@{/albums/{id}(id=${entry.albumId})}"
                                            class="chart-link chart-link-primary"
                                            th:text="${entry.albumName}">Album Name</a>
                                     </td>
@@ -877,7 +1000,7 @@
                                     <td class="col-plays">
                                         <div class="plays-cell">
                                             <span class="plays-count" th:text="${entry.playCount}">10</span>
-                                            <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}" 
+                                            <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}"
                                                   th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
                                         </div>
                                     </td>
@@ -891,7 +1014,7 @@
                                 </tr>
                                 <!-- Chart run detail row (hidden by default) -->
                                 <tr class="chart-run-row album-chart-run-row" th:data-album-id="${entry.albumId}">
-                                    <td colspan="7" class="chart-run-cell">
+                                    <td colspan="8" class="chart-run-cell">
                                         <div class="chart-run-content" th:id="'album-chart-run-' + ${entry.albumId}">
                                             <!-- Content loaded via AJAX -->
                                             <div style="text-align: center; color: #888;">Loading chart run...</div>
@@ -905,7 +1028,20 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Admin Actions Section (only for finalized charts) -->
+    <div th:if="${hasChart and isPreview != true}" class="admin-actions-section" style="margin-top: 40px; padding: 20px; background: #111; border-radius: 12px; border: 1px solid #2a2a2a;">
+        <h3 style="color: #888; font-size: 14px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;">⚙️ Admin Actions</h3>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+            <button th:if="${missingWeeksCount > 0}" class="action-btn" onclick="startBulkGeneration()" style="background: #1e3a5f; border: 1px solid #2d5a8a; color: #7bb3e0;">
+                📊 Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
+            </button>
+            <button class="action-btn danger-btn" onclick="confirmRegenerateAll()" style="background: #3b1f1f; border: 1px solid #5c2d2d; color: #e07b7b;">
+                🔄 Regenerate ALL Charts
+            </button>
+        </div>
+    </div>
+
     <!-- Progress Modal -->
     <div class="progress-modal" id="progressModal">
         <div class="progress-modal-content">
@@ -924,7 +1060,34 @@
             </button>
         </div>
     </div>
-    
+
+    <!-- Confirmation Modal for Regenerating All Charts -->
+    <div class="confirm-modal" id="confirmRegenerateModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 32px; max-width: 500px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+            <h3 style="color: #f87171; font-size: 24px; margin-bottom: 16px;">Regenerate ALL Charts?</h3>
+            <p style="color: #999; margin-bottom: 8px;">This will <strong style="color: #f87171;">DELETE</strong> all existing weekly chart data and regenerate it from scratch.</p>
+            <p style="color: #999; margin-bottom: 16px;">Total charts to regenerate: <strong id="regenerateCount" style="color: #fff;">-</strong></p>
+            <p style="color: #f59e0b; font-size: 14px; margin-bottom: 24px;">⚠️ This action cannot be undone!</p>
+
+            <div id="firstConfirmSection" style="margin-bottom: 20px;">
+                <p style="color: #fff; margin-bottom: 12px;">Type <strong style="color: #f87171;">REGENERATE</strong> to confirm:</p>
+                <input type="text" id="confirmInput" placeholder="Type REGENERATE"
+                       style="width: 200px; padding: 10px; background: #111; border: 1px solid #333; color: #fff; border-radius: 6px; text-align: center; font-size: 16px;">
+            </div>
+
+            <div style="display: flex; gap: 16px; justify-content: center;">
+                <button onclick="hideRegenerateModal()" style="background: #333; border: none; color: #fff; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                    Cancel
+                </button>
+                <button id="finalConfirmBtn" onclick="finalConfirmRegenerate()"
+                        style="background: #5c2d2d; border: none; color: #e07b7b; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; opacity: 0.5;" disabled>
+                    🔄 Regenerate All
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script th:inline="javascript">
         /*<![CDATA[*/
         const currentPeriodKey = /*[[${periodKey}]]*/ null;
@@ -1154,6 +1317,36 @@
             `;
         }
         
+        // Generate chart for a single week
+        async function generateSingleChart(button) {
+            const periodKey = button.getAttribute('data-period-key');
+            if (!periodKey) {
+                alert('No period key found');
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Generating...';
+
+            try {
+                const response = await fetch('/charts/generate/' + periodKey, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirect to the generated chart
+                    window.location.href = '/charts/weekly/' + periodKey;
+                } else {
+                    alert('Failed to generate chart: ' + data.error);
+                    button.disabled = false;
+                    button.textContent = 'Generate Chart for This Week';
+                }
+            } catch (error) {
+                alert('Error generating chart: ' + error.message);
+                button.disabled = false;
+                button.textContent = 'Generate Chart for This Week';
+            }
+        }
+
         // Bulk generation
         let generationSessionId = null;
         let progressInterval = null;
@@ -1228,6 +1421,94 @@
             document.getElementById('progressCurrentWeek').textContent = progress.currentWeek || 'Finishing...';
         }
         
+        // ========== Regenerate All Charts ==========
+        let regenerateSessionId = null;
+
+        async function confirmRegenerateAll() {
+            // Fetch count of existing charts
+            try {
+                const response = await fetch('/charts/weekly/count');
+                const data = await response.json();
+                document.getElementById('regenerateCount').textContent = data.count + ' weekly charts';
+                document.getElementById('confirmInput').value = '';
+                document.getElementById('finalConfirmBtn').disabled = true;
+                document.getElementById('finalConfirmBtn').style.opacity = '0.5';
+                document.getElementById('confirmRegenerateModal').style.display = 'flex';
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function hideRegenerateModal() {
+            document.getElementById('confirmRegenerateModal').style.display = 'none';
+        }
+
+        // Enable button when user types REGENERATE
+        document.getElementById('confirmInput')?.addEventListener('input', function() {
+            const btn = document.getElementById('finalConfirmBtn');
+            if (this.value.toUpperCase() === 'REGENERATE') {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+        });
+
+        async function finalConfirmRegenerate() {
+            const input = document.getElementById('confirmInput');
+            if (input.value.toUpperCase() !== 'REGENERATE') {
+                alert('Please type REGENERATE to confirm');
+                return;
+            }
+
+            hideRegenerateModal();
+
+            // Start regeneration
+            try {
+                const response = await fetch('/charts/regenerate-all', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    regenerateSessionId = data.sessionId;
+                    document.getElementById('progressModalTitle').textContent = 'Regenerating ALL Charts';
+                    showProgressModal();
+                    startRegenerateProgressPolling();
+                } else {
+                    alert('Failed to start regeneration: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error starting regeneration: ' + error.message);
+            }
+        }
+
+        function startRegenerateProgressPolling() {
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/charts/generate-all/progress/${regenerateSessionId}`);
+                    const progress = await response.json();
+
+                    updateProgressUI(progress);
+
+                    if (progress.complete || progress.isComplete) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+
+                        if (progress.error) {
+                            document.getElementById('progressModalTitle').textContent = 'Regeneration Failed';
+                            document.getElementById('progressCurrentWeek').textContent = progress.error;
+                        } else {
+                            document.getElementById('progressModalTitle').textContent = 'Regeneration Complete!';
+                            document.getElementById('progressCurrentWeek').textContent = 'Done';
+                        }
+                        document.getElementById('closeModalBtn').style.display = 'inline-block';
+                    }
+                } catch (error) {
+                    console.error('Error polling progress:', error);
+                }
+            }, 500);
+        }
+
         // Initialize Flatpickr date picker
         document.addEventListener('DOMContentLoaded', function() {
             const picker = document.getElementById('chartDatePicker');

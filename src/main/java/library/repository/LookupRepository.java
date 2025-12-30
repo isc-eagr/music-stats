@@ -64,4 +64,28 @@ public class LookupRepository {
         });
         return languages;
     }
+
+    /**
+     * Get genre ID by name (e.g., "Rap" -> 5)
+     */
+    public Integer getGenreIdByName(String name) {
+        String sql = "SELECT id FROM Genre WHERE name = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, name);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get language ID by name (e.g., "Spanish" -> 2)
+     */
+    public Integer getLanguageIdByName(String name) {
+        String sql = "SELECT id FROM Language WHERE name = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, name);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

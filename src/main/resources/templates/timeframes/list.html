@@ -777,12 +777,15 @@
                        onclick="event.stopPropagation();">
                         ✓ Chart
                     </a>
-                    <!-- Pending (week in progress) -->
-                    <span th:if="${tf.hasChart != true and tf.weekComplete != true and tf.playCount > 0}"
-                          class="chart-status-badge pending"
-                          title="Week is still ongoing">
-                        In Progress
-                    </span>
+                    <!-- Pending (week in progress) - show Preview link -->
+                    <a th:if="${tf.hasChart != true and tf.weekComplete != true and tf.playCount > 0}"
+                       th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey}, preview=true)}"
+                       target="_blank"
+                       class="chart-status-badge pending"
+                       title="View live preview of this week's chart"
+                       onclick="event.stopPropagation();">
+                        👁️ Preview
+                    </a>
                     <!-- Not started (week complete but no chart) - only show if there are plays -->
                     <a th:if="${tf.hasChart != true and tf.weekComplete == true and tf.playCount > 0}"
                        th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
@@ -1002,6 +1005,23 @@
                             <span class="label">💿</span>
                             <span class="name" th:text="${tf.numberOneAlbumName}" th:title="${tf.numberOneAlbumName}">Album Name</span>
                         </div>
+                    </div>
+
+                    <!-- Top artist/album/song for this timeframe (for periods without charts, excluding weeks and years) -->
+                    <div th:if="${periodType != 'weeks' and periodType != 'years' and !((periodType == 'seasons' and tf.seasonalChartFinalized == true)) and (tf.topArtistName != null or tf.topAlbumName != null or tf.topSongName != null)}"
+                         class="number-one-info">
+                        <a th:if="${tf.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${tf.topArtistId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎤</span>
+                            <span class="name" th:text="${tf.topArtistName}" th:title="${tf.topArtistName}">Artist Name</span>
+                        </a>
+                        <a th:if="${tf.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${tf.topAlbumId}}" onclick="event.stopPropagation();">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}" th:title="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span>
+                        </a>
+                        <a th:if="${tf.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${tf.topSongId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}" th:title="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span>
+                        </a>
                     </div>
                 </div>
             </div>

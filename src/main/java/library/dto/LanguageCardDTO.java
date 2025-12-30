@@ -240,4 +240,124 @@ public class LanguageCardDTO {
     public void setOtherTimeListened(Long otherTimeListened) {
         this.otherTimeListened = otherTimeListened;
     }
+
+    // Top/winning artist, album, song for this category
+    private Integer topArtistId;
+    private String topArtistName;
+    private Integer topArtistGenderId;
+    private Integer topAlbumId;
+    private String topAlbumName;
+    private String topAlbumArtistName;
+    private Integer topSongId;
+    private String topSongName;
+    private String topSongArtistName;
+
+    public Integer getTopArtistId() {
+        return topArtistId;
+    }
+
+    public void setTopArtistId(Integer topArtistId) {
+        this.topArtistId = topArtistId;
+    }
+
+    public String getTopArtistName() {
+        return topArtistName;
+    }
+
+    public void setTopArtistName(String topArtistName) {
+        this.topArtistName = topArtistName;
+    }
+
+    public Integer getTopArtistGenderId() {
+        return topArtistGenderId;
+    }
+
+    public void setTopArtistGenderId(Integer topArtistGenderId) {
+        this.topArtistGenderId = topArtistGenderId;
+    }
+
+    public Integer getTopAlbumId() {
+        return topAlbumId;
+    }
+
+    public void setTopAlbumId(Integer topAlbumId) {
+        this.topAlbumId = topAlbumId;
+    }
+
+    public String getTopAlbumName() {
+        return topAlbumName;
+    }
+
+    public void setTopAlbumName(String topAlbumName) {
+        this.topAlbumName = topAlbumName;
+    }
+
+    public String getTopAlbumArtistName() {
+        return topAlbumArtistName;
+    }
+
+    public void setTopAlbumArtistName(String topAlbumArtistName) {
+        this.topAlbumArtistName = topAlbumArtistName;
+    }
+
+    public Integer getTopSongId() {
+        return topSongId;
+    }
+
+    public void setTopSongId(Integer topSongId) {
+        this.topSongId = topSongId;
+    }
+
+    public String getTopSongName() {
+        return topSongName;
+    }
+
+    public void setTopSongName(String topSongName) {
+        this.topSongName = topSongName;
+    }
+
+    public String getTopSongArtistName() {
+        return topSongArtistName;
+    }
+
+    public void setTopSongArtistName(String topSongArtistName) {
+        this.topSongArtistName = topSongArtistName;
+    }
+
+    // Computed male percentages (for sorting and display)
+    // These include "other" in the denominator to match UI display
+    public Double getMaleArtistPercentage() {
+        int total = (maleArtistCount != null ? maleArtistCount : 0) +
+                    (femaleArtistCount != null ? femaleArtistCount : 0) +
+                    (otherArtistCount != null ? otherArtistCount : 0);
+        return total > 0 ? (maleArtistCount != null ? maleArtistCount : 0) * 100.0 / total : null;
+    }
+
+    public Double getMaleAlbumPercentage() {
+        int total = (maleAlbumCount != null ? maleAlbumCount : 0) +
+                    (femaleAlbumCount != null ? femaleAlbumCount : 0) +
+                    (otherAlbumCount != null ? otherAlbumCount : 0);
+        return total > 0 ? (maleAlbumCount != null ? maleAlbumCount : 0) * 100.0 / total : null;
+    }
+
+    public Double getMaleSongPercentage() {
+        int total = (maleCount != null ? maleCount : 0) +
+                    (femaleCount != null ? femaleCount : 0) +
+                    (otherCount != null ? otherCount : 0);
+        return total > 0 ? (maleCount != null ? maleCount : 0) * 100.0 / total : null;
+    }
+
+    public Double getMalePlayPercentage() {
+        int total = (malePlayCount != null ? malePlayCount : 0) +
+                    (femalePlayCount != null ? femalePlayCount : 0) +
+                    (otherPlayCount != null ? otherPlayCount : 0);
+        return total > 0 ? (malePlayCount != null ? malePlayCount : 0) * 100.0 / total : null;
+    }
+
+    public Double getMaleTimePercentage() {
+        long total = (maleTimeListened != null ? maleTimeListened : 0L) +
+                     (femaleTimeListened != null ? femaleTimeListened : 0L) +
+                     (otherTimeListened != null ? otherTimeListened : 0L);
+        return total > 0 ? (maleTimeListened != null ? maleTimeListened : 0L) * 100.0 / total : null;
+    }
 }

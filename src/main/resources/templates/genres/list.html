@@ -35,6 +35,11 @@
                         <select id="sortBySelect" onchange="changeSortBy(this.value)">
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
+                            <option value="malealbumpct" th:selected="${sortBy == 'malealbumpct'}">Male Album %</option>
+                            <option value="maleartistpct" th:selected="${sortBy == 'maleartistpct'}">Male Artist %</option>
+                            <option value="maleplaypct" th:selected="${sortBy == 'maleplaypct'}">Male Play %</option>
+                            <option value="malesongpct" th:selected="${sortBy == 'malesongpct'}">Male Song %</option>
+                            <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
@@ -235,6 +240,23 @@
                                      th:title="'Other: ' + ${#numbers.formatDecimal((genre.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Top artist/album/song for this genre -->
+                    <div th:if="${genre.topArtistName != null or genre.topAlbumName != null or genre.topSongName != null}"
+                         class="number-one-info">
+                        <a th:if="${genre.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${genre.topArtistId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎤</span>
+                            <span class="name" th:text="${genre.topArtistName}" th:title="${genre.topArtistName}">Artist Name</span>
+                        </a>
+                        <a th:if="${genre.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${genre.topAlbumId}}" onclick="event.stopPropagation();">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${genre.topAlbumArtistName + ' - ' + genre.topAlbumName}" th:title="${genre.topAlbumArtistName + ' - ' + genre.topAlbumName}">Artist - Album</span>
+                        </a>
+                        <a th:if="${genre.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${genre.topSongId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${genre.topSongArtistName + ' - ' + genre.topSongName}" th:title="${genre.topSongArtistName + ' - ' + genre.topSongName}">Artist - Song</span>
+                        </a>
                     </div>
                 </div>
             </div>

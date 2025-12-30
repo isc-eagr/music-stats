@@ -10,6 +10,8 @@ public class ScrobbleDTO {
     private String artistName;
     private Integer artistId;
     private String account;
+    private boolean fromGroup;
+    private boolean fromFeatured;
 
     // Getters and Setters
     public Integer getId() {
@@ -82,5 +84,21 @@ public class ScrobbleDTO {
 
     public void setAccount(String account) {
         this.account = account;
+    }
+
+    public boolean isFromGroup() {
+        return fromGroup;
+    }
+
+    public void setFromGroup(boolean fromGroup) {
+        this.fromGroup = fromGroup;
+    }
+
+    public boolean isFromFeatured() {
+        return fromFeatured;
+    }
+
+    public void setFromFeatured(boolean fromFeatured) {
+        this.fromFeatured = fromFeatured;
     }
 }

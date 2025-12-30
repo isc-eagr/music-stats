@@ -6,6 +6,7 @@ import library.dto.SongCardDTO;
 import library.entity.Album;
 import library.entity.Artist;
 import library.entity.Song;
+import library.repository.LookupRepository;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
@@ -31,14 +32,16 @@ public class SongController {
     private final ArtistService artistService;
     private final AlbumService albumService;
     private final iTunesLibraryService iTunesLibraryService;
-    
+    private final LookupRepository lookupRepository;
+
     public SongController(SongService songService, ChartService chartService, ArtistService artistService, 
-                         AlbumService albumService, iTunesLibraryService iTunesLibraryService) {
+                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
         this.albumService = albumService;
         this.iTunesLibraryService = iTunesLibraryService;
+        this.lookupRepository = lookupRepository;
     }
     
     @InitBinder
@@ -385,6 +388,21 @@ public class SongController {
         model.addAttribute("rankByCountry", rankings.get("country"));
         model.addAttribute("ranksByYear", songService.getSongRanksByYear(id));
         
+        // Add Spanish Rap rank (special combination)
+        if (songService.isSongSpanishRap(id)) {
+            model.addAttribute("rankBySpanishRap", songService.getSongSpanishRapRank(id));
+            model.addAttribute("rapGenreId", lookupRepository.getGenreIdByName("Rap"));
+            model.addAttribute("spanishLanguageId", lookupRepository.getLanguageIdByName("Spanish"));
+        }
+
+        // Add new ranking chips
+        model.addAttribute("weeklyChartStats", chartService.getSongWeeklyChartStats(id));
+        model.addAttribute("overallPosition", songService.getSongOverallPosition(id));
+        model.addAttribute("rankByReleaseYear", songService.getSongRankByReleaseYear(id));
+        model.addAttribute("releaseYear", songService.getSongReleaseYear(id));
+        model.addAttribute("rankByArtist", songService.getSongRankByArtist(id));
+        model.addAttribute("rankByAlbum", songService.getSongRankByAlbum(id));
+
         return "songs/detail";
     }
     

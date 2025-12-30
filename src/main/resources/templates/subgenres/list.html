@@ -46,8 +46,13 @@
                         <select id="sortBySelect" onchange="changeSortBy(this.value)">
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
-                            <option value="genre" th:selected="${sortBy == 'genre'}">Parent Genre</option>
+                            <option value="malealbumpct" th:selected="${sortBy == 'malealbumpct'}">Male Album %</option>
+                            <option value="maleartistpct" th:selected="${sortBy == 'maleartistpct'}">Male Artist %</option>
+                            <option value="maleplaypct" th:selected="${sortBy == 'maleplaypct'}">Male Play %</option>
+                            <option value="malesongpct" th:selected="${sortBy == 'malesongpct'}">Male Song %</option>
+                            <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
+                            <option value="genre" th:selected="${sortBy == 'genre'}">Parent Genre</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
@@ -257,6 +262,23 @@
                                      th:title="'Other: ' + ${#numbers.formatDecimal((subgenre.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Top artist/album/song for this subgenre -->
+                    <div th:if="${subgenre.topArtistName != null or subgenre.topAlbumName != null or subgenre.topSongName != null}"
+                         class="number-one-info">
+                        <a th:if="${subgenre.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${subgenre.topArtistId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎤</span>
+                            <span class="name" th:text="${subgenre.topArtistName}" th:title="${subgenre.topArtistName}">Artist Name</span>
+                        </a>
+                        <a th:if="${subgenre.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${subgenre.topAlbumId}}" onclick="event.stopPropagation();">
+                            <span class="label">💿</span>
+                            <span class="name" th:text="${subgenre.topAlbumArtistName + ' - ' + subgenre.topAlbumName}" th:title="${subgenre.topAlbumArtistName + ' - ' + subgenre.topAlbumName}">Artist - Album</span>
+                        </a>
+                        <a th:if="${subgenre.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${subgenre.topSongId}}" onclick="event.stopPropagation();">
+                            <span class="label">🎵</span>
+                            <span class="name" th:text="${subgenre.topSongArtistName + ' - ' + subgenre.topSongName}" th:title="${subgenre.topSongArtistName + ' - ' + subgenre.topSongName}">Artist - Song</span>
+                        </a>
                     </div>
                 </div>
             </div>

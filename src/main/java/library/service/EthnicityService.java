@@ -31,29 +31,51 @@ public class EthnicityService {
         // Determine sort direction
         String sortColumn = "e.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
-        
+        String nullsHandling = " NULLS LAST";
+
         if (sortBy != null) {
             switch (sortBy.toLowerCase()) {
                 case "plays":
                     sortColumn = "play_count";
+                    nullsHandling = ""; // No nulls handling needed for numeric columns with COALESCE
                     break;
                 case "time":
                     sortColumn = "time_listened";
+                    nullsHandling = "";
                     break;
                 case "artists":
                     sortColumn = "artist_count";
+                    nullsHandling = "";
                     break;
                 case "songs":
                     sortColumn = "song_count";
+                    nullsHandling = "";
                     break;
                 case "albums":
                     sortColumn = "album_count";
+                    nullsHandling = "";
+                    break;
+                case "maleartistpct":
+                    sortColumn = "male_artist_pct";
+                    break;
+                case "malealbumpct":
+                    sortColumn = "male_album_pct";
+                    break;
+                case "malesongpct":
+                    sortColumn = "male_song_pct";
+                    break;
+                case "maleplaypct":
+                    sortColumn = "male_play_pct";
+                    break;
+                case "maletimepct":
+                    sortColumn = "male_time_pct";
                     break;
                 default:
                     sortColumn = "e.name";
+                    nullsHandling = "";
             }
         }
-        
+
         String sql = """
             SELECT 
                 e.id,
@@ -80,7 +102,22 @@ public class EthnicityService {
                 COALESCE(stats.other_play_count, 0) as other_play_count,
                 COALESCE(stats.male_time_listened, 0) as male_time_listened,
                 COALESCE(stats.female_time_listened, 0) as female_time_listened,
-                COALESCE(stats.other_time_listened, 0) as other_time_listened
+                COALESCE(stats.other_time_listened, 0) as other_time_listened,
+                CASE WHEN COALESCE(stats.male_artist_count, 0) + COALESCE(stats.female_artist_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_artist_count, 0) AS REAL) / (COALESCE(stats.male_artist_count, 0) + COALESCE(stats.female_artist_count, 0)) 
+                     ELSE NULL END as male_artist_pct,
+                CASE WHEN COALESCE(stats.male_album_count, 0) + COALESCE(stats.female_album_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_album_count, 0) AS REAL) / (COALESCE(stats.male_album_count, 0) + COALESCE(stats.female_album_count, 0)) 
+                     ELSE NULL END as male_album_pct,
+                CASE WHEN COALESCE(stats.male_song_count, 0) + COALESCE(stats.female_song_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_song_count, 0) AS REAL) / (COALESCE(stats.male_song_count, 0) + COALESCE(stats.female_song_count, 0)) 
+                     ELSE NULL END as male_song_pct,
+                CASE WHEN COALESCE(stats.male_play_count, 0) + COALESCE(stats.female_play_count, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_play_count, 0) AS REAL) / (COALESCE(stats.male_play_count, 0) + COALESCE(stats.female_play_count, 0)) 
+                     ELSE NULL END as male_play_pct,
+                CASE WHEN COALESCE(stats.male_time_listened, 0) + COALESCE(stats.female_time_listened, 0) > 0 
+                     THEN CAST(COALESCE(stats.male_time_listened, 0) AS REAL) / (COALESCE(stats.male_time_listened, 0) + COALESCE(stats.female_time_listened, 0)) 
+                     ELSE NULL END as male_time_pct
             FROM Ethnicity e
             LEFT JOIN (
                 SELECT 
@@ -116,8 +153,8 @@ public class EthnicityService {
                 GROUP BY effective_ethnicity_id
             ) stats ON e.id = stats.effective_ethnicity_id
             WHERE (? IS NULL OR e.name LIKE '%' || ? || '%')
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
-        
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[25];
             row[0] = rs.getInt("id");
@@ -180,9 +217,123 @@ public class EthnicityService {
             ethnicities.add(dto);
         }
         
+        // Fetch top artist/album/song for all ethnicities on this page
+        if (!ethnicities.isEmpty()) {
+            populateTopItems(ethnicities);
+        }
+
         return ethnicities;
     }
     
+    /**
+     * Populates the top artist, album, and song for each ethnicity in the list.
+     */
+    private void populateTopItems(List<EthnicityCardDTO> ethnicities) {
+        List<Integer> ethnicityIds = ethnicities.stream().map(EthnicityCardDTO::getId).toList();
+        if (ethnicityIds.isEmpty()) return;
+
+        String placeholders = String.join(",", ethnicityIds.stream().map(id -> "?").toList());
+
+        // Query for top artist per ethnicity
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as ethnicity_id, " +
+            "        ar.id as artist_id, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_ethnicity_id, ar.ethnicity_id) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IN (" + placeholders + ") " +
+            "    GROUP BY ethnicity_id, ar.id, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT ethnicity_id, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("ethnicity_id"), rs.getInt("artist_id"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            ethnicityIds.toArray()
+        );
+
+        // Query for top album per ethnicity
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as ethnicity_id, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_ethnicity_id, ar.ethnicity_id) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE al.id IS NOT NULL AND COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IN (" + placeholders + ") " +
+            "    GROUP BY ethnicity_id, al.id, al.name, ar.name " +
+            ") " +
+            "SELECT ethnicity_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("ethnicity_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            ethnicityIds.toArray()
+        );
+
+        // Query for top song per ethnicity
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as ethnicity_id, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_ethnicity_id, ar.ethnicity_id) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IN (" + placeholders + ") " +
+            "    GROUP BY ethnicity_id, s.id, s.name, ar.name " +
+            ") " +
+            "SELECT ethnicity_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getInt("ethnicity_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            ethnicityIds.toArray()
+        );
+
+        // Map results to ethnicities
+        for (EthnicityCardDTO eth : ethnicities) {
+            for (Object[] row : artistResults) {
+                if (eth.getId().equals(row[0])) {
+                    eth.setTopArtistId((Integer) row[1]);
+                    eth.setTopArtistName((String) row[2]);
+                    eth.setTopArtistGenderId((Integer) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : albumResults) {
+                if (eth.getId().equals(row[0])) {
+                    eth.setTopAlbumId((Integer) row[1]);
+                    eth.setTopAlbumName((String) row[2]);
+                    eth.setTopAlbumArtistName((String) row[3]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (eth.getId().equals(row[0])) {
+                    eth.setTopSongId((Integer) row[1]);
+                    eth.setTopSongName((String) row[2]);
+                    eth.setTopSongArtistName((String) row[3]);
+                    break;
+                }
+            }
+        }
+    }
+
     public long countEthnicities(String name) {
         String sql = """
             SELECT COUNT(*)
