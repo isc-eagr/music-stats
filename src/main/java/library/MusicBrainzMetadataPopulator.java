@@ -274,7 +274,7 @@ public class MusicBrainzMetadataPopulator {
 	 * Populate album images from Cover Art Archive
 	 */
 	private void populateAlbumImagesFromCoverArt() {
-		String whereClause = skipExisting ? "WHERE (a.image IS NULL OR LENGTH(a.image) = 0)" : "";
+		String whereClause = skipExisting ? "WHERE a.image IS NULL" : "";
 		String sql = """
 				SELECT a.id, a.name, a.artist_id, ar.name as artist_name
 				FROM Album a
@@ -334,7 +334,7 @@ public class MusicBrainzMetadataPopulator {
 	 * Populate song images for singles from Cover Art Archive
 	 */
 	private void populateSongImagesFromCoverArt() {
-		String whereClause = skipExisting ? "WHERE (s.single_cover IS NULL OR LENGTH(s.single_cover) = 0) " : "";
+		String whereClause = skipExisting ? "WHERE s.single_cover IS NULL " : "";
 		String sql = """
 				SELECT s.id, s.name, s.artist_id, ar.name as artist_name
 				FROM Song s

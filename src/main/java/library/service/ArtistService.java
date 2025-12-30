@@ -1028,7 +1028,7 @@ public class ArtistService {
                 a.country,
                 (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
                 (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
                 COUNT(sfa.song_id) as feature_count,
@@ -1049,8 +1049,7 @@ public class ArtistService {
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE s.artist_id = ?
-            GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
-                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country
+            GROUP BY a.id
             ORDER BY a.name
             """;
         
@@ -1113,7 +1112,7 @@ public class ArtistService {
                 a.is_band,
                 (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
                 (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened
             FROM ArtistMember am
@@ -1183,7 +1182,7 @@ public class ArtistService {
                 a.is_band,
                 (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
                 (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened
             FROM ArtistMember am
@@ -1794,7 +1793,7 @@ public class ArtistService {
                 a.country,
                 (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
                 (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
                 COUNT(sfa.song_id) as feature_count,
@@ -1815,8 +1814,7 @@ public class ArtistService {
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE s.artist_id IN (%s)
-            GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
-                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country
+            GROUP BY a.id
             ORDER BY a.name
             """.formatted(placeholders);
         

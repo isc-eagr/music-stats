@@ -102,6 +102,55 @@ public class ChartService {
     }
     
     /**
+     * Get the current incomplete week's period key.
+     * Returns the period key for the week that contains today's date.
+     */
+    public String getCurrentWeekPeriodKey() {
+        LocalDate today = LocalDate.now();
+        int year = today.getYear();
+
+        // Find the first Monday of the year (matches SQLite's %W week 01)
+        LocalDate jan1 = LocalDate.of(year, 1, 1);
+        LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+
+        // Check if we're before the first Monday (week 00)
+        if (today.isBefore(firstMonday)) {
+            return String.format("%d-W%02d", year, 0);
+        }
+
+        // Calculate week number: (days since first Monday / 7) + 1
+        long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, today);
+        int weekNumber = (int)(daysSinceFirstMonday / 7) + 1;
+
+        return String.format("%d-W%02d", year, weekNumber);
+    }
+
+    /**
+     * Get the next week's period key from a given period key.
+     */
+    public String getNextWeekPeriodKey(String periodKey) {
+        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
+        LocalDate endDate = dateRange[1];
+        // Start of next week is end date + 1 day
+        LocalDate nextWeekStart = endDate.plusDays(1);
+
+        int year = nextWeekStart.getYear();
+        LocalDate jan1 = LocalDate.of(year, 1, 1);
+        LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+
+        // Check if we're before the first Monday (week 00)
+        if (nextWeekStart.isBefore(firstMonday)) {
+            return String.format("%d-W%02d", year, 0);
+        }
+
+        // Calculate week number
+        long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, nextWeekStart);
+        int weekNumber = (int)(daysSinceFirstMonday / 7) + 1;
+
+        return String.format("%d-W%02d", year, weekNumber);
+    }
+
+    /**
      * Format a period key for display (e.g., "2024-W48" -> "Nov 25 - Dec 1, 2024").
      */
     public String formatPeriodKey(String periodKey) {
@@ -394,8 +443,8 @@ public class ChartService {
                 al.name as album_name,
                 g.id as gender_id,
                 COUNT(*) as play_count,
-                CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image
+                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image
             FROM Scrobble scr
             INNER JOIN Song s ON scr.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
@@ -449,7 +498,7 @@ public class ChartService {
                 ar.name as artist_name,
                 g.id as gender_id,
                 COUNT(*) as play_count,
-                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
+                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as has_image
             FROM Scrobble scr
             INNER JOIN Song s ON scr.song_id = s.id
             INNER JOIN Album al ON s.album_id = al.id
@@ -1027,13 +1076,13 @@ public class ChartService {
         String songSql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
-                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             WHERE s.artist_id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name, has_image, s.album_id
+            GROUP BY s.id, s.name, s.album_id
             """;
         
         List<Map<String, Object>> songRows = jdbcTemplate.queryForList(songSql, artistId);
@@ -1238,13 +1287,13 @@ public class ChartService {
         String sql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
-                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             WHERE s.id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name, has_image, s.album_id
+            GROUP BY s.id, s.name, s.album_id
             """;
         
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, songId);
@@ -1823,8 +1872,8 @@ public class ChartService {
 
         // For songs, get both single_cover and album image separately for hover pattern
         String imageColumns = "song".equals(chartType)
-            ? "CASE WHEN item.single_cover IS NOT NULL AND LENGTH(item.single_cover) > 0 THEN 1 ELSE 0 END as has_single_cover, " +
-              "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL AND LENGTH(al.image) > 0) THEN 1 ELSE 0 END as album_has_image"
+            ? "CASE WHEN item.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_single_cover, " +
+              "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image"
             : "CASE WHEN item.image IS NOT NULL THEN 1 ELSE 0 END as has_image, 0 as album_has_image";
 
         String sql = String.format("""
@@ -1885,8 +1934,8 @@ public class ChartService {
 
         // For songs, get both single_cover and album image separately for hover pattern
         String imageColumns = "song".equals(chartType)
-            ? "CASE WHEN item.single_cover IS NOT NULL AND LENGTH(item.single_cover) > 0 THEN 1 ELSE 0 END as has_single_cover, " +
-              "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL AND LENGTH(al.image) > 0) THEN 1 ELSE 0 END as album_has_image"
+            ? "CASE WHEN item.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_single_cover, " +
+              "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image"
             : "CASE WHEN item.image IS NOT NULL THEN 1 ELSE 0 END as has_image, 0 as album_has_image";
 
         // Subquery to count plays within the period date range
@@ -1955,8 +2004,8 @@ public class ChartService {
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
                    ar.gender_id as gender_id,
-                   CASE WHEN item.single_cover IS NOT NULL AND LENGTH(item.single_cover) > 0 THEN 1 ELSE 0 END as has_single_cover,
-                   CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL AND LENGTH(al.image) > 0) THEN 1 ELSE 0 END as album_has_image,
+                   CASE WHEN item.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_single_cover,
+                   CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image,
                    item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -2355,10 +2404,10 @@ public class ChartService {
                 ar.gender_id,
                 COUNT(*) as weeks_count,
                 MIN(ce.position) as peak_position,
-                CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                 MIN(c.period_start_date) as first_appearance,
                 s.album_id,
-                CASE WHEN al.image IS NOT NULL AND LENGTH(al.image) > 0 THEN 1 ELSE 0 END as album_has_image
+                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
@@ -2413,7 +2462,7 @@ public class ChartService {
                 ar.gender_id,
                 COUNT(*) as weeks_count,
                 MIN(ce.position) as peak_position,
-                CASE WHEN al.image IS NOT NULL AND LENGTH(al.image) > 0 THEN 1 ELSE 0 END as has_image,
+                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 MIN(c.period_start_date) as first_appearance
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -2469,7 +2518,7 @@ public class ChartService {
                 ar.gender_id,
                 COUNT(DISTINCT ce.song_id) as songs_count,
                 COUNT(*) as total_weeks,
-                CASE WHEN ar.image IS NOT NULL AND LENGTH(ar.image) > 0 THEN 1 ELSE 0 END as has_image
+                CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
@@ -2650,14 +2699,14 @@ public class ChartService {
         String sql = """
             SELECT s.id, s.name, ar.id as artist_id, ar.name as artist_name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
-                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             WHERE s.artist_id IN (%s) AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name, ar.id, ar.name, has_image, s.album_id
+            GROUP BY s.id, s.name, ar.id, ar.name, s.album_id
             """.formatted(placeholders);
         
         List<ChartHistoryDTO> result = new ArrayList<>();
@@ -2919,7 +2968,7 @@ public class ChartService {
         String sql = """
             SELECT s.id, s.name, ar.id as primary_artist_id, ar.name as primary_artist_name, 
                    MIN(ce.position) as peak_position, COUNT(*) as total_weeks,
-                   CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -2927,7 +2976,7 @@ public class ChartService {
             INNER JOIN Artist ar ON s.artist_id = ar.id
             INNER JOIN SongFeaturedArtist sfa ON sfa.song_id = s.id
             WHERE sfa.artist_id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name, ar.id, ar.name, has_image, s.album_id
+            GROUP BY s.id, s.name, ar.id, ar.name, s.album_id
             """;
 
         List<ChartHistoryDTO> result = new ArrayList<>();

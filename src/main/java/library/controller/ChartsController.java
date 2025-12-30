@@ -75,6 +75,9 @@ public class ChartsController {
                 // Get formatted period for display
                 String formattedPeriod = chartService.formatPeriodKey(periodKey);
 
+                // Get previous chart for navigation (go back from preview)
+                Optional<Chart> prevChart = chartService.getLatestWeeklyChart("song");
+
                 model.addAttribute("currentSection", "weekly-charts");
                 model.addAttribute("hasChart", false);
                 model.addAttribute("isPreview", true);
@@ -82,6 +85,8 @@ public class ChartsController {
                 model.addAttribute("albumEntries", albumEntries);
                 model.addAttribute("periodKey", periodKey);
                 model.addAttribute("formattedPeriod", formattedPeriod);
+                model.addAttribute("prevPeriodKey", prevChart.map(Chart::getPeriodKey).orElse(null));
+                model.addAttribute("nextPeriodKey", null); // No next from preview (already at current week)
                 model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
 
                 // Get #1 for display
@@ -112,6 +117,25 @@ public class ChartsController {
         Optional<Chart> prevChart = chartService.getPreviousChart("song", periodKey);
         Optional<Chart> nextChart = chartService.getNextChart("song", periodKey);
         
+        // Determine if "next" should show Preview button (current incomplete week)
+        String nextPeriodKey = null;
+        boolean nextIsPreview = false;
+
+        if (nextChart.isPresent()) {
+            // There's a next chart - regular navigation
+            nextPeriodKey = nextChart.get().getPeriodKey();
+        } else {
+            // No next chart exists - check if the next week is the current incomplete week
+            String potentialNextWeek = chartService.getNextWeekPeriodKey(periodKey);
+            boolean nextWeekComplete = chartService.isWeekComplete(potentialNextWeek);
+
+            if (!nextWeekComplete) {
+                // The next week is in progress - show Preview button
+                nextPeriodKey = potentialNextWeek;
+                nextIsPreview = true;
+            }
+        }
+
         model.addAttribute("currentSection", "weekly-charts");
         model.addAttribute("hasChart", true);
         model.addAttribute("chart", chart);
@@ -120,7 +144,8 @@ public class ChartsController {
         model.addAttribute("periodKey", periodKey);
         model.addAttribute("formattedPeriod", chart.getFormattedPeriod());
         model.addAttribute("prevPeriodKey", prevChart.map(Chart::getPeriodKey).orElse(null));
-        model.addAttribute("nextPeriodKey", nextChart.map(Chart::getPeriodKey).orElse(null));
+        model.addAttribute("nextPeriodKey", nextPeriodKey);
+        model.addAttribute("nextIsPreview", nextIsPreview);
         model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
         
         // Get #1 song info for the header image

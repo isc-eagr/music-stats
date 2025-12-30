@@ -292,13 +292,13 @@ public class CaseDuplicateMerger {
     }
     
     private boolean hasArtistImage(int artistId) {
-        String sql = "SELECT image IS NOT NULL AND LENGTH(image) > 0 FROM Artist WHERE id = ?";
+        String sql = "SELECT image IS NOT NULL FROM Artist WHERE id = ?";
         Boolean hasImage = jdbcTemplate.queryForObject(sql, Boolean.class, artistId);
         return Boolean.TRUE.equals(hasImage);
     }
     
     private boolean hasAlbumImage(int albumId) {
-        String sql = "SELECT image IS NOT NULL AND LENGTH(image) > 0 FROM Album WHERE id = ?";
+        String sql = "SELECT image IS NOT NULL FROM Album WHERE id = ?";
         Boolean hasImage = jdbcTemplate.queryForObject(sql, Boolean.class, albumId);
         return Boolean.TRUE.equals(hasImage);
     }

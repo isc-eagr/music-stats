@@ -713,8 +713,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -723,8 +724,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getGeneralChartData(filter);
     }
     
@@ -771,8 +772,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -781,8 +783,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getGenreChartData(filter);
     }
     
@@ -829,8 +831,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -839,8 +842,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getSubgenreChartData(filter);
     }
     
@@ -887,8 +890,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -897,8 +901,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getEthnicityChartData(filter);
     }
     
@@ -945,8 +949,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -955,8 +960,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getLanguageChartData(filter);
     }
     
@@ -1003,8 +1008,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -1013,8 +1019,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getCountryChartData(filter);
     }
     
@@ -1061,8 +1067,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -1071,8 +1078,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getReleaseYearChartData(filter);
     }
     
@@ -1119,8 +1126,9 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
-        
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "0") int limit) {
+
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
@@ -1129,8 +1137,8 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
-        
+            hasFeaturedArtists, isBand, isSingle, limit);
+
         return songService.getListenYearChartData(filter);
     }
     

@@ -935,7 +935,7 @@ public class SongService {
                 a.country,
                 (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
                 (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL AND LENGTH(a.image) > 0 THEN 1 ELSE 0 END as has_image,
+                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened
             FROM SongFeaturedArtist sfa
@@ -987,7 +987,7 @@ public class SongService {
     public List<Map<String, Object>> searchSongs(String artistQuery, String songQuery, int limit) {
         StringBuilder sql = new StringBuilder(
             "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
-            "CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image " +
+            "CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image " +
             "FROM Song s " +
             "JOIN Artist a ON s.artist_id = a.id " +
             "LEFT JOIN Album al ON s.album_id = al.id " +

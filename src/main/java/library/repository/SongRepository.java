@@ -85,7 +85,7 @@ public class SongRepository {
                 CAST(strftime('%Y', COALESCE(s.release_date, alb.release_date)) AS TEXT) as release_year,
                 COALESCE(s.release_date, alb.release_date) as release_date,
                 s.length_seconds,
-                CASE WHEN LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
+                CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
                 COALESCE(play_stats.play_count, 0) as play_count,
                 COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
@@ -95,7 +95,7 @@ public class SongRepository {
                 play_stats.last_listened,
                 ar.country as country,
                 s.organized,
-                CASE WHEN LENGTH(alb.image) > 0 THEN 1 ELSE 0 END as album_has_image,
+                CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
                 s.is_single
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
@@ -382,9 +382,9 @@ public class SongRepository {
         // Has Image filter (checks single_cover directly on song)
         if (hasImage != null && !hasImage.isEmpty()) {
             if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND LENGTH(s.single_cover) > 0 ");
+                sql.append(" AND s.single_cover IS NOT NULL ");
             } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND (s.single_cover IS NULL OR LENGTH(s.single_cover) = 0) ");
+                sql.append(" AND s.single_cover IS NULL ");
             }
         }
         
@@ -855,9 +855,9 @@ public class SongRepository {
         // Has Image filter (checks single_cover directly on song)
         if (hasImage != null && !hasImage.isEmpty()) {
             if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND LENGTH(s.single_cover) > 0 ");
+                sql.append(" AND s.single_cover IS NOT NULL ");
             } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND (s.single_cover IS NULL OR LENGTH(s.single_cover) = 0) ");
+                sql.append(" AND s.single_cover IS NULL ");
             }
         }
         
@@ -1923,42 +1923,284 @@ public class SongRepository {
         buildFilterClause(filterClause, params, filter);
         
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByGenre", getArtistsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("albumsByGenre", getAlbumsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("songsByGenre", getSongsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("playsByGenre", getPlaysByGenreFiltered(filterClause.toString(), params));
-        data.put("listeningTimeByGenre", getListeningTimeByGenreFiltered(filterClause.toString(), params));
-        
+        data.put("artistsByGenre", getArtistsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("albumsByGenre", getAlbumsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("songsByGenre", getSongsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("playsByGenre", getPlaysByGenreFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeByGenre", getListeningTimeByGenreFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(gr.name, 'Unknown') as genre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT ar.id as artist_id, ar.genre_id, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getArtistsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N artists by play count, then aggregate by genre
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            // Parameterize LIMIT to avoid accidental token merging (e.g., "LIMIT50") and keep SQL injection-safe
+            params.add(limit);
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.artist_id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.artist_id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN Genre gr ON ar.genre_id = gr.id
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.genre_id, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN Genre gr ON ar.genre_id = gr.id
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("genre_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N albums by play count, then aggregate by genre
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            // Parameterize LIMIT to avoid accidental token merging (e.g., "LIMIT50")
+            params.add(limit);
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT alb.id as album_id, 
+                           COALESCE(alb.override_genre_id, ar.genre_id) as effective_genre_id,
+                           ar.gender_id
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                        GROUP BY s.album_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN Genre gr ON sub.effective_genre_id = gr.id
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id,
+                        COALESCE(alb.override_genre_id, ar.genre_id) as effective_genre_id,
+                        ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN Genre gr ON sub.effective_genre_id = gr.id
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("genre_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+    
+    private java.util.List<java.util.Map<String, Object>> getSongsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N songs by play count, then aggregate by genre
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.id,
+                        COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                            WHERE 1=1 """ + " " + filterClause + """
+                            GROUP BY s.id
+                            ORDER BY COUNT(*) DESC
+                            LIMIT ?
+                        )
+                    ) sub
+                    LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                    LEFT JOIN Genre gr ON sub.effective_genre_id = gr.id
+                    GROUP BY COALESCE(gr.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id,
+                        COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                LEFT JOIN Genre gr ON sub.effective_genre_id = gr.id
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("genre_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysByGenreFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        // If limit is specified, only count plays for the top N songs by play count
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) = gr.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                    GROUP BY COALESCE(gr.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) = gr.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Artist ar ON sub.artist_id = ar.id
-            LEFT JOIN Gender g ON ar.gender_id = g.id
-            LEFT JOIN Genre gr ON ar.genre_id = gr.id
-            GROUP BY COALESCE(gr.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
@@ -1966,70 +2208,62 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(gr.name, 'Unknown') as genre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id,
-                    COALESCE(alb.override_genre_id, ar.genre_id) as effective_genre_id,
-                    ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeByGenreFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        // If limit is specified, only count listening time for the top N songs by play count
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            LEFT JOIN Genre gr ON sub.effective_genre_id = gr.id
-            GROUP BY COALESCE(gr.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("genre_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsByGenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        // Use subquery to get distinct songs first, then aggregate by genre and gender
-        String sql = """
-            SELECT 
-                COALESCE(gr.name, 'Unknown') as genre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id,
-                    COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id,
-                    COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) = gr.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                    GROUP BY COALESCE(gr.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(gr.name, 'Unknown') as genre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) = gr.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.effective_gender_id = g.id
-            LEFT JOIN Genre gr ON sub.effective_genre_id = gr.id
-            GROUP BY COALESCE(gr.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(gr.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("genre_name"));
@@ -2037,111 +2271,297 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(gr.name, 'Unknown') as genre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) = gr.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(gr.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("genre_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeByGenreFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(gr.name, 'Unknown') as genre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) = gr.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(gr.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("genre_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
+
     // Get Subgenre tab chart data (5 bar charts grouped by subgenre)
     public java.util.Map<String, Object> getSubgenreChartData(ChartFilterDTO filter) {
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
-        
+
         buildFilterClause(filterClause, params, filter);
-        
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
-        
-        data.put("artistsBySubgenre", getArtistsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("albumsBySubgenre", getAlbumsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("songsBySubgenre", getSongsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("playsBySubgenre", getPlaysBySubgenreFiltered(filterClause.toString(), params));
-        data.put("listeningTimeBySubgenre", getListeningTimeBySubgenreFiltered(filterClause.toString(), params));
-        
+
+        data.put("artistsBySubgenre", getArtistsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("albumsBySubgenre", getAlbumsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("songsBySubgenre", getSongsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("playsBySubgenre", getPlaysBySubgenreFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeBySubgenre", getListeningTimeBySubgenreFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
+
+    private java.util.List<java.util.Map<String, Object>> getArtistsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N artists by play count, then aggregate by subgenre
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT ar.id as artist_id, ar.subgenre_id, ar.gender_id
+                    FROM Artist ar
+                    WHERE ar.id IN (
+                        SELECT s.artist_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                            WHERE 1=1 """ + " " + filterClause + """
+                            GROUP BY s.artist_id
+                            ORDER BY COUNT(*) DESC
+                            LIMIT ?
+                        )
+                    ) sub
+                    INNER JOIN Artist ar ON sub.artist_id = ar.id
+                    LEFT JOIN Gender g ON ar.gender_id = g.id
+                    LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
+                    GROUP BY COALESCE(sg.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.subgenre_id, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
+                GROUP BY COALESCE(sg.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("subgenre_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getAlbumsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N albums by play count, then aggregate by subgenre
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT alb.id as album_id,
+                        COALESCE(alb.override_subgenre_id, ar.subgenre_id) as effective_subgenre_id,
+                        ar.gender_id
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                            WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                            GROUP BY s.album_id
+                            ORDER BY COUNT(*) DESC
+                            LIMIT ?
+                        )
+                    ) sub
+                    LEFT JOIN Gender g ON sub.gender_id = g.id
+                    LEFT JOIN SubGenre sg ON sub.effective_subgenre_id = sg.id
+                    GROUP BY COALESCE(sg.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id,
+                        COALESCE(alb.override_subgenre_id, ar.subgenre_id) as effective_subgenre_id,
+                        ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN SubGenre sg ON sub.effective_subgenre_id = sg.id
+                GROUP BY COALESCE(sg.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("subgenre_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(sg.name, 'Unknown') as subgenre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT ar.id as artist_id, ar.subgenre_id, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getSongsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N songs by play count, then aggregate by subgenre
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.id,
+                        COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) as effective_subgenre_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                            WHERE 1=1 """ + " " + filterClause + """
+                            GROUP BY s.id
+                            ORDER BY COUNT(*) DESC
+                            LIMIT ?
+                        )
+                    ) sub
+                    LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                    LEFT JOIN SubGenre sg ON sub.effective_subgenre_id = sg.id
+                    GROUP BY COALESCE(sg.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id,
+                        COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) as effective_subgenre_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                LEFT JOIN SubGenre sg ON sub.effective_subgenre_id = sg.id
+                GROUP BY COALESCE(sg.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("subgenre_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        // If limit is specified, only count plays for the top N songs by play count
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN SubGenre sg ON COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) = sg.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                    GROUP BY COALESCE(sg.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN SubGenre sg ON COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) = sg.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Artist ar ON sub.artist_id = ar.id
-            LEFT JOIN Gender g ON ar.gender_id = g.id
-            LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
-            GROUP BY COALESCE(sg.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(sg.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
@@ -2149,69 +2569,62 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getAlbumsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(sg.name, 'Unknown') as subgenre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id,
-                    COALESCE(alb.override_subgenre_id, ar.subgenre_id) as effective_subgenre_id,
-                    ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        // If limit is specified, only count listening time for the top N songs by play count
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            LEFT JOIN SubGenre sg ON sub.effective_subgenre_id = sg.id
-            GROUP BY COALESCE(sg.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("subgenre_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(sg.name, 'Unknown') as subgenre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id,
-                    COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) as effective_subgenre_id,
-                    COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN SubGenre sg ON COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) = sg.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                    GROUP BY COALESCE(sg.name, 'Unknown')
+                    HAVING (male_count + female_count + other_count) > 0
+                    ORDER BY (male_count + female_count + other_count) DESC
+                    """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(sg.name, 'Unknown') as subgenre_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN SubGenre sg ON COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) = sg.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.effective_gender_id = g.id
-            LEFT JOIN SubGenre sg ON sub.effective_subgenre_id = sg.id
-            GROUP BY COALESCE(sg.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(sg.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("subgenre_name"));
@@ -2219,67 +2632,9 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(sg.name, 'Unknown') as subgenre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN SubGenre sg ON COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) = sg.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(sg.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("subgenre_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeBySubgenreFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(sg.name, 'Unknown') as subgenre_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN SubGenre sg ON COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) = sg.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(sg.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("subgenre_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
+
     // Get Ethnicity tab chart data (5 bar charts grouped by ethnicity)
     public java.util.Map<String, Object> getEthnicityChartData(ChartFilterDTO filter) {
         StringBuilder filterClause = new StringBuilder();
@@ -2288,42 +2643,278 @@ public class SongRepository {
         buildFilterClause(filterClause, params, filter);
         
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByEthnicity", getArtistsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("albumsByEthnicity", getAlbumsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("songsByEthnicity", getSongsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("playsByEthnicity", getPlaysByEthnicityFiltered(filterClause.toString(), params));
-        data.put("listeningTimeByEthnicity", getListeningTimeByEthnicityFiltered(filterClause.toString(), params));
-        
+        data.put("artistsByEthnicity", getArtistsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("albumsByEthnicity", getAlbumsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("songsByEthnicity", getSongsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("playsByEthnicity", getPlaysByEthnicityFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeByEthnicity", getListeningTimeByEthnicityFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
+
+    private java.util.List<java.util.Map<String, Object>> getArtistsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT ar.id as artist_id, ar.ethnicity_id, ar.gender_id
+                    FROM Artist ar
+                    WHERE ar.id IN (
+                        SELECT s.artist_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.artist_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.ethnicity_id, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("ethnicity_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT alb.id as album_id, ar.ethnicity_id, ar.gender_id
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                        GROUP BY s.album_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN Ethnicity e ON sub.ethnicity_id = e.id
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id, ar.ethnicity_id, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN Ethnicity e ON sub.ethnicity_id = e.id
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("ethnicity_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(e.name, 'Unknown') as ethnicity_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT ar.id as artist_id, ar.ethnicity_id, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getSongsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.id,
+                        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as effective_ethnicity_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                LEFT JOIN Ethnicity e ON sub.effective_ethnicity_id = e.id
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id,
+                        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as effective_ethnicity_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                LEFT JOIN Ethnicity e ON sub.effective_ethnicity_id = e.id
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("ethnicity_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Artist ar ON sub.artist_id = ar.id
-            LEFT JOIN Gender g ON ar.gender_id = g.id
-            LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
-            GROUP BY COALESCE(e.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
@@ -2331,67 +2922,61 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(e.name, 'Unknown') as ethnicity_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id, ar.ethnicity_id, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            LEFT JOIN Ethnicity e ON sub.ethnicity_id = e.id
-            GROUP BY COALESCE(e.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("ethnicity_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(e.name, 'Unknown') as ethnicity_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id,
-                    COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as effective_ethnicity_id,
-                    COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(e.name, 'Unknown') as ethnicity_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.effective_gender_id = g.id
-            LEFT JOIN Ethnicity e ON sub.effective_ethnicity_id = e.id
-            GROUP BY COALESCE(e.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(e.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("ethnicity_name"));
@@ -2399,65 +2984,7 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(e.name, 'Unknown') as ethnicity_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(e.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("ethnicity_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeByEthnicityFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(e.name, 'Unknown') as ethnicity_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(e.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("ethnicity_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
     
     // Get Language tab chart data (5 bar charts grouped by language)
@@ -2466,44 +2993,288 @@ public class SongRepository {
         java.util.List<Object> params = new java.util.ArrayList<>();
         
         buildFilterClause(filterClause, params, filter);
-        
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByLanguage", getArtistsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("albumsByLanguage", getAlbumsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("songsByLanguage", getSongsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("playsByLanguage", getPlaysByLanguageFiltered(filterClause.toString(), params));
-        data.put("listeningTimeByLanguage", getListeningTimeByLanguageFiltered(filterClause.toString(), params));
-        
+        data.put("artistsByLanguage", getArtistsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("albumsByLanguage", getAlbumsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("songsByLanguage", getSongsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("playsByLanguage", getPlaysByLanguageFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeByLanguage", getListeningTimeByLanguageFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(l.name, 'Unknown') as language_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT ar.id as artist_id, ar.language_id, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getArtistsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N artists by play count, then aggregate by language
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT ar.id as artist_id, ar.language_id, ar.gender_id
+                    FROM Artist ar
+                    WHERE ar.id IN (
+                        SELECT s.artist_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.artist_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN Language l ON ar.language_id = l.id
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.language_id, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                LEFT JOIN Language l ON ar.language_id = l.id
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("language_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N albums by play count, then aggregate by language
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            params.add(limit);
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT alb.id as album_id, 
+                           COALESCE(alb.override_language_id, ar.language_id) as lang_id, 
+                           ar.gender_id
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                        GROUP BY s.album_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN Language l ON sub.lang_id = l.id
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id, 
+                           COALESCE(alb.override_language_id, ar.language_id) as lang_id, 
+                           ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                LEFT JOIN Language l ON sub.lang_id = l.id
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("language_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getSongsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        // If limit is specified, first get top N songs by play count, then aggregate by language
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.id,
+                        COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) as effective_language_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                LEFT JOIN Language l ON sub.effective_language_id = l.id
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id,
+                        COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) as effective_language_id,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                LEFT JOIN Language l ON sub.effective_language_id = l.id
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("language_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        // If limit is specified, only count plays for the top N songs by play count
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            params.add(limit);
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Language l ON COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) = l.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Language l ON COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) = l.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Artist ar ON sub.artist_id = ar.id
-            LEFT JOIN Gender g ON ar.gender_id = g.id
-            LEFT JOIN Language l ON ar.language_id = l.id
-            GROUP BY COALESCE(l.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
@@ -2511,69 +3282,62 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(l.name, 'Unknown') as language_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id, 
-                       COALESCE(alb.override_language_id, ar.language_id) as lang_id, 
-                       ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        // If limit is specified, only count listening time for the top N songs by play count
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            params.add(limit);
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            LEFT JOIN Language l ON sub.lang_id = l.id
-            GROUP BY COALESCE(l.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("language_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsByLanguageFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(l.name, 'Unknown') as language_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id,
-                    COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) as effective_language_id,
-                    COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Language l ON COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) = l.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(l.name, 'Unknown') as language_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                LEFT JOIN Language l ON COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) = l.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.effective_gender_id = g.id
-            LEFT JOIN Language l ON sub.effective_language_id = l.id
-            GROUP BY COALESCE(l.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(l.name, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("language_name"));
@@ -2581,110 +3345,281 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(l.name, 'Unknown') as language_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN Language l ON COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) = l.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(l.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("language_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeByLanguageFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(l.name, 'Unknown') as language_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            LEFT JOIN Language l ON COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) = l.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(l.name, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("language_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
+
     // Get Country tab chart data (5 bar charts grouped by country)
     public java.util.Map<String, Object> getCountryChartData(ChartFilterDTO filter) {
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
-        
+
         buildFilterClause(filterClause, params, filter);
-        
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
-        
-        data.put("artistsByCountry", getArtistsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("albumsByCountry", getAlbumsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("songsByCountry", getSongsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("playsByCountry", getPlaysByCountryFiltered(filterClause.toString(), params));
-        data.put("listeningTimeByCountry", getListeningTimeByCountryFiltered(filterClause.toString(), params));
-        
+
+        data.put("artistsByCountry", getArtistsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("albumsByCountry", getAlbumsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("songsByCountry", getSongsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("playsByCountry", getPlaysByCountryFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeByCountry", getListeningTimeByCountryFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(ar.country, 'Unknown') as country_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT ar.id as artist_id, ar.country, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+    private java.util.List<java.util.Map<String, Object>> getArtistsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(ar.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT ar.id as artist_id, ar.country, ar.gender_id
+                    FROM Artist ar
+                    WHERE ar.id IN (
+                        SELECT s.artist_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.artist_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                GROUP BY COALESCE(ar.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(ar.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.country, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                GROUP BY COALESCE(ar.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("country_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+    
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sub.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT alb.id as album_id, ar.country, ar.gender_id
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                        GROUP BY s.album_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY COALESCE(sub.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(sub.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id, ar.country, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY COALESCE(sub.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("country_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getSongsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sub.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.id,
+                        ar.country as country,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                GROUP BY COALESCE(sub.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(sub.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id,
+                        ar.country as country,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                GROUP BY COALESCE(sub.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("country_name"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysByCountryFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(ar.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(ar.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(ar.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Artist ar ON sub.artist_id = ar.id
-            LEFT JOIN Gender g ON ar.gender_id = g.id
-            GROUP BY COALESCE(ar.country, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(ar.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
@@ -2692,65 +3627,59 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(sub.country, 'Unknown') as country_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id, ar.country, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeByCountryFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(ar.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            GROUP BY COALESCE(sub.country, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("country_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsByCountryFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(sub.country, 'Unknown') as country_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id,
-                    ar.country as country,
-                    COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(ar.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(ar.country, 'Unknown') as country_name,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.effective_gender_id = g.id
-            GROUP BY COALESCE(sub.country, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
+                GROUP BY COALESCE(ar.country, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY (male_count + female_count + other_count) DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("country_name"));
@@ -2758,109 +3687,89 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(ar.country, 'Unknown') as country_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(ar.country, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("country_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeByCountryFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(ar.country, 'Unknown') as country_name,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(ar.country, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY (male_count + female_count + other_count) DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("country_name"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
+
     // Get Release Year tab chart data (4 bar charts grouped by release year - no Artists)
     public java.util.Map<String, Object> getReleaseYearChartData(ChartFilterDTO filter) {
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
-        
+
         buildFilterClause(filterClause, params, filter);
-        
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
-        
+
         // No artists by release year - artists don't have release dates
-        data.put("albumsByReleaseYear", getAlbumsByReleaseYearFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("songsByReleaseYear", getSongsByReleaseYearFiltered(filterClause.toString(), params, scrobbleJoinNeeded));
-        data.put("playsByReleaseYear", getPlaysByReleaseYearFiltered(filterClause.toString(), params));
-        data.put("listeningTimeByReleaseYear", getListeningTimeByReleaseYearFiltered(filterClause.toString(), params));
-        
+        data.put("albumsByReleaseYear", getAlbumsByReleaseYearFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("songsByReleaseYear", getSongsByReleaseYearFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
+        data.put("playsByReleaseYear", getPlaysByReleaseYearFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeByReleaseYear", getListeningTimeByReleaseYearFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id, alb.release_date, ar.gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Album alb ON sub.album_id = alb.id
-            INNER JOIN Artist ar ON alb.artist_id = ar.id
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY release_year DESC
-            """;
-        
+
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT alb.id as album_id, alb.release_date, ar.gender_id
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                        GROUP BY s.album_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                INNER JOIN Album alb ON sub.album_id = alb.id
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id, alb.release_date, ar.gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Album alb ON sub.album_id = alb.id
+                INNER JOIN Artist ar ON alb.artist_id = ar.id
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
@@ -2868,33 +3777,129 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin) {
-        String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
-        String sql = """
-            SELECT 
-                COALESCE(sub.release_year, 'Unknown') as release_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id,
-                    STRFTIME('%Y', alb.release_date) as release_year,
-                    COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
-                FROM Song s
-                """ + scrobbleJoin + """
+
+    private java.util.List<java.util.Map<String, Object>> getSongsByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, boolean needsScrobbleJoin, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sub.release_year, 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT s.id,
+                        STRFTIME('%Y', alb.release_date) as release_year,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                GROUP BY COALESCE(sub.release_year, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+            params.add(limit);
+        } else {
+            String scrobbleJoin = needsScrobbleJoin ? "INNER JOIN Scrobble scr ON scr.song_id = s.id\n                " : "";
+            sql = """
+                SELECT 
+                    COALESCE(sub.release_year, 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id,
+                        STRFTIME('%Y', alb.release_date) as release_year,
+                        COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id
+                    FROM Song s
+                    """ + scrobbleJoin + """
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.effective_gender_id = g.id
+                GROUP BY COALESCE(sub.release_year, 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("release_year"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.effective_gender_id = g.id
-            GROUP BY COALESCE(sub.release_year, 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY release_year DESC
-            """;
-        
+                GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
@@ -2902,27 +3907,59 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY release_year DESC
-            """;
-        
+
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE 1=1 """ + " " + filterClause + """
+                GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY release_year DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("release_year"));
@@ -2930,35 +3967,7 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeByReleaseYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown') as release_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(STRFTIME('%Y', alb.release_date), 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY release_year DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("release_year"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
     
     // Get Listen Year tab chart data (5 bar charts grouped by scrobble/listen year)
@@ -2967,40 +3976,269 @@ public class SongRepository {
         java.util.List<Object> params = new java.util.ArrayList<>();
         
         buildFilterClause(filterClause, params, filter);
-        
+        Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByListenYear", getArtistsByListenYearFiltered(filterClause.toString(), params));
-        data.put("albumsByListenYear", getAlbumsByListenYearFiltered(filterClause.toString(), params));
-        data.put("songsByListenYear", getSongsByListenYearFiltered(filterClause.toString(), params));
-        data.put("playsByListenYear", getPlaysByListenYearFiltered(filterClause.toString(), params));
-        data.put("listeningTimeByListenYear", getListeningTimeByListenYearFiltered(filterClause.toString(), params));
-        
+        data.put("artistsByListenYear", getArtistsByListenYearFiltered(filterClause.toString(), params, limit));
+        data.put("albumsByListenYear", getAlbumsByListenYearFiltered(filterClause.toString(), params, limit));
+        data.put("songsByListenYear", getSongsByListenYearFiltered(filterClause.toString(), params, limit));
+        data.put("playsByListenYear", getPlaysByListenYearFiltered(filterClause.toString(), params, limit));
+        data.put("listeningTimeByListenYear", getListeningTimeByListenYearFiltered(filterClause.toString(), params, limit));
+
         return data;
     }
     
-    private java.util.List<java.util.Map<String, Object>> getArtistsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(sub.year, 'Unknown') as listen_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT ar.id as artist_id, ar.gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+    private java.util.List<java.util.Map<String, Object>> getArtistsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT
+                    COALESCE(sub.year, 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE ar.id IN (
+                        SELECT s.artist_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.artist_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                GROUP BY sub.year
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY sub.year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT
+                    COALESCE(sub.year, 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT ar.id as artist_id, ar.gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                INNER JOIN Artist ar ON sub.artist_id = ar.id
+                LEFT JOIN Gender g ON ar.gender_id = g.id
+                GROUP BY sub.year
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY sub.year DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("listen_year"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+    
+    private java.util.List<java.util.Map<String, Object>> getAlbumsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT
+                    COALESCE(sub.year, 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id, ar.gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IN (
+                        SELECT s.album_id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE s.album_id IS NOT NULL """ + " " + filterClause + """
+                        GROUP BY s.album_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY sub.year
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY sub.year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT
+                    COALESCE(sub.year, 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT alb.id as album_id, ar.gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE alb.id IS NOT NULL """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY sub.year
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY sub.year DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("listen_year"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getSongsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(sub.year, 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id as song_id, COALESCE(s.override_gender_id, ar.gender_id) as gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE s.id IN (
+                        SELECT s.id
+                        FROM Scrobble scr
+                        INNER JOIN Song s ON scr.song_id = s.id
+                        INNER JOIN Artist ar ON s.artist_id = ar.id
+                        LEFT JOIN Album alb ON s.album_id = alb.id
+                        WHERE 1=1 """ + " " + filterClause + """
+                        GROUP BY s.id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT ?
+                    )
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY sub.year
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY sub.year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(sub.year, 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM (
+                    SELECT DISTINCT s.id as song_id, COALESCE(s.override_gender_id, ar.gender_id) as gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                ) sub
+                LEFT JOIN Gender g ON sub.gender_id = g.id
+                GROUP BY sub.year
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY sub.year DESC
+                """;
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("name", rs.getString("listen_year"));
+            row.put("male", rs.getLong("male_count"));
+            row.put("female", rs.getLong("female_count"));
+            row.put("other", rs.getLong("other_count"));
+            return row;
+        }, params.toArray());
+    }
+
+    private java.util.List<java.util.Map<String, Object>> getPlaysByListenYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY listen_year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            INNER JOIN Artist ar ON sub.artist_id = ar.id
-            LEFT JOIN Gender g ON ar.gender_id = g.id
-            GROUP BY sub.year
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY sub.year DESC
-            """;
-        
+                GROUP BY COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY listen_year DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
@@ -3008,61 +4246,59 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
     
-    private java.util.List<java.util.Map<String, Object>> getAlbumsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(sub.year, 'Unknown') as listen_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT alb.id as album_id, ar.gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+    private java.util.List<java.util.Map<String, Object>> getListeningTimeByListenYearFiltered(String filterClause, java.util.List<Object> filterParams, Integer limit) {
+        String sql;
+        java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
+        if (limit != null) {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE alb.id IS NOT NULL """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            GROUP BY sub.year
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY sub.year DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("listen_year"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getSongsByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(sub.year, 'Unknown') as listen_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM (
-                SELECT DISTINCT s.id as song_id, COALESCE(s.override_gender_id, ar.gender_id) as gender_id, STRFTIME('%Y', scr.scrobble_date) as year
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
+                WHERE s.id IN (
+                    SELECT s.id
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + " " + filterClause + """
+                    GROUP BY s.id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT ?
+                )
+                GROUP BY COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY listen_year DESC
+                """;
+            params.add(limit);
+        } else {
+            sql = """
+                SELECT 
+                    COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown') as listen_year,
+                    SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
+                    SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
+                    SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
                 WHERE 1=1 """ + " " + filterClause + """
-            ) sub
-            LEFT JOIN Gender g ON sub.gender_id = g.id
-            GROUP BY sub.year
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY sub.year DESC
-            """;
-        
+                GROUP BY COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown')
+                HAVING (male_count + female_count + other_count) > 0
+                ORDER BY listen_year DESC
+                """;
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("name", rs.getString("listen_year"));
@@ -3070,65 +4306,9 @@ public class SongRepository {
             row.put("female", rs.getLong("female_count"));
             row.put("other", rs.getLong("other_count"));
             return row;
-        }, filterParams.toArray());
+        }, params.toArray());
     }
-    
-    private java.util.List<java.util.Map<String, Object>> getPlaysByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown') as listen_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN 1 ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY listen_year DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("listen_year"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
-    private java.util.List<java.util.Map<String, Object>> getListeningTimeByListenYearFiltered(String filterClause, java.util.List<Object> filterParams) {
-        String sql = """
-            SELECT 
-                COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown') as listen_year,
-                SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_count,
-                SUM(CASE WHEN g.name LIKE '%Female%' THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_count,
-                SUM(CASE WHEN (g.name IS NULL OR (g.name NOT LIKE '%Male%' AND g.name NOT LIKE '%Female%')) THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            LEFT JOIN Gender g ON COALESCE(s.override_gender_id, ar.gender_id) = g.id
-            WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY COALESCE(STRFTIME('%Y', scr.scrobble_date), 'Unknown')
-            HAVING (male_count + female_count + other_count) > 0
-            ORDER BY listen_year DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            java.util.Map<String, Object> row = new java.util.HashMap<>();
-            row.put("name", rs.getString("listen_year"));
-            row.put("male", rs.getLong("male_count"));
-            row.put("female", rs.getLong("female_count"));
-            row.put("other", rs.getLong("other_count"));
-            return row;
-        }, filterParams.toArray());
-    }
-    
+
     // Get Top chart data (top artists, albums, songs by play count)
     public java.util.Map<String, Object> getTopChartData(ChartFilterDTO filter) {
         int limit = filter.getTopLimit() != null ? filter.getTopLimit() : 10;
@@ -3136,15 +4316,15 @@ public class SongRepository {
         // Build filter clause for songs (used by getTopSongsFiltered)
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> filterParams = new java.util.ArrayList<>();
-        
+
         buildFilterClause(filterClause, filterParams, filter);
-        
+
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         // Use full filter for all entity types - filter based on songs that match, then aggregate
         result.put("topArtists", getTopArtistsFilteredByDTO(filter, limit));
         result.put("topAlbums", getTopAlbumsFilteredByDTO(filter, limit));
         result.put("topSongs", getTopSongsFiltered(filterClause.toString(), filterParams, limit));
-        
+
         return result;
     }
     
@@ -3158,38 +4338,38 @@ public class SongRepository {
             java.util.List<Integer> genderIds, String genderMode,
             java.util.List<Integer> ethnicityIds, String ethnicityMode,
             java.util.List<String> countries, String countryMode) {
-        
+
         // Genre filter - direct on artist
         if (genreIds != null && !genreIds.isEmpty()) {
             appendSimpleFilter(sql, params, "ar.genre_id", genreIds, genreMode);
         }
-        
+
         // Subgenre filter
         if (subgenreIds != null && !subgenreIds.isEmpty()) {
             appendSimpleFilter(sql, params, "ar.subgenre_id", subgenreIds, subgenreMode);
         }
-        
+
         // Language filter
         if (languageIds != null && !languageIds.isEmpty()) {
             appendSimpleFilter(sql, params, "ar.language_id", languageIds, languageMode);
         }
-        
+
         // Gender filter
         if (genderIds != null && !genderIds.isEmpty()) {
             appendSimpleFilter(sql, params, "ar.gender_id", genderIds, genderMode);
         }
-        
+
         // Ethnicity filter
         if (ethnicityIds != null && !ethnicityIds.isEmpty()) {
             appendSimpleFilter(sql, params, "ar.ethnicity_id", ethnicityIds, ethnicityMode);
         }
-        
+
         // Country filter
         if (countries != null && !countries.isEmpty()) {
             appendSimpleFilterStrings(sql, params, "ar.country", countries, countryMode);
         }
     }
-    
+
     /**
      * Builds a filter clause for direct album queries (album override -> artist fallback).
      */
@@ -3231,7 +4411,7 @@ public class SongRepository {
             appendSimpleFilterStrings(sql, params, "ar.country", countries, countryMode);
         }
     }
-    
+
     /**
      * Appends a simple filter condition for integer IDs.
      */
@@ -3259,7 +4439,7 @@ public class SongRepository {
             sql.append(")");
         }
     }
-    
+
     /**
      * Appends a simple filter condition for string values.
      */
@@ -3287,7 +4467,7 @@ public class SongRepository {
             sql.append(")");
         }
     }
-    
+
     /**
      * Get top artists filtered using full ChartFilterDTO.
      * Filters songs first, then aggregates by artist.
@@ -3356,7 +4536,7 @@ public class SongRepository {
         } else {
             // Build union query to include groups and/or featured plays
             StringBuilder unionParts = new StringBuilder();
-            
+
             // Part 1: Direct artist plays (always included)
             unionParts.append("""
                 SELECT 
@@ -3370,7 +4550,7 @@ public class SongRepository {
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 WHERE 1=1 """ + songFilterClause.toString());
-            
+
             if (includeGroups) {
                 // Part 2: Group plays - attribute to group members
                 // Clone params for each additional clause
@@ -3462,7 +4642,7 @@ public class SongRepository {
                 LIMIT ?
                 """;
         }
-        
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
@@ -3488,7 +4668,7 @@ public class SongRepository {
             return row;
         }, params.toArray());
     }
-    
+
     /**
      * Get top albums filtered using full ChartFilterDTO.
      * Filters songs first, then aggregates by album.
@@ -3496,12 +4676,12 @@ public class SongRepository {
     private java.util.List<java.util.Map<String, Object>> getTopAlbumsFilteredByDTO(ChartFilterDTO filter, int limit) {
         StringBuilder songFilterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
-        
+
         // Build song-level filter clause (this applies all entity-aware filters)
         buildFilterClause(songFilterClause, params, filter);
-        
+
         params.add(limit);
-        
+
         String sql = """
             SELECT 
                 alb.id,
@@ -3694,7 +4874,7 @@ public class SongRepository {
     
     private java.util.List<java.util.Map<String, Object>> getTopAlbumsFiltered(String filterClause, java.util.List<Object> filterParams, String listenedDateFrom, String listenedDateTo, int limit) {
         java.util.List<Object> params = new java.util.ArrayList<>(filterParams);
-        
+
         // Build date filter clause for scrobble filtering
         StringBuilder dateFilter = new StringBuilder();
         java.util.List<Object> dateParams = new java.util.ArrayList<>();
@@ -3761,7 +4941,7 @@ public class SongRepository {
             ORDER BY plays DESC, last_listened ASC
             LIMIT ?
             """;
-        
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
@@ -3816,12 +4996,12 @@ public class SongRepository {
                 ar.country,
                 s.length_seconds,
                 s.is_single,
-                CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image,
-                CASE WHEN alb.image IS NOT NULL AND LENGTH(alb.image) > 0 THEN 1 ELSE 0 END as album_has_image,
-                COUNT(scr.id) as plays,
+                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
+                COUNT(*) as plays,
                 SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
                 SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                COALESCE(s.length_seconds, 0) * COUNT(scr.id) as time_listened,
+                COALESCE(s.length_seconds, 0) * COUNT(*) as time_listened,
                 MIN(scr.scrobble_date) as first_listened,
                 MAX(scr.scrobble_date) as last_listened
             FROM Scrobble scr
@@ -3840,7 +5020,7 @@ public class SongRepository {
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
             WHERE 1=1 """ + " " + filterClause + """
-            GROUP BY s.id, s.name, s.artist_id, ar.name, s.album_id, alb.name, gender_id, COALESCE(s.release_date, alb.release_date), genre_id, genre, subgenre_id, subgenre, ethnicity_id, ethnicity, language_id, language, ar.country, s.length_seconds, s.is_single, has_image, album_has_image
+            GROUP BY s.id
             ORDER BY plays DESC, last_listened ASC
             LIMIT ?
             """;

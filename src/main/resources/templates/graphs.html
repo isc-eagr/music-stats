@@ -1346,11 +1346,12 @@
                         <button onclick="loadTabData('top', true)">Retry</button>
                     </div>
                     <div id="content-top">
+                        <!-- Show Top Limit Control - only on Top tab -->
                         <div class="top-controls">
                             <label for="topLimitInput">Show top:</label>
                             <input type="number" id="topLimitInput" value="50" min="1" max="100" onchange="reloadTopData()">
                         </div>
-                        
+
                         <!-- Sub-tabs for Top content -->
                         <div class="top-subtabs" style="display: flex; gap: 4px; margin: 20px 0 0 0; border-bottom: 1px solid #2a2a2a;">
                             <button class="charts-tab-btn active" onclick="switchTopSubTab('artists')" data-subtab="artists">Artists</button>
@@ -1487,6 +1488,12 @@
                         <button onclick="loadTabData('general', true)">Retry</button>
                     </div>
                     <div id="content-general">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitGeneral" onchange="onApplyLimitChanged('general')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>Overall Gender Breakdown</h3>
                             <div class="chart-scroll-container" id="generalCombinedChartContainer"></div>
@@ -1505,6 +1512,12 @@
                         <button onclick="loadTabData('genre', true)">Retry</button>
                     </div>
                     <div id="content-genre">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitGenre" onchange="onApplyLimitChanged('genre')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Genre</h3>
                             <div class="chart-scroll-container" id="genreCombinedChartContainer"></div>
@@ -1523,6 +1536,12 @@
                         <button onclick="loadTabData('subgenre', true)">Retry</button>
                     </div>
                     <div id="content-subgenre">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitSubgenre" onchange="onApplyLimitChanged('subgenre')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Subgenre</h3>
                             <div class="chart-scroll-container" id="subgenreCombinedChartContainer"></div>
@@ -1541,6 +1560,12 @@
                         <button onclick="loadTabData('ethnicity', true)">Retry</button>
                     </div>
                     <div id="content-ethnicity">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitEthnicity" onchange="onApplyLimitChanged('ethnicity')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Ethnicity</h3>
                             <div class="chart-scroll-container" id="ethnicityCombinedChartContainer"></div>
@@ -1559,6 +1584,12 @@
                         <button onclick="loadTabData('language', true)">Retry</button>
                     </div>
                     <div id="content-language">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitLanguage" onchange="onApplyLimitChanged('language')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Language</h3>
                             <div class="chart-scroll-container" id="languageCombinedChartContainer"></div>
@@ -1577,6 +1608,12 @@
                         <button onclick="loadTabData('country', true)">Retry</button>
                     </div>
                     <div id="content-country">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitCountry" onchange="onApplyLimitChanged('country')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Country</h3>
                             <div class="chart-scroll-container" id="countryCombinedChartContainer"></div>
@@ -1595,6 +1632,12 @@
                         <button onclick="loadTabData('releaseYear', true)">Retry</button>
                     </div>
                     <div id="content-releaseYear">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitReleaseYear" onchange="onApplyLimitChanged('releaseYear')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Release Year</h3>
                             <div class="chart-scroll-container" id="releaseYearCombinedChartContainer"></div>
@@ -1613,6 +1656,12 @@
                         <button onclick="loadTabData('listenYear', true)">Retry</button>
                     </div>
                     <div id="content-listenYear">
+                        <div class="top-controls">
+                            <label>
+                                <input type="checkbox" id="applyLimitListenYear" onchange="onApplyLimitChanged('listenYear')">
+                                <span>Apply Limit</span>
+                            </label>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Listen Year</h3>
                             <div class="chart-scroll-container" id="listenYearCombinedChartContainer"></div>
@@ -1627,7 +1676,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script th:src="@{/js/graphs.js}"></script>
-    
+
     <script th:inline="javascript">
         /*<![CDATA[*/
         // Initialize charts page with URL params

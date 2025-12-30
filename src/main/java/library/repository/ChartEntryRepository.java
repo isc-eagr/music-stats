@@ -70,11 +70,11 @@ public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer>
      */
     @Query(value = "SELECT ce.id, ce.chart_id, ce.position, ce.song_id, s.album_id, ce.play_count, " +
             "s.name as song_name, a.name as artist_name, " +
-            "CASE WHEN s.single_cover IS NOT NULL AND LENGTH(s.single_cover) > 0 THEN 1 ELSE 0 END as has_image, " +
+            "CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image, " +
             "a.id as artist_id, " +
             "(SELECT al.name FROM Album al WHERE al.id = s.album_id) as album_name, " +
             "a.gender_id, " +
-            "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = s.album_id AND al.image IS NOT NULL AND LENGTH(al.image) > 0) THEN 1 ELSE 0 END as album_has_image " +
+            "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = s.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image " +
             "FROM ChartEntry ce " +
             "INNER JOIN Song s ON ce.song_id = s.id " +
             "INNER JOIN Artist a ON s.artist_id = a.id " +

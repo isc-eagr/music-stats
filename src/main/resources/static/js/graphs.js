@@ -303,7 +303,7 @@ function loadTabData(tabName, forceReload = false) {
     // Build query string from current URL parameters
     const params = getFilterParams();
     
-    // Add top limit for top tab
+    // Add top limit only for top tab (always) or other tabs if their "Apply Limit" checkbox is checked
     if (tabName === 'top') {
         params.set('limit', getTopLimit());
         // Add artist include toggles for top artists
@@ -312,6 +312,13 @@ function loadTabData(tabName, forceReload = false) {
         }
         if (artistIncludeFeatured) {
             params.set('includeFeatured', 'true');
+        }
+    } else {
+        // For non-top tabs, only apply limit if checkbox is checked
+        const checkboxId = 'applyLimit' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox && checkbox.checked) {
+            params.set('limit', getTopLimit());
         }
     }
     
@@ -1506,6 +1513,14 @@ function reloadTopData() {
 function getTopLimit() {
     const input = document.getElementById('topLimitInput');
     return input ? parseInt(input.value) || 50 : 50;
+}
+
+/**
+ * Handles when the apply limit checkbox changes on any tab - reloads that tab with new limit setting
+ */
+function onApplyLimitChanged(tabName) {
+    // Reload the tab with the new apply limit setting
+    loadTabData(tabName, true);
 }
 
 /**

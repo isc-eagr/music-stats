@@ -732,8 +732,8 @@
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     
     <div class="charts-page">
-        <!-- Empty state when no chart exists -->
-        <div th:if="${!hasChart}" class="empty-state">
+        <!-- Empty state when no chart exists and not in preview mode -->
+        <div th:if="${!hasChart and isPreview != true}" class="empty-state">
             <div class="empty-state-icon">📊</div>
             <h2 class="empty-state-title">No Charts Generated Yet</h2>
             <p class="empty-state-text" th:if="${missingWeeksCount > 0}">
@@ -747,8 +747,13 @@
             </button>
         </div>
         
-        <!-- Chart display when chart exists -->
-        <div th:if="${hasChart}">
+        <!-- Chart display when chart exists OR in preview mode -->
+        <div th:if="${hasChart or isPreview == true}">
+            <!-- Preview Banner -->
+            <div th:if="${isPreview == true}" class="preview-banner" style="background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 500;">
+                👁️ Preview Mode — This week is still in progress. Chart data will update as more plays are recorded.
+            </div>
+
             <!-- Header -->
             <div class="charts-header">
                 <h1 class="charts-title">Weekly Charts</h1>
@@ -772,11 +777,19 @@
                            title="Jump to a specific week">
                 </div>
 
-                <a th:if="${nextPeriodKey != null}" 
-                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey})}" 
+                <!-- Next button: regular navigation -->
+                <a th:if="${nextPeriodKey != null and nextIsPreview != true}"
+                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey})}"
                    class="nav-btn">
                     Next →
                 </a>
+                <!-- Preview button: when next week is the incomplete current week -->
+                <a th:if="${nextPeriodKey != null and nextIsPreview == true}"
+                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, preview=true)}"
+                   class="nav-btn" style="background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%); border-color: #3b82f6;">
+                    Preview →
+                </a>
+                <!-- Disabled when no next or in preview mode (already at current week) -->
                 <span th:if="${nextPeriodKey == null}" class="nav-btn disabled">Next →</span>
             </div>
             
@@ -1035,6 +1048,9 @@
         <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
             <button th:if="${missingWeeksCount > 0}" class="action-btn" onclick="startBulkGeneration()" style="background: #1e3a5f; border: 1px solid #2d5a8a; color: #7bb3e0;">
                 📊 Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
+            </button>
+            <button class="action-btn" onclick="confirmRegenerateThisWeek()" style="background: #2d3a1f; border: 1px solid #4a5a2d; color: #a8d55e;">
+                🔄 Regenerate This Week
             </button>
             <button class="action-btn danger-btn" onclick="confirmRegenerateAll()" style="background: #3b1f1f; border: 1px solid #5c2d2d; color: #e07b7b;">
                 🔄 Regenerate ALL Charts
@@ -1507,6 +1523,42 @@
                     console.error('Error polling progress:', error);
                 }
             }, 500);
+        }
+
+        // ========== Regenerate This Week ==========
+        let thisWeekSessionId = null;
+
+        async function confirmRegenerateThisWeek() {
+            const confirmed = confirm('🔄 Regenerate this week\'s charts?\n\nThis will delete and regenerate the chart data for the current week.');
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/charts/generate/' + currentPeriodKey, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('progressModalTitle').textContent = 'Regenerating This Week\'s Charts';
+                    document.getElementById('progressCount').textContent = '0';
+                    document.getElementById('progressTotal').textContent = '1';
+                    document.getElementById('progressCurrentWeek').textContent = currentPeriodKey;
+                    showProgressModal();
+
+                    // Show completion immediately for single week
+                    setTimeout(() => {
+                        document.getElementById('progressCount').textContent = '1';
+                        document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('progressModalTitle').textContent = 'Regeneration Complete!';
+                        document.getElementById('progressCurrentWeek').textContent = 'Done';
+                        document.getElementById('closeModalBtn').style.display = 'inline-block';
+                    }, 500);
+                } else {
+                    alert('Failed to regenerate: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error regenerating week: ' + error.message);
+            }
         }
 
         // Initialize Flatpickr date picker
