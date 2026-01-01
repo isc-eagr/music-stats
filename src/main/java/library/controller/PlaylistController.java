@@ -106,6 +106,9 @@ public class PlaylistController {
                 null, null, null, null, null, // organized, hasImage, hasFeaturedArtists, isBand, isSingle
                 null, null,                 // playCountMin, playCountMax
                 null, null, null,           // lengthMin, lengthMax, lengthMode
+                null, null,                 // weeklyChartPeak, weeklyChartWeeks
+                null, null,                 // seasonalChartPeak, seasonalChartSeasons
+                null, null,                 // yearlyChartPeak, yearlyChartYears
                 "name", "asc", page, perpage
         );
     }

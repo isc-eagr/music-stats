@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,9 @@ public class SongService {
                                        String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                                        Integer playCountMin, Integer playCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
+                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                       Integer yearlyChartPeak, Integer yearlyChartYears,
                                        String sortBy, String sortDirection, int page, int perPage) {
         int offset = page * perPage;
         
@@ -67,6 +71,7 @@ public class SongService {
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 sortBy, sortDirection, perPage, offset
         );
         
@@ -144,7 +149,10 @@ public class SongService {
                           String listenedDateFrom, String listenedDateTo,
                           String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                           Integer playCountMin, Integer playCountMax,
-                          Integer lengthMin, Integer lengthMax, String lengthMode) {
+                          Integer lengthMin, Integer lengthMax, String lengthMode,
+                          Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                          Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -157,7 +165,8 @@ public class SongService {
                 listenedDateFrom, listenedDateTo,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
-                lengthMin, lengthMax, lengthMode);
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
     }
     
     public Optional<Song> getSongById(Integer id) {
@@ -1527,5 +1536,17 @@ public class SongService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public List<Map<String, Object>> getSongDetailsForIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+        String sql = "SELECT id, name FROM Song WHERE id IN (" + placeholders + ")";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> song = new HashMap<>();
+            song.put("id", rs.getInt("id"));
+            song.put("name", rs.getString("name"));
+            return song;
+        }, ids.toArray());
     }
 }

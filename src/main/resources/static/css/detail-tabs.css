@@ -222,14 +222,6 @@
     white-space: nowrap;
 }
 
-/* Numeric columns - more width */
-.chart-history-grid .table th.numeric,
-.chart-history-grid .table td.numeric {
-    text-align: right;
-    width: 16%;
-    white-space: nowrap;
-}
-
 /* Golden styling for #1 peak positions */
 .peak-number-one {
     color: #fbbf24 !important;

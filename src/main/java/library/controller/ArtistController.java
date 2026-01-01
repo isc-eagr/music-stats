@@ -10,8 +10,11 @@ import library.service.ChartService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +31,69 @@ public class ArtistController {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
+    }
+    
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        binder.registerCustomEditor(LocalDate.class, "birthDate", new java.beans.PropertyEditorSupport() {
+            private final DateTimeFormatter inputFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            
+            @Override
+            public void setAsText(String text) {
+                if (text == null || text.trim().isEmpty()) {
+                    setValue(null);
+                } else {
+                    try {
+                        // Try dd/MM/yyyy format first
+                        setValue(LocalDate.parse(text, inputFormat));
+                    } catch (Exception e) {
+                        try {
+                            // Fallback to ISO format (yyyy-MM-dd)
+                            setValue(LocalDate.parse(text));
+                        } catch (Exception e2) {
+                            System.err.println("Failed to parse birth date: " + text);
+                            setValue(null);
+                        }
+                    }
+                }
+            }
+            
+            @Override
+            public String getAsText() {
+                LocalDate date = (LocalDate) getValue();
+                return (date != null) ? date.format(inputFormat) : "";
+            }
+        });
+        
+        binder.registerCustomEditor(LocalDate.class, "deathDate", new java.beans.PropertyEditorSupport() {
+            private final DateTimeFormatter inputFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            
+            @Override
+            public void setAsText(String text) {
+                if (text == null || text.trim().isEmpty()) {
+                    setValue(null);
+                } else {
+                    try {
+                        // Try dd/MM/yyyy format first
+                        setValue(LocalDate.parse(text, inputFormat));
+                    } catch (Exception e) {
+                        try {
+                            // Fallback to ISO format (yyyy-MM-dd)
+                            setValue(LocalDate.parse(text));
+                        } catch (Exception e2) {
+                            System.err.println("Failed to parse death date: " + text);
+                            setValue(null);
+                        }
+                    }
+                }
+            }
+            
+            @Override
+            public String getAsText() {
+                LocalDate date = (LocalDate) getValue();
+                return (date != null) ? date.format(inputFormat) : "";
+            }
+        });
     }
     
     @GetMapping

@@ -460,7 +460,6 @@
             padding: 8px 12px;
             border-bottom: 1px solid #1f1f1f;
             color: #d1d5db;
-            white-space: nowrap;
         }
         
         .top-table tr:hover td {
@@ -469,11 +468,6 @@
         
         .top-table tr:last-child td {
             border-bottom: none;
-        }
-        
-        .top-table .numeric {
-            text-align: right;
-            font-family: 'SF Mono', 'Consolas', monospace;
         }
         
         .top-table .rank-col {
@@ -758,7 +752,7 @@
                         </div>
                     </div>
 
-                    <!-- Album Filter (text) -->
+                    <!-- Album Filter (chip-select) -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
                             <span class="filter-item-title">
@@ -767,13 +761,13 @@
                             </span>
                         </div>
                         <div class="filter-item-content">
-                            <label class="field"><span>Album Name</span>
-                                <input type="text" name="album" th:value="${selectedAlbum}" placeholder="Album name..." />
-                            </label>
+                            <label class="field"><span>Album Name</span></label>
+                            <div id="albumChipSelect"
+                                 th:attr="data-initial-values=${selectedAlbumsJson}"></div>
                         </div>
                     </div>
 
-                    <!-- Artist Filter (text) -->
+                    <!-- Artist Filter (chip-select) -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
                             <span class="filter-item-title">
@@ -782,9 +776,24 @@
                             </span>
                         </div>
                         <div class="filter-item-content">
-                            <label class="field"><span>Artist Name</span>
-                                <input type="text" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
-                            </label>
+                            <label class="field"><span>Artist Name</span></label>
+                            <div id="artistChipSelect"
+                                 th:attr="data-initial-values=${selectedArtistsJson}"></div>
+                        </div>
+                    </div>
+
+                    <!-- Song Filter (chip-select) -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Song
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <label class="field"><span>Song Name</span></label>
+                            <div id="songChipSelect"
+                                 th:attr="data-initial-values=${selectedSongsJson}"></div>
                         </div>
                     </div>
                     
@@ -1328,6 +1337,9 @@
                                           (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or
                                           (selectedLanguages != null and !selectedLanguages.isEmpty()) or
                                           (selectedCountries != null and !selectedCountries.isEmpty()) or
+                                          (selectedArtists != null and !selectedArtists.isEmpty()) or
+                                          (selectedAlbums != null and !selectedAlbums.isEmpty()) or
+                                          (selectedSongs != null and !selectedSongs.isEmpty()) or
                                           (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or
                                           (listenedDateTo != null and !listenedDateTo.isEmpty()) or
                                           (filterType != null and !filterType.isEmpty())} ? 'display:none' : ''">None (showing all data)</span>
@@ -1341,15 +1353,19 @@
                         </span>
                         
                         <!-- Album filter chip -->
-                        <span class="filter-chip" th:if="${selectedAlbum != null and !selectedAlbum.isEmpty()}">
+                        <span class="filter-chip" th:if="${selectedAlbums != null and !selectedAlbums.isEmpty()}">
                             <span class="filter-chip-label">Album</span>
-                            <span class="filter-chip-value" th:text="${selectedAlbum}"></span>
+                            <span class="filter-chip-value" th:each="album, iterStat : ${selectedAlbums}">
+                                <span th:text="${album['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                            </span>
                         </span>
                         
                         <!-- Artist filter chip -->
-                        <span class="filter-chip" th:if="${selectedArtist != null and !selectedArtist.isEmpty()}">
+                        <span class="filter-chip" th:if="${selectedArtists != null and !selectedArtists.isEmpty()}">
                             <span class="filter-chip-label">Artist</span>
-                            <span class="filter-chip-value" th:text="${selectedArtist}"></span>
+                            <span class="filter-chip-value" th:each="artist, iterStat : ${selectedArtists}">
+                                <span th:text="${artist['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                            </span>
                         </span>
                         
                         <!-- Country filter chip -->
@@ -1472,11 +1488,26 @@
                             </span>
                         </span>
                         
+                        <!-- Song filter chip -->
+                        <span class="filter-chip" th:if="${selectedSongs != null and !selectedSongs.isEmpty()}">
+                            <span class="filter-chip-label">Song</span>
+                            <span class="filter-chip-value" th:each="song, iterStat : ${selectedSongs}">
+                                <span th:text="${song['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                            </span>
+                        </span>
+                        
                         <!-- Entity filter chip (from filterType/filterId/filterName params) -->
                         <span class="filter-chip" th:if="${filterType != null and !filterType.isEmpty() and filterName != null}">
                             <span class="filter-chip-label" th:text="${filterType == 'genre' ? 'Genre is' : (filterType == 'subgenre' ? 'Subgenre is' : (filterType == 'ethnicity' ? 'Ethnicity is' : (filterType == 'language' ? 'Language is' : 'Filter')))}"></span>
                             <span class="filter-chip-value" th:text="${filterName}"></span>
                         </span>
+                        
+                        <!-- Clear All Filters button -->
+                        <button type="button" class="clear-filters-btn" id="clearAllFiltersBtn" 
+                                onclick="window.location.href='/graphs'" 
+                                style="display: none; margin-left: 8px; padding: 4px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; color: #fca5a5; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                            Clear All ×
+                        </button>
                     </div>
                     <div class="charts-sort-controls" style="display: flex; align-items: center; gap: 8px;">
                         <span style="color: #999; font-size: 13px;">Sort by:</span>
@@ -1550,17 +1581,12 @@
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
                                             <th data-sort="name">Artist Name</th>
-                                            <th data-sort="plays" class="numeric">Total</th>
-                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
-                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
+                                            <th data-sort="plays" style="text-align:right;">Total</th>
+                                            <th data-sort="primaryPlays" style="text-align:right;">Primary</th>
+                                            <th data-sort="legacyPlays" style="text-align:right;">Legacy</th>
+                                            <th data-sort="timeListened" style="text-align:right;">Time Listened</th>
                                             <th data-sort="firstListened">First Listened</th>
                                             <th data-sort="lastListened">Last Listened</th>
-                                            <th>Genre</th>
-                                            <th>Subgenre</th>
-                                            <th>Ethnicity</th>
-                                            <th>Language</th>
-                                            <th>Country</th>
-                                            <th data-sort="timeListened" class="numeric">Time Listened</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -1570,7 +1596,6 @@
                         
                         <!-- Albums Sub-tab -->
                         <div class="top-section top-subtab-content" id="top-subtab-albums" style="display: none;">
-                            <h3>Top Albums</h3>
                             <!-- Podium section -->
                             <div class="podium-section" id="albumsPodium"></div>
                             <div class="top-table-container" id="topAlbumsTableContainer">
@@ -1581,19 +1606,14 @@
                                             <th class="cover-col"></th>
                                             <th data-sort="artistName">Artist Name</th>
                                             <th data-sort="name">Album Name</th>
-                                            <th data-sort="plays" class="numeric">Total</th>
-                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
-                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
-                                            <th data-sort="length" class="numeric">Length</th>
+                                            <th data-sort="plays" style="text-align:right;">Total</th>
+                                            <th data-sort="primaryPlays" style="text-align:right;">Primary</th>
+                                            <th data-sort="legacyPlays" style="text-align:right;">Legacy</th>
+                                            <th data-sort="length" style="text-align:right;">Length</th>
+                                            <th data-sort="timeListened" style="text-align:right;">Time Listened</th>
                                             <th data-sort="releaseDate">Release Date</th>
                                             <th data-sort="firstListened">First Listened</th>
                                             <th data-sort="lastListened">Last Listened</th>
-                                            <th>Genre</th>
-                                            <th>Subgenre</th>
-                                            <th>Ethnicity</th>
-                                            <th>Language</th>
-                                            <th>Country</th>
-                                            <th data-sort="timeListened" class="numeric">Time Listened</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -1618,19 +1638,14 @@
                                             <th data-sort="artistName">Artist Name</th>
                                             <th data-sort="albumName">Album Name</th>
                                             <th data-sort="name">Song Name</th>
-                                            <th data-sort="plays" class="numeric">Total</th>
-                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
-                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
-                                            <th data-sort="length" class="numeric">Length</th>
+                                            <th data-sort="plays" style="text-align:right;">Total</th>
+                                            <th data-sort="primaryPlays" style="text-align:right;">Primary</th>
+                                            <th data-sort="legacyPlays" style="text-align:right;">Legacy</th>
+                                            <th data-sort="length" style="text-align:right;">Length</th>
+                                            <th data-sort="timeListened" style="text-align:right;">Time Listened</th>
                                             <th data-sort="releaseDate">Release Date</th>
                                             <th data-sort="firstListened">First Listened</th>
                                             <th data-sort="lastListened">Last Listened</th>
-                                            <th>Genre</th>
-                                            <th>Subgenre</th>
-                                            <th>Ethnicity</th>
-                                            <th>Language</th>
-                                            <th>Country</th>
-                                            <th data-sort="timeListened" class="numeric">Time Listened</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -1838,6 +1853,7 @@
     <!-- Chart.js and Charts Module -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script th:src="@{/js/chip-select.js}"></script>
     <script th:src="@{/js/graphs.js}"></script>
 
     <script th:inline="javascript">
@@ -1866,6 +1882,13 @@
             if (chartsPageConfig.listenedDateFrom || chartsPageConfig.listenedDateTo) {
                 chartsDateRange.from = chartsPageConfig.listenedDateFrom;
                 chartsDateRange.to = chartsPageConfig.listenedDateTo;
+            }
+            
+            // Show/hide Clear All button based on whether there are active filters
+            const hasActiveFilters = document.querySelector('.filter-chip') !== null;
+            const clearBtn = document.getElementById('clearAllFiltersBtn');
+            if (clearBtn && hasActiveFilters) {
+                clearBtn.style.display = '';
             }
             
             // Update the filter display
@@ -1904,6 +1927,9 @@
             setupDateModeToggle('firstListenedDate');
             setupDateModeToggle('lastListenedDate');
             setupDateModeToggle('releaseDate');
+            
+            // Initialize chip-select components for Artist, Album, Song filters
+            initChipSelectFilters();
         });
         
         function setupDateModeToggle(fieldName) {
@@ -1932,6 +1958,77 @@
                     }
                 });
             });
+        }
+        
+        /**
+         * Initialize chip-select components for Artist, Album, Song filters
+         */
+        function initChipSelectFilters() {
+            // Helper to parse initial values from data attribute (JSON format)
+            // Maps JSON {id, name, genderId} to chip-select format {value, label, genderId}
+            function parseInitialValues(elementId) {
+                const el = document.getElementById(elementId);
+                if (!el) return [];
+                const dataVal = el.getAttribute('data-initial-values');
+                if (!dataVal || dataVal.trim() === '' || dataVal === 'null') return [];
+                try {
+                    const items = JSON.parse(dataVal);
+                    return items.map(item => ({
+                        value: item.id,
+                        label: item.name,
+                        genderId: item.genderId
+                    }));
+                } catch (e) {
+                    console.error('Failed to parse initial values for', elementId, e);
+                    return [];
+                }
+            }
+            
+            // Artist chip-select
+            if (document.getElementById('artistChipSelect')) {
+                initChipSelect({
+                    containerId: 'artistChipSelect',
+                    inputName: 'artist',
+                    placeholder: 'Type to search artists...',
+                    searchUrl: '/artists/api/search',
+                    searchParam: 'q',
+                    valueField: 'id',
+                    labelField: 'name',
+                    genderField: 'genderId',
+                    minChars: 2,
+                    initialValues: parseInitialValues('artistChipSelect')
+                });
+            }
+            
+            // Album chip-select
+            if (document.getElementById('albumChipSelect')) {
+                initChipSelect({
+                    containerId: 'albumChipSelect',
+                    inputName: 'album',
+                    placeholder: 'Type to search albums...',
+                    searchUrl: '/albums/api/search',
+                    searchParam: 'query',
+                    valueField: 'id',
+                    labelField: 'name',
+                    minChars: 2,
+                    initialValues: parseInitialValues('albumChipSelect')
+                });
+            }
+            
+            // Song chip-select
+            if (document.getElementById('songChipSelect')) {
+                initChipSelect({
+                    containerId: 'songChipSelect',
+                    inputName: 'song',
+                    placeholder: 'Type to search songs...',
+                    searchUrl: '/songs/api/search',
+                    searchParam: 'song',
+                    valueField: 'id',
+                    labelField: 'name',
+                    minChars: 2,
+                    initialValues: parseInitialValues('songChipSelect')
+                });
+            }
         }
         
         function clearAllFilters() {

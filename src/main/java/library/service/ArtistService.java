@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -161,7 +162,7 @@ public class ArtistService {
         String sql = """
             SELECT id, name, gender_id, country, ethnicity_id, 
                    genre_id, subgenre_id, language_id, is_band, organized,
-                   creation_date, update_date
+                   birth_date, death_date, creation_date, update_date
             FROM Artist
             WHERE id = ?
             """;
@@ -195,6 +196,13 @@ public class ArtistService {
             int organized = rs.getInt("organized");
             artist.setOrganized(rs.wasNull() ? null : organized == 1);
             
+            // Handle date fields - SQLite stores dates as strings, parse them directly
+            String birthDateStr = rs.getString("birth_date");
+            artist.setBirthDate(birthDateStr != null && !birthDateStr.isEmpty() ? java.time.LocalDate.parse(birthDateStr) : null);
+            
+            String deathDateStr = rs.getString("death_date");
+            artist.setDeathDate(deathDateStr != null && !deathDateStr.isEmpty() ? java.time.LocalDate.parse(deathDateStr) : null);
+            
             artist.setCreationDate(rs.getTimestamp("creation_date"));
             artist.setUpdateDate(rs.getTimestamp("update_date"));
             
@@ -213,7 +221,7 @@ public class ArtistService {
             UPDATE Artist 
             SET name = ?, gender_id = ?, country = ?, ethnicity_id = ?, 
                 genre_id = ?, subgenre_id = ?, language_id = ?, is_band = ?, organized = ?,
-                update_date = CURRENT_TIMESTAMP
+                birth_date = ?, death_date = ?, update_date = CURRENT_TIMESTAMP
             WHERE id = ?
             """;
         
@@ -227,6 +235,8 @@ public class ArtistService {
             artist.getLanguageId(),
             artist.getIsBand() != null && artist.getIsBand() ? 1 : 0,
             artist.getOrganized() != null && artist.getOrganized() ? 1 : 0,
+            artist.getBirthDate(),
+            artist.getDeathDate(),
             artist.getId()
         );
         
@@ -794,8 +804,8 @@ public class ArtistService {
     public Artist createArtist(Artist artist) {
         String sql = """
             INSERT INTO Artist (name, gender_id, country, ethnicity_id, 
-                               genre_id, subgenre_id, language_id, is_band, creation_date, update_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                               genre_id, subgenre_id, language_id, is_band, birth_date, death_date, creation_date, update_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """;
         
         jdbcTemplate.update(sql,
@@ -806,7 +816,9 @@ public class ArtistService {
             artist.getGenreId(),
             artist.getSubgenreId(),
             artist.getLanguageId(),
-            artist.getIsBand() != null && artist.getIsBand() ? 1 : 0
+            artist.getIsBand() != null && artist.getIsBand() ? 1 : 0,
+            artist.getBirthDate(),
+            artist.getDeathDate()
         );
         
         // Get the ID of the newly created artist
@@ -2634,5 +2646,18 @@ public class ArtistService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public List<Map<String, Object>> getArtistDetailsForIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+        String sql = "SELECT id, name, gender_id as genderId FROM Artist WHERE id IN (" + placeholders + ")";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> artist = new HashMap<>();
+            artist.put("id", rs.getInt("id"));
+            artist.put("name", rs.getString("name"));
+            artist.put("genderId", rs.getObject("genderId") != null ? rs.getInt("genderId") : null);
+            return artist;
+        }, ids.toArray());
     }
 }

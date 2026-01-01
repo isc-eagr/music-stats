@@ -128,6 +128,12 @@ public class SongController {
             @RequestParam(required = false) Integer lengthMin,
             @RequestParam(required = false) Integer lengthMax,
             @RequestParam(required = false) String lengthMode,
+            @RequestParam(required = false) Integer weeklyChartPeak,
+            @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer seasonalChartPeak,
+            @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) Integer yearlyChartPeak,
+            @RequestParam(required = false) Integer yearlyChartYears,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -159,6 +165,7 @@ public class SongController {
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 sortby, sortdir, page, perpage
         );
         
@@ -172,7 +179,8 @@ public class SongController {
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
-                lengthMin, lengthMax, lengthMode);
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -213,6 +221,15 @@ public class SongController {
         model.addAttribute("lengthMin", lengthMin);
         model.addAttribute("lengthMax", lengthMax);
         model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
+        
+        // Chart filter attributes
+        model.addAttribute("weeklyChartPeak", weeklyChartPeak);
+        model.addAttribute("weeklyChartWeeks", weeklyChartWeeks);
+        model.addAttribute("seasonalChartPeak", seasonalChartPeak);
+        model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
+        model.addAttribute("yearlyChartPeak", yearlyChartPeak);
+        model.addAttribute("yearlyChartYears", yearlyChartYears);
+        
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
         model.addAttribute("releaseDateTo", releaseDateTo);
@@ -668,7 +685,7 @@ public class SongController {
      * Centralizes all filter parameter handling for chart endpoints.
      */
     private ChartFilterDTO buildChartFilter(
-            String q, String artist, String album,
+            String q, List<Integer> artist, List<Integer> album, List<Integer> song,
             List<Integer> genre, String genreMode,
             List<Integer> subgenre, String subgenreMode,
             List<Integer> language, String languageMode,
@@ -686,8 +703,9 @@ public class SongController {
         
         return ChartFilterDTO.builder()
             .setName(q)
-            .setArtistName(artist)
-            .setAlbumName(album)
+            .setArtistIds(artist)
+            .setAlbumIds(album)
+            .setSongIds(song)
             .setGenreIds(genre)
             .setGenreMode(genreMode)
             .setSubgenreIds(subgenre)
@@ -733,8 +751,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getGeneralChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -776,7 +795,7 @@ public class SongController {
             @RequestParam(required = false) String limitEntity) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -796,8 +815,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getGenreChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -838,7 +858,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -855,8 +875,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getSubgenreChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -897,7 +918,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -914,8 +935,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getEthnicityChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -956,7 +978,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -973,8 +995,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getLanguageChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -1015,7 +1038,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -1032,8 +1055,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getCountryChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -1074,7 +1098,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -1091,8 +1115,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getReleaseYearChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -1133,7 +1158,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -1150,8 +1175,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getListenYearChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -1192,7 +1218,7 @@ public class SongController {
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -1209,8 +1235,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getTopChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -1253,7 +1280,7 @@ public class SongController {
             @RequestParam(defaultValue = "10") int limit) {
         
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -1274,8 +1301,9 @@ public class SongController {
     @ResponseBody
     public Map<String, Object> getFilteredGenderChartData(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -1315,7 +1343,7 @@ public class SongController {
             @RequestParam(required = false) String isSingle) {
         
         ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, genre, genreMode, subgenre, subgenreMode,
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
             language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
             country, countryMode, account, accountMode,
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode, releaseDateEntity,
@@ -1494,6 +1522,9 @@ public class SongController {
                 organized, hasImage, hasFeaturedArtists, isBand, isSingle,
                 playCountMin, playCountMax,
                 null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
+                null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)
+                null, null,                 // seasonalChartPeak, seasonalChartSeasons (not used in export)
+                null, null,                 // yearlyChartPeak, yearlyChartYears (not used in export)
                 sortby, sortdir, 0, limit
         );
         

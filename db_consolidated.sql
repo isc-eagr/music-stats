@@ -85,6 +85,8 @@ CREATE TABLE IF NOT EXISTS Artist (
     language_id INTEGER,
     is_band INTEGER DEFAULT 0,
     organized INTEGER DEFAULT 0,
+    birth_date DATE,
+    death_date DATE,
     image BLOB,
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -365,14 +365,14 @@
                         <thead>
                             <tr>
                                 <th data-sort="name">Song Name</th>
-                                <th data-sort="totalplays" class="numeric">Total</th>
-                                <th data-sort="primaryplays" class="numeric">Primary</th>
-                                <th data-sort="legacyplays" class="numeric">Legacy</th>
-                                <th data-sort="length" class="numeric">Length</th>
+                                <th data-sort="totalplays" style="text-align:right;">Total</th>
+                                <th data-sort="primaryplays" style="text-align:right;">Primary</th>
+                                <th data-sort="legacyplays" style="text-align:right;">Legacy</th>
+                                <th data-sort="length" style="text-align:right;">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="timelistened" class="numeric">Time Listened</th>
+                                <th data-sort="timelistened" style="text-align:right;">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="songsTableBody">
@@ -390,14 +390,14 @@
                                     <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
                                 </td>
-                                <td class="numeric" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
+                                <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
                                 <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
                                 <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
                                 <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td class="numeric" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
+                                <td style="text-align:right;" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
                     </table>
@@ -557,9 +557,9 @@
                                 <thead>
                                     <tr>
                                         <th>Album</th>
-                                        <th class="numeric">Peak</th>
-                                        <th class="numeric">Wks@Peak</th>
-                                        <th class="numeric">Total Weeks</th>
+                                        <th style="text-align:right;">Peak</th>
+                                        <th style="text-align:right;">Wks@Peak</th>
+                                        <th style="text-align:right;">Total Weeks</th>
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
@@ -570,15 +570,15 @@
                                         <td>
                                             <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -610,9 +610,9 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th class="numeric">Peak</th>
-                                    <th class="numeric">Wks@Peak</th>
-                                    <th class="numeric">Total Weeks</th>
+                                    <th style="text-align:right;">Peak</th>
+                                    <th style="text-align:right;">Wks@Peak</th>
+                                    <th style="text-align:right;">Total Weeks</th>
                                     <th>Release</th>
                                     <th>Debut</th>
                                     <th>Peak Date</th>
@@ -623,15 +623,15 @@
                                     <td>
                                         <a th:href="@{'/songs/' + ${entry.id}}" th:text="${entry.name}">Song Name</a>
                                     </td>
-                                    <td class="numeric">
+                                    <td style="text-align:right;">
                                         <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                               th:text="${entry.peakPosition}">#1</span>
                                     </td>
-                                    <td class="numeric">
+                                    <td style="text-align:right;">
                                         <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                               th:text="${entry.weeksAtPeak}">1</span>
                                     </td>
-                                    <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                    <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
                                     <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                     <td>
                                         <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -679,7 +679,7 @@
                             <thead>
                                 <tr>
                                     <th>Song</th>
-                                    <th class="numeric">Position</th>
+                                    <th style="text-align:right;">Position</th>
                                     <th>Period</th>
                                 </tr>
                             </thead>
@@ -687,7 +687,7 @@
                                 <!-- Yearly entries first -->
                                 <tr th:each="entry : ${yearlySongChartHistory}">
                                     <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
-                                    <td class="numeric" th:text="'#' + ${entry.position}">#1</td>
+                                    <td style="text-align:right;" th:text="'#' + ${entry.position}">#1</td>
                                     <td>
                                         <a th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
                                             📅 <span th:text="${entry.displayName}">2024</span>
@@ -697,7 +697,7 @@
                                 <!-- Seasonal entries second -->
                                 <tr th:each="entry : ${seasonalSongChartHistory}">
                                     <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
-                                    <td class="numeric" th:text="'#' + ${entry.position}">#1</td>
+                                    <td style="text-align:right;" th:text="'#' + ${entry.position}">#1</td>
                                     <td>
                                         <a th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
                                             <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>

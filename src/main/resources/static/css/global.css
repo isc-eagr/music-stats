@@ -388,6 +388,171 @@ select:focus {
 .multi-select-chip-remove:hover { color: #ffffff; }
 
 /* ============================================
+   CHIP SELECT COMPONENT
+   Inline chip-style multi-select with search
+   ============================================ */
+.chip-select-container {
+    position: relative;
+    width: 100%;
+}
+
+.chip-select-display {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: #0a0a0a;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    min-height: 38px;
+    cursor: text;
+    transition: border-color 0.2s;
+}
+
+.chip-select-display:hover,
+.chip-select-display:focus-within {
+    border-color: #666666;
+}
+
+.chip-select-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip-select-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background-color: #2a2a2a;
+    border: 1px solid #404040;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #e5e7eb;
+    white-space: nowrap;
+}
+
+.chip-select-chip-label {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chip-select-chip-remove {
+    background: none;
+    border: none;
+    color: #999999;
+    cursor: pointer;
+    padding: 0;
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.chip-select-chip-remove:hover {
+    color: #ffffff;
+}
+
+.chip-select-input {
+    flex: 1;
+    min-width: 120px;
+    border: none;
+    background: transparent;
+    color: #e5e7eb;
+    font-size: 14px;
+    outline: none;
+    padding: 2px 0;
+}
+
+.chip-select-input::placeholder {
+    color: #999999;
+}
+
+.chip-select-clear {
+    background: none;
+    border: none;
+    color: #999999;
+    cursor: pointer;
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.chip-select-clear:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.chip-select-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #1a1a1a;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    margin-top: 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.chip-select-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    color: #e5e7eb;
+    font-size: 14px;
+    transition: background-color 0.15s;
+}
+
+.chip-select-option:hover,
+.chip-select-option.highlighted {
+    background-color: #2a2a2a;
+}
+
+.chip-select-no-results {
+    padding: 12px;
+    color: #999999;
+    font-size: 14px;
+    text-align: center;
+    font-style: italic;
+}
+
+.chip-select-hidden-inputs {
+    display: none;
+}
+
+/* Gender-based chip coloring */
+.chip-select-chip.chip-gender-male {
+    background-color: rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
+}
+
+.chip-select-chip.chip-gender-female {
+    background-color: rgba(236, 72, 153, 0.25);
+    border-color: rgba(236, 72, 153, 0.5);
+    color: #f9a8d4;
+}
+
+/* ============================================
    DETAIL PAGE LAYOUT COMPONENTS
    Reusable for Album, Song, Artist detail pages
    ============================================ */

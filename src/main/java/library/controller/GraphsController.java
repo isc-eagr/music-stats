@@ -1,6 +1,9 @@
 package library.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import library.repository.LookupRepository;
+import library.service.ArtistService;
+import library.service.AlbumService;
 import library.service.SongService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,10 +21,17 @@ public class GraphsController {
     
     private final LookupRepository lookupRepository;
     private final SongService songService;
+    private final ArtistService artistService;
+    private final AlbumService albumService;
+    private final ObjectMapper objectMapper;
     
-    public GraphsController(LookupRepository lookupRepository, SongService songService) {
+    public GraphsController(LookupRepository lookupRepository, SongService songService, 
+                           ArtistService artistService, AlbumService albumService, ObjectMapper objectMapper) {
         this.lookupRepository = lookupRepository;
         this.songService = songService;
+        this.artistService = artistService;
+        this.albumService = albumService;
+        this.objectMapper = objectMapper;
     }
     
     @GetMapping("/graphs")
@@ -36,8 +46,9 @@ public class GraphsController {
             @RequestParam(required = false) String periodLabel,
             // Standard filters (same as song/album/artist list pages)
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
-            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
             // Account filter
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
@@ -113,8 +124,45 @@ public class GraphsController {
         
         // Standard filters - alphabetically ordered
         model.addAttribute("searchQuery", q);
-        model.addAttribute("selectedArtist", artist);
-        model.addAttribute("selectedAlbum", album);
+        
+        // Fetch artist/album/song details for initial values (include ID, name, genderId)
+        // Pass both the list (for Active Filters display) and JSON (for chip-select components)
+        try {
+            if (artist != null && !artist.isEmpty()) {
+                java.util.List<java.util.Map<String, Object>> artistDetails = artistService.getArtistDetailsForIds(artist);
+                model.addAttribute("selectedArtists", artistDetails); // List for display
+                model.addAttribute("selectedArtistsJson", objectMapper.writeValueAsString(artistDetails)); // JSON for chip-select
+            } else {
+                model.addAttribute("selectedArtists", null);
+                model.addAttribute("selectedArtistsJson", "null");
+            }
+            
+            if (album != null && !album.isEmpty()) {
+                java.util.List<java.util.Map<String, Object>> albumDetails = albumService.getAlbumDetailsForIds(album);
+                model.addAttribute("selectedAlbums", albumDetails);
+                model.addAttribute("selectedAlbumsJson", objectMapper.writeValueAsString(albumDetails));
+            } else {
+                model.addAttribute("selectedAlbums", null);
+                model.addAttribute("selectedAlbumsJson", "null");
+            }
+            
+            if (song != null && !song.isEmpty()) {
+                java.util.List<java.util.Map<String, Object>> songDetails = songService.getSongDetailsForIds(song);
+                model.addAttribute("selectedSongs", songDetails);
+                model.addAttribute("selectedSongsJson", objectMapper.writeValueAsString(songDetails));
+            } else {
+                model.addAttribute("selectedSongs", null);
+                model.addAttribute("selectedSongsJson", "null");
+            }
+        } catch (Exception e) {
+            // Fallback to null if JSON serialization fails
+            model.addAttribute("selectedArtists", null);
+            model.addAttribute("selectedArtistsJson", "null");
+            model.addAttribute("selectedAlbums", null);
+            model.addAttribute("selectedAlbumsJson", "null");
+            model.addAttribute("selectedSongs", null);
+            model.addAttribute("selectedSongsJson", "null");
+        }
         
         // Account filter
         model.addAttribute("selectedAccounts", account);

@@ -118,6 +118,12 @@ public class AlbumController {
             @RequestParam(required = false) Integer lengthMin,
             @RequestParam(required = false) Integer lengthMax,
             @RequestParam(required = false) String lengthMode,
+            @RequestParam(required = false) Integer weeklyChartPeak,
+            @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer seasonalChartPeak,
+            @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) Integer yearlyChartPeak,
+            @RequestParam(required = false) Integer yearlyChartYears,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -149,6 +155,7 @@ public class AlbumController {
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 sortby, sortdir, page, perpage
         );
         
@@ -162,7 +169,8 @@ public class AlbumController {
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, hasImage, hasFeaturedArtists, isBand,
                 playCountMin, playCountMax, songCountMin, songCountMax,
-                lengthMin, lengthMax, lengthMode);
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -203,6 +211,14 @@ public class AlbumController {
         model.addAttribute("lengthMin", lengthMin);
         model.addAttribute("lengthMax", lengthMax);
         model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
+        
+        // Chart filter attributes
+        model.addAttribute("weeklyChartPeak", weeklyChartPeak);
+        model.addAttribute("weeklyChartWeeks", weeklyChartWeeks);
+        model.addAttribute("seasonalChartPeak", seasonalChartPeak);
+        model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
+        model.addAttribute("yearlyChartPeak", yearlyChartPeak);
+        model.addAttribute("yearlyChartYears", yearlyChartYears);
         
         // Release date filter attributes
         model.addAttribute("releaseDate", releaseDate);

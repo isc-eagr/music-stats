@@ -10,8 +10,9 @@ public class ChartFilterDTO {
     
     // Text search filters
     private String name;
-    private String artistName;
-    private String albumName;
+    private List<Integer> artistIds;
+    private List<Integer> albumIds;
+    private List<Integer> songIds;
     
     // Account filter
     private List<String> accounts;
@@ -96,11 +97,14 @@ public class ChartFilterDTO {
     public String getName() { return name; }
     public ChartFilterDTO setName(String name) { this.name = name; return this; }
     
-    public String getArtistName() { return artistName; }
-    public ChartFilterDTO setArtistName(String artistName) { this.artistName = artistName; return this; }
+    public List<Integer> getArtistIds() { return artistIds; }
+    public ChartFilterDTO setArtistIds(List<Integer> artistIds) { this.artistIds = artistIds; return this; }
     
-    public String getAlbumName() { return albumName; }
-    public ChartFilterDTO setAlbumName(String albumName) { this.albumName = albumName; return this; }
+    public List<Integer> getAlbumIds() { return albumIds; }
+    public ChartFilterDTO setAlbumIds(List<Integer> albumIds) { this.albumIds = albumIds; return this; }
+    
+    public List<Integer> getSongIds() { return songIds; }
+    public ChartFilterDTO setSongIds(List<Integer> songIds) { this.songIds = songIds; return this; }
     
     public List<String> getAccounts() { return accounts; }
     public ChartFilterDTO setAccounts(List<String> accounts) { this.accounts = accounts; return this; }
@@ -230,8 +234,9 @@ public class ChartFilterDTO {
      */
     public boolean hasAnyFilter() {
         return (name != null && !name.isEmpty()) ||
-               (artistName != null && !artistName.isEmpty()) ||
-               (albumName != null && !albumName.isEmpty()) ||
+               (artistIds != null && !artistIds.isEmpty()) ||
+               (albumIds != null && !albumIds.isEmpty()) ||
+               (songIds != null && !songIds.isEmpty()) ||
                (accounts != null && !accounts.isEmpty()) ||
                (genreIds != null && !genreIds.isEmpty()) || genreMode != null ||
                (subgenreIds != null && !subgenreIds.isEmpty()) || subgenreMode != null ||

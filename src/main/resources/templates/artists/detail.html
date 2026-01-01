@@ -10,6 +10,9 @@
     <link rel="stylesheet" th:href="@{/css/artist-detail.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
+    <!-- Flatpickr Date Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/top-table-sort.js}" defer></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
@@ -279,6 +282,18 @@
                                 </div>
                                 
                                 <div class="form-group">
+                                    <label for="birthDate">Birth Date</label>
+                                    <span class="attribute-text" data-field="birthDate" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd MMM yyyy') : '-'}">-</span>
+                                    <input type="text" id="birthDate" name="birthDate" th:value="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="deathDate">Death Date</label>
+                                    <span class="attribute-text" data-field="deathDate" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd MMM yyyy') : '-'}">-</span>
+                                    <input type="text" id="deathDate" name="deathDate" th:value="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
                                     <label for="genreId">Genre</label>
                                     <span class="attribute-text" data-field="genreId" th:text="${artist.genreId != null ? genres.get(artist.genreId) : '-'}">-</span>
                                     <select id="genreId" name="genreId" th:field="*{genreId}" disabled style="display:none;">
@@ -406,14 +421,14 @@
                             <tr>
                                 <th class="cover-col">Cover</th>
                                 <th data-sort="name">Album Name</th>
-                                <th data-sort="totalplays" class="numeric">Total</th>
-                                <th data-sort="primaryplays" class="numeric">Primary</th>
-                                <th data-sort="legacyplays" class="numeric">Legacy</th>
-                                <th data-sort="length" class="numeric">Length</th>
+                                <th data-sort="totalplays" style="text-align:right;">Total</th>
+                                <th data-sort="primaryplays" style="text-align:right;">Primary</th>
+                                <th data-sort="legacyplays" style="text-align:right;">Legacy</th>
+                                <th data-sort="length" style="text-align:right;">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="timelistened" class="numeric">Time Listened</th>
+                                <th data-sort="timelistened" style="text-align:right;">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="albumsTableBody">
@@ -441,14 +456,14 @@
                                         (by <a th:href="@{'/artists/' + ${album.sourceArtistId}}" th:text="${album.sourceArtistName}">Group</a>)
                                     </span>
                                 </td>
-                                <td class="numeric" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
-                                <td class="numeric" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
-                                <td class="numeric" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:text="${album.totalLength != null ? album.totalLength : '-'}">-</td>
+                                <td style="text-align:right;" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${album.totalLength != null ? album.totalLength : '-'}">-</td>
                                 <td th:text="${album.releaseDate != null ? album.releaseDate : '-'}">-</td>
                                 <td th:text="${album.firstListenedDate != null ? album.firstListenedDate : '-'}">-</td>
                                 <td th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
-                                <td class="numeric" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
+                                <td style="text-align:right;" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
                             </tr>
                             <tr class="no-data" th:if="${#lists.isEmpty(albums)}">
                                 <td colspan="10"><em>No albums</em></td>
@@ -456,14 +471,14 @@
                             <tr id="noAlbumSummaryRow" class="summary-row" style="display:none;">
                                 <td class="cover-col"></td>
                                 <td><strong>No Album Songs</strong></td>
-                                <td class="numeric" id="noAlbumTotalPlays">0</td>
-                                <td class="numeric" id="noAlbumVatitoPlays">0</td>
-                                <td class="numeric" id="noAlbumRobertloverPlays">0</td>
-                                <td class="numeric">-</td>
+                                <td style="text-align:right;" id="noAlbumTotalPlays">0</td>
+                                <td style="text-align:right;" id="noAlbumVatitoPlays">0</td>
+                                <td style="text-align:right;" id="noAlbumRobertloverPlays">0</td>
+                                <td style="text-align:right;">-</td>
                                 <td id="noAlbumReleaseDate">-</td>
                                 <td id="noAlbumFirstListened">-</td>
                                 <td id="noAlbumLastListened">-</td>
-                                <td class="numeric" id="noAlbumTotalListeningTime">-</td>
+                                <td style="text-align:right;" id="noAlbumTotalListeningTime">-</td>
                             </tr>
                         </tbody>
                     </table>
@@ -479,15 +494,14 @@
                                 <tr>
                                     <th class="cover-col">Cover</th>
                                     <th data-sort="name" class="song-name-col">Song Name</th>
-                                    <th data-sort="totalplays" class="numeric">Total</th>
-                                    <th data-sort="primaryplays" class="numeric">Primary</th>
-                                    <th data-sort="legacyplays" class="numeric">Legacy</th>
-                                <th data-sort="albumname">Album</th>
-                                <th data-sort="length" class="numeric">Length</th>
+                                    <th data-sort="totalplays" style="text-align:right;">Total</th>
+                                    <th data-sort="primaryplays" style="text-align:right;">Primary</th>
+                                    <th data-sort="legacyplays" style="text-align:right;">Legacy</th>
+                                <th data-sort="length" style="text-align:right;">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="timelistened" class="numeric">Time Listened</th>
+                                <th data-sort="timelistened" style="text-align:right;">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="songsTableBody">
@@ -549,18 +563,14 @@
                                         (by <a th:href="@{'/artists/' + ${song.sourceArtistId}}" th:text="${song.sourceArtistName}">Group</a>)
                                     </span>
                                 </td>
-                                <td class="numeric" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td>
-                                    <a th:if="${song.albumId != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${song.albumName}">Album Name</a>
-                                    <span th:unless="${song.albumId != null}">-</span>
-                                </td>
-                                <td class="numeric" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
+                                <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td style="text-align:right;" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
                                 <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
                                 <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
                                 <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td class="numeric" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
+                                <td style="text-align:right;" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
                     </table>
@@ -832,9 +842,9 @@
                                     <tr>
                                         <th class="cover-col">Cover</th>
                                         <th>Name</th>
-                                        <th class="numeric">Peak</th>
-                                        <th class="numeric">Wks@Peak</th>
-                                        <th class="numeric">Total Weeks</th>
+                                        <th style="text-align:right;">Peak</th>
+                                        <th style="text-align:right;">Wks@Peak</th>
+                                        <th style="text-align:right;">Total Weeks</th>
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
@@ -856,15 +866,15 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -896,9 +906,9 @@
                                     <tr>
                                         <th class="cover-col">Cover</th>
                                         <th>Name</th>
-                                        <th class="numeric">Peak</th>
-                                        <th class="numeric">Wks@Peak</th>
-                                        <th class="numeric">Total Weeks</th>
+                                        <th style="text-align:right;">Peak</th>
+                                        <th style="text-align:right;">Wks@Peak</th>
+                                        <th style="text-align:right;">Total Weeks</th>
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
@@ -950,15 +960,15 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
+                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -982,7 +992,7 @@
                                 <thead>
                                     <tr>
                                         <th>Album</th>
-                                        <th class="numeric">Position</th>
+                                        <th style="text-align:right;">Position</th>
                                         <th>Period</th>
                                     </tr>
                                 </thead>
@@ -997,7 +1007,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.position == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry.position}">#1</span>
                                         </td>
@@ -1017,7 +1027,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.position == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry.position}">#1</span>
                                         </td>
@@ -1044,7 +1054,7 @@
                                 <thead>
                                     <tr>
                                         <th>Song</th>
-                                        <th class="numeric">Position</th>
+                                        <th style="text-align:right;">Position</th>
                                         <th>Period</th>
                                     </tr>
                                 </thead>
@@ -1063,7 +1073,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.position == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry.position}">#1</span>
                                         </td>
@@ -1087,7 +1097,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td class="numeric">
+                                        <td style="text-align:right;">
                                             <span th:classappend="${entry.position == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry.position}">#1</span>
                                         </td>
@@ -1286,6 +1296,27 @@
                     initSearchableSelect('subgenreId');
                     initSearchableSelect('languageId');
                 }, 50);
+                
+                // Initialize Flatpickr for date inputs
+                setTimeout(function() {
+                    const birthDateInput = document.getElementById('birthDate');
+                    if (birthDateInput) {
+                        flatpickr(birthDateInput, {
+                            dateFormat: 'd/m/Y',
+                            allowInput: true,
+                            theme: 'dark'
+                        });
+                    }
+                    
+                    const deathDateInput = document.getElementById('deathDate');
+                    if (deathDateInput) {
+                        flatpickr(deathDateInput, {
+                            dateFormat: 'd/m/Y',
+                            allowInput: true,
+                            theme: 'dark'
+                        });
+                    }
+                }, 100);
             } else {
                 window.location.reload();
             }

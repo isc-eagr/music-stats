@@ -1304,7 +1304,7 @@ function renderTopArtistsTable() {
     renderArtistsPodium(data);
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: #666; padding: 20px;">No artist data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666; padding: 20px;">No artist data available</td></tr>';
         return;
     }
     
@@ -1320,17 +1320,12 @@ function renderTopArtistsTable() {
                 </div>
             </td>
             <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
-            <td class="numeric${(artist.plays || 0) >= 1000 ? ' high-plays' : ''}">${(artist.plays || 0).toLocaleString()}</td>
-            <td class="numeric">${(artist.primaryPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(artist.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(artist.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(artist.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${artist.timeListenedFormatted || '-'}</td>
             <td>${artist.firstListened || '-'}</td>
             <td>${artist.lastListened || '-'}</td>
-            <td>${artist.genreId ? `<a href="/genres/${artist.genreId}">${escapeHtml(artist.genre)}</a>` : '-'}</td>
-            <td>${artist.subgenreId ? `<a href="/subgenres/${artist.subgenreId}">${escapeHtml(artist.subgenre)}</a>` : '-'}</td>
-            <td>${artist.ethnicityId ? `<a href="/ethnicities/${artist.ethnicityId}">${escapeHtml(artist.ethnicity)}</a>` : '-'}</td>
-            <td>${artist.languageId ? `<a href="/languages/${artist.languageId}">${escapeHtml(artist.language)}</a>` : '-'}</td>
-            <td>${escapeHtml(artist.country || '-')}</td>
-            <td class="numeric">${artist.timeListenedFormatted || '-'}</td>
         </tr>
     `}).join('');
 
@@ -1350,7 +1345,7 @@ function renderTopAlbumsTable() {
     renderAlbumsPodium(data);
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>';
         return;
     }
     
@@ -1367,19 +1362,14 @@ function renderTopAlbumsTable() {
             </td>
             <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
-            <td class="numeric${(album.plays || 0) >= 1000 ? ' high-plays' : ''}">${(album.plays || 0).toLocaleString()}</td>
-            <td class="numeric">${(album.primaryPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(album.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${album.lengthFormatted || '-'}</td>
+            <td style="text-align:right;"${(album.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(album.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(album.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${album.lengthFormatted || '-'}</td>
+            <td style="text-align:right;">${album.timeListenedFormatted || '-'}</td>
             <td>${album.releaseDate || '-'}</td>
             <td>${album.firstListened || '-'}</td>
             <td>${album.lastListened || '-'}</td>
-            <td>${album.genreId ? `<a href="/genres/${album.genreId}">${escapeHtml(album.genre)}</a>` : '-'}</td>
-            <td>${album.subgenreId ? `<a href="/subgenres/${album.subgenreId}">${escapeHtml(album.subgenre)}</a>` : '-'}</td>
-            <td>${album.ethnicityId ? `<a href="/ethnicities/${album.ethnicityId}">${escapeHtml(album.ethnicity)}</a>` : '-'}</td>
-            <td>${album.languageId ? `<a href="/languages/${album.languageId}">${escapeHtml(album.language)}</a>` : '-'}</td>
-            <td>${escapeHtml(album.country || '-')}</td>
-            <td class="numeric">${album.timeListenedFormatted || '-'}</td>
         </tr>
     `}).join('');
 
@@ -1399,7 +1389,7 @@ function renderTopSongsTable() {
     renderSongsPodium(data);
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="18" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>';
         return;
     }
     
@@ -1434,19 +1424,14 @@ function renderTopSongsTable() {
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
             <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}</td>
-            <td class="numeric${(song.plays || 0) >= 100 ? ' high-plays' : ''}">${(song.plays || 0).toLocaleString()}</td>
-            <td class="numeric">${(song.primaryPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(song.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${song.lengthFormatted || '-'}</td>
+            <td style="text-align:right;"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(song.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(song.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${song.lengthFormatted || '-'}</td>
+            <td style="text-align:right;">${song.timeListenedFormatted || '-'}</td>
             <td>${song.releaseDate || '-'}</td>
             <td>${song.firstListened || '-'}</td>
             <td>${song.lastListened || '-'}</td>
-            <td>${song.genreId ? `<a href="/genres/${song.genreId}">${escapeHtml(song.genre)}</a>` : '-'}</td>
-            <td>${song.subgenreId ? `<a href="/subgenres/${song.subgenreId}">${escapeHtml(song.subgenre)}</a>` : '-'}</td>
-            <td>${song.ethnicityId ? `<a href="/ethnicities/${song.ethnicityId}">${escapeHtml(song.ethnicity)}</a>` : '-'}</td>
-            <td>${song.languageId ? `<a href="/languages/${song.languageId}">${escapeHtml(song.language)}</a>` : '-'}</td>
-            <td>${escapeHtml(song.country || '-')}</td>
-            <td class="numeric">${song.timeListenedFormatted || '-'}</td>
         </tr>
     `}).join('');
     

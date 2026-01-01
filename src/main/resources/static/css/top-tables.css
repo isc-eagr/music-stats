@@ -62,11 +62,6 @@
     border-bottom: none;
 }
 
-.top-table .numeric {
-    text-align: right;
-    font-family: 'SF Mono', 'Consolas', monospace;
-}
-
 .top-table .rank-col {
     width: 40px;
     text-align: center;
@@ -157,8 +152,8 @@
 
 .artist-detail #songsTable th.song-name-col,
 .artist-detail #songsTable td.song-name-col {
-    width: 360px; /* fixed width for song name column */
-    max-width: 360px;
+    width: 200px; /* fixed width for song name column */
+    max-width: 200px;
     white-space: normal; /* allow wrapping */
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -166,3 +161,107 @@
 
 /* Slightly reduce padding inside song name column to give more room for text */
 .artist-detail #songsTable td.song-name-col { padding-right: 8px; padding-left: 8px; }
+
+/* ============================================================================
+   TOP TAB TABLES - Fixed width columns with word wrapping
+   ============================================================================ */
+
+/* Force fixed table layout for all top tables to respect column widths */
+#topArtistsTable,
+#topAlbumsTable,
+#topSongsTable {
+    table-layout: fixed !important;
+}
+
+/* Remove all nowrap and allow wrapping everywhere */
+#topArtistsTable th,
+#topArtistsTable td,
+#topAlbumsTable th,
+#topAlbumsTable td,
+#topSongsTable th,
+#topSongsTable td {
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* Artists Table Column Widths */
+#topArtistsTable th:nth-child(1),
+#topArtistsTable td:nth-child(1) { width: 40px; } /* Rank */
+
+#topArtistsTable th:nth-child(2),
+#topArtistsTable td:nth-child(2) { width: 60px; } /* Cover */
+
+#topArtistsTable th:nth-child(3),
+#topArtistsTable td:nth-child(3) { width: 180px; } /* Artist Name */
+
+#topArtistsTable th:nth-child(4),
+#topArtistsTable td:nth-child(4) { width: 80px; } /* Total */
+
+#topArtistsTable th:nth-child(5),
+#topArtistsTable td:nth-child(5) { width: 80px; } /* Primary */
+
+#topArtistsTable th:nth-child(6),
+#topArtistsTable td:nth-child(6) { width: 80px; } /* Legacy */
+
+#topArtistsTable th:nth-child(7),
+#topArtistsTable td:nth-child(7) { width: 100px; } /* Time Listened */
+
+/* Albums Table Column Widths */
+#topAlbumsTable th:nth-child(1),
+#topAlbumsTable td:nth-child(1) { width: 40px; } /* Rank */
+
+#topAlbumsTable th:nth-child(2),
+#topAlbumsTable td:nth-child(2) { width: 60px; } /* Cover */
+
+#topAlbumsTable th:nth-child(3),
+#topAlbumsTable td:nth-child(3) { width: 180px; } /* Artist Name */
+
+#topAlbumsTable th:nth-child(4),
+#topAlbumsTable td:nth-child(4) { width: 180px; } /* Album Name */
+
+#topAlbumsTable th:nth-child(5),
+#topAlbumsTable td:nth-child(5) { width: 80px; } /* Total */
+
+#topAlbumsTable th:nth-child(6),
+#topAlbumsTable td:nth-child(6) { width: 80px; } /* Primary */
+
+#topAlbumsTable th:nth-child(7),
+#topAlbumsTable td:nth-child(7) { width: 80px; } /* Legacy */
+
+#topAlbumsTable th:nth-child(8),
+#topAlbumsTable td:nth-child(8) { width: 80px; } /* Length */
+
+#topAlbumsTable th:nth-child(9),
+#topAlbumsTable td:nth-child(9) { width: 100px; } /* Time Listened */
+
+/* Songs Table Column Widths */
+#topSongsTable th:nth-child(1),
+#topSongsTable td:nth-child(1) { width: 40px; } /* Rank */
+
+#topSongsTable th:nth-child(2),
+#topSongsTable td:nth-child(2) { width: 60px; } /* Cover */
+
+#topSongsTable th:nth-child(3),
+#topSongsTable td:nth-child(3) { width: 180px; } /* Artist Name */
+
+#topSongsTable th:nth-child(4),
+#topSongsTable td:nth-child(4) { width: 180px; } /* Album Name */
+
+#topSongsTable th:nth-child(5),
+#topSongsTable td:nth-child(5) { width: 180px; } /* Song Name */
+
+#topSongsTable th:nth-child(6),
+#topSongsTable td:nth-child(6) { width: 80px; } /* Total */
+
+#topSongsTable th:nth-child(7),
+#topSongsTable td:nth-child(7) { width: 80px; } /* Primary */
+
+#topSongsTable th:nth-child(8),
+#topSongsTable td:nth-child(8) { width: 80px; } /* Legacy */
+
+#topSongsTable th:nth-child(9),
+#topSongsTable td:nth-child(9) { width: 80px; } /* Length */
+
+#topSongsTable th:nth-child(10),
+#topSongsTable td:nth-child(10) { width: 100px; } /* Time Listened */

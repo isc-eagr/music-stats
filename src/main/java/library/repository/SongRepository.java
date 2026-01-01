@@ -31,6 +31,9 @@ public class SongRepository {
                                               String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                                               Integer playCountMin, Integer playCountMax,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
+                                              Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                              Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                              Integer yearlyChartPeak, Integer yearlyChartYears,
                                               String sortBy, String sortDirection, int limit, int offset) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
@@ -450,6 +453,63 @@ public class SongRepository {
             }
         }
         
+        // Weekly chart filter (peak position <= specified, total weeks >= specified)
+        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (weeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(weeklyChartPeak);
+            }
+            if (weeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(weeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
+        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (seasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(seasonalChartPeak);
+            }
+            if (seasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(seasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Yearly chart filter (peak position <= specified, total years >= specified)
+        if (yearlyChartPeak != null || yearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (yearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(yearlyChartPeak);
+            }
+            if (yearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(yearlyChartYears);
+            }
+            sql.append(")");
+        }
+        
         // Determine sort direction
         String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
         String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
@@ -520,7 +580,10 @@ public class SongRepository {
                                       String listenedDateFrom, String listenedDateTo,
                                       String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
                                       Integer playCountMin, Integer playCountMax,
-                                      Integer lengthMin, Integer lengthMax, String lengthMode) {
+                                      Integer lengthMin, Integer lengthMax, String lengthMode,
+                                      Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                      Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                      Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -923,13 +986,70 @@ public class SongRepository {
             }
         }
         
+        // Weekly chart filter (peak position <= specified, total weeks >= specified)
+        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (weeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(weeklyChartPeak);
+            }
+            if (weeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(weeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
+        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (seasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(seasonalChartPeak);
+            }
+            if (seasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(seasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Yearly chart filter (peak position <= specified, total years >= specified)
+        if (yearlyChartPeak != null || yearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (yearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(yearlyChartPeak);
+            }
+            if (yearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(yearlyChartYears);
+            }
+            sql.append(")");
+        }
+        
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
     }
     
     // Get filtered chart data for gender breakdown
     public java.util.Map<String, Object> getFilteredChartData(
-            String name, String artistName, String albumName,
+            String name, java.util.List<Integer> artistIds, java.util.List<Integer> albumIds, java.util.List<Integer> songIds,
             java.util.List<Integer> genreIds, String genreMode,
             java.util.List<Integer> subgenreIds, String subgenreMode,
             java.util.List<Integer> languageIds, String languageMode,
@@ -943,7 +1063,7 @@ public class SongRepository {
         StringBuilder filterClause = new StringBuilder();
         java.util.List<Object> params = new java.util.ArrayList<>();
 
-        buildFilterClause(filterClause, params, name, artistName, albumName,
+        buildFilterClause(filterClause, params, name, artistIds, albumIds, songIds,
             genreIds, genreMode, subgenreIds, subgenreMode,
             languageIds, languageMode, genderIds, genderMode,
             ethnicityIds, ethnicityMode, countries, countryMode,
@@ -1027,7 +1147,7 @@ public class SongRepository {
     }
     
     private void buildFilterClause(StringBuilder sql, java.util.List<Object> params,
-            String name, String artistName, String albumName,
+            String name, java.util.List<Integer> artistIds, java.util.List<Integer> albumIds, java.util.List<Integer> songIds,
             java.util.List<Integer> genreIds, String genreMode,
             java.util.List<Integer> subgenreIds, String subgenreMode,
             java.util.List<Integer> languageIds, String languageMode,
@@ -1043,14 +1163,27 @@ public class SongRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
-            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
+        // Artist ID filter - supports multiple IDs (OR logic with exact matching)
+        // Use s.artist_id for indexed lookup
+        if (artistIds != null && !artistIds.isEmpty()) {
+            String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
+            sql.append(" AND s.artist_id IN (").append(placeholders).append(")");
+            params.addAll(artistIds);
         }
         
-        if (albumName != null && !albumName.trim().isEmpty()) {
-            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("alb.name")).append(" LIKE ?");
-            params.add("%" + library.util.StringNormalizer.normalizeForSearch(albumName) + "%");
+        // Album ID filter - supports multiple IDs (OR logic with exact matching)
+        // Use s.album_id for indexed lookup
+        if (albumIds != null && !albumIds.isEmpty()) {
+            String placeholders = String.join(",", albumIds.stream().map(id -> "?").toList());
+            sql.append(" AND s.album_id IN (").append(placeholders).append(")");
+            params.addAll(albumIds);
+        }
+        
+        // Song ID filter - supports multiple IDs (OR logic with exact matching)
+        if (songIds != null && !songIds.isEmpty()) {
+            String placeholders = String.join(",", songIds.stream().map(id -> "?").toList());
+            sql.append(" AND s.id IN (").append(placeholders).append(")");
+            params.addAll(songIds);
         }
         
         // Genre filter
@@ -1237,6 +1370,37 @@ public class SongRepository {
     }
     
     /**
+     * Builds an early filter clause for scrobble queries.
+     * This filters on scr.song_id before expensive joins, dramatically improving performance
+     * when filtering by artist, album, or song IDs.
+     */
+    private void buildScrobbleEarlyFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        // Artist ID filter - filter scrobbles to only songs by these artists
+        java.util.List<Integer> artistIds = filter.getArtistIds();
+        if (artistIds != null && !artistIds.isEmpty()) {
+            String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
+            sql.append(" AND scr.song_id IN (SELECT id FROM Song WHERE artist_id IN (").append(placeholders).append("))");
+            params.addAll(artistIds);
+        }
+        
+        // Album ID filter - filter scrobbles to only songs from these albums
+        java.util.List<Integer> albumIds = filter.getAlbumIds();
+        if (albumIds != null && !albumIds.isEmpty()) {
+            String placeholders = String.join(",", albumIds.stream().map(id -> "?").toList());
+            sql.append(" AND scr.song_id IN (SELECT id FROM Song WHERE album_id IN (").append(placeholders).append("))");
+            params.addAll(albumIds);
+        }
+        
+        // Song ID filter - filter scrobbles to these specific songs
+        java.util.List<Integer> songIds = filter.getSongIds();
+        if (songIds != null && !songIds.isEmpty()) {
+            String placeholders = String.join(",", songIds.stream().map(id -> "?").toList());
+            sql.append(" AND scr.song_id IN (").append(placeholders).append(")");
+            params.addAll(songIds);
+        }
+    }
+    
+    /**
      * Overloaded buildFilterClause that uses ChartFilterDTO.
      * Delegates to the existing method for basic filters and adds new entity-aware filters.
      */
@@ -1244,7 +1408,7 @@ public class SongRepository {
         // Delegate basic filters to existing method
         // Note: release date is handled separately with entity-awareness below, so pass nulls here
         buildFilterClause(sql, params,
-            filter.getName(), filter.getArtistName(), filter.getAlbumName(),
+            filter.getName(), filter.getArtistIds(), filter.getAlbumIds(), filter.getSongIds(),
             filter.getGenreIds(), filter.getGenreMode(),
             filter.getSubgenreIds(), filter.getSubgenreMode(),
             filter.getLanguageIds(), filter.getLanguageMode(),
@@ -2045,6 +2209,17 @@ public class SongRepository {
         java.util.List<Object> params = new java.util.ArrayList<>();
 
         buildFilterClause(filterClause, params, filter);
+        
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
 
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
@@ -2061,8 +2236,9 @@ public class SongRepository {
         data.put("songsByGender", getSongsByGenderFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         // General tab limit should apply consistently across all pies, based on the requested entity.
         // Plays/Listening Time are scrobble-derived metrics, so their top-N should be computed by entity.
-        data.put("playsByGender", getPlaysByGenderFiltered(limitEntity, filterClause.toString(), params, limit));
-        data.put("listeningTimeByGender", getListeningTimeByGenderFiltered(limitEntity, filterClause.toString(), params, limit));
+        // Use combined filter with early scrobble filter for performance
+        data.put("playsByGender", getPlaysByGenderFiltered(limitEntity, combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByGender", getListeningTimeByGenderFiltered(limitEntity, combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -2502,6 +2678,17 @@ public class SongRepository {
         
         buildFilterClause(filterClause, params, filter);
         
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+        
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
@@ -2510,8 +2697,8 @@ public class SongRepository {
         data.put("artistsByGenre", getArtistsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("albumsByGenre", getAlbumsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("songsByGenre", getSongsByGenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
-        data.put("playsByGenre", getPlaysByGenreFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeByGenre", getListeningTimeByGenreFiltered(filterClause.toString(), params, limit));
+        data.put("playsByGenre", getPlaysByGenreFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByGenre", getListeningTimeByGenreFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -2861,6 +3048,17 @@ public class SongRepository {
 
         buildFilterClause(filterClause, params, filter);
 
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
@@ -2869,8 +3067,8 @@ public class SongRepository {
         data.put("artistsBySubgenre", getArtistsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("albumsBySubgenre", getAlbumsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("songsBySubgenre", getSongsBySubgenreFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
-        data.put("playsBySubgenre", getPlaysBySubgenreFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeBySubgenre", getListeningTimeBySubgenreFiltered(filterClause.toString(), params, limit));
+        data.put("playsBySubgenre", getPlaysBySubgenreFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeBySubgenre", getListeningTimeBySubgenreFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -3222,6 +3420,17 @@ public class SongRepository {
         
         buildFilterClause(filterClause, params, filter);
         
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+        
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
@@ -3230,8 +3439,8 @@ public class SongRepository {
         data.put("artistsByEthnicity", getArtistsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("albumsByEthnicity", getAlbumsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("songsByEthnicity", getSongsByEthnicityFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
-        data.put("playsByEthnicity", getPlaysByEthnicityFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeByEthnicity", getListeningTimeByEthnicityFiltered(filterClause.toString(), params, limit));
+        data.put("playsByEthnicity", getPlaysByEthnicityFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByEthnicity", getListeningTimeByEthnicityFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -3574,6 +3783,17 @@ public class SongRepository {
         
         buildFilterClause(filterClause, params, filter);
 
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
@@ -3582,8 +3802,8 @@ public class SongRepository {
         data.put("artistsByLanguage", getArtistsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("albumsByLanguage", getAlbumsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("songsByLanguage", getSongsByLanguageFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
-        data.put("playsByLanguage", getPlaysByLanguageFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeByLanguage", getListeningTimeByLanguageFiltered(filterClause.toString(), params, limit));
+        data.put("playsByLanguage", getPlaysByLanguageFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByLanguage", getListeningTimeByLanguageFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -3935,6 +4155,17 @@ public class SongRepository {
 
         buildFilterClause(filterClause, params, filter);
 
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
@@ -3943,8 +4174,8 @@ public class SongRepository {
         data.put("artistsByCountry", getArtistsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("albumsByCountry", getAlbumsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("songsByCountry", getSongsByCountryFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
-        data.put("playsByCountry", getPlaysByCountryFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeByCountry", getListeningTimeByCountryFiltered(filterClause.toString(), params, limit));
+        data.put("playsByCountry", getPlaysByCountryFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByCountry", getListeningTimeByCountryFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -4277,6 +4508,17 @@ public class SongRepository {
 
         buildFilterClause(filterClause, params, filter);
 
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+
         boolean scrobbleJoinNeeded = needsScrobbleJoin(filter);
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
@@ -4285,8 +4527,8 @@ public class SongRepository {
         // No artists by release year - artists don't have release dates
         data.put("albumsByReleaseYear", getAlbumsByReleaseYearFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
         data.put("songsByReleaseYear", getSongsByReleaseYearFiltered(filterClause.toString(), params, scrobbleJoinNeeded, limit));
-        data.put("playsByReleaseYear", getPlaysByReleaseYearFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeByReleaseYear", getListeningTimeByReleaseYearFiltered(filterClause.toString(), params, limit));
+        data.put("playsByReleaseYear", getPlaysByReleaseYearFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByReleaseYear", getListeningTimeByReleaseYearFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -4556,15 +4798,27 @@ public class SongRepository {
         java.util.List<Object> params = new java.util.ArrayList<>();
         
         buildFilterClause(filterClause, params, filter);
+        
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter: early scrobble filter + regular filter, with combined params
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(params);
+        
         Integer limit = filter.getTopLimit() != null && filter.getTopLimit() > 0 ? filter.getTopLimit() : null;
 
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         
-        data.put("artistsByListenYear", getArtistsByListenYearFiltered(filterClause.toString(), params, limit));
-        data.put("albumsByListenYear", getAlbumsByListenYearFiltered(filterClause.toString(), params, limit));
-        data.put("songsByListenYear", getSongsByListenYearFiltered(filterClause.toString(), params, limit));
-        data.put("playsByListenYear", getPlaysByListenYearFiltered(filterClause.toString(), params, limit));
-        data.put("listeningTimeByListenYear", getListeningTimeByListenYearFiltered(filterClause.toString(), params, limit));
+        data.put("artistsByListenYear", getArtistsByListenYearFiltered(combinedFilter, combinedParams, limit));
+        data.put("albumsByListenYear", getAlbumsByListenYearFiltered(combinedFilter, combinedParams, limit));
+        data.put("songsByListenYear", getSongsByListenYearFiltered(combinedFilter, combinedParams, limit));
+        data.put("playsByListenYear", getPlaysByListenYearFiltered(combinedFilter, combinedParams, limit));
+        data.put("listeningTimeByListenYear", getListeningTimeByListenYearFiltered(combinedFilter, combinedParams, limit));
 
         return data;
     }
@@ -4898,12 +5152,24 @@ public class SongRepository {
         java.util.List<Object> filterParams = new java.util.ArrayList<>();
 
         buildFilterClause(filterClause, filterParams, filter);
+        
+        // Build early scrobble filter for performance (filters on scr.song_id before expensive joins)
+        StringBuilder scrobbleEarlyFilter = new StringBuilder();
+        java.util.List<Object> scrobbleEarlyParams = new java.util.ArrayList<>();
+        buildScrobbleEarlyFilter(scrobbleEarlyFilter, scrobbleEarlyParams, filter);
+        
+        // Combined filter for scrobble-based queries
+        String combinedFilter = scrobbleEarlyFilter.toString() + " " + filterClause.toString();
+        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
+        combinedParams.addAll(scrobbleEarlyParams);
+        combinedParams.addAll(filterParams);
 
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         // Use full filter for all entity types - filter based on songs that match, then aggregate
         result.put("topArtists", getTopArtistsFilteredByDTO(filter, limit));
         result.put("topAlbums", getTopAlbumsFilteredByDTO(filter, limit));
-        result.put("topSongs", getTopSongsFiltered(filterClause.toString(), filterParams, limit));
+        // Use combined filter for scrobble-based song query
+        result.put("topSongs", getTopSongsFiltered(combinedFilter, combinedParams, limit));
 
         return result;
     }

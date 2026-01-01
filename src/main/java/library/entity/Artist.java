@@ -2,6 +2,7 @@ package library.entity;
 
 import jakarta.persistence.*;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "Artist")
@@ -49,6 +50,12 @@ public class Artist {
     
     @Column(name = "update_date")
     private Timestamp updateDate;
+    
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+    
+    @Column(name = "death_date")
+    private LocalDate deathDate;
     
     // Transient fields for display
     @Transient
@@ -231,5 +238,21 @@ public class Artist {
 
     public void setOrganized(Boolean organized) {
         this.organized = organized;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public LocalDate getDeathDate() {
+        return deathDate;
+    }
+
+    public void setDeathDate(LocalDate deathDate) {
+        this.deathDate = deathDate;
     }
 }

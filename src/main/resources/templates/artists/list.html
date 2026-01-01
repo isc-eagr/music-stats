@@ -1451,6 +1451,27 @@
         // Create Artist Modal Functions
         function openCreateModal() {
             document.getElementById('createArtistModal').style.display = 'flex';
+            
+            // Initialize Flatpickr for date inputs
+            setTimeout(function() {
+                const birthDateInput = document.getElementById('createBirthDate');
+                if (birthDateInput && !birthDateInput._flatpickr) {
+                    flatpickr(birthDateInput, {
+                        dateFormat: 'd/m/Y',
+                        allowInput: true,
+                        theme: 'dark'
+                    });
+                }
+                
+                const deathDateInput = document.getElementById('createDeathDate');
+                if (deathDateInput && !deathDateInput._flatpickr) {
+                    flatpickr(deathDateInput, {
+                        dateFormat: 'd/m/Y',
+                        allowInput: true,
+                        theme: 'dark'
+                    });
+                }
+            }, 100);
         }
         
         function closeCreateModal() {
@@ -1468,7 +1489,18 @@
                 if (value === '') {
                     data[key] = null;
                 } else {
-                    data[key] = value;
+                    // Convert date fields from dd/MM/yyyy to yyyy-MM-dd for JSON
+                    if ((key === 'birthDate' || key === 'deathDate') && value) {
+                        const parts = value.split('/');
+                        if (parts.length === 3) {
+                            // Convert dd/MM/yyyy to yyyy-MM-dd
+                            data[key] = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        } else {
+                            data[key] = value;
+                        }
+                    } else {
+                        data[key] = value;
+                    }
                 }
             });
             
@@ -1599,6 +1631,16 @@
                             <option value="">Select...</option>
                             <option th:each="c : ${countries}" th:value="${c}" th:text="${c}"></option>
                         </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createBirthDate">Birth Date</label>
+                        <input type="text" id="createBirthDate" name="birthDate" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="createDeathDate">Death Date</label>
+                        <input type="text" id="createDeathDate" name="deathDate" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}">
                     </div>
                     
                     <div class="form-group">

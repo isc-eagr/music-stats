@@ -647,12 +647,12 @@
                             <thead>
                                 <tr>
                                     <th>Song</th>
-                                    <th class="numeric">Peak</th>
-                                    <th class="numeric">Wks@Peak</th>
+                                    <th style="text-align:right;">Peak</th>
+                                    <th style="text-align:right;">Wks@Peak</th>
                                     <th>Release</th>
                                     <th>Debut</th>
                                     <th>Peak Date</th>
-                                    <th class="numeric">Total Weeks</th>
+                                    <th style="text-align:right;">Total Weeks</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -660,11 +660,11 @@
                                     <td>
                                         <a th:href="@{'/songs/' + ${entry.id}}" th:text="${entry.name}">Song Name</a>
                                     </td>
-                                    <td class="numeric">
+                                    <td style="text-align:right;">
                                         <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                               th:text="${entry.peakPosition}">#1</span>
                                     </td>
-                                    <td class="numeric">
+                                    <td style="text-align:right;">
                                         <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                               th:text="${entry.weeksAtPeak}">1</span>
                                     </td>

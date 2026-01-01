@@ -30,6 +30,9 @@ public class AlbumRepository {
                                                String organized, String hasImage, String hasFeaturedArtists, String isBand,
                                                Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                                Integer lengthMin, Integer lengthMax, String lengthMode,
+                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                               Integer yearlyChartPeak, Integer yearlyChartYears,
                                                String sortBy, String sortDir, int limit, int offset) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
@@ -444,6 +447,63 @@ public class AlbumRepository {
             }
         }
         
+        // Weekly chart filter (peak position <= specified, total weeks >= specified)
+        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (weeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(weeklyChartPeak);
+            }
+            if (weeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(weeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
+        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (seasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(seasonalChartPeak);
+            }
+            if (seasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(seasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Yearly chart filter (peak position <= specified, total years >= specified)
+        if (yearlyChartPeak != null || yearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (yearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(yearlyChartPeak);
+            }
+            if (yearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(yearlyChartYears);
+            }
+            sql.append(")");
+        }
+        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         switch (sortBy != null ? sortBy : "name") {
@@ -508,7 +568,10 @@ public class AlbumRepository {
                                        String listenedDateFrom, String listenedDateTo,
                                        String organized, String hasImage, String hasFeaturedArtists, String isBand,
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
-                                       Integer lengthMin, Integer lengthMax, String lengthMode) {
+                                       Integer lengthMin, Integer lengthMax, String lengthMode,
+                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                       Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -948,6 +1011,63 @@ public class AlbumRepository {
                     params.add(lengthMax);
                 }
             }
+        }
+        
+        // Weekly chart filter (peak position <= specified, total weeks >= specified)
+        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (weeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(weeklyChartPeak);
+            }
+            if (weeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(weeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
+        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (seasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(seasonalChartPeak);
+            }
+            if (seasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(seasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Yearly chart filter (peak position <= specified, total years >= specified)
+        if (yearlyChartPeak != null || yearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (yearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(yearlyChartPeak);
+            }
+            if (yearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(yearlyChartYears);
+            }
+            sql.append(")");
         }
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
