@@ -7,7 +7,9 @@ import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.dto.SongCardDTO;
 import library.entity.Song;
+import library.entity.SongImage;
 import library.repository.LookupRepository;
+import library.repository.SongImageRepository;
 import library.repository.SongRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -22,11 +24,13 @@ import java.util.Optional;
 public class SongService {
     
     private final SongRepository songRepository;
+    private final SongImageRepository songImageRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public SongService(SongRepository songRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public SongService(SongRepository songRepository, SongImageRepository songImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.songRepository = songRepository;
+        this.songImageRepository = songImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -412,6 +416,69 @@ public class SongService {
         }
     }
     
+    // Get only the song's own image (single_cover), not falling back to album
+    public byte[] getSongOwnImage(Integer id) {
+        String sql = "SELECT single_cover FROM Song WHERE id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("single_cover"), id);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Gallery methods for secondary images
+    public List<SongImage> getSecondaryImages(Integer songId) {
+        return songImageRepository.findBySongIdOrderByDisplayOrderAsc(songId);
+    }
+
+    public int getSecondaryImageCount(Integer songId) {
+        return songImageRepository.countBySongId(songId);
+    }
+
+    public byte[] getSecondaryImage(Integer imageId) {
+        return songImageRepository.findById(imageId)
+                .map(SongImage::getImage)
+                .orElse(null);
+    }
+
+    public void addSecondaryImage(Integer songId, byte[] imageData) {
+        Integer maxOrder = songImageRepository.getMaxDisplayOrder(songId);
+        SongImage image = new SongImage();
+        image.setSongId(songId);
+        image.setImage(imageData);
+        image.setDisplayOrder(maxOrder + 1);
+        image.setCreationDate(new java.sql.Timestamp(System.currentTimeMillis()));
+        songImageRepository.save(image);
+    }
+
+    @Transactional
+    public void deleteSecondaryImage(Integer imageId) {
+        songImageRepository.deleteById(imageId);
+    }
+
+    @Transactional
+    public void swapToDefault(Integer songId, Integer imageId) {
+        // Get the current default image from the main Song table (single_cover only, not album fallback)
+        byte[] currentDefault = getSongOwnImage(songId);
+
+        // Get the secondary image to promote
+        SongImage secondaryImage = songImageRepository.findById(imageId)
+                .orElseThrow(() -> new IllegalArgumentException("Image not found: " + imageId));
+
+        // Set the secondary image as the new default
+        updateSongImage(songId, secondaryImage.getImage());
+
+        // If there was a previous default, move it to secondary images
+        if (currentDefault != null && currentDefault.length > 0) {
+            // Update the secondary image record with the old default
+            secondaryImage.setImage(currentDefault);
+            songImageRepository.save(secondaryImage);
+        } else {
+            // No previous default, just delete the secondary record
+            songImageRepository.deleteById(imageId);
+        }
+    }
+
     public String getArtistName(int artistId) {
         try {
             return jdbcTemplate.queryForObject(

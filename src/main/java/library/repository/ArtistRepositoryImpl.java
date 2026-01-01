@@ -213,7 +213,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {
             sql.append(" AND ").append(StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ? ");
-            params.add(StringNormalizer.normalizeForSearch(name) + "%");
+            params.add("%" + StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Gender filter
@@ -465,7 +465,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         // Name filter with accent-insensitive search
         if (name != null && !name.isEmpty()) {
             sql.append(" AND ").append(StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ? ");
-            params.add(StringNormalizer.normalizeForSearch(name) + "%");
+            params.add("%" + StringNormalizer.normalizeForSearch(name) + "%");
         }
         
         // Gender filter

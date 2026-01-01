@@ -430,6 +430,64 @@ public class AlbumController {
         }
     }
     
+    // Gallery endpoints for secondary images
+    @GetMapping("/{id}/images")
+    @ResponseBody
+    public List<Map<String, Object>> getAlbumImages(@PathVariable Integer id) {
+        var images = albumService.getSecondaryImages(id);
+        return images.stream()
+                .map(img -> Map.<String, Object>of(
+                        "id", img.getId(),
+                        "displayOrder", img.getDisplayOrder() != null ? img.getDisplayOrder() : 0
+                ))
+                .toList();
+    }
+
+    @GetMapping("/{id}/images/{imageId}")
+    @ResponseBody
+    public byte[] getSecondaryImage(@PathVariable Integer id, @PathVariable Integer imageId) {
+        return albumService.getSecondaryImage(imageId);
+    }
+
+    @PostMapping("/{id}/images")
+    @ResponseBody
+    public String addSecondaryImage(@PathVariable Integer id, @RequestParam("image") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return "error";
+            }
+            albumService.addSecondaryImage(id, file.getBytes());
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    @ResponseBody
+    public String deleteSecondaryImage(@PathVariable Integer id, @PathVariable Integer imageId) {
+        try {
+            albumService.deleteSecondaryImage(imageId);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    @PostMapping("/{id}/images/{imageId}/set-default")
+    @ResponseBody
+    public String setImageAsDefault(@PathVariable Integer id, @PathVariable Integer imageId) {
+        try {
+            albumService.swapToDefault(id, imageId);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
     @DeleteMapping("/{id}")
     @ResponseBody
     public String deleteAlbum(@PathVariable Integer id) {

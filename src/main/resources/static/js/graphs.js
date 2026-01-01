@@ -1206,6 +1206,92 @@ function renderTopTables(data) {
 }
 
 /**
+ * Renders the podium section for artists
+ */
+function renderArtistsPodium(data) {
+    const podiumContainer = document.getElementById('artistsPodium');
+    if (!podiumContainer || !data || data.length === 0) {
+        if (podiumContainer) podiumContainer.innerHTML = '';
+        return;
+    }
+
+    const top3 = data.slice(0, 3);
+    const podiumClasses = ['podium-gold', 'podium-silver', 'podium-bronze'];
+    const playsClasses = ['podium-plays-gold', 'podium-plays-silver', 'podium-plays-bronze'];
+    const ranks = ['1', '2', '3'];
+
+    podiumContainer.innerHTML = top3.map((artist, index) => `
+        <a href="/artists/${artist.id}" class="podium-card ${podiumClasses[index]}">
+            <div class="podium-rank">${ranks[index]}</div>
+            <img src="/artists/${artist.id}/image" alt="" class="podium-image artist" 
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="podium-no-image artist" style="display:none;">🎤</div>
+            <div class="podium-name" title="${escapeHtml(artist.name || '')}">${escapeHtml(artist.name || '-')}</div>
+            <div class="podium-plays ${playsClasses[index]}">${(artist.plays || 0).toLocaleString()} plays</div>
+        </a>
+    `).join('');
+}
+
+/**
+ * Renders the podium section for albums
+ */
+function renderAlbumsPodium(data) {
+    const podiumContainer = document.getElementById('albumsPodium');
+    if (!podiumContainer || !data || data.length === 0) {
+        if (podiumContainer) podiumContainer.innerHTML = '';
+        return;
+    }
+
+    const top3 = data.slice(0, 3);
+    const podiumClasses = ['podium-gold', 'podium-silver', 'podium-bronze'];
+    const playsClasses = ['podium-plays-gold', 'podium-plays-silver', 'podium-plays-bronze'];
+    const ranks = ['1', '2', '3'];
+
+    podiumContainer.innerHTML = top3.map((album, index) => `
+        <a href="/albums/${album.id}" class="podium-card ${podiumClasses[index]}">
+            <div class="podium-rank">${ranks[index]}</div>
+            <img src="/albums/${album.id}/image" alt="" class="podium-image" 
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="podium-no-image" style="display:none;">💿</div>
+            <div class="podium-name" title="${escapeHtml(album.name || '')}">${escapeHtml(album.name || '-')}</div>
+            <div class="podium-artist" title="${escapeHtml(album.artistName || '')}">${escapeHtml(album.artistName || '-')}</div>
+            <div class="podium-plays ${playsClasses[index]}">${(album.plays || 0).toLocaleString()} plays</div>
+        </a>
+    `).join('');
+}
+
+/**
+ * Renders the podium section for songs
+ */
+function renderSongsPodium(data) {
+    const podiumContainer = document.getElementById('songsPodium');
+    if (!podiumContainer || !data || data.length === 0) {
+        if (podiumContainer) podiumContainer.innerHTML = '';
+        return;
+    }
+
+    const top3 = data.slice(0, 3);
+    const podiumClasses = ['podium-gold', 'podium-silver', 'podium-bronze'];
+    const playsClasses = ['podium-plays-gold', 'podium-plays-silver', 'podium-plays-bronze'];
+    const ranks = ['1', '2', '3'];
+
+    podiumContainer.innerHTML = top3.map((song, index) => {
+        const imageUrl = song.hasImage ? `/songs/${song.id}/image` : (song.albumId ? `/albums/${song.albumId}/image` : null);
+        return `
+        <a href="/songs/${song.id}" class="podium-card ${podiumClasses[index]}">
+            <div class="podium-rank">${ranks[index]}</div>
+            ${imageUrl ? 
+                `<img src="${imageUrl}" alt="" class="podium-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="podium-no-image" style="display:none;">🎵</div>` : 
+                `<div class="podium-no-image">🎵</div>`}
+            <div class="podium-name" title="${escapeHtml(song.name || '')}">${escapeHtml(song.name || '-')}</div>
+            <div class="podium-artist" title="${escapeHtml(song.artistName || '')}">${escapeHtml(song.artistName || '-')}</div>
+            <div class="podium-plays ${playsClasses[index]}">${(song.plays || 0).toLocaleString()} plays</div>
+        </a>
+    `}).join('');
+}
+
+/**
  * Renders the Top Artists table
  */
 function renderTopArtistsTable() {
@@ -1214,14 +1300,19 @@ function renderTopArtistsTable() {
     
     const data = sortTopData(topTabData.artists, topSortState.artists);
     
+    // Render podium with sorted data
+    renderArtistsPodium(data);
+
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: #666; padding: 20px;">No artist data available</td></tr>';
         return;
     }
     
-    tbody.innerHTML = data.map((artist, index) => `
+    tbody.innerHTML = data.map((artist, index) => {
+        const rank = index + 1;
+        return `
         <tr style="${getGenderRowStyle(artist.genderId)}">
-            <td class="rank-col">${index + 1}</td>
+            <td class="rank-col">${rank}</td>
             <td class="cover-col artist-cover">
                 <div style="cursor:pointer;">
                     <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openImageModal('/artists/${artist.id}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
@@ -1229,11 +1320,11 @@ function renderTopArtistsTable() {
                 </div>
             </td>
             <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
-            <td>${artist.firstListened || '-'}</td>
-            <td>${artist.lastListened || '-'}</td>
+            <td class="numeric${(artist.plays || 0) >= 1000 ? ' high-plays' : ''}">${(artist.plays || 0).toLocaleString()}</td>
             <td class="numeric">${(artist.primaryPlays || 0).toLocaleString()}</td>
             <td class="numeric">${(artist.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric${(artist.plays || 0) >= 1000 ? ' high-plays' : ''}">${(artist.plays || 0).toLocaleString()}</td>
+            <td>${artist.firstListened || '-'}</td>
+            <td>${artist.lastListened || '-'}</td>
             <td>${artist.genreId ? `<a href="/genres/${artist.genreId}">${escapeHtml(artist.genre)}</a>` : '-'}</td>
             <td>${artist.subgenreId ? `<a href="/subgenres/${artist.subgenreId}">${escapeHtml(artist.subgenre)}</a>` : '-'}</td>
             <td>${artist.ethnicityId ? `<a href="/ethnicities/${artist.ethnicityId}">${escapeHtml(artist.ethnicity)}</a>` : '-'}</td>
@@ -1241,8 +1332,8 @@ function renderTopArtistsTable() {
             <td>${escapeHtml(artist.country || '-')}</td>
             <td class="numeric">${artist.timeListenedFormatted || '-'}</td>
         </tr>
-    `).join('');
-    
+    `}).join('');
+
     updateSortIndicators('topArtistsTable', topSortState.artists);
 }
 
@@ -1255,14 +1346,19 @@ function renderTopAlbumsTable() {
     
     const data = sortTopData(topTabData.albums, topSortState.albums);
     
+    // Render podium with sorted data
+    renderAlbumsPodium(data);
+
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>';
         return;
     }
     
-    tbody.innerHTML = data.map((album, index) => `
+    tbody.innerHTML = data.map((album, index) => {
+        const rank = index + 1;
+        return `
         <tr style="${getGenderRowStyle(album.genderId)}">
-            <td class="rank-col">${index + 1}</td>
+            <td class="rank-col">${rank}</td>
             <td class="cover-col">
                 <div style="cursor:pointer;">
                     <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openImageModal('/albums/${album.id}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
@@ -1271,13 +1367,13 @@ function renderTopAlbumsTable() {
             </td>
             <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
+            <td class="numeric${(album.plays || 0) >= 1000 ? ' high-plays' : ''}">${(album.plays || 0).toLocaleString()}</td>
+            <td class="numeric">${(album.primaryPlays || 0).toLocaleString()}</td>
+            <td class="numeric">${(album.legacyPlays || 0).toLocaleString()}</td>
             <td class="numeric">${album.lengthFormatted || '-'}</td>
             <td>${album.releaseDate || '-'}</td>
             <td>${album.firstListened || '-'}</td>
             <td>${album.lastListened || '-'}</td>
-            <td class="numeric">${(album.primaryPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(album.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric${(album.plays || 0) >= 1000 ? ' high-plays' : ''}">${(album.plays || 0).toLocaleString()}</td>
             <td>${album.genreId ? `<a href="/genres/${album.genreId}">${escapeHtml(album.genre)}</a>` : '-'}</td>
             <td>${album.subgenreId ? `<a href="/subgenres/${album.subgenreId}">${escapeHtml(album.subgenre)}</a>` : '-'}</td>
             <td>${album.ethnicityId ? `<a href="/ethnicities/${album.ethnicityId}">${escapeHtml(album.ethnicity)}</a>` : '-'}</td>
@@ -1285,8 +1381,8 @@ function renderTopAlbumsTable() {
             <td>${escapeHtml(album.country || '-')}</td>
             <td class="numeric">${album.timeListenedFormatted || '-'}</td>
         </tr>
-    `).join('');
-    
+    `}).join('');
+
     updateSortIndicators('topAlbumsTable', topSortState.albums);
 }
 
@@ -1299,12 +1395,16 @@ function renderTopSongsTable() {
     
     const data = sortTopData(topTabData.songs, topSortState.songs);
     
+    // Render podium with sorted data
+    renderSongsPodium(data);
+
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="18" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>';
         return;
     }
     
     tbody.innerHTML = data.map((song, index) => {
+        const rank = index + 1;
         let coverHtml;
         if (song.hasImage && song.albumHasImage && song.albumId) {
             // Case 1: Song has image AND album has image - show album by default, song on hover
@@ -1329,18 +1429,18 @@ function renderTopSongsTable() {
         }
         return `
         <tr style="${getGenderRowStyle(song.genderId)}">
-            <td class="rank-col">${index + 1}</td>
+            <td class="rank-col">${rank}</td>
             <td class="cover-col">${coverHtml}</td>
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
             <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}</td>
+            <td class="numeric${(song.plays || 0) >= 100 ? ' high-plays' : ''}">${(song.plays || 0).toLocaleString()}</td>
+            <td class="numeric">${(song.primaryPlays || 0).toLocaleString()}</td>
+            <td class="numeric">${(song.legacyPlays || 0).toLocaleString()}</td>
             <td class="numeric">${song.lengthFormatted || '-'}</td>
             <td>${song.releaseDate || '-'}</td>
             <td>${song.firstListened || '-'}</td>
             <td>${song.lastListened || '-'}</td>
-            <td class="numeric">${(song.primaryPlays || 0).toLocaleString()}</td>
-            <td class="numeric">${(song.legacyPlays || 0).toLocaleString()}</td>
-            <td class="numeric${(song.plays || 0) >= 100 ? ' high-plays' : ''}">${(song.plays || 0).toLocaleString()}</td>
             <td>${song.genreId ? `<a href="/genres/${song.genreId}">${escapeHtml(song.genre)}</a>` : '-'}</td>
             <td>${song.subgenreId ? `<a href="/subgenres/${song.subgenreId}">${escapeHtml(song.subgenre)}</a>` : '-'}</td>
             <td>${song.ethnicityId ? `<a href="/ethnicities/${song.ethnicityId}">${escapeHtml(song.ethnicity)}</a>` : '-'}</td>

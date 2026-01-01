@@ -43,6 +43,14 @@
                     </div>
                 </div>
                 <div class="item-image-container">
+                    <!-- Gallery Navigation Arrows -->
+                    <button type="button" class="gallery-nav gallery-nav-left" id="galleryPrev" onclick="galleryNavigate(-1)" style="display: none;">
+                        ❮
+                    </button>
+                    <button type="button" class="gallery-nav gallery-nav-right" id="galleryNext" onclick="galleryNavigate(1)" style="display: none;">
+                        ❯
+                    </button>
+
                     <img th:if="${hasImage}"
                          th:src="@{'/songs/' + ${song.id} + '/image'}"
                          th:alt="${song.name}"
@@ -74,12 +82,24 @@
                              th:alt="${artistCountry}" />
                     </span>
 
+                    <!-- Image Counter -->
+                    <div class="gallery-counter" id="galleryCounter" style="display: none;">
+                        <span id="currentImageIndex">1</span> / <span id="totalImageCount">1</span>
+                    </div>
+
                     <div class="image-upload-overlay">
                         <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                        <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
                             Upload Image
                         </button>
-                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                        <button type="button" class="btn-remove-image" id="btnRemoveMain" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                        <!-- Gallery-specific buttons -->
+                        <button type="button" class="btn-set-default" id="btnSetDefault" onclick="setAsDefaultImage()" style="display: none;">
+                            Set as Default
+                        </button>
+                        <button type="button" class="btn-remove-gallery" id="btnRemoveGallery" onclick="removeGalleryImage()" style="display: none;">
                             Remove
                         </button>
                     </div>
@@ -657,7 +677,6 @@
                                         <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
                                         <span th:unless="${entry.peakWeek != null}">-</span>
                                     </td>
-                                    <td class="numeric" th:text="${entry.totalWeeks}">5</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1046,8 +1065,12 @@
             formData.append('image', file);
             
             const songId = window.location.pathname.split('/').pop();
-            
-            fetch(`/songs/${songId}/image`, {
+            const hasDefaultImage = /*[[${hasImage}]]*/ false;
+
+            // If there's already a default image, add to gallery instead
+            const endpoint = hasDefaultImage ? `/songs/${songId}/images` : `/songs/${songId}/image`;
+
+            fetch(endpoint, {
                 method: 'POST',
                 body: formData
             })
@@ -1087,6 +1110,158 @@
             });
         }
         
+        // ============ GALLERY FUNCTIONALITY ============
+        let galleryImages = [];
+        let currentGalleryIndex = 0;
+        const songId = window.location.pathname.split('/').pop();
+        const hasDefaultImage = /*[[${hasImage}]]*/ false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGallery();
+        });
+
+        function loadGallery() {
+            fetch(`/songs/${songId}/images`)
+                .then(response => response.json())
+                .then(data => {
+                    const imageIds = data.map(img => img.id);
+                    console.log('Gallery images loaded:', imageIds, 'Has default:', hasDefaultImage);
+
+                    if (hasDefaultImage) {
+                        galleryImages = [0, ...imageIds];
+                    } else {
+                        galleryImages = imageIds.length > 0 ? imageIds : [0];
+                    }
+
+                    console.log('Total gallery images:', galleryImages.length);
+                    updateGalleryUI();
+                })
+                .catch(error => {
+                    console.error('Error loading gallery:', error);
+                    galleryImages = [0];
+                    updateGalleryUI();
+                });
+        }
+
+        function updateGalleryUI() {
+            const prevBtn = document.getElementById('galleryPrev');
+            const nextBtn = document.getElementById('galleryNext');
+            const counter = document.getElementById('galleryCounter');
+            const currentIndexSpan = document.getElementById('currentImageIndex');
+            const totalCountSpan = document.getElementById('totalImageCount');
+            const btnSetDefault = document.getElementById('btnSetDefault');
+            const btnRemoveGallery = document.getElementById('btnRemoveGallery');
+            const btnRemoveMain = document.getElementById('btnRemoveMain');
+            const btnUploadMain = document.getElementById('btnUploadImage');
+
+            const hasMultipleImages = galleryImages.length > 1;
+            const isOnSecondaryImage = galleryImages[currentGalleryIndex] !== 0;
+
+            if (prevBtn) prevBtn.style.display = hasMultipleImages ? 'flex' : 'none';
+            if (nextBtn) nextBtn.style.display = hasMultipleImages ? 'flex' : 'none';
+            if (counter) counter.style.display = hasMultipleImages ? 'block' : 'none';
+            if (currentIndexSpan) currentIndexSpan.textContent = currentGalleryIndex + 1;
+            if (totalCountSpan) totalCountSpan.textContent = galleryImages.length;
+
+            // Upload button is always visible
+            if (btnUploadMain) btnUploadMain.style.display = 'inline-block';
+
+            if (isOnSecondaryImage) {
+                if (btnSetDefault) btnSetDefault.style.display = 'inline-block';
+                if (btnRemoveGallery) btnRemoveGallery.style.display = 'inline-block';
+                if (btnRemoveMain) btnRemoveMain.style.display = 'none';
+            } else {
+                if (btnSetDefault) btnSetDefault.style.display = 'none';
+                if (btnRemoveGallery) btnRemoveGallery.style.display = 'none';
+                // Only show remove button if this is the only image
+                if (btnRemoveMain) btnRemoveMain.style.display = hasMultipleImages ? 'none' : 'inline-block';
+            }
+        }
+
+        function galleryNavigate(direction) {
+            let newIndex = currentGalleryIndex + direction;
+            // Wrap around carousel
+            if (newIndex < 0) newIndex = galleryImages.length - 1;
+            if (newIndex >= galleryImages.length) newIndex = 0;
+            currentGalleryIndex = newIndex;
+            updateGalleryImage();
+            updateGalleryUI();
+        }
+
+        function updateGalleryImage() {
+            let img = document.getElementById('songImage');
+            const albumImg = document.getElementById('albumImage');
+            const placeholder = document.getElementById('noImagePlaceholder');
+            const currentImageId = galleryImages[currentGalleryIndex];
+            
+            // If songImage doesn't exist but we need to show gallery images, create it dynamically
+            if (!img && (currentImageId !== 0 || hasDefaultImage)) {
+                img = document.createElement('img');
+                img.id = 'songImage';
+                img.className = 'item-image-large clickable-image';
+                img.style.cursor = 'pointer';
+                img.onclick = function() { openImageModal(this.src); };
+                const container = document.querySelector('.item-image-container');
+                // Insert after the gallery nav buttons
+                const navRight = document.getElementById('galleryNext');
+                if (navRight && navRight.nextSibling) {
+                    container.insertBefore(img, navRight.nextSibling);
+                } else {
+                    container.insertBefore(img, container.firstChild);
+                }
+            }
+            
+            if (currentImageId === 0) {
+                if (hasDefaultImage) {
+                    // Show the song's own image
+                    if (img) {
+                        img.src = `/songs/${songId}/image?t=${Date.now()}`;
+                        img.style.display = 'block';
+                    }
+                    if (albumImg) albumImg.style.display = 'none';
+                    if (placeholder) placeholder.style.display = 'none';
+                } else {
+                    // No song image - show album fallback or placeholder
+                    if (img) img.style.display = 'none';
+                    if (albumImg) albumImg.style.display = 'block';
+                    if (placeholder && !albumImg) placeholder.style.display = 'flex';
+                }
+            } else {
+                // Show secondary gallery image
+                if (img) {
+                    img.src = `/songs/${songId}/images/${currentImageId}?t=${Date.now()}`;
+                    img.style.display = 'block';
+                }
+                if (albumImg) albumImg.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'none';
+            }
+        }
+
+        function setAsDefaultImage() {
+            const currentImageId = galleryImages[currentGalleryIndex];
+            if (currentImageId === 0) return; // Already on default
+            fetch(`/songs/${songId}/images/${currentImageId}/set-default`, { method: 'POST' })
+                .then(response => { if (response.ok) window.location.reload(); else alert('Failed to set as default'); })
+                .catch(error => { console.error('Error:', error); alert('Error setting default image'); });
+        }
+
+        function removeGalleryImage() {
+            const currentImageId = galleryImages[currentGalleryIndex];
+            if (currentImageId === 0) return; // Can't remove default this way
+            if (!confirm('Are you sure you want to remove this image from the gallery?')) return;
+            fetch(`/songs/${songId}/images/${currentImageId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        galleryImages.splice(currentGalleryIndex, 1);
+                        if (currentGalleryIndex >= galleryImages.length) currentGalleryIndex = galleryImages.length - 1;
+                        updateGalleryImage();
+                        updateGalleryUI();
+                    } else { alert('Failed to remove image'); }
+                })
+                .catch(error => { console.error('Error:', error); alert('Error removing image'); });
+        }
+        // ============ END GALLERY FUNCTIONALITY ============
+
         // ============================================
         // Featured Artists Functions
         // ============================================

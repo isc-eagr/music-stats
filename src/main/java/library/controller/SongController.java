@@ -447,6 +447,64 @@ public class SongController {
         }
     }
     
+    // Gallery endpoints for secondary images
+    @GetMapping("/{id}/images")
+    @ResponseBody
+    public List<Map<String, Object>> getSongImages(@PathVariable Integer id) {
+        var images = songService.getSecondaryImages(id);
+        return images.stream()
+                .map(img -> Map.<String, Object>of(
+                        "id", img.getId(),
+                        "displayOrder", img.getDisplayOrder() != null ? img.getDisplayOrder() : 0
+                ))
+                .toList();
+    }
+
+    @GetMapping("/{id}/images/{imageId}")
+    @ResponseBody
+    public byte[] getSecondaryImage(@PathVariable Integer id, @PathVariable Integer imageId) {
+        return songService.getSecondaryImage(imageId);
+    }
+
+    @PostMapping("/{id}/images")
+    @ResponseBody
+    public String addSecondaryImage(@PathVariable Integer id, @RequestParam("image") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return "error";
+            }
+            songService.addSecondaryImage(id, file.getBytes());
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    @ResponseBody
+    public String deleteSecondaryImage(@PathVariable Integer id, @PathVariable Integer imageId) {
+        try {
+            songService.deleteSecondaryImage(imageId);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    @PostMapping("/{id}/images/{imageId}/set-default")
+    @ResponseBody
+    public String setImageAsDefault(@PathVariable Integer id, @PathVariable Integer imageId) {
+        try {
+            songService.swapToDefault(id, imageId);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
     @DeleteMapping("/{id}")
     @ResponseBody
     public String deleteSong(@PathVariable Integer id) {
@@ -714,7 +772,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
-            @RequestParam(defaultValue = "0") int limit) {
+            @RequestParam(defaultValue = "0") int limit,
+            @RequestParam(required = false) String limitEntity) {
 
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, genre, genreMode, subgenre, subgenreMode,
@@ -725,6 +784,9 @@ public class SongController {
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
+
+        // For General tab, the limit should apply to the selected entity for scrobble-derived metrics
+        filter.setLimitEntity(limitEntity);
 
         return songService.getGeneralChartData(filter);
     }
@@ -1446,3 +1508,4 @@ public class SongController {
         }).toList();
     }
 }
+

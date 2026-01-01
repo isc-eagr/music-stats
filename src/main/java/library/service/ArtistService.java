@@ -7,10 +7,13 @@ import library.dto.FeaturedArtistCardDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.entity.Artist;
+import library.entity.ArtistImage;
+import library.repository.ArtistImageRepository;
 import library.repository.ArtistRepository;
 import library.repository.LookupRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +27,13 @@ import java.util.TreeSet;
 public class ArtistService {
     
     private final ArtistRepository artistRepository;
+    private final ArtistImageRepository artistImageRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public ArtistService(ArtistRepository artistRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public ArtistService(ArtistRepository artistRepository, ArtistImageRepository artistImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.artistRepository = artistRepository;
+        this.artistImageRepository = artistImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -295,6 +300,59 @@ public class ArtistService {
         }
     }
     
+    // Gallery methods for secondary images
+    public List<ArtistImage> getSecondaryImages(Integer artistId) {
+        return artistImageRepository.findByArtistIdOrderByDisplayOrderAsc(artistId);
+    }
+
+    public int getSecondaryImageCount(Integer artistId) {
+        return artistImageRepository.countByArtistId(artistId);
+    }
+
+    public byte[] getSecondaryImage(Integer imageId) {
+        return artistImageRepository.findById(imageId)
+                .map(ArtistImage::getImage)
+                .orElse(null);
+    }
+
+    public void addSecondaryImage(Integer artistId, byte[] imageData) {
+        Integer maxOrder = artistImageRepository.getMaxDisplayOrder(artistId);
+        ArtistImage image = new ArtistImage();
+        image.setArtistId(artistId);
+        image.setImage(imageData);
+        image.setDisplayOrder(maxOrder + 1);
+        image.setCreationDate(new java.sql.Timestamp(System.currentTimeMillis()));
+        artistImageRepository.save(image);
+    }
+
+    @Transactional
+    public void deleteSecondaryImage(Integer imageId) {
+        artistImageRepository.deleteById(imageId);
+    }
+
+    @Transactional
+    public void swapToDefault(Integer artistId, Integer imageId) {
+        // Get the current default image from the main Artist table
+        byte[] currentDefault = getArtistImage(artistId);
+
+        // Get the secondary image to promote
+        ArtistImage secondaryImage = artistImageRepository.findById(imageId)
+                .orElseThrow(() -> new IllegalArgumentException("Image not found: " + imageId));
+
+        // Set the secondary image as the new default
+        updateArtistImage(artistId, secondaryImage.getImage());
+
+        // If there was a previous default, move it to secondary images
+        if (currentDefault != null && currentDefault.length > 0) {
+            // Update the secondary image record with the old default
+            secondaryImage.setImage(currentDefault);
+            artistImageRepository.save(secondaryImage);
+        } else {
+            // No previous default, just delete the secondary record
+            artistImageRepository.deleteById(imageId);
+        }
+    }
+
     public Map<Integer, String> getGenders() {
         return lookupRepository.getAllGenders();
     }
@@ -1083,6 +1141,131 @@ public class ArtistService {
             }
             return dto;
         }, artistId);
+    }
+    
+    /**
+     * Get collaborated artists from songs where this artist is FEATURED
+     * (i.e., the main artist of songs where this artist appears as a feature, plus other featured artists on those songs)
+     */
+    public List<FeaturedArtistCardDTO> getFeaturedCollaboratedArtists(int artistId) {
+        // This gets both the main artist of songs where artistId is featured,
+        // AND other featured artists on those same songs
+        String sql = """
+            SELECT 
+                a.id,
+                a.name,
+                a.gender_id,
+                g.name as gender_name,
+                a.ethnicity_id,
+                e.name as ethnicity_name,
+                a.genre_id,
+                gr.name as genre_name,
+                a.subgenre_id,
+                sg.name as subgenre_name,
+                a.language_id,
+                l.name as language_name,
+                a.country,
+                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
+                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
+                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                COALESCE(scr.play_count, 0) as play_count,
+                COALESCE(scr.time_listened, 0) as time_listened,
+                COUNT(DISTINCT s.id) as feature_count,
+                GROUP_CONCAT(DISTINCT s.name, '||') as song_names
+            FROM SongFeaturedArtist sfa_me
+            INNER JOIN Song s ON sfa_me.song_id = s.id
+            INNER JOIN Artist a ON s.artist_id = a.id
+            LEFT JOIN Gender g ON a.gender_id = g.id
+            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
+            LEFT JOIN Genre gr ON a.genre_id = gr.id
+            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
+            LEFT JOIN Language l ON a.language_id = l.id
+            LEFT JOIN (
+                SELECT s2.artist_id, COUNT(*) as play_count, 
+                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
+                FROM Scrobble scr2
+                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                GROUP BY s2.artist_id
+            ) scr ON a.id = scr.artist_id
+            WHERE sfa_me.artist_id = ?
+            AND a.id != ?
+            GROUP BY a.id
+            
+            UNION
+            
+            SELECT 
+                a.id,
+                a.name,
+                a.gender_id,
+                g.name as gender_name,
+                a.ethnicity_id,
+                e.name as ethnicity_name,
+                a.genre_id,
+                gr.name as genre_name,
+                a.subgenre_id,
+                sg.name as subgenre_name,
+                a.language_id,
+                l.name as language_name,
+                a.country,
+                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
+                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
+                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                COALESCE(scr.play_count, 0) as play_count,
+                COALESCE(scr.time_listened, 0) as time_listened,
+                COUNT(DISTINCT s.id) as feature_count,
+                GROUP_CONCAT(DISTINCT s.name, '||') as song_names
+            FROM SongFeaturedArtist sfa_me
+            INNER JOIN Song s ON sfa_me.song_id = s.id
+            INNER JOIN SongFeaturedArtist sfa_other ON s.id = sfa_other.song_id
+            INNER JOIN Artist a ON sfa_other.artist_id = a.id
+            LEFT JOIN Gender g ON a.gender_id = g.id
+            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
+            LEFT JOIN Genre gr ON a.genre_id = gr.id
+            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
+            LEFT JOIN Language l ON a.language_id = l.id
+            LEFT JOIN (
+                SELECT s2.artist_id, COUNT(*) as play_count, 
+                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
+                FROM Scrobble scr2
+                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                GROUP BY s2.artist_id
+            ) scr ON a.id = scr.artist_id
+            WHERE sfa_me.artist_id = ?
+            AND sfa_other.artist_id != ?
+            GROUP BY a.id
+            
+            ORDER BY name
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
+            dto.setId(rs.getInt("id"));
+            dto.setName(rs.getString("name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            dto.setGenderName(rs.getString("gender_name"));
+            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
+            dto.setEthnicityName(rs.getString("ethnicity_name"));
+            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
+            dto.setGenreName(rs.getString("genre_name"));
+            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
+            dto.setSubgenreName(rs.getString("subgenre_name"));
+            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
+            dto.setLanguageName(rs.getString("language_name"));
+            dto.setCountry(rs.getString("country"));
+            dto.setSongCount(rs.getInt("song_count"));
+            dto.setAlbumCount(rs.getInt("album_count"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setPlayCount(rs.getInt("play_count"));
+            long timeListened = rs.getLong("time_listened");
+            dto.setTimeListened(timeListened);
+            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setFeatureCount(rs.getInt("feature_count"));
+            String songNamesConcat = rs.getString("song_names");
+            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
+                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
+            }
+            return dto;
+        }, artistId, artistId, artistId, artistId);
     }
     
     // ========================================

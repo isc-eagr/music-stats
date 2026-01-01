@@ -25,6 +25,14 @@
                     <h1 class="item-name-top" th:text="${artist.name}">Artist Name</h1>
                 </div>
                 <div class="item-image-container">
+                    <!-- Gallery Navigation Arrows -->
+                    <button type="button" class="gallery-nav gallery-nav-left" id="galleryPrev" onclick="galleryNavigate(-1)" style="display: none;">
+                        ❮
+                    </button>
+                    <button type="button" class="gallery-nav gallery-nav-right" id="galleryNext" onclick="galleryNavigate(1)" style="display: none;">
+                        ❯
+                    </button>
+
                     <img th:if="${hasImage}"
                          th:src="@{'/artists/' + ${artist.id} + '/image'}"
                          th:alt="${artist.name}"
@@ -42,12 +50,24 @@
                              th:alt="${artist.country}" />
                     </span>
 
+                    <!-- Image Counter -->
+                    <div class="gallery-counter" id="galleryCounter" style="display: none;">
+                        <span id="currentImageIndex">1</span> / <span id="totalImageCount">1</span>
+                    </div>
+
                     <div class="image-upload-overlay">
                         <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                        <button type="button" class="btn-upload-image" onclick="document.getElementById('imageInput').click()">
+                        <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
                             Upload Image
                         </button>
-                        <button type="button" class="btn-remove-image" th:if="${hasImage}" onclick="removeImage()">
+                        <button type="button" class="btn-remove-image" id="btnRemoveMain" th:if="${hasImage}" onclick="removeImage()">
+                            Remove
+                        </button>
+                        <!-- Gallery-specific buttons (shown for secondary images) -->
+                        <button type="button" class="btn-set-default" id="btnSetDefault" onclick="setAsDefaultImage()" style="display: none;">
+                            Set as Default
+                        </button>
+                        <button type="button" class="btn-remove-gallery" id="btnRemoveGallery" onclick="removeGalleryImage()" style="display: none;">
                             Remove
                         </button>
                     </div>
@@ -149,21 +169,33 @@
             
             <!-- Tab Navigation -->
             <div class="detail-tabs">
-                <a th:href="@{/artists/{id}(id=${artist.id}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}" 
                    th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
                    class="detail-tab">General</a>
-                <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
                    class="detail-tab">Plays</a>
-                <a th:href="@{/artists/{id}(id=${artist.id}, tab='collaborated', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='collaborated', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}" 
                    th:classappend="${activeTab == 'collaborated'} ? 'active' : ''"
                    class="detail-tab">Artist Associations</a>
-                <a th:href="@{/artists/{id}(id=${artist.id}, tab='chart-history', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null})}" 
+                <a th:href="@{/artists/{id}(id=${artist.id}, tab='chart-history', includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}" 
                    th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
                    class="detail-tab">Chart History</a>
                 
-                <!-- Toggles Container -->
-                <div class="toggles-container" th:if="${hasGroups or hasFeaturedSongs}">
+                <!-- Toggles Container (always show since Include Main is always present) -->
+                <div class="toggles-container">
+                    <!-- Include Main Toggle (always shown, on by default) -->
+                    <div class="include-groups-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" 
+                                   id="includeMainToggle" 
+                                   th:checked="${includeMain}"
+                                   onchange="toggleIncludeMain(this.checked)">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-text">Include main</span>
+                        </label>
+                    </div>
+                    
                     <!-- Include Groups Toggle (only shown if artist has groups) -->
                     <div th:if="${hasGroups}" class="include-groups-toggle">
                         <label class="toggle-label">
@@ -374,13 +406,13 @@
                             <tr>
                                 <th class="cover-col">Cover</th>
                                 <th data-sort="name">Album Name</th>
+                                <th data-sort="totalplays" class="numeric">Total</th>
+                                <th data-sort="primaryplays" class="numeric">Primary</th>
+                                <th data-sort="legacyplays" class="numeric">Legacy</th>
                                 <th data-sort="length" class="numeric">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="primaryplays" class="numeric">Primary</th>
-                                <th data-sort="legacyplays" class="numeric">Legacy</th>
-                                <th data-sort="totalplays" class="numeric">Total</th>
                                 <th data-sort="timelistened" class="numeric">Time Listened</th>
                             </tr>
                         </thead>
@@ -409,13 +441,13 @@
                                         (by <a th:href="@{'/artists/' + ${album.sourceArtistId}}" th:text="${album.sourceArtistName}">Group</a>)
                                     </span>
                                 </td>
+                                <td class="numeric" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
+                                <td class="numeric" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
+                                <td class="numeric" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
                                 <td class="numeric" th:text="${album.totalLength != null ? album.totalLength : '-'}">-</td>
                                 <td th:text="${album.releaseDate != null ? album.releaseDate : '-'}">-</td>
                                 <td th:text="${album.firstListenedDate != null ? album.firstListenedDate : '-'}">-</td>
                                 <td th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
-                                <td class="numeric" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
-                                <td class="numeric" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
                                 <td class="numeric" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
                             </tr>
                             <tr class="no-data" th:if="${#lists.isEmpty(albums)}">
@@ -424,13 +456,13 @@
                             <tr id="noAlbumSummaryRow" class="summary-row" style="display:none;">
                                 <td class="cover-col"></td>
                                 <td><strong>No Album Songs</strong></td>
+                                <td class="numeric" id="noAlbumTotalPlays">0</td>
+                                <td class="numeric" id="noAlbumVatitoPlays">0</td>
+                                <td class="numeric" id="noAlbumRobertloverPlays">0</td>
                                 <td class="numeric">-</td>
                                 <td id="noAlbumReleaseDate">-</td>
                                 <td id="noAlbumFirstListened">-</td>
                                 <td id="noAlbumLastListened">-</td>
-                                <td class="numeric" id="noAlbumVatitoPlays">0</td>
-                                <td class="numeric" id="noAlbumRobertloverPlays">0</td>
-                                <td class="numeric" id="noAlbumTotalPlays">0</td>
                                 <td class="numeric" id="noAlbumTotalListeningTime">-</td>
                             </tr>
                         </tbody>
@@ -447,14 +479,14 @@
                                 <tr>
                                     <th class="cover-col">Cover</th>
                                     <th data-sort="name" class="song-name-col">Song Name</th>
+                                    <th data-sort="totalplays" class="numeric">Total</th>
+                                    <th data-sort="primaryplays" class="numeric">Primary</th>
+                                    <th data-sort="legacyplays" class="numeric">Legacy</th>
                                 <th data-sort="albumname">Album</th>
                                 <th data-sort="length" class="numeric">Length</th>
                                 <th data-sort="releasedate">Release Date</th>
                                 <th data-sort="firstlistened">First Listened</th>
                                 <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="primaryplays" class="numeric">Primary</th>
-                                <th data-sort="legacyplays" class="numeric">Legacy</th>
-                                <th data-sort="totalplays" class="numeric">Total</th>
                                 <th data-sort="timelistened" class="numeric">Time Listened</th>
                             </tr>
                         </thead>
@@ -517,6 +549,9 @@
                                         (by <a th:href="@{'/artists/' + ${song.sourceArtistId}}" th:text="${song.sourceArtistName}">Group</a>)
                                     </span>
                                 </td>
+                                <td class="numeric" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
                                 <td>
                                     <a th:if="${song.albumId != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${song.albumName}">Album Name</a>
                                     <span th:unless="${song.albumId != null}">-</span>
@@ -525,9 +560,6 @@
                                 <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
                                 <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
                                 <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td class="numeric" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td class="numeric" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td class="numeric" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
                                 <td class="numeric" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
@@ -553,14 +585,14 @@
                     
                     <!-- Top Pagination -->
                     <div class="pagination pagination-top" th:if="${scrobblesTotalPages > 1}">
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=0'}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=0, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
                         <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage + 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesTotalPages - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
                     </div>
                     
@@ -601,14 +633,14 @@
                     
                     <!-- Bottom Pagination -->
                     <div class="pagination pagination-bottom" th:if="${scrobblesTotalPages > 1}">
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=0'}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=0, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
                         <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage + 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
-                        <a th:href="@{'/artists/' + ${artist.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesTotalPages - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
                            th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
                     </div>
                 </div>
@@ -802,10 +834,10 @@
                                         <th>Name</th>
                                         <th class="numeric">Peak</th>
                                         <th class="numeric">Wks@Peak</th>
+                                        <th class="numeric">Total Weeks</th>
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
-                                        <th class="numeric">Total Weeks</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -832,6 +864,7 @@
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
+                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -841,7 +874,6 @@
                                             <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
                                             <span th:unless="${entry.peakWeek != null}">-</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -866,10 +898,10 @@
                                         <th>Name</th>
                                         <th class="numeric">Peak</th>
                                         <th class="numeric">Wks@Peak</th>
+                                        <th class="numeric">Total Weeks</th>
                                         <th>Release</th>
                                         <th>Debut</th>
                                         <th>Peak Date</th>
-                                        <th class="numeric">Total Weeks</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -926,6 +958,7 @@
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
+                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
                                         <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                         <td>
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
@@ -935,7 +968,6 @@
                                             <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
                                             <span th:unless="${entry.peakWeek != null}">-</span>
                                         </td>
-                                        <td class="numeric" th:text="${entry.totalWeeks}">5</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1443,8 +1475,12 @@
             formData.append('image', file);
             
             const artistId = window.location.pathname.split('/').pop();
-            
-            fetch(`/artists/${artistId}/image`, {
+            const hasDefaultImage = /*[[${hasImage}]]*/ false;
+
+            // If there's already a default image, add to gallery instead
+            const endpoint = hasDefaultImage ? `/artists/${artistId}/images` : `/artists/${artistId}/image`;
+
+            fetch(endpoint, {
                 method: 'POST',
                 body: formData
             })
@@ -1484,6 +1520,221 @@
             });
         }
         
+        // ============ GALLERY FUNCTIONALITY ============
+        let galleryImages = []; // Array of image IDs (0 = default, rest are secondary)
+        let currentGalleryIndex = 0;
+        const artistId = window.location.pathname.split('/').pop();
+        const hasDefaultImage = /*[[${hasImage}]]*/ false;
+
+        // Load gallery on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGallery();
+        });
+
+        function loadGallery() {
+            fetch(`/artists/${artistId}/images`)
+                .then(response => response.json())
+                .then(data => {
+                    // data is array of {id, displayOrder}
+                    const imageIds = data.map(img => img.id);
+                    console.log('Gallery images loaded:', imageIds, 'Has default:', hasDefaultImage);
+
+                    // Only include 0 (default) if there is a default image
+                    if (hasDefaultImage) {
+                        galleryImages = [0, ...imageIds]; // 0 represents the default
+                    } else {
+                        galleryImages = imageIds.length > 0 ? imageIds : [0];
+                    }
+
+                    console.log('Total gallery images:', galleryImages.length);
+                    updateGalleryUI();
+                })
+                .catch(error => {
+                    console.error('Error loading gallery:', error);
+                    galleryImages = [0]; // Just the default
+                    updateGalleryUI();
+                });
+        }
+
+        function updateGalleryUI() {
+            const prevBtn = document.getElementById('galleryPrev');
+            const nextBtn = document.getElementById('galleryNext');
+            const counter = document.getElementById('galleryCounter');
+            const currentIndexSpan = document.getElementById('currentImageIndex');
+            const totalCountSpan = document.getElementById('totalImageCount');
+            const btnSetDefault = document.getElementById('btnSetDefault');
+            const btnRemoveGallery = document.getElementById('btnRemoveGallery');
+            const btnRemoveMain = document.getElementById('btnRemoveMain');
+            const btnUploadMain = document.getElementById('btnUploadImage');
+
+            const hasMultipleImages = galleryImages.length > 1;
+            const isOnSecondaryImage = galleryImages[currentGalleryIndex] !== 0;
+
+            // Show/hide navigation arrows
+            if (prevBtn) prevBtn.style.display = hasMultipleImages ? 'flex' : 'none';
+            if (nextBtn) nextBtn.style.display = hasMultipleImages ? 'flex' : 'none';
+
+            // Show/hide counter
+            if (counter) counter.style.display = hasMultipleImages ? 'block' : 'none';
+            if (currentIndexSpan) currentIndexSpan.textContent = currentGalleryIndex + 1;
+            if (totalCountSpan) totalCountSpan.textContent = galleryImages.length;
+
+            // Upload button is always visible
+            if (btnUploadMain) btnUploadMain.style.display = 'inline-block';
+
+            // Show/hide appropriate buttons based on which image we're viewing
+            if (isOnSecondaryImage) {
+                // Viewing a secondary image
+                if (btnSetDefault) btnSetDefault.style.display = 'inline-block';
+                if (btnRemoveGallery) btnRemoveGallery.style.display = 'inline-block';
+                if (btnRemoveMain) btnRemoveMain.style.display = 'none';
+            } else {
+                // Viewing the default image
+                if (btnSetDefault) btnSetDefault.style.display = 'none';
+                if (btnRemoveGallery) btnRemoveGallery.style.display = 'none';
+                // Only show remove button if this is the only image
+                if (btnRemoveMain) btnRemoveMain.style.display = hasMultipleImages ? 'none' : 'inline-block';
+            }
+        }
+
+        function galleryNavigate(direction) {
+            let newIndex = currentGalleryIndex + direction;
+            // Wrap around carousel
+            if (newIndex < 0) newIndex = galleryImages.length - 1;
+            if (newIndex >= galleryImages.length) newIndex = 0;
+
+            currentGalleryIndex = newIndex;
+            updateGalleryImage();
+            updateGalleryUI();
+        }
+
+        function updateGalleryImage() {
+            let img = document.getElementById('artistImage');
+            const placeholder = document.getElementById('noImagePlaceholder');
+            const currentImageId = galleryImages[currentGalleryIndex];
+
+            // If artistImage doesn't exist but we need to show gallery images, create it dynamically
+            if (!img && (currentImageId !== 0 || hasDefaultImage)) {
+                img = document.createElement('img');
+                img.id = 'artistImage';
+                img.className = 'item-image-large clickable-image';
+                img.style.cursor = 'pointer';
+                img.onclick = function() { openImageModal(this.src); };
+                const container = document.querySelector('.item-image-container');
+                const navRight = document.getElementById('galleryNext');
+                if (navRight && navRight.nextSibling) {
+                    container.insertBefore(img, navRight.nextSibling);
+                } else {
+                    container.insertBefore(img, container.firstChild);
+                }
+            }
+
+            if (currentImageId === 0) {
+                // Show default image
+                if (img) {
+                    img.src = `/artists/${artistId}/image?t=${Date.now()}`;
+                    img.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
+            } else {
+                // Show secondary image
+                if (img) {
+                    img.src = `/artists/${artistId}/images/${currentImageId}?t=${Date.now()}`;
+                    img.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
+            }
+        }
+
+        function handleGalleryImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch(`/artists/${artistId}/images`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Reload gallery to get the new image
+                    window.location.reload();
+                } else {
+                    throw new Error('Failed to add image to gallery');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding image to gallery:', error);
+                alert('Error adding image to gallery');
+            });
+
+            // Clear the input so the same file can be selected again
+            event.target.value = '';
+        }
+
+        function setAsDefaultImage() {
+            const currentImageId = galleryImages[currentGalleryIndex];
+            if (currentImageId === 0) return; // Already on default
+
+            fetch(`/artists/${artistId}/images/${currentImageId}/set-default`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to set as default image');
+                }
+            })
+            .catch(error => {
+                console.error('Error setting default image:', error);
+                alert('Error setting default image');
+            });
+        }
+
+        function removeGalleryImage() {
+            const currentImageId = galleryImages[currentGalleryIndex];
+            if (currentImageId === 0) return; // Can't remove default this way
+
+            if (!confirm('Are you sure you want to remove this image from the gallery?')) {
+                return;
+            }
+
+            fetch(`/artists/${artistId}/images/${currentImageId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Remove from array and go to previous image
+                    galleryImages.splice(currentGalleryIndex, 1);
+                    if (currentGalleryIndex >= galleryImages.length) {
+                        currentGalleryIndex = galleryImages.length - 1;
+                    }
+                    updateGalleryImage();
+                    updateGalleryUI();
+                } else {
+                    alert('Failed to remove image from gallery');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing image from gallery:', error);
+                alert('Error removing image from gallery');
+            });
+        }
+        // ============ END GALLERY FUNCTIONALITY ============
+
         function showTooltip(element) {
             const tooltip = element.querySelector('.tooltiptext') || element;
             if (tooltip.classList.contains('tooltiptext')) {
@@ -1989,6 +2240,19 @@
                 url.searchParams.set('includeFeatured', 'true');
             } else {
                 url.searchParams.delete('includeFeatured');
+            }
+            window.location.href = url.toString();
+        }
+        
+        // Toggle include main artist functionality
+        function toggleIncludeMain(checked) {
+            const url = new URL(window.location.href);
+            if (checked) {
+                // When true (default), remove the parameter from URL
+                url.searchParams.delete('includeMain');
+            } else {
+                // When false, explicitly set it
+                url.searchParams.set('includeMain', 'false');
             }
             window.location.href = url.toString();
         }

@@ -82,7 +82,11 @@ public class ChartFilterDTO {
     
     // Limit for top charts
     private Integer topLimit;
-    
+
+    // For General tab: which entity the topLimit applies to when calculating scrobble-based metrics
+    // Valid values: "artist", "album", "song" (default)
+    private String limitEntity;
+
     // Builder pattern for fluent API
     public static ChartFilterDTO builder() {
         return new ChartFilterDTO();
@@ -217,7 +221,10 @@ public class ChartFilterDTO {
     
     public Integer getTopLimit() { return topLimit; }
     public ChartFilterDTO setTopLimit(Integer topLimit) { this.topLimit = topLimit; return this; }
-    
+
+    public String getLimitEntity() { return limitEntity; }
+    public ChartFilterDTO setLimitEntity(String limitEntity) { this.limitEntity = limitEntity; return this; }
+
     /**
      * Checks if any filter is active (for optimization - skip filtering if nothing is set)
      */

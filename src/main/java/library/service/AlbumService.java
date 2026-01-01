@@ -6,10 +6,13 @@ import library.dto.FeaturedArtistCardDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.ScrobbleDTO;
 import library.entity.Album;
+import library.entity.AlbumImage;
+import library.repository.AlbumImageRepository;
 import library.repository.AlbumRepository;
 import library.repository.LookupRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,11 +23,13 @@ import java.util.Optional;
 public class AlbumService {
     
     private final AlbumRepository albumRepository;
+    private final AlbumImageRepository albumImageRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     
-    public AlbumService(AlbumRepository albumRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public AlbumService(AlbumRepository albumRepository, AlbumImageRepository albumImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
         this.albumRepository = albumRepository;
+        this.albumImageRepository = albumImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -333,6 +338,59 @@ public class AlbumService {
         }
     }
     
+    // Gallery methods for secondary images
+    public List<AlbumImage> getSecondaryImages(Integer albumId) {
+        return albumImageRepository.findByAlbumIdOrderByDisplayOrderAsc(albumId);
+    }
+
+    public int getSecondaryImageCount(Integer albumId) {
+        return albumImageRepository.countByAlbumId(albumId);
+    }
+
+    public byte[] getSecondaryImage(Integer imageId) {
+        return albumImageRepository.findById(imageId)
+                .map(AlbumImage::getImage)
+                .orElse(null);
+    }
+
+    public void addSecondaryImage(Integer albumId, byte[] imageData) {
+        Integer maxOrder = albumImageRepository.getMaxDisplayOrder(albumId);
+        AlbumImage image = new AlbumImage();
+        image.setAlbumId(albumId);
+        image.setImage(imageData);
+        image.setDisplayOrder(maxOrder + 1);
+        image.setCreationDate(new java.sql.Timestamp(System.currentTimeMillis()));
+        albumImageRepository.save(image);
+    }
+
+    @Transactional
+    public void deleteSecondaryImage(Integer imageId) {
+        albumImageRepository.deleteById(imageId);
+    }
+
+    @Transactional
+    public void swapToDefault(Integer albumId, Integer imageId) {
+        // Get the current default image from the main Album table
+        byte[] currentDefault = getAlbumImage(albumId);
+
+        // Get the secondary image to promote
+        AlbumImage secondaryImage = albumImageRepository.findById(imageId)
+                .orElseThrow(() -> new IllegalArgumentException("Image not found: " + imageId));
+
+        // Set the secondary image as the new default
+        updateAlbumImage(albumId, secondaryImage.getImage());
+
+        // If there was a previous default, move it to secondary images
+        if (currentDefault != null && currentDefault.length > 0) {
+            // Update the secondary image record with the old default
+            secondaryImage.setImage(currentDefault);
+            albumImageRepository.save(secondaryImage);
+        } else {
+            // No previous default, just delete the secondary record
+            albumImageRepository.deleteById(imageId);
+        }
+    }
+
     public int getSongCount(int albumId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM Song WHERE album_id = ?", Integer.class, albumId);

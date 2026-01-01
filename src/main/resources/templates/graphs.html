@@ -531,6 +531,163 @@
             text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
             font-weight: 600;
         }
+
+        /* Podium section for top 3 */
+        .podium-section {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 16px;
+            padding: 24px 20px 20px;
+            margin-bottom: 20px;
+        }
+
+        .podium-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            text-decoration: none;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 180px;
+            max-width: 220px;
+        }
+
+        .podium-card:hover {
+            transform: translateY(-4px);
+            text-decoration: none;
+        }
+
+        /* Gold - 1st place */
+        .podium-card.podium-gold {
+            order: 1;
+            border-color: rgba(255, 215, 0, 0.7);
+            border-width: 2px;
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.25) 0%, #1a1a1a 100%);
+        }
+        .podium-card.podium-gold:hover {
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5), 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        .podium-card.podium-gold .podium-rank {
+            color: #ffed4e;
+            text-shadow: 0 0 20px rgba(255, 237, 78, 1), 0 0 40px rgba(255, 215, 0, 0.8);
+        }
+
+        /* Silver - 2nd place */
+        .podium-card.podium-silver {
+            order: 2;
+            border-color: rgba(220, 220, 220, 0.7);
+            border-width: 2px;
+            background: linear-gradient(180deg, rgba(220, 220, 220, 0.18) 0%, #1a1a1a 100%);
+        }
+        .podium-card.podium-silver:hover {
+            box-shadow: 0 0 35px rgba(220, 220, 220, 0.4), 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        .podium-card.podium-silver .podium-rank {
+            color: #e8e8e8;
+            text-shadow: 0 0 16px rgba(232, 232, 232, 1), 0 0 32px rgba(220, 220, 220, 0.8);
+        }
+
+        /* Bronze - 3rd place */
+        .podium-card.podium-bronze {
+            order: 3;
+            border-color: rgba(255, 165, 0, 0.7);
+            border-width: 2px;
+            background: linear-gradient(180deg, rgba(255, 165, 0, 0.18) 0%, #1a1a1a 100%);
+        }
+        .podium-card.podium-bronze:hover {
+            box-shadow: 0 0 35px rgba(255, 165, 0, 0.4), 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        .podium-card.podium-bronze .podium-rank {
+            color: #ff9f43;
+            text-shadow: 0 0 16px rgba(255, 159, 67, 1), 0 0 32px rgba(255, 165, 0, 0.8);
+        }
+
+        .podium-rank {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .podium-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-bottom: 10px;
+            background: #2a2a2a;
+        }
+
+        .podium-image.artist {
+            width: 70px;
+            height: 105px;
+            border-radius: 6px;
+        }
+
+        .podium-name {
+            color: #e5e7eb;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .podium-artist {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-bottom: 6px;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .podium-plays {
+            color: #22c55e;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .podium-plays-gold {
+            color: #ffed4e !important;
+            text-shadow: 0 0 10px rgba(255, 237, 78, 0.8);
+        }
+
+        .podium-plays-silver {
+            color: #e8e8e8 !important;
+            text-shadow: 0 0 8px rgba(232, 232, 232, 0.8);
+        }
+
+        .podium-plays-bronze {
+            color: #ff9f43 !important;
+            text-shadow: 0 0 8px rgba(255, 159, 67, 0.8);
+        }
+
+        .podium-no-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            background: #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .podium-no-image.artist {
+            width: 70px;
+            height: 105px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -1384,6 +1541,8 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- Podium section -->
+                            <div class="podium-section" id="artistsPodium"></div>
                             <div class="top-table-container" id="topArtistsTableContainer">
                                 <table class="top-table" id="topArtistsTable">
                                     <thead>
@@ -1391,11 +1550,11 @@
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
                                             <th data-sort="name">Artist Name</th>
-                                            <th data-sort="firstListened">First Listened</th>
-                                            <th data-sort="lastListened">Last Listened</th>
+                                            <th data-sort="plays" class="numeric">Total</th>
                                             <th data-sort="primaryPlays" class="numeric">Primary</th>
                                             <th data-sort="legacyPlays" class="numeric">Legacy</th>
-                                            <th data-sort="plays" class="numeric">Total</th>
+                                            <th data-sort="firstListened">First Listened</th>
+                                            <th data-sort="lastListened">Last Listened</th>
                                             <th>Genre</th>
                                             <th>Subgenre</th>
                                             <th>Ethnicity</th>
@@ -1412,6 +1571,8 @@
                         <!-- Albums Sub-tab -->
                         <div class="top-section top-subtab-content" id="top-subtab-albums" style="display: none;">
                             <h3>Top Albums</h3>
+                            <!-- Podium section -->
+                            <div class="podium-section" id="albumsPodium"></div>
                             <div class="top-table-container" id="topAlbumsTableContainer">
                                 <table class="top-table" id="topAlbumsTable">
                                     <thead>
@@ -1420,13 +1581,13 @@
                                             <th class="cover-col"></th>
                                             <th data-sort="artistName">Artist Name</th>
                                             <th data-sort="name">Album Name</th>
+                                            <th data-sort="plays" class="numeric">Total</th>
+                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
+                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
                                             <th data-sort="length" class="numeric">Length</th>
                                             <th data-sort="releaseDate">Release Date</th>
                                             <th data-sort="firstListened">First Listened</th>
                                             <th data-sort="lastListened">Last Listened</th>
-                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
-                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
-                                            <th data-sort="plays" class="numeric">Total</th>
                                             <th>Genre</th>
                                             <th>Subgenre</th>
                                             <th>Ethnicity</th>
@@ -1446,6 +1607,8 @@
                                 <h3 style="margin: 0;">Top Songs</h3>
                                 <button type="button" class="top-playlist-btn" onclick="openTopSongsPlaylistGenerator()">🎵 Generate Playlist</button>
                             </div>
+                            <!-- Podium section -->
+                            <div class="podium-section" id="songsPodium"></div>
                             <div class="top-table-container" id="topSongsTableContainer">
                                 <table class="top-table" id="topSongsTable">
                                     <thead>
@@ -1455,13 +1618,13 @@
                                             <th data-sort="artistName">Artist Name</th>
                                             <th data-sort="albumName">Album Name</th>
                                             <th data-sort="name">Song Name</th>
+                                            <th data-sort="plays" class="numeric">Total</th>
+                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
+                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
                                             <th data-sort="length" class="numeric">Length</th>
                                             <th data-sort="releaseDate">Release Date</th>
                                             <th data-sort="firstListened">First Listened</th>
                                             <th data-sort="lastListened">Last Listened</th>
-                                            <th data-sort="primaryPlays" class="numeric">Primary</th>
-                                            <th data-sort="legacyPlays" class="numeric">Legacy</th>
-                                            <th data-sort="plays" class="numeric">Total</th>
                                             <th>Genre</th>
                                             <th>Subgenre</th>
                                             <th>Ethnicity</th>
