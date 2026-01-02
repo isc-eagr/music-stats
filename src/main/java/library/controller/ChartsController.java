@@ -103,6 +103,7 @@ public class ChartsController {
             // Not a preview - show empty state with option to view preview if week is in progress
             model.addAttribute("currentSection", "weekly-charts");
             model.addAttribute("hasChart", false);
+            model.addAttribute("isPreview", false);
             model.addAttribute("periodKey", periodKey);
             model.addAttribute("weekComplete", weekComplete);
             model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
@@ -138,6 +139,7 @@ public class ChartsController {
 
         model.addAttribute("currentSection", "weekly-charts");
         model.addAttribute("hasChart", true);
+        model.addAttribute("isPreview", false);
         model.addAttribute("chart", chart);
         model.addAttribute("entries", entries);
         model.addAttribute("albumEntries", albumEntries);

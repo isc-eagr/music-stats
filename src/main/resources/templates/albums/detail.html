@@ -366,13 +366,13 @@
                             <tr>
                                 <th data-sort="name">Song Name</th>
                                 <th data-sort="totalplays" style="text-align:right;">Total</th>
-                                <th data-sort="primaryplays" style="text-align:right;">Primary</th>
-                                <th data-sort="legacyplays" style="text-align:right;">Legacy</th>
-                                <th data-sort="length" style="text-align:right;">Length</th>
-                                <th data-sort="releasedate">Release Date</th>
-                                <th data-sort="firstlistened">First Listened</th>
-                                <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="timelistened" style="text-align:right;">Time Listened</th>
+                                <th data-sort="primaryplays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                <th data-sort="legacyplays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                <th data-sort="releasedate" class="hide-mobile">Release Date</th>
+                                <th data-sort="firstlistened" class="hide-mobile">First Listened</th>
+                                <th data-sort="lastlistened" class="hide-mobile">Last Listened</th>
+                                <th data-sort="timelistened" style="text-align:right;" class="hide-mobile">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="songsTableBody">
@@ -391,13 +391,13 @@
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
                                 </td>
                                 <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
-                                <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
-                                <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
-                                <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td style="text-align:right;" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
                     </table>

@@ -177,6 +177,76 @@
             background: linear-gradient(90deg, transparent, #333333, transparent);
             margin: 32px auto;
         }
+        
+        /* Mobile responsive for homepage */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 40px 16px;
+            }
+            
+            .hero-title {
+                font-size: 36px;
+            }
+            
+            .hero-subtitle {
+                font-size: 16px;
+                margin-bottom: 32px;
+            }
+            
+            .quick-links {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .quick-link-card {
+                padding: 24px;
+            }
+            
+            .quick-link-title {
+                font-size: 20px;
+            }
+            
+            .stats-section {
+                margin-top: 40px;
+                padding-top: 32px;
+            }
+            
+            .stats-title {
+                font-size: 24px;
+                margin-bottom: 24px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            
+            .stat-card {
+                padding: 16px;
+            }
+            
+            .stat-value {
+                font-size: 24px;
+            }
+            
+            .stat-label {
+                font-size: 11px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 28px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
 <body>

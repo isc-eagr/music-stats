@@ -12,6 +12,12 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
     <style>
+        /* Prevent horizontal overflow */
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+        
         .charts-page {
             padding: 20px;
             max-width: 1800px;
@@ -855,6 +861,150 @@
 
             .podium-plays {
                 font-size: 11px;
+            }
+        }
+        
+        /* Mobile responsive for graphs page controls */
+        @media (max-width: 900px) {
+            .charts-page {
+                padding: 12px;
+                overflow-x: hidden;
+            }
+            
+            .charts-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .charts-header h1 {
+                font-size: 24px;
+            }
+            
+            .charts-tabs {
+                padding: 0 12px;
+            }
+            
+            .charts-tab-btn {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+            
+            .charts-body {
+                padding: 16px;
+            }
+            
+            /* Controls row - stack vertically */
+            .charts-controls-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            
+            .charts-filters-display {
+                flex: none !important;
+                width: 100%;
+            }
+            
+            .charts-sort-controls {
+                flex-wrap: wrap !important;
+                justify-content: flex-start;
+            }
+            
+            .scaling-toggle-btn {
+                width: 100%;
+                text-align: center;
+            }
+            
+            /* Chart rows - single column */
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container,
+            .chart-container-wide {
+                padding: 16px;
+            }
+            
+            .chart-container h3,
+            .chart-container-wide h3 {
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .charts-page {
+                padding: 10px;
+            }
+            
+            .charts-header h1 {
+                font-size: 20px;
+            }
+            
+            .charts-tabs {
+                padding: 0 8px;
+            }
+            
+            .charts-tab-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            
+            .charts-body {
+                padding: 12px;
+            }
+            
+            .chart-sort-btn {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+            
+            .chart-container,
+            .chart-container-wide {
+                padding: 12px;
+            }
+            
+            /* Top controls compact */
+            .top-controls {
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 10px;
+            }
+        }
+        
+        /* Hide table body cells for columns marked hide-mobile */
+        @media (max-width: 900px) {
+            /* Top Artists table - hide columns 5-9 (Primary, Legacy, Time, First, Last) */
+            #topArtistsTable td:nth-child(5),
+            #topArtistsTable td:nth-child(6),
+            #topArtistsTable td:nth-child(7),
+            #topArtistsTable td:nth-child(8),
+            #topArtistsTable td:nth-child(9) {
+                display: none !important;
+            }
+            
+            /* Top Albums table - hide columns 3, 6-12 (Artist, Primary, Legacy, Length, Time, Release, First, Last) */
+            #topAlbumsTable td:nth-child(3),
+            #topAlbumsTable td:nth-child(6),
+            #topAlbumsTable td:nth-child(7),
+            #topAlbumsTable td:nth-child(8),
+            #topAlbumsTable td:nth-child(9),
+            #topAlbumsTable td:nth-child(10),
+            #topAlbumsTable td:nth-child(11),
+            #topAlbumsTable td:nth-child(12) {
+                display: none !important;
+            }
+            
+            /* Top Songs table - hide columns 3-4, 7-13 (Artist, Album, Primary, Legacy, Length, Time, Release, First, Last) */
+            #topSongsTable td:nth-child(3),
+            #topSongsTable td:nth-child(4),
+            #topSongsTable td:nth-child(7),
+            #topSongsTable td:nth-child(8),
+            #topSongsTable td:nth-child(9),
+            #topSongsTable td:nth-child(10),
+            #topSongsTable td:nth-child(11),
+            #topSongsTable td:nth-child(12),
+            #topSongsTable td:nth-child(13) {
+                display: none !important;
             }
         }
     </style>
@@ -1953,11 +2103,11 @@
                                             <th class="cover-col"></th>
                                             <th data-sort="name">Artist Name</th>
                                             <th data-sort="plays" style="text-align:right;">Total</th>
-                                            <th data-sort="primaryPlays" style="text-align:right;">Primary</th>
-                                            <th data-sort="legacyPlays" style="text-align:right;">Legacy</th>
-                                            <th data-sort="timeListened" style="text-align:right;">Time Listened</th>
-                                            <th data-sort="firstListened">First Listened</th>
-                                            <th data-sort="lastListened">Last Listened</th>
+                                            <th data-sort="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                            <th data-sort="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                            <th data-sort="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                                            <th data-sort="firstListened" class="hide-mobile">First Listened</th>
+                                            <th data-sort="lastListened" class="hide-mobile">Last Listened</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -1975,16 +2125,16 @@
                                         <tr>
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
-                                            <th data-sort="artistName">Artist Name</th>
+                                            <th data-sort="artistName" class="hide-mobile">Artist Name</th>
                                             <th data-sort="name">Album Name</th>
                                             <th data-sort="plays" style="text-align:right;">Total</th>
-                                            <th data-sort="primaryPlays" style="text-align:right;">Primary</th>
-                                            <th data-sort="legacyPlays" style="text-align:right;">Legacy</th>
-                                            <th data-sort="length" style="text-align:right;">Length</th>
-                                            <th data-sort="timeListened" style="text-align:right;">Time Listened</th>
-                                            <th data-sort="releaseDate">Release Date</th>
-                                            <th data-sort="firstListened">First Listened</th>
-                                            <th data-sort="lastListened">Last Listened</th>
+                                            <th data-sort="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                            <th data-sort="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                            <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                            <th data-sort="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                                            <th data-sort="releaseDate" class="hide-mobile">Release Date</th>
+                                            <th data-sort="firstListened" class="hide-mobile">First Listened</th>
+                                            <th data-sort="lastListened" class="hide-mobile">Last Listened</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -2002,17 +2152,17 @@
                                         <tr>
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
-                                            <th data-sort="artistName">Artist Name</th>
-                                            <th data-sort="albumName">Album Name</th>
+                                            <th data-sort="artistName" class="hide-mobile">Artist Name</th>
+                                            <th data-sort="albumName" class="hide-mobile">Album Name</th>
                                             <th data-sort="name">Song Name</th>
                                             <th data-sort="plays" style="text-align:right;">Total</th>
-                                            <th data-sort="primaryPlays" style="text-align:right;">Primary</th>
-                                            <th data-sort="legacyPlays" style="text-align:right;">Legacy</th>
-                                            <th data-sort="length" style="text-align:right;">Length</th>
-                                            <th data-sort="timeListened" style="text-align:right;">Time Listened</th>
-                                            <th data-sort="releaseDate">Release Date</th>
-                                            <th data-sort="firstListened">First Listened</th>
-                                            <th data-sort="lastListened">Last Listened</th>
+                                            <th data-sort="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                            <th data-sort="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                            <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                            <th data-sort="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                                            <th data-sort="releaseDate" class="hide-mobile">Release Date</th>
+                                            <th data-sort="firstListened" class="hide-mobile">First Listened</th>
+                                            <th data-sort="lastListened" class="hide-mobile">Last Listened</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>

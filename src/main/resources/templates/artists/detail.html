@@ -422,13 +422,13 @@
                                 <th class="cover-col">Cover</th>
                                 <th data-sort="name">Album Name</th>
                                 <th data-sort="totalplays" style="text-align:right;">Total</th>
-                                <th data-sort="primaryplays" style="text-align:right;">Primary</th>
-                                <th data-sort="legacyplays" style="text-align:right;">Legacy</th>
-                                <th data-sort="length" style="text-align:right;">Length</th>
-                                <th data-sort="releasedate">Release Date</th>
-                                <th data-sort="firstlistened">First Listened</th>
-                                <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="timelistened" style="text-align:right;">Time Listened</th>
+                                <th data-sort="primaryplays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                <th data-sort="legacyplays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                <th data-sort="releasedate" class="hide-mobile">Release Date</th>
+                                <th data-sort="firstlistened" class="hide-mobile">First Listened</th>
+                                <th data-sort="lastlistened" class="hide-mobile">Last Listened</th>
+                                <th data-sort="timelistened" style="text-align:right;" class="hide-mobile">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="albumsTableBody">
@@ -457,13 +457,13 @@
                                     </span>
                                 </td>
                                 <td style="text-align:right;" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${album.totalLength != null ? album.totalLength : '-'}">-</td>
-                                <td th:text="${album.releaseDate != null ? album.releaseDate : '-'}">-</td>
-                                <td th:text="${album.firstListenedDate != null ? album.firstListenedDate : '-'}">-</td>
-                                <td th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
-                                <td style="text-align:right;" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${album.vatitoPlays != null ? album.vatitoPlays : 0}">0</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${album.robertloverPlays != null ? album.robertloverPlays : 0}">0</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${album.totalLength != null ? album.totalLength : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${album.releaseDate != null ? album.releaseDate : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${album.firstListenedDate != null ? album.firstListenedDate : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${album.lastListenedDate != null ? album.lastListenedDate : '-'}">-</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${album.totalListeningTime != null ? album.totalListeningTime : '-'}">-</td>
                             </tr>
                             <tr class="no-data" th:if="${#lists.isEmpty(albums)}">
                                 <td colspan="10"><em>No albums</em></td>
@@ -472,13 +472,13 @@
                                 <td class="cover-col"></td>
                                 <td><strong>No Album Songs</strong></td>
                                 <td style="text-align:right;" id="noAlbumTotalPlays">0</td>
-                                <td style="text-align:right;" id="noAlbumVatitoPlays">0</td>
-                                <td style="text-align:right;" id="noAlbumRobertloverPlays">0</td>
-                                <td style="text-align:right;">-</td>
-                                <td id="noAlbumReleaseDate">-</td>
-                                <td id="noAlbumFirstListened">-</td>
-                                <td id="noAlbumLastListened">-</td>
-                                <td style="text-align:right;" id="noAlbumTotalListeningTime">-</td>
+                                <td style="text-align:right;" class="hide-mobile" id="noAlbumVatitoPlays">0</td>
+                                <td style="text-align:right;" class="hide-mobile" id="noAlbumRobertloverPlays">0</td>
+                                <td style="text-align:right;" class="hide-mobile">-</td>
+                                <td class="hide-mobile" id="noAlbumReleaseDate">-</td>
+                                <td class="hide-mobile" id="noAlbumFirstListened">-</td>
+                                <td class="hide-mobile" id="noAlbumLastListened">-</td>
+                                <td style="text-align:right;" class="hide-mobile" id="noAlbumTotalListeningTime">-</td>
                             </tr>
                         </tbody>
                     </table>
@@ -495,13 +495,13 @@
                                     <th class="cover-col">Cover</th>
                                     <th data-sort="name" class="song-name-col">Song Name</th>
                                     <th data-sort="totalplays" style="text-align:right;">Total</th>
-                                    <th data-sort="primaryplays" style="text-align:right;">Primary</th>
-                                    <th data-sort="legacyplays" style="text-align:right;">Legacy</th>
-                                <th data-sort="length" style="text-align:right;">Length</th>
-                                <th data-sort="releasedate">Release Date</th>
-                                <th data-sort="firstlistened">First Listened</th>
-                                <th data-sort="lastlistened">Last Listened</th>
-                                <th data-sort="timelistened" style="text-align:right;">Time Listened</th>
+                                    <th data-sort="primaryplays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                    <th data-sort="legacyplays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                <th data-sort="releasedate" class="hide-mobile">Release Date</th>
+                                <th data-sort="firstlistened" class="hide-mobile">First Listened</th>
+                                <th data-sort="lastlistened" class="hide-mobile">Last Listened</th>
+                                <th data-sort="timelistened" style="text-align:right;" class="hide-mobile">Time Listened</th>
                             </tr>
                         </thead>
                         <tbody id="songsTableBody">
@@ -564,13 +564,13 @@
                                     </span>
                                 </td>
                                 <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td style="text-align:right;" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
-                                <td th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
-                                <td th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
-                                <td th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td style="text-align:right;" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
+                                <td class="hide-mobile" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
+                                <td style="text-align:right;" class="hide-mobile" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
                     </table>

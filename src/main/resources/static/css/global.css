@@ -1518,6 +1518,28 @@ select:focus {
   color: #ffffff;
 }
 
+/* Page header row - title + actions */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-row h1 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* Back link (used on detail pages) */
 .back-link {
   margin-bottom: 20px;
@@ -1542,6 +1564,27 @@ select:focus {
   gap: 20px;
   align-items: flex-start;
   flex-wrap: wrap;
+}
+
+/* List controls row - sort, page size, toggles */
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.list-controls label {
+  font-weight: bold;
+  margin-right: 5px;
+  white-space: nowrap;
+}
+
+.list-controls .control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .search-bar {
@@ -2721,3 +2764,518 @@ input.flatpickr-input:focus {
     font-style: italic;
 }
 
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile hamburger menu button */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 24px;
+    padding: 8px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* Mobile close button - hidden by default */
+.mobile-nav-close {
+    display: none;
+}
+
+/* Mobile close button wrapper */
+.mobile-nav-close-wrapper {
+    display: none;
+}
+
+/* Mobile utilities in nav - hidden by default */
+.app-nav-utilities-mobile {
+    display: none !important;
+}
+
+/* Mobile nav overlay */
+.mobile-nav-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9998;
+}
+
+.mobile-nav-overlay.active {
+    display: block;
+}
+
+/* Small screens - tablets and phones */
+@media (max-width: 900px) {
+    /* Show hamburger, hide desktop nav */
+    .mobile-menu-toggle {
+        display: block;
+    }
+    
+    .app-nav-links {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg);
+        flex-direction: column;
+        padding: 60px 20px 20px;
+        z-index: 9999;
+        overflow-y: auto;
+        gap: 0;
+    }
+    
+    .app-nav-links.mobile-open {
+        display: flex;
+    }
+    
+    .app-nav-links li {
+        width: 100%;
+    }
+    
+    .app-nav-link {
+        display: block;
+        padding: 16px 12px;
+        font-size: 18px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Mobile close button */
+    .mobile-nav-close-wrapper {
+        display: block;
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        list-style: none;
+    }
+    
+    .mobile-nav-close {
+        display: block;
+        background: none;
+        border: none;
+        color: var(--text);
+        font-size: 32px;
+        cursor: pointer;
+        padding: 8px;
+        line-height: 1;
+    }
+    
+    /* Make dropdowns work on mobile - always expanded */
+    .app-nav-dropdown-menu {
+        display: block;
+        position: static;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        margin-left: 20px;
+    }
+    
+    .app-nav-dropdown-toggle {
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    
+    .app-nav-dropdown-link {
+        padding: 12px 16px;
+        font-size: 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    /* Hide utilities on mobile - they're in the menu */
+    .app-nav-utilities {
+        display: none;
+    }
+    
+    .app-nav-links.mobile-open .app-nav-utilities-mobile {
+        display: flex !important;
+        flex-direction: column;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Container padding reduction */
+    .container {
+        padding: 12px 16px;
+    }
+    
+    /* Page header */
+    .header h1 {
+        font-size: 24px;
+    }
+    
+    .header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+    }
+    
+    .header-actions .btn-action {
+        flex: 1;
+    }
+    
+    /* List controls - stack vertically on mobile */
+    .list-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .list-controls .control-group {
+        width: 100%;
+    }
+    
+    .list-controls select,
+    .list-controls input {
+        flex: 1;
+    }
+    
+    /* Controls section - stack vertically */
+    .controls {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .search-bar {
+        min-width: 100%;
+    }
+    
+    /* Filter panel - full width on mobile */
+    .filters {
+        width: 100%;
+        left: 0;
+    }
+    
+    /* Sort and page controls - stack better */
+    .sort-by-section,
+    .page-size-section {
+        display: block !important;
+        margin-left: 0 !important;
+        margin-top: 10px;
+    }
+    
+    .artist-toggles-section {
+        display: flex !important;
+        flex-wrap: wrap;
+        margin-left: 0 !important;
+        margin-top: 12px;
+        gap: 12px;
+    }
+    
+    /* Card grids - 2 columns on tablet */
+    .album-grid,
+    .song-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+    
+    .artist-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+    
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+    
+    /* Tables - allow horizontal scroll */
+    .table-wrapper {
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+    
+    /* Detail page layout */
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-sidebar {
+        position: static;
+        grid-row: 1;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+    
+    /* Detail right section - stack on mobile */
+    .detail-right-section {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .detail-content-card {
+        padding: 20px;
+    }
+    
+    /* Stats grid - single column on mobile */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .stat-value {
+        font-size: 20px;
+    }
+    
+    /* Attributes grid - single column on mobile */
+    .attributes-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Item stats row on sidebar */
+    .item-stats {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    /* Section titles */
+    .section-title {
+        font-size: 16px;
+    }
+    
+    /* Table mobile improvements - hide less important columns */
+    .top-table .hide-mobile,
+    .table .hide-mobile {
+        display: none !important;
+    }
+    
+    /* Table horizontal scroll container */
+    .top-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+    
+    .top-table {
+        font-size: 12px;
+        min-width: 500px;
+    }
+    
+    .top-table th,
+    .top-table td {
+        padding: 8px 6px;
+    }
+    
+    .top-table .cover-col {
+        width: 44px;
+        padding: 4px;
+    }
+    
+    .top-table .cover-col img,
+    .top-table .cover-col .cover-placeholder {
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Pagination - more compact */
+    .pagination {
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .pagination .page-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+
+/* Phone-specific (very small screens) */
+@media (max-width: 480px) {
+    /* Even smaller container padding */
+    .container {
+        padding: 10px 12px;
+    }
+    
+    /* Header title */
+    .header h1 {
+        font-size: 20px;
+    }
+    
+    /* Card grids - can go single column if needed */
+    .album-grid,
+    .song-grid,
+    .artist-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+    }
+    
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+    }
+    
+    /* Smaller cards */
+    .catalog-info,
+    .album-info,
+    .song-info,
+    .artist-info {
+        padding: 10px;
+    }
+    
+    .catalog-name,
+    .album-name,
+    .song-name,
+    .artist-name {
+        font-size: 14px;
+    }
+    
+    .catalog-stats .stat,
+    .album-stats .stat,
+    .song-stats .stat,
+    .artist-stats .stat {
+        font-size: 11px;
+    }
+    
+    /* Buttons - larger touch targets */
+    .btn,
+    .btn-action,
+    .btn-secondary {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+    
+    /* Search form */
+    .search-bar form {
+        flex-direction: column;
+    }
+    
+    .search-bar input[type="text"] {
+        width: 100%;
+    }
+    
+    /* Filter toggle button */
+    .filter-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Select dropdowns - full width */
+    select,
+    .multi-select-display,
+    .chip-select-display {
+        width: 100%;
+    }
+    
+    /* Detail sidebar - smaller max */
+    .detail-sidebar {
+        max-width: 220px;
+    }
+    
+    /* Detail content cards - even more compact */
+    .detail-content-card {
+        padding: 16px;
+    }
+    
+    .stat-value {
+        font-size: 18px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+    }
+    
+    /* Tables - compact mode */
+    .table th,
+    .table td {
+        padding: 6px 4px;
+        font-size: 11px;
+    }
+    
+    .top-table {
+        font-size: 11px;
+    }
+    
+    .top-table th,
+    .top-table td {
+        padding: 6px 4px;
+    }
+    
+    .top-table .cover-col img,
+    .top-table .cover-col .cover-placeholder {
+        width: 32px;
+        height: 32px;
+    }
+    
+    /* Pagination - very compact */
+    .pagination .page-btn {
+        padding: 6px 10px;
+        min-height: 36px;
+    }
+    
+    /* Active filters - horizontal scroll indicator */
+    .active-filters {
+        padding-bottom: 16px;
+    }
+    
+    /* Filter panel header */
+    .filter-header h3 {
+        font-size: 16px;
+    }
+    
+    /* Modal adjustments */
+    .modal-content {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+    }
+}
+
+/* Touch-friendly improvements */
+@media (pointer: coarse) {
+    /* Larger tap targets for touch screens */
+    .app-nav-link,
+    .app-nav-dropdown-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .filter-option {
+        min-height: 44px;
+    }
+    
+    .filter-modifier {
+        min-height: 40px;
+        padding: 10px 14px;
+    }
+    
+    .filter-item-header {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Checkbox and radio - larger */
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* Pagination buttons */
+    .pagination .page-btn {
+        min-height: 44px;
+    }
+    
+    /* Dropdowns - disable hover, require tap */
+    .app-nav-dropdown:hover .app-nav-dropdown-menu {
+        display: none;
+    }
+    
+    .app-nav-dropdown.touch-open .app-nav-dropdown-menu {
+        display: block;
+    }
+}

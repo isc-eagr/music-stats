@@ -265,3 +265,51 @@
 
 #topSongsTable th:nth-child(10),
 #topSongsTable td:nth-child(10) { width: 100px; } /* Time Listened */
+/* Mobile responsive for top tables */
+@media (max-width: 768px) {
+    .top-table {
+        font-size: 12px;
+    }
+    
+    .top-table th,
+    .top-table td {
+        padding: 6px 8px;
+    }
+    
+    .top-table .cover-col {
+        width: 44px;
+        padding: 3px 6px;
+    }
+    
+    .top-table .cover-col img,
+    .top-table .cover-col .cover-placeholder {
+        width: 38px;
+        height: 38px;
+    }
+    
+    .top-table .rank-col {
+        width: 30px;
+    }
+    
+    /* Hide less important columns on mobile */
+    .top-table .hide-mobile {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-table {
+        font-size: 11px;
+    }
+    
+    .top-table th,
+    .top-table td {
+        padding: 5px 6px;
+    }
+    
+    .top-table .cover-col img,
+    .top-table .cover-col .cover-placeholder {
+        width: 32px;
+        height: 32px;
+    }
+}

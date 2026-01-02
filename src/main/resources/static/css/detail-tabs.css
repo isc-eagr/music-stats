@@ -235,6 +235,55 @@
     }
 }
 
+/* Mobile responsive for detail tabs */
+@media (max-width: 900px) {
+    .detail-tabs {
+        grid-column: 1;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    
+    .detail-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .detail-tab {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .plays-tab-content {
+        grid-column: 1;
+    }
+    
+    .toggles-container {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+        padding: 12px 0;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .detail-grid .detail-tabs + .detail-right-section,
+    .detail-grid .detail-tabs ~ .detail-content-section {
+        grid-column: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .detail-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
 /* Content section when following tabs */
 .detail-grid .detail-tabs ~ .detail-content-section {
     grid-column: 2;

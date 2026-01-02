@@ -32,6 +32,27 @@
             color: #aaa;
         }
         
+        .preview-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+            }
+        }
+        
         .charts-nav {
             display: flex;
             justify-content: space-between;
@@ -646,8 +667,8 @@
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     
     <div class="charts-page">
-        <!-- Empty state when no chart exists -->
-        <div th:if="${!hasChart}" class="empty-state">
+        <!-- Empty state when no chart exists and not in preview mode -->
+        <div th:if="${!hasChart and !isPreview}" class="empty-state">
             <div class="empty-state-icon">📊</div>
             <h2 class="empty-state-title">No Charts Generated Yet</h2>
             <p class="empty-state-text" th:if="${missingWeeksCount > 0}">
@@ -661,12 +682,15 @@
             </button>
         </div>
         
-        <!-- Chart display when chart exists -->
-        <div th:if="${hasChart}">
+        <!-- Chart display when chart exists OR in preview mode -->
+        <div th:if="${hasChart or isPreview}">
             <!-- Header -->
             <div class="charts-header">
                 <h1 class="charts-title">Weekly Charts</h1>
-                <div class="charts-period" th:text="${formattedPeriod}">Nov 16 - Nov 22, 2025</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                    <div class="charts-period" th:text="${formattedPeriod}">Nov 16 - Nov 22, 2025</div>
+                    <span th:if="${isPreview}" class="preview-badge">👁️ LIVE PREVIEW</span>
+                </div>
             </div>
             
             <!-- Navigation -->
@@ -686,8 +710,13 @@
                            title="Jump to a specific week">
                 </div>
                 
-                <a th:if="${nextPeriodKey != null}" 
+                <a th:if="${nextPeriodKey != null and !nextIsPreview}" 
                    th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey})}" 
+                   class="nav-btn">
+                    Next →
+                </a>
+                <a th:if="${nextPeriodKey != null and nextIsPreview}" 
+                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, preview=true)}" 
                    class="nav-btn">
                     Next →
                 </a>
@@ -740,9 +769,9 @@
                                 <th class="col-title">Title</th>
                                 <th class="col-artist">Artist</th>
                                 <th class="col-plays">Plays</th>
-                                <th class="col-peak">Peak</th>
-                            <th class="col-weeks">Weeks</th>
-                        </tr>
+                                <th class="col-peak" th:if="${!isPreview}">Peak</th>
+                                <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
+                            </tr>
                     </thead>
                     <tbody>
                         <th:block th:each="entry : ${entries}">
@@ -785,13 +814,13 @@
                                               th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
                                     </div>
                                 </td>
-                                <td class="col-peak">
+                                <td class="col-peak" th:if="${!isPreview}">
                                     <div class="peak-cell">
                                         <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
                                         <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
                                     </div>
                                 </td>
-                                <td class="col-weeks" th:text="${entry.weeksOnChart}">5</td>
+                                <td class="col-weeks" th:if="${!isPreview}" th:text="${entry.weeksOnChart}">5</td>
                             </tr>
                             <!-- Chart run detail row (hidden by default) -->
                             <tr class="chart-run-row" th:data-song-id="${entry.songId}">
@@ -836,8 +865,8 @@
                                 <th class="col-title">Album</th>
                                 <th class="col-artist">Artist</th>
                                 <th class="col-plays">Plays</th>
-                                <th class="col-peak">Peak</th>
-                                <th class="col-weeks">Weeks</th>
+                                <th class="col-peak" th:if="${!isPreview}">Peak</th>
+                                <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -881,13 +910,13 @@
                                                   th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
                                         </div>
                                     </td>
-                                    <td class="col-peak">
+                                    <td class="col-peak" th:if="${!isPreview}">
                                         <div class="peak-cell">
                                             <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
                                             <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
                                         </div>
                                     </td>
-                                    <td class="col-weeks" th:text="${entry.weeksOnChart}">5</td>
+                                    <td class="col-weeks" th:if="${!isPreview}" th:text="${entry.weeksOnChart}">5</td>
                                 </tr>
                                 <!-- Chart run detail row (hidden by default) -->
                                 <tr class="chart-run-row album-chart-run-row" th:data-album-id="${entry.albumId}">

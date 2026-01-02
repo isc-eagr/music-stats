@@ -110,13 +110,18 @@
         <div class="app-nav-container">
          <div class="app-nav-left">
              <a href="/" class="app-nav-brand">Music Stats</a>
-             <ul class="app-nav-links">
+             <!-- Mobile hamburger menu button -->
+             <button class="mobile-menu-toggle" onclick="toggleMobileNav()" aria-label="Open menu">☰</button>
+             <ul class="app-nav-links" id="mobileNavLinks">
+                 <!-- Mobile close button (wrapped in li for valid HTML) -->
+                 <li class="mobile-nav-close-wrapper"><button class="mobile-nav-close" onclick="toggleMobileNav()" aria-label="Close menu">×</button></li>
                  <li><a href="/artists" class="app-nav-link" th:classappend="${currentSection == 'artists'} ? 'active' : ''">Artists</a></li>
                  <li><a href="/albums" class="app-nav-link" th:classappend="${currentSection == 'albums'} ? 'active' : ''">Albums</a></li>
                  <li><a href="/songs" class="app-nav-link" th:classappend="${currentSection == 'songs'} ? 'active' : ''">Songs</a></li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'genders' or currentSection == 'genres' or currentSection == 'subgenres' or currentSection == 'ethnicities' or currentSection == 'languages' or currentSection == 'countries' or currentSection == 'listen-years' or currentSection == 'release-years'} ? 'active' : ''">Catalogs ▾</a>
+                        th:classappend="${currentSection == 'genders' or currentSection == 'genres' or currentSection == 'subgenres' or currentSection == 'ethnicities' or currentSection == 'languages' or currentSection == 'countries' or currentSection == 'listen-years' or currentSection == 'release-years'} ? 'active' : ''"
+                        onclick="toggleDropdown(event, this)">Catalogs ▾</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/countries" class="app-nav-dropdown-link" th:classappend="${currentSection == 'countries'} ? 'active' : ''">Countries</a></li>
                          <li><a href="/ethnicities" class="app-nav-dropdown-link" th:classappend="${currentSection == 'ethnicities'} ? 'active' : ''">Ethnicities</a></li>
@@ -130,7 +135,8 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'days' or currentSection == 'weeks' or currentSection == 'months' or currentSection == 'seasons' or currentSection == 'years' or currentSection == 'decades'} ? 'active' : ''">Timeframes ▾</a>
+                        th:classappend="${currentSection == 'days' or currentSection == 'weeks' or currentSection == 'months' or currentSection == 'seasons' or currentSection == 'years' or currentSection == 'decades'} ? 'active' : ''"
+                        onclick="toggleDropdown(event, this)">Timeframes ▾</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/days" class="app-nav-dropdown-link" th:classappend="${currentSection == 'days'} ? 'active' : ''">Days</a></li>
                          <li><a href="/weeks" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weeks'} ? 'active' : ''">Weeks</a></li>
@@ -142,7 +148,8 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'weekly-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-charts' or currentSection == 'most-weeks-charts' or currentSection == 'most-hits-charts'} ? 'active' : ''">📈 Charts ▾</a>
+                        th:classappend="${currentSection == 'weekly-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-charts' or currentSection == 'most-weeks-charts' or currentSection == 'most-hits-charts'} ? 'active' : ''"
+                        onclick="toggleDropdown(event, this)">📈 Charts ▾</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/charts/weekly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-charts'} ? 'active' : ''">Weekly</a></li>
                          <li><a href="/charts/seasonal" class="app-nav-dropdown-link" th:classappend="${currentSection == 'seasonal-charts'} ? 'active' : ''">Seasonal</a></li>
@@ -152,6 +159,11 @@
                      </ul>
                  </li>
                  <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">📊 Graphs</a></li>
+                 <!-- Mobile-only: utilities links -->
+                 <li class="app-nav-utilities-mobile" style="display: none;">
+                     <a href="/scrobbles/upload" class="app-nav-link">Import</a>
+                     <a href="/scrobbles/unmatched" class="app-nav-link">Unmatched Scrobbles</a>
+                 </li>
              </ul>
          </div>
          <div class="app-nav-utilities">
@@ -159,6 +171,44 @@
              <a href="/scrobbles/unmatched" class="app-nav-link-discreet">Unmatched Scrobbles</a>
          </div>
         </div>
+        <!-- Mobile nav overlay -->
+        <div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="toggleMobileNav()"></div>
+        <script>
+            function toggleMobileNav() {
+                const navLinks = document.getElementById('mobileNavLinks');
+                const overlay = document.getElementById('mobileNavOverlay');
+                const isOpen = navLinks.classList.contains('mobile-open');
+                
+                if (isOpen) {
+                    navLinks.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                } else {
+                    navLinks.classList.add('mobile-open');
+                    overlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+            
+            function toggleDropdown(event, element) {
+                // On mobile/touch, toggle dropdown visibility
+                if (window.matchMedia('(max-width: 900px)').matches || window.matchMedia('(pointer: coarse)').matches) {
+                    event.preventDefault();
+                    const dropdown = element.closest('.app-nav-dropdown');
+                    dropdown.classList.toggle('touch-open');
+                }
+            }
+            
+            // Close mobile nav on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const navLinks = document.getElementById('mobileNavLinks');
+                    if (navLinks && navLinks.classList.contains('mobile-open')) {
+                        toggleMobileNav();
+                    }
+                }
+            });
+        </script>
      </nav>
  </body>
 </html>
