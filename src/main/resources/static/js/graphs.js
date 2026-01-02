@@ -42,9 +42,16 @@ let topSortState = {
 // Current sort state for chart groups (genre, subgenre, etc.)
 let chartSortMetric = 'plays';  // Options: 'artists', 'albums', 'songs', 'plays', 'listeningTime'
 
-// State for artist include toggles (Top Artists section)
-let artistIncludeGroups = false;
-let artistIncludeFeatured = false;
+// Helper functions to read artist include toggles from the form checkboxes
+function getArtistIncludeGroups() {
+    const toggle = document.getElementById('includeGroupsToggle');
+    return toggle ? toggle.checked : false;
+}
+
+function getArtistIncludeFeatured() {
+    const toggle = document.getElementById('includeFeaturedToggle');
+    return toggle ? toggle.checked : false;
+}
 
 // Register datalabels plugin if Chart.js is available
 if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
@@ -277,6 +284,15 @@ function switchTab(tabName) {
     });
     document.getElementById('tab-' + tabName).classList.add('active');
     
+    // Show/hide the Generate Playlist button based on tab and sub-tab
+    const headerPlaylistBtn = document.getElementById('headerPlaylistBtn');
+    if (headerPlaylistBtn) {
+        // Show only if on Top tab AND Songs sub-tab is active
+        const isTopTab = tabName === 'top';
+        const songsSubTabActive = document.querySelector('.top-subtabs .charts-tab-btn[data-subtab="songs"].active') !== null;
+        headerPlaylistBtn.style.display = (isTopTab && songsSubTabActive) ? '' : 'none';
+    }
+    
     // Load data if not already loaded
     if (!loadedTabs[tabName]) {
         loadTabData(tabName);
@@ -303,16 +319,17 @@ function loadTabData(tabName, forceReload = false) {
     // Build query string from current URL parameters
     const params = getFilterParams();
     
+    // Add artist include toggles for all tabs (read from form checkboxes)
+    if (getArtistIncludeGroups()) {
+        params.set('includeGroups', 'true');
+    }
+    if (getArtistIncludeFeatured()) {
+        params.set('includeFeatured', 'true');
+    }
+    
     // Add top limit only for top tab (always) or other tabs if their "Apply Limit" checkbox is checked
     if (tabName === 'top') {
         params.set('limit', getTopLimit());
-        // Add artist include toggles for top artists
-        if (artistIncludeGroups) {
-            params.set('includeGroups', 'true');
-        }
-        if (artistIncludeFeatured) {
-            params.set('includeFeatured', 'true');
-        }
     } else {
         // For non-top tabs, only apply limit if checkbox is checked
         const checkboxId = 'applyLimit' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
@@ -1417,13 +1434,27 @@ function renderTopSongsTable() {
             // Case 4: No image available
             coverHtml = `<div style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>`;
         }
+        // Build row classes for featured/group styling
+        const rowClasses = [];
+        if (song.featuredOn) rowClasses.push('featured-song-row');
+        if (song.fromGroup) rowClasses.push('group-item-row');
+        const rowClassAttr = rowClasses.length > 0 ? ` class="${rowClasses.join(' ')}"` : '';
+        
+        // Build featured/group labels
+        let songLabel = '';
+        if (song.featuredOn && song.primaryArtistName) {
+            songLabel = ` <span class="featured-artist-label">(feat. on <a href="/artists/${song.primaryArtistId}">${escapeHtml(song.primaryArtistName)}</a>)</span>`;
+        } else if (song.fromGroup && song.sourceArtistName) {
+            songLabel = ` <span class="group-artist-label">(by <a href="/artists/${song.sourceArtistId}">${escapeHtml(song.sourceArtistName)}</a>)</span>`;
+        }
+        
         return `
-        <tr style="${getGenderRowStyle(song.genderId)}">
+        <tr${rowClassAttr} style="${getGenderRowStyle(song.genderId)}">
             <td class="rank-col">${rank}</td>
             <td class="cover-col">${coverHtml}</td>
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
-            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}</td>
+            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}${songLabel}</td>
             <td style="text-align:right;"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
             <td style="text-align:right;">${(song.primaryPlays || 0).toLocaleString()}</td>
             <td style="text-align:right;">${(song.legacyPlays || 0).toLocaleString()}</td>
@@ -1632,6 +1663,12 @@ function switchTopSubTab(subtab) {
     if (activeSection) {
         activeSection.style.display = 'block';
     }
+    
+    // Show/hide the Generate Playlist button in the header based on sub-tab
+    const headerPlaylistBtn = document.getElementById('headerPlaylistBtn');
+    if (headerPlaylistBtn) {
+        headerPlaylistBtn.style.display = (subtab === 'songs') ? '' : 'none';
+    }
 }
 
 /**
@@ -1654,33 +1691,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Read URL params for artist include toggles (passed from artist list page)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('artistIncludeGroups') === 'true') {
-        artistIncludeGroups = true;
-        const toggle = document.getElementById('includeGroupsToggle');
-        if (toggle) toggle.checked = true;
-    }
-    if (urlParams.get('artistIncludeFeatured') === 'true') {
-        artistIncludeFeatured = true;
-        const toggle = document.getElementById('includeFeaturedToggle');
-        if (toggle) toggle.checked = true;
-    }
+    // Note: includeGroups and includeFeatured toggles are now handled as regular form inputs
+    // They get their checked state from th:checked in the HTML and are submitted with the form
 });
-
-/**
- * Toggles the includeGroups setting for Top Artists and reloads
- */
-function toggleArtistIncludeGroups(checked) {
-    artistIncludeGroups = checked;
-    reloadTopData();
-}
-
-/**
- * Toggles the includeFeatured setting for Top Artists and reloads
- */
-function toggleArtistIncludeFeatured(checked) {
-    artistIncludeFeatured = checked;
-    reloadTopData();
-}

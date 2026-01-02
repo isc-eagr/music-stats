@@ -589,7 +589,7 @@
                 </div>
                 
                 <div class="search-container" th:unless="${songChartFinalized}">
-                    <input type="text" 
+                    <input type="text" autocomplete="off"
                            class="search-input" 
                            id="songSearch" 
                            placeholder="Search for a song by name or artist..."
@@ -637,7 +637,7 @@
                     </div>
                     
                     <div class="search-container" th:unless="${songChartFinalized}">
-                        <input type="text" 
+                        <input type="text" autocomplete="off"
                                class="search-input" 
                                id="extraSearch" 
                                placeholder="Search for extra songs..."
@@ -683,7 +683,7 @@
                 </div>
                 
                 <div class="search-container" th:unless="${albumChartFinalized}">
-                    <input type="text" 
+                    <input type="text" autocomplete="off"
                            class="search-input" 
                            id="albumSearch" 
                            placeholder="Search for an album by name or artist..."

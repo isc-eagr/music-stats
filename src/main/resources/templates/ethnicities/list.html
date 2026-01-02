@@ -23,7 +23,7 @@
             <div class="controls">
                 <div class="search-bar">
                     <form method="get" action="/ethnicities">
-                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search ethnicities...">
+                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search ethnicities...">
                         <button type="submit" class="btn-action">Search</button>
                     </form>
                 </div>
@@ -53,7 +53,7 @@
                     
                     <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
                         <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
-                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                        <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
                                style="width: 70px;" onchange="changePageSize(this.value)">
                     </div>
                 </div>
@@ -85,7 +85,7 @@
                class="page-btn">‹</a>
             
             <span class="page-info">
-                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
                        onchange="goToPage(this.value - 1)" style="width: 60px;"> 
                 of <span th:text="${totalPages}"></span>
             </span>
@@ -272,7 +272,7 @@
                class="page-btn">‹</a>
             
             <span class="page-info">
-                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
                        onchange="goToPage(this.value - 1)" style="width: 60px;"> 
                 of <span th:text="${totalPages}"></span>
             </span>
@@ -375,7 +375,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="createName">Name *</label>
-                        <input type="text" id="createName" name="name" required>
+                        <input type="text" autocomplete="off" id="createName" name="name" required>
                     </div>
                 </div>
                 <div class="modal-footer">

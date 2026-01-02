@@ -103,6 +103,9 @@ public class GraphsController {
             // Subgenre filter
             @RequestParam(required = false) List<Integer> subgenre,
             @RequestParam(required = false) String subgenreMode,
+            // Artist include options (for filtering by artist's groups and featured songs)
+            @RequestParam(required = false, defaultValue = "false") boolean includeGroups,
+            @RequestParam(required = false, defaultValue = "false") boolean includeFeatured,
             @RequestParam(required = false) String tab,
             Model model) {
         
@@ -232,6 +235,10 @@ public class GraphsController {
         // Subgenre filter
         model.addAttribute("selectedSubgenres", subgenre);
         model.addAttribute("subgenreMode", subgenreMode != null ? subgenreMode : "includes");
+        
+        // Artist include options (for filtering by artist's groups and featured songs)
+        model.addAttribute("includeGroups", includeGroups);
+        model.addAttribute("includeFeatured", includeFeatured);
         
         // Active tab (default to 'top')
         model.addAttribute("activeTab", tab != null ? tab : "top");

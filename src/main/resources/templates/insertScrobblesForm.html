@@ -45,7 +45,7 @@
 
             <form th:action="@{/scrobbles/upload}" method="post" enctype="multipart/form-data">
                 <label for="file">CSV file</label>
-                <input type="file" id="file" name="file" accept="text/csv" required />
+                <input type="file" autocomplete="off" id="file" name="file" accept="text/csv" required />
 
                 <label for="account">Account</label>
                 <select id="account" name="account">
@@ -53,10 +53,10 @@
                 </select>
 
                 <label for="batchSize">Batch size (rows per DB commit)</label>
-                <input type="number" id="batchSize" name="batchSize" value="2000" min="1" />
+                <input type="number" autocomplete="off" id="batchSize" name="batchSize" value="2000" min="1" />
 
                 <div class="field-row">
-                    <label class="checkbox-label"><input type="checkbox" name="dryRun" value="true" /> Dry run (do not write to DB)</label>
+                    <label class="checkbox-label"><input type="checkbox" autocomplete="off" name="dryRun" value="true" /> Dry run (do not write to DB)</label>
                 </div>
 
                 <div class="actions">

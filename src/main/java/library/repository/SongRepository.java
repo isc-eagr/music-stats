@@ -1376,12 +1376,19 @@ public class SongRepository {
      */
     private void buildScrobbleEarlyFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
         // Artist ID filter - filter scrobbles to only songs by these artists
+        // When includeGroups/includeFeatured is set, skip this early filter and let buildFilterClause handle it
+        // (buildFilterClause will add the expanded artist filter with proper OR conditions)
         java.util.List<Integer> artistIds = filter.getArtistIds();
-        if (artistIds != null && !artistIds.isEmpty()) {
+        boolean includeGroups = filter.isIncludeGroups();
+        boolean includeFeatured = filter.isIncludeFeatured();
+        
+        if (artistIds != null && !artistIds.isEmpty() && !includeGroups && !includeFeatured) {
+            // Simple filter - only main artist songs (no expansion needed)
             String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
             sql.append(" AND scr.song_id IN (SELECT id FROM Song WHERE artist_id IN (").append(placeholders).append("))");
             params.addAll(artistIds);
         }
+        // When includeGroups or includeFeatured is set, don't add early filter - buildFilterClause will handle it
         
         // Album ID filter - filter scrobbles to only songs from these albums
         java.util.List<Integer> albumIds = filter.getAlbumIds();
@@ -1405,10 +1412,20 @@ public class SongRepository {
      * Delegates to the existing method for basic filters and adds new entity-aware filters.
      */
     private void buildFilterClause(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        boolean includeGroups = filter.isIncludeGroups();
+        boolean includeFeatured = filter.isIncludeFeatured();
+        java.util.List<Integer> artistIds = filter.getArtistIds();
+        boolean hasArtistFilter = artistIds != null && !artistIds.isEmpty();
+        
+        // When includeGroups or includeFeatured is set AND we have artist filter,
+        // we handle artist filter specially below, so pass null to basic method
+        java.util.List<Integer> artistIdsForBasicFilter = (hasArtistFilter && (includeGroups || includeFeatured)) 
+            ? null : artistIds;
+        
         // Delegate basic filters to existing method
         // Note: release date is handled separately with entity-awareness below, so pass nulls here
         buildFilterClause(sql, params,
-            filter.getName(), filter.getArtistIds(), filter.getAlbumIds(), filter.getSongIds(),
+            filter.getName(), artistIdsForBasicFilter, filter.getAlbumIds(), filter.getSongIds(),
             filter.getGenreIds(), filter.getGenreMode(),
             filter.getSubgenreIds(), filter.getSubgenreMode(),
             filter.getLanguageIds(), filter.getLanguageMode(),
@@ -1417,6 +1434,32 @@ public class SongRepository {
             filter.getCountries(), filter.getCountryMode(),
             null, null, null, null, // release date handled with entity awareness below
             filter.getListenedDateFrom(), filter.getListenedDateTo());
+        
+        // Handle artist filter with includeGroups/includeFeatured expansion
+        if (hasArtistFilter && (includeGroups || includeFeatured)) {
+            String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
+            StringBuilder artistCondition = new StringBuilder();
+            
+            // Always include songs where artist_id matches (main artist songs)
+            artistCondition.append("(s.artist_id IN (").append(placeholders).append(")");
+            params.addAll(artistIds);
+            
+            if (includeGroups) {
+                // Include songs where the song's artist is a GROUP that the selected artist(s) are members of
+                // i.e., the song's artist has the selected artists as members
+                artistCondition.append(" OR s.artist_id IN (SELECT am.group_artist_id FROM ArtistMember am WHERE am.member_artist_id IN (").append(placeholders).append("))");
+                params.addAll(artistIds);
+            }
+            
+            if (includeFeatured) {
+                // Include songs where the selected artist(s) are featured
+                artistCondition.append(" OR s.id IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa WHERE sfa.artist_id IN (").append(placeholders).append("))");
+                params.addAll(artistIds);
+            }
+            
+            artistCondition.append(")");
+            sql.append(" AND ").append(artistCondition);
+        }
         
         // Handle Account filter
         java.util.List<String> accounts = filter.getAccounts();
@@ -5168,8 +5211,8 @@ public class SongRepository {
         // Use full filter for all entity types - filter based on songs that match, then aggregate
         result.put("topArtists", getTopArtistsFilteredByDTO(filter, limit));
         result.put("topAlbums", getTopAlbumsFilteredByDTO(filter, limit));
-        // Use combined filter for scrobble-based song query
-        result.put("topSongs", getTopSongsFiltered(combinedFilter, combinedParams, limit));
+        // Use DTO-based song query to support featured/group indicators
+        result.put("topSongs", getTopSongsFilteredByDTO(filter, limit));
 
         return result;
     }
@@ -5328,11 +5371,17 @@ public class SongRepository {
         
         boolean includeGroups = filter.isIncludeGroups();
         boolean includeFeatured = filter.isIncludeFeatured();
+        boolean hasArtistFilter = filter.getArtistIds() != null && !filter.getArtistIds().isEmpty();
         
         params.add(limit);
         
         String sql;
         
+        // When there's an artist filter with includeGroups/includeFeatured, the filter clause already
+        // expands the artist filter to include group and featured songs. We just need to aggregate
+        // by the song's actual artist_id (no UNION attribution needed).
+        // The UNION logic is only needed when there's NO artist filter and we want to attribute
+        // group/featured plays to individual artists for aggregation purposes.
         if (!includeGroups && !includeFeatured) {
             // Standard query - no includes
             sql = """
@@ -5379,8 +5428,56 @@ public class SongRepository {
                 ORDER BY agg.plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
+        } else if (hasArtistFilter) {
+            // When there's an artist filter with includeGroups/includeFeatured, use the simple query.
+            // The filter clause already expands to include group and featured songs.
+            sql = """
+                SELECT 
+                    ar.id,
+                    ar.name,
+                    ar.gender_id,
+                    ar.genre_id,
+                    gen.name as genre,
+                    ar.subgenre_id,
+                    sg.name as subgenre,
+                    ar.ethnicity_id,
+                    eth.name as ethnicity,
+                    ar.language_id,
+                    lang.name as language,
+                    ar.country,
+                    agg.plays,
+                    agg.primary_plays,
+                    agg.legacy_plays,
+                    agg.time_listened,
+                    agg.first_listened,
+                    agg.last_listened
+                FROM Artist ar
+                LEFT JOIN Genre gen ON ar.genre_id = gen.id
+                LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
+                LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
+                LEFT JOIN Language lang ON ar.language_id = lang.id
+                INNER JOIN (
+                    SELECT 
+                        s.artist_id,
+                        COUNT(*) as plays,
+                        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                        SUM(s.length_seconds) as time_listened,
+                        MIN(scr.scrobble_date) as first_listened,
+                        MAX(scr.scrobble_date) as last_listened
+                    FROM Scrobble scr
+                    INNER JOIN Song s ON scr.song_id = s.id
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    WHERE 1=1 """ + songFilterClause.toString() + """
+                    GROUP BY s.artist_id
+                ) agg ON ar.id = agg.artist_id
+                ORDER BY agg.plays DESC, agg.last_listened ASC
+                LIMIT ?
+                """;
         } else {
-            // Build union query to include groups and/or featured plays
+            // No artist filter, but includeGroups/includeFeatured is set.
+            // Build union query to attribute group/featured plays to individual artists.
             StringBuilder unionParts = new StringBuilder();
 
             // Part 1: Direct artist plays (always included)
@@ -5625,6 +5722,173 @@ public class SongRepository {
             row.put("timeListenedFormatted", formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
+            return row;
+        }, params.toArray());
+    }
+    
+    /**
+     * Get top songs filtered using full ChartFilterDTO.
+     * When includeGroups/includeFeatured is set with an artist filter, marks songs as fromGroup/featuredOn.
+     */
+    private java.util.List<java.util.Map<String, Object>> getTopSongsFilteredByDTO(ChartFilterDTO filter, int limit) {
+        StringBuilder songFilterClause = new StringBuilder();
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        
+        // Build song-level filter clause (this applies all entity-aware filters)
+        buildFilterClause(songFilterClause, params, filter);
+        
+        java.util.List<Integer> artistIds = filter.getArtistIds();
+        boolean includeGroups = filter.isIncludeGroups();
+        boolean includeFeatured = filter.isIncludeFeatured();
+        boolean hasArtistFilter = artistIds != null && !artistIds.isEmpty();
+        
+        params.add(limit);
+        
+        // Build the SQL with optional columns for featured/group detection
+        String featuredOnColumn = "";
+        String fromGroupColumn = "";
+        String primaryArtistColumns = "";
+        String sourceArtistColumns = "";
+        String featuredJoin = "";
+        String groupMemberJoin = "";
+        
+        if (hasArtistFilter && includeFeatured) {
+            // Add column to detect if the song features the selected artist(s)
+            String artistPlaceholders = String.join(",", artistIds.stream().map(id -> "?").toList());
+            featuredOnColumn = ", CASE WHEN EXISTS (SELECT 1 FROM SongFeaturedArtist sfa2 WHERE sfa2.song_id = s.id AND sfa2.artist_id IN (" + artistPlaceholders + ")) THEN 1 ELSE 0 END as featured_on";
+            for (Integer id : artistIds) params.add(params.size() - 1, id); // Insert before limit
+            
+            // Add primary artist info (the main artist of featured songs)
+            primaryArtistColumns = ", s.artist_id as primary_artist_id, ar.name as primary_artist_name";
+        }
+        
+        if (hasArtistFilter && includeGroups) {
+            // Add column to detect if the song is from a group the selected artist(s) belong to
+            String artistPlaceholders = String.join(",", artistIds.stream().map(id -> "?").toList());
+            fromGroupColumn = ", CASE WHEN s.artist_id NOT IN (" + artistPlaceholders + ") AND EXISTS (SELECT 1 FROM ArtistMember am WHERE am.group_artist_id = s.artist_id AND am.member_artist_id IN (" + artistPlaceholders + ")) THEN 1 ELSE 0 END as from_group";
+            for (Integer id : artistIds) params.add(params.size() - 1, id); // Insert before limit
+            for (Integer id : artistIds) params.add(params.size() - 1, id); // Insert before limit (for second IN clause)
+            
+            // Add source artist info (the group)
+            sourceArtistColumns = ", s.artist_id as source_artist_id, ar.name as source_artist_name";
+        }
+        
+        String sql = """
+            SELECT 
+                s.id,
+                s.name,
+                s.artist_id,
+                ar.name as artist_name,
+                s.album_id,
+                alb.name as album_name,
+                COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
+                COALESCE(s.release_date, alb.release_date) as release_date,
+                COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) as genre_id,
+                COALESCE(g_song.name, g_album.name, g_artist.name) as genre,
+                COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) as subgenre_id,
+                COALESCE(sg_song.name, sg_album.name, sg_artist.name) as subgenre,
+                COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as ethnicity_id,
+                COALESCE(eth_song.name, eth_artist.name) as ethnicity,
+                COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) as language_id,
+                COALESCE(l_song.name, l_album.name, l_artist.name) as language,
+                ar.country,
+                s.length_seconds,
+                s.is_single,
+                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
+                COUNT(*) as plays,
+                SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                COALESCE(s.length_seconds, 0) * COUNT(*) as time_listened,
+                MIN(scr.scrobble_date) as first_listened,
+                MAX(scr.scrobble_date) as last_listened
+                """ + featuredOnColumn + fromGroupColumn + primaryArtistColumns + sourceArtistColumns + " " + """
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album alb ON s.album_id = alb.id
+            LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
+            LEFT JOIN Genre g_album ON alb.override_genre_id = g_album.id
+            LEFT JOIN Genre g_artist ON ar.genre_id = g_artist.id
+            LEFT JOIN SubGenre sg_song ON s.override_subgenre_id = sg_song.id
+            LEFT JOIN SubGenre sg_album ON alb.override_subgenre_id = sg_album.id
+            LEFT JOIN SubGenre sg_artist ON ar.subgenre_id = sg_artist.id
+            LEFT JOIN Language l_song ON s.override_language_id = l_song.id
+            LEFT JOIN Language l_album ON alb.override_language_id = l_album.id
+            LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
+            LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
+            LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
+            WHERE 1=1 """ + songFilterClause.toString() + """
+             GROUP BY s.id
+            ORDER BY plays DESC, last_listened ASC
+            LIMIT ?
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.util.Map<String, Object> row = new java.util.HashMap<>();
+            row.put("id", rs.getInt("id"));
+            row.put("name", rs.getString("name"));
+            row.put("artistId", rs.getInt("artist_id"));
+            row.put("artistName", rs.getString("artist_name"));
+            row.put("albumId", rs.getObject("album_id"));
+            row.put("albumName", rs.getString("album_name"));
+            row.put("genderId", rs.getObject("gender_id"));
+            row.put("releaseDate", formatDate(rs.getString("release_date")));
+            row.put("genreId", rs.getObject("genre_id"));
+            row.put("genre", rs.getString("genre"));
+            row.put("subgenreId", rs.getObject("subgenre_id"));
+            row.put("subgenre", rs.getString("subgenre"));
+            row.put("ethnicityId", rs.getObject("ethnicity_id"));
+            row.put("ethnicity", rs.getString("ethnicity"));
+            row.put("languageId", rs.getObject("language_id"));
+            row.put("language", rs.getString("language"));
+            row.put("country", rs.getString("country"));
+            int lengthSeconds = rs.getInt("length_seconds");
+            row.put("length", rs.wasNull() ? null : lengthSeconds);
+            if (!rs.wasNull() && lengthSeconds > 0) {
+                int mins = lengthSeconds / 60;
+                int secs = lengthSeconds % 60;
+                row.put("lengthFormatted", String.format("%d:%02d", mins, secs));
+            } else {
+                row.put("lengthFormatted", null);
+            }
+            row.put("isSingle", rs.getInt("is_single") == 1);
+            row.put("hasImage", rs.getInt("has_image") == 1);
+            row.put("albumHasImage", rs.getInt("album_has_image") == 1);
+            row.put("plays", rs.getLong("plays"));
+            row.put("primaryPlays", rs.getLong("primary_plays"));
+            row.put("legacyPlays", rs.getLong("legacy_plays"));
+            long timeListened = rs.getLong("time_listened");
+            row.put("timeListened", timeListened);
+            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("firstListened", formatDate(rs.getString("first_listened")));
+            row.put("lastListened", formatDate(rs.getString("last_listened")));
+            
+            // Add featured/group flags if applicable
+            if (hasArtistFilter && includeFeatured) {
+                try {
+                    row.put("featuredOn", rs.getInt("featured_on") == 1);
+                    row.put("primaryArtistId", rs.getInt("primary_artist_id"));
+                    row.put("primaryArtistName", rs.getString("primary_artist_name"));
+                } catch (java.sql.SQLException e) {
+                    row.put("featuredOn", false);
+                }
+            } else {
+                row.put("featuredOn", false);
+            }
+            
+            if (hasArtistFilter && includeGroups) {
+                try {
+                    row.put("fromGroup", rs.getInt("from_group") == 1);
+                    row.put("sourceArtistId", rs.getInt("source_artist_id"));
+                    row.put("sourceArtistName", rs.getString("source_artist_name"));
+                } catch (java.sql.SQLException e) {
+                    row.put("fromGroup", false);
+                }
+            } else {
+                row.put("fromGroup", false);
+            }
+            
             return row;
         }, params.toArray());
     }

@@ -791,6 +791,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit,
             @RequestParam(required = false) String limitEntity) {
 
@@ -804,6 +806,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         // For General tab, the limit should apply to the selected entity for scrobble-derived metrics
         filter.setLimitEntity(limitEntity);
 
@@ -855,6 +859,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -867,6 +873,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getGenreChartData(filter);
     }
     
@@ -915,6 +923,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -927,6 +937,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getSubgenreChartData(filter);
     }
     
@@ -975,6 +987,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -987,6 +1001,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getEthnicityChartData(filter);
     }
     
@@ -1035,6 +1051,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -1047,6 +1065,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getLanguageChartData(filter);
     }
     
@@ -1095,6 +1115,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -1107,6 +1129,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getCountryChartData(filter);
     }
     
@@ -1155,6 +1179,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -1167,6 +1193,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getReleaseYearChartData(filter);
     }
     
@@ -1215,6 +1243,8 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
 
         ChartFilterDTO filter = buildChartFilter(
@@ -1227,6 +1257,8 @@ public class SongController {
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
             hasFeaturedArtists, isBand, isSingle, limit);
 
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
         return songService.getListenYearChartData(filter);
     }
     

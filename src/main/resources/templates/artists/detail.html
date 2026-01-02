@@ -59,7 +59,7 @@
                     </div>
 
                     <div class="image-upload-overlay">
-                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <input type="file" autocomplete="off" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
                             Upload Image
                         </button>
@@ -190,7 +190,7 @@
                     <!-- Include Main Toggle (always shown, on by default) -->
                     <div class="include-groups-toggle">
                         <label class="toggle-label">
-                            <input type="checkbox" 
+                            <input type="checkbox" autocomplete="off"
                                    id="includeMainToggle" 
                                    th:checked="${includeMain}"
                                    onchange="toggleIncludeMain(this.checked)">
@@ -202,7 +202,7 @@
                     <!-- Include Groups Toggle (only shown if artist has groups) -->
                     <div th:if="${hasGroups}" class="include-groups-toggle">
                         <label class="toggle-label">
-                            <input type="checkbox" 
+                            <input type="checkbox" autocomplete="off"
                                    id="includeGroupsToggle" 
                                    th:checked="${includeGroups}"
                                    onchange="toggleIncludeGroups(this.checked)">
@@ -214,7 +214,7 @@
                     <!-- Include Featured Songs Toggle (only shown if artist has featured songs) -->
                     <div th:if="${hasFeaturedSongs}" class="include-groups-toggle">
                         <label class="toggle-label">
-                            <input type="checkbox" 
+                            <input type="checkbox" autocomplete="off"
                                    id="includeFeaturedToggle" 
                                    th:checked="${includeFeatured}"
                                    onchange="toggleIncludeFeatured(this.checked)">
@@ -247,7 +247,7 @@
                             <div class="form-group form-group-full-width name-field-group" id="nameFieldGroup" style="display:none;">
                                 <label for="name">Name</label>
                                 <span class="attribute-text" data-field="name" th:text="${artist.name}" style="display:none;">Artist Name</span>
-                                <input type="text" id="name" name="name" th:field="*{name}" class="editable-input" />
+                                <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" class="editable-input" />
                             </div>
                             <div class="attributes-grid">
                                 <div class="form-group">
@@ -284,13 +284,13 @@
                                 <div class="form-group">
                                     <label for="birthDate">Birth Date</label>
                                     <span class="attribute-text" data-field="birthDate" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd MMM yyyy') : '-'}">-</span>
-                                    <input type="text" id="birthDate" name="birthDate" th:value="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                    <input type="text" autocomplete="off" id="birthDate" name="birthDate" th:value="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="deathDate">Death Date</label>
                                     <span class="attribute-text" data-field="deathDate" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd MMM yyyy') : '-'}">-</span>
-                                    <input type="text" id="deathDate" name="deathDate" th:value="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                    <input type="text" autocomplete="off" id="deathDate" name="deathDate" th:value="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
                                 </div>
                                 
                                 <div class="form-group">
@@ -330,7 +330,7 @@
                                     <label class="field-label label-view">Is Band</label>
                                     <span class="attribute-text" data-field="isBand" th:text="${artist.isBand != null and artist.isBand ? 'Yes' : 'No'}">No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
-                                        <input type="checkbox" id="isBand" name="isBand" th:field="*{isBand}" />
+                                        <input type="checkbox" autocomplete="off" id="isBand" name="isBand" th:field="*{isBand}" />
                                         Is Band
                                     </label>
                                 </div>
@@ -339,7 +339,7 @@
                                     <label>Organized</label>
                                     <span class="attribute-text" data-field="organized" th:text="${artist.organized != null and artist.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
-                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
+                                        <input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" />
                                         Organized
                                     </label>
                                 </div>

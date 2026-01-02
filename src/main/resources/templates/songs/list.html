@@ -29,8 +29,8 @@
             </div>
             <div class="controls">
                 <div class="search-bar">
-                    <form method="get" action="/songs">
-                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search songs...">
+                    <form method="get" action="/songs" autocomplete="off">
+                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search songs..." autocomplete="off">
                         <button type="submit" class="btn-action">Search</button>
                     </form>
                 </div>
@@ -61,7 +61,7 @@
                     
                     <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
                         <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
-                        <input type="number" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                        <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
                                style="width: 70px;" onchange="changePageSize(this.value)">
                     </div>
                     
@@ -72,11 +72,11 @@
                         </div>
                         
                         <div class="filter-content">
-                            <form method="get" action="/songs" id="filterForm">
-                                <input type="hidden" name="q" th:value="${searchQuery}">
-                                <input type="hidden" name="sortby" th:value="${sortBy}">
-                                <input type="hidden" name="sortdir" th:value="${sortDir}">
-                                <input type="hidden" name="perpage" th:value="${perPage}">
+                            <form method="get" action="/songs" id="filterForm" autocomplete="off">
+                                <input type="hidden" autocomplete="off" name="q" th:value="${searchQuery}">
+                                <input type="hidden" autocomplete="off" name="sortby" th:value="${sortBy}">
+                                <input type="hidden" autocomplete="off" name="sortdir" th:value="${sortDir}">
+                                <input type="hidden" autocomplete="off" name="perpage" th:value="${perPage}">
                                 
                                 <!-- Account Filter -->
                                 <div class="filter-item">
@@ -91,7 +91,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${accountMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="account">includes</button>
                                             <button type="button" class="filter-modifier" th:classappend="${accountMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="account">excludes</button>
                                         </div>
-                                        <input type="hidden" name="accountMode" th:value="${accountMode}" id="accountMode">
+                                        <input type="hidden" autocomplete="off" name="accountMode" th:value="${accountMode}" id="accountMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('account')">
                                                 <div class="multi-select-chips" id="accountChips">
@@ -106,7 +106,7 @@
                                             <div class="multi-select-dropdown" id="accountDropdown">
                                                 <div class="multi-select-option">
                                                     <label>
-                                                        <input type="checkbox" name="account" value="vatito" 
+                                                        <input type="checkbox" autocomplete="off" name="account" value="vatito" 
                                                                th:checked="${selectedAccounts != null && selectedAccounts.contains('vatito')}"
                                                                onchange="updateAccountChips(this)">
                                                         <span>🔵 Primary (vatito)</span>
@@ -114,7 +114,7 @@
                                                 </div>
                                                 <div class="multi-select-option">
                                                     <label>
-                                                        <input type="checkbox" name="account" value="robertlover" 
+                                                        <input type="checkbox" autocomplete="off" name="account" value="robertlover" 
                                                                th:checked="${selectedAccounts != null && selectedAccounts.contains('robertlover')}"
                                                                onchange="updateAccountChips(this)">
                                                         <span>🟣 Legacy (robertlover)</span>
@@ -135,7 +135,7 @@
                                     </div>
                                     <div class="filter-item-content">
                                         <label class="field"><span>Album Name</span>
-                                            <input type="text" name="album" th:value="${selectedAlbum}" placeholder="Album name..." />
+                                            <input type="text" autocomplete="off" name="album" th:value="${selectedAlbum}" placeholder="Album name..." />
                                         </label>
                                     </div>
                                 </div>
@@ -150,7 +150,7 @@
                                     </div>
                                     <div class="filter-item-content">
                                         <label class="field"><span>Artist Name</span>
-                                            <input type="text" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
+                                            <input type="text" autocomplete="off" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
                                         </label>
                                     </div>
                                 </div>
@@ -170,7 +170,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="country">is null</button>
                                             <button type="button" class="filter-modifier" th:classappend="${countryMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="country">is not null</button>
                                         </div>
-                                        <input type="hidden" name="countryMode" th:value="${countryMode}" id="countryMode">
+                                        <input type="hidden" autocomplete="off" name="countryMode" th:value="${countryMode}" id="countryMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('country')">
                                                 <div class="multi-select-chips" id="countryChips">
@@ -185,7 +185,7 @@
                                             <div class="multi-select-dropdown" id="countryDropdown">
                                                 <div class="multi-select-option" th:each="countryName : ${countries}">
                                                     <label>
-                                                        <input type="checkbox" name="country" th:value="${countryName}" 
+                                                        <input type="checkbox" autocomplete="off" name="country" th:value="${countryName}" 
                                                                th:checked="${selectedCountries != null && selectedCountries.contains(countryName)}"
                                                                onchange="updateCountryChips(this)">
                                                         <span th:text="${countryName}"></span>
@@ -211,7 +211,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="ethnicity">is null</button>
                                             <button type="button" class="filter-modifier" th:classappend="${ethnicityMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="ethnicity">is not null</button>
                                         </div>
-                                        <input type="hidden" name="ethnicityMode" th:value="${ethnicityMode}" id="ethnicityMode">
+                                        <input type="hidden" autocomplete="off" name="ethnicityMode" th:value="${ethnicityMode}" id="ethnicityMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('ethnicity')">
                                                 <div class="multi-select-chips" id="ethnicityChips">
@@ -226,7 +226,7 @@
                                             <div class="multi-select-dropdown" id="ethnicityDropdown">
                                                 <div class="multi-select-option" th:each="entry : ${ethnicities}">
                                                     <label>
-                                                        <input type="checkbox" name="ethnicity" th:value="${entry.key}" 
+                                                        <input type="checkbox" autocomplete="off" name="ethnicity" th:value="${entry.key}" 
                                                                th:checked="${selectedEthnicities != null && selectedEthnicities.contains(entry.key)}"
                                                                onchange="updateChips('ethnicity', this)">
                                                         <span th:text="${entry.value}"></span>
@@ -259,18 +259,18 @@
                                             <button type="button" class="filter-modifier" data-filter="firstListenedDate" data-mode="between"
                                                     th:classappend="${firstListenedDateMode == 'between'} ? 'active' : ''">Between</button>
                                         </div>
-                                        <input type="hidden" name="firstListenedDateMode" id="firstListenedDateModeInput" th:value="${firstListenedDateMode}" />
+                                        <input type="hidden" autocomplete="off" name="firstListenedDateMode" id="firstListenedDateModeInput" th:value="${firstListenedDateMode}" />
                                         <div id="firstListenedDateSingle" th:style="${firstListenedDateMode == 'between'} ? 'display:none' : ''">
                                             <label class="field"><span>Date</span>
-                                                <input type="text" name="firstListenedDate" th:value="${firstListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="firstListenedDate" th:value="${firstListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                         <div id="firstListenedDateRange" th:style="${firstListenedDateMode != 'between'} ? 'display:none' : ''">
                                             <label class="field"><span>From</span>
-                                                <input type="text" name="firstListenedDateFrom" th:value="${firstListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="firstListenedDateFrom" th:value="${firstListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>To</span>
-                                                <input type="text" name="firstListenedDateTo" th:value="${firstListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="firstListenedDateTo" th:value="${firstListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                     </div>
@@ -291,7 +291,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="gender">is null</button>
                                             <button type="button" class="filter-modifier" th:classappend="${genderMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="gender">is not null</button>
                                         </div>
-                                        <input type="hidden" name="genderMode" th:value="${genderMode}" id="genderMode">
+                                        <input type="hidden" autocomplete="off" name="genderMode" th:value="${genderMode}" id="genderMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('gender')">
                                                 <div class="multi-select-chips" id="genderChips">
@@ -306,7 +306,7 @@
                                             <div class="multi-select-dropdown" id="genderDropdown">
                                                 <div class="multi-select-option" th:each="entry : ${genders}">
                                                     <label>
-                                                        <input type="checkbox" name="gender" th:value="${entry.key}" 
+                                                        <input type="checkbox" autocomplete="off" name="gender" th:value="${entry.key}" 
                                                                th:checked="${selectedGenders != null && selectedGenders.contains(entry.key)}"
                                                                onchange="updateChips('gender', this)">
                                                         <span th:text="${entry.value}"></span>
@@ -332,7 +332,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${genreMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="genre">is null</button>
                                             <button type="button" class="filter-modifier" th:classappend="${genreMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="genre">is not null</button>
                                         </div>
-                                        <input type="hidden" name="genreMode" th:value="${genreMode}" id="genreMode">
+                                        <input type="hidden" autocomplete="off" name="genreMode" th:value="${genreMode}" id="genreMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('genre')">
                                                 <div class="multi-select-chips" id="genreChips">
@@ -347,32 +347,13 @@
                                             <div class="multi-select-dropdown" id="genreDropdown">
                                                 <div class="multi-select-option" th:each="entry : ${genres}">
                                                     <label>
-                                                        <input type="checkbox" name="genre" th:value="${entry.key}" 
+                                                        <input type="checkbox" autocomplete="off" name="genre" th:value="${entry.key}" 
                                                                th:checked="${selectedGenres != null && selectedGenres.contains(entry.key)}"
                                                                onchange="updateChips('genre', this)">
                                                         <span th:text="${entry.value}"></span>
                                                     </label>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Has Image Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Has Image
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-group">
-                                            <select name="hasImage" id="hasImageSelect">
-                                                <option value="">All</option>
-                                                <option value="true" th:selected="${selectedHasImage == 'true'}">🖼️ Has Image</option>
-                                                <option value="false" th:selected="${selectedHasImage == 'false'}">🚫 No Image</option>
-                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -391,6 +372,25 @@
                                                 <option value="">All</option>
                                                 <option value="true" th:selected="${selectedHasFeaturedArtists == 'true'}">Yes</option>
                                                 <option value="false" th:selected="${selectedHasFeaturedArtists == 'false'}">No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Has Image Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Has Image
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <select name="hasImage" id="hasImageSelect">
+                                                <option value="">All</option>
+                                                <option value="true" th:selected="${selectedHasImage == 'true'}">🖼️ Has Image</option>
+                                                <option value="false" th:selected="${selectedHasImage == 'false'}">🚫 No Image</option>
                                             </select>
                                         </div>
                                     </div>
@@ -449,7 +449,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${languageMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="language">is null</button>
                                             <button type="button" class="filter-modifier" th:classappend="${languageMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="language">is not null</button>
                                         </div>
-                                        <input type="hidden" name="languageMode" th:value="${languageMode}" id="languageMode">
+                                        <input type="hidden" autocomplete="off" name="languageMode" th:value="${languageMode}" id="languageMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('language')">
                                                 <div class="multi-select-chips" id="languageChips">
@@ -464,7 +464,7 @@
                                             <div class="multi-select-dropdown" id="languageDropdown">
                                                 <div class="multi-select-option" th:each="entry : ${languages}">
                                                     <label>
-                                                        <input type="checkbox" name="language" th:value="${entry.key}" 
+                                                        <input type="checkbox" autocomplete="off" name="language" th:value="${entry.key}" 
                                                                th:checked="${selectedLanguages != null && selectedLanguages.contains(entry.key)}"
                                                                onchange="updateChips('language', this)">
                                                         <span th:text="${entry.value}"></span>
@@ -494,18 +494,18 @@
                                             <button type="button" class="filter-modifier" data-filter="lastListenedDate" data-mode="between"
                                                     th:classappend="${lastListenedDateMode == 'between'} ? 'active' : ''">Between</button>
                                         </div>
-                                        <input type="hidden" name="lastListenedDateMode" id="lastListenedDateModeInput" th:value="${lastListenedDateMode}" />
+                                        <input type="hidden" autocomplete="off" name="lastListenedDateMode" id="lastListenedDateModeInput" th:value="${lastListenedDateMode}" />
                                         <div id="lastListenedDateSingle" th:style="${lastListenedDateMode == 'between'} ? 'display:none' : ''">
                                             <label class="field"><span>Date</span>
-                                                <input type="text" name="lastListenedDate" th:value="${lastListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="lastListenedDate" th:value="${lastListenedDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                         <div id="lastListenedDateRange" th:style="${lastListenedDateMode != 'between'} ? 'display:none' : ''">
                                             <label class="field"><span>From</span>
-                                                <input type="text" name="lastListenedDateFrom" th:value="${lastListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="lastListenedDateFrom" th:value="${lastListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>To</span>
-                                                <input type="text" name="lastListenedDateTo" th:value="${lastListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="lastListenedDateTo" th:value="${lastListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                     </div>
@@ -532,73 +532,13 @@
                                             <button type="button" class="filter-modifier" data-filter="length" data-mode="nonzero"
                                                     th:classappend="${lengthMode == 'nonzero'} ? 'active' : ''">Non-Zero</button>
                                         </div>
-                                        <input type="hidden" name="lengthMode" id="lengthModeInput" th:value="${lengthMode}" />
+                                        <input type="hidden" autocomplete="off" name="lengthMode" id="lengthModeInput" th:value="${lengthMode}" />
                                         <div class="filter-group" id="lengthInputs">
                                             <label class="field"><span>Min (seconds)</span>
-                                                <input type="number" name="lengthMin" th:value="${lengthMin}" placeholder="0" min="0" style="width: 100%;" />
+                                                <input type="number" autocomplete="off" name="lengthMin" th:value="${lengthMin}" placeholder="0" min="0" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Max (seconds)</span>
-                                                <input type="number" name="lengthMax" th:value="${lengthMax}" placeholder="∞" min="0" style="width: 100%;" />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Seasonal Chart Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Seasonal Chart
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-group">
-                                            <label class="field"><span>Peak Position ≤</span>
-                                                <input type="number" name="seasonalChartPeak" th:value="${seasonalChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
-                                            </label>
-                                            <label class="field" style="margin-top: 8px;"><span>Total Seasons ≥</span>
-                                                <input type="number" name="seasonalChartSeasons" th:value="${seasonalChartSeasons}" placeholder="e.g. 1" min="1" style="width: 100%;" />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Weekly Chart Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Weekly Chart
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-group">
-                                            <label class="field"><span>Peak Position ≤</span>
-                                                <input type="number" name="weeklyChartPeak" th:value="${weeklyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
-                                            </label>
-                                            <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
-                                                <input type="number" name="weeklyChartWeeks" th:value="${weeklyChartWeeks}" placeholder="e.g. 1" min="1" style="width: 100%;" />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Yearly Chart Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Yearly Chart
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-group">
-                                            <label class="field"><span>Peak Position ≤</span>
-                                                <input type="number" name="yearlyChartPeak" th:value="${yearlyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
-                                            </label>
-                                            <label class="field" style="margin-top: 8px;"><span>Total Years ≥</span>
-                                                <input type="number" name="yearlyChartYears" th:value="${yearlyChartYears}" placeholder="e.g. 1" min="1" style="width: 100%;" />
+                                                <input type="number" autocomplete="off" name="lengthMax" th:value="${lengthMax}" placeholder="∞" min="0" style="width: 100%;" />
                                             </label>
                                         </div>
                                     </div>
@@ -614,10 +554,10 @@
                                     </div>
                                     <div class="filter-item-content">
                                         <label class="field"><span>From</span>
-                                            <input type="text" name="listenedDateFrom" th:value="${listenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            <input type="text" autocomplete="off" name="listenedDateFrom" th:value="${listenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                         </label>
                                         <label class="field" style="margin-top: 8px;"><span>To</span>
-                                            <input type="text" name="listenedDateTo" th:value="${listenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            <input type="text" autocomplete="off" name="listenedDateTo" th:value="${listenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                         </label>
                                     </div>
                                 </div>
@@ -652,10 +592,10 @@
                                     <div class="filter-item-content">
                                         <div class="filter-group">
                                             <label class="field"><span>Min</span>
-                                                <input type="number" name="playCountMin" th:value="${playCountMin}" placeholder="0" min="0" style="width: 100%;" />
+                                                <input type="number" autocomplete="off" name="playCountMin" th:value="${playCountMin}" placeholder="0" min="0" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Max</span>
-                                                <input type="number" name="playCountMax" th:value="${playCountMax}" placeholder="∞" min="0" style="width: 100%;" />
+                                                <input type="number" autocomplete="off" name="playCountMax" th:value="${playCountMax}" placeholder="∞" min="0" style="width: 100%;" />
                                             </label>
                                         </div>
                                     </div>
@@ -680,18 +620,38 @@
                                             <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="between"
                                                     th:classappend="${releaseDateMode == 'between'} ? 'active' : ''">Between</button>
                                         </div>
-                                        <input type="hidden" name="releaseDateMode" id="releaseDateModeInput" th:value="${releaseDateMode}" />
+                                        <input type="hidden" autocomplete="off" name="releaseDateMode" id="releaseDateModeInput" th:value="${releaseDateMode}" />
                                         <div id="releaseDateSingle" th:style="${releaseDateMode == 'between'} ? 'display:none' : ''">
                                             <label class="field"><span>Date</span>
-                                                <input type="text" name="releaseDate" th:value="${releaseDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="releaseDate" th:value="${releaseDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                         <div id="releaseDateRange" th:style="${releaseDateMode != 'between'} ? 'display:none' : ''">
                                             <label class="field"><span>From</span>
-                                                <input type="text" name="releaseDateFrom" th:value="${releaseDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="releaseDateFrom" th:value="${releaseDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>To</span>
-                                                <input type="text" name="releaseDateTo" th:value="${releaseDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                                <input type="text" autocomplete="off" name="releaseDateTo" th:value="${releaseDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Seasonal Chart Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Seasonal Chart
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Peak Position ≤</span>
+                                                <input type="number" autocomplete="off" name="seasonalChartPeak" th:value="${seasonalChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Total Seasons ≥</span>
+                                                <input type="number" autocomplete="off" name="seasonalChartSeasons" th:value="${seasonalChartSeasons}" placeholder="e.g. 1" min="1" style="width: 100%;" />
                                             </label>
                                         </div>
                                     </div>
@@ -712,7 +672,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="subgenre">is null</button>
                                             <button type="button" class="filter-modifier" th:classappend="${subgenreMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="subgenre">is not null</button>
                                         </div>
-                                        <input type="hidden" name="subgenreMode" th:value="${subgenreMode}" id="subgenreMode">
+                                        <input type="hidden" autocomplete="off" name="subgenreMode" th:value="${subgenreMode}" id="subgenreMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('subgenre')">
                                                 <div class="multi-select-chips" id="subgenreChips">
@@ -727,13 +687,53 @@
                                             <div class="multi-select-dropdown" id="subgenreDropdown">
                                                 <div class="multi-select-option" th:each="entry : ${subgenres}">
                                                     <label>
-                                                        <input type="checkbox" name="subgenre" th:value="${entry.key}" 
+                                                        <input type="checkbox" autocomplete="off" name="subgenre" th:value="${entry.key}" 
                                                                th:checked="${selectedSubgenres != null && selectedSubgenres.contains(entry.key)}"
                                                                onchange="updateChips('subgenre', this)">
                                                         <span th:text="${entry.value}"></span>
                                                     </label>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Weekly Chart Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Weekly Chart
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Peak Position ≤</span>
+                                                <input type="number" autocomplete="off" name="weeklyChartPeak" th:value="${weeklyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
+                                                <input type="number" autocomplete="off" name="weeklyChartWeeks" th:value="${weeklyChartWeeks}" placeholder="e.g. 1" min="1" style="width: 100%;" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Yearly Chart Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Yearly Chart
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Peak Position ≤</span>
+                                                <input type="number" autocomplete="off" name="yearlyChartPeak" th:value="${yearlyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Total Years ≥</span>
+                                                <input type="number" autocomplete="off" name="yearlyChartYears" th:value="${yearlyChartYears}" placeholder="e.g. 1" min="1" style="width: 100%;" />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -1055,7 +1055,7 @@
             </div>
             
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
-                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or (selectedHasImage != null and !selectedHasImage.isEmpty()) or selectedHasFeaturedArtists != null or selectedIsBand != null or selectedIsSingle != null or playCountMin != null or playCountMax != null or weeklyChartPeak != null or weeklyChartWeeks != null or seasonalChartPeak != null or seasonalChartSeasons != null or yearlyChartPeak != null or yearlyChartYears != null}">
+                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedArtist != null and !selectedArtist.isEmpty()) or (selectedAlbum != null and !selectedAlbum.isEmpty()) or (releaseDate != null and !releaseDate.isEmpty()) or (releaseDateFrom != null and !releaseDateFrom.isEmpty()) or (releaseDateTo != null and !releaseDateTo.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedAccounts != null and !selectedAccounts.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or (selectedHasImage != null and !selectedHasImage.isEmpty()) or (selectedHasFeaturedArtists != null and !selectedHasFeaturedArtists.isEmpty()) or (selectedIsBand != null and !selectedIsBand.isEmpty()) or (selectedIsSingle != null and !selectedIsSingle.isEmpty()) or playCountMin != null or playCountMax != null or lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero')) or weeklyChartPeak != null or weeklyChartWeeks != null or seasonalChartPeak != null or seasonalChartSeasons != null or yearlyChartPeak != null or yearlyChartYears != null or (firstListenedDate != null and !firstListenedDate.isEmpty()) or (firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty()) or (firstListenedDateTo != null and !firstListenedDateTo.isEmpty()) or (lastListenedDate != null and !lastListenedDate.isEmpty()) or (lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty()) or (lastListenedDateTo != null and !lastListenedDateTo.isEmpty()) or (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or (listenedDateTo != null and !listenedDateTo.isEmpty()) or genderMode == 'isnull' or genderMode == 'isnotnull' or ethnicityMode == 'isnull' or ethnicityMode == 'isnotnull' or genreMode == 'isnull' or genreMode == 'isnotnull' or subgenreMode == 'isnull' or subgenreMode == 'isnotnull' or languageMode == 'isnull' or languageMode == 'isnotnull' or countryMode == 'isnull' or countryMode == 'isnotnull'}">
                 Clear
             </button>
         </div>
@@ -1071,7 +1071,7 @@
                class="page-btn">‹</a>
             
             <span class="page-info">
-                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
                        onchange="goToPage(this.value - 1)" style="width: 60px;"> 
                 of <span th:text="${totalPages}"></span>
             </span>
@@ -1229,7 +1229,7 @@
                class="page-btn">‹</a>
             
             <span class="page-info">
-                Page <input type="number" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
+                Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
                        onchange="goToPage(this.value - 1)" style="width: 60px;"> 
                 of <span th:text="${totalPages}"></span>
             </span>
@@ -1356,10 +1356,10 @@
                 checkbox.checked = false;
             }
             
-            // Remove the chip
+            // Remove the chip (find button by data-value, then remove its parent span)
             const chipsContainer = document.getElementById(filterName + 'Chips');
-            const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
-            if (chip) chip.remove();
+            const chipButton = chipsContainer.querySelector(`button[data-value="${value}"]`);
+            if (chipButton && chipButton.parentElement) chipButton.parentElement.remove();
             
             // Show placeholder if no chips left
             const labelElement = chipsContainer.nextElementSibling;
@@ -1908,17 +1908,17 @@
                     
                     <div class="form-group">
                         <label for="createSongName">Name *</label>
-                        <input type="text" id="createSongName" name="name" required>
+                        <input type="text" autocomplete="off" id="createSongName" name="name" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="createLengthFormatted">Length (mm:ss)</label>
-                        <input type="text" id="createLengthFormatted" name="lengthFormatted" placeholder="3:45">
+                        <input type="text" autocomplete="off" id="createLengthFormatted" name="lengthFormatted" placeholder="3:45">
                     </div>
                     
                     <div class="form-group">
                         <label for="createReleaseDateSong">Release Date</label>
-                        <input type="text" id="createReleaseDateSong" name="releaseDate" placeholder="dd/MM/yyyy">
+                        <input type="text" autocomplete="off" id="createReleaseDateSong" name="releaseDate" placeholder="dd/MM/yyyy">
                     </div>
                     
                     <div class="form-group">
@@ -1932,7 +1932,7 @@
                     
                     <div class="form-group">
                         <label class="inline-checkbox-label">
-                            <input type="checkbox" id="createIsSingle" name="isSingle">
+                            <input type="checkbox" autocomplete="off" id="createIsSingle" name="isSingle">
                             Is Single
                         </label>
                     </div>

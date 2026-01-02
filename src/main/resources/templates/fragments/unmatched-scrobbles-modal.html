@@ -154,7 +154,7 @@
                     <div class="form-group">
                         <label>Search existing artists:</label>
                         <div class="search-row">
-                            <input type="text" id="wizardArtistSearch" placeholder="Search artist name..." onkeyup="handleWizardArtistSearchKeyup(event)">
+                            <input type="text" autocomplete="off" id="wizardArtistSearch" placeholder="Search artist name..." onkeyup="handleWizardArtistSearchKeyup(event)">
                             <button type="button" class="btn btn-action" onclick="searchWizardArtists()">Search</button>
                         </div>
                         <div class="search-results" id="wizardArtistResults">
@@ -173,7 +173,7 @@
                     <div id="newArtistForm" style="display: none; margin-top: 12px; padding: 12px; background: #1e3a1e; border-radius: 6px;">
                         <div class="form-group">
                             <label>Artist Name *</label>
-                            <input type="text" id="newArtistName" placeholder="Enter artist name">
+                            <input type="text" autocomplete="off" id="newArtistName" placeholder="Enter artist name">
                         </div>
                         <div class="form-group">
                             <label>Gender</label>
@@ -212,7 +212,7 @@
                     <div id="newAlbumForm" style="display: none; margin-top: 12px; padding: 12px; background: #1e3a1e; border-radius: 6px;">
                         <div class="form-group">
                             <label>Album Name *</label>
-                            <input type="text" id="newAlbumName" placeholder="Enter album name">
+                            <input type="text" autocomplete="off" id="newAlbumName" placeholder="Enter album name">
                         </div>
                     </div>
                     <div class="wizard-nav">
@@ -230,7 +230,7 @@
                     </p>
                     <div class="form-group">
                         <label>Song Name *</label>
-                        <input type="text" id="wizardSongNameInput" placeholder="Enter song name">
+                        <input type="text" autocomplete="off" id="wizardSongNameInput" placeholder="Enter song name">
                     </div>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(3)">← Back</button>
@@ -258,14 +258,14 @@
                 <div class="form-group">
                     <label>Filter by artist:</label>
                     <div class="search-row">
-                        <input type="text" id="matchArtistFilter" placeholder="Artist name (leave empty for all)" onkeyup="handleMatchSearchKeyup(event)">
+                        <input type="text" autocomplete="off" id="matchArtistFilter" placeholder="Artist name (leave empty for all)" onkeyup="handleMatchSearchKeyup(event)">
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label>Search for song:</label>
                     <div class="search-row">
-                        <input type="text" id="matchSongSearch" placeholder="Search by song name..." onkeyup="handleMatchSearchKeyup(event)">
+                        <input type="text" autocomplete="off" id="matchSongSearch" placeholder="Search by song name..." onkeyup="handleMatchSearchKeyup(event)">
                         <button type="button" class="btn btn-action" onclick="searchMatchSongs()">Search</button>
                     </div>
                 </div>

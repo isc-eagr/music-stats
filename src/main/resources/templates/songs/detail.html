@@ -88,7 +88,7 @@
                     </div>
 
                     <div class="image-upload-overlay">
-                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <input type="file" autocomplete="off" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
                             Upload Image
                         </button>
@@ -277,7 +277,7 @@
                                 <div class="form-group form-group-full-width name-field-group" id="nameFieldGroup" style="display:none;">
                                     <label for="name">Name</label>
                                     <span class="attribute-text" data-field="name" th:text="${song.name}" style="display:none;">Song Name</span>
-                                    <input type="text" id="name" name="name" th:field="*{name}" class="editable-input" />
+                                    <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" class="editable-input" />
                                 </div>
                                 
                                 <!-- Album field (editable dropdown, only shown in edit mode) -->
@@ -302,7 +302,7 @@
                                         <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate == null}">-</th:block>
                                     </span>
                                     <div style="display: flex; gap: 8px; align-items: center;">
-                                        <input type="text" 
+                                        <input type="text" autocomplete="off"
                                                id="releaseDate" 
                                                name="releaseDate" 
                                                th:value="${song.releaseDateInput != null ? song.releaseDateInput : ''}" 
@@ -331,7 +331,7 @@
                                         </th:block>
                                         <th:block th:if="${song.lengthSeconds == null}">-</th:block>
                                     </span>
-                                    <input type="text" 
+                                    <input type="text" autocomplete="off"
                                            id="lengthFormatted" 
                                            class="editable-input"
                                            placeholder="mm:ss"
@@ -343,14 +343,14 @@
                                 <div class="form-group">
                                     <label for="status">Status</label>
                                     <span class="attribute-text" data-field="status" th:text="${song.status != null ? song.status : '-'}">-</span>
-                                    <input type="text" id="status" name="status" th:field="*{status}" class="editable-input" style="display:none;" />
+                                    <input type="text" autocomplete="off" id="status" name="status" th:field="*{status}" class="editable-input" style="display:none;" />
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
                                     <label class="field-label label-view">Is Single</label>
                                     <span class="attribute-text" data-field="isSingle" th:text="${song.isSingle != null and song.isSingle ? 'Yes' : 'No'}">No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
-                                        <input type="checkbox" id="isSingle" name="isSingle" th:field="*{isSingle}" />
+                                        <input type="checkbox" autocomplete="off" id="isSingle" name="isSingle" th:field="*{isSingle}" />
                                         Is Single
                                     </label>
                                 </div>
@@ -444,7 +444,7 @@
                                     <label class="field-label label-view">Organized</label>
                                     <span class="attribute-text" data-field="organized" th:text="${song.organized != null and song.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
-                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
+                                        <input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" />
                                         Organized
                                     </label>
                                 </div>

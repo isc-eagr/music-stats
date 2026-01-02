@@ -46,6 +46,7 @@ public class TimeframeService {
         
         // Check if we need to merge with all periods (for 0-play period support)
         // If so, skip SQL pagination and do it in Java after the merge
+        // Note: decades are NOT included here since we don't generate all decade keys - they use the regular path
         boolean needsMergeWithAllPeriods = ("days".equals(periodType) || "weeks".equals(periodType) || 
                 "months".equals(periodType) || "seasons".equals(periodType) || "years".equals(periodType)) 
                 && !hasRestrictiveFilters(
@@ -390,6 +391,7 @@ public class TimeframeService {
         String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
 
         // Query for top artist per period
+        // Note: Using periodKeyExpr in GROUP BY instead of alias for SQLite compatibility with complex expressions
         String topArtistSql =
             "WITH artist_plays AS ( " +
             "    SELECT " +
@@ -403,7 +405,7 @@ public class TimeframeService {
             "    JOIN Song s ON scr.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "    GROUP BY period_key, ar.id, ar.name, ar.gender_id " +
+            "    GROUP BY " + periodKeyExpr + ", ar.id, ar.name, ar.gender_id " +
             ") " +
             "SELECT period_key, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
 
@@ -428,7 +430,7 @@ public class TimeframeService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "    GROUP BY period_key, al.id, al.name, ar.name " +
+            "    GROUP BY " + periodKeyExpr + ", al.id, al.name, ar.name " +
             ") " +
             "SELECT period_key, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
 
@@ -451,7 +453,7 @@ public class TimeframeService {
             "    JOIN Song s ON scr.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "    GROUP BY period_key, s.id, s.name, ar.name " +
+            "    GROUP BY " + periodKeyExpr + ", s.id, s.name, ar.name " +
             ") " +
             "SELECT period_key, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
 
@@ -1383,7 +1385,7 @@ public class TimeframeService {
                 END
                 """;
             case "years" -> "strftime('%Y', scr.scrobble_date)";
-            case "decades" -> "(CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) / 10) * 10 || 's'";
+            case "decades" -> "CAST((CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) / 10) * 10 AS TEXT) || 's'";
             default -> "strftime('%Y', scr.scrobble_date)";
         };
     }

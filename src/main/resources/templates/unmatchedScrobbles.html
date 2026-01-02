@@ -86,7 +86,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:32px"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"></th>
+                            <th style="width:32px"><input type="checkbox" autocomplete="off" id="selectAllCheckbox" onchange="toggleSelectAll(this)"></th>
                             <th>Account</th>
                             <th>Artist</th>
                             <th>Album</th>
@@ -97,7 +97,7 @@
                     </thead>
                     <tbody id="unmatchedTableBody">
                         <tr th:each="row, iter : ${unmatched}" th:data-index="${iter.index}">
-                            <td><input type="checkbox" class="rowCheckbox" th:data-index="${iter.index}" onchange="toggleRowSelection(this)"></td>
+                            <td><input type="checkbox" autocomplete="off" class="rowCheckbox" th:data-index="${iter.index}" onchange="toggleRowSelection(this)"></td>
                             <td th:text="${row.account}">account</td>
                             <td>
                                 <a th:href="@{/artists(q=${row.artist})}" 
@@ -173,7 +173,7 @@
             
             <div class="final-confirm">
                 <div class="checkbox-row">
-                    <input type="checkbox" id="confirmDeleteCheckbox" onchange="updateDeleteButtonState()">
+                    <input type="checkbox" autocomplete="off" id="confirmDeleteCheckbox" onchange="updateDeleteButtonState()">
                     <label for="confirmDeleteCheckbox">I understand this is permanent and want to delete these scrobbles</label>
                 </div>
             </div>
@@ -194,7 +194,7 @@
             <p class="warning-text">⚠️ This action cannot be undone! These scrobbles will be permanently deleted from the database.</p>
             <div class="final-confirm">
                 <div class="checkbox-row">
-                    <input type="checkbox" id="confirmBulkDeleteCheckbox" onchange="updateBulkDeleteButtonState()">
+                    <input type="checkbox" autocomplete="off" id="confirmBulkDeleteCheckbox" onchange="updateBulkDeleteButtonState()">
                     <label for="confirmBulkDeleteCheckbox">I understand this is permanent and want to delete these scrobbles</label>
                 </div>
             </div>

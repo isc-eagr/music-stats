@@ -69,7 +69,7 @@
                     </div>
 
                     <div class="image-upload-overlay">
-                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        <input type="file" autocomplete="off" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
                             Upload Image
                         </button>
@@ -251,13 +251,13 @@
                             <div class="form-group form-group-full-width name-field-group" id="nameFieldGroup" style="display:none;">
                                 <label for="name">Name</label>
                                 <span class="attribute-text" data-field="name" th:text="${album.name}" style="display:none;">Album Name</span>
-                                <input type="text" id="name" name="name" th:field="*{name}" class="editable-input" />
+                                <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" class="editable-input" />
                             </div>
                             <div class="attributes-grid">
                                 <div class="form-group">
                                     <label for="releaseDate">Release Date</label>
                                     <span class="attribute-text" data-field="releaseDate" th:text="${album.releaseDateFormatted != null ? album.releaseDateFormatted : '-'}">-</span>
-                                    <input type="text" id="releaseDate" name="releaseDate" th:value="${album.releaseDateInput}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" style="display:none;" />
+                                    <input type="text" autocomplete="off" id="releaseDate" name="releaseDate" th:value="${album.releaseDateInput}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" style="display:none;" />
                                 </div>
                                 
                                 <div class="form-group">
@@ -315,7 +315,7 @@
                                     <label class="field-label label-view">Organized</label>
                                     <span class="attribute-text" data-field="organized" th:text="${album.organized != null and album.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
-                                        <input type="checkbox" id="organized" name="organized" th:field="*{organized}" />
+                                        <input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" />
                                         Organized
                                     </label>
                                 </div>
