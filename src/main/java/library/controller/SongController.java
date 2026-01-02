@@ -699,7 +699,15 @@ public class SongController {
             String listenedDateFrom, String listenedDateTo,
             Integer playCountMin, Integer playCountMax, String playCountEntity,
             String hasFeaturedArtists, String isBand, String isSingle,
-            Integer limit) {
+            Integer limit,
+            // Albums chart filters
+            Integer albumsWeeklyChartPeak, Integer albumsWeeklyChartWeeks,
+            Integer albumsSeasonalChartPeak, Integer albumsSeasonalChartSeasons,
+            Integer albumsYearlyChartPeak, Integer albumsYearlyChartYears,
+            // Songs chart filters
+            Integer songsWeeklyChartPeak, Integer songsWeeklyChartWeeks,
+            Integer songsSeasonalChartPeak, Integer songsSeasonalChartSeasons,
+            Integer songsYearlyChartPeak, Integer songsYearlyChartYears) {
         
         return ChartFilterDTO.builder()
             .setName(q)
@@ -743,7 +751,21 @@ public class SongController {
             .setHasFeaturedArtists(hasFeaturedArtists)
             .setIsBand(isBand)
             .setIsSingle(isSingle)
-            .setTopLimit(limit);
+            .setTopLimit(limit)
+            // Albums chart filters
+            .setAlbumsWeeklyChartPeak(albumsWeeklyChartPeak)
+            .setAlbumsWeeklyChartWeeks(albumsWeeklyChartWeeks)
+            .setAlbumsSeasonalChartPeak(albumsSeasonalChartPeak)
+            .setAlbumsSeasonalChartSeasons(albumsSeasonalChartSeasons)
+            .setAlbumsYearlyChartPeak(albumsYearlyChartPeak)
+            .setAlbumsYearlyChartYears(albumsYearlyChartYears)
+            // Songs chart filters
+            .setSongsWeeklyChartPeak(songsWeeklyChartPeak)
+            .setSongsWeeklyChartWeeks(songsWeeklyChartWeeks)
+            .setSongsSeasonalChartPeak(songsSeasonalChartPeak)
+            .setSongsSeasonalChartSeasons(songsSeasonalChartSeasons)
+            .setSongsYearlyChartPeak(songsYearlyChartPeak)
+            .setSongsYearlyChartYears(songsYearlyChartYears);
     }
     
     // API endpoint for General tab chart data (pie charts)
@@ -791,6 +813,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit,
@@ -804,7 +838,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -859,6 +899,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -871,7 +923,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -923,6 +981,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -935,7 +1005,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -987,6 +1063,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -999,7 +1087,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1051,6 +1145,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1063,7 +1169,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1115,6 +1227,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1127,7 +1251,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1179,6 +1309,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1191,7 +1333,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1243,6 +1391,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1255,7 +1415,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1307,6 +1473,18 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "10") int limit) {
@@ -1319,7 +1497,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, limit);
+            hasFeaturedArtists, isBand, isSingle, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
         
         // Set include toggles for top artists
         filter.setIncludeGroups(includeGroups);
@@ -1372,7 +1556,19 @@ public class SongController {
             @RequestParam(required = false) String playCountEntity,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle) {
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears) {
         
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
@@ -1382,7 +1578,13 @@ public class SongController {
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, null);
+            hasFeaturedArtists, isBand, isSingle, null,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears);
         
         return songService.getFilteredChartData(filter);
     }

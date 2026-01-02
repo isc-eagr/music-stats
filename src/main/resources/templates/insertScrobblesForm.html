@@ -6,6 +6,7 @@
     <title>Import Scrobbles</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
     <style>
         /* Minor page-specific adjustments to match site look */
         .form-card { max-width: 880px; margin: 24px 0; padding: 28px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -17,6 +18,19 @@
         input { width:100%; padding:8px; margin-bottom:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); background:var(--surface-2); color:var(--text) }
         label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
         .error { color: #ff6b6b; margin-bottom:12px; }
+        .success { color: #69db7c; margin-bottom:12px; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .result-box { background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 16px; margin-top: 16px; display: none; }
+        .result-box.show { display: block; }
+        .stat-row { display: flex; gap: 24px; flex-wrap: wrap; }
+        .stat-item { display: flex; gap: 8px; align-items: center; }
+        .stat-item .label { color: var(--text-muted); font-size: 13px; }
+        .stat-item .value { font-weight: 700; font-size: 15px; }
+        .delete-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .delete-buttons .btn { min-width: 80px; }
+        .btn-danger { background: #c92a2a; color: white; border: none; }
+        .btn-danger:hover { background: #a61e1e; }
+        .loading { opacity: 0.6; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -36,7 +50,116 @@
             </div>
         </div>
         
+        <!-- Automated Last.fm Fetch -->
         <div class="form-card">
+            <p class="section-title">🚀 Automated Last.fm Fetch</p>
+            <p class="hint">Fetch recent scrobbles directly from Last.fm API. Uses the latest last.fm ID + 1 as the starting point.</p>
+            
+            <div id="fetchError" class="error" style="display: none;"></div>
+            <div id="fetchSuccess" class="success" style="display: none;"></div>
+            
+            <label for="fetchAccount">Account</label>
+            <select id="fetchAccount" name="fetchAccount">
+                <option th:each="a: ${accounts}" th:value="${a}" th:text="${a}"></option>
+            </select>
+            
+            <label for="apiKey">Last.fm API Key</label>
+            <input type="text" id="apiKey" name="apiKey" value="e01f90c03b0b1ec2273cd5d46e5628f6" />
+            
+            <div class="actions">
+                <button id="fetchBtn" class="btn btn-action" type="button" onclick="fetchFromLastfm()">Fetch & Import</button>
+            </div>
+            
+            <div id="fetchResult" class="result-box">
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <span class="label">Processed:</span>
+                        <span class="value" id="fetchProcessed">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Matched:</span>
+                        <span class="value" style="color: #69db7c;" id="fetchMatched">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Unmatched:</span>
+                        <span class="value" style="color: #ffa94d;" id="fetchUnmatched">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Errors:</span>
+                        <span class="value" style="color: #ff6b6b;" id="fetchErrors">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Pages:</span>
+                        <span class="value" id="fetchPages">0</span>
+                    </div>
+                </div>
+                <div id="validationResult" style="margin-top: 16px; padding: 12px; border-radius: 6px; display: none;">
+                    <div class="stat-row">
+                        <div class="stat-item">
+                            <span class="label">Last.fm Playcount:</span>
+                            <span class="value" id="lastfmPlaycount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Local Scrobbles:</span>
+                            <span class="value" id="localScrobbleCount">0</span>
+                        </div>
+                        <div class="stat-item" id="differenceItem" style="display: none;">
+                            <span class="label">Difference:</span>
+                            <span class="value" id="validationDifference">0</span>
+                        </div>
+                    </div>
+                    <p id="validationMessage" style="margin: 8px 0 0; font-weight: 600;"></p>
+                </div>
+                
+                <!-- Unmatched scrobbles alert -->
+                <div id="unmatchedAlert" class="unmatched-alert" style="display: none; background: #3a2a1a; border: 1px solid #8a6a3a; border-radius: 8px; padding: 16px; margin-top: 16px;">
+                    <div style="color: #ffa; font-weight: 600; margin-bottom: 8px;">⚠️ Unmatched Scrobbles Detected</div>
+                    <div style="color: #cca; font-size: 14px; margin-bottom: 12px;">
+                        <span id="unmatchedUniqueCount">0</span> unique song(s) could not be matched to existing songs in your library.
+                        You can create new songs or match them to existing ones.
+                    </div>
+                    <button type="button" class="btn btn-action" onclick="showUnmatchedFromFetch()">
+                        View & Fix Unmatched Scrobbles
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Recent Scrobbles -->
+        <div class="form-card">
+            <p class="section-title">🗑️ Delete Recent Scrobbles</p>
+            <p class="hint">Delete scrobbles from the last N days. Useful for re-importing or cleaning up data.</p>
+            
+            <div id="deleteError" class="error" style="display: none;"></div>
+            <div id="deleteSuccess" class="success" style="display: none;"></div>
+            
+            <div class="delete-buttons">
+                <button class="btn btn-danger" type="button" onclick="deleteRecent(5)">5 days</button>
+                <button class="btn btn-danger" type="button" onclick="deleteRecent(10)">10 days</button>
+                <button class="btn btn-danger" type="button" onclick="deleteRecent(20)">20 days</button>
+                <button class="btn btn-danger" type="button" onclick="deleteRecent(30)">30 days</button>
+                <button class="btn btn-danger" type="button" onclick="deleteRecent(60)">60 days</button>
+                <button class="btn btn-danger" type="button" onclick="deleteRecent(90)">90 days</button>
+            </div>
+            
+            <div id="deleteResult" class="result-box">
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <span class="label">Deleted:</span>
+                        <span class="value" style="color: #ff6b6b;" id="deleteCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">scrobbles from the last</span>
+                        <span class="value" id="deleteDays">0</span>
+                        <span class="label">days</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CSV Upload -->
+        <div class="form-card">
+            <p class="section-title">📄 CSV File Upload</p>
             <p class="hint">Upload a CSV file containing scrobbles. The server will stream and save in batches to avoid high memory usage.</p>
 
             <div th:if="${error}">
@@ -66,5 +189,160 @@
             </form>
         </div>
     </main>
+    
+    <script>
+        // Store unmatched scrobbles from fetch
+        let unmatchedFromFetch = [];
+        
+        async function fetchFromLastfm() {
+            const account = document.getElementById('fetchAccount').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const btn = document.getElementById('fetchBtn');
+            const errorEl = document.getElementById('fetchError');
+            const successEl = document.getElementById('fetchSuccess');
+            const resultEl = document.getElementById('fetchResult');
+            
+            // Reset
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            resultEl.classList.remove('show');
+            document.getElementById('validationResult').style.display = 'none';
+            document.getElementById('unmatchedAlert').style.display = 'none';
+            unmatchedFromFetch = [];
+            btn.classList.add('loading');
+            btn.textContent = 'Fetching...';
+            
+            try {
+                const response = await fetch('/scrobbles/api/fetch-lastfm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account, apiKey })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('fetchProcessed').textContent = data.stats.totalProcessed || 0;
+                    document.getElementById('fetchMatched').textContent = data.stats.totalMatched || 0;
+                    document.getElementById('fetchUnmatched').textContent = data.stats.totalUnmatched || 0;
+                    document.getElementById('fetchErrors').textContent = data.stats.totalErrors || 0;
+                    document.getElementById('fetchPages').textContent = data.stats.totalPages || 0;
+                    resultEl.classList.add('show');
+                    
+                    if (data.stats.totalProcessed > 0) {
+                        successEl.textContent = `Successfully imported ${data.stats.totalProcessed} scrobbles!`;
+                        successEl.style.display = 'block';
+                    } else {
+                        successEl.textContent = 'No new scrobbles found.';
+                        successEl.style.display = 'block';
+                    }
+                    
+                    // Display validation result
+                    const validationEl = document.getElementById('validationResult');
+                    if (data.validation) {
+                        document.getElementById('lastfmPlaycount').textContent = data.validation.lastfmPlaycount.toLocaleString();
+                        document.getElementById('localScrobbleCount').textContent = data.validation.localScrobbleCount.toLocaleString();
+                        
+                        const messageEl = document.getElementById('validationMessage');
+                        const differenceItem = document.getElementById('differenceItem');
+                        
+                        if (data.validation.matches) {
+                            validationEl.style.background = 'rgba(105, 219, 124, 0.15)';
+                            validationEl.style.border = '1px solid rgba(105, 219, 124, 0.3)';
+                            messageEl.style.color = '#69db7c';
+                            messageEl.textContent = '✓ Scrobble counts match! All synced up.';
+                            differenceItem.style.display = 'none';
+                        } else {
+                            validationEl.style.background = 'rgba(255, 169, 77, 0.15)';
+                            validationEl.style.border = '1px solid rgba(255, 169, 77, 0.3)';
+                            messageEl.style.color = '#ffa94d';
+                            const diff = data.validation.difference;
+                            document.getElementById('validationDifference').textContent = (diff > 0 ? '+' : '') + diff.toLocaleString();
+                            differenceItem.style.display = 'flex';
+                            if (diff > 0) {
+                                messageEl.textContent = `⚠ Warning: Last.fm has ${diff.toLocaleString()} more scrobbles than local database.`;
+                            } else {
+                                messageEl.textContent = `⚠ Warning: Local database has ${Math.abs(diff).toLocaleString()} more scrobbles than Last.fm.`;
+                            }
+                        }
+                        validationEl.style.display = 'block';
+                    } else {
+                        validationEl.style.display = 'none';
+                    }
+                    
+                    // Display unmatched scrobbles alert
+                    const unmatchedAlertEl = document.getElementById('unmatchedAlert');
+                    if (data.unmatchedList && data.unmatchedList.length > 0) {
+                        unmatchedFromFetch = data.unmatchedList;
+                        document.getElementById('unmatchedUniqueCount').textContent = data.unmatchedList.length;
+                        unmatchedAlertEl.style.display = 'block';
+                    } else {
+                        unmatchedFromFetch = [];
+                        unmatchedAlertEl.style.display = 'none';
+                    }
+                } else {
+                    errorEl.textContent = data.error || 'Unknown error';
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                errorEl.textContent = 'Request failed: ' + e.message;
+                errorEl.style.display = 'block';
+            } finally {
+                btn.classList.remove('loading');
+                btn.textContent = 'Fetch & Import';
+            }
+        }
+        
+        async function deleteRecent(days) {
+            if (!confirm(`Are you sure you want to delete all scrobbles from the last ${days} days? This cannot be undone.`)) {
+                return;
+            }
+            
+            const errorEl = document.getElementById('deleteError');
+            const successEl = document.getElementById('deleteSuccess');
+            const resultEl = document.getElementById('deleteResult');
+            
+            // Reset
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            resultEl.classList.remove('show');
+            
+            try {
+                const response = await fetch('/scrobbles/api/delete-recent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('deleteCount').textContent = data.deletedCount || 0;
+                    document.getElementById('deleteDays').textContent = data.days || 0;
+                    resultEl.classList.add('show');
+                    successEl.textContent = `Deleted ${data.deletedCount} scrobbles from the last ${data.days} days.`;
+                    successEl.style.display = 'block';
+                } else {
+                    errorEl.textContent = data.error || 'Unknown error';
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                errorEl.textContent = 'Request failed: ' + e.message;
+                errorEl.style.display = 'block';
+            }
+        }
+        
+        function showUnmatchedFromFetch() {
+            openUnmatchedListModal(unmatchedFromFetch);
+        }
+    </script>
+    
+    <!-- Include modal fragments -->
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: unmatched-list-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: create-wizard-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: match-modal}"></th:block>
+    
+    <!-- Include modal scripts -->
+    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-scripts}"></th:block>
 </body>
 </html>

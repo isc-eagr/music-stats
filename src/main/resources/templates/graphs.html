@@ -942,6 +942,66 @@
                         </div>
                     </div>
 
+                    <!-- Albums Seasonal Chart Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Albums Seasonal Chart
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="albumsSeasonalChartPeak" th:value="${albumsSeasonalChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Seasons ≥</span>
+                                    <input type="number" autocomplete="off" name="albumsSeasonalChartSeasons" th:value="${albumsSeasonalChartSeasons}" placeholder="e.g. 2" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Albums Weekly Chart Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Albums Weekly Chart
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="albumsWeeklyChartPeak" th:value="${albumsWeeklyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
+                                    <input type="number" autocomplete="off" name="albumsWeeklyChartWeeks" th:value="${albumsWeeklyChartWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Albums Yearly Chart Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Albums Yearly Chart
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="albumsYearlyChartPeak" th:value="${albumsYearlyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Years ≥</span>
+                                    <input type="number" autocomplete="off" name="albumsYearlyChartYears" th:value="${albumsYearlyChartYears}" placeholder="e.g. 2" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Artist Filter (chip-select) -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -1460,6 +1520,66 @@
                                  th:attr="data-initial-values=${selectedSongsJson}"></div>
                         </div>
                     </div>
+
+                    <!-- Songs Seasonal Chart Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Songs Seasonal Chart
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="songsSeasonalChartPeak" th:value="${songsSeasonalChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Seasons ≥</span>
+                                    <input type="number" autocomplete="off" name="songsSeasonalChartSeasons" th:value="${songsSeasonalChartSeasons}" placeholder="e.g. 2" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Songs Weekly Chart Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Songs Weekly Chart
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="songsWeeklyChartPeak" th:value="${songsWeeklyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
+                                    <input type="number" autocomplete="off" name="songsWeeklyChartWeeks" th:value="${songsWeeklyChartWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Songs Yearly Chart Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Songs Yearly Chart
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="songsYearlyChartPeak" th:value="${songsYearlyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Years ≥</span>
+                                    <input type="number" autocomplete="off" name="songsYearlyChartYears" th:value="${songsYearlyChartYears}" placeholder="e.g. 2" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Subgenre Filter -->
                     <div class="filter-item">
@@ -1541,7 +1661,13 @@
                                           (selectedSongs != null and !selectedSongs.isEmpty()) or
                                           (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or
                                           (listenedDateTo != null and !listenedDateTo.isEmpty()) or
-                                          (filterType != null and !filterType.isEmpty())} ? 'display:none' : ''">None (showing all data)</span>
+                                          (filterType != null and !filterType.isEmpty()) or
+                                          albumsSeasonalChartPeak != null or albumsSeasonalChartSeasons != null or
+                                          albumsWeeklyChartPeak != null or albumsWeeklyChartWeeks != null or
+                                          albumsYearlyChartPeak != null or albumsYearlyChartYears != null or
+                                          songsSeasonalChartPeak != null or songsSeasonalChartSeasons != null or
+                                          songsWeeklyChartPeak != null or songsWeeklyChartWeeks != null or
+                                          songsYearlyChartPeak != null or songsYearlyChartYears != null} ? 'display:none' : ''">None (showing all data)</span>
                         
                         <!-- Account filter chip -->
                         <span class="filter-chip" th:if="${selectedAccounts != null and !selectedAccounts.isEmpty()}">
@@ -1556,6 +1682,36 @@
                             <span class="filter-chip-label">Album</span>
                             <span class="filter-chip-value" th:each="album, iterStat : ${selectedAlbums}">
                                 <span th:text="${album['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                            </span>
+                        </span>
+                        
+                        <!-- Albums Seasonal Chart filter chip -->
+                        <span class="filter-chip" th:if="${albumsSeasonalChartPeak != null or albumsSeasonalChartSeasons != null}">
+                            <span class="filter-chip-label">
+                                🍂 Albums Seasonal Chart:
+                                <span th:if="${albumsSeasonalChartPeak != null}">Peak ≤ <span th:text="${albumsSeasonalChartPeak}"></span></span>
+                                <span th:if="${albumsSeasonalChartPeak != null and albumsSeasonalChartSeasons != null}">, </span>
+                                <span th:if="${albumsSeasonalChartSeasons != null}">Seasons ≥ <span th:text="${albumsSeasonalChartSeasons}"></span></span>
+                            </span>
+                        </span>
+                        
+                        <!-- Albums Weekly Chart filter chip -->
+                        <span class="filter-chip" th:if="${albumsWeeklyChartPeak != null or albumsWeeklyChartWeeks != null}">
+                            <span class="filter-chip-label">
+                                📊 Albums Weekly Chart:
+                                <span th:if="${albumsWeeklyChartPeak != null}">Peak ≤ <span th:text="${albumsWeeklyChartPeak}"></span></span>
+                                <span th:if="${albumsWeeklyChartPeak != null and albumsWeeklyChartWeeks != null}">, </span>
+                                <span th:if="${albumsWeeklyChartWeeks != null}">Weeks ≥ <span th:text="${albumsWeeklyChartWeeks}"></span></span>
+                            </span>
+                        </span>
+                        
+                        <!-- Albums Yearly Chart filter chip -->
+                        <span class="filter-chip" th:if="${albumsYearlyChartPeak != null or albumsYearlyChartYears != null}">
+                            <span class="filter-chip-label">
+                                📅 Albums Yearly Chart:
+                                <span th:if="${albumsYearlyChartPeak != null}">Peak ≤ <span th:text="${albumsYearlyChartPeak}"></span></span>
+                                <span th:if="${albumsYearlyChartPeak != null and albumsYearlyChartYears != null}">, </span>
+                                <span th:if="${albumsYearlyChartYears != null}">Years ≥ <span th:text="${albumsYearlyChartYears}"></span></span>
                             </span>
                         </span>
                         
@@ -1704,6 +1860,36 @@
                             <span class="filter-chip-label">Song</span>
                             <span class="filter-chip-value" th:each="song, iterStat : ${selectedSongs}">
                                 <span th:text="${song['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                            </span>
+                        </span>
+                        
+                        <!-- Songs Seasonal Chart filter chip -->
+                        <span class="filter-chip" th:if="${songsSeasonalChartPeak != null or songsSeasonalChartSeasons != null}">
+                            <span class="filter-chip-label">
+                                🍂 Songs Seasonal Chart:
+                                <span th:if="${songsSeasonalChartPeak != null}">Peak ≤ <span th:text="${songsSeasonalChartPeak}"></span></span>
+                                <span th:if="${songsSeasonalChartPeak != null and songsSeasonalChartSeasons != null}">, </span>
+                                <span th:if="${songsSeasonalChartSeasons != null}">Seasons ≥ <span th:text="${songsSeasonalChartSeasons}"></span></span>
+                            </span>
+                        </span>
+                        
+                        <!-- Songs Weekly Chart filter chip -->
+                        <span class="filter-chip" th:if="${songsWeeklyChartPeak != null or songsWeeklyChartWeeks != null}">
+                            <span class="filter-chip-label">
+                                📊 Songs Weekly Chart:
+                                <span th:if="${songsWeeklyChartPeak != null}">Peak ≤ <span th:text="${songsWeeklyChartPeak}"></span></span>
+                                <span th:if="${songsWeeklyChartPeak != null and songsWeeklyChartWeeks != null}">, </span>
+                                <span th:if="${songsWeeklyChartWeeks != null}">Weeks ≥ <span th:text="${songsWeeklyChartWeeks}"></span></span>
+                            </span>
+                        </span>
+                        
+                        <!-- Songs Yearly Chart filter chip -->
+                        <span class="filter-chip" th:if="${songsYearlyChartPeak != null or songsYearlyChartYears != null}">
+                            <span class="filter-chip-label">
+                                📅 Songs Yearly Chart:
+                                <span th:if="${songsYearlyChartPeak != null}">Peak ≤ <span th:text="${songsYearlyChartPeak}"></span></span>
+                                <span th:if="${songsYearlyChartPeak != null and songsYearlyChartYears != null}">, </span>
+                                <span th:if="${songsYearlyChartYears != null}">Years ≥ <span th:text="${songsYearlyChartYears}"></span></span>
                             </span>
                         </span>
                         

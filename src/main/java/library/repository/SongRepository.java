@@ -1645,6 +1645,134 @@ public class SongRepository {
                 }
             }
         }
+        
+        // ==================== CHART PERFORMANCE FILTERS ====================
+        
+        // Albums Weekly Chart filter (peak position <= specified, total weeks >= specified)
+        Integer albumsWeeklyChartPeak = filter.getAlbumsWeeklyChartPeak();
+        Integer albumsWeeklyChartWeeks = filter.getAlbumsWeeklyChartWeeks();
+        if (albumsWeeklyChartPeak != null || albumsWeeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (albumsWeeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(albumsWeeklyChartPeak);
+            }
+            if (albumsWeeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(albumsWeeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Albums Seasonal Chart filter (peak position <= specified, total seasons >= specified)
+        Integer albumsSeasonalChartPeak = filter.getAlbumsSeasonalChartPeak();
+        Integer albumsSeasonalChartSeasons = filter.getAlbumsSeasonalChartSeasons();
+        if (albumsSeasonalChartPeak != null || albumsSeasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (albumsSeasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(albumsSeasonalChartPeak);
+            }
+            if (albumsSeasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(albumsSeasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Albums Yearly Chart filter (peak position <= specified, total years >= specified)
+        Integer albumsYearlyChartPeak = filter.getAlbumsYearlyChartPeak();
+        Integer albumsYearlyChartYears = filter.getAlbumsYearlyChartYears();
+        if (albumsYearlyChartPeak != null || albumsYearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (albumsYearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(albumsYearlyChartPeak);
+            }
+            if (albumsYearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(albumsYearlyChartYears);
+            }
+            sql.append(")");
+        }
+        
+        // Songs Weekly Chart filter (peak position <= specified, total weeks >= specified)
+        Integer songsWeeklyChartPeak = filter.getSongsWeeklyChartPeak();
+        Integer songsWeeklyChartWeeks = filter.getSongsWeeklyChartWeeks();
+        if (songsWeeklyChartPeak != null || songsWeeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (songsWeeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(songsWeeklyChartPeak);
+            }
+            if (songsWeeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(songsWeeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Songs Seasonal Chart filter (peak position <= specified, total seasons >= specified)
+        Integer songsSeasonalChartPeak = filter.getSongsSeasonalChartPeak();
+        Integer songsSeasonalChartSeasons = filter.getSongsSeasonalChartSeasons();
+        if (songsSeasonalChartPeak != null || songsSeasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (songsSeasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(songsSeasonalChartPeak);
+            }
+            if (songsSeasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(songsSeasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Songs Yearly Chart filter (peak position <= specified, total years >= specified)
+        Integer songsYearlyChartPeak = filter.getSongsYearlyChartPeak();
+        Integer songsYearlyChartYears = filter.getSongsYearlyChartYears();
+        if (songsYearlyChartPeak != null || songsYearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (songsYearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(songsYearlyChartPeak);
+            }
+            if (songsYearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(songsYearlyChartYears);
+            }
+            sql.append(")");
+        }
     }
     
     /**

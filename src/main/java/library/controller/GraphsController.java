@@ -100,9 +100,23 @@ public class GraphsController {
             @RequestParam(required = false) String releaseDateTo,
             @RequestParam(required = false) String releaseDateMode,
             @RequestParam(required = false) String releaseDateEntity,
+            // Songs chart filters
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
             // Subgenre filter
             @RequestParam(required = false) List<Integer> subgenre,
             @RequestParam(required = false) String subgenreMode,
+            // Albums chart filters
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
             // Artist include options (for filtering by artist's groups and featured songs)
             @RequestParam(required = false, defaultValue = "false") boolean includeGroups,
             @RequestParam(required = false, defaultValue = "false") boolean includeFeatured,
@@ -235,6 +249,22 @@ public class GraphsController {
         // Subgenre filter
         model.addAttribute("selectedSubgenres", subgenre);
         model.addAttribute("subgenreMode", subgenreMode != null ? subgenreMode : "includes");
+        
+        // Albums chart filters
+        model.addAttribute("albumsSeasonalChartPeak", albumsSeasonalChartPeak);
+        model.addAttribute("albumsSeasonalChartSeasons", albumsSeasonalChartSeasons);
+        model.addAttribute("albumsWeeklyChartPeak", albumsWeeklyChartPeak);
+        model.addAttribute("albumsWeeklyChartWeeks", albumsWeeklyChartWeeks);
+        model.addAttribute("albumsYearlyChartPeak", albumsYearlyChartPeak);
+        model.addAttribute("albumsYearlyChartYears", albumsYearlyChartYears);
+        
+        // Songs chart filters
+        model.addAttribute("songsSeasonalChartPeak", songsSeasonalChartPeak);
+        model.addAttribute("songsSeasonalChartSeasons", songsSeasonalChartSeasons);
+        model.addAttribute("songsWeeklyChartPeak", songsWeeklyChartPeak);
+        model.addAttribute("songsWeeklyChartWeeks", songsWeeklyChartWeeks);
+        model.addAttribute("songsYearlyChartPeak", songsYearlyChartPeak);
+        model.addAttribute("songsYearlyChartYears", songsYearlyChartYears);
         
         // Artist include options (for filtering by artist's groups and featured songs)
         model.addAttribute("includeGroups", includeGroups);

@@ -307,4 +307,96 @@ public class ScrobbleController {
             ));
         }
     }
+    
+    /**
+     * API endpoint to fetch recent scrobbles from Last.fm API.
+     * Fetches scrobbles newer than the max lastfm_id for the given account.
+     * 
+     * POST /scrobbles/api/fetch-lastfm
+     * Body: { "account": "vatito", "apiKey": "..." }
+     */
+    @PostMapping("/api/fetch-lastfm")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> fetchFromLastfm(@RequestBody Map<String, Object> request) {
+        try {
+            String account = (String) request.get("account");
+            String apiKey = (String) request.get("apiKey");
+            
+            if (account == null || account.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Account is required"
+                ));
+            }
+            
+            if (apiKey == null || apiKey.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "API key is required"
+                ));
+            }
+            
+            ScrobbleService.ImportResult result = scrobbleService.fetchAndImportFromLastfm(account, apiKey);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("stats", result.stats);
+            response.put("unmatchedList", result.unmatchedGrouped);
+            
+            // Include validation result if available
+            if (result.validation != null) {
+                Map<String, Object> validation = new HashMap<>();
+                validation.put("lastfmPlaycount", result.validation.lastfmPlaycount);
+                validation.put("localScrobbleCount", result.validation.localScrobbleCount);
+                validation.put("matches", result.validation.matches);
+                validation.put("difference", result.validation.difference);
+                response.put("validation", validation);
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * API endpoint to delete scrobbles from the last N days.
+     * 
+     * POST /scrobbles/api/delete-recent
+     * Body: { "days": 10 }
+     */
+    @PostMapping("/api/delete-recent")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteRecentScrobbles(@RequestBody Map<String, Object> request) {
+        try {
+            Integer days = request.get("days") != null ? ((Number) request.get("days")).intValue() : null;
+            
+            if (days == null || days < 1) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Valid number of days is required"
+                ));
+            }
+            
+            int deletedCount = scrobbleService.deleteRecentScrobbles(days);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "deletedCount", deletedCount,
+                "days", days
+            ));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
+    }
 }

@@ -87,6 +87,22 @@ public class ChartFilterDTO {
     // For General tab: which entity the topLimit applies to when calculating scrobble-based metrics
     // Valid values: "artist", "album", "song" (default)
     private String limitEntity;
+    
+    // Albums chart performance filters
+    private Integer albumsWeeklyChartPeak;
+    private Integer albumsWeeklyChartWeeks;
+    private Integer albumsSeasonalChartPeak;
+    private Integer albumsSeasonalChartSeasons;
+    private Integer albumsYearlyChartPeak;
+    private Integer albumsYearlyChartYears;
+    
+    // Songs chart performance filters
+    private Integer songsWeeklyChartPeak;
+    private Integer songsWeeklyChartWeeks;
+    private Integer songsSeasonalChartPeak;
+    private Integer songsSeasonalChartSeasons;
+    private Integer songsYearlyChartPeak;
+    private Integer songsYearlyChartYears;
 
     // Builder pattern for fluent API
     public static ChartFilterDTO builder() {
@@ -228,6 +244,44 @@ public class ChartFilterDTO {
 
     public String getLimitEntity() { return limitEntity; }
     public ChartFilterDTO setLimitEntity(String limitEntity) { this.limitEntity = limitEntity; return this; }
+    
+    // Albums chart performance filter getters/setters
+    public Integer getAlbumsWeeklyChartPeak() { return albumsWeeklyChartPeak; }
+    public ChartFilterDTO setAlbumsWeeklyChartPeak(Integer albumsWeeklyChartPeak) { this.albumsWeeklyChartPeak = albumsWeeklyChartPeak; return this; }
+    
+    public Integer getAlbumsWeeklyChartWeeks() { return albumsWeeklyChartWeeks; }
+    public ChartFilterDTO setAlbumsWeeklyChartWeeks(Integer albumsWeeklyChartWeeks) { this.albumsWeeklyChartWeeks = albumsWeeklyChartWeeks; return this; }
+    
+    public Integer getAlbumsSeasonalChartPeak() { return albumsSeasonalChartPeak; }
+    public ChartFilterDTO setAlbumsSeasonalChartPeak(Integer albumsSeasonalChartPeak) { this.albumsSeasonalChartPeak = albumsSeasonalChartPeak; return this; }
+    
+    public Integer getAlbumsSeasonalChartSeasons() { return albumsSeasonalChartSeasons; }
+    public ChartFilterDTO setAlbumsSeasonalChartSeasons(Integer albumsSeasonalChartSeasons) { this.albumsSeasonalChartSeasons = albumsSeasonalChartSeasons; return this; }
+    
+    public Integer getAlbumsYearlyChartPeak() { return albumsYearlyChartPeak; }
+    public ChartFilterDTO setAlbumsYearlyChartPeak(Integer albumsYearlyChartPeak) { this.albumsYearlyChartPeak = albumsYearlyChartPeak; return this; }
+    
+    public Integer getAlbumsYearlyChartYears() { return albumsYearlyChartYears; }
+    public ChartFilterDTO setAlbumsYearlyChartYears(Integer albumsYearlyChartYears) { this.albumsYearlyChartYears = albumsYearlyChartYears; return this; }
+    
+    // Songs chart performance filter getters/setters
+    public Integer getSongsWeeklyChartPeak() { return songsWeeklyChartPeak; }
+    public ChartFilterDTO setSongsWeeklyChartPeak(Integer songsWeeklyChartPeak) { this.songsWeeklyChartPeak = songsWeeklyChartPeak; return this; }
+    
+    public Integer getSongsWeeklyChartWeeks() { return songsWeeklyChartWeeks; }
+    public ChartFilterDTO setSongsWeeklyChartWeeks(Integer songsWeeklyChartWeeks) { this.songsWeeklyChartWeeks = songsWeeklyChartWeeks; return this; }
+    
+    public Integer getSongsSeasonalChartPeak() { return songsSeasonalChartPeak; }
+    public ChartFilterDTO setSongsSeasonalChartPeak(Integer songsSeasonalChartPeak) { this.songsSeasonalChartPeak = songsSeasonalChartPeak; return this; }
+    
+    public Integer getSongsSeasonalChartSeasons() { return songsSeasonalChartSeasons; }
+    public ChartFilterDTO setSongsSeasonalChartSeasons(Integer songsSeasonalChartSeasons) { this.songsSeasonalChartSeasons = songsSeasonalChartSeasons; return this; }
+    
+    public Integer getSongsYearlyChartPeak() { return songsYearlyChartPeak; }
+    public ChartFilterDTO setSongsYearlyChartPeak(Integer songsYearlyChartPeak) { this.songsYearlyChartPeak = songsYearlyChartPeak; return this; }
+    
+    public Integer getSongsYearlyChartYears() { return songsYearlyChartYears; }
+    public ChartFilterDTO setSongsYearlyChartYears(Integer songsYearlyChartYears) { this.songsYearlyChartYears = songsYearlyChartYears; return this; }
 
     /**
      * Checks if any filter is active (for optimization - skip filtering if nothing is set)
@@ -256,6 +310,14 @@ public class ChartFilterDTO {
                (listenedDateFrom != null && !listenedDateFrom.isEmpty()) ||
                (listenedDateTo != null && !listenedDateTo.isEmpty()) ||
                playCountMin != null || playCountMax != null ||
-               hasFeaturedArtists != null || isBand != null || isSingle != null;
+               hasFeaturedArtists != null || isBand != null || isSingle != null ||
+               // Albums chart filters
+               albumsWeeklyChartPeak != null || albumsWeeklyChartWeeks != null ||
+               albumsSeasonalChartPeak != null || albumsSeasonalChartSeasons != null ||
+               albumsYearlyChartPeak != null || albumsYearlyChartYears != null ||
+               // Songs chart filters
+               songsWeeklyChartPeak != null || songsWeeklyChartWeeks != null ||
+               songsSeasonalChartPeak != null || songsSeasonalChartSeasons != null ||
+               songsYearlyChartPeak != null || songsYearlyChartYears != null;
     }
 }

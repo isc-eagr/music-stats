@@ -8,11 +8,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -259,11 +269,80 @@ public class ScrobbleService {
     public static class ImportResult {
         public Map<String, Integer> stats;
         public List<Map<String, Object>> unmatchedGrouped;
+        public ValidationResult validation;
         
         public ImportResult(Map<String, Integer> stats, List<Map<String, Object>> unmatchedGrouped) {
             this.stats = stats;
             this.unmatchedGrouped = unmatchedGrouped;
         }
+        
+        public ImportResult(Map<String, Integer> stats, List<Map<String, Object>> unmatchedGrouped, ValidationResult validation) {
+            this.stats = stats;
+            this.unmatchedGrouped = unmatchedGrouped;
+            this.validation = validation;
+        }
+    }
+    
+    /**
+     * Validation result comparing Last.fm playcount to local scrobble count.
+     */
+    public static class ValidationResult {
+        public int lastfmPlaycount;
+        public int localScrobbleCount;
+        public boolean matches;
+        public int difference;
+        
+        public ValidationResult(int lastfmPlaycount, int localScrobbleCount) {
+            this.lastfmPlaycount = lastfmPlaycount;
+            this.localScrobbleCount = localScrobbleCount;
+            this.matches = lastfmPlaycount == localScrobbleCount;
+            this.difference = lastfmPlaycount - localScrobbleCount;
+        }
+    }
+    
+    /**
+     * Gets the total count of scrobbles for a specific account.
+     */
+    public int getScrobbleCountByAccount(String account) {
+        String sql = "SELECT COUNT(*) FROM scrobble WHERE account = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, account);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Fetches the playcount from Last.fm user.getinfo API.
+     */
+    public int getLastfmPlaycount(String account, String apiKey) throws Exception {
+        String url = String.format(
+            "http://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=%s&api_key=%s&format=json",
+            account, apiKey
+        );
+        
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .GET()
+            .build();
+        
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Last.fm API returned status " + response.statusCode());
+        }
+        
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(response.body());
+        String playcountStr = root.path("user").path("playcount").asText("0");
+        return Integer.parseInt(playcountStr);
+    }
+    
+    /**
+     * Validates that local scrobble count matches Last.fm playcount.
+     */
+    public ValidationResult validateScrobbleCount(String account, String apiKey) throws Exception {
+        int lastfmPlaycount = getLastfmPlaycount(account, apiKey);
+        int localCount = getScrobbleCountByAccount(account);
+        return new ValidationResult(lastfmPlaycount, localCount);
     }
     
     /**
@@ -448,5 +527,206 @@ public class ScrobbleService {
             scrobbleAlbum != null ? scrobbleAlbum : "",
             scrobbleSong != null ? scrobbleSong : ""
         );
+    }
+    
+    /**
+     * Fetches recent scrobbles from Last.fm API and imports them.
+     * Uses the Last.fm API endpoint with the 'from' parameter set to maxLastfmId + 1.
+     * Handles pagination by iterating through all pages.
+     * 
+     * @param account The account name (e.g., "vatito")
+     * @param apiKey The Last.fm API key
+     * @return ImportResult with stats and unmatched list
+     */
+    public ImportResult fetchAndImportFromLastfm(String account, String apiKey) throws Exception {
+        // Get the max lastfm_id for this account
+        Map<String, Integer> maxIds = getMaxLastfmIdByAccount();
+        int maxLastfmId = maxIds.getOrDefault(account, 0);
+        int fromTimestamp = maxLastfmId + 1;
+        
+        // Build song lookup map once
+        Map<String, Integer> songLookup = new HashMap<>();
+        String sql = "SELECT s.id as id, a.name as artist, COALESCE(al.name,'') as album, s.name as song FROM song s "
+                + "LEFT JOIN artist a ON s.artist_id = a.id "
+                + "LEFT JOIN album al ON s.album_id = al.id";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        for (Map<String, Object> row : rows) {
+            Number idNum = (Number) row.get("id");
+            if (idNum == null) continue;
+            int id = idNum.intValue();
+            String artist = row.get("artist") != null ? row.get("artist").toString() : "";
+            String album = row.get("album") != null ? row.get("album").toString() : "";
+            String song = row.get("song") != null ? row.get("song").toString() : "";
+            String key = createLookupKey(artist, album, song);
+            songLookup.putIfAbsent(key, id);
+        }
+        
+        HttpClient client = HttpClient.newHttpClient();
+        ObjectMapper mapper = new ObjectMapper();
+        
+        int totalProcessed = 0;
+        int totalMatched = 0;
+        int totalUnmatched = 0;
+        int totalErrors = 0;
+        Map<String, int[]> unmatchedCounts = new HashMap<>();
+        List<Scrobble> allScrobbles = new ArrayList<>();
+        
+        int currentPage = 1;
+        int totalPages = 1;
+        
+        do {
+            // Build the API URL with page parameter
+            String url = String.format(
+                "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=%s&api_key=%s&format=json&from=%d&page=%d&limit=200",
+                account, apiKey, fromTimestamp, currentPage
+            );
+            
+            // Fetch from the API
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
+            
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Last.fm API returned status " + response.statusCode() + " on page " + currentPage);
+            }
+            
+            // Parse JSON response
+            JsonNode root = mapper.readTree(response.body());
+            JsonNode recenttracks = root.path("recenttracks");
+            JsonNode tracks = recenttracks.path("track");
+            
+            // Get total pages from the first request
+            if (currentPage == 1) {
+                JsonNode attr = recenttracks.path("@attr");
+                totalPages = attr.path("totalPages").asInt(1);
+            }
+            
+            if (!tracks.isArray()) {
+                // No tracks on this page, move on
+                currentPage++;
+                continue;
+            }
+            
+            for (JsonNode track : tracks) {
+                try {
+                    // Skip "now playing" tracks that don't have a date
+                    JsonNode dateNode = track.path("date");
+                    if (dateNode.isMissingNode() || !dateNode.has("uts")) {
+                        continue;
+                    }
+                    
+                    String artistName = track.path("artist").path("#text").asText("");
+                    String albumName = track.path("album").path("#text").asText("");
+                    String songName = track.path("name").asText("");
+                    String utsStr = dateNode.path("uts").asText("");
+                    
+                    if (utsStr.isEmpty()) {
+                        totalErrors++;
+                        continue;
+                    }
+                    
+                    // Parse the UTS timestamp
+                    long uts = Long.parseLong(utsStr);
+                    
+                    // Convert to Mexico City timezone
+                    ZonedDateTime utcDate = Instant.ofEpochSecond(uts).atZone(ZoneId.of("UTC"));
+                    ZonedDateTime mexicoDate = utcDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+                    String formattedDate = mexicoDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                    
+                    Scrobble sc = new Scrobble();
+                    sc.setLastfmId((int) uts); // Use the UTS timestamp as the lastfm_id
+                    sc.setArtist(artistName);
+                    sc.setAlbum(albumName);
+                    sc.setSong(songName);
+                    sc.setAccount(account);
+                    // Set scrobbleDate directly without parsing (already formatted)
+                    try {
+                        java.lang.reflect.Field field = Scrobble.class.getDeclaredField("scrobbleDate");
+                        field.setAccessible(true);
+                        field.set(sc, formattedDate);
+                    } catch (Exception e) {
+                        sc.setScrobbleDate(formattedDate);
+                    }
+                    
+                    // Match to song
+                    String key = createLookupKey(artistName, albumName, songName);
+                    Integer songId = songLookup.get(key);
+                    if (songId != null) {
+                        sc.setSongId(songId);
+                        totalMatched++;
+                    } else {
+                        sc.setSongId(null);
+                        totalUnmatched++;
+                        
+                        String unmatchedKey = artistName + "||" + albumName + "||" + songName;
+                        unmatchedCounts.computeIfAbsent(unmatchedKey, k -> new int[]{0})[0]++;
+                    }
+                    
+                    allScrobbles.add(sc);
+                    totalProcessed++;
+                    
+                } catch (Exception e) {
+                    totalErrors++;
+                    System.err.println("Error processing track: " + e.getMessage());
+                }
+            }
+            
+            currentPage++;
+            
+        } while (currentPage <= totalPages);
+        
+        // Save all scrobbles
+        if (!allScrobbles.isEmpty()) {
+            final List<Scrobble> toSave = new ArrayList<>(allScrobbles);
+            transactionTemplate.execute(status -> {
+                scrobbleRepository.saveAll(toSave);
+                return null;
+            });
+        }
+        
+        Map<String, Integer> stats = new HashMap<>();
+        stats.put("totalProcessed", totalProcessed);
+        stats.put("totalMatched", totalMatched);
+        stats.put("totalUnmatched", totalUnmatched);
+        stats.put("totalErrors", totalErrors);
+        stats.put("totalPages", totalPages);
+        
+        // Convert unmatched to list of maps sorted by count desc
+        List<Map<String, Object>> unmatchedGrouped = new ArrayList<>();
+        for (Map.Entry<String, int[]> entry : unmatchedCounts.entrySet()) {
+            String[] parts = entry.getKey().split("\\|\\|", -1);
+            Map<String, Object> row = new HashMap<>();
+            row.put("artist", parts.length > 0 ? parts[0] : "");
+            row.put("album", parts.length > 1 ? parts[1] : "");
+            row.put("song", parts.length > 2 ? parts[2] : "");
+            row.put("account", account);
+            row.put("cnt", entry.getValue()[0]);
+            unmatchedGrouped.add(row);
+        }
+        unmatchedGrouped.sort((a, b) -> ((Integer) b.get("cnt")).compareTo((Integer) a.get("cnt")));
+        
+        // Validate scrobble count against Last.fm
+        ValidationResult validation = null;
+        try {
+            validation = validateScrobbleCount(account, apiKey);
+        } catch (Exception e) {
+            System.err.println("Failed to validate scrobble count: " + e.getMessage());
+        }
+        
+        return new ImportResult(stats, unmatchedGrouped, validation);
+    }
+    
+    /**
+     * Deletes all scrobbles from the last N days.
+     * 
+     * @param days Number of days to delete (e.g., 5, 10, 20, 30, 60, 90)
+     * @return The number of scrobbles deleted
+     */
+    public int deleteRecentScrobbles(int days) {
+        String sql = "DELETE FROM scrobble WHERE scrobble_date > date('now', '-' || ? || ' days')";
+        return jdbcTemplate.update(sql, days);
     }
 }
