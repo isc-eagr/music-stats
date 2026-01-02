@@ -156,6 +156,10 @@ public class TimeframeController {
                     Map<String, String> topEntries = chartService.getWeeklyChartTopEntries(tf.getPeriodKey());
                     tf.setNumberOneSongName(topEntries.get("song"));
                     tf.setNumberOneAlbumName(topEntries.get("album"));
+                    // Get gender IDs for the #1 entries
+                    Map<String, Integer> topGenderIds = chartService.getWeeklyChartTopGenderIds(tf.getPeriodKey());
+                    tf.setNumberOneSongGenderId(topGenderIds.get("song"));
+                    tf.setNumberOneAlbumGenderId(topGenderIds.get("album"));
                 }
             }
         }
@@ -173,6 +177,8 @@ public class TimeframeController {
                 if (finalized) {
                     tf.setNumberOneSongName(chartService.getNumberOneSongName("seasonal", tf.getPeriodKey()));
                     tf.setNumberOneAlbumName(chartService.getNumberOneAlbumName("seasonal", tf.getPeriodKey()));
+                    tf.setNumberOneSongGenderId(chartService.getNumberOneSongGenderId("seasonal", tf.getPeriodKey()));
+                    tf.setNumberOneAlbumGenderId(chartService.getNumberOneAlbumGenderId("seasonal", tf.getPeriodKey()));
                 }
             }
         }
@@ -190,6 +196,8 @@ public class TimeframeController {
                 if (finalized) {
                     tf.setNumberOneSongName(chartService.getNumberOneSongName("yearly", tf.getPeriodKey()));
                     tf.setNumberOneAlbumName(chartService.getNumberOneAlbumName("yearly", tf.getPeriodKey()));
+                    tf.setNumberOneSongGenderId(chartService.getNumberOneSongGenderId("yearly", tf.getPeriodKey()));
+                    tf.setNumberOneAlbumGenderId(chartService.getNumberOneAlbumGenderId("yearly", tf.getPeriodKey()));
                 }
             }
         }

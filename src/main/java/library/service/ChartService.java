@@ -1803,6 +1803,26 @@ public class ChartService {
     }
     
     /**
+     * Get the gender ID for the #1 song artist for a finalized seasonal or yearly chart.
+     */
+    public Integer getNumberOneSongGenderId(String periodType, String periodKey) {
+        String sql = """
+            SELECT ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE c.period_type = ? AND c.chart_type = 'song' AND c.period_key = ? 
+                  AND c.is_finalized = 1 AND ce.position = 1
+            """;
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, periodType, periodKey);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
      * Get the #1 album name with artist for a finalized seasonal or yearly chart.
      * Returns format "Artist - Album" or null if no chart exists or chart is not finalized.
      */
@@ -1818,6 +1838,26 @@ public class ChartService {
             """;
         try {
             return jdbcTemplate.queryForObject(sql, String.class, periodType, periodKey);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Get the gender ID for the #1 album artist for a finalized seasonal or yearly chart.
+     */
+    public Integer getNumberOneAlbumGenderId(String periodType, String periodKey) {
+        String sql = """
+            SELECT ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album a ON ce.album_id = a.id
+            INNER JOIN Artist ar ON a.artist_id = ar.id
+            WHERE c.period_type = ? AND c.chart_type = 'album' AND c.period_key = ? 
+                  AND c.is_finalized = 1 AND ce.position = 1
+            """;
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, periodType, periodKey);
         } catch (Exception e) {
             return null;
         }
@@ -1854,6 +1894,44 @@ public class ChartService {
             """;
         try {
             result.put("album", jdbcTemplate.queryForObject(albumSql, String.class, periodKey));
+        } catch (Exception e) {
+            result.put("album", null);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get gender IDs for the #1 song and album artists in a weekly chart.
+     * Returns map with "song" and "album" keys containing gender IDs (may be null).
+     */
+    public Map<String, Integer> getWeeklyChartTopGenderIds(String periodKey) {
+        Map<String, Integer> result = new HashMap<>();
+        
+        String songSql = """
+            SELECT ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE c.chart_type = 'song' AND c.period_key = ? AND ce.position = 1
+            """;
+        try {
+            result.put("song", jdbcTemplate.queryForObject(songSql, Integer.class, periodKey));
+        } catch (Exception e) {
+            result.put("song", null);
+        }
+        
+        String albumSql = """
+            SELECT ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album a ON ce.album_id = a.id
+            INNER JOIN Artist ar ON a.artist_id = ar.id
+            WHERE c.chart_type = 'album' AND c.period_key = ? AND ce.position = 1
+            """;
+        try {
+            result.put("album", jdbcTemplate.queryForObject(albumSql, Integer.class, periodKey));
         } catch (Exception e) {
             result.put("album", null);
         }

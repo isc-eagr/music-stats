@@ -134,6 +134,15 @@
             font-size: 0.75rem;
             color: #ccc;
             margin-bottom: 3px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-left: -6px;
+        }
+        .number-one-item.gender-male {
+            background: rgba(59, 130, 246, 0.6);
+        }
+        .number-one-item.gender-female {
+            background: rgba(236, 72, 153, 0.6);
         }
         .number-one-item .label {
             color: #888;
@@ -1000,29 +1009,37 @@
                     <!-- For seasons, years: show all with regular icons linking to detail pages (chart section shown separately below) -->
                     <div th:if="${(tf.topArtistName != null or tf.topAlbumName != null or tf.topSongName != null) and (periodType == 'days' or periodType == 'weeks' or periodType == 'months' or periodType == 'seasons' or periodType == 'years' or periodType == 'decades')}"
                          class="number-one-info">
-                        <a th:if="${tf.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${tf.topArtistId}}" onclick="event.stopPropagation();">
+                        <a th:if="${tf.topArtistName != null}" 
+                           th:class="${'number-one-item' + (tf.topArtistGenderId == 2 ? ' gender-male' : (tf.topArtistGenderId == 1 ? ' gender-female' : ''))}" 
+                           th:href="@{'/artists/' + ${tf.topArtistId}}" onclick="event.stopPropagation();">
                             <span class="label">🎤</span>
                             <span class="name" th:text="${tf.topArtistName}" th:title="${tf.topArtistName}">Artist Name</span>
                         </a>
                         <!-- For weeks: album links to chart with trophy icon -->
-                        <a th:if="${tf.topAlbumName != null and periodType == 'weeks' and tf.hasChart == true}" class="number-one-item" 
+                        <a th:if="${tf.topAlbumName != null and periodType == 'weeks' and tf.hasChart == true}" 
+                           th:class="${'number-one-item' + (tf.topAlbumGenderId == 2 ? ' gender-male' : (tf.topAlbumGenderId == 1 ? ' gender-female' : ''))}" 
                            th:href="@{'/charts/weekly/' + ${tf.periodKey}}" onclick="event.stopPropagation();" target="_blank">
                             <span class="label">🏆</span>
                             <span class="name" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}" th:title="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span>
                         </a>
                         <!-- For weeks without chart or non-weeks: album links to detail -->
-                        <a th:if="${tf.topAlbumName != null and (periodType != 'weeks' or tf.hasChart != true)}" class="number-one-item" th:href="@{'/albums/' + ${tf.topAlbumId}}" onclick="event.stopPropagation();">
+                        <a th:if="${tf.topAlbumName != null and (periodType != 'weeks' or tf.hasChart != true)}" 
+                           th:class="${'number-one-item' + (tf.topAlbumGenderId == 2 ? ' gender-male' : (tf.topAlbumGenderId == 1 ? ' gender-female' : ''))}" 
+                           th:href="@{'/albums/' + ${tf.topAlbumId}}" onclick="event.stopPropagation();">
                             <span class="label">💿</span>
                             <span class="name" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}" th:title="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span>
                         </a>
                         <!-- For weeks: song links to chart with trophy icon -->
-                        <a th:if="${tf.topSongName != null and periodType == 'weeks' and tf.hasChart == true}" class="number-one-item" 
+                        <a th:if="${tf.topSongName != null and periodType == 'weeks' and tf.hasChart == true}" 
+                           th:class="${'number-one-item' + (tf.topSongGenderId == 2 ? ' gender-male' : (tf.topSongGenderId == 1 ? ' gender-female' : ''))}" 
                            th:href="@{'/charts/weekly/' + ${tf.periodKey}}" onclick="event.stopPropagation();" target="_blank">
                             <span class="label">🏆</span>
                             <span class="name" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}" th:title="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span>
                         </a>
                         <!-- For weeks without chart or non-weeks: song links to detail -->
-                        <a th:if="${tf.topSongName != null and (periodType != 'weeks' or tf.hasChart != true)}" class="number-one-item" th:href="@{'/songs/' + ${tf.topSongId}}" onclick="event.stopPropagation();">
+                        <a th:if="${tf.topSongName != null and (periodType != 'weeks' or tf.hasChart != true)}" 
+                           th:class="${'number-one-item' + (tf.topSongGenderId == 2 ? ' gender-male' : (tf.topSongGenderId == 1 ? ' gender-female' : ''))}" 
+                           th:href="@{'/songs/' + ${tf.topSongId}}" onclick="event.stopPropagation();">
                             <span class="label">🎵</span>
                             <span class="name" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}" th:title="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span>
                         </a>
@@ -1032,13 +1049,15 @@
                     <!-- Note: weeks don't need this section since their plays-based section already links to chart -->
                     <div th:if="${(periodType == 'seasons' and tf.seasonalChartFinalized == true) or (periodType == 'years' and tf.yearlyChartFinalized == true)}" 
                          class="number-one-info" style="border-top-style: dashed;">
-                        <a th:if="${tf.numberOneAlbumName != null}" class="number-one-item"
+                        <a th:if="${tf.numberOneAlbumName != null}" 
+                           th:class="${'number-one-item' + (tf.numberOneAlbumGenderId == 2 ? ' gender-male' : (tf.numberOneAlbumGenderId == 1 ? ' gender-female' : ''))}"
                            th:href="${periodType == 'seasons' ? '/charts/seasonal/' + tf.periodKey : '/charts/yearly/' + tf.periodKey}"
                            onclick="event.stopPropagation();" target="_blank" title="View chart">
                             <span class="label">🏆</span>
                             <span class="name" th:text="${tf.numberOneAlbumName}" th:title="${'Chart #1: ' + tf.numberOneAlbumName}">Album Name</span>
                         </a>
-                        <a th:if="${tf.numberOneSongName != null}" class="number-one-item" 
+                        <a th:if="${tf.numberOneSongName != null}" 
+                           th:class="${'number-one-item' + (tf.numberOneSongGenderId == 2 ? ' gender-male' : (tf.numberOneSongGenderId == 1 ? ' gender-female' : ''))}" 
                            th:href="${periodType == 'seasons' ? '/charts/seasonal/' + tf.periodKey : '/charts/yearly/' + tf.periodKey}"
                            onclick="event.stopPropagation();" target="_blank" title="View chart">
                             <span class="label">🏆</span>

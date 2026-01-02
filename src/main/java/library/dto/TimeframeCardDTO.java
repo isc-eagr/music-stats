@@ -61,9 +61,11 @@ public class TimeframeCardDTO {
     private Integer topAlbumId;
     private String topAlbumName;
     private String topAlbumArtistName;
+    private Integer topAlbumGenderId;
     private Integer topSongId;
     private String topSongName;
     private String topSongArtistName;
+    private Integer topSongGenderId;
 
     // Computed male percentages (for filtering and display)
     // These include "other" in the denominator to match UI display
@@ -450,6 +452,14 @@ public class TimeframeCardDTO {
         this.topAlbumArtistName = topAlbumArtistName;
     }
 
+    public Integer getTopAlbumGenderId() {
+        return topAlbumGenderId;
+    }
+
+    public void setTopAlbumGenderId(Integer topAlbumGenderId) {
+        this.topAlbumGenderId = topAlbumGenderId;
+    }
+
     public Integer getTopSongId() {
         return topSongId;
     }
@@ -472,6 +482,14 @@ public class TimeframeCardDTO {
 
     public void setTopSongArtistName(String topSongArtistName) {
         this.topSongArtistName = topSongArtistName;
+    }
+
+    public Integer getTopSongGenderId() {
+        return topSongGenderId;
+    }
+
+    public void setTopSongGenderId(Integer topSongGenderId) {
+        this.topSongGenderId = topSongGenderId;
     }
 
     // Chart generation status (only for weeks)
@@ -534,21 +552,39 @@ public class TimeframeCardDTO {
     
     // #1 song/album names for finalized charts
     private String numberOneSongName;
+    private Integer numberOneSongGenderId;
     private String numberOneAlbumName;
-    
+    private Integer numberOneAlbumGenderId;
+
     public String getNumberOneSongName() {
         return numberOneSongName;
     }
-    
+
     public void setNumberOneSongName(String numberOneSongName) {
         this.numberOneSongName = numberOneSongName;
     }
-    
+
+    public Integer getNumberOneSongGenderId() {
+        return numberOneSongGenderId;
+    }
+
+    public void setNumberOneSongGenderId(Integer numberOneSongGenderId) {
+        this.numberOneSongGenderId = numberOneSongGenderId;
+    }
+
     public String getNumberOneAlbumName() {
         return numberOneAlbumName;
     }
-    
+
     public void setNumberOneAlbumName(String numberOneAlbumName) {
         this.numberOneAlbumName = numberOneAlbumName;
+    }
+
+    public Integer getNumberOneAlbumGenderId() {
+        return numberOneAlbumGenderId;
+    }
+
+    public void setNumberOneAlbumGenderId(Integer numberOneAlbumGenderId) {
+        this.numberOneAlbumGenderId = numberOneAlbumGenderId;
     }
 }
