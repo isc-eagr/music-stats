@@ -11,6 +11,7 @@ import library.entity.ArtistImage;
 import library.repository.ArtistImageRepository;
 import library.repository.ArtistRepository;
 import library.repository.LookupRepository;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,7 +107,7 @@ public class ArtistService {
             // Set time listened and format it
             long timeListened = row[19] != null ? ((Number) row[19]).longValue() : 0L;
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
             // Set first and last listened dates (indices 20 and 21)
             dto.setFirstListenedDate(row[20] != null ? formatDate((String) row[20]) : null);
@@ -974,26 +975,6 @@ public class ArtistService {
         }
     }
     
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        // Smart formatting for card display
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
-    }
-    
     // Get scrobbles for an artist with pagination
     public List<ScrobbleDTO> getScrobblesForArtist(int artistId, int page, int pageSize) {
         int offset = page * pageSize;
@@ -1144,7 +1125,7 @@ public class ArtistService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             dto.setFeatureCount(rs.getInt("feature_count"));
             // Parse song names from GROUP_CONCAT result
             String songNamesConcat = rs.getString("song_names");
@@ -1270,7 +1251,7 @@ public class ArtistService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             dto.setFeatureCount(rs.getInt("feature_count"));
             String songNamesConcat = rs.getString("song_names");
             if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
@@ -1349,7 +1330,7 @@ public class ArtistService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             return dto;
         }, artistId);
     }
@@ -1419,7 +1400,7 @@ public class ArtistService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             return dto;
         }, artistId);
     }
@@ -2034,7 +2015,7 @@ public class ArtistService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             dto.setFeatureCount(rs.getInt("feature_count"));
             String songNamesConcat = rs.getString("song_names");
             if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
@@ -2125,7 +2106,7 @@ public class ArtistService {
             WHERE sfa.artist_id = ?
             """;
         Integer totalSeconds = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-        return formatTime(totalSeconds != null ? totalSeconds : 0);
+        return TimeFormatUtils.formatTime(totalSeconds != null ? totalSeconds : 0);
     }
     
     /**

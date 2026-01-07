@@ -411,7 +411,6 @@ public class ChartsController {
         boolean isComplete = chartService.isSeasonComplete(periodKey);
         // Can finalize only if exactly the right counts
         int mainSongCount = (int) songEntries.stream().filter(e -> e.getPosition() <= ChartService.SEASONAL_YEARLY_SONGS_COUNT).count();
-        int extraSongCount = (int) songEntries.stream().filter(e -> e.getPosition() > ChartService.SEASONAL_YEARLY_SONGS_COUNT).count();
         boolean canFinalize = isComplete 
             && mainSongCount == ChartService.SEASONAL_YEARLY_SONGS_COUNT
             && albumEntries.size() == ChartService.SEASONAL_ALBUMS_COUNT;

@@ -4,6 +4,7 @@ import library.dto.LanguageCardDTO;
 import library.entity.Language;
 import library.repository.LanguageRepository;
 import library.repository.LookupRepository;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -195,7 +196,7 @@ public class LanguageService {
             dto.setVatitoPlayCount((Integer) row[4]);
             dto.setRobertloverPlayCount((Integer) row[5]);
             dto.setTimeListened((Long) row[6]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[6]));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime((Long) row[6]));
             dto.setArtistCount((Integer) row[7]);
             dto.setAlbumCount((Integer) row[8]);
             dto.setSongCount((Integer) row[9]);
@@ -493,24 +494,5 @@ public class LanguageService {
             """;
         
         return jdbcTemplate.queryForMap(sql, languageId);
-    }
-    
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
     }
 }

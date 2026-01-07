@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.CountryCardDTO;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -153,7 +154,7 @@ public class CountryService {
             dto.setVatitoPlayCount((Integer) row[2]);
             dto.setRobertloverPlayCount((Integer) row[3]);
             dto.setTimeListened((Long) row[4]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[4]));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime((Long) row[4]));
             dto.setArtistCount((Integer) row[5]);
             dto.setAlbumCount((Integer) row[6]);
             dto.setSongCount((Integer) row[7]);
@@ -302,24 +303,5 @@ public class CountryService {
         
         Long count = jdbcTemplate.queryForObject(sql, Long.class, name, name);
         return count != null ? count : 0;
-    }
-    
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
     }
 }

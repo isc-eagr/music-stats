@@ -566,14 +566,13 @@ public class ScrobbleMatcherScript {
      */
     private static class SongMatch {
         final int songId;
-        final Integer albumId;
         final String artistName;
         final String albumName;
         final String songName;
 
         SongMatch(int songId, Integer albumId, String artistName, String albumName, String songName) {
             this.songId = songId;
-            this.albumId = albumId;
+            // albumId is passed for construction but not stored (used only in lookup key generation)
             this.artistName = artistName;
             this.albumName = albumName;
             this.songName = songName;

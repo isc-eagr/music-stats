@@ -11,6 +11,7 @@ import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.SongService;
+import library.util.DateFormatUtils;
 import library.service.iTunesLibraryService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -141,17 +142,17 @@ public class SongController {
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
-        String releaseDateConverted = convertDateFormat(releaseDate);
-        String releaseDateFromConverted = convertDateFormat(releaseDateFrom);
-        String releaseDateToConverted = convertDateFormat(releaseDateTo);
-        String firstListenedDateConverted = convertDateFormat(firstListenedDate);
-        String firstListenedDateFromConverted = convertDateFormat(firstListenedDateFrom);
-        String firstListenedDateToConverted = convertDateFormat(firstListenedDateTo);
-        String lastListenedDateConverted = convertDateFormat(lastListenedDate);
-        String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
-        String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
-        String listenedDateFromConverted = convertDateFormat(listenedDateFrom);
-        String listenedDateToConverted = convertDateFormat(listenedDateTo);
+        String releaseDateConverted = DateFormatUtils.convertToIsoFormat(releaseDate);
+        String releaseDateFromConverted = DateFormatUtils.convertToIsoFormat(releaseDateFrom);
+        String releaseDateToConverted = DateFormatUtils.convertToIsoFormat(releaseDateTo);
+        String firstListenedDateConverted = DateFormatUtils.convertToIsoFormat(firstListenedDate);
+        String firstListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateTo);
+        String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
+        String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
+        String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
         
         // Get filtered and sorted songs
         List<SongCardDTO> songs = songService.getSongs(
@@ -728,23 +729,23 @@ public class SongController {
             .setCountryMode(countryMode)
             .setAccounts(account)
             .setAccountMode(accountMode)
-            .setReleaseDate(convertDateFormat(releaseDate))
-            .setReleaseDateFrom(convertDateFormat(releaseDateFrom))
-            .setReleaseDateTo(convertDateFormat(releaseDateTo))
+            .setReleaseDate(DateFormatUtils.convertToIsoFormat(releaseDate))
+            .setReleaseDateFrom(DateFormatUtils.convertToIsoFormat(releaseDateFrom))
+            .setReleaseDateTo(DateFormatUtils.convertToIsoFormat(releaseDateTo))
             .setReleaseDateMode(releaseDateMode)
             .setReleaseDateEntity(releaseDateEntity)
-            .setFirstListenedDate(convertDateFormat(firstListenedDate))
-            .setFirstListenedDateFrom(convertDateFormat(firstListenedDateFrom))
-            .setFirstListenedDateTo(convertDateFormat(firstListenedDateTo))
+            .setFirstListenedDate(DateFormatUtils.convertToIsoFormat(firstListenedDate))
+            .setFirstListenedDateFrom(DateFormatUtils.convertToIsoFormat(firstListenedDateFrom))
+            .setFirstListenedDateTo(DateFormatUtils.convertToIsoFormat(firstListenedDateTo))
             .setFirstListenedDateMode(firstListenedDateMode)
             .setFirstListenedDateEntity(firstListenedDateEntity)
-            .setLastListenedDate(convertDateFormat(lastListenedDate))
-            .setLastListenedDateFrom(convertDateFormat(lastListenedDateFrom))
-            .setLastListenedDateTo(convertDateFormat(lastListenedDateTo))
+            .setLastListenedDate(DateFormatUtils.convertToIsoFormat(lastListenedDate))
+            .setLastListenedDateFrom(DateFormatUtils.convertToIsoFormat(lastListenedDateFrom))
+            .setLastListenedDateTo(DateFormatUtils.convertToIsoFormat(lastListenedDateTo))
             .setLastListenedDateMode(lastListenedDateMode)
             .setLastListenedDateEntity(lastListenedDateEntity)
-            .setListenedDateFrom(convertDateFormat(listenedDateFrom))
-            .setListenedDateTo(convertDateFormat(listenedDateTo))
+            .setListenedDateFrom(DateFormatUtils.convertToIsoFormat(listenedDateFrom))
+            .setListenedDateTo(DateFormatUtils.convertToIsoFormat(listenedDateTo))
             .setPlayCountMin(playCountMin)
             .setPlayCountMax(playCountMax)
             .setPlayCountEntity(playCountEntity)
@@ -1610,28 +1611,7 @@ public class SongController {
         return dateStr;
     }
     
-    // Helper method to convert date format from dd/mm/yyyy to yyyy-MM-dd for database queries
-    private String convertDateFormat(String dateStr) {
-        if (dateStr == null || dateStr.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            // Check if it's already in yyyy-MM-dd format
-            if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                return dateStr;
-            }
-            // Try to parse dd/mm/yyyy format
-            if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
-                String[] parts = dateStr.split("/");
-                if (parts.length == 3) {
-                    return parts[2] + "-" + parts[1] + "-" + parts[0];
-                }
-            }
-        } catch (Exception e) {
-            // If parsing fails, return original
-        }
-        return dateStr;
-    }
+
     
     // ============================================
     // Featured Artists API Endpoints
@@ -1732,17 +1712,17 @@ public class SongController {
             @RequestParam(defaultValue = "10000") int limit) {
         
         // Convert date formats
-        String releaseDateConverted = convertDateFormat(releaseDate);
-        String releaseDateFromConverted = convertDateFormat(releaseDateFrom);
-        String releaseDateToConverted = convertDateFormat(releaseDateTo);
-        String firstListenedDateConverted = convertDateFormat(firstListenedDate);
-        String firstListenedDateFromConverted = convertDateFormat(firstListenedDateFrom);
-        String firstListenedDateToConverted = convertDateFormat(firstListenedDateTo);
-        String lastListenedDateConverted = convertDateFormat(lastListenedDate);
-        String lastListenedDateFromConverted = convertDateFormat(lastListenedDateFrom);
-        String lastListenedDateToConverted = convertDateFormat(lastListenedDateTo);
-        String listenedDateFromConverted = convertDateFormat(listenedDateFrom);
-        String listenedDateToConverted = convertDateFormat(listenedDateTo);
+        String releaseDateConverted = DateFormatUtils.convertToIsoFormat(releaseDate);
+        String releaseDateFromConverted = DateFormatUtils.convertToIsoFormat(releaseDateFrom);
+        String releaseDateToConverted = DateFormatUtils.convertToIsoFormat(releaseDateTo);
+        String firstListenedDateConverted = DateFormatUtils.convertToIsoFormat(firstListenedDate);
+        String firstListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateTo);
+        String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
+        String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
+        String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
         
         // Get all songs matching filters (using a large limit instead of pagination)
         List<SongCardDTO> songs = songService.getSongs(

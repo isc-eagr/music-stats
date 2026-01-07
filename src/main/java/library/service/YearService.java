@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.YearCardDTO;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -88,7 +89,7 @@ public class YearService {
             dto.setVatitoPlayCount(rs.getInt("vatito_play_count"));
             dto.setRobertloverPlayCount(rs.getInt("robertlover_play_count"));
             dto.setTimeListened(rs.getLong("time_listened"));
-            dto.setTimeListenedFormatted(formatTime(rs.getLong("time_listened")));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(rs.getLong("time_listened")));
             dto.setArtistCount(rs.getInt("artist_count"));
             dto.setAlbumCount(rs.getInt("album_count"));
             dto.setSongCount(rs.getInt("song_count"));
@@ -324,7 +325,7 @@ public class YearService {
             dto.setVatitoPlayCount(rs.getInt("vatito_play_count"));
             dto.setRobertloverPlayCount(rs.getInt("robertlover_play_count"));
             dto.setTimeListened(rs.getLong("time_listened"));
-            dto.setTimeListenedFormatted(formatTime(rs.getLong("time_listened")));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(rs.getLong("time_listened")));
             dto.setArtistCount(rs.getInt("artist_count"));
             dto.setAlbumCount(rs.getInt("album_count"));
             dto.setSongCount(rs.getInt("song_count"));
@@ -568,24 +569,6 @@ public class YearService {
                     break;
                 }
             }
-        }
-    }
-
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
         }
     }
 }

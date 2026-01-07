@@ -285,7 +285,6 @@ public class MusicBrainzMetadataPopulator {
 			AlbumData album = new AlbumData();
 			album.id = rs.getInt("id");
 			album.name = rs.getString("name");
-			album.artistId = rs.getInt("artist_id");
 			album.artistName = rs.getString("artist_name");
 			return album;
 		});
@@ -345,7 +344,6 @@ public class MusicBrainzMetadataPopulator {
 			SongData song = new SongData();
 			song.id = rs.getInt("id");
 			song.name = rs.getString("name");
-			song.artistId = rs.getInt("artist_id");
 			song.artistName = rs.getString("artist_name");
 			return song;
 		});
@@ -879,14 +877,12 @@ public class MusicBrainzMetadataPopulator {
 	private static class AlbumData {
 		int id;
 		String name;
-		int artistId;
 		String artistName;
 	}
 
 	private static class SongData {
 		int id;
 		String name;
-		int artistId;
 		String artistName;
 	}
 }

@@ -4,6 +4,7 @@ import library.dto.SubGenreCardDTO;
 import library.entity.SubGenre;
 import library.repository.SubGenreRepository;
 import library.repository.LookupRepository;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -207,7 +208,7 @@ public class SubGenreService {
             dto.setVatitoPlayCount((Integer) row[6]);
             dto.setRobertloverPlayCount((Integer) row[7]);
             dto.setTimeListened((Long) row[8]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[8]));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime((Long) row[8]));
             dto.setArtistCount((Integer) row[9]);
             dto.setAlbumCount((Integer) row[10]);
             dto.setSongCount((Integer) row[11]);
@@ -518,24 +519,5 @@ public class SubGenreService {
             """;
         
         return jdbcTemplate.queryForMap(sql, subGenreId);
-    }
-    
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
     }
 }

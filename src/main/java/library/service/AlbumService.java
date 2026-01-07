@@ -10,6 +10,7 @@ import library.entity.AlbumImage;
 import library.repository.AlbumImageRepository;
 import library.repository.AlbumRepository;
 import library.repository.LookupRepository;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,7 +97,7 @@ public class AlbumService {
             // Set album length and format it (index 15)
             long albumLength = row[15] != null ? ((Number) row[15]).longValue() : 0L;
             dto.setAlbumLength(albumLength);
-            dto.setAlbumLengthFormatted(formatTime(albumLength));
+            dto.setAlbumLengthFormatted(TimeFormatUtils.formatTime(albumLength));
             
             dto.setHasImage(row[16] != null && ((Number) row[16]).intValue() == 1);
             dto.setGenderName((String) row[17]);
@@ -107,7 +108,7 @@ public class AlbumService {
             // Set time listened and format it
             long timeListened = row[21] != null ? ((Number) row[21]).longValue() : 0L;
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
             // Set first and last listened dates (indices 22 and 23)
             dto.setFirstListenedDate(row[22] != null ? formatDate((String) row[22]) : null);
@@ -591,7 +592,7 @@ public class AlbumService {
         if (totalSeconds == null || totalSeconds == 0) {
             return null;
         }
-        return formatTime(totalSeconds);
+        return TimeFormatUtils.formatTime(totalSeconds);
     }
     
     // Get album length in seconds (for sorting/calculations)
@@ -924,26 +925,6 @@ public class AlbumService {
         return null;
     }
     
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        // Smart formatting for card display
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
-    }
-    
     // Get scrobbles for an album with pagination
     public List<ScrobbleDTO> getScrobblesForAlbum(int albumId, int page, int pageSize) {
         int offset = page * pageSize;
@@ -1085,7 +1066,7 @@ public class AlbumService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             dto.setFeatureCount(rs.getInt("feature_count"));
             // Parse song names from GROUP_CONCAT result
             String songNamesConcat = rs.getString("song_names");

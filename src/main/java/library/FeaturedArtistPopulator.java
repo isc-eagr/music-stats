@@ -147,7 +147,6 @@ public class FeaturedArtistPopulator {
             SongData song = new SongData();
             song.id = rs.getInt("id");
             song.name = rs.getString("name");
-            song.artistId = rs.getInt("artist_id");
             song.artistName = rs.getString("artist_name");
             return song;
         });
@@ -237,7 +236,6 @@ public class FeaturedArtistPopulator {
     private static class SongData {
         int id;
         String name;
-        int artistId;
         String artistName;
     }
 }

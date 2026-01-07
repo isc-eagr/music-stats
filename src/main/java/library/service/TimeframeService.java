@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.TimeframeCardDTO;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -9,7 +10,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class TimeframeService {
@@ -325,7 +325,7 @@ public class TimeframeService {
             
             dto.setPlayCount(rs.getInt("play_count"));
             dto.setTimeListened(rs.getLong("time_listened"));
-            dto.setTimeListenedFormatted(formatTime(rs.getLong("time_listened")));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(rs.getLong("time_listened")));
             dto.setArtistCount(rs.getInt("artist_count"));
             dto.setAlbumCount(rs.getInt("album_count"));
             dto.setSongCount(rs.getInt("song_count"));
@@ -1045,7 +1045,7 @@ public class TimeframeService {
     private void mergeTimeframeCounts(TimeframeCardDTO target, TimeframeCardDTO source) {
         target.setPlayCount(safeAdd(target.getPlayCount(), source.getPlayCount()));
         target.setTimeListened(safeAddLong(target.getTimeListened(), source.getTimeListened()));
-        target.setTimeListenedFormatted(formatTime(target.getTimeListened()));
+        target.setTimeListenedFormatted(TimeFormatUtils.formatTime(target.getTimeListened()));
         target.setArtistCount(safeAdd(target.getArtistCount(), source.getArtistCount()));
         target.setAlbumCount(safeAdd(target.getAlbumCount(), source.getAlbumCount()));
         target.setSongCount(safeAdd(target.getSongCount(), source.getSongCount()));
@@ -1609,171 +1609,6 @@ public class TimeframeService {
     }
     
     /**
-     * Append filter conditions to SQL
-     */
-    private void appendFilters(StringBuilder sql, List<Object> params,
-            List<Integer> winningGender, String winningGenderMode,
-            List<Integer> winningGenre, String winningGenreMode,
-            List<Integer> winningEthnicity, String winningEthnicityMode,
-            List<Integer> winningLanguage, String winningLanguageMode,
-            List<String> winningCountry, String winningCountryMode,
-            Integer artistCountMin, Integer artistCountMax,
-            Integer albumCountMin, Integer albumCountMax,
-            Integer songCountMin, Integer songCountMax,
-            Integer playsMin, Integer playsMax,
-            Long timeMin, Long timeMax,
-            Double maleArtistPctMin, Double maleArtistPctMax,
-            Double maleAlbumPctMin, Double maleAlbumPctMax,
-            Double maleSongPctMin, Double maleSongPctMax,
-            Double malePlayPctMin, Double malePlayPctMax,
-            Double maleTimePctMin, Double maleTimePctMax) {
-        
-        // Winning gender filter
-        if (winningGenderMode != null && winningGender != null && !winningGender.isEmpty()) {
-            String placeholders = String.join(",", winningGender.stream().map(id -> "?").toList());
-            if ("includes".equals(winningGenderMode)) {
-                sql.append(" AND wgn.gender_id IN (").append(placeholders).append(")");
-                params.addAll(winningGender);
-            } else if ("excludes".equals(winningGenderMode)) {
-                sql.append(" AND (wgn.gender_id NOT IN (").append(placeholders).append(") OR wgn.gender_id IS NULL)");
-                params.addAll(winningGender);
-            }
-        }
-        
-        // Winning genre filter
-        if (winningGenreMode != null && winningGenre != null && !winningGenre.isEmpty()) {
-            String placeholders = String.join(",", winningGenre.stream().map(id -> "?").toList());
-            if ("includes".equals(winningGenreMode)) {
-                sql.append(" AND wgr.genre_id IN (").append(placeholders).append(")");
-                params.addAll(winningGenre);
-            } else if ("excludes".equals(winningGenreMode)) {
-                sql.append(" AND (wgr.genre_id NOT IN (").append(placeholders).append(") OR wgr.genre_id IS NULL)");
-                params.addAll(winningGenre);
-            }
-        }
-        
-        // Winning ethnicity filter
-        if (winningEthnicityMode != null && winningEthnicity != null && !winningEthnicity.isEmpty()) {
-            String placeholders = String.join(",", winningEthnicity.stream().map(id -> "?").toList());
-            if ("includes".equals(winningEthnicityMode)) {
-                sql.append(" AND weth.ethnicity_id IN (").append(placeholders).append(")");
-                params.addAll(winningEthnicity);
-            } else if ("excludes".equals(winningEthnicityMode)) {
-                sql.append(" AND (weth.ethnicity_id NOT IN (").append(placeholders).append(") OR weth.ethnicity_id IS NULL)");
-                params.addAll(winningEthnicity);
-            }
-        }
-        
-        // Winning language filter
-        if (winningLanguageMode != null && winningLanguage != null && !winningLanguage.isEmpty()) {
-            String placeholders = String.join(",", winningLanguage.stream().map(id -> "?").toList());
-            if ("includes".equals(winningLanguageMode)) {
-                sql.append(" AND wlang.language_id IN (").append(placeholders).append(")");
-                params.addAll(winningLanguage);
-            } else if ("excludes".equals(winningLanguageMode)) {
-                sql.append(" AND (wlang.language_id NOT IN (").append(placeholders).append(") OR wlang.language_id IS NULL)");
-                params.addAll(winningLanguage);
-            }
-        }
-        
-        // Winning country filter
-        if (winningCountryMode != null && winningCountry != null && !winningCountry.isEmpty()) {
-            String placeholders = String.join(",", winningCountry.stream().map(c -> "?").toList());
-            if ("includes".equals(winningCountryMode)) {
-                sql.append(" AND wcty.country IN (").append(placeholders).append(")");
-                params.addAll(winningCountry);
-            } else if ("excludes".equals(winningCountryMode)) {
-                sql.append(" AND (wcty.country NOT IN (").append(placeholders).append(") OR wcty.country IS NULL)");
-                params.addAll(winningCountry);
-            }
-        }
-        
-        // Count range filters
-        if (artistCountMin != null) {
-            sql.append(" AND ps.artist_count >= ?");
-            params.add(artistCountMin);
-        }
-        if (artistCountMax != null) {
-            sql.append(" AND ps.artist_count <= ?");
-            params.add(artistCountMax);
-        }
-        if (albumCountMin != null) {
-            sql.append(" AND ps.album_count >= ?");
-            params.add(albumCountMin);
-        }
-        if (albumCountMax != null) {
-            sql.append(" AND ps.album_count <= ?");
-            params.add(albumCountMax);
-        }
-        if (songCountMin != null) {
-            sql.append(" AND ps.song_count >= ?");
-            params.add(songCountMin);
-        }
-        if (songCountMax != null) {
-            sql.append(" AND ps.song_count <= ?");
-            params.add(songCountMax);
-        }
-        if (playsMin != null) {
-            sql.append(" AND ps.play_count >= ?");
-            params.add(playsMin);
-        }
-        if (playsMax != null) {
-            sql.append(" AND ps.play_count <= ?");
-            params.add(playsMax);
-        }
-        if (timeMin != null) {
-            sql.append(" AND ps.time_listened >= ?");
-            params.add(timeMin);
-        }
-        if (timeMax != null) {
-            sql.append(" AND ps.time_listened <= ?");
-            params.add(timeMax);
-        }
-        
-        // Male percentage filters
-        if (maleArtistPctMin != null) {
-            sql.append(" AND (CAST(ps.male_artist_count AS REAL) * 100.0 / NULLIF(ps.male_artist_count + ps.female_artist_count + ps.other_artist_count, 0)) >= ?");
-            params.add(maleArtistPctMin);
-        }
-        if (maleArtistPctMax != null) {
-            sql.append(" AND (CAST(ps.male_artist_count AS REAL) * 100.0 / NULLIF(ps.male_artist_count + ps.female_artist_count + ps.other_artist_count, 0)) <= ?");
-            params.add(maleArtistPctMax);
-        }
-        if (maleAlbumPctMin != null) {
-            sql.append(" AND (CAST(ps.male_album_count AS REAL) * 100.0 / NULLIF(ps.male_album_count + ps.female_album_count + ps.other_album_count, 0)) >= ?");
-            params.add(maleAlbumPctMin);
-        }
-        if (maleAlbumPctMax != null) {
-            sql.append(" AND (CAST(ps.male_album_count AS REAL) * 100.0 / NULLIF(ps.male_album_count + ps.female_album_count + ps.other_album_count, 0)) <= ?");
-            params.add(maleAlbumPctMax);
-        }
-        if (maleSongPctMin != null) {
-            sql.append(" AND (CAST(ps.male_song_count AS REAL) * 100.0 / NULLIF(ps.male_song_count + ps.female_song_count + ps.other_song_count, 0)) >= ?");
-            params.add(maleSongPctMin);
-        }
-        if (maleSongPctMax != null) {
-            sql.append(" AND (CAST(ps.male_song_count AS REAL) * 100.0 / NULLIF(ps.male_song_count + ps.female_song_count + ps.other_song_count, 0)) <= ?");
-            params.add(maleSongPctMax);
-        }
-        if (malePlayPctMin != null) {
-            sql.append(" AND (CAST(ps.male_play_count AS REAL) * 100.0 / NULLIF(ps.male_play_count + ps.female_play_count + ps.other_play_count, 0)) >= ?");
-            params.add(malePlayPctMin);
-        }
-        if (malePlayPctMax != null) {
-            sql.append(" AND (CAST(ps.male_play_count AS REAL) * 100.0 / NULLIF(ps.male_play_count + ps.female_play_count + ps.other_play_count, 0)) <= ?");
-            params.add(malePlayPctMax);
-        }
-        if (maleTimePctMin != null) {
-            sql.append(" AND (CAST(ps.male_time_listened AS REAL) * 100.0 / NULLIF(ps.male_time_listened + ps.female_time_listened + ps.other_time_listened, 0)) >= ?");
-            params.add(maleTimePctMin);
-        }
-        if (maleTimePctMax != null) {
-            sql.append(" AND (CAST(ps.male_time_listened AS REAL) * 100.0 / NULLIF(ps.male_time_listened + ps.female_time_listened + ps.other_time_listened, 0)) <= ?");
-            params.add(maleTimePctMax);
-        }
-    }
-    
-    /**
      * Format period key to human-readable display name
      */
     private String formatPeriodDisplayName(String periodType, String periodKey) {
@@ -1926,25 +1761,5 @@ public class TimeframeService {
             return new String[]{"", ""};
         }
     }
-    
-    /**
-     * Format seconds to human-readable time
-     */
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
-    }
+
 }

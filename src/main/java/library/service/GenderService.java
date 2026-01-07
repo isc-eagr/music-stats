@@ -2,6 +2,7 @@ package library.service;
 
 import library.dto.GenderCardDTO;
 import library.repository.LookupRepository;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -104,7 +105,7 @@ public class GenderService {
             dto.setVatitoPlayCount((Integer) row[3]);
             dto.setRobertloverPlayCount((Integer) row[4]);
             dto.setTimeListened((Long) row[5]);
-            dto.setTimeListenedFormatted(formatTime((Long) row[5]));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime((Long) row[5]));
             dto.setArtistCount((Integer) row[6]);
             dto.setAlbumCount((Integer) row[7]);
             dto.setSongCount((Integer) row[8]);
@@ -238,25 +239,6 @@ public class GenderService {
     
     public Map<Integer, String> getAllGenders() {
         return lookupRepository.getAllGenders();
-    }
-    
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
     }
     
     /**

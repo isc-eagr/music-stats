@@ -11,6 +11,7 @@ import library.entity.SongImage;
 import library.repository.LookupRepository;
 import library.repository.SongImageRepository;
 import library.repository.SongRepository;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,7 +105,7 @@ public class SongService {
             // Set time listened and format it
             long timeListened = row[22] != null ? ((Number) row[22]).longValue() : 0L;
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
             // Set first and last listened dates (indices 23 and 24)
             dto.setFirstListenedDate(row[23] != null ? formatDate((String) row[23]) : null);
@@ -792,26 +793,6 @@ public class SongService {
         return dateTimeString;
     }
     
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        // Smart formatting for card display
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
-    }
-    
     // Get filtered chart data for gender breakdown (using ChartFilterDTO)
     public Map<String, Object> getFilteredChartData(ChartFilterDTO filter) {
         return songRepository.getFilteredChartData(filter);
@@ -1053,7 +1034,7 @@ public class SongService {
             dto.setPlayCount(rs.getInt("play_count"));
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(formatTime(timeListened));
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             dto.setFeatureCount(1); // For songs, each featured artist only appears once
             return dto;
         }, songId);

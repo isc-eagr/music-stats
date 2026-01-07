@@ -1,6 +1,7 @@
 package library.repository;
 
 import library.dto.ChartFilterDTO;
+import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -5733,7 +5734,7 @@ public class SongRepository {
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
             row.put("timeListened", timeListened);
-            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
@@ -5847,7 +5848,7 @@ public class SongRepository {
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
             row.put("timeListened", timeListened);
-            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
@@ -5988,7 +5989,7 @@ public class SongRepository {
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
             row.put("timeListened", timeListened);
-            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             
@@ -6103,7 +6104,7 @@ public class SongRepository {
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
             row.put("timeListened", timeListened);
-            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
@@ -6202,7 +6203,7 @@ public class SongRepository {
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
             row.put("timeListened", timeListened);
-            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
@@ -6301,30 +6302,11 @@ public class SongRepository {
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
             row.put("timeListened", timeListened);
-            row.put("timeListenedFormatted", formatTime(timeListened));
+            row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
         }, params.toArray());
-    }
-    
-    // Helper method to format time in seconds to human-readable format
-    private String formatTime(long totalSeconds) {
-        if (totalSeconds == 0) {
-            return "0m";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        
-        if (days > 0) {
-            return String.format("%dd %dh", days, hours);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
     }
     
     // Helper method to format date strings
