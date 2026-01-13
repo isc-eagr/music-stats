@@ -51,4 +51,13 @@ public class CountryController {
         
         return "countries/list";
     }
+    
+    /**
+     * API endpoint to get all distinct countries for dropdowns.
+     */
+    @GetMapping("/api/list")
+    @ResponseBody
+    public java.util.List<String> listCountriesApi() {
+        return countryService.getAllCountriesSimple();
+    }
 }

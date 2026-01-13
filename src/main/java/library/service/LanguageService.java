@@ -495,4 +495,12 @@ public class LanguageService {
         
         return jdbcTemplate.queryForMap(sql, languageId);
     }
+    
+    /**
+     * Get all languages as simple id/name maps for dropdown lists.
+     */
+    public java.util.List<java.util.Map<String, Object>> getAllLanguagesSimple() {
+        String sql = "SELECT id, name FROM Language ORDER BY name";
+        return jdbcTemplate.queryForList(sql);
+    }
 }

@@ -36,4 +36,27 @@ public final class TimeFormatUtils {
             return String.format("%dm", minutes);
         }
     }
+
+    /**
+     * Formats time in seconds to HH:MM:SS format.
+     * When the duration is less than 60 minutes, it displays as MM:SS (without hours).
+     *
+     * @param totalSeconds the total time in seconds
+     * @return formatted string like "1:53:17" or "45:30"
+     */
+    public static String formatTimeHMS(long totalSeconds) {
+        if (totalSeconds <= 0) {
+            return "0:00";
+        }
+
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, seconds);
+        } else {
+            return String.format("%d:%02d", minutes, seconds);
+        }
+    }
 }

@@ -813,7 +813,7 @@ select:focus {
     top: 20px;
     align-self: start;
     grid-column: 1;
-    grid-row: 1 / 100; /* Span many rows to cover all content */
+    grid-row: 1 / span 3;
 }
 
 /* Name overlay above image */
@@ -1095,159 +1095,530 @@ select:focus {
     margin-bottom: -20px; /* Pull up to compensate for its space */
 }
 
-/* Right section (General + Statistics in two columns) */
+/* ============================================
+   REDESIGNED: Detail Page Info Sections
+   Modern, clean, unified design
+   ============================================ */
+
+/* Main container - stacked card layout */
 .detail-right-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    grid-column: 2;
+    grid-row: 2;
 }
 
-/* Content cards (General, Statistics) */
+/* Unified info card */
 .detail-content-card {
     background: var(--surface);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--radius);
-    padding: 28px;
-    box-shadow: var(--shadow);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
-/* Section header with title and action button */
+/* Card header with title and actions */
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
 }
 
 .section-header .section-title {
     margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #ffffff;
+}
+
+/* Apply section header styling to section-title inside detail-content-card */
+.detail-content-card > .section-title {
+    margin: 0;
+    padding: 12px 16px 16px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    display: block;
+}
+
+/* Add padding to content inside detail-content-card (after title) */
+.detail-content-card > .table-wrapper,
+.detail-content-card > .chart-container,
+.detail-content-card > .no-items-message,
+.detail-content-card > .featured-artist-grid,
+.detail-content-card > .item-count {
+    padding: 0 16px;
+    margin-top: 16px;
+}
+
+/* Add margin to first element after title for spacing */
+.detail-content-card > .section-title + * {
+    margin-top: 16px !important;
 }
 
 .edit-button-container {
     display: flex;
-    justify-content: flex-end;
-}
-
-/* Statistics grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px 32px;
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column;
     gap: 8px;
 }
 
-.stat-label {
-    font-size: 13px;
-    color: #999999;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.edit-button-container .btn-action,
+.edit-button-container .btn-negative {
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 6px;
 }
 
-.stat-value {
-    font-size: 24px;
+/* ---- STATISTICS SECTION (Redesigned) ---- */
+
+/* Hero stats - prominent display */
+.stats-hero {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.stats-hero .stat-hero-item {
+    padding: 14px 16px;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.stats-hero .stat-hero-item:last-child {
+    border-right: none;
+}
+
+.stat-hero-item .stat-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+
+.stat-hero-item .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+/* Date range row */
+.stats-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.stats-dates .stat-date-item {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.stats-dates .stat-date-item:last-child {
+    border-right: none;
+}
+
+.stat-date-item .stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.stat-date-item .stat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-date-item .stat-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #9ca3af;
+    margin-bottom: 2px;
+}
+
+.stat-date-item .stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* Consistency metrics row */
+.stats-consistency {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.stats-consistency .stat-mini {
+    text-align: center;
+    padding: 10px 6px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.stats-consistency .stat-mini:last-child {
+    border-right: none;
+}
+
+.stat-mini .stat-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+
+.stat-mini .stat-value {
+    font-size: 14px;
     font-weight: 700;
     color: #ffffff;
 }
 
-/* Form styling for editable attributes */
-.form-section {
-    margin-bottom: 20px;
+.stat-mini .stat-value .stat-total {
+    font-weight: 400;
+    color: #555555;
 }
 
+/* ---- GENERAL/ATTRIBUTES SECTION (Redesigned) ---- */
+
+/* Form container */
+.form-section {
+    padding: 0;
+}
+
+/* Clean attributes layout */
 .attributes-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px 32px;
+    gap: 0;
 }
 
 .attributes-grid .form-group {
-    margin-bottom: 0;
+    padding: 10px 16px;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.04);
+    background: transparent;
+    transition: background 0.15s ease;
 }
 
-/* Checkbox form-groups in attributes-grid should align left */
+.attributes-grid .form-group:nth-child(2n) {
+    border-right: none;
+}
+
+.attributes-grid .form-group:hover {
+    background: rgba(255,255,255,0.015);
+}
+
+/* Full width fields span both columns */
+.attributes-grid .form-group.form-group-full-width {
+    grid-column: 1 / -1;
+    border-right: none;
+}
+
+/* Checkbox fields - inline layout */
 .attributes-grid .form-group.form-group-checkbox {
     flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.attributes-grid .form-group label {
-    display: block;
-    font-size: 13px;
-    color: #999999;
-    font-weight: 500;
+.attributes-grid .form-group.form-group-checkbox label.field-label,
+.attributes-grid .form-group.form-group-checkbox > label:first-child {
+    flex: 1;
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: #9ca3af;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0;
+    letter-spacing: 0.8px;
 }
 
+/* Labels - visible with subtle accent */
+.attributes-grid .form-group label,
+.attributes-grid .form-group .field-label {
+    display: block;
+    font-size: 10px;
+    color: #9ca3af;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0;
+}
+
+/* Values - clean and readable */
 .attribute-text {
     display: block;
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 500;
     color: #ffffff;
     padding: 0;
-    background-color: transparent;
+    background: transparent;
     border: none;
+    line-height: 1.3;
 }
 
-/* Styles for inherited vs overridden attribute values */
+/* Override indicator */
 .attribute-text.attribute-inherited {
-    color: #ffffff;
+    color: #e5e5e5;
 }
 
 .attribute-text.attribute-overridden {
-    color: #d97706; /* Darker orange */
+    color: #f59e0b;
 }
+
+.attribute-text.attribute-overridden::before {
+    content: '◆';
+    font-size: 7px;
+    margin-right: 6px;
+    vertical-align: middle;
+    opacity: 0.7;
+}
+
+/* Checkbox values */
+.attribute-text.checkbox-yes {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.attribute-text.checkbox-no {
+    color: #3a3a3a;
+}
+
+/* ---- FORM INPUTS (Edit Mode) ---- */
 
 .form-group input[type="text"],
 .form-group input[type="date"],
 .form-group input[type="number"],
 .form-group select {
     width: 100%;
-    padding: 10px 15px;
-    background-color: #1a1a1a;
-    border: 1px solid #333333;
-    border-radius: 6px;
-    color: #e5e7eb;
+    padding: 10px 12px;
+    background-color: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    color: #e5e5e5;
     font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s ease;
 }
 
+.form-group input[type="text"]:hover,
+.form-group input[type="date"]:hover,
+.form-group input[type="number"]:hover,
+.form-group select:hover {
+    border-color: rgba(255,255,255,0.15);
+    background-color: rgba(0,0,0,0.4);
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="date"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background-color: rgba(0,0,0,0.5);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.form-group input::placeholder {
+    color: #3a3a3a;
+}
+
+/* Modern toggle switch for checkboxes */
+.inline-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666666;
+    user-select: none;
+}
+
+.inline-checkbox-label input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 40px;
+    height: 22px;
+    background-color: #2a2a2a;
+    border: none;
+    border-radius: 11px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.inline-checkbox-label input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 16px;
+    height: 16px;
+    background: #555555;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.inline-checkbox-label input[type="checkbox"]:hover::after {
+    background: #666666;
+}
+
+.inline-checkbox-label input[type="checkbox"]:checked {
+    background-color: #22c55e;
+}
+
+.inline-checkbox-label input[type="checkbox"]:checked::after {
+    left: 21px;
+    background: #ffffff;
+}
+
+.inline-checkbox-label input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+/* Form actions */
 .form-actions {
     display: flex;
-    gap: 15px;
-    margin-top: 20px;
+    gap: 12px;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.06);
 }
+
+/* Name field emphasis */
+.name-field-group {
+    background: rgba(255,255,255,0.02) !important;
+}
+
+/* ---- RESPONSIVE for new design ---- */
+@media (max-width: 768px) {
+    .stats-hero {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-hero .stat-hero-item {
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .stats-hero .stat-hero-item:last-child {
+        border-bottom: none;
+    }
+    
+    .stats-dates {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-dates .stat-date-item {
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .stats-dates .stat-date-item:last-child {
+        border-bottom: none;
+    }
+    
+    .stats-consistency {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stats-consistency .stat-mini:nth-child(2) {
+        border-right: none;
+    }
+    
+    .stats-consistency .stat-mini:nth-child(-n+2) {
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .attributes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .attributes-grid .form-group {
+        border-right: none;
+    }
+}
+
+/* ============================================
+   END: Detail Page Info Sections
+   ============================================ */
 
 /* Content section below (songs, albums, etc.) */
 .detail-content-section {
     background: var(--surface);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--radius);
-    padding: 28px;
+    border-radius: 12px;
+    padding: 0;
     box-shadow: var(--shadow);
     grid-column: 2;
-    /* Removed grid-row: 2 to allow natural stacking when multiple sections exist */
+    grid-row: auto;
+    overflow: hidden;
     margin: 0;
 }
 
 /* Add vertical spacing between consecutive content sections (e.g., Albums then Songs) */
 .detail-content-section + .detail-content-section {
-    margin-top: 32px;
+    margin-top: 20px;
 }
 
+/* Section title styled like section-header */
 .detail-content-section .section-title {
-    margin-top: 0;
-    margin-bottom: 20px;
+    margin: 0;
+    padding: 12px 16px 16px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+}
+
+/* Add padding to content inside detail-content-section */
+.detail-content-section > .pagination {
+    padding: 12px 16px;
+    margin: 16px 0 0 0;
+}
+
+.detail-content-section > .top-table-container {
+    padding: 16px 16px;
+    margin: 16px 0 0 0;
+}
+
+.detail-content-section > .no-items-message {
+    padding: 16px;
+    margin: 16px 0 0 0;
 }
 
 /* Responsive layout for detail pages */
@@ -2946,19 +3317,43 @@ input.flatpickr-input:focus {
     
     .detail-sidebar {
         position: static;
-        grid-row: 1;
+        grid-row: auto;
+        grid-column: 1;
         max-width: 280px;
-        margin: 0 auto;
+        margin: 0 auto 24px;
+    }
+    
+    /* Title with extra space on mobile to prevent tab overlap */
+    .item-name-overlay {
+        margin-bottom: 16px;
+        margin-top: 12px;
+    }
+    
+    /* Detail tabs - single column on mobile */
+    .detail-tabs {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+        margin-bottom: 24px;
     }
     
     /* Detail right section - stack on mobile */
     .detail-right-section {
+        grid-column: 1 !important;
+        grid-row: auto !important;
         grid-template-columns: 1fr;
         gap: 20px;
+        margin-bottom: 24px;
     }
     
     .detail-content-card {
         padding: 20px;
+    }
+    
+    /* Detail content sections - stack on mobile */
+    .detail-content-section {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+        margin-bottom: 24px;
     }
     
     /* Stats grid - single column on mobile */

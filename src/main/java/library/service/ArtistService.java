@@ -124,8 +124,10 @@ public class ArtistService {
             // Set featured song count (index 23)
             dto.setFeaturedSongCount(row[23] != null ? ((Number) row[23]).intValue() : 0);
             
-            // Check iTunes presence
-            dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
+            // Check iTunes presence only if filter is active (performance optimization)
+            if (filterByItunes) {
+                dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
+            }
             
             artists.add(dto);
         }
@@ -1064,6 +1066,9 @@ public class ArtistService {
         }
         if (data.get("genreId") != null) {
             artist.setGenreId(((Number) data.get("genreId")).intValue());
+        }
+        if (data.get("subgenreId") != null) {
+            artist.setSubgenreId(((Number) data.get("subgenreId")).intValue());
         }
         if (data.get("languageId") != null) {
             artist.setLanguageId(((Number) data.get("languageId")).intValue());

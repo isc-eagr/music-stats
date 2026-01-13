@@ -97,7 +97,7 @@ public class Album {
     @Transient
     public String getReleaseDateFormatted() {
         if (releaseDate == null) return null;
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMM yyyy");
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MMM-yyyy");
         return sdf.format(releaseDate);
     }
     

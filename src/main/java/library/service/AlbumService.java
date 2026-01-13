@@ -102,7 +102,7 @@ public class AlbumService {
             // Set album length and format it (index 15)
             long albumLength = row[15] != null ? ((Number) row[15]).longValue() : 0L;
             dto.setAlbumLength(albumLength);
-            dto.setAlbumLengthFormatted(TimeFormatUtils.formatTime(albumLength));
+            dto.setAlbumLengthFormatted(TimeFormatUtils.formatTimeHMS(albumLength));
             
             dto.setHasImage(row[16] != null && ((Number) row[16]).intValue() == 1);
             dto.setGenderName((String) row[17]);
@@ -125,8 +125,10 @@ public class AlbumService {
             // Set organized (index 25)
             dto.setOrganized(row[25] != null && ((Number) row[25]).intValue() == 1);
             
-            // Check iTunes presence
-            dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
+            // Check iTunes presence only if filter is active (performance optimization)
+            if (filterByItunes) {
+                dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
+            }
             
             albums.add(dto);
         }
@@ -501,6 +503,15 @@ public class AlbumService {
         }
     }
     
+    public String getArtistEthnicityName(Integer artistId) {
+        String sql = "SELECT e.name FROM Artist a JOIN Ethnicity e ON a.ethnicity_id = e.id WHERE a.id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
     // NEW: total plays for an album (count scrobbles for songs in this album)
     public int getPlayCountForAlbum(int albumId) {
         Integer count = jdbcTemplate.queryForObject(
@@ -627,14 +638,14 @@ public class AlbumService {
         }, albumId);
     }
     
-    // Get formatted album length (sum of all song lengths in mm:ss or h:mm:ss format)
+    // Get formatted album length (sum of all song lengths in MM:SS or HH:MM:SS format)
     public String getAlbumLengthFormatted(int albumId) {
         String sql = "SELECT SUM(length_seconds) FROM Song WHERE album_id = ?";
         Long totalSeconds = jdbcTemplate.queryForObject(sql, Long.class, albumId);
         if (totalSeconds == null || totalSeconds == 0) {
             return null;
         }
-        return TimeFormatUtils.formatTime(totalSeconds);
+        return TimeFormatUtils.formatTimeHMS(totalSeconds);
     }
     
     // Get album length in seconds (for sorting/calculations)
@@ -981,6 +992,17 @@ public class AlbumService {
         album.setName((String) data.get("name"));
         if (data.get("artistId") != null) {
             album.setArtistId(((Number) data.get("artistId")).intValue());
+        }
+        if (data.get("releaseDate") != null) {
+            // Convert dd/MM/yyyy to yyyy-MM-dd for parsing
+            String dateStr = (String) data.get("releaseDate");
+            if (dateStr != null && dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] parts = dateStr.split("/");
+                String isoDate = parts[2] + "-" + parts[1] + "-" + parts[0];
+                try {
+                    album.setReleaseDate(java.sql.Date.valueOf(isoDate));
+                } catch (Exception ignore) {}
+            }
         }
         Album created = createAlbum(album);
         return created.getId();

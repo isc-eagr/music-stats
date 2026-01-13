@@ -133,6 +133,15 @@ public class SubGenreController {
         }
     }
     
+    /**
+     * API endpoint to get all subgenres for dropdowns.
+     */
+    @GetMapping("/api/list")
+    @ResponseBody
+    public java.util.List<java.util.Map<String, Object>> listSubGenresApi() {
+        return subGenreService.getAllSubGenresSimple();
+    }
+    
     @PostMapping("/create")
     @ResponseBody
     public Map<String, Object> createSubGenre(@RequestBody Map<String, Object> payload) {

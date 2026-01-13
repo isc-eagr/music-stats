@@ -22,9 +22,6 @@ public class Song {
     @Column(name = "name", length = 500, nullable = false)
     private String name;
     
-    @Column(name = "status", length = 50)
-    private String status;
-    
     @Column(name = "length_seconds")
     private Integer lengthSeconds;
     
@@ -135,7 +132,7 @@ public class Song {
     @Transient
     public String getReleaseDateFormatted() {
         if (releaseDate == null) return null;
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMM yyyy");
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MMM-yyyy");
         return sdf.format(releaseDate);
     }
     
@@ -181,14 +178,6 @@ public class Song {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public Integer getLengthSeconds() {

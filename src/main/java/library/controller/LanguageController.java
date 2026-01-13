@@ -119,6 +119,15 @@ public class LanguageController {
         }
     }
     
+    /**
+     * API endpoint to get all languages for dropdowns.
+     */
+    @GetMapping("/api/list")
+    @ResponseBody
+    public java.util.List<java.util.Map<String, Object>> listLanguagesApi() {
+        return languageService.getAllLanguagesSimple();
+    }
+    
     @PostMapping("/create")
     @ResponseBody
     public Map<String, Object> createLanguage(@RequestBody Map<String, String> payload) {

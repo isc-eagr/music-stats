@@ -492,4 +492,12 @@ public class EthnicityService {
         
         return jdbcTemplate.queryForMap(sql, ethnicityId);
     }
+    
+    /**
+     * Get all ethnicities as simple id/name maps for dropdown lists.
+     */
+    public java.util.List<java.util.Map<String, Object>> getAllEthnicitiesSimple() {
+        String sql = "SELECT id, name FROM Ethnicity ORDER BY name";
+        return jdbcTemplate.queryForList(sql);
+    }
 }

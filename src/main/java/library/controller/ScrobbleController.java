@@ -208,9 +208,10 @@ public class ScrobbleController {
      * POST /scrobbles/api/create-and-assign
      * Body: { 
      *   scrobbleArtist, scrobbleAlbum, scrobbleSong, scrobbleAccount,
-     *   artistId (or null), newArtistName, newArtistGenderId,
-     *   albumId (or null), newAlbumName,
-     *   songName
+     *   artistId (or null), newArtistName, newArtistGenderId, newArtistLanguageId, 
+     *   newArtistGenreId, newArtistSubgenreId, newArtistEthnicityId, newArtistCountry,
+     *   albumId (or null), newAlbumName, newAlbumReleaseDate,
+     *   songName, songReleaseDate, songLengthSeconds
      * }
      */
     @PostMapping("/api/create-and-assign")
@@ -226,11 +227,24 @@ public class ScrobbleController {
             String newArtistName = (String) request.get("newArtistName");
             Integer newArtistGenderId = request.get("newArtistGenderId") != null && !request.get("newArtistGenderId").toString().isEmpty() 
                 ? Integer.parseInt(request.get("newArtistGenderId").toString()) : null;
+            Integer newArtistLanguageId = request.get("newArtistLanguageId") != null && !request.get("newArtistLanguageId").toString().isEmpty() 
+                ? Integer.parseInt(request.get("newArtistLanguageId").toString()) : null;
+            Integer newArtistGenreId = request.get("newArtistGenreId") != null && !request.get("newArtistGenreId").toString().isEmpty() 
+                ? Integer.parseInt(request.get("newArtistGenreId").toString()) : null;
+            Integer newArtistSubgenreId = request.get("newArtistSubgenreId") != null && !request.get("newArtistSubgenreId").toString().isEmpty() 
+                ? Integer.parseInt(request.get("newArtistSubgenreId").toString()) : null;
+            Integer newArtistEthnicityId = request.get("newArtistEthnicityId") != null && !request.get("newArtistEthnicityId").toString().isEmpty() 
+                ? Integer.parseInt(request.get("newArtistEthnicityId").toString()) : null;
+            String newArtistCountry = (String) request.get("newArtistCountry");
             
             Integer albumId = request.get("albumId") != null ? ((Number) request.get("albumId")).intValue() : null;
             String newAlbumName = (String) request.get("newAlbumName");
+            String newAlbumReleaseDate = (String) request.get("newAlbumReleaseDate");
             
             String songName = (String) request.get("songName");
+            String songReleaseDate = (String) request.get("songReleaseDate");
+            Integer songLengthSeconds = request.get("songLengthSeconds") != null 
+                ? ((Number) request.get("songLengthSeconds")).intValue() : null;
             
             if (songName == null || songName.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Song name is required"));
@@ -246,11 +260,26 @@ public class ScrobbleController {
                 }
                 canonicalArtist = artist.getName();
             } else if (newArtistName != null && !newArtistName.isBlank()) {
-                // Create new artist
+                // Create new artist with all fields
                 Map<String, Object> artistData = new HashMap<>();
                 artistData.put("name", newArtistName);
                 if (newArtistGenderId != null) {
                     artistData.put("genderId", newArtistGenderId);
+                }
+                if (newArtistLanguageId != null) {
+                    artistData.put("languageId", newArtistLanguageId);
+                }
+                if (newArtistGenreId != null) {
+                    artistData.put("genreId", newArtistGenreId);
+                }
+                if (newArtistSubgenreId != null) {
+                    artistData.put("subgenreId", newArtistSubgenreId);
+                }
+                if (newArtistEthnicityId != null) {
+                    artistData.put("ethnicityId", newArtistEthnicityId);
+                }
+                if (newArtistCountry != null && !newArtistCountry.isBlank()) {
+                    artistData.put("country", newArtistCountry);
                 }
                 artistId = artistService.createArtist(artistData);
                 canonicalArtist = newArtistName;
@@ -267,21 +296,30 @@ public class ScrobbleController {
                     canonicalAlbum = album.getName();
                 }
             } else if (newAlbumName != null && !newAlbumName.isBlank()) {
-                // Create new album
+                // Create new album with release date
                 Map<String, Object> albumData = new HashMap<>();
                 albumData.put("name", newAlbumName);
                 albumData.put("artistId", artistId);
+                if (newAlbumReleaseDate != null && !newAlbumReleaseDate.isBlank()) {
+                    albumData.put("releaseDate", newAlbumReleaseDate);
+                }
                 albumId = albumService.createAlbum(albumData);
                 canonicalAlbum = newAlbumName;
             }
             // If albumId is still null, song will be a single (no album)
             
-            // 3. Create song
+            // 3. Create song with release date and length
             Map<String, Object> songData = new HashMap<>();
             songData.put("name", songName);
             songData.put("artistId", artistId);
             if (albumId != null) {
                 songData.put("albumId", albumId);
+            }
+            if (songReleaseDate != null && !songReleaseDate.isBlank()) {
+                songData.put("releaseDate", songReleaseDate);
+            }
+            if (songLengthSeconds != null) {
+                songData.put("lengthSeconds", songLengthSeconds);
             }
             Integer songId = songService.createSong(songData);
             

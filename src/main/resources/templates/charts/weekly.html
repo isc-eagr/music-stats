@@ -211,6 +211,27 @@
             overflow: hidden;
         }
         
+        .charts-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-table-wrapper {
+                /* Enable smooth horizontal scrolling on mobile */
+                overflow-x: scroll;
+            }
+            
+            /* Make table min-width to ensure columns don't shrink too much */
+            .charts-table {
+                min-width: 700px;
+            }
+            
+            /* Adjust column widths for mobile */
+            .col-title { min-width: 180px; }
+            .col-artist { min-width: 130px; }
+        }
+        
         /* Chart table links */
         .chart-link {
             text-decoration: none;
@@ -767,18 +788,19 @@
                     <button type="button" class="chart-playlist-btn" onclick="openWeeklySongsPlaylistGenerator()">🎵 Generate Playlist</button>
                 </div>
                 <div class="charts-table-container">
-                    <table class="charts-table">
-                        <thead>
-                            <tr>
-                                <th class="col-expand"></th>
-                                <th class="col-position">Position</th>
-                                <th class="col-title">Title</th>
-                                <th class="col-artist">Artist</th>
-                                <th class="col-plays">Plays</th>
-                                <th class="col-peak" th:if="${!isPreview}">Peak</th>
-                                <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
-                            </tr>
-                    </thead>
+                    <div class="charts-table-wrapper">
+                        <table class="charts-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-expand"></th>
+                                    <th class="col-position">Position</th>
+                                    <th class="col-title">Title</th>
+                                    <th class="col-artist">Artist</th>
+                                    <th class="col-plays">Plays</th>
+                                    <th class="col-peak" th:if="${!isPreview}">Peak</th>
+                                    <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
+                                </tr>
+                        </thead>
                     <tbody>
                         <th:block th:each="entry : ${entries}">
                             <!-- Main row -->
@@ -840,7 +862,8 @@
                         </th:block>
                     </tbody>
                 </table>
-            </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Top 10 Albums Section -->
@@ -863,18 +886,19 @@
                     <div id="albumsGenderPct" class="gender-pct"></div>
                 </div>
                 <div class="charts-table-container">
-                    <table class="charts-table">
-                        <thead>
-                            <tr>
-                                <th class="col-expand"></th>
-                                <th class="col-position">Position</th>
-                                <th class="col-title">Album</th>
-                                <th class="col-artist">Artist</th>
-                                <th class="col-plays">Plays</th>
-                                <th class="col-peak" th:if="${!isPreview}">Peak</th>
-                                <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
-                            </tr>
-                        </thead>
+                    <div class="charts-table-wrapper">
+                        <table class="charts-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-expand"></th>
+                                    <th class="col-position">Position</th>
+                                    <th class="col-title">Album</th>
+                                    <th class="col-artist">Artist</th>
+                                    <th class="col-plays">Plays</th>
+                                    <th class="col-peak" th:if="${!isPreview}">Peak</th>
+                                    <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
+                                </tr>
+                            </thead>
                         <tbody>
                             <th:block th:each="entry : ${albumEntries}">
                                 <!-- Main row -->
@@ -936,6 +960,7 @@
                             </th:block>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>

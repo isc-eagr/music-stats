@@ -175,11 +175,43 @@
                             <label>Artist Name *</label>
                             <input type="text" autocomplete="off" id="newArtistName" placeholder="Enter artist name">
                         </div>
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <select id="newArtistGender">
-                                <option value="">-- Select Gender --</option>
-                            </select>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group">
+                                <label>Gender *</label>
+                                <select id="newArtistGender" required>
+                                    <option value="">-- Select Gender --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Language *</label>
+                                <select id="newArtistLanguage" required>
+                                    <option value="">-- Select Language --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Genre *</label>
+                                <select id="newArtistGenre" required>
+                                    <option value="">-- Select Genre --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Subgenre</label>
+                                <select id="newArtistSubgenre">
+                                    <option value="">-- Select Subgenre (optional) --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ethnicity *</label>
+                                <select id="newArtistEthnicity" required>
+                                    <option value="">-- Select Ethnicity --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Country</label>
+                                <select id="newArtistCountry">
+                                    <option value="">-- Select Country (optional) --</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="wizard-nav">
@@ -214,6 +246,10 @@
                             <label>Album Name *</label>
                             <input type="text" autocomplete="off" id="newAlbumName" placeholder="Enter album name">
                         </div>
+                        <div class="form-group">
+                            <label>Release Date *</label>
+                            <input type="text" autocomplete="off" id="newAlbumReleaseDate" placeholder="dd/mm/yyyy" required>
+                        </div>
                     </div>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(2)">← Back</button>
@@ -232,9 +268,28 @@
                         <label>Song Name *</label>
                         <input type="text" autocomplete="off" id="wizardSongNameInput" placeholder="Enter song name">
                     </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Release Date *</label>
+                            <input type="text" autocomplete="off" id="wizardSongReleaseDate" placeholder="dd/mm/yyyy" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Length * (mm:ss)</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" autocomplete="off" id="wizardSongLength" placeholder="3:45" pattern="[0-9]{1,2}:[0-5][0-9]" required style="flex: 1;">
+                                <input type="hidden" id="wizardSongLengthSeconds">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px;">
+                        <button type="button" class="btn btn-action" id="wizardFetchItunesBtn" onclick="wizardFetchFromItunes()" style="width: 100%;">
+                            🎵 Fetch from iTunes
+                        </button>
+                        <div id="wizardItunesFetchStatus" style="color: #888; font-size: 12px; margin-top: 6px; text-align: center;"></div>
+                    </div>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(3)">← Back</button>
-                        <button type="button" class="btn btn-action" onclick="createAndAssignSong()">Create & Assign Scrobbles</button>
+                        <button type="button" class="btn btn-action" onclick="createAndAssignSong()" id="wizardCreateBtn">Create & Assign Scrobbles</button>
                     </div>
                 </div>
             </div>
@@ -364,8 +419,8 @@
             showWizardStep(1);
             resetWizardForms();
             
-            // Load genders for dropdown
-            loadGenders();
+            // Load all dropdowns for new artist form
+            loadAllArtistDropdowns();
             
             // Open modal
             document.getElementById('createWizardModal').classList.add('active');
@@ -418,6 +473,80 @@
                     });
                 })
                 .catch(err => console.error('Error loading genders:', err));
+        }
+        
+        function loadLanguages() {
+            fetch('/languages/api/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('newArtistLanguage');
+                    select.innerHTML = '<option value="">-- Select Language --</option>';
+                    data.forEach(l => {
+                        select.innerHTML += `<option value="${l.id}">${escapeHtml(l.name)}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error loading languages:', err));
+        }
+        
+        function loadGenres() {
+            fetch('/genres/api/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('newArtistGenre');
+                    select.innerHTML = '<option value="">-- Select Genre --</option>';
+                    data.forEach(g => {
+                        select.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error loading genres:', err));
+        }
+        
+        function loadSubgenres() {
+            fetch('/subgenres/api/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('newArtistSubgenre');
+                    select.innerHTML = '<option value="">-- Select Subgenre (optional) --</option>';
+                    data.forEach(sg => {
+                        select.innerHTML += `<option value="${sg.id}">${escapeHtml(sg.name)}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error loading subgenres:', err));
+        }
+        
+        function loadEthnicities() {
+            fetch('/ethnicities/api/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('newArtistEthnicity');
+                    select.innerHTML = '<option value="">-- Select Ethnicity --</option>';
+                    data.forEach(e => {
+                        select.innerHTML += `<option value="${e.id}">${escapeHtml(e.name)}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error loading ethnicities:', err));
+        }
+        
+        function loadCountries() {
+            fetch('/countries/api/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('newArtistCountry');
+                    select.innerHTML = '<option value="">-- Select Country (optional) --</option>';
+                    data.forEach(c => {
+                        select.innerHTML += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error loading countries:', err));
+        }
+        
+        function loadAllArtistDropdowns() {
+            loadGenders();
+            loadLanguages();
+            loadGenres();
+            loadSubgenres();
+            loadEthnicities();
+            loadCountries();
         }
         
         function handleWizardArtistSearchKeyup(event) {
@@ -493,6 +622,28 @@
                         alert('Please enter an artist name');
                         return;
                     }
+                    // Validate mandatory artist fields
+                    const genderId = document.getElementById('newArtistGender').value;
+                    const languageId = document.getElementById('newArtistLanguage').value;
+                    const genreId = document.getElementById('newArtistGenre').value;
+                    const ethnicityId = document.getElementById('newArtistEthnicity').value;
+                    
+                    if (!genderId) {
+                        alert('Please select a gender for the artist');
+                        return;
+                    }
+                    if (!languageId) {
+                        alert('Please select a language for the artist');
+                        return;
+                    }
+                    if (!genreId) {
+                        alert('Please select a genre for the artist');
+                        return;
+                    }
+                    if (!ethnicityId) {
+                        alert('Please select an ethnicity for the artist');
+                        return;
+                    }
                 } else if (!wizardState.selectedArtistId) {
                     alert('Please select an artist');
                     return;
@@ -525,14 +676,33 @@
                         alert('Please enter an album name');
                         return;
                     }
+                    // Validate release date for new album
+                    const releaseDate = document.getElementById('newAlbumReleaseDate').value.trim();
+                    if (!releaseDate) {
+                        alert('Please enter a release date for the album');
+                        return;
+                    }
+                    // Validate date format (dd/mm/yyyy)
+                    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(releaseDate)) {
+                        alert('Please enter the release date in dd/mm/yyyy format');
+                        return;
+                    }
+                    wizardState.newAlbumReleaseDate = releaseDate;
                 } else {
                     const albumSelect = document.getElementById('wizardAlbumSelect');
                     wizardState.selectedAlbumId = albumSelect.value ? parseInt(albumSelect.value) : null;
                     wizardState.selectedAlbumName = albumSelect.value ? albumSelect.options[albumSelect.selectedIndex].text : '(Single)';
+                    wizardState.newAlbumReleaseDate = null;
                 }
                 
                 // Update display
                 document.getElementById('selectedAlbumDisplay').textContent = wizardState.selectedAlbumName || '(Single)';
+                
+                // Clear song fields when entering step 3
+                document.getElementById('wizardSongReleaseDate').value = '';
+                document.getElementById('wizardSongLength').value = '';
+                document.getElementById('wizardSongLengthSeconds').value = '';
+                document.getElementById('wizardItunesFetchStatus').textContent = '';
                 
                 showWizardStep(3);
             }
@@ -585,6 +755,32 @@
                 return;
             }
             
+            // Validate song release date
+            const songReleaseDate = document.getElementById('wizardSongReleaseDate').value.trim();
+            if (!songReleaseDate) {
+                alert('Please enter a release date for the song');
+                return;
+            }
+            if (!/^\d{2}\/\d{2}\/\d{4}$/.test(songReleaseDate)) {
+                alert('Please enter the release date in dd/mm/yyyy format');
+                return;
+            }
+            
+            // Validate song length
+            const songLength = document.getElementById('wizardSongLength').value.trim();
+            if (!songLength) {
+                alert('Please enter the song length');
+                return;
+            }
+            if (!/^[0-9]{1,2}:[0-5][0-9]$/.test(songLength)) {
+                alert('Please enter the length in mm:ss format (e.g., 3:45)');
+                return;
+            }
+            
+            // Convert mm:ss to seconds
+            const [minutes, seconds] = songLength.split(':').map(Number);
+            const lengthSeconds = minutes * 60 + seconds;
+            
             const payload = {
                 scrobbleArtist: wizardState.scrobbleData.artist,
                 scrobbleAlbum: wizardState.scrobbleData.album,
@@ -594,11 +790,19 @@
                 artistId: wizardState.isNewArtist ? null : wizardState.selectedArtistId,
                 newArtistName: wizardState.isNewArtist ? wizardState.selectedArtistName : null,
                 newArtistGenderId: wizardState.isNewArtist ? (document.getElementById('newArtistGender').value || null) : null,
+                newArtistLanguageId: wizardState.isNewArtist ? (document.getElementById('newArtistLanguage').value || null) : null,
+                newArtistGenreId: wizardState.isNewArtist ? (document.getElementById('newArtistGenre').value || null) : null,
+                newArtistSubgenreId: wizardState.isNewArtist ? (document.getElementById('newArtistSubgenre').value || null) : null,
+                newArtistEthnicityId: wizardState.isNewArtist ? (document.getElementById('newArtistEthnicity').value || null) : null,
+                newArtistCountry: wizardState.isNewArtist ? (document.getElementById('newArtistCountry').value || null) : null,
                 
                 albumId: wizardState.isNewAlbum ? null : wizardState.selectedAlbumId,
                 newAlbumName: wizardState.isNewAlbum ? wizardState.selectedAlbumName : null,
+                newAlbumReleaseDate: wizardState.isNewAlbum ? wizardState.newAlbumReleaseDate : null,
                 
-                songName: songName
+                songName: songName,
+                songReleaseDate: songReleaseDate,
+                songLengthSeconds: lengthSeconds
             };
             
             fetch('/scrobbles/api/create-and-assign', {
@@ -768,6 +972,79 @@
             if (countEl) {
                 countEl.textContent = unmatchedList.length;
             }
+        }
+
+        // ==================== iTunes Fetch Function ====================
+        function wizardFetchFromItunes() {
+            const button = document.getElementById('wizardFetchItunesBtn');
+            const statusEl = document.getElementById('wizardItunesFetchStatus');
+            const songName = document.getElementById('wizardSongNameInput').value.trim();
+            const artistName = wizardState.selectedArtistName || '';
+            const albumName = wizardState.selectedAlbumName === '(Single)' ? '' : (wizardState.selectedAlbumName || '');
+            
+            if (!songName && !artistName) {
+                statusEl.textContent = 'Missing song or artist name for lookup';
+                statusEl.style.color = '#ff6b6b';
+                return;
+            }
+            
+            // Disable button and show loading state
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '⏳ Fetching...';
+            statusEl.textContent = '';
+            
+            fetch('/songs/fetch-itunes-by-fields', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ songName: songName, artistName: artistName, albumName: albumName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+                
+                if (data.success) {
+                    let message = '✓ Found in iTunes: ';
+                    const parts = [];
+                    
+                    // Populate release date if found
+                    if (data.releaseDate) {
+                        // Convert YYYY-MM-DD to dd/MM/yyyy format
+                        const dateParts = data.releaseDate.split('-');
+                        if (dateParts.length === 3) {
+                            const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                            document.getElementById('wizardSongReleaseDate').value = formatted;
+                            parts.push(`Release: ${formatted}`);
+                        }
+                    }
+                    
+                    // Populate length if found
+                    if (data.lengthSeconds && data.lengthFormatted) {
+                        document.getElementById('wizardSongLength').value = data.lengthFormatted;
+                        document.getElementById('wizardSongLengthSeconds').value = data.lengthSeconds;
+                        parts.push(`Length: ${data.lengthFormatted}`);
+                    }
+                    
+                    if (parts.length > 0) {
+                        statusEl.textContent = message + parts.join(', ');
+                        statusEl.style.color = '#69db7c';
+                    } else {
+                        statusEl.textContent = '✓ Song found but no date/length available';
+                        statusEl.style.color = '#ffa94d';
+                    }
+                } else {
+                    statusEl.textContent = '✗ ' + (data.message || 'Song not found in iTunes library');
+                    statusEl.style.color = '#ff6b6b';
+                }
+            })
+            .catch(error => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+                console.error('Error fetching iTunes data:', error);
+                statusEl.textContent = '✗ Error fetching data from iTunes library';
+                statusEl.style.color = '#ff6b6b';
+            });
         }
 
         // ==================== Utility Functions ====================

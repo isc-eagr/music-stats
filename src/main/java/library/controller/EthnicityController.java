@@ -119,6 +119,15 @@ public class EthnicityController {
         }
     }
     
+    /**
+     * API endpoint to get all ethnicities for dropdowns.
+     */
+    @GetMapping("/api/list")
+    @ResponseBody
+    public java.util.List<java.util.Map<String, Object>> listEthnicitiesApi() {
+        return ethnicityService.getAllEthnicitiesSimple();
+    }
+    
     @PostMapping("/create")
     @ResponseBody
     public Map<String, Object> createEthnicity(@RequestBody Map<String, String> payload) {

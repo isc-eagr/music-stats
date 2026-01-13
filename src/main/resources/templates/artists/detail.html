@@ -108,6 +108,7 @@
                 <!-- Ranking Chips -->
                 <div class="ranking-chips-section" style="margin-top: 15px; text-align: center;">
                     <div class="winning-chips chips-expandable">
+                        <!-- GROUP 1: Overall & Artist Rankings -->
                         <!-- Overall Position -->
                         <a th:if="${overallPosition != null}"
                            th:href="@{/artists}"
@@ -115,6 +116,9 @@
                            th:text="'#' + ${overallPosition} + ' overall'"
                            th:title="'Rank #' + ${overallPosition} + ' among all artists'"></a>
 
+                        <!-- GROUP 2: Catalog Rankings (Gender > Genre > Subgenre > Ethnicity > Country > Language) -->
+                        <div class="chip-group-separator"></div>
+                        
                         <!-- Gender Rank -->
                         <a th:if="${rankByGender != null and artist.genderId != null}" 
                            th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
@@ -144,6 +148,13 @@
                            th:text="'#' + ${rankByEthnicity} + ' ' + ${ethnicities.get(artist.ethnicityId)}" 
                            th:title="'Rank #' + ${rankByEthnicity} + ' among ' + ${ethnicities.get(artist.ethnicityId)} + ' artists'"></a>
                         
+                        <!-- Country Rank -->
+                        <a th:if="${rankByCountry != null and artist.country != null}" 
+                           th:href="@{/graphs(country=${artist.country},countryMode='includes')}"
+                           class="winning-chip rank-chip country" 
+                           th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
+                           th:title="'Rank #' + ${rankByCountry} + ' among ' + ${artist.country} + ' artists'"></a>
+                        
                         <!-- Language Rank -->
                         <a th:if="${rankByLanguage != null and artist.languageId != null}" 
                            th:href="@{/graphs(filterType='language',filterId=${artist.languageId},filterName=${languages.get(artist.languageId)})}"
@@ -158,12 +169,8 @@
                            th:text="'#' + ${rankBySpanishRap} + ' Spanish Rap'"
                            th:title="'Rank #' + ${rankBySpanishRap} + ' among Spanish Rap artists'"></a>
 
-                        <!-- Country Rank -->
-                        <a th:if="${rankByCountry != null and artist.country != null}" 
-                           th:href="@{/graphs(country=${artist.country},countryMode='includes')}"
-                           class="winning-chip rank-chip country" 
-                           th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
-                           th:title="'Rank #' + ${rankByCountry} + ' among ' + ${artist.country} + ' artists'"></a>
+                        <!-- GROUP 3: Year-Based Rankings (Listened in year) -->
+                        <div class="chip-group-separator" th:if="${ranksByYear != null and !ranksByYear.isEmpty()}"></div>
                         
                         <!-- Year Ranks (only if <= 100) -->
                         <a th:each="yearEntry : ${ranksByYear}" 
@@ -231,7 +238,7 @@
                 </div>
             </div>
             
-            <!-- Right side: Two-column layout for General and Statistics -->
+            <!-- Right side: Stacked cards layout for General and Statistics -->
             <div class="detail-right-section" th:if="${activeTab == 'general' or activeTab == null}">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
@@ -256,6 +263,7 @@
                                 <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" class="editable-input" />
                             </div>
                             <div class="attributes-grid">
+                                <!-- Column 1: Gender, Language, Genre, Subgenre, Country, Ethnicity -->
                                 <div class="form-group">
                                     <label for="genderId">Gender</label>
                                     <span class="attribute-text" data-field="genderId" th:text="${artist.genderId != null ? genders.get(artist.genderId) : '-'}">-</span>
@@ -267,36 +275,26 @@
                                     </select>
                                 </div>
                                 
+                                <!-- Column 2: First Listened, Last Listened, Birth Date, Death Date -->
                                 <div class="form-group">
-                                    <label for="ethnicityId">Ethnicity</label>
-                                    <span class="attribute-text" data-field="ethnicityId" th:text="${artist.ethnicityId != null ? ethnicities.get(artist.ethnicityId) : '-'}">-</span>
-                                    <select id="ethnicityId" name="ethnicityId" th:field="*{ethnicityId}" disabled style="display:none;">
+                                    <label>First Listened Date</label>
+                                    <span class="attribute-text" th:text="${firstListenedDate}">-</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="languageId">Language</label>
+                                    <span class="attribute-text" data-field="languageId" th:text="${artist.languageId != null ? languages.get(artist.languageId) : '-'}">-</span>
+                                    <select id="languageId" name="languageId" th:field="*{languageId}" disabled style="display:none;">
                                         <option value="">Select...</option>
-                                        <option th:each="entry : ${ethnicities}" 
+                                        <option th:each="entry : ${languages}" 
                                                 th:value="${entry.key}" 
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="country">Country</label>
-                                    <span class="attribute-text" data-field="country" th:text="${artist.country != null && !#strings.isEmpty(artist.country) ? artist.country : '-'}">-</span>
-                                    <select id="country" name="country" th:field="*{country}" disabled style="display:none;">
-                                        <option value="">Select...</option>
-                                        <option th:each="c : ${countries}" th:value="${c}" th:text="${c}"></option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="birthDate">Birth Date</label>
-                                    <span class="attribute-text" data-field="birthDate" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd MMM yyyy') : '-'}">-</span>
-                                    <input type="text" autocomplete="off" id="birthDate" name="birthDate" th:value="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="deathDate">Death Date</label>
-                                    <span class="attribute-text" data-field="deathDate" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd MMM yyyy') : '-'}">-</span>
-                                    <input type="text" autocomplete="off" id="deathDate" name="deathDate" th:value="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                    <label>Last Listened Date</label>
+                                    <span class="attribute-text" th:text="${lastListenedDate}">-</span>
                                 </div>
                                 
                                 <div class="form-group">
@@ -311,6 +309,12 @@
                                 </div>
                                 
                                 <div class="form-group">
+                                    <label for="birthDate">Birth Date</label>
+                                    <span class="attribute-text" data-field="birthDate" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd-MMM-yyyy') : '-'}">-</span>
+                                    <input type="text" autocomplete="off" id="birthDate" name="birthDate" th:value="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
                                     <label for="subgenreId">Subgenre</label>
                                     <span class="attribute-text" data-field="subgenreId" th:text="${artist.subgenreId != null ? subgenres.get(artist.subgenreId) : '-'}">-</span>
                                     <select id="subgenreId" name="subgenreId" th:field="*{subgenreId}" disabled style="display:none;">
@@ -322,28 +326,47 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="languageId">Language</label>
-                                    <span class="attribute-text" data-field="languageId" th:text="${artist.languageId != null ? languages.get(artist.languageId) : '-'}">-</span>
-                                    <select id="languageId" name="languageId" th:field="*{languageId}" disabled style="display:none;">
+                                    <label for="deathDate">Death Date</label>
+                                    <span class="attribute-text" data-field="deathDate" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd-MMM-yyyy') : '-'}">-</span>
+                                    <input type="text" autocomplete="off" id="deathDate" name="deathDate" th:value="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="country">Country</label>
+                                    <span class="attribute-text" data-field="country" th:text="${artist.country != null && !#strings.isEmpty(artist.country) ? artist.country : '-'}">-</span>
+                                    <select id="country" name="country" th:field="*{country}" disabled style="display:none;">
                                         <option value="">Select...</option>
-                                        <option th:each="entry : ${languages}" 
-                                                th:value="${entry.key}" 
-                                                th:text="${entry.value}"></option>
+                                        <option th:each="c : ${countries}" th:value="${c}" th:text="${c}"></option>
                                     </select>
                                 </div>
                                 
                                 <div class="form-group form-group-checkbox">
                                     <label class="field-label label-view">Is Band</label>
-                                    <span class="attribute-text" data-field="isBand" th:text="${artist.isBand != null and artist.isBand ? 'Yes' : 'No'}">No</span>
+                                    <span class="attribute-text" data-field="isBand" 
+                                          th:classappend="${artist.isBand != null and artist.isBand ? 'checkbox-yes' : 'checkbox-no'}"
+                                          th:text="${artist.isBand != null and artist.isBand ? '✓ Yes' : '— No'}">— No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" autocomplete="off" id="isBand" name="isBand" th:field="*{isBand}" />
                                         Is Band
                                     </label>
                                 </div>
                                 
+                                <div class="form-group">
+                                    <label for="ethnicityId">Ethnicity</label>
+                                    <span class="attribute-text" data-field="ethnicityId" th:text="${artist.ethnicityId != null ? ethnicities.get(artist.ethnicityId) : '-'}">-</span>
+                                    <select id="ethnicityId" name="ethnicityId" th:field="*{ethnicityId}" disabled style="display:none;">
+                                        <option value="">Select...</option>
+                                        <option th:each="entry : ${ethnicities}" 
+                                                th:value="${entry.key}" 
+                                                th:text="${entry.value}"></option>
+                                    </select>
+                                </div>
+                                
                                 <div class="form-group form-group-checkbox">
-                                    <label>Organized</label>
-                                    <span class="attribute-text" data-field="organized" th:text="${artist.organized != null and artist.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
+                                    <label class="field-label label-view">Organized</label>
+                                    <span class="attribute-text" data-field="organized" 
+                                          th:classappend="${artist.organized != null and artist.organized ? 'checkbox-yes' : 'checkbox-no'}"
+                                          th:text="${artist.organized != null and artist.organized ? '✓ Yes' : '— No'}">— No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" />
                                         Organized
@@ -390,45 +413,41 @@
                     </form>
                 </div>
                 
-                <!-- Statistics Section (Right) -->
+                <!-- Statistics Section (Redesigned) -->
                 <div class="detail-content-card">
-                    <h2 class="section-title">Statistics</h2>
-                    <div class="stats-grid">
-                        <div class="stat-item">
+                    <div class="section-header">
+                        <h2 class="section-title">Statistics</h2>
+                    </div>
+                    
+                    <!-- Hero Stats -->
+                    <div class="stats-hero">
+                        <div class="stat-hero-item">
                             <span class="stat-label">Total Listening Time</span>
                             <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Average Song Length</span>
-                            <span class="stat-value" th:text="${averageSongLength}">-</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Average Plays per Song</span>
+                        <div class="stat-hero-item">
+                            <span class="stat-label">Avg Plays / Song</span>
                             <span class="stat-value" th:text="${averagePlaysPerSong}">-</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">First Listened</span>
-                            <span class="stat-value" th:text="${firstListenedDate}">-</span>
+                    </div>
+                    
+                    <!-- Consistency Metrics -->
+                    <div class="stats-consistency">
+                        <div class="stat-mini">
+                            <span class="stat-label">Days</span>
+                            <span class="stat-value" th:text="${uniqueDaysPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalDaysSinceFirstPlay}"></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Last Listened</span>
-                            <span class="stat-value" th:text="${lastListenedDate}">-</span>
+                        <div class="stat-mini">
+                            <span class="stat-label">Weeks</span>
+                            <span class="stat-value" th:text="${uniqueWeeksPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalWeeksSinceFirstPlay}"></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Days Played</span>
-                            <span class="stat-value" th:text="${uniqueDaysPlayed} + '/' + ${totalDaysSinceFirstPlay}">0/0</span>
+                        <div class="stat-mini">
+                            <span class="stat-label">Months</span>
+                            <span class="stat-value" th:text="${uniqueMonthsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalMonthsSinceFirstPlay}"></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Weeks Played</span>
-                            <span class="stat-value" th:text="${uniqueWeeksPlayed} + '/' + ${totalWeeksSinceFirstPlay}">0/0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Months Played</span>
-                            <span class="stat-value" th:text="${uniqueMonthsPlayed} + '/' + ${totalMonthsSinceFirstPlay}">0/0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Years Played</span>
-                            <span class="stat-value" th:text="${uniqueYearsPlayed} + '/' + ${totalYearsSinceFirstPlay}">0/0</span>
+                        <div class="stat-mini">
+                            <span class="stat-label">Years</span>
+                            <span class="stat-value" th:text="${uniqueYearsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalYearsSinceFirstPlay}"></span>
                         </div>
                     </div>
                 </div>

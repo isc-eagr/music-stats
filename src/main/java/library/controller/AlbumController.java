@@ -295,6 +295,7 @@ public class AlbumController {
         String artistName = albumService.getArtistName(album.get().getArtistId());
         String artistGender = albumService.getArtistGender(album.get().getArtistId());
         String artistCountry = albumService.getArtistCountry(album.get().getArtistId());
+        String artistEthnicityName = albumService.getArtistEthnicityName(album.get().getArtistId());
         
         model.addAttribute("currentSection", "albums");
         model.addAttribute("album", album.get());
@@ -302,6 +303,7 @@ public class AlbumController {
         model.addAttribute("artistName", artistName);
         model.addAttribute("artistGender", artistGender);
         model.addAttribute("artistCountry", artistCountry);
+        model.addAttribute("artistEthnicityName", artistEthnicityName);
         
         // Add artist entity for ranking chips
         Artist artist = artistService.findById(album.get().getArtistId());
@@ -610,7 +612,7 @@ public class AlbumController {
         return albumService.searchAlbums(query, limit);
     }
     
-    // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)
+    // Helper method to format date strings for display (yyyy-MM-dd -> dd-MMM-yyyy)
     private String formatDateForDisplay(String dateStr) {
         if (dateStr == null || dateStr.trim().isEmpty()) {
             return null;
@@ -623,7 +625,7 @@ public class AlbumController {
                 int day = Integer.parseInt(parts[2]);
                 String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                return day + " " + monthNames[month - 1] + " " + year;
+                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
             }
         } catch (Exception e) {
             // If parsing fails, return original

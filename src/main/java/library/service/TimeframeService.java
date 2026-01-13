@@ -1,7 +1,6 @@
 package library.service;
 
 import library.dto.TimeframeCardDTO;
-import library.dto.TimeframeResultDTO;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -22,11 +21,9 @@ public class TimeframeService {
     }
     
     /**
-     * Get timeframe cards with aggregated stats AND total count in a single query.
-     * Returns a TimeframeResultDTO containing both the paginated results and total count,
-     * eliminating the need for a separate countTimeframes() call.
+     * Get timeframe cards with aggregated stats
      */
-    public TimeframeResultDTO getTimeframeCardsWithCount(String periodType, 
+    public List<TimeframeCardDTO> getTimeframeCards(String periodType, 
             List<Integer> winningGender, String winningGenderMode,
             List<Integer> winningGenre, String winningGenreMode,
             List<Integer> winningEthnicity, String winningEthnicityMode,
@@ -175,47 +172,83 @@ public class TimeframeService {
         }
         sql.append("\n            ),");
         
-        // OPTIMIZATION: Compute ALL winning attributes in a SINGLE pass through the Scrobble table
-        // Instead of 5 separate CTEs each with ROW_NUMBER(), we gather all attribute counts in one scan,
-        // then pick winners using scalar subqueries from the aggregated data
-        sql.append(String.format("""
+        // Now compute winning attributes ONLY for the filtered/paginated periods
+        sql.append("""
             
-            period_attr_counts AS (
+            winning_gender AS (
                 SELECT 
                     %s as period_key,
-                    COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
-                    COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as genre_id,
-                    COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as ethnicity_id,
-                    COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as language_id,
-                    ar.country,
-                    COUNT(*) as cnt
+                    gn.id as gender_id,
+                    gn.name as gender_name,
+                    COUNT(*) as cnt,
+                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
+                WHERE scr.scrobble_date IS NOT NULL AND gn.id IS NOT NULL
+                GROUP BY period_key, gn.id, gn.name
+            ),
+            winning_genre AS (
+                SELECT 
+                    %s as period_key,
+                    gr.id as genre_id,
+                    gr.name as genre_name,
+                    COUNT(*) as cnt,
+                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
                 FROM Scrobble scr
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
+                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE scr.scrobble_date IS NOT NULL
-                GROUP BY period_key, gender_id, genre_id, ethnicity_id, language_id, ar.country
+                WHERE scr.scrobble_date IS NOT NULL AND gr.id IS NOT NULL
+                GROUP BY period_key, gr.id, gr.name
             ),
-            winning_attrs AS (
-                SELECT DISTINCT
-                    fp.period_key,
-                    (SELECT pac.gender_id FROM period_attr_counts pac 
-                     WHERE pac.period_key = fp.period_key AND pac.gender_id IS NOT NULL
-                     GROUP BY pac.gender_id ORDER BY SUM(pac.cnt) DESC LIMIT 1) as winning_gender_id,
-                    (SELECT pac.genre_id FROM period_attr_counts pac 
-                     WHERE pac.period_key = fp.period_key AND pac.genre_id IS NOT NULL
-                     GROUP BY pac.genre_id ORDER BY SUM(pac.cnt) DESC LIMIT 1) as winning_genre_id,
-                    (SELECT pac.ethnicity_id FROM period_attr_counts pac 
-                     WHERE pac.period_key = fp.period_key AND pac.ethnicity_id IS NOT NULL
-                     GROUP BY pac.ethnicity_id ORDER BY SUM(pac.cnt) DESC LIMIT 1) as winning_ethnicity_id,
-                    (SELECT pac.language_id FROM period_attr_counts pac 
-                     WHERE pac.period_key = fp.period_key AND pac.language_id IS NOT NULL
-                     GROUP BY pac.language_id ORDER BY SUM(pac.cnt) DESC LIMIT 1) as winning_language_id,
-                    (SELECT pac.country FROM period_attr_counts pac 
-                     WHERE pac.period_key = fp.period_key AND pac.country IS NOT NULL
-                     GROUP BY pac.country ORDER BY SUM(pac.cnt) DESC LIMIT 1) as winning_country
-                FROM filtered_periods fp
+            winning_ethnicity AS (
+                SELECT 
+                    %s as period_key,
+                    eth.id as ethnicity_id,
+                    eth.name as ethnicity_name,
+                    COUNT(*) as cnt,
+                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
+                WHERE scr.scrobble_date IS NOT NULL AND eth.id IS NOT NULL
+                GROUP BY period_key, eth.id, eth.name
+            ),
+            winning_language AS (
+                SELECT 
+                    %s as period_key,
+                    lang.id as language_id,
+                    lang.name as language_name,
+                    COUNT(*) as cnt,
+                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album al ON s.album_id = al.id
+                LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
+                WHERE scr.scrobble_date IS NOT NULL AND lang.id IS NOT NULL
+                GROUP BY period_key, lang.id, lang.name
+            ),
+            winning_country AS (
+                SELECT 
+                    %s as period_key,
+                    ar.country as country,
+                    COUNT(*) as cnt,
+                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                FROM Scrobble scr
+                INNER JOIN Song s ON scr.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                INNER JOIN filtered_periods fp ON %s = fp.period_key
+                WHERE scr.scrobble_date IS NOT NULL AND ar.country IS NOT NULL
+                GROUP BY period_key, ar.country
             )
             SELECT 
                 fp.period_key,
@@ -239,29 +272,33 @@ public class TimeframeService {
                 fp.male_time_listened,
                 fp.female_time_listened,
                 fp.other_time_listened,
-                wa.winning_gender_id,
-                gn.name as winning_gender_name,
-                wa.winning_genre_id,
-                gr.name as winning_genre_name,
-                wa.winning_ethnicity_id,
-                eth.name as winning_ethnicity_name,
-                wa.winning_language_id,
-                lang.name as winning_language_name,
-                wa.winning_country,
+                wgn.gender_id as winning_gender_id,
+                wgn.gender_name as winning_gender_name,
+                wgr.genre_id as winning_genre_id,
+                wgr.genre_name as winning_genre_name,
+                weth.ethnicity_id as winning_ethnicity_id,
+                weth.ethnicity_name as winning_ethnicity_name,
+                wlang.language_id as winning_language_id,
+                wlang.language_name as winning_language_name,
+                wcty.country as winning_country,
                 fp.male_artist_pct,
                 fp.male_album_pct,
                 fp.male_song_pct,
                 fp.male_play_pct,
                 fp.male_time_pct
             FROM filtered_periods fp
-            LEFT JOIN winning_attrs wa ON fp.period_key = wa.period_key
-            LEFT JOIN Gender gn ON wa.winning_gender_id = gn.id
-            LEFT JOIN Genre gr ON wa.winning_genre_id = gr.id
-            LEFT JOIN Ethnicity eth ON wa.winning_ethnicity_id = eth.id
-            LEFT JOIN Language lang ON wa.winning_language_id = lang.id
+            LEFT JOIN winning_gender wgn ON fp.period_key = wgn.period_key AND wgn.rn = 1
+            LEFT JOIN winning_genre wgr ON fp.period_key = wgr.period_key AND wgr.rn = 1
+            LEFT JOIN winning_ethnicity weth ON fp.period_key = weth.period_key AND weth.rn = 1
+            LEFT JOIN winning_language wlang ON fp.period_key = wlang.period_key AND wlang.rn = 1
+            LEFT JOIN winning_country wcty ON fp.period_key = wcty.period_key AND wcty.rn = 1
             ORDER BY %s %s
-            """,
-                periodKeyExpr, periodKeyExpr, // period_attr_counts
+            """.formatted(
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_gender
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_genre
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_ethnicity
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_language
+                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_country
                 sortColumn.replace("ps.", "fp."), sortDirection
             ));
         
@@ -325,85 +362,23 @@ public class TimeframeService {
         // For days, weeks, months, seasons, and years with no restrictive filters, include 0-play periods
         // We already skipped SQL pagination above, so merge will handle it
         if (needsMergeWithAllPeriods) {
-            // Get total count from all possible periods
-            long totalCount = getAllPeriodCount(periodType);
             List<TimeframeCardDTO> mergedResults = mergeWithAllPeriods(periodType, results, sortBy, sortDir, page, perPage);
             if (!mergedResults.isEmpty()) {
                 populateTopItems(mergedResults, periodType);
             }
-            return new TimeframeResultDTO(mergedResults, totalCount);
+            return mergedResults;
         }
 
-        // For paginated results, we need the total count - query it once
-        long totalCount = countFilteredPeriods(periodType, 
-            winningGender, winningGenderMode, winningGenre, winningGenreMode,
-            winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
-            winningCountry, winningCountryMode, artistCountMin, artistCountMax,
-            albumCountMin, albumCountMax, songCountMin, songCountMax,
-            playsMin, playsMax, timeMin, timeMax,
-            maleArtistPctMin, maleArtistPctMax, maleAlbumPctMin, maleAlbumPctMax,
-            maleSongPctMin, maleSongPctMax, malePlayPctMin, malePlayPctMax,
-            maleTimePctMin, maleTimePctMax);
-        
         // Populate top artist/album/song for the results
         if (!results.isEmpty()) {
             populateTopItems(results, periodType);
         }
         
-        return new TimeframeResultDTO(results, totalCount);
+        return results;
     }
     
-    /**
-     * Get total count of all possible periods (for merge-with-all-periods mode).
-     */
-    private long getAllPeriodCount(String periodType) {
-        return switch (periodType) {
-            case "days" -> generateAllDayKeys().size();
-            case "weeks" -> generateAllWeekKeysWithoutWeekZero().size();
-            case "months" -> generateAllMonthKeys().size();
-            case "seasons" -> generateAllSeasonKeys().size();
-            case "years" -> generateAllYearKeys().size();
-            default -> 0;
-        };
-    }
-    
-    /**
-     * Simplified count query for filtered periods (no winning attribute filters).
-     * Used internally when we need count alongside paginated results.
-     */
-    private long countFilteredPeriods(String periodType,
-            List<Integer> winningGender, String winningGenderMode,
-            List<Integer> winningGenre, String winningGenreMode,
-            List<Integer> winningEthnicity, String winningEthnicityMode,
-            List<Integer> winningLanguage, String winningLanguageMode,
-            List<String> winningCountry, String winningCountryMode,
-            Integer artistCountMin, Integer artistCountMax,
-            Integer albumCountMin, Integer albumCountMax,
-            Integer songCountMin, Integer songCountMax,
-            Integer playsMin, Integer playsMax,
-            Long timeMin, Long timeMax,
-            Double maleArtistPctMin, Double maleArtistPctMax,
-            Double maleAlbumPctMin, Double maleAlbumPctMax,
-            Double maleSongPctMin, Double maleSongPctMax,
-            Double malePlayPctMin, Double malePlayPctMax,
-            Double maleTimePctMin, Double maleTimePctMax) {
-        
-        // Use the existing countTimeframes method
-        return countTimeframes(periodType,
-            winningGender, winningGenderMode, winningGenre, winningGenreMode,
-            winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
-            winningCountry, winningCountryMode, artistCountMin, artistCountMax,
-            albumCountMin, albumCountMax, songCountMin, songCountMax,
-            playsMin, playsMax, timeMin, timeMax,
-            maleArtistPctMin, maleArtistPctMax, maleAlbumPctMin, maleAlbumPctMax,
-            maleSongPctMin, maleSongPctMax, malePlayPctMin, malePlayPctMax,
-            maleTimePctMin, maleTimePctMax);
-    }
-
     /**
      * Populates the top artist, album, and song for each timeframe in the list.
-     * OPTIMIZED: Uses a single query with UNION ALL to fetch all top items at once
-     * instead of 3 separate queries.
      */
     private void populateTopItems(List<TimeframeCardDTO> timeframes, String periodType) {
         List<String> periodKeys = timeframes.stream()
@@ -415,94 +390,111 @@ public class TimeframeService {
         String periodKeyExpr = getPeriodKeyExpression(periodType);
         String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
 
-        // OPTIMIZATION: Combined query for top artist, album, and song in a single database call
-        // Uses UNION ALL to combine 3 queries into one, reducing round trips from 3 to 1
-        String combinedSql =
-            "WITH base_scrobbles AS ( " +
+        // Query for top artist per period
+        // Note: Using periodKeyExpr in GROUP BY instead of alias for SQLite compatibility with complex expressions
+        String topArtistSql =
+            "WITH artist_plays AS ( " +
             "    SELECT " +
             "        " + periodKeyExpr + " as period_key, " +
-            "        scr.song_id, " +
-            "        s.name as song_name, " +
-            "        s.artist_id, " +
+            "        ar.id as artist_id, " +
             "        ar.name as artist_name, " +
-            "        ar.gender_id, " +
-            "        s.album_id, " +
-            "        al.name as album_name " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY " + periodKeyExpr + ", ar.id, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT period_key, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+
+        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("artist_id"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            periodKeys.toArray()
+        );
+
+        // Query for top album per period
+        String topAlbumSql =
+            "WITH album_plays AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        al.id as album_id, " +
+            "        al.name as album_name, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Scrobble scr " +
             "    JOIN Song s ON scr.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "), " +
-            "top_artists AS ( " +
-            "    SELECT period_key, artist_id as item_id, artist_name as item_name, " +
-            "           NULL as secondary_name, gender_id, " +
-            "           ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM base_scrobbles " +
-            "    GROUP BY period_key, artist_id, artist_name, gender_id " +
-            "), " +
-            "top_albums AS ( " +
-            "    SELECT period_key, album_id as item_id, album_name as item_name, " +
-            "           artist_name as secondary_name, gender_id, " +
-            "           ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM base_scrobbles " +
-            "    WHERE album_id IS NOT NULL " +
-            "    GROUP BY period_key, album_id, album_name, artist_name, gender_id " +
-            "), " +
-            "top_songs AS ( " +
-            "    SELECT period_key, song_id as item_id, song_name as item_name, " +
-            "           artist_name as secondary_name, gender_id, " +
-            "           ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM base_scrobbles " +
-            "    GROUP BY period_key, song_id, song_name, artist_name, gender_id " +
+            "    WHERE al.id IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY " + periodKeyExpr + ", al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT 'artist' as item_type, period_key, item_id, item_name, secondary_name, gender_id FROM top_artists WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'album' as item_type, period_key, item_id, item_name, secondary_name, gender_id FROM top_albums WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'song' as item_type, period_key, item_id, item_name, secondary_name, gender_id FROM top_songs WHERE rn = 1";
+            "SELECT period_key, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
 
-        // Create a map for quick lookup
-        Map<String, TimeframeCardDTO> timeframeMap = new HashMap<>();
+        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            periodKeys.toArray()
+        );
+
+        // Query for top song per period
+        String topSongSql =
+            "WITH song_plays AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        s.id as song_id, " +
+            "        s.name as song_name, " +
+            "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
+            "        COUNT(*) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Scrobble scr " +
+            "    JOIN Song s ON scr.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY " + periodKeyExpr + ", s.id, s.name, ar.name, ar.gender_id " +
+            ") " +
+            "SELECT period_key, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
+
+        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
+            periodKeys.toArray()
+        );
+
+        // Map results to timeframes
         for (TimeframeCardDTO tf : timeframes) {
-            if (tf.getPeriodKey() != null) {
-                timeframeMap.put(tf.getPeriodKey(), tf);
-            }
-        }
-
-        // Execute single combined query and map results directly
-        jdbcTemplate.query(combinedSql, (rs) -> {
-            String itemType = rs.getString("item_type");
-            String periodKey = rs.getString("period_key");
-            TimeframeCardDTO tf = timeframeMap.get(periodKey);
-            
-            if (tf != null) {
-                Integer itemId = rs.getInt("item_id");
-                String itemName = rs.getString("item_name");
-                String secondaryName = rs.getString("secondary_name");
-                Integer genderId = rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null;
-                
-                switch (itemType) {
-                    case "artist" -> {
-                        tf.setTopArtistId(itemId);
-                        tf.setTopArtistName(itemName);
-                        tf.setTopArtistGenderId(genderId);
-                    }
-                    case "album" -> {
-                        tf.setTopAlbumId(itemId);
-                        tf.setTopAlbumName(itemName);
-                        tf.setTopAlbumArtistName(secondaryName);
-                        tf.setTopAlbumGenderId(genderId);
-                    }
-                    case "song" -> {
-                        tf.setTopSongId(itemId);
-                        tf.setTopSongName(itemName);
-                        tf.setTopSongArtistName(secondaryName);
-                        tf.setTopSongGenderId(genderId);
-                    }
+            for (Object[] row : artistResults) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setTopArtistId((Integer) row[1]);
+                    tf.setTopArtistName((String) row[2]);
+                    tf.setTopArtistGenderId((Integer) row[3]);
+                    break;
                 }
             }
-        }, periodKeys.toArray());
+            for (Object[] row : albumResults) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setTopAlbumId((Integer) row[1]);
+                    tf.setTopAlbumName((String) row[2]);
+                    tf.setTopAlbumArtistName((String) row[3]);
+                    tf.setTopAlbumGenderId((Integer) row[4]);
+                    break;
+                }
+            }
+            for (Object[] row : songResults) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setTopSongId((Integer) row[1]);
+                    tf.setTopSongName((String) row[2]);
+                    tf.setTopSongArtistName((String) row[3]);
+                    tf.setTopSongGenderId((Integer) row[4]);
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -941,43 +933,35 @@ public class TimeframeService {
     /**
      * Generate all possible week period keys from earliest scrobble to current week.
      * Uses SQLite's %W week numbering convention.
-     * OPTIMIZED: Iterates week-by-week instead of day-by-day for better performance.
      */
     private List<String> generateAllWeekKeys() {
         LocalDate earliest = getEarliestScrobbleDate();
         LocalDate now = LocalDate.now();
         
         List<String> weeks = new ArrayList<>();
+        LocalDate current = earliest;
         
-        // Start from the first day of the earliest year
-        int startYear = earliest.getYear();
-        int endYear = now.getYear();
-        
-        for (int year = startYear; year <= endYear; year++) {
+        while (!current.isAfter(now)) {
+            // Calculate week number using SQLite's %W convention
+            // Week 01 starts from first Monday of the year
+            int year = current.getYear();
             LocalDate jan1 = LocalDate.of(year, 1, 1);
             LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
-            
-            // Add Week 00 if Jan 1 is not a Monday (days before first Monday)
-            if (!jan1.equals(firstMonday)) {
-                // Only add if this week is in our date range
-                if (!jan1.isAfter(now) && !firstMonday.minusDays(1).isBefore(earliest)) {
-                    weeks.add(String.format("%d-W00", year));
-                }
+
+            int weekNum;
+            if (current.isBefore(firstMonday)) {
+                weekNum = 0;
+            } else {
+                long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, current);
+                weekNum = (int) (daysSinceFirstMonday / 7) + 1;
+            }
+
+            String weekKey = String.format("%d-W%02d", year, weekNum);
+            if (weeks.isEmpty() || !weeks.get(weeks.size() - 1).equals(weekKey)) {
+                weeks.add(weekKey);
             }
             
-            // Iterate through weeks starting from first Monday
-            LocalDate weekStart = firstMonday;
-            int weekNum = 1;
-            
-            while (weekStart.getYear() == year && !weekStart.isAfter(now)) {
-                // Only add if this week overlaps with our date range
-                LocalDate weekEnd = weekStart.plusDays(6);
-                if (!weekEnd.isBefore(earliest)) {
-                    weeks.add(String.format("%d-W%02d", year, weekNum));
-                }
-                weekStart = weekStart.plusWeeks(1);
-                weekNum++;
-            }
+            current = current.plusDays(1);
         }
         
         return weeks;

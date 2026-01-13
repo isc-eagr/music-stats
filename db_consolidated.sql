@@ -123,7 +123,6 @@ CREATE TABLE IF NOT EXISTS Song (
     artist_id INTEGER NOT NULL,
     album_id INTEGER,
     name VARCHAR(500) NOT NULL,
-    status VARCHAR(50),
     length_seconds INTEGER,
     is_single INTEGER DEFAULT 0,
     override_genre_id INTEGER,
@@ -267,7 +266,6 @@ CREATE INDEX IF NOT EXISTS idx_album_organized ON Album(organized);
 CREATE INDEX IF NOT EXISTS idx_song_artist ON Song(artist_id);
 CREATE INDEX IF NOT EXISTS idx_song_album ON Song(album_id);
 CREATE INDEX IF NOT EXISTS idx_song_name ON Song(name);
-CREATE INDEX IF NOT EXISTS idx_song_status ON Song(status);
 CREATE INDEX IF NOT EXISTS idx_song_release_date ON Song(release_date);
 CREATE INDEX IF NOT EXISTS idx_song_organized ON Song(organized);
 

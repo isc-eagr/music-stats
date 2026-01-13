@@ -135,8 +135,10 @@ public class SongService {
                 dto.setLengthFormatted(String.format("%d:%02d", minutes, seconds));
             }
             
-            // Check iTunes presence
-            dto.setInItunes(itunesService.songExistsInItunes(dto.getArtistName(), dto.getName()));
+            // Check iTunes presence only if filter is active (performance optimization)
+            if (filterByItunes) {
+                dto.setInItunes(itunesService.songExistsInItunes(dto.getArtistName(), dto.getName()));
+            }
             
             songs.add(dto);
         }
@@ -214,7 +216,7 @@ public class SongService {
     
     public Optional<Song> getSongById(Integer id) {
         String sql = """
-            SELECT s.id, s.artist_id, s.album_id, s.name, s.status, s.length_seconds, s.is_single,
+            SELECT s.id, s.artist_id, s.album_id, s.name, s.length_seconds, s.is_single,
                    s.override_genre_id, s.override_subgenre_id, s.override_language_id,
                    s.override_gender_id, s.override_ethnicity_id, s.release_date, s.organized,
                    s.creation_date, s.update_date,
@@ -241,7 +243,6 @@ public class SongService {
             song.setAlbumId(rs.wasNull() ? null : albumId);
             
             song.setName(rs.getString("name"));
-            song.setStatus(rs.getString("status"));
             
             int length = rs.getInt("length_seconds");
             song.setLengthSeconds(rs.wasNull() ? null : length);
@@ -345,7 +346,7 @@ public class SongService {
         String sql = """
             UPDATE Song 
             SET name = ?, artist_id = ?, album_id = ?, release_date = ?,
-                length_seconds = ?, is_single = ?, status = ?,
+                length_seconds = ?, is_single = ?,
                 override_genre_id = ?, override_subgenre_id = ?, override_language_id = ?,
                 override_gender_id = ?, override_ethnicity_id = ?, organized = ?,
                 update_date = CURRENT_TIMESTAMP
@@ -366,7 +367,6 @@ public class SongService {
             releaseDateStr,
             song.getLengthSeconds(),
             song.getIsSingle() ? 1 : 0,
-            song.getStatus(),
             song.getOverrideGenreId(),
             song.getOverrideSubgenreId(),
             song.getOverrideLanguageId(),
@@ -792,10 +792,10 @@ public class SongService {
     public Song createSong(Song song) {
         String sql = """
             INSERT INTO Song (artist_id, album_id, name, release_date, length_seconds, 
-                             is_single, status, override_genre_id, override_subgenre_id, 
+                             is_single, override_genre_id, override_subgenre_id, 
                              override_language_id, override_gender_id, override_ethnicity_id,
                              creation_date, update_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """;
         
         // Convert java.sql.Date to yyyy-MM-dd string format for database
@@ -812,7 +812,6 @@ public class SongService {
             releaseDateStr,
             song.getLengthSeconds(),
             song.getIsSingle() != null && song.getIsSingle() ? 1 : 0,
-            song.getStatus(),
             song.getOverrideGenreId(),
             song.getOverrideSubgenreId(),
             song.getOverrideLanguageId(),
@@ -836,6 +835,20 @@ public class SongService {
         }
         if (data.get("albumId") != null) {
             song.setAlbumId(((Number) data.get("albumId")).intValue());
+        }
+        if (data.get("releaseDate") != null) {
+            // Convert dd/MM/yyyy to yyyy-MM-dd for parsing
+            String dateStr = (String) data.get("releaseDate");
+            if (dateStr != null && dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] parts = dateStr.split("/");
+                String isoDate = parts[2] + "-" + parts[1] + "-" + parts[0];
+                try {
+                    song.setReleaseDate(java.sql.Date.valueOf(isoDate));
+                } catch (Exception ignore) {}
+            }
+        }
+        if (data.get("lengthSeconds") != null) {
+            song.setLengthSeconds(((Number) data.get("lengthSeconds")).intValue());
         }
         Song created = createSong(song);
         return created.getId();

@@ -545,4 +545,12 @@ public class GenreService {
         
         return jdbcTemplate.queryForMap(sql, genreId, genreId, genreId);
     }
+    
+    /**
+     * Get all genres as simple id/name maps for dropdown lists.
+     */
+    public java.util.List<java.util.Map<String, Object>> getAllGenresSimple() {
+        String sql = "SELECT id, name FROM Genre ORDER BY name";
+        return jdbcTemplate.queryForList(sql);
+    }
 }

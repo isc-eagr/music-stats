@@ -113,26 +113,13 @@
                 
                 <!-- All Chips - Flowing Together -->
                 <div class="winning-chips" style="margin-top: 15px; padding: 0 10px;">
+                    <!-- GROUP 1: Overall & Artist/Album Rankings -->
                     <!-- Overall Position -->
                     <a th:if="${overallPosition != null}"
                        th:href="@{/albums}"
                        class="winning-chip rank-chip overall"
                        th:text="'#' + ${overallPosition} + ' overall'"
                        th:title="'Rank #' + ${overallPosition} + ' among all albums'"></a>
-
-                    <!-- Weekly Chart Stats -->
-                    <span th:if="${weeklyChartStats != null and weeklyChartStats.hasCharted()}"
-                          class="winning-chip rank-chip chart-stats"
-                          th:text="${weeklyChartStats.totalWeeks} + ' weeks (Peak #' + ${weeklyChartStats.peakPosition} + ' for ' + ${weeklyChartStats.weeksAtPeak} + (${weeklyChartStats.weeksAtPeak} == 1 ? ' week)' : ' weeks)')"
-                          th:title="'Spent ' + ${weeklyChartStats.totalWeeks} + ' weeks on the weekly album chart with a peak of #' + ${weeklyChartStats.peakPosition}">
-                    </span>
-
-                    <!-- Position by Release Year -->
-                    <span th:if="${rankByReleaseYear != null and releaseYear != null}"
-                          class="winning-chip rank-chip release-year"
-                          th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"
-                          th:title="'Rank #' + ${rankByReleaseYear} + ' among albums released in ' + ${releaseYear}">
-                    </span>
 
                     <!-- Position Among Artist's Albums -->
                     <a th:if="${rankByArtist != null and artistName != null}"
@@ -141,6 +128,9 @@
                        th:text="'#' + ${rankByArtist} + ' ' + ${artistName} + ' album'"
                        th:title="'Rank #' + ${rankByArtist} + ' among all ' + ${artistName} + ' albums'"></a>
 
+                    <!-- GROUP 2: Catalog Rankings (Gender > Genre > Subgenre > Ethnicity > Country > Language) -->
+                    <div class="chip-group-separator"></div>
+                    
                     <!-- Gender Rank -->
                     <a th:if="${rankByGender != null and album.artistId != null and artist != null and artist.genderId != null}" 
                        th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
@@ -191,6 +181,16 @@
                        th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
                        th:title="'Rank #' + ${rankByCountry} + ' among albums by ' + ${artist.country} + ' artists'"></a>
                     
+                    <!-- GROUP 3: Year-Based Rankings (Release Year, then Listened in Year) -->
+                    <div class="chip-group-separator" th:if="${rankByReleaseYear != null or (ranksByYear != null and !ranksByYear.isEmpty())}"></div>
+                    
+                    <!-- Position by Release Year -->
+                    <span th:if="${rankByReleaseYear != null and releaseYear != null}"
+                          class="winning-chip rank-chip release-year"
+                          th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"
+                          th:title="'Rank #' + ${rankByReleaseYear} + ' among albums released in ' + ${releaseYear}">
+                    </span>
+                    
                     <!-- Year Ranks (only if <= 100) -->
                     <a th:each="yearEntry : ${ranksByYear}" 
                        th:if="${yearEntry.value != null and yearEntry.value <= 100}"
@@ -199,11 +199,15 @@
                        th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 
                        th:title="'Rank #' + ${yearEntry.value} + ' most listened album in year ' + ${yearEntry.key}"></a>
                     
-                    <!-- Yearly Chart Placements -->
-                    <a th:each="entry : ${yearlyChartHistory}" 
-                       th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                       class="winning-chip chart-chip yearly-chart"
-                       th:text="${entry.displayName}"></a>
+                    <!-- GROUP 4: Chart-Based Rankings (Weekly > Seasonal > Yearly) -->
+                    <div class="chip-group-separator" th:if="${(weeklyChartStats != null and weeklyChartStats.hasCharted()) or (seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}"></div>
+                    
+                    <!-- Weekly Chart Stats -->
+                    <span th:if="${weeklyChartStats != null and weeklyChartStats.hasCharted()}"
+                          class="winning-chip rank-chip chart-stats"
+                          th:text="${weeklyChartStats.totalWeeks} + ' weeks (Peak #' + ${weeklyChartStats.peakPosition} + ' for ' + ${weeklyChartStats.weeksAtPeak} + (${weeklyChartStats.weeksAtPeak} == 1 ? ' week)' : ' weeks)')"
+                          th:title="'Spent ' + ${weeklyChartStats.totalWeeks} + ' weeks on the weekly album chart with a peak of #' + ${weeklyChartStats.peakPosition}">
+                    </span>
                     
                     <!-- Seasonal Chart Placements -->
                     <a th:each="entry : ${seasonalChartHistory}" 
@@ -215,6 +219,12 @@
                         <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
                         <span th:text="${entry.displayName}"></span>
                     </a>
+                    
+                    <!-- Yearly Chart Placements -->
+                    <a th:each="entry : ${yearlyChartHistory}" 
+                       th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
+                       class="winning-chip chart-chip yearly-chart"
+                       th:text="${entry.displayName}"></a>
                 </div>
             </div>
             
@@ -234,7 +244,7 @@
                    class="detail-tab">Chart History</a>
             </div>
             
-            <!-- Right side: Two-column layout for General and Statistics -->
+            <!-- Right side: Stacked cards layout for General and Statistics -->
             <div class="detail-right-section" th:if="${activeTab == 'general' or activeTab == null}">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
@@ -260,12 +270,14 @@
                                 <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" class="editable-input" />
                             </div>
                             <div class="attributes-grid">
+                                <!-- Column 1: Release Date, First/Last Listened, Length -->
                                 <div class="form-group">
                                     <label for="releaseDate">Release Date</label>
                                     <span class="attribute-text" data-field="releaseDate" th:text="${album.releaseDateFormatted != null ? album.releaseDateFormatted : '-'}">-</span>
                                     <input type="text" autocomplete="off" id="releaseDate" name="releaseDate" th:value="${album.releaseDateInput}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" style="display:none;" />
                                 </div>
                                 
+                                <!-- Column 2: Genre, Subgenre, Language, Country, Ethnicity -->
                                 <div class="form-group">
                                     <label for="overrideGenreId">
                                         <span class="label-view">Genre</span>
@@ -281,6 +293,11 @@
                                                 th:selected="${album.overrideGenreId != null and album.overrideGenreId.equals(entry.key)}"
                                                 th:text="${entry.value}"></option>
                                     </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>First Listened Date</label>
+                                    <span class="attribute-text" th:text="${firstListenedDate}">-</span>
                                 </div>
                                 
                                 <div class="form-group">
@@ -301,6 +318,11 @@
                                 </div>
                                 
                                 <div class="form-group">
+                                    <label>Last Listened Date</label>
+                                    <span class="attribute-text" th:text="${lastListenedDate}">-</span>
+                                </div>
+                                
+                                <div class="form-group">
                                     <label for="overrideLanguageId">
                                         <span class="label-view">Language</span>
                                         <span class="label-edit" style="display:none;">Language Override</span>
@@ -317,13 +339,30 @@
                                     </select>
                                 </div>
                                 
+                                <div class="form-group">
+                                    <label>Length</label>
+                                    <span class="attribute-text" th:text="${albumLengthFormatted != null ? albumLengthFormatted : '-'}">-</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Country</label>
+                                    <span class="attribute-text attribute-inherited" th:text="${artistCountry != null ? artistCountry : '-'}">-</span>
+                                </div>
+                                
                                 <div class="form-group form-group-checkbox">
                                     <label class="field-label label-view">Organized</label>
-                                    <span class="attribute-text" data-field="organized" th:text="${album.organized != null and album.organized ? '📦 Yes' : '📬 No'}">📬 No</span>
+                                    <span class="attribute-text" data-field="organized" 
+                                          th:classappend="${album.organized != null and album.organized ? 'checkbox-yes' : 'checkbox-no'}"
+                                          th:text="${album.organized != null and album.organized ? '✓ Yes' : '— No'}">— No</span>
                                     <label class="inline-checkbox-label" style="display:none;">
                                         <input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" />
                                         Organized
                                     </label>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Ethnicity</label>
+                                    <span class="attribute-text attribute-inherited" th:text="${artistEthnicityName != null ? artistEthnicityName : '-'}">-</span>
                                 </div>
                             </div>
                         </div>
@@ -335,45 +374,41 @@
                     </form>
                 </div>
                 
-                <!-- Statistics Section (Right) -->
+                <!-- Statistics Section (Redesigned) -->
                 <div class="detail-content-card">
-                    <h2 class="section-title">Statistics</h2>
-                    <div class="stats-grid">
-                        <div class="stat-item">
+                    <div class="section-header">
+                        <h2 class="section-title">Statistics</h2>
+                    </div>
+                    
+                    <!-- Hero Stats -->
+                    <div class="stats-hero">
+                        <div class="stat-hero-item">
                             <span class="stat-label">Total Listening Time</span>
                             <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Average Song Length</span>
-                            <span class="stat-value" th:text="${averageSongLength}">-</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Average Plays per Song</span>
+                        <div class="stat-hero-item">
+                            <span class="stat-label">Avg Plays / Song</span>
                             <span class="stat-value" th:text="${averagePlaysPerSong}">-</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">First Listened</span>
-                            <span class="stat-value" th:text="${firstListenedDate}">-</span>
+                    </div>
+                    
+                    <!-- Consistency Metrics -->
+                    <div class="stats-consistency">
+                        <div class="stat-mini">
+                            <span class="stat-label">Days</span>
+                            <span class="stat-value" th:text="${uniqueDaysPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalDaysSinceFirstPlay}"></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Last Listened</span>
-                            <span class="stat-value" th:text="${lastListenedDate}">-</span>
+                        <div class="stat-mini">
+                            <span class="stat-label">Weeks</span>
+                            <span class="stat-value" th:text="${uniqueWeeksPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalWeeksSinceFirstPlay}"></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Days Played</span>
-                            <span class="stat-value" th:text="${uniqueDaysPlayed} + '/' + ${totalDaysSinceFirstPlay}">0/0</span>
+                        <div class="stat-mini">
+                            <span class="stat-label">Months</span>
+                            <span class="stat-value" th:text="${uniqueMonthsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalMonthsSinceFirstPlay}"></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Weeks Played</span>
-                            <span class="stat-value" th:text="${uniqueWeeksPlayed} + '/' + ${totalWeeksSinceFirstPlay}">0/0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Months Played</span>
-                            <span class="stat-value" th:text="${uniqueMonthsPlayed} + '/' + ${totalMonthsSinceFirstPlay}">0/0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Unique Years Played</span>
-                            <span class="stat-value" th:text="${uniqueYearsPlayed} + '/' + ${totalYearsSinceFirstPlay}">0/0</span>
+                        <div class="stat-mini">
+                            <span class="stat-label">Years</span>
+                            <span class="stat-value" th:text="${uniqueYearsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalYearsSinceFirstPlay}"></span>
                         </div>
                     </div>
                 </div>
@@ -814,6 +849,7 @@
             const selects = document.querySelectorAll('#albumForm select');
             const inlineCheckboxLabels = document.querySelectorAll('.inline-checkbox-label');
             const attributeTexts = document.querySelectorAll('.attribute-text');
+            // albumId is defined globally at the bottom
             
             if (isEditing) {
                 editBtn.style.display = 'none';
@@ -884,7 +920,7 @@
             }
             
             if (confirm('Are you sure you want to delete "' + albumName + '"?\n\nThis will also delete all songs in this album. This action cannot be undone!')) {
-                const albumId = window.location.pathname.split('/').pop();
+                // albumId is defined globally
                 
                 fetch(`/albums/${albumId}`, {
                     method: 'DELETE'
@@ -923,7 +959,7 @@
             const formData = new FormData();
             formData.append('image', file);
             
-            const albumId = window.location.pathname.split('/').pop();
+            // albumId is defined globally
             const hasDefaultImage = /*[[${hasImage}]]*/ false;
 
             // If there's already a default image, add to gallery instead
@@ -951,7 +987,7 @@
                 return;
             }
             
-            const albumId = window.location.pathname.split('/').pop();
+            // albumId is defined globally
             
             fetch(`/albums/${albumId}/image`, {
                 method: 'DELETE'
@@ -972,7 +1008,7 @@
         // ============ GALLERY FUNCTIONALITY ============
         let galleryImages = [];
         let currentGalleryIndex = 0;
-        const albumId = window.location.pathname.split('/').pop();
+        // albumId is defined globally at the bottom
         const hasDefaultImage = /*[[${hasImage}]]*/ false;
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -1389,34 +1425,52 @@
         
         // Make album image clickable to open modal
         document.addEventListener('DOMContentLoaded', function() {
-            const albumImage = document.getElementById('albumImage');
-            if (albumImage) {
-                albumImage.classList.add('clickable');
-                albumImage.addEventListener('click', function() {
-                    openImageModal(this.src);
-                });
-            }
-            
-            // Load album chart run if on chart-history tab and has chart history
-            if (activeTab === 'chart-history' && hasChartHistory && albumId) {
-                loadAlbumChartRun();
+            try {
+                const albumImage = document.getElementById('albumImage');
+                if (albumImage) {
+                    albumImage.classList.add('clickable');
+                    albumImage.addEventListener('click', function() {
+                        openImageModal(this.src);
+                    });
+                }
+                
+                // Load album chart run if on chart-history tab and has chart history
+                if (activeTab === 'chart-history' && hasChartHistory && albumId) {
+                    console.log('Calling loadAlbumChartRun()');
+                    loadAlbumChartRun();
+                }
+            } catch (error) {
+                console.error('Error in DOMContentLoaded handler:', error);
             }
         });
         
         // Load album chart run data
         async function loadAlbumChartRun() {
+            console.log('loadAlbumChartRun called, albumId:', albumId);
             const container = document.getElementById('albumChartRunContainer');
-            if (!container) return;
+            if (!container) {
+                console.error('albumChartRunContainer not found');
+                return;
+            }
             
             try {
+                console.log('Fetching chart run data from:', `/charts/album/${albumId}/run`);
                 const response = await fetch(`/charts/album/${albumId}/run`);
-                if (!response.ok) throw new Error('Failed to load chart run');
+                console.log('Fetch response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response not OK:', response.status, errorText);
+                    throw new Error(`Failed to load chart run: ${response.status}`);
+                }
                 
                 const data = await response.json();
+                console.log('Chart run data received:', data);
                 container.innerHTML = renderAlbumChartRun(data);
+                console.log('Chart run rendered successfully');
             } catch (error) {
                 console.error('Error loading album chart run:', error);
-                container.innerHTML = '<div style="color: #f87171;">Failed to load chart run data</div>';
+                container.innerHTML = '<div style="color: #f87171;">Failed to load chart run data: ' + error.message + '</div>';
             }
         }
         

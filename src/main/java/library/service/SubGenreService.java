@@ -520,4 +520,12 @@ public class SubGenreService {
         
         return jdbcTemplate.queryForMap(sql, subGenreId);
     }
+    
+    /**
+     * Get all subgenres as simple id/name maps for dropdown lists.
+     */
+    public java.util.List<java.util.Map<String, Object>> getAllSubGenresSimple() {
+        String sql = "SELECT id, name FROM SubGenre ORDER BY name";
+        return jdbcTemplate.queryForList(sql);
+    }
 }

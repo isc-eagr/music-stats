@@ -119,6 +119,15 @@ public class GenreController {
         }
     }
     
+    /**
+     * API endpoint to get all genres for dropdowns.
+     */
+    @GetMapping("/api/list")
+    @ResponseBody
+    public java.util.List<java.util.Map<String, Object>> listGenresApi() {
+        return genreService.getAllGenresSimple();
+    }
+    
     @PostMapping("/create")
     @ResponseBody
     public Map<String, Object> createGenre(@RequestBody Map<String, String> payload) {

@@ -1643,7 +1643,7 @@ public class SongController {
         return songService.getFilteredChartData(filter);
     }
     
-    // Helper method to format date strings for display (yyyy-MM-dd -> dd MMM yyyy)
+    // Helper method to format date strings for display (yyyy-MM-dd -> dd-MMM-yyyy)
     private String formatDateForDisplay(String dateStr) {
         if (dateStr == null || dateStr.trim().isEmpty()) {
             return null;
@@ -1656,7 +1656,7 @@ public class SongController {
                 int day = Integer.parseInt(parts[2]);
                 String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                return day + " " + monthNames[month - 1] + " " + year;
+                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
             }
         } catch (Exception e) {
             // If parsing fails, return original

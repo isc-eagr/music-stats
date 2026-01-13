@@ -304,4 +304,12 @@ public class CountryService {
         Long count = jdbcTemplate.queryForObject(sql, Long.class, name, name);
         return count != null ? count : 0;
     }
+    
+    /**
+     * Get all distinct countries for dropdown lists.
+     */
+    public java.util.List<String> getAllCountriesSimple() {
+        String sql = "SELECT DISTINCT country FROM Artist WHERE country IS NOT NULL AND country != '' ORDER BY country";
+        return jdbcTemplate.queryForList(sql, String.class);
+    }
 }
