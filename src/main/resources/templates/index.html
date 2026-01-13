@@ -300,14 +300,14 @@
                         <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
                              th:if="${total > 0}">
                             <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
-                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%)'">
                                 <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
-                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%'"></span>
                             </div>
                             <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
-                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 2)} + '%)'"></div>
                             <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
-                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 2)} + '%)'"></div>
                         </div>
                     </div>
 
@@ -318,14 +318,14 @@
                         <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
                              th:if="${total > 0}">
                             <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
-                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%)'">
                                 <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
-                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%'"></span>
                             </div>
                             <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
-                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 2)} + '%)'"></div>
                             <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
-                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 2)} + '%)'"></div>
                         </div>
                     </div>
 
@@ -336,14 +336,14 @@
                         <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
                              th:if="${total > 0}">
                             <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
-                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%)'">
                                 <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
-                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%'"></span>
                             </div>
                             <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
-                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 2)} + '%)'"></div>
                             <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
-                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 2)} + '%)'"></div>
                         </div>
                     </div>
 
@@ -354,14 +354,14 @@
                         <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
                              th:if="${total > 0}">
                             <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleCount * 100.0 / total} + '%'"
-                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%)'">
+                                 th:title="'Male: ' + ${maleCount} + ' (' + ${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%)'">
                                 <span th:if="${maleCount * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
-                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 1)} + '%'"></span>
+                                      th:text="${#numbers.formatDecimal(maleCount * 100.0 / total, 1, 2)} + '%'"></span>
                             </div>
                             <div th:style="'background-color: #ff6b9d; width: ' + ${femaleCount * 100.0 / total} + '%'"
-                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Female: ' + ${femaleCount} + ' (' + ${#numbers.formatDecimal(femaleCount * 100.0 / total, 1, 2)} + '%)'"></div>
                             <div th:style="'background-color: #6b7280; width: ' + ${otherCount * 100.0 / total} + '%'"
-                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 1)} + '%)'"></div>
+                                 th:title="'Other: ' + ${otherCount} + ' (' + ${#numbers.formatDecimal(otherCount * 100.0 / total, 1, 2)} + '%)'"></div>
                         </div>
                     </div>
 
@@ -372,14 +372,14 @@
                         <div style="flex: 1; display: flex; height: 24px; border-radius: 6px; overflow: hidden; background-color: #333;"
                              th:if="${total > 0}">
                             <div th:style="'background-color: #4a9eff; display: flex; align-items: center; justify-content: center; width: ' + ${maleTime * 100.0 / total} + '%'"
-                                 th:title="'Male: ' + ${#numbers.formatDecimal(maleTime * 100.0 / total, 1, 1)} + '%'">
+                                 th:title="'Male: ' + ${#numbers.formatDecimal(maleTime * 100.0 / total, 1, 2)} + '%'">
                                 <span th:if="${maleTime * 100.0 / total >= 15}" style="color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"
-                                      th:text="${#numbers.formatDecimal(maleTime * 100.0 / total, 1, 1)} + '%'"></span>
+                                      th:text="${#numbers.formatDecimal(maleTime * 100.0 / total, 1, 2)} + '%'"></span>
                             </div>
                             <div th:style="'background-color: #ff6b9d; width: ' + ${femaleTime * 100.0 / total} + '%'"
-                                 th:title="'Female: ' + ${#numbers.formatDecimal(femaleTime * 100.0 / total, 1, 1)} + '%'"></div>
+                                 th:title="'Female: ' + ${#numbers.formatDecimal(femaleTime * 100.0 / total, 1, 2)} + '%'"></div>
                             <div th:style="'background-color: #6b7280; width: ' + ${otherTime * 100.0 / total} + '%'"
-                                 th:title="'Other: ' + ${#numbers.formatDecimal(otherTime * 100.0 / total, 1, 1)} + '%'"></div>
+                                 th:title="'Other: ' + ${#numbers.formatDecimal(otherTime * 100.0 / total, 1, 2)} + '%'"></div>
                         </div>
                     </div>
 

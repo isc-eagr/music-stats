@@ -7,6 +7,8 @@ import library.entity.Artist;
 import library.repository.LookupRepository;
 import library.service.ArtistService;
 import library.service.ChartService;
+import library.service.ItunesService;
+import library.service.ScrobbleService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,11 +29,15 @@ public class ArtistController {
     private final ArtistService artistService;
     private final ChartService chartService;
     private final LookupRepository lookupRepository;
+    private final ItunesService itunesService;
+    private final ScrobbleService scrobbleService;
 
-    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository) {
+    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository, ItunesService itunesService, ScrobbleService scrobbleService) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
+        this.itunesService = itunesService;
+        this.scrobbleService = scrobbleService;
     }
     
     @InitBinder
@@ -117,6 +123,7 @@ public class ArtistController {
             @RequestParam(required = false) String organized,
             @RequestParam(required = false) String hasImage,
             @RequestParam(required = false) String isBand,
+            @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) String firstListenedDate,
             @RequestParam(required = false) String firstListenedDateFrom,
             @RequestParam(required = false) String firstListenedDateTo,
@@ -159,7 +166,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, isBand,
+                organized, hasImage, isBand, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax,
                 includeGroups, includeFeatured,
@@ -173,7 +180,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, isBand,
+                organized, hasImage, isBand, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
@@ -207,6 +214,7 @@ public class ArtistController {
         model.addAttribute("selectedOrganized", organized);
         model.addAttribute("selectedHasImage", hasImage);
         model.addAttribute("selectedIsBand", isBand);
+        model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("playCountMin", playCountMin);
         model.addAttribute("playCountMax", playCountMax);
         model.addAttribute("albumCountMin", albumCountMin);
@@ -288,6 +296,11 @@ public class ArtistController {
         model.addAttribute("languages", artistService.getLanguages());
         // Add dynamic countries list
         model.addAttribute("countries", artistService.getCountries());
+        
+        // Add iTunes presence
+        Artist artistEntity = artist.get();
+        artistEntity.setInItunes(itunesService.artistExistsInItunes(artistEntity.getName()));
+        model.addAttribute("artist", artistEntity);
         
         // Add group membership data
         model.addAttribute("hasGroups", hasGroups);
@@ -397,6 +410,46 @@ public class ArtistController {
         // Add average song length and average plays per song statistics
         model.addAttribute("averageSongLength", artistService.getAverageSongLengthFormatted(id));
         model.addAttribute("averagePlaysPerSong", artistService.getAveragePlaysPerSong(id));
+        
+        // Add unique period stats for the artist (main artist only for now)
+        model.addAttribute("uniqueDaysPlayed", artistService.getUniqueDaysPlayedForArtist(id));
+        model.addAttribute("uniqueWeeksPlayed", artistService.getUniqueWeeksPlayedForArtist(id));
+        model.addAttribute("uniqueMonthsPlayed", artistService.getUniqueMonthsPlayedForArtist(id));
+        model.addAttribute("uniqueYearsPlayed", artistService.getUniqueYearsPlayedForArtist(id));
+        
+        // Calculate totals based on first listened date
+        java.time.LocalDate firstListened = artistService.getFirstListenedDateAsLocalDateForArtist(id);
+        if (firstListened != null) {
+            java.time.LocalDate now = java.time.LocalDate.now();
+            
+            // Calendar days: actual days between dates
+            long daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstListened, now) + 1;
+            
+            // Calendar weeks: count week numbers from first to now
+            java.time.temporal.WeekFields weekFields = java.time.temporal.WeekFields.of(java.util.Locale.getDefault());
+            int firstWeek = firstListened.get(weekFields.weekOfWeekBasedYear());
+            int firstWeekYear = firstListened.get(weekFields.weekBasedYear());
+            int nowWeek = now.get(weekFields.weekOfWeekBasedYear());
+            int nowWeekYear = now.get(weekFields.weekBasedYear());
+            // Approximate: weeks in between years + week difference in current year
+            long weeksSinceFirst = ((nowWeekYear - firstWeekYear) * 52L) + (nowWeek - firstWeek) + 1;
+            
+            // Calendar months: count month numbers from first to now
+            long monthsSinceFirst = ((now.getYear() - firstListened.getYear()) * 12L) + (now.getMonthValue() - firstListened.getMonthValue()) + 1;
+            
+            // Calendar years: count year numbers from first to now
+            long yearsSinceFirst = (now.getYear() - firstListened.getYear()) + 1;
+            
+            model.addAttribute("totalDaysSinceFirstPlay", daysSinceFirst);
+            model.addAttribute("totalWeeksSinceFirstPlay", weeksSinceFirst);
+            model.addAttribute("totalMonthsSinceFirstPlay", monthsSinceFirst);
+            model.addAttribute("totalYearsSinceFirstPlay", yearsSinceFirst);
+        } else {
+            model.addAttribute("totalDaysSinceFirstPlay", 0);
+            model.addAttribute("totalWeeksSinceFirstPlay", 0);
+            model.addAttribute("totalMonthsSinceFirstPlay", 0);
+            model.addAttribute("totalYearsSinceFirstPlay", 0);
+        }
         
         // Add albums list for the artist
         if (includeMain && effectiveGroupIds != null) {

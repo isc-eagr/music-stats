@@ -26,6 +26,7 @@ public class ArtistCardDTO {
     private boolean hasImage;
     private Boolean organized;
     private Integer featuredSongCount; // Count of songs where this artist is featured
+    private Boolean inItunes; // Whether artist exists in iTunes library
 
     // Getters and Setters
     public Integer getId() {
@@ -230,5 +231,13 @@ public class ArtistCardDTO {
 
     public void setFeaturedSongCount(Integer featuredSongCount) {
         this.featuredSongCount = featuredSongCount;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

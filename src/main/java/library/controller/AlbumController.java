@@ -7,6 +7,8 @@ import library.repository.LookupRepository;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
+import library.service.ItunesService;
+import library.service.ScrobbleService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,12 +29,16 @@ public class AlbumController {
     private final ChartService chartService;
     private final ArtistService artistService;
     private final LookupRepository lookupRepository;
+    private final ItunesService itunesService;
+    private final ScrobbleService scrobbleService;
 
-    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService, LookupRepository lookupRepository) {
+    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService, LookupRepository lookupRepository, ItunesService itunesService, ScrobbleService scrobbleService) {
         this.albumService = albumService;
         this.chartService = chartService;
         this.artistService = artistService;
         this.lookupRepository = lookupRepository;
+        this.itunesService = itunesService;
+        this.scrobbleService = scrobbleService;
     }
     
     @InitBinder
@@ -96,6 +102,7 @@ public class AlbumController {
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String organized,
             @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
@@ -153,7 +160,7 @@ public class AlbumController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand,
+                organized, hasImage, hasFeaturedArtists, isBand, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -168,7 +175,7 @@ public class AlbumController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand,
+                organized, hasImage, hasFeaturedArtists, isBand, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -203,6 +210,7 @@ public class AlbumController {
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
         model.addAttribute("selectedHasImage", hasImage);
+        model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("selectedHasFeaturedArtists", hasFeaturedArtists);
         model.addAttribute("selectedIsBand", isBand);
         model.addAttribute("playCountMin", playCountMin);
@@ -299,6 +307,11 @@ public class AlbumController {
         Artist artist = artistService.findById(album.get().getArtistId());
         model.addAttribute("artist", artist);
         
+        // Add iTunes presence
+        Album albumEntity = album.get();
+        albumEntity.setInItunes(itunesService.albumExistsInItunes(artistName, albumEntity.getName()));
+        model.addAttribute("album", albumEntity);
+        
         // Add lookup maps
         Map<Integer, String> genres = albumService.getGenres();
         Map<Integer, String> subgenres = albumService.getSubGenres();
@@ -347,6 +360,46 @@ public class AlbumController {
         // Add first and last listened dates for the album
         model.addAttribute("firstListenedDate", albumService.getFirstListenedDateForAlbum(id));
         model.addAttribute("lastListenedDate", albumService.getLastListenedDateForAlbum(id));
+        
+        // Add unique period stats for the album
+        model.addAttribute("uniqueDaysPlayed", albumService.getUniqueDaysPlayedForAlbum(id));
+        model.addAttribute("uniqueWeeksPlayed", albumService.getUniqueWeeksPlayedForAlbum(id));
+        model.addAttribute("uniqueMonthsPlayed", albumService.getUniqueMonthsPlayedForAlbum(id));
+        model.addAttribute("uniqueYearsPlayed", albumService.getUniqueYearsPlayedForAlbum(id));
+        
+        // Calculate totals based on first listened date
+        java.time.LocalDate firstListened = albumService.getFirstListenedDateAsLocalDateForAlbum(id);
+        if (firstListened != null) {
+            java.time.LocalDate now = java.time.LocalDate.now();
+            
+            // Calendar days: actual days between dates
+            long daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstListened, now) + 1;
+            
+            // Calendar weeks: count week numbers from first to now
+            java.time.temporal.WeekFields weekFields = java.time.temporal.WeekFields.of(java.util.Locale.getDefault());
+            int firstWeek = firstListened.get(weekFields.weekOfWeekBasedYear());
+            int firstWeekYear = firstListened.get(weekFields.weekBasedYear());
+            int nowWeek = now.get(weekFields.weekOfWeekBasedYear());
+            int nowWeekYear = now.get(weekFields.weekBasedYear());
+            // Approximate: weeks in between years + week difference in current year
+            long weeksSinceFirst = ((nowWeekYear - firstWeekYear) * 52L) + (nowWeek - firstWeek) + 1;
+            
+            // Calendar months: count month numbers from first to now
+            long monthsSinceFirst = ((now.getYear() - firstListened.getYear()) * 12L) + (now.getMonthValue() - firstListened.getMonthValue()) + 1;
+            
+            // Calendar years: count year numbers from first to now
+            long yearsSinceFirst = (now.getYear() - firstListened.getYear()) + 1;
+            
+            model.addAttribute("totalDaysSinceFirstPlay", daysSinceFirst);
+            model.addAttribute("totalWeeksSinceFirstPlay", weeksSinceFirst);
+            model.addAttribute("totalMonthsSinceFirstPlay", monthsSinceFirst);
+            model.addAttribute("totalYearsSinceFirstPlay", yearsSinceFirst);
+        } else {
+            model.addAttribute("totalDaysSinceFirstPlay", 0);
+            model.addAttribute("totalWeeksSinceFirstPlay", 0);
+            model.addAttribute("totalMonthsSinceFirstPlay", 0);
+            model.addAttribute("totalYearsSinceFirstPlay", 0);
+        }
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);

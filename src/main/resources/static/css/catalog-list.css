@@ -1,6 +1,31 @@
 /* Catalog List Page Styles (Genres, Subgenres, Ethnicities, Languages, Countries, Genders, Timeframes) */
 /* Base styles for container, header, controls, pagination, etc. are in global.css */
 
+/* iTunes Presence Badges */
+.itunes-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 6px;
+    vertical-align: middle;
+    cursor: help;
+}
+
+.itunes-badge.in-itunes {
+    background-color: #16a34a;
+    color: white;
+}
+
+.itunes-badge.not-in-itunes {
+    background-color: #dc2626;
+    color: white;
+}
+
 /* Catalog Cards Grid */
 .catalog-grid {
     display: grid;

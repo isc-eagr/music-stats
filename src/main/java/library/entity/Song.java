@@ -146,6 +146,9 @@ public class Song {
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
         return sdf.format(releaseDate);
     }
+    
+    @Transient
+    private Boolean inItunes;
 
     // Getters and Setters
     public Integer getId() {
@@ -347,5 +350,13 @@ public class Song {
 
     public void setOrganized(Boolean organized) {
         this.organized = organized;
+    }
+    
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+    
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

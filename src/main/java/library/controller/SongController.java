@@ -10,7 +10,9 @@ import library.repository.LookupRepository;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
+import library.service.ScrobbleService;
 import library.service.SongService;
+import library.service.ItunesService;
 import library.util.DateFormatUtils;
 import library.service.iTunesLibraryService;
 import org.springframework.stereotype.Controller;
@@ -34,15 +36,19 @@ public class SongController {
     private final AlbumService albumService;
     private final iTunesLibraryService iTunesLibraryService;
     private final LookupRepository lookupRepository;
+    private final ItunesService itunesService;
+    private final ScrobbleService scrobbleService;
 
     public SongController(SongService songService, ChartService chartService, ArtistService artistService, 
-                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository) {
+                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository, ItunesService itunesService, ScrobbleService scrobbleService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
         this.albumService = albumService;
         this.iTunesLibraryService = iTunesLibraryService;
         this.lookupRepository = lookupRepository;
+        this.itunesService = itunesService;
+        this.scrobbleService = scrobbleService;
     }
     
     @InitBinder
@@ -124,6 +130,7 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
             @RequestParam(required = false) Integer lengthMin,
@@ -163,7 +170,7 @@ public class SongController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle, inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -178,7 +185,7 @@ public class SongController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle, inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -217,6 +224,7 @@ public class SongController {
         model.addAttribute("selectedHasFeaturedArtists", hasFeaturedArtists);
         model.addAttribute("selectedIsBand", isBand);
         model.addAttribute("selectedIsSingle", isSingle);
+        model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("playCountMin", playCountMin);
         model.addAttribute("playCountMax", playCountMax);
         model.addAttribute("lengthMin", lengthMin);
@@ -315,6 +323,11 @@ public class SongController {
                       albumService.getAlbumById(song.get().getAlbumId()).orElse(null) : null;
         model.addAttribute("album", album);
         
+        // Add iTunes presence
+        Song songEntity = song.get();
+        songEntity.setInItunes(itunesService.songExistsInItunes(artistName, songEntity.getName()));
+        model.addAttribute("song", songEntity);
+        
         // Add album release date for inheritance display
         String albumReleaseDate = (album != null && album.getReleaseDateFormatted() != null) ? 
                                   album.getReleaseDateFormatted() : null;
@@ -331,6 +344,46 @@ public class SongController {
         model.addAttribute("totalListeningTime", songService.getTotalListeningTimeForSong(id));
         model.addAttribute("firstListenedDate", songService.getFirstListenedDateForSong(id));
         model.addAttribute("lastListenedDate", songService.getLastListenedDateForSong(id));
+        
+        // Add unique period stats for the song
+        model.addAttribute("uniqueDaysPlayed", songService.getUniqueDaysPlayedForSong(id));
+        model.addAttribute("uniqueWeeksPlayed", songService.getUniqueWeeksPlayedForSong(id));
+        model.addAttribute("uniqueMonthsPlayed", songService.getUniqueMonthsPlayedForSong(id));
+        model.addAttribute("uniqueYearsPlayed", songService.getUniqueYearsPlayedForSong(id));
+        
+        // Calculate totals based on first listened date
+        java.time.LocalDate firstListened = songService.getFirstListenedDateAsLocalDateForSong(id);
+        if (firstListened != null) {
+            java.time.LocalDate now = java.time.LocalDate.now();
+            
+            // Calendar days: actual days between dates
+            long daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstListened, now) + 1;
+            
+            // Calendar weeks: count week numbers from first to now
+            java.time.temporal.WeekFields weekFields = java.time.temporal.WeekFields.of(java.util.Locale.getDefault());
+            int firstWeek = firstListened.get(weekFields.weekOfWeekBasedYear());
+            int firstWeekYear = firstListened.get(weekFields.weekBasedYear());
+            int nowWeek = now.get(weekFields.weekOfWeekBasedYear());
+            int nowWeekYear = now.get(weekFields.weekBasedYear());
+            // Approximate: weeks in between years + week difference in current year
+            long weeksSinceFirst = ((nowWeekYear - firstWeekYear) * 52L) + (nowWeek - firstWeek) + 1;
+            
+            // Calendar months: count month numbers from first to now
+            long monthsSinceFirst = ((now.getYear() - firstListened.getYear()) * 12L) + (now.getMonthValue() - firstListened.getMonthValue()) + 1;
+            
+            // Calendar years: count year numbers from first to now
+            long yearsSinceFirst = (now.getYear() - firstListened.getYear()) + 1;
+            
+            model.addAttribute("totalDaysSinceFirstPlay", daysSinceFirst);
+            model.addAttribute("totalWeeksSinceFirstPlay", weeksSinceFirst);
+            model.addAttribute("totalMonthsSinceFirstPlay", monthsSinceFirst);
+            model.addAttribute("totalYearsSinceFirstPlay", yearsSinceFirst);
+        } else {
+            model.addAttribute("totalDaysSinceFirstPlay", 0);
+            model.addAttribute("totalWeeksSinceFirstPlay", 0);
+            model.addAttribute("totalMonthsSinceFirstPlay", 0);
+            model.addAttribute("totalYearsSinceFirstPlay", 0);
+        }
         
         // Add lookup maps for ranking chips
         Map<Integer, String> genres = songService.getGenres();
@@ -1733,7 +1786,7 @@ public class SongController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                organized, hasImage, hasFeaturedArtists, isBand, isSingle, null, // inItunes not used in export
                 playCountMin, playCountMax,
                 null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)

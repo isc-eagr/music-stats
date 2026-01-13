@@ -78,6 +78,9 @@ public class Artist {
     
     @Transient
     private Integer albumCount;
+    
+    @Transient
+    private Boolean inItunes;
 
     // Getters and Setters
     public Integer getId() {
@@ -254,5 +257,13 @@ public class Artist {
 
     public void setDeathDate(LocalDate deathDate) {
         this.deathDate = deathDate;
+    }
+    
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+    
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

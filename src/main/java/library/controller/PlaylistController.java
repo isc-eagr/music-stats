@@ -104,6 +104,7 @@ public class PlaylistController {
                 null, null, null, null,     // lastListenedDate, from, to, mode
                 null, null,                 // listenedDateFrom, listenedDateTo
                 null, null, null, null, null, // organized, hasImage, hasFeaturedArtists, isBand, isSingle
+                null,                       // inItunes
                 null, null,                 // playCountMin, playCountMax
                 null, null, null,           // lengthMin, lengthMax, lengthMode
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks

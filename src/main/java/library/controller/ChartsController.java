@@ -278,6 +278,27 @@ public class ChartsController {
     }
     
     /**
+     * API: Regenerate chart for a specific week (deletes and recreates).
+     */
+    @PostMapping("/regenerate/{periodKey}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> regenerateChart(@PathVariable String periodKey) {
+        try {
+            chartService.deleteWeeklyCharts(periodKey);
+            chartService.generateWeeklyCharts(periodKey);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("periodKey", periodKey);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
      * API: Start bulk regeneration of ALL existing weekly charts.
      * This deletes all existing charts and regenerates them from scratch.
      */

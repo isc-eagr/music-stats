@@ -32,6 +32,7 @@ public class SongCardDTO {
     private String country;
     private Boolean organized;
     private Boolean isSingle;
+    private Boolean inItunes; // Whether song exists in iTunes library
 
     // Getters and Setters
     public Integer getId() {
@@ -288,5 +289,13 @@ public class SongCardDTO {
 
     public void setIsSingle(Boolean isSingle) {
         this.isSingle = isSingle;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

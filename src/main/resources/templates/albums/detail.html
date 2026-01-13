@@ -25,7 +25,13 @@
             <!-- Left column: Image with name overlay -->
             <div class="detail-sidebar">
                 <div class="item-name-overlay">
-                    <h1 class="item-name-top" th:text="${album.name}">Album Name</h1>
+                    <h1 class="item-name-top">
+                        <span th:if="${album.inItunes != null}" 
+                              th:classappend="${album.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                              class="itunes-badge"
+                              th:title="${album.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                              th:text="${album.inItunes ? '✓' : '✗'}"></span><span th:text="${album.name}">Album Name</span>
+                    </h1>
                     <div class="album-metadata" style="font-size: 0.9em; font-weight: normal; margin-top: 10px; color: #ccc; line-height: 1.6;">
                         <div th:if="${artistName != null}">
                             <a th:href="@{'/artists/' + ${album.artistId}}" style="color: #e5e7eb; text-decoration: none; transition: color 0.2s;"
@@ -352,6 +358,22 @@
                         <div class="stat-item">
                             <span class="stat-label">Last Listened</span>
                             <span class="stat-value" th:text="${lastListenedDate}">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Unique Days Played</span>
+                            <span class="stat-value" th:text="${uniqueDaysPlayed} + '/' + ${totalDaysSinceFirstPlay}">0/0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Unique Weeks Played</span>
+                            <span class="stat-value" th:text="${uniqueWeeksPlayed} + '/' + ${totalWeeksSinceFirstPlay}">0/0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Unique Months Played</span>
+                            <span class="stat-value" th:text="${uniqueMonthsPlayed} + '/' + ${totalMonthsSinceFirstPlay}">0/0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Unique Years Played</span>
+                            <span class="stat-value" th:text="${uniqueYearsPlayed} + '/' + ${totalYearsSinceFirstPlay}">0/0</span>
                         </div>
                     </div>
                 </div>

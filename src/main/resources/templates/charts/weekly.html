@@ -734,9 +734,15 @@
             </div>
             
             <!-- Actions -->
-            <div class="charts-actions" th:if="${missingWeeksCount > 0}">
-                <button class="action-btn primary" onclick="startBulkGeneration()">
+            <div class="charts-actions">
+                <button th:if="${missingWeeksCount > 0}" class="action-btn primary" onclick="startBulkGeneration()">
                     Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
+                </button>
+                <button th:if="${hasChart}" class="action-btn" onclick="regenerateThisChart()" title="Regenerate just this week's chart">
+                    🔄 Regenerate This Chart
+                </button>
+                <button class="action-btn" onclick="startBulkRegeneration()" title="Delete all charts and regenerate from scratch">
+                    🔄 Regenerate All Charts
                 </button>
             </div>
             
@@ -1187,6 +1193,65 @@
         let generationSessionId = null;
         let progressInterval = null;
         
+        async function regenerateThisChart() {
+            if (!confirm(`🔄 Regenerate Chart\n\nThis will delete and regenerate the chart for ${currentPeriodKey}.\n\nContinue?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/charts/regenerate/${currentPeriodKey}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Chart regenerated successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Failed to regenerate chart: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error regenerating chart: ' + error.message);
+            }
+        }
+        
+        async function startBulkRegeneration() {
+            // Get chart count first to show in confirmation
+            try {
+                const countResponse = await fetch('/charts/weekly/count');
+                const countData = await countResponse.json();
+                const chartCount = countData.count || 0;
+                
+                // First confirmation - warning
+                if (!confirm(`⚠️ WARNING: DESTRUCTIVE ACTION ⚠️\n\nThis will PERMANENTLY DELETE all ${chartCount} existing weekly charts.\n\nThe charts will be regenerated from scratch, but this may take a while.\n\nAre you SURE you want to continue?`)) {
+                    return;
+                }
+                
+                // Second confirmation - double check
+                if (!confirm(`🚨 FINAL CONFIRMATION 🚨\n\nYou are about to DELETE ${chartCount} weekly charts.\n\nThis CANNOT be undone. Type "regenerate" in the next prompt to confirm, or click Cancel to abort.`)) {
+                    return;
+                }
+                
+                const userConfirm = prompt('Type "regenerate" to confirm this destructive action:');
+                if (userConfirm !== 'regenerate') {
+                    alert('Regeneration cancelled.');
+                    return;
+                }
+                
+                const response = await fetch('/charts/regenerate-all', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    generationSessionId = data.sessionId;
+                    document.getElementById('progressModalTitle').textContent = 'Regenerating All Charts...';
+                    showProgressModal();
+                    startProgressPolling();
+                } else {
+                    alert('Failed to start regeneration: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error starting regeneration: ' + error.message);
+            }
+        }
+        
         async function startBulkGeneration() {
             try {
                 const response = await fetch('/charts/generate-all', { method: 'POST' });
@@ -1194,6 +1259,7 @@
                 
                 if (data.success) {
                     generationSessionId = data.sessionId;
+                    document.getElementById('progressModalTitle').textContent = 'Generating Charts...';
                     showProgressModal();
                     startProgressPolling();
                 } else {

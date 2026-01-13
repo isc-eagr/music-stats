@@ -29,12 +29,14 @@ public class SongService {
     private final SongImageRepository songImageRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final ItunesService itunesService;
     
-    public SongService(SongRepository songRepository, SongImageRepository songImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public SongService(SongRepository songRepository, SongImageRepository songImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService) {
         this.songRepository = songRepository;
         this.songImageRepository = songImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.itunesService = itunesService;
     }
     
     public List<SongCardDTO> getSongs(String name, String artistName, String albumName,
@@ -49,17 +51,20 @@ public class SongService {
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                        String listenedDateFrom, String listenedDateTo,
-                                       String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                                       String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle, String inItunes,
                                        Integer playCountMin, Integer playCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                        Integer yearlyChartPeak, Integer yearlyChartYears,
                                        String sortBy, String sortDirection, int page, int perPage) {
-        int offset = page * perPage;
-        
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        
+        // If inItunes filter is active, we need to get all results first, then filter in memory
+        boolean filterByItunes = inItunes != null && !inItunes.isEmpty();
+        int actualLimit = filterByItunes ? Integer.MAX_VALUE : perPage;
+        int actualOffset = filterByItunes ? 0 : page * perPage;
         
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
@@ -73,7 +78,7 @@ public class SongService {
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortBy, sortDirection, perPage, offset
+                sortBy, sortDirection, actualLimit, actualOffset
         );
         
         List<SongCardDTO> songs = new ArrayList<>();
@@ -130,7 +135,27 @@ public class SongService {
                 dto.setLengthFormatted(String.format("%d:%02d", minutes, seconds));
             }
             
+            // Check iTunes presence
+            dto.setInItunes(itunesService.songExistsInItunes(dto.getArtistName(), dto.getName()));
+            
             songs.add(dto);
+        }
+        
+        // Apply iTunes filter if needed
+        if (filterByItunes) {
+            boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
+            songs = songs.stream()
+                    .filter(s -> s.getInItunes() != null && s.getInItunes() == wantInItunes)
+                    .toList();
+            
+            // Apply pagination manually
+            int offset = page * perPage;
+            int end = Math.min(offset + perPage, songs.size());
+            if (offset >= songs.size()) {
+                songs = new ArrayList<>();
+            } else {
+                songs = new ArrayList<>(songs.subList(offset, end));
+            }
         }
         
         return songs;
@@ -148,7 +173,7 @@ public class SongService {
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                           String listenedDateFrom, String listenedDateTo,
-                          String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                          String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle, String inItunes,
                           Integer playCountMin, Integer playCountMax,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -156,6 +181,23 @@ public class SongService {
                           Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        
+        // If inItunes filter is active, we need to count manually
+        if (inItunes != null && !inItunes.isEmpty()) {
+            List<SongCardDTO> allSongs = getSongs(name, artistName, albumName, genreIds, genreMode,
+                    subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
+                    ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, hasImage, hasFeaturedArtists, isBand, isSingle, inItunes,
+                    playCountMin, playCountMax,
+                    lengthMin, lengthMax, lengthMode,
+                    weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                    "plays", "desc", 0, Integer.MAX_VALUE);
+            return allSongs.size();
+        }
         
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
@@ -668,6 +710,17 @@ public class SongService {
         }
     }
 
+    // Get first listened date for a song as LocalDate (for calculations)
+    public java.time.LocalDate getFirstListenedDateAsLocalDateForSong(int songId) {
+        String sql = "SELECT MIN(DATE(scrobble_date)) FROM Scrobble WHERE song_id = ?";
+        try {
+            String dateStr = jdbcTemplate.queryForObject(sql, String.class, songId);
+            return dateStr != null ? java.time.LocalDate.parse(dateStr) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // Get last listened date for a song
     public String getLastListenedDateForSong(int songId) {
         String sql = "SELECT MAX(scrobble_date) FROM Scrobble WHERE song_id = ?";
@@ -676,6 +729,50 @@ public class SongService {
             return formatDate(date);
         } catch (Exception e) {
             return "-";
+        }
+    }
+
+    // Get unique days played for a song
+    public int getUniqueDaysPlayedForSong(int songId) {
+        String sql = "SELECT COUNT(DISTINCT DATE(scrobble_date)) FROM Scrobble WHERE song_id = ? AND scrobble_date IS NOT NULL";
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    // Get unique weeks played for a song
+    public int getUniqueWeeksPlayedForSong(int songId) {
+        String sql = "SELECT COUNT(DISTINCT strftime('%Y-%W', scrobble_date)) FROM Scrobble WHERE song_id = ? AND scrobble_date IS NOT NULL";
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    // Get unique months played for a song
+    public int getUniqueMonthsPlayedForSong(int songId) {
+        String sql = "SELECT COUNT(DISTINCT strftime('%Y-%m', scrobble_date)) FROM Scrobble WHERE song_id = ? AND scrobble_date IS NOT NULL";
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    // Get unique years played for a song
+    public int getUniqueYearsPlayedForSong(int songId) {
+        String sql = "SELECT COUNT(DISTINCT strftime('%Y', scrobble_date)) FROM Scrobble WHERE song_id = ? AND scrobble_date IS NOT NULL";
+        try {
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
         }
     }
 

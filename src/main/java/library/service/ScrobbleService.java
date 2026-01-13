@@ -729,4 +729,85 @@ public class ScrobbleService {
         String sql = "DELETE FROM scrobble WHERE scrobble_date > date('now', '-' || ? || ' days')";
         return jdbcTemplate.update(sql, days);
     }
+    
+    /**
+     * Get the total number of unique days since the first scrobble in the database.
+     */
+    public int getTotalDaysSinceFirstScrobble() {
+        String sql = "SELECT CAST(julianday('now') - julianday(MIN(DATE(scrobble_date))) AS INTEGER) + 1 FROM Scrobble WHERE scrobble_date IS NOT NULL";
+        try {
+            Integer days = jdbcTemplate.queryForObject(sql, Integer.class);
+            return days != null && days > 0 ? days : 1;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+    
+    /**
+     * Get the total number of unique weeks since the first scrobble in the database.
+     */
+    public int getTotalWeeksSinceFirstScrobble() {
+        String sql = """
+            SELECT COUNT(DISTINCT strftime('%Y-%W', scrobble_date))
+            FROM (
+                SELECT DATE(MIN(scrobble_date), 'weekday 0', '-6 days') as start_date FROM Scrobble WHERE scrobble_date IS NOT NULL
+                UNION ALL
+                SELECT DATE('now')
+            )
+            CROSS JOIN (
+                WITH RECURSIVE dates(d) AS (
+                    SELECT DATE((SELECT MIN(scrobble_date) FROM Scrobble WHERE scrobble_date IS NOT NULL))
+                    UNION ALL
+                    SELECT DATE(d, '+7 days') FROM dates WHERE d < DATE('now')
+                )
+                SELECT d as scrobble_date FROM dates
+            )
+            """;
+        try {
+            // Simplified approach: calculate weeks between first scrobble and now
+            String simpleSql = """
+                SELECT CAST((julianday('now') - julianday(MIN(DATE(scrobble_date)))) / 7 AS INTEGER) + 1 
+                FROM Scrobble WHERE scrobble_date IS NOT NULL
+                """;
+            Integer weeks = jdbcTemplate.queryForObject(simpleSql, Integer.class);
+            return weeks != null && weeks > 0 ? weeks : 1;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+    
+    /**
+     * Get the total number of unique months since the first scrobble in the database.
+     */
+    public int getTotalMonthsSinceFirstScrobble() {
+        String sql = """
+            SELECT 
+                (CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', MIN(scrobble_date)) AS INTEGER)) * 12 +
+                (CAST(strftime('%m', 'now') AS INTEGER) - CAST(strftime('%m', MIN(scrobble_date)) AS INTEGER)) + 1
+            FROM Scrobble WHERE scrobble_date IS NOT NULL
+            """;
+        try {
+            Integer months = jdbcTemplate.queryForObject(sql, Integer.class);
+            return months != null && months > 0 ? months : 1;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+    
+    /**
+     * Get the total number of unique years since the first scrobble in the database.
+     */
+    public int getTotalYearsSinceFirstScrobble() {
+        String sql = """
+            SELECT 
+                CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', MIN(scrobble_date)) AS INTEGER) + 1
+            FROM Scrobble WHERE scrobble_date IS NOT NULL
+            """;
+        try {
+            Integer years = jdbcTemplate.queryForObject(sql, Integer.class);
+            return years != null && years > 0 ? years : 1;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
 }

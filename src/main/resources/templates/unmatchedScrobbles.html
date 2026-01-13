@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Unmatched Scrobbles</title>
+    <title>Unmatched Plays</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
@@ -52,7 +52,7 @@
     <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px;">
             <div>
-                <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Scrobbles</h1>
+                <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Plays</h1>
                 <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 14px;">
                     <span th:text="${totalUnmatchedCount}">0</span> total scrobbles in 
                     <span th:text="${unmatchedGroupCount}">0</span> groups

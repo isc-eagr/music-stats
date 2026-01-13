@@ -563,9 +563,10 @@
                    class="back-btn">Next →</a>
                 <span th:if="${nextPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">Next →</span>
             </div>
-            <div class="chart-actions" th:unless="${songChartFinalized and albumChartFinalized}">
-                <button class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
-                <button class="btn btn-success" 
+            <div class="chart-actions">
+                <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
+                <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
+                <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-success" 
                         onclick="finalizeCharts()" 
                         id="finalizeBtn"
                         th:disabled="${!canFinalize}"
@@ -737,6 +738,43 @@
         const songChartId = [[${songChart.id}]];
         const albumChartId = [[${albumChart.id}]];
         const isFinalized = [[${songChartFinalized}]] && [[${albumChartFinalized}]];
+        const displayName = [[${displayName}]];
+        
+        // Open graphs page with season date range
+        function openGraphsPage(event) {
+            event.preventDefault();
+            const parts = periodKey.split('-');
+            if (parts.length !== 2) return;
+            
+            const year = parseInt(parts[0]);
+            const season = parts[1];
+            let dateFrom, dateTo;
+            
+            switch(season) {
+                case 'Winter':
+                    dateFrom = (year - 1) + '-12-01';
+                    const febDays = new Date(year, 2, 0).getDate(); // Get last day of Feb
+                    dateTo = year + '-02-' + febDays.toString().padStart(2, '0');
+                    break;
+                case 'Spring':
+                    dateFrom = year + '-03-01';
+                    dateTo = year + '-05-31';
+                    break;
+                case 'Summer':
+                    dateFrom = year + '-06-01';
+                    dateTo = year + '-08-31';
+                    break;
+                case 'Fall':
+                    dateFrom = year + '-09-01';
+                    dateTo = year + '-11-30';
+                    break;
+                default:
+                    return;
+            }
+            
+            const encodedLabel = encodeURIComponent(displayName);
+            window.open('/graphs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel, '_blank');
+        }
         
         let songSearchTimeout = null;
         let albumSearchTimeout = null;
@@ -958,7 +996,7 @@
             }
             
             extraSearchTimeout = setTimeout(() => {
-                fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=20`)
+                fetch(`/songs/api/search?song=${encodeURIComponent(query)}&artist=${encodeURIComponent(query)}&limit=0`)
                     .then(r => r.json())
                     .then(data => {
                         const existingIds = getAllSongIds();

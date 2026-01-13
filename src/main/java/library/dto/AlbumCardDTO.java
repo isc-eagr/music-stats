@@ -29,6 +29,7 @@ public class AlbumCardDTO {
     private Boolean organized;
     private Long albumLength; // in seconds (sum of song lengths)
     private String albumLengthFormatted;
+    private Boolean inItunes; // Whether album exists in iTunes library
 
     // Getters and Setters
     public Integer getId() {
@@ -257,5 +258,13 @@ public class AlbumCardDTO {
 
     public void setAlbumLengthFormatted(String albumLengthFormatted) {
         this.albumLengthFormatted = albumLengthFormatted;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

@@ -104,6 +104,7 @@ public class ChartService {
     /**
      * Get the current incomplete week's period key.
      * Returns the period key for the week that contains today's date.
+     * If we're before the first Monday of the year (W00 days), returns the last week of the previous year.
      */
     public String getCurrentWeekPeriodKey() {
         LocalDate today = LocalDate.now();
@@ -113,9 +114,10 @@ public class ChartService {
         LocalDate jan1 = LocalDate.of(year, 1, 1);
         LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
 
-        // Check if we're before the first Monday (week 00)
+        // Check if we're before the first Monday (would be week 00)
+        // In this case, we should return the last week of the previous year since W00 is merged into it
         if (today.isBefore(firstMonday)) {
-            return String.format("%d-W%02d", year, 0);
+            return getLastWeekOfPreviousYear(year);
         }
 
         // Calculate week number: (days since first Monday / 7) + 1
@@ -126,7 +128,24 @@ public class ChartService {
     }
 
     /**
+     * Get the last week's period key of the previous year.
+     * Used when current date falls in "W00" territory.
+     */
+    private String getLastWeekOfPreviousYear(int currentYear) {
+        int prevYear = currentYear - 1;
+        LocalDate dec31 = LocalDate.of(prevYear, 12, 31);
+        LocalDate jan1PrevYear = LocalDate.of(prevYear, 1, 1);
+        LocalDate firstMondayPrevYear = jan1PrevYear.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+
+        long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMondayPrevYear, dec31);
+        int lastWeekNum = (int) (daysSinceFirstMonday / 7) + 1;
+
+        return String.format("%d-W%02d", prevYear, lastWeekNum);
+    }
+
+    /**
      * Get the next week's period key from a given period key.
+     * If the next week would be W00, returns the last week of the previous year (which already covers those dates).
      */
     public String getNextWeekPeriodKey(String periodKey) {
         LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
@@ -138,9 +157,10 @@ public class ChartService {
         LocalDate jan1 = LocalDate.of(year, 1, 1);
         LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
 
-        // Check if we're before the first Monday (week 00)
+        // Check if we're before the first Monday (would be week 00)
+        // W00 dates are covered by the last week of the previous year, so return that instead
         if (nextWeekStart.isBefore(firstMonday)) {
-            return String.format("%d-W%02d", year, 0);
+            return getLastWeekOfPreviousYear(year);
         }
 
         // Calculate week number
@@ -742,6 +762,7 @@ public class ChartService {
     /**
      * Get all weeks that have scrobbles but no chart generated yet.
      * Only returns weeks that have completely passed (not the current ongoing week).
+     * Excludes W00 (days before first Monday of year) since those are covered by the last week of the previous year.
      */
     public List<String> getWeeksWithoutCharts() {
         String sql = """
@@ -756,8 +777,11 @@ public class ChartService {
             """;
         List<String> allWeeks = jdbcTemplate.queryForList(sql, String.class);
         
-        // Filter out weeks that haven't completed yet
+        // Filter out:
+        // 1. Weeks that haven't completed yet
+        // 2. W00 entries (days before first Monday are covered by the last week of previous year)
         return allWeeks.stream()
+            .filter(week -> !week.endsWith("-W00"))
             .filter(this::isWeekComplete)
             .toList();
     }
@@ -856,37 +880,87 @@ public class ChartService {
     }
 
     /**
+     * Delete ALL weekly charts from the database.
+     * This includes both song and album charts and their entries.
+     */
+    @Transactional
+    public void deleteAllWeeklyCharts() {
+        // Delete chart entries first (foreign key constraint)
+        jdbcTemplate.update("""
+            DELETE FROM ChartEntry 
+            WHERE chart_id IN (
+                SELECT id FROM Chart 
+                WHERE (chart_type = 'song' OR chart_type = 'album') AND period_type = 'weekly'
+            )
+            """);
+
+        // Delete the charts
+        jdbcTemplate.update("""
+            DELETE FROM Chart 
+            WHERE (chart_type = 'song' OR chart_type = 'album') AND period_type = 'weekly'
+            """);
+    }
+
+    /**
+     * Get all weeks that have scrobble data (for regeneration).
+     * Excludes W00 (days before first Monday are covered by the last week of previous year).
+     * Only includes weeks that have completely passed.
+     */
+    public List<String> getAllWeeksWithScrobbleData() {
+        String sql = """
+            SELECT DISTINCT strftime('%Y-W%W', scr.scrobble_date) as period_key
+            FROM Scrobble scr
+            WHERE scr.scrobble_date IS NOT NULL
+              AND scr.song_id IS NOT NULL
+            ORDER BY period_key ASC
+            """;
+        List<String> allWeeks = jdbcTemplate.queryForList(sql, String.class);
+        
+        // Filter out:
+        // 1. Weeks that haven't completed yet
+        // 2. W00 entries (days before first Monday are covered by the last week of previous year)
+        return allWeeks.stream()
+            .filter(week -> !week.endsWith("-W00"))
+            .filter(this::isWeekComplete)
+            .toList();
+    }
+
+    /**
      * Regenerate all weekly charts asynchronously.
-     * Deletes existing charts and regenerates them from scrobble data.
+     * Deletes ALL existing weekly charts first, then regenerates from scratch using scrobble data.
+     * This ensures any buggy charts (like W00) are cleaned up.
      * Returns a session ID for tracking progress.
      */
     public String startBulkRegeneration() {
         String sessionId = UUID.randomUUID().toString();
-        List<String> existingWeeks = getWeeksWithCharts();
+        
+        // Get all weeks from scrobble data (properly filtered, excluding W00)
+        List<String> weeksToGenerate = getAllWeeksWithScrobbleData();
 
         ChartGenerationProgressDTO progress = new ChartGenerationProgressDTO(
-            existingWeeks.size(), 0, null, false
+            weeksToGenerate.size(), 0, "Deleting existing charts...", false
         );
         generationProgress.put(sessionId, progress);
 
         // Start regeneration in a separate thread
         Thread generationThread = new Thread(() -> {
             try {
-                for (int i = 0; i < existingWeeks.size(); i++) {
-                    String week = existingWeeks.get(i);
+                // First, delete ALL weekly charts (including any buggy ones like W00)
+                deleteAllWeeklyCharts();
+                
+                // Now generate fresh charts from scrobble data
+                for (int i = 0; i < weeksToGenerate.size(); i++) {
+                    String week = weeksToGenerate.get(i);
                     progress.setCurrentWeek(week);
                     progress.setCompletedWeeks(i);
 
                     try {
-                        // Delete existing charts for this week
-                        deleteWeeklyCharts(week);
-
-                        // Regenerate both song and album charts
+                        // Generate both song and album charts
                         generateWeeklySongChart(week);
                         generateWeeklyAlbumChart(week);
                     } catch (Exception e) {
                         // Log but continue with other weeks
-                        System.err.println("Error regenerating chart for " + week + ": " + e.getMessage());
+                        System.err.println("Error generating chart for " + week + ": " + e.getMessage());
                     }
 
                     progress.setCompletedWeeks(i + 1);
@@ -1935,6 +2009,138 @@ public class ChartService {
         } catch (Exception e) {
             result.put("album", null);
         }
+        
+        return result;
+    }
+    
+    /**
+     * BATCH: Get #1 entries for multiple periods at once (weekly charts).
+     * Eliminates N+1 queries when displaying timeframe lists.
+     * Returns a map of periodKey -> ChartTopEntryDTO with song/album names and gender IDs.
+     */
+    public Map<String, ChartTopEntryDTO> getWeeklyChartTopEntriesBatch(Set<String> periodKeys) {
+        if (periodKeys == null || periodKeys.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        Map<String, ChartTopEntryDTO> result = new HashMap<>();
+        for (String pk : periodKeys) {
+            result.put(pk, new ChartTopEntryDTO(pk));
+        }
+        
+        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
+        
+        // Get #1 songs for all periods in one query
+        String songSql = """
+            SELECT c.period_key, ar.name || ' - ' || s.name as display_name, ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE c.chart_type = 'song' AND c.period_key IN (%s) AND ce.position = 1
+            """.formatted(placeholders);
+        
+        jdbcTemplate.query(songSql, (rs) -> {
+            String periodKey = rs.getString("period_key");
+            ChartTopEntryDTO dto = result.get(periodKey);
+            if (dto != null) {
+                dto.setNumberOneSongName(rs.getString("display_name"));
+                dto.setNumberOneSongGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            }
+        }, periodKeys.toArray());
+        
+        // Get #1 albums for all periods in one query
+        String albumSql = """
+            SELECT c.period_key, ar.name || ' - ' || a.name as display_name, ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album a ON ce.album_id = a.id
+            INNER JOIN Artist ar ON a.artist_id = ar.id
+            WHERE c.chart_type = 'album' AND c.period_key IN (%s) AND ce.position = 1
+            """.formatted(placeholders);
+        
+        jdbcTemplate.query(albumSql, (rs) -> {
+            String periodKey = rs.getString("period_key");
+            ChartTopEntryDTO dto = result.get(periodKey);
+            if (dto != null) {
+                dto.setNumberOneAlbumName(rs.getString("display_name"));
+                dto.setNumberOneAlbumGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            }
+        }, periodKeys.toArray());
+        
+        return result;
+    }
+    
+    /**
+     * BATCH: Get #1 entries for multiple finalized seasonal/yearly charts at once.
+     * Eliminates N+1 queries when displaying timeframe lists.
+     * Returns a map of periodKey -> ChartTopEntryDTO with song/album names and gender IDs.
+     */
+    public Map<String, ChartTopEntryDTO> getFinalizedChartTopEntriesBatch(String periodType, Set<String> periodKeys) {
+        if (periodKeys == null || periodKeys.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        Map<String, ChartTopEntryDTO> result = new HashMap<>();
+        for (String pk : periodKeys) {
+            result.put(pk, new ChartTopEntryDTO(pk));
+        }
+        
+        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
+        
+        // Get #1 songs for all finalized periods in one query
+        String songSql = """
+            SELECT c.period_key, ar.name || ' - ' || s.name as display_name, ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE c.period_type = ? AND c.chart_type = 'song' AND c.period_key IN (%s) 
+                  AND c.is_finalized = 1 AND ce.position = 1
+            """.formatted(placeholders);
+        
+        Object[] songParams = new Object[periodKeys.size() + 1];
+        songParams[0] = periodType;
+        int i = 1;
+        for (String pk : periodKeys) {
+            songParams[i++] = pk;
+        }
+        
+        jdbcTemplate.query(songSql, (rs) -> {
+            String periodKey = rs.getString("period_key");
+            ChartTopEntryDTO dto = result.get(periodKey);
+            if (dto != null) {
+                dto.setNumberOneSongName(rs.getString("display_name"));
+                dto.setNumberOneSongGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            }
+        }, songParams);
+        
+        // Get #1 albums for all finalized periods in one query
+        String albumSql = """
+            SELECT c.period_key, ar.name || ' - ' || a.name as display_name, ar.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album a ON ce.album_id = a.id
+            INNER JOIN Artist ar ON a.artist_id = ar.id
+            WHERE c.period_type = ? AND c.chart_type = 'album' AND c.period_key IN (%s) 
+                  AND c.is_finalized = 1 AND ce.position = 1
+            """.formatted(placeholders);
+        
+        Object[] albumParams = new Object[periodKeys.size() + 1];
+        albumParams[0] = periodType;
+        i = 1;
+        for (String pk : periodKeys) {
+            albumParams[i++] = pk;
+        }
+        
+        jdbcTemplate.query(albumSql, (rs) -> {
+            String periodKey = rs.getString("period_key");
+            ChartTopEntryDTO dto = result.get(periodKey);
+            if (dto != null) {
+                dto.setNumberOneAlbumName(rs.getString("display_name"));
+                dto.setNumberOneAlbumGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            }
+        }, albumParams);
         
         return result;
     }
