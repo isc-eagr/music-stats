@@ -64,10 +64,10 @@
                         </button>
                     </div>
                     
-                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
-                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                    <div class="page-size-section">
+                        <label for="pageSizeInput">Per Page:</label>
                         <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
-                               style="width: 70px;" onchange="changePageSize(this.value)">
+                               onchange="changePageSize(this.value)">
                     </div>
                 </div>
             </div>

@@ -19,8 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Service
 public class SongService {
@@ -588,8 +591,16 @@ public class SongService {
     }
     
     public List<String> getCountries() {
-        String sql = "SELECT DISTINCT country FROM Artist WHERE country IS NOT NULL ORDER BY country";
-        return jdbcTemplate.queryForList(sql, String.class);
+        String[] iso = Locale.getISOCountries();
+        Set<String> names = new TreeSet<>();
+        for (String code : iso) {
+            Locale loc = new Locale("", code);
+            String name = loc.getDisplayCountry(Locale.ENGLISH);
+            if (name != null && !name.isBlank()) {
+                names.add(name);
+            }
+        }
+        return new ArrayList<>(names);
     }
     
     // Helper to parse various SQLite timestamp representations

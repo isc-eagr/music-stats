@@ -1007,6 +1007,246 @@
                 display: none !important;
             }
         }
+        
+        /* Stats Tables Section - Collapsible breakdown tables */
+        .stats-tables-section {
+            margin-bottom: 24px;
+        }
+        
+        .stats-tables-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #e5e7eb;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            width: fit-content;
+        }
+        
+        .stats-tables-toggle:hover {
+            background: #252525;
+            border-color: #3a3a3a;
+        }
+        
+        .stats-tables-toggle .toggle-icon {
+            font-size: 16px;
+            font-weight: 700;
+            width: 20px;
+            text-align: center;
+            color: #22c55e;
+        }
+        
+        .stats-tables-content {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        
+        .stats-tables-content.expanded {
+            display: block;
+        }
+        
+        .stats-tables-row {
+            display: flex;
+            gap: 12px;
+            min-width: fit-content;
+        }
+        
+        .stats-table-wrapper {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .stats-table-wrapper h4 {
+            margin: 0 0 8px 0;
+            color: #e5e7eb;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        
+        .stats-table th {
+            background: #252525;
+            color: #9ca3af;
+            font-weight: 600;
+            text-align: right;
+            padding: 6px 8px;
+            border-bottom: 1px solid #2a2a2a;
+            white-space: nowrap;
+            font-size: 10px;
+        }
+        
+        .stats-table th.position-col {
+            text-align: center;
+            width: 28px;
+            min-width: 28px;
+        }
+        
+        .stats-table th:nth-child(2) {
+            text-align: left;
+        }
+        
+        .stats-table td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #1f1f1f;
+            color: #d1d5db;
+            text-align: right;
+            white-space: nowrap;
+        }
+        
+        .stats-table .position-col {
+            width: 28px;
+            min-width: 28px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 10px;
+        }
+        
+        .stats-table td:nth-child(2) {
+            text-align: left;
+            color: #e5e7eb;
+            font-weight: 500;
+            max-width: 75px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .stats-table tr:last-child td {
+            border-bottom: none;
+            font-weight: 600;
+            color: #e5e7eb;
+            background: #252525;
+        }
+        
+        .stats-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .stats-table tr:last-child:hover td {
+            background: #252525;
+        }
+        
+        .stats-table tr.cross-hover-highlight td {
+            background: rgba(34, 197, 94, 0.15);
+        }
+        
+        .stats-table .male-col {
+            color: #60a5fa;
+        }
+        
+        .stats-table .female-col {
+            color: #f472b6;
+        }
+        
+        /* Sortable header styling */
+        .stats-table th.sortable-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+        
+        .stats-table th.sortable-header:hover {
+            background: #353535;
+        }
+        
+        .stats-table th.sortable-header.sorted-desc::after {
+            content: ' ▼';
+            font-size: 8px;
+            color: #22c55e;
+        }
+        
+        .stats-table th.sortable-header.sorted-asc::after {
+            content: ' ▲';
+            font-size: 8px;
+            color: #22c55e;
+        }
+        
+        /* Highlighted table (currently used for comparison sorting) */
+        .stats-table-wrapper.stats-table-highlighted {
+            background: rgba(34, 197, 94, 0.08);
+            border-radius: 6px;
+            padding: 8px;
+            margin: -8px;
+            margin-right: 4px;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+        }
+        
+        .stats-table-wrapper.stats-table-highlighted h4 {
+            color: #22c55e;
+        }
+        
+        /* Comparison mode toggle */
+        .stats-comparison-toggle {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .stats-tables-content.expanded ~ div .stats-comparison-toggle,
+        .stats-tables-section:has(.stats-tables-content.expanded) .stats-comparison-toggle {
+            display: flex;
+        }
+        
+        .stats-comparison-toggle input[type="checkbox"] {
+            accent-color: #22c55e;
+        }
+        
+        .stats-comparison-toggle label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        /* Global sort checkboxes */
+        .stats-global-sort {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .stats-tables-section:has(.stats-tables-content.expanded) .stats-global-sort {
+            display: flex;
+        }
+        
+        .stats-global-sort label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .stats-global-sort input[type="checkbox"] {
+            accent-color: #f59e0b;
+        }
+        
+        .stats-global-sort.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -1048,7 +1288,7 @@
                                 <div class="multi-select-display" onclick="toggleMultiSelectDropdown('account')">
                                     <div class="multi-select-chips" id="accountChips">
                                         <span class="multi-select-chip" th:each="accountName : ${selectedAccounts}" th:attr="data-value=${accountName}">
-                                            <span th:text="${accountName == 'vatito' ? '🔵 Primary (vatito)' : '🟣 Legacy (robertlover)'}"></span>
+                                            <span th:text="${accountName == 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)'}"></span>
                                             <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${accountName}">×</button>
                                         </span>
                                     </div>
@@ -1061,7 +1301,7 @@
                                             <input type="checkbox" autocomplete="off" name="account" value="vatito" 
                                                    th:checked="${selectedAccounts != null && selectedAccounts.contains('vatito')}"
                                                    onchange="updateAccountChips(this)">
-                                            <span>🔵 Primary (vatito)</span>
+                                            <span>Primary (vatito)</span>
                                         </label>
                                     </div>
                                     <div class="multi-select-option">
@@ -1069,7 +1309,7 @@
                                             <input type="checkbox" autocomplete="off" name="account" value="robertlover" 
                                                    th:checked="${selectedAccounts != null && selectedAccounts.contains('robertlover')}"
                                                    onchange="updateAccountChips(this)">
-                                            <span>🟣 Legacy (robertlover)</span>
+                                            <span>Legacy (robertlover)</span>
                                         </label>
                                     </div>
                                 </div>
@@ -2213,6 +2453,34 @@
                                 <span>Apply Limit</span>
                             </label>
                         </div>
+                        <!-- Stats Tables Section -->
+                        <div class="stats-tables-section" id="statsTablesSection-genre">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('genre')">
+                                    <span class="toggle-icon" id="statsToggleIcon-genre">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-genre" onchange="toggleStatsComparisonMode('genre')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-genre">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-genre" onchange="setStatsGlobalSort('genre', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-genre" onchange="setStatsGlobalSort('genre', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-genre">
+                                <div class="stats-tables-row" id="statsTablesRow-genre"></div>
+                            </div>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Genre</h3>
                             <div class="chart-scroll-container" id="genreCombinedChartContainer"></div>
@@ -2236,6 +2504,34 @@
                                 <input type="checkbox" autocomplete="off" id="applyLimitSubgenre" onchange="onApplyLimitChanged('subgenre')">
                                 <span>Apply Limit</span>
                             </label>
+                        </div>
+                        <!-- Stats Tables Section -->
+                        <div class="stats-tables-section" id="statsTablesSection-subgenre">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('subgenre')">
+                                    <span class="toggle-icon" id="statsToggleIcon-subgenre">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-subgenre" onchange="toggleStatsComparisonMode('subgenre')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-subgenre">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-subgenre" onchange="setStatsGlobalSort('subgenre', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-subgenre" onchange="setStatsGlobalSort('subgenre', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-subgenre">
+                                <div class="stats-tables-row" id="statsTablesRow-subgenre"></div>
+                            </div>
                         </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Subgenre</h3>
@@ -2261,6 +2557,34 @@
                                 <span>Apply Limit</span>
                             </label>
                         </div>
+                        <!-- Stats Tables Section -->
+                        <div class="stats-tables-section" id="statsTablesSection-ethnicity">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('ethnicity')">
+                                    <span class="toggle-icon" id="statsToggleIcon-ethnicity">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-ethnicity" onchange="toggleStatsComparisonMode('ethnicity')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-ethnicity">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-ethnicity" onchange="setStatsGlobalSort('ethnicity', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-ethnicity" onchange="setStatsGlobalSort('ethnicity', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-ethnicity">
+                                <div class="stats-tables-row" id="statsTablesRow-ethnicity"></div>
+                            </div>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Ethnicity</h3>
                             <div class="chart-scroll-container" id="ethnicityCombinedChartContainer"></div>
@@ -2284,6 +2608,34 @@
                                 <input type="checkbox" autocomplete="off" id="applyLimitLanguage" onchange="onApplyLimitChanged('language')">
                                 <span>Apply Limit</span>
                             </label>
+                        </div>
+                        <!-- Stats Tables Section -->
+                        <div class="stats-tables-section" id="statsTablesSection-language">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('language')">
+                                    <span class="toggle-icon" id="statsToggleIcon-language">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-language" onchange="toggleStatsComparisonMode('language')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-language">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-language" onchange="setStatsGlobalSort('language', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-language" onchange="setStatsGlobalSort('language', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-language">
+                                <div class="stats-tables-row" id="statsTablesRow-language"></div>
+                            </div>
                         </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Language</h3>
@@ -2309,6 +2661,34 @@
                                 <span>Apply Limit</span>
                             </label>
                         </div>
+                        <!-- Stats Tables Section -->
+                        <div class="stats-tables-section" id="statsTablesSection-country">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('country')">
+                                    <span class="toggle-icon" id="statsToggleIcon-country">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-country" onchange="toggleStatsComparisonMode('country')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-country">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-country" onchange="setStatsGlobalSort('country', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-country" onchange="setStatsGlobalSort('country', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-country">
+                                <div class="stats-tables-row" id="statsTablesRow-country"></div>
+                            </div>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Country</h3>
                             <div class="chart-scroll-container" id="countryCombinedChartContainer"></div>
@@ -2333,6 +2713,34 @@
                                 <span>Apply Limit</span>
                             </label>
                         </div>
+                        <!-- Stats Tables Section (no artists for release year) -->
+                        <div class="stats-tables-section" id="statsTablesSection-releaseYear">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('releaseYear')">
+                                    <span class="toggle-icon" id="statsToggleIcon-releaseYear">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-releaseYear" onchange="toggleStatsComparisonMode('releaseYear')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-releaseYear">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-releaseYear" onchange="setStatsGlobalSort('releaseYear', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-releaseYear" onchange="setStatsGlobalSort('releaseYear', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-releaseYear">
+                                <div class="stats-tables-row" id="statsTablesRow-releaseYear"></div>
+                            </div>
+                        </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Release Year</h3>
                             <div class="chart-scroll-container" id="releaseYearCombinedChartContainer"></div>
@@ -2356,6 +2764,34 @@
                                 <input type="checkbox" autocomplete="off" id="applyLimitListenYear" onchange="onApplyLimitChanged('listenYear')">
                                 <span>Apply Limit</span>
                             </label>
+                        </div>
+                        <!-- Stats Tables Section -->
+                        <div class="stats-tables-section" id="statsTablesSection-listenYear">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="stats-tables-toggle" onclick="toggleStatsTables('listenYear')">
+                                    <span class="toggle-icon" id="statsToggleIcon-listenYear">+</span>
+                                    <span>Show Breakdown Tables</span>
+                                </div>
+                                <div class="stats-comparison-toggle">
+                                    <label>
+                                        <input type="checkbox" id="comparisonMode-listenYear" onchange="toggleStatsComparisonMode('listenYear')">
+                                        <span>Compare side-by-side</span>
+                                    </label>
+                                </div>
+                                <div class="stats-global-sort" id="globalSort-listenYear">
+                                    <label>
+                                        <input type="checkbox" id="globalSortCount-listenYear" onchange="setStatsGlobalSort('listenYear', 'count')" checked>
+                                        <span>Sort all by Count</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="globalSortMalePercent-listenYear" onchange="setStatsGlobalSort('listenYear', 'malePercent')">
+                                        <span>Sort all by ♂ %</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stats-tables-content" id="statsTablesContent-listenYear">
+                                <div class="stats-tables-row" id="statsTablesRow-listenYear"></div>
+                            </div>
                         </div>
                         <div class="chart-container-wide">
                             <h3>All Metrics by Listen Year</h3>
@@ -2387,8 +2823,21 @@
         };
         /*]]>*/
         
+        // Hide already-selected options in all multi-select dropdowns
+        function hideSelectedDropdownOptions() {
+            document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
+                dropdown.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                    const optionElement = checkbox.closest('.multi-select-option');
+                    if (optionElement) optionElement.style.display = 'none';
+                });
+            });
+        }
+        
         // Initialize page on load
         document.addEventListener('DOMContentLoaded', function() {
+            // Hide already-selected options in dropdowns
+            hideSelectedDropdownOptions();
+            
             // Initialize from URL params if present
             if (chartsPageConfig.filterType && chartsPageConfig.filterId) {
                 chartsEntityFilter.type = chartsPageConfig.filterType;
@@ -2619,6 +3068,7 @@
             const labelElement = chipsContainer.nextElementSibling;
             const value = checkbox.value;
             const text = checkbox.parentElement.textContent.trim();
+            const optionElement = checkbox.closest('.multi-select-option');
             
             if (checkbox.checked) {
                 const chip = document.createElement('span');
@@ -2626,9 +3076,13 @@
                 chip.setAttribute('data-value', value);
                 chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">×</button>`;
                 chipsContainer.appendChild(chip);
+                // Hide selected option from dropdown
+                if (optionElement) optionElement.style.display = 'none';
             } else {
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
                 if (chip) chip.remove();
+                // Show option back in dropdown
+                if (optionElement) optionElement.style.display = '';
             }
             
             if (chipsContainer.children.length > 0) {
@@ -2646,7 +3100,12 @@
             event.stopPropagation();
             const dropdown = document.getElementById(filterName + 'Dropdown');
             const checkbox = dropdown.querySelector(`input[value="${value}"]`);
-            if (checkbox) { checkbox.checked = false; }
+            if (checkbox) { 
+                checkbox.checked = false;
+                // Show option back in dropdown
+                const optionElement = checkbox.closest('.multi-select-option');
+                if (optionElement) optionElement.style.display = '';
+            }
             // Remove the chip (find button by data-value, then remove its parent span)
             const chipsContainer = document.getElementById(filterName + 'Chips');
             const chipButton = chipsContainer.querySelector(`button[data-value="${value}"]`);
@@ -2662,6 +3121,7 @@
             const labelElement = chipsContainer.nextElementSibling;
             const value = checkbox.value;
             const text = checkbox.parentElement.textContent.trim();
+            const optionElement = checkbox.closest('.multi-select-option');
             
             if (checkbox.checked) {
                 const chip = document.createElement('span');
@@ -2669,9 +3129,13 @@
                 chip.setAttribute('data-value', value);
                 chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>`;
                 chipsContainer.appendChild(chip);
+                // Hide selected option from dropdown
+                if (optionElement) optionElement.style.display = 'none';
             } else {
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
                 if (chip) chip.remove();
+                // Show option back in dropdown
+                if (optionElement) optionElement.style.display = '';
             }
             
             if (chipsContainer.children.length > 0) {
@@ -2689,7 +3153,12 @@
             event.stopPropagation();
             const dropdown = document.getElementById('countryDropdown');
             const checkbox = dropdown.querySelector(`input[value="${value}"]`);
-            if (checkbox) { checkbox.checked = false; }
+            if (checkbox) { 
+                checkbox.checked = false;
+                // Show option back in dropdown
+                const optionElement = checkbox.closest('.multi-select-option');
+                if (optionElement) optionElement.style.display = '';
+            }
             // Remove the chip (value comes from parent span's data-value)
             const chipsContainer = document.getElementById('countryChips');
             const chip = chipsContainer.querySelector(`span.multi-select-chip[data-value="${value}"]`);
@@ -2704,7 +3173,8 @@
             const chipsContainer = document.getElementById('accountChips');
             const labelElement = chipsContainer.nextElementSibling;
             const value = checkbox.value;
-            const displayText = value === 'vatito' ? '🔵 Primary (vatito)' : '🟣 Legacy (robertlover)';
+            const displayText = value === 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)';
+            const optionElement = checkbox.closest('.multi-select-option');
             
             if (checkbox.checked) {
                 // Add chip
@@ -2716,6 +3186,8 @@
                     <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">×</button>
                 `;
                 chipsContainer.appendChild(chip);
+                // Hide selected option from dropdown
+                if (optionElement) optionElement.style.display = 'none';
                 
                 // Hide placeholder
                 if (labelElement && labelElement.classList.contains('multi-select-label')) {
@@ -2725,6 +3197,8 @@
                 // Remove chip
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
                 if (chip) chip.remove();
+                // Show option back in dropdown
+                if (optionElement) optionElement.style.display = '';
                 
                 // Show placeholder if no chips left
                 if (chipsContainer.children.length === 0) {
@@ -2743,6 +3217,9 @@
             const checkbox = dropdown.querySelector(`input[value="${value}"]`);
             if (checkbox) {
                 checkbox.checked = false;
+                // Show option back in dropdown
+                const optionElement = checkbox.closest('.multi-select-option');
+                if (optionElement) optionElement.style.display = '';
             }
             
             // Remove the chip

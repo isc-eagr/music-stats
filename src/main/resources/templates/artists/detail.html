@@ -112,6 +112,7 @@
                         <!-- Overall Position -->
                         <a th:if="${overallPosition != null}"
                            th:href="@{/artists}"
+                           target="_blank"
                            class="winning-chip rank-chip overall"
                            th:text="'#' + ${overallPosition} + ' overall'"
                            th:title="'Rank #' + ${overallPosition} + ' among all artists'"></a>
@@ -122,6 +123,7 @@
                         <!-- Gender Rank -->
                         <a th:if="${rankByGender != null and artist.genderId != null}" 
                            th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
+                           target="_blank"
                            class="winning-chip rank-chip gender"
                            th:classappend="${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'female' : (${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male')} ? 'male' : '')"
                            th:text="'#' + ${rankByGender} + ' ' + ${genders.get(artist.genderId)}" 
@@ -130,6 +132,7 @@
                         <!-- Genre Rank -->
                         <a th:if="${rankByGenre != null and artist.genreId != null}" 
                            th:href="@{/graphs(filterType='genre',filterId=${artist.genreId},filterName=${genres.get(artist.genreId)})}"
+                           target="_blank"
                            class="winning-chip rank-chip genre" 
                            th:text="'#' + ${rankByGenre} + ' ' + ${genres.get(artist.genreId)}" 
                            th:title="'Rank #' + ${rankByGenre} + ' among ' + ${genres.get(artist.genreId)} + ' artists'"></a>
@@ -137,6 +140,7 @@
                         <!-- Subgenre Rank -->
                         <a th:if="${rankBySubgenre != null and artist.subgenreId != null}" 
                            th:href="@{/graphs(filterType='subgenre',filterId=${artist.subgenreId},filterName=${subgenres.get(artist.subgenreId)})}"
+                           target="_blank"
                            class="winning-chip rank-chip subgenre" 
                            th:text="'#' + ${rankBySubgenre} + ' ' + ${subgenres.get(artist.subgenreId)}" 
                            th:title="'Rank #' + ${rankBySubgenre} + ' among ' + ${subgenres.get(artist.subgenreId)} + ' artists'"></a>
@@ -144,6 +148,7 @@
                         <!-- Ethnicity Rank -->
                         <a th:if="${rankByEthnicity != null and artist.ethnicityId != null}" 
                            th:href="@{/graphs(filterType='ethnicity',filterId=${artist.ethnicityId},filterName=${ethnicities.get(artist.ethnicityId)})}"
+                           target="_blank"
                            class="winning-chip rank-chip ethnicity" 
                            th:text="'#' + ${rankByEthnicity} + ' ' + ${ethnicities.get(artist.ethnicityId)}" 
                            th:title="'Rank #' + ${rankByEthnicity} + ' among ' + ${ethnicities.get(artist.ethnicityId)} + ' artists'"></a>
@@ -151,6 +156,7 @@
                         <!-- Country Rank -->
                         <a th:if="${rankByCountry != null and artist.country != null}" 
                            th:href="@{/graphs(country=${artist.country},countryMode='includes')}"
+                           target="_blank"
                            class="winning-chip rank-chip country" 
                            th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
                            th:title="'Rank #' + ${rankByCountry} + ' among ' + ${artist.country} + ' artists'"></a>
@@ -158,6 +164,7 @@
                         <!-- Language Rank -->
                         <a th:if="${rankByLanguage != null and artist.languageId != null}" 
                            th:href="@{/graphs(filterType='language',filterId=${artist.languageId},filterName=${languages.get(artist.languageId)})}"
+                           target="_blank"
                            class="winning-chip rank-chip language" 
                            th:text="'#' + ${rankByLanguage} + ' ' + ${languages.get(artist.languageId)}" 
                            th:title="'Rank #' + ${rankByLanguage} + ' among ' + ${languages.get(artist.languageId)} + ' artists'"></a>
@@ -165,6 +172,7 @@
                         <!-- Spanish Rap Rank (special combination) -->
                         <a th:if="${rankBySpanishRap != null}"
                            th:href="@{/graphs(genre=${rapGenreId},genreMode='includes',language=${spanishLanguageId},languageMode='includes')}"
+                           target="_blank"
                            class="winning-chip rank-chip spanish-rap"
                            th:text="'#' + ${rankBySpanishRap} + ' Spanish Rap'"
                            th:title="'Rank #' + ${rankBySpanishRap} + ' among Spanish Rap artists'"></a>
@@ -176,6 +184,7 @@
                         <a th:each="yearEntry : ${ranksByYear}" 
                            th:if="${yearEntry.value != null and yearEntry.value <= 100}"
                            th:href="@{/graphs(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31')}"
+                           target="_blank"
                            class="winning-chip rank-chip year-rank" 
                            th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 
                            th:title="'Rank #' + ${yearEntry.value} + ' most listened artist in year ' + ${yearEntry.key}"></a>
@@ -739,10 +748,6 @@
                                 </div>
                                 <div class="featured-artist-stats">
                                     <div class="stat">
-                                        <span class="stat-icon">🎵</span>
-                                        <span class="stat-value" th:text="${group.songCount}">0</span>
-                                    </div>
-                                    <div class="stat">
                                         <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${group.playCount}">0</span>
                                     </div>
@@ -790,10 +795,6 @@
                                     <span th:if="${member.country != null}" th:text="${member.country}"></span>
                                 </div>
                                 <div class="featured-artist-stats">
-                                    <div class="stat">
-                                        <span class="stat-icon">🎵</span>
-                                        <span class="stat-value" th:text="${member.songCount}">0</span>
-                                    </div>
                                     <div class="stat">
                                         <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${member.playCount}">0</span>
@@ -850,10 +851,6 @@
                                     <span th:if="${collab.country != null}" th:text="${collab.country}"></span>
                                 </div>
                                 <div class="featured-artist-stats">
-                                    <div class="stat">
-                                        <span class="stat-icon">🎵</span>
-                                        <span class="stat-value" th:text="${collab.songCount}">0</span>
-                                    </div>
                                     <div class="stat">
                                         <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${collab.playCount}">0</span>
@@ -1971,6 +1968,7 @@
         .name-field-group {
             grid-column: 1 / -1;
             margin-bottom: 10px;
+            padding: 0 10px;
         }
         
         .editable-input {

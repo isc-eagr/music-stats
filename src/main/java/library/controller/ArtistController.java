@@ -140,8 +140,6 @@ public class ArtistController {
             @RequestParam(required = false) Integer albumCountMax,
             @RequestParam(required = false) Integer songCountMin,
             @RequestParam(required = false) Integer songCountMax,
-            @RequestParam(defaultValue = "false") boolean includeGroups,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -159,7 +157,6 @@ public class ArtistController {
         String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
         
         // Get filtered and sorted artists
-        // TODO: Add includeGroups and includeFeatured support to getArtists method for aggregated play counts
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, country, countryMode, account, accountMode,
@@ -169,7 +166,6 @@ public class ArtistController {
                 organized, hasImage, isBand, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax,
-                includeGroups, includeFeatured,
                 sortby, sortdir, page, perpage
         );
         
@@ -248,10 +244,6 @@ public class ArtistController {
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        
-        // Include toggles
-        model.addAttribute("includeGroups", includeGroups);
-        model.addAttribute("includeFeatured", includeFeatured);
         
         // Add filter options
         model.addAttribute("genders", artistService.getGenders());

@@ -56,7 +56,6 @@ public class ArtistService {
                                           Integer playCountMin, Integer playCountMax,
                                           Integer albumCountMin, Integer albumCountMax,
                                           Integer songCountMin, Integer songCountMax,
-                                          boolean includeGroups, boolean includeFeatured,
                                           String sortBy, String sortDir, int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
@@ -82,7 +81,6 @@ public class ArtistService {
                 organized, hasImage, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, songCountMin, songCountMax,
-                includeGroups, includeFeatured,
                 sortBy, sortDir, actualLimit, actualOffset
         );
         
@@ -186,7 +184,7 @@ public class ArtistService {
                     listenedDateFrom, listenedDateTo,
                     organized, hasImage, isBand, inItunes,
                     playCountMin, playCountMax, albumCountMin, albumCountMax, songCountMin, songCountMax,
-                    false, false, "plays", "desc", 0, Integer.MAX_VALUE);
+                    "plays", "desc", 0, Integer.MAX_VALUE);
             return allArtists.size();
         }
         

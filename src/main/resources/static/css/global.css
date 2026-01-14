@@ -63,13 +63,30 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
 /* Filters */
 .field { display: grid; gap: 6px; }
 .field span { font-size: 12px; color: var(--text-muted); }
-.field input[type="text"] {
+.field input[type="text"],
+.field input[type="number"] {
   width: 100%;
   padding: 10px 12px;
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 8px;
+}
+
+.field input[type="text"]:hover,
+.field input[type="number"]:hover {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.field input[type="text"]:focus,
+.field input[type="number"]:focus {
+  outline: none;
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
+}
+
+.field input::placeholder {
+  color: rgba(255,255,255,0.3);
 }
 
 /* Dropdowns/Selects */
@@ -135,6 +152,29 @@ select:focus {
   background-color: #3d6b1f;
   border-color: #4d8028;
   box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
+}
+
+/* Search button - compact with green arrow */
+.btn-search {
+  padding: 6px 10px;
+  min-height: auto;
+  background-color: #1a1a1a !important;
+  color: #22c55e;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-search:hover {
+  background-color: #2a2a2a !important;
+  border-color: #444444;
+  color: #4ade80;
 }
 
 /* Negative action buttons - dark red theme for Delete, etc. */
@@ -226,6 +266,41 @@ select:focus {
 
 .sort-dir-btn:active {
   transform: scale(0.95);
+}
+
+/* Page size controls */
+.page-size-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-size-section label {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.page-size-section input[type="number"] {
+  width: 70px;
+  padding: 6px 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.page-size-section input[type="number"]:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.page-size-section input[type="number"]:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
 }
 
 /* Groups and charts */
@@ -1677,8 +1752,9 @@ select:focus {
 .multi-select-dropdown.above { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 4px; }
 .multi-select-option { padding: 8px 12px; cursor: pointer; transition: background-color 0.2s; }
 .multi-select-option:hover { background-color: #2a2a2a; }
-.multi-select-option label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e5e7eb; width: 100%; margin: 0; }
-.multi-select-option input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.multi-select-option label { display: flex; align-items: center; gap: 0; cursor: pointer; color: #e5e7eb; width: 100%; margin: 0; }
+/* Hide checkboxes in dropdown options - they remain functional but invisible */
+.multi-select-option input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
 .multi-select-dropdown::-webkit-scrollbar { width: 8px; }
 .multi-select-dropdown::-webkit-scrollbar-track { background: #0a0a0a; }
 .multi-select-dropdown::-webkit-scrollbar-thumb { background: #333333; border-radius: 4px; }

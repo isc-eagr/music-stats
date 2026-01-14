@@ -39,8 +39,6 @@ public interface ArtistRepositoryCustom {
             Integer albumCountMax,
             Integer songCountMin,
             Integer songCountMax,
-            boolean includeGroups,
-            boolean includeFeatured,
             String sortBy,
             String sortDir,
             int limit,

@@ -42,6 +42,18 @@ let topSortState = {
 // Current sort state for chart groups (genre, subgenre, etc.)
 let chartSortMetric = 'plays';  // Options: 'artists', 'albums', 'songs', 'plays', 'listeningTime'
 
+// Store stats tables data for re-rendering when sort changes
+let lastStatsTablesData = {};
+
+// Store current sort state for each stats table (per tab, per table)
+let statsTableSortState = {};  // e.g., { 'genre': { 'Artists': { column: 'count', direction: 'desc' } } }
+
+// Whether comparison mode is enabled (aligns all tables by the chart sort metric)
+let statsComparisonMode = false;
+
+// Global sort column for all tables (null = individual sorting, 'count' or 'malePercent' = global)
+let statsGlobalSortColumn = 'count';
+
 // Helper functions to read artist include toggles from the form checkboxes
 function getArtistIncludeGroups() {
     const toggle = document.getElementById('includeGroupsToggle');
@@ -78,6 +90,385 @@ function formatListeningTime(totalSeconds) {
     } else {
         return minutes + 'm';
     }
+}
+
+/**
+ * Toggle stats tables visibility
+ */
+function toggleStatsTables(tabName) {
+    const content = document.getElementById('statsTablesContent-' + tabName);
+    const icon = document.getElementById('statsToggleIcon-' + tabName);
+    
+    if (content && icon) {
+        const isExpanded = content.classList.contains('expanded');
+        if (isExpanded) {
+            content.classList.remove('expanded');
+            icon.textContent = '+';
+        } else {
+            content.classList.add('expanded');
+            icon.textContent = '−';
+        }
+    }
+}
+
+/**
+ * Render stats breakdown tables for a category tab
+ * @param {string} tabName - The tab name (genre, subgenre, etc.)
+ * @param {object} data - The chart data containing arrays for each metric
+ * @param {boolean} includeArtists - Whether to include artists table (false for releaseYear)
+ */
+function renderStatsTables(tabName, data, includeArtists = true) {
+    const container = document.getElementById('statsTablesRow-' + tabName);
+    if (!container) return;
+    
+    // Store data for re-rendering when sort changes
+    lastStatsTablesData[tabName] = { data, includeArtists };
+    
+    // Initialize sort state for this tab if not exists
+    if (!statsTableSortState[tabName]) {
+        statsTableSortState[tabName] = {};
+    }
+    
+    // Get the data arrays based on tab name
+    const categoryKey = tabName.charAt(0).toUpperCase() + tabName.slice(1);
+    const artistsData = includeArtists ? data['artistsBy' + categoryKey] : null;
+    const albumsData = data['albumsBy' + categoryKey];
+    const songsData = data['songsBy' + categoryKey];
+    const playsData = data['playsBy' + categoryKey];
+    const listeningTimeData = data['listeningTimeBy' + categoryKey];
+    
+    // Determine comparison sort order if comparison mode is enabled
+    let comparisonOrder = null;
+    if (statsComparisonMode) {
+        const sortDataSource = getSortDataSource(chartSortMetric, artistsData, albumsData, songsData, playsData, listeningTimeData, includeArtists);
+        if (sortDataSource && sortDataSource.length > 0) {
+            comparisonOrder = sortDataSource
+                .map(item => ({ name: item.name, total: (item.male || 0) + (item.female || 0) + (item.other || 0) }))
+                .sort((a, b) => b.total - a.total)
+                .map(item => item.name);
+        }
+    }
+    
+    // Build tables HTML
+    let html = '';
+    
+    if (includeArtists && artistsData) {
+        const isHighlighted = statsComparisonMode && chartSortMetric === 'artists';
+        html += buildStatsTable(tabName, 'Artists', artistsData, false, comparisonOrder, isHighlighted);
+    }
+    if (albumsData) {
+        const isHighlighted = statsComparisonMode && chartSortMetric === 'albums';
+        html += buildStatsTable(tabName, 'Albums', albumsData, false, comparisonOrder, isHighlighted);
+    }
+    if (songsData) {
+        const isHighlighted = statsComparisonMode && chartSortMetric === 'songs';
+        html += buildStatsTable(tabName, 'Songs', songsData, false, comparisonOrder, isHighlighted);
+    }
+    if (playsData) {
+        const isHighlighted = statsComparisonMode && chartSortMetric === 'plays';
+        html += buildStatsTable(tabName, 'Plays', playsData, false, comparisonOrder, isHighlighted);
+    }
+    if (listeningTimeData) {
+        const isHighlighted = statsComparisonMode && chartSortMetric === 'listeningTime';
+        html += buildStatsTable(tabName, 'Listen Time', listeningTimeData, true, comparisonOrder, isHighlighted);
+    }
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Get the data source to use for sorting based on the current metric
+ */
+function getSortDataSource(metric, artistsData, albumsData, songsData, playsData, listeningTimeData, includeArtists) {
+    switch (metric) {
+        case 'artists':
+            return includeArtists && artistsData ? artistsData : playsData;
+        case 'albums':
+            return albumsData || playsData;
+        case 'songs':
+            return songsData || playsData;
+        case 'plays':
+            return playsData;
+        case 'listeningTime':
+            return listeningTimeData || playsData;
+        default:
+            return playsData;
+    }
+}
+
+/**
+ * Build a single stats table HTML
+ * @param {string} tabName - The tab name for tracking sort state
+ * @param {string} title - Table title (Artists, Albums, Songs, Plays, Listen Time)
+ * @param {Array} data - Array of objects with name, male, female, other properties
+ * @param {boolean} isTime - Whether values represent time (for formatting)
+ * @param {Array} comparisonOrder - Array of names in the order they should appear (comparison mode only)
+ * @param {boolean} isHighlighted - Whether this table should be highlighted as the comparison source
+ */
+function buildStatsTable(tabName, title, data, isTime, comparisonOrder = null, isHighlighted = false) {
+    if (!data || data.length === 0) {
+        return `<div class="stats-table-wrapper${isHighlighted ? ' stats-table-highlighted' : ''}"><h4>${title}</h4><div style="color:#666;font-size:11px;text-align:center;padding:20px;">No data</div></div>`;
+    }
+    
+    // Get or initialize sort state for this table
+    if (!statsTableSortState[tabName]) statsTableSortState[tabName] = {};
+    if (!statsTableSortState[tabName][title]) {
+        statsTableSortState[tabName][title] = { column: 'count', direction: 'desc' };
+    }
+    const sortState = statsTableSortState[tabName][title];
+    
+    // Determine effective sort column and direction
+    // Global sort takes precedence over individual sort (when not in comparison mode)
+    const effectiveColumn = (!statsComparisonMode && statsGlobalSortColumn) ? statsGlobalSortColumn : sortState.column;
+    const effectiveDirection = (!statsComparisonMode && statsGlobalSortColumn) ? 'desc' : sortState.direction;
+    
+    // Prepare data with calculated totals and male percentage
+    let processedData = data.map(row => {
+        const total = (row.male || 0) + (row.female || 0) + (row.other || 0);
+        return {
+            ...row,
+            total: total,
+            malePercent: total > 0 ? ((row.male || 0) / total * 100) : 0
+        };
+    });
+    
+    // Calculate positions based on count (descending) - this is fixed regardless of current sort
+    const countSortedData = [...processedData].sort((a, b) => b.total - a.total);
+    const positionMap = new Map();
+    countSortedData.forEach((row, idx) => {
+        positionMap.set(row.name, idx + 1);
+    });
+    
+    // Sort data
+    let sortedData;
+    if (statsComparisonMode && comparisonOrder) {
+        // In comparison mode, use the comparison order
+        const orderMap = new Map(comparisonOrder.map((name, idx) => [name, idx]));
+        sortedData = [...processedData].sort((a, b) => {
+            const idxA = orderMap.has(a.name) ? orderMap.get(a.name) : 9999;
+            const idxB = orderMap.has(b.name) ? orderMap.get(b.name) : 9999;
+            return idxA - idxB;
+        });
+    } else {
+        // Normal mode - sort by the effective column
+        sortedData = [...processedData].sort((a, b) => {
+            let valA, valB;
+            if (effectiveColumn === 'count') {
+                valA = a.total;
+                valB = b.total;
+            } else if (effectiveColumn === 'male') {
+                valA = a.male || 0;
+                valB = b.male || 0;
+            } else if (effectiveColumn === 'malePercent') {
+                valA = a.malePercent;
+                valB = b.malePercent;
+            }
+            return effectiveDirection === 'desc' ? valB - valA : valA - valB;
+        });
+    }
+    
+    // Calculate totals
+    let totalCount = 0;
+    let totalMale = 0;
+    
+    sortedData.forEach(row => {
+        totalCount += row.total;
+        totalMale += (row.male || 0);
+    });
+    
+    // Determine sort indicator classes (show for both individual and global sort)
+    const showSortIndicators = !statsComparisonMode;
+    const countSortClass = showSortIndicators && effectiveColumn === 'count' ? ` sorted-${effectiveDirection}` : '';
+    const maleSortClass = showSortIndicators && effectiveColumn === 'male' ? ` sorted-${effectiveDirection}` : '';
+    const malePercentSortClass = showSortIndicators && effectiveColumn === 'malePercent' ? ` sorted-${effectiveDirection}` : '';
+    
+    // Build table rows
+    let rowsHtml = '';
+    sortedData.forEach(row => {
+        const position = positionMap.get(row.name) || 0;
+        const percentage = totalCount > 0 ? ((row.total / totalCount) * 100).toFixed(2) : '0.00';
+        const malePercentage = row.malePercent.toFixed(2);
+        
+        const displayTotal = isTime ? formatListeningTime(row.total) : row.total.toLocaleString();
+        const displayMale = isTime ? formatListeningTime(row.male || 0) : (row.male || 0).toLocaleString();
+        
+        // Add data attribute and hover handlers for cross-table highlighting
+        const dataAttr = ` data-value-name="${escapeHtml(row.name)}"`;
+        const hoverHandlers = ` onmouseenter="highlightCrossTableRows('${escapeHtml(row.name)}')" onmouseleave="clearCrossTableHighlight()"`;
+        
+        rowsHtml += `<tr${dataAttr}${hoverHandlers}>
+            <td class="position-col">${position}</td>
+            <td title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</td>
+            <td>${displayTotal}</td>
+            <td>${percentage}%</td>
+            <td class="male-col">${displayMale}</td>
+            <td class="male-col">${malePercentage}%</td>
+        </tr>`;
+    });
+    
+    // Total row
+    const displayTotalCount = isTime ? formatListeningTime(totalCount) : totalCount.toLocaleString();
+    const displayTotalMale = isTime ? formatListeningTime(totalMale) : totalMale.toLocaleString();
+    const totalMalePercent = totalCount > 0 ? ((totalMale / totalCount) * 100).toFixed(2) : '0.00';
+    
+    rowsHtml += `<tr>
+        <td class="position-col"></td>
+        <td>Total</td>
+        <td>${displayTotalCount}</td>
+        <td>100%</td>
+        <td class="male-col">${displayTotalMale}</td>
+        <td class="male-col">${totalMalePercent}%</td>
+    </tr>`;
+    
+    const highlightClass = isHighlighted ? ' stats-table-highlighted' : '';
+    const tableId = `statsTable-${tabName}-${title.replace(/\s+/g, '')}`;
+    
+    // Make headers clickable only when not in comparison mode and no global sort is active
+    const canClickHeaders = !statsComparisonMode && !statsGlobalSortColumn;
+    const countHeaderClick = canClickHeaders ? ` onclick="sortStatsTable('${tabName}', '${title}', 'count')" style="cursor:pointer;"` : '';
+    const maleHeaderClick = canClickHeaders ? ` onclick="sortStatsTable('${tabName}', '${title}', 'male')" style="cursor:pointer;"` : '';
+    const malePercentHeaderClick = canClickHeaders ? ` onclick="sortStatsTable('${tabName}', '${title}', 'malePercent')" style="cursor:pointer;"` : '';
+    
+    return `<div class="stats-table-wrapper${highlightClass}">
+        <h4>${title}</h4>
+        <table class="stats-table" id="${tableId}">
+            <thead>
+                <tr>
+                    <th class="position-col">#</th>
+                    <th>Value</th>
+                    <th class="sortable-header${countSortClass}"${countHeaderClick}>Count</th>
+                    <th>%</th>
+                    <th class="male-col sortable-header${maleSortClass}"${maleHeaderClick}>♂</th>
+                    <th class="male-col sortable-header${malePercentSortClass}"${malePercentHeaderClick}>♂ %</th>
+                </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+        </table>
+    </div>`;
+}
+
+/**
+ * Sort a stats table by the specified column
+ */
+function sortStatsTable(tabName, tableTitle, column) {
+    if (statsComparisonMode) return; // Don't allow individual sorting in comparison mode
+    if (statsGlobalSortColumn) return; // Don't allow individual sorting when global sort is active
+    
+    if (!statsTableSortState[tabName]) statsTableSortState[tabName] = {};
+    if (!statsTableSortState[tabName][tableTitle]) {
+        statsTableSortState[tabName][tableTitle] = { column: 'count', direction: 'desc' };
+    }
+    
+    const state = statsTableSortState[tabName][tableTitle];
+    
+    // Toggle direction if same column, otherwise set to desc
+    if (state.column === column) {
+        state.direction = state.direction === 'desc' ? 'asc' : 'desc';
+    } else {
+        state.column = column;
+        state.direction = 'desc';
+    }
+    
+    // Re-render the stats tables for this tab
+    const stored = lastStatsTablesData[tabName];
+    if (stored) {
+        renderStatsTables(tabName, stored.data, stored.includeArtists);
+    }
+}
+
+/**
+ * Toggle comparison mode for stats tables
+ */
+function toggleStatsComparisonMode(tabName) {
+    const checkbox = document.getElementById('comparisonMode-' + tabName);
+    statsComparisonMode = checkbox ? checkbox.checked : false;
+    
+    // Clear global sort when entering comparison mode
+    if (statsComparisonMode) {
+        statsGlobalSortColumn = null;
+    }
+    
+    // Always update global sort checkboxes (enable/disable based on comparison mode)
+    updateGlobalSortCheckboxes(tabName);
+    
+    // Re-render the stats tables for this tab
+    const stored = lastStatsTablesData[tabName];
+    if (stored) {
+        renderStatsTables(tabName, stored.data, stored.includeArtists);
+    }
+}
+
+/**
+ * Set global sort column for all tables
+ * @param {string} tabName - The tab name
+ * @param {string} column - 'count' or 'malePercent', or null to disable
+ */
+function setStatsGlobalSort(tabName, column) {
+    if (statsComparisonMode) return; // Not allowed in comparison mode
+    
+    // Toggle off if clicking the same column
+    if (statsGlobalSortColumn === column) {
+        statsGlobalSortColumn = null;
+    } else {
+        statsGlobalSortColumn = column;
+    }
+    
+    // Update checkbox states
+    updateGlobalSortCheckboxes(tabName);
+    
+    // Re-render the stats tables for this tab
+    const stored = lastStatsTablesData[tabName];
+    if (stored) {
+        renderStatsTables(tabName, stored.data, stored.includeArtists);
+    }
+}
+
+/**
+ * Update the global sort checkbox states
+ */
+function updateGlobalSortCheckboxes(tabName) {
+    const globalSortDiv = document.getElementById('globalSort-' + tabName);
+    const countCheckbox = document.getElementById('globalSortCount-' + tabName);
+    const malePercentCheckbox = document.getElementById('globalSortMalePercent-' + tabName);
+    
+    // Update disabled class on wrapper for visual styling
+    if (globalSortDiv) {
+        if (statsComparisonMode) {
+            globalSortDiv.classList.add('disabled');
+        } else {
+            globalSortDiv.classList.remove('disabled');
+        }
+    }
+    
+    if (countCheckbox) {
+        countCheckbox.checked = statsGlobalSortColumn === 'count';
+        countCheckbox.disabled = statsComparisonMode;
+    }
+    if (malePercentCheckbox) {
+        malePercentCheckbox.checked = statsGlobalSortColumn === 'malePercent';
+        malePercentCheckbox.disabled = statsComparisonMode;
+    }
+}
+
+/**
+ * Highlight rows with matching value name across all visible stats tables
+ */
+function highlightCrossTableRows(valueName) {
+    // Find all rows with matching data-value-name
+    const matchingRows = document.querySelectorAll(`tr[data-value-name="${valueName}"]`);
+    matchingRows.forEach(row => {
+        row.classList.add('cross-hover-highlight');
+    });
+}
+
+/**
+ * Clear all cross-table row highlights
+ */
+function clearCrossTableHighlight() {
+    const highlightedRows = document.querySelectorAll('.cross-hover-highlight');
+    highlightedRows.forEach(row => {
+        row.classList.remove('cross-hover-highlight');
+    });
 }
 
 /**
@@ -416,6 +807,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'genre':
+            renderStatsTables('genre', data, true);
             createCombinedBarChart('genreCombinedChartContainer', 'genreCombinedChart', {
                 artists: data.artistsByGenre,
                 albums: data.albumsByGenre,
@@ -426,6 +818,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'subgenre':
+            renderStatsTables('subgenre', data, true);
             createCombinedBarChart('subgenreCombinedChartContainer', 'subgenreCombinedChart', {
                 artists: data.artistsBySubgenre,
                 albums: data.albumsBySubgenre,
@@ -436,6 +829,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'ethnicity':
+            renderStatsTables('ethnicity', data, true);
             createCombinedBarChart('ethnicityCombinedChartContainer', 'ethnicityCombinedChart', {
                 artists: data.artistsByEthnicity,
                 albums: data.albumsByEthnicity,
@@ -446,6 +840,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'language':
+            renderStatsTables('language', data, true);
             createCombinedBarChart('languageCombinedChartContainer', 'languageCombinedChart', {
                 artists: data.artistsByLanguage,
                 albums: data.albumsByLanguage,
@@ -456,6 +851,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'country':
+            renderStatsTables('country', data, true);
             createCombinedBarChart('countryCombinedChartContainer', 'countryCombinedChart', {
                 artists: data.artistsByCountry,
                 albums: data.albumsByCountry,
@@ -466,6 +862,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'releaseYear':
+            renderStatsTables('releaseYear', data, false); // No artists for release year
             createCombinedBarChart('releaseYearCombinedChartContainer', 'releaseYearCombinedChart', {
                 artists: null, // No artists for release year
                 albums: data.albumsByReleaseYear,
@@ -476,6 +873,7 @@ function renderTabCharts(tabName, data) {
             break;
             
         case 'listenYear':
+            renderStatsTables('listenYear', data, true);
             createCombinedBarChart('listenYearCombinedChartContainer', 'listenYearCombinedChart', {
                 artists: data.artistsByListenYear,
                 albums: data.albumsByListenYear,
@@ -1185,6 +1583,16 @@ function changeChartSortMetric(metric) {
             createCombinedBarChart(data.containerId, canvasId, data.allData);
         }
     });
+    
+    // Re-render stats tables only if comparison mode is enabled
+    if (statsComparisonMode) {
+        Object.keys(lastStatsTablesData).forEach(tabName => {
+            const stored = lastStatsTablesData[tabName];
+            if (stored) {
+                renderStatsTables(tabName, stored.data, stored.includeArtists);
+            }
+        });
+    }
 }
 
 /**
@@ -1202,6 +1610,11 @@ function resetChartsLoaded() {
         releaseYear: false,
         listenYear: false
     };
+    // Also clear cached stats tables data and sort state
+    lastStatsTablesData = {};
+    statsTableSortState = {};
+    statsComparisonMode = false;
+    statsGlobalSortColumn = 'count';
 }
 
 /**

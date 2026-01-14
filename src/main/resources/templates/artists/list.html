@@ -30,7 +30,7 @@
                 <div class="search-bar">
                     <form method="get" action="/artists" autocomplete="off">
                         <input type="text" name="q" th:value="${searchQuery}" placeholder="Search artists..." autocomplete="off">
-                        <button type="submit" class="btn-action">Search</button>
+                        <button type="submit" class="btn-search">→</button>
                     </form>
                 </div>
                 
@@ -57,34 +57,10 @@
                         </button>
                     </div>
                     
-                    <div class="page-size-section" style="display: inline-block; margin-left: 20px;">
-                        <label for="pageSizeInput" style="margin-right: 5px; font-weight: bold;">Per Page:</label>
+                    <div class="page-size-section">
+                        <label for="pageSizeInput">Per Page:</label>
                         <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
-                               style="width: 70px;" onchange="changePageSize(this.value)">
-                    </div>
-                    
-                    <!-- Include Toggles -->
-                    <div class="artist-toggles-section">
-                        <div class="include-toggle">
-                            <label class="toggle-label">
-                                <input type="checkbox" autocomplete="off"
-                                       id="includeGroupsToggle" 
-                                       th:checked="${includeGroups}"
-                                       onchange="toggleIncludeGroups(this.checked)">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Include groups</span>
-                            </label>
-                        </div>
-                        <div class="include-toggle">
-                            <label class="toggle-label">
-                                <input type="checkbox" autocomplete="off"
-                                       id="includeFeaturedToggle" 
-                                       th:checked="${includeFeatured}"
-                                       onchange="toggleIncludeFeatured(this.checked)">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Include featured</span>
-                            </label>
-                        </div>
+                               onchange="changePageSize(this.value)">
                     </div>
                     
                     <div class="filters" id="filterPanel">
@@ -115,7 +91,7 @@
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('account')">
                                                 <div class="multi-select-chips" id="accountChips">
                                                     <span class="multi-select-chip" th:each="accountName : ${selectedAccounts}" th:attr="data-value=${accountName}">
-                                                        <span th:text="${accountName == 'vatito' ? '🔵 Primary (vatito)' : '🟣 Legacy (robertlover)'}"></span>
+                                                        <span th:text="${accountName == 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)'}"></span>
                                                         <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${accountName}">×</button>
                                                     </span>
                                                 </div>
@@ -128,7 +104,7 @@
                                                         <input type="checkbox" autocomplete="off" name="account" value="vatito" 
                                                                th:checked="${selectedAccounts != null && selectedAccounts.contains('vatito')}"
                                                                onchange="updateAccountChips(this)">
-                                                        <span>🔵 Primary (vatito)</span>
+                                                        <span>Primary (vatito)</span>
                                                     </label>
                                                 </div>
                                                 <div class="multi-select-option">
@@ -136,7 +112,7 @@
                                                         <input type="checkbox" autocomplete="off" name="account" value="robertlover" 
                                                                th:checked="${selectedAccounts != null && selectedAccounts.contains('robertlover')}"
                                                                onchange="updateAccountChips(this)">
-                                                        <span>🟣 Legacy (robertlover)</span>
+                                                        <span>Legacy (robertlover)</span>
                                                     </label>
                                                 </div>
                                             </div>
@@ -246,6 +222,25 @@
                                         </div>
                                         <div class="filter-note">
                                             Note: Afrolatino counts as Black and Latino; Mixed counts as Black and White.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Exists in iTunes Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Exists in iTunes
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <select name="inItunes" id="inItunesSelect">
+                                                <option value="">All</option>
+                                                <option value="true" th:selected="${selectedInItunes == 'true'}">✅ In iTunes</option>
+                                                <option value="false" th:selected="${selectedInItunes == 'false'}">❌ Not in iTunes</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -401,25 +396,6 @@
                                                 <option value="">All</option>
                                                 <option value="true" th:selected="${selectedIsBand == 'true'}">Yes</option>
                                                 <option value="false" th:selected="${selectedIsBand == 'false'}">No</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Exists in iTunes Filter -->
-                                <div class="filter-item">
-                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
-                                        <span class="filter-item-title">
-                                            <span class="filter-item-chevron">▶</span>
-                                            Exists in iTunes
-                                        </span>
-                                    </div>
-                                    <div class="filter-item-content">
-                                        <div class="filter-group">
-                                            <select name="inItunes" id="inItunesSelect">
-                                                <option value="">All</option>
-                                                <option value="true" th:selected="${selectedInItunes == 'true'}">✅ In iTunes</option>
-                                                <option value="false" th:selected="${selectedInItunes == 'false'}">❌ Not in iTunes</option>
                                             </select>
                                         </div>
                                     </div>
@@ -699,7 +675,7 @@
             <div class="filter-chip" th:if="${selectedAccounts != null and !selectedAccounts.isEmpty()}">
                 <span class="filter-chip-label" th:text="${accountMode == 'excludes' ? 'Account excludes' : 'Account includes'}">Account includes</span>
                 <span class="filter-chip-value" th:each="accountName, iterStat : ${selectedAccounts}">
-                    <span th:text="${accountName == 'vatito' ? '🔵 Primary' : '🟣 Legacy'}"></span>
+                    <span th:text="${accountName == 'vatito' ? 'Primary' : 'Legacy'}"></span>
                     <span th:if="${!iterStat.last}">, </span>
                 </span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('account')" type="button">×</button>
@@ -1104,6 +1080,7 @@
             const labelElement = chipsContainer.nextElementSibling;
             const value = checkbox.value;
             const text = checkbox.parentElement.textContent.trim();
+            const optionElement = checkbox.closest('.multi-select-option');
             
             if (checkbox.checked) {
                 // Add chip
@@ -1115,10 +1092,14 @@
                     <button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">×</button>
                 `;
                 chipsContainer.appendChild(chip);
+                // Hide selected option from dropdown
+                if (optionElement) optionElement.style.display = 'none';
             } else {
                 // Remove chip
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
                 if (chip) chip.remove();
+                // Show option back in dropdown
+                if (optionElement) optionElement.style.display = '';
             }
             
             // Show/hide placeholder label
@@ -1136,11 +1117,13 @@
         function removeChip(event, filterName, value) {
             event.stopPropagation();
             
-            // Uncheck the checkbox
+            // Uncheck the checkbox and show option back
             const dropdown = document.getElementById(filterName + 'Dropdown');
             const checkbox = dropdown.querySelector(`input[value="${value}"]`);
             if (checkbox) {
                 checkbox.checked = false;
+                const optionElement = checkbox.closest('.multi-select-option');
+                if (optionElement) optionElement.style.display = '';
             }
             
             // Remove the chip (find button by data-value, then remove its parent span)
@@ -1162,6 +1145,7 @@
             const labelElement = chipsContainer.nextElementSibling;
             const value = checkbox.value;
             const text = checkbox.parentElement.textContent.trim();
+            const optionElement = checkbox.closest('.multi-select-option');
             
             if (checkbox.checked) {
                 // Add chip
@@ -1173,10 +1157,14 @@
                     <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>
                 `;
                 chipsContainer.appendChild(chip);
+                // Hide selected option from dropdown
+                if (optionElement) optionElement.style.display = 'none';
             } else {
                 // Remove chip
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
                 if (chip) chip.remove();
+                // Show option back in dropdown
+                if (optionElement) optionElement.style.display = '';
             }
             
             // Show/hide placeholder label
@@ -1194,11 +1182,13 @@
         function removeCountryChip(event, value) {
             event.stopPropagation();
             
-            // Uncheck the checkbox
+            // Uncheck the checkbox and show option back
             const dropdown = document.getElementById('countryDropdown');
             const checkbox = dropdown.querySelector(`input[value="${value}"]`);
             if (checkbox) {
                 checkbox.checked = false;
+                const optionElement = checkbox.closest('.multi-select-option');
+                if (optionElement) optionElement.style.display = '';
             }
             
             // Remove the chip
@@ -1219,7 +1209,8 @@
             const chipsContainer = document.getElementById('accountChips');
             const labelElement = chipsContainer.nextElementSibling;
             const value = checkbox.value;
-            const displayText = value === 'vatito' ? '🔵 Primary (vatito)' : '🟣 Legacy (robertlover)';
+            const displayText = value === 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)';
+            const optionElement = checkbox.closest('.multi-select-option');
             
             if (checkbox.checked) {
                 // Add chip
@@ -1231,6 +1222,8 @@
                     <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">×</button>
                 `;
                 chipsContainer.appendChild(chip);
+                // Hide selected option from dropdown
+                if (optionElement) optionElement.style.display = 'none';
                 
                 // Hide placeholder
                 if (labelElement && labelElement.classList.contains('multi-select-label')) {
@@ -1240,6 +1233,8 @@
                 // Remove chip
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
                 if (chip) chip.remove();
+                // Show option back in dropdown
+                if (optionElement) optionElement.style.display = '';
                 
                 // Show placeholder if no chips left
                 if (chipsContainer.children.length === 0) {
@@ -1253,11 +1248,13 @@
         function removeAccountChip(event, value) {
             event.stopPropagation();
             
-            // Uncheck the checkbox
+            // Uncheck the checkbox and show option back
             const dropdown = document.getElementById('accountDropdown');
             const checkbox = dropdown.querySelector(`input[value="${value}"]`);
             if (checkbox) {
                 checkbox.checked = false;
+                const optionElement = checkbox.closest('.multi-select-option');
+                if (optionElement) optionElement.style.display = '';
             }
             
             // Remove the chip
@@ -1300,28 +1297,6 @@
             window.location.href = url.toString();
         }
         
-        function toggleIncludeGroups(checked) {
-            const url = new URL(window.location.href);
-            if (checked) {
-                url.searchParams.set('includeGroups', 'true');
-            } else {
-                url.searchParams.delete('includeGroups');
-            }
-            url.searchParams.set('page', '0'); // Reset to first page
-            window.location.href = url.toString();
-        }
-        
-        function toggleIncludeFeatured(checked) {
-            const url = new URL(window.location.href);
-            if (checked) {
-                url.searchParams.set('includeFeatured', 'true');
-            } else {
-                url.searchParams.delete('includeFeatured');
-            }
-            url.searchParams.set('page', '0'); // Reset to first page
-            window.location.href = url.toString();
-        }
-        
         function clearFilters() {
             const sortBy = document.getElementById('sortBySelect').value;
             window.location.href = '/artists?sortby=' + sortBy;
@@ -1346,8 +1321,21 @@
             window.location.href = url.toString();
         }
         
+        // Hide already-selected options in all multi-select dropdowns
+        function hideSelectedDropdownOptions() {
+            document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
+                dropdown.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                    const optionElement = checkbox.closest('.multi-select-option');
+                    if (optionElement) optionElement.style.display = 'none';
+                });
+            });
+        }
+        
         // Handle filter modifier buttons
         document.addEventListener('DOMContentLoaded', function() {
+            // Hide already-selected options in dropdowns
+            hideSelectedDropdownOptions();
+            
             const modifierButtons = document.querySelectorAll('.filter-modifier');
             modifierButtons.forEach(button => {
                 button.addEventListener('click', function() {

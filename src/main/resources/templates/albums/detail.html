@@ -117,6 +117,7 @@
                     <!-- Overall Position -->
                     <a th:if="${overallPosition != null}"
                        th:href="@{/albums}"
+                       target="_blank"
                        class="winning-chip rank-chip overall"
                        th:text="'#' + ${overallPosition} + ' overall'"
                        th:title="'Rank #' + ${overallPosition} + ' among all albums'"></a>
@@ -124,6 +125,7 @@
                     <!-- Position Among Artist's Albums -->
                     <a th:if="${rankByArtist != null and artistName != null}"
                        th:href="@{'/artists/' + ${album.artistId}}"
+                       target="_blank"
                        class="winning-chip rank-chip artist-rank"
                        th:text="'#' + ${rankByArtist} + ' ' + ${artistName} + ' album'"
                        th:title="'Rank #' + ${rankByArtist} + ' among all ' + ${artistName} + ' albums'"></a>
@@ -134,6 +136,7 @@
                     <!-- Gender Rank -->
                     <a th:if="${rankByGender != null and album.artistId != null and artist != null and artist.genderId != null}" 
                        th:href="@{/graphs(filterType='gender',filterId=${artist.genderId},filterName=${genders.get(artist.genderId)})}"
+                       target="_blank"
                        class="winning-chip rank-chip gender"
                        th:classappend="${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'female' : (${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male')} ? 'male' : '')"
                        th:text="'#' + ${rankByGender} + ' ' + ${genders.get(artist.genderId)}" 
@@ -142,6 +145,7 @@
                     <!-- Genre Rank -->
                     <a th:if="${rankByGenre != null and (album.overrideGenreId != null or (artist != null and artist.genreId != null))}" 
                        th:href="@{/graphs(filterType='genre',filterId=${album.overrideGenreId != null ? album.overrideGenreId : artist.genreId},filterName=${genres.get(album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)})}"
+                       target="_blank"
                        class="winning-chip rank-chip genre" 
                        th:text="'#' + ${rankByGenre} + ' ' + ${genres.get(album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)}" 
                        th:title="'Rank #' + ${rankByGenre} + ' among ' + ${genres.get(album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)} + ' albums'"></a>
@@ -149,6 +153,7 @@
                     <!-- Subgenre Rank -->
                     <a th:if="${rankBySubgenre != null and (album.overrideSubgenreId != null or (artist != null and artist.subgenreId != null))}" 
                        th:href="@{/graphs(filterType='subgenre',filterId=${album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId},filterName=${subgenres.get(album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)})}"
+                       target="_blank"
                        class="winning-chip rank-chip subgenre" 
                        th:text="'#' + ${rankBySubgenre} + ' ' + ${subgenres.get(album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)}" 
                        th:title="'Rank #' + ${rankBySubgenre} + ' among ' + ${subgenres.get(album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)} + ' albums'"></a>
@@ -156,6 +161,7 @@
                     <!-- Ethnicity Rank -->
                     <a th:if="${rankByEthnicity != null and artist != null and artist.ethnicityId != null}" 
                        th:href="@{/graphs(filterType='ethnicity',filterId=${artist.ethnicityId},filterName=${ethnicities.get(artist.ethnicityId)})}"
+                       target="_blank"
                        class="winning-chip rank-chip ethnicity" 
                        th:text="'#' + ${rankByEthnicity} + ' ' + ${ethnicities.get(artist.ethnicityId)}" 
                        th:title="'Rank #' + ${rankByEthnicity} + ' among albums by ' + ${ethnicities.get(artist.ethnicityId)} + ' artists'"></a>
@@ -163,6 +169,7 @@
                     <!-- Language Rank -->
                     <a th:if="${rankByLanguage != null and (album.overrideLanguageId != null or (artist != null and artist.languageId != null))}" 
                        th:href="@{/graphs(filterType='language',filterId=${album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId},filterName=${languages.get(album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)})}"
+                       target="_blank"
                        class="winning-chip rank-chip language" 
                        th:text="'#' + ${rankByLanguage} + ' ' + ${languages.get(album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)}" 
                        th:title="'#' + ${rankByLanguage} + ' among ' + ${languages.get(album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)} + ' albums'"></a>
@@ -170,6 +177,7 @@
                     <!-- Spanish Rap Rank (special combination) -->
                     <a th:if="${rankBySpanishRap != null}"
                        th:href="@{/graphs(genre=${rapGenreId},genreMode='includes',language=${spanishLanguageId},languageMode='includes')}"
+                       target="_blank"
                        class="winning-chip rank-chip spanish-rap"
                        th:text="'#' + ${rankBySpanishRap} + ' Spanish Rap'"
                        th:title="'Rank #' + ${rankBySpanishRap} + ' among Spanish Rap albums'"></a>
@@ -177,6 +185,7 @@
                     <!-- Country Rank -->
                     <a th:if="${rankByCountry != null and artist != null and artist.country != null}" 
                        th:href="@{/graphs(country=${artist.country},countryMode='includes')}"
+                       target="_blank"
                        class="winning-chip rank-chip country" 
                        th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
                        th:title="'Rank #' + ${rankByCountry} + ' among albums by ' + ${artist.country} + ' artists'"></a>
@@ -185,16 +194,18 @@
                     <div class="chip-group-separator" th:if="${rankByReleaseYear != null or (ranksByYear != null and !ranksByYear.isEmpty())}"></div>
                     
                     <!-- Position by Release Year -->
-                    <span th:if="${rankByReleaseYear != null and releaseYear != null}"
-                          class="winning-chip rank-chip release-year"
-                          th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"
-                          th:title="'Rank #' + ${rankByReleaseYear} + ' among albums released in ' + ${releaseYear}">
-                    </span>
+                    <a th:if="${rankByReleaseYear != null and releaseYear != null}"
+                       th:href="@{/graphs(releaseDateEntity=album,releaseDateMode=between,releaseDateFrom=${releaseYear + '-01-01'},releaseDateTo=${releaseYear + '-12-31'})}"
+                       target="_blank"
+                       class="winning-chip rank-chip release-year"
+                       th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"
+                       th:title="'Rank #' + ${rankByReleaseYear} + ' among albums released in ' + ${releaseYear}"></a>
                     
                     <!-- Year Ranks (only if <= 100) -->
                     <a th:each="yearEntry : ${ranksByYear}" 
                        th:if="${yearEntry.value != null and yearEntry.value <= 100}"
                        th:href="@{/graphs(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31')}"
+                       target="_blank"
                        class="winning-chip rank-chip year-rank" 
                        th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 
                        th:title="'Rank #' + ${yearEntry.value} + ' most listened album in year ' + ${yearEntry.key}"></a>
@@ -212,6 +223,7 @@
                     <!-- Seasonal Chart Placements -->
                     <a th:each="entry : ${seasonalChartHistory}" 
                        th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
+                       target="_blank"
                        class="winning-chip chart-chip seasonal-chart">
                         <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
                         <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
@@ -223,6 +235,7 @@
                     <!-- Yearly Chart Placements -->
                     <a th:each="entry : ${yearlyChartHistory}" 
                        th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
+                       target="_blank"
                        class="winning-chip chart-chip yearly-chart"
                        th:text="${entry.displayName}"></a>
                 </div>
@@ -576,10 +589,6 @@
                                     <span th:if="${artist.country != null}" th:text="${artist.country}"></span>
                                 </div>
                                 <div class="featured-artist-stats">
-                                    <div class="stat">
-                                        <span class="stat-icon">🎵</span>
-                                        <span class="stat-value" th:text="${artist.songCount}">0</span>
-                                    </div>
                                     <div class="stat">
                                         <span class="stat-icon total-plays">⏵</span>
                                         <span class="stat-value" th:text="${artist.playCount}">0</span>
@@ -1227,6 +1236,7 @@
         .name-field-group {
             grid-column: 1 / -1;
             margin-bottom: 10px;
+            padding: 0 10px;
         }
         
         .editable-input {
