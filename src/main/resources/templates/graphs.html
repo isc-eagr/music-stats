@@ -1247,6 +1247,77 @@
             opacity: 0.4;
             pointer-events: none;
         }
+        
+        /* Mobile responsive styles for stats tables */
+        @media (max-width: 768px) {
+            .stats-tables-row {
+                flex-direction: column;
+                min-width: auto;
+                gap: 16px;
+            }
+            
+            .stats-table-wrapper {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .stats-table {
+                font-size: 11px;
+            }
+            
+            .stats-table td:nth-child(2) {
+                max-width: 50px;
+            }
+            
+            .stats-table th,
+            .stats-table td {
+                padding: 4px 6px;
+            }
+            
+            .stats-tables-section > div:first-child {
+                flex-wrap: wrap;
+            }
+            
+            .stats-comparison-toggle,
+            .stats-global-sort {
+                margin-top: 8px;
+                width: 100%;
+            }
+            
+            .stats-tables-section:has(.stats-tables-content.expanded) .stats-comparison-toggle {
+                margin-left: 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-table-wrapper h4 {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+            
+            .stats-table {
+                font-size: 10px;
+            }
+            
+            .stats-table th,
+            .stats-table td {
+                padding: 3px 4px;
+            }
+            
+            .stats-table td:nth-child(2) {
+                max-width: 40px;
+            }
+            
+            .stats-table .position-col {
+                width: 24px;
+                min-width: 24px;
+            }
+            
+            .stats-table th.position-col {
+                width: 24px;
+                min-width: 24px;
+            }
+        }
     </style>
 </head>
 <body>
