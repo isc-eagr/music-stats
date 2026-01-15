@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iTunes Changes</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .content-card { max-width: 1400px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .hint { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
+        th { color: var(--text-muted); font-weight: 600; }
+        .track-num { text-align: center; width: 60px; color: var(--text-muted); }
+        .year { text-align: center; width: 60px; color: var(--text-muted); }
+        
+        /* Error/Success message styling */
+        .error-message {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            color: #dc3545;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        .success-message {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #28a745;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        
+        /* Library path info */
+        .library-path {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 12px;
+            font-family: monospace;
+        }
+        
+        /* Snapshot info */
+        .snapshot-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+        }
+        .snapshot-info .date {
+            color: var(--text);
+            font-weight: 500;
+        }
+        .snapshot-info .count {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        
+        /* Section tabs */
+        .section-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 12px;
+        }
+        .section-tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-size: 14px;
+        }
+        .section-tab:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+        }
+        .section-tab.active {
+            background: var(--accent);
+            color: white;
+        }
+        .section-tab .badge {
+            display: inline-block;
+            min-width: 20px;
+            padding: 2px 6px;
+            margin-left: 6px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        .section-tab.warning .badge {
+            background: rgba(220, 53, 69, 0.3);
+        }
+        
+        /* Change sections */
+        .change-section {
+            display: none;
+        }
+        .change-section.active {
+            display: block;
+        }
+        
+        /* Warning row - changed but NOT found in database */
+        .warning-row {
+            background: rgba(220, 53, 69, 0.1) !important;
+        }
+        .warning-row td {
+            border-bottom-color: rgba(220, 53, 69, 0.3);
+        }
+        .warning-icon {
+            color: #dc3545;
+            margin-right: 6px;
+        }
+        
+        /* Change indicators */
+        .changed-value {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .old-value {
+            color: var(--text-muted);
+            text-decoration: line-through;
+            font-size: 12px;
+        }
+        .new-value {
+            color: var(--text);
+        }
+        .new-value.changed {
+            color: #ffc107;
+        }
+        
+        /* Status badge */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .status-badge.found {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+        .status-badge.not-found {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+        
+        /* Button styles */
+        .btn-save {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-save:hover {
+            background: #1d7ac7;
+        }
+        
+        /* No snapshot message */
+        .no-snapshot {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        .no-snapshot h3 {
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+        
+        /* No changes message */
+        .no-changes {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        .no-changes .emoji {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        /* Clickable links in table */
+        td a { transition: color 0.2s ease; }
+        td a:hover { color: #60a5fa !important; text-decoration: underline !important; }
+        
+        /* Added songs - not in DB styling */
+        .added-not-in-db {
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px;">
+            <div>
+                <h1 style="margin: 0; font-size: 28px; font-weight: 650;">iTunes Changes</h1>
+                <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 14px;">
+                    Detect changes in your iTunes library since the last snapshot
+                </p>
+            </div>
+        </div>
+        
+        <div class="content-card">
+            <!-- Library path info -->
+            <p class="library-path">Library: <span th:text="${libraryPath}">path</span></p>
+            
+            <!-- Success message if any -->
+            <div th:if="${successMessage}" class="success-message">
+                <span th:text="${successMessage}">Success</span>
+            </div>
+            
+            <!-- Error message if any -->
+            <div th:if="${errorMessage}" class="error-message">
+                <span th:text="${errorMessage}">Error</span>
+            </div>
+
+            <!-- No snapshot yet -->
+            <div th:if="${!hasSnapshot}" class="no-snapshot">
+                <h3>No Snapshot Found</h3>
+                <p>Save a snapshot of your current iTunes library to start tracking changes.</p>
+                <p style="margin-top: 16px;">
+                    <form th:action="@{/itunes/changes/save-snapshot}" method="post" style="display: inline;">
+                        <button type="submit" class="btn-save">📸 Save Current Snapshot</button>
+                    </form>
+                </p>
+            </div>
+
+            <!-- Has snapshot -->
+            <div th:if="${hasSnapshot}">
+                <!-- Snapshot info -->
+                <div class="snapshot-info">
+                    <div>
+                        <span style="color: var(--text-muted);">Last snapshot:</span>
+                        <span class="date" th:text="${lastSnapshotDate}">01 Jan 2026 12:00</span>
+                        <span class="count">(<span th:text="${snapshotCount}">0</span> songs)</span>
+                    </div>
+                    <div style="margin-left: auto;">
+                        <form th:action="@{/itunes/changes/save-snapshot}" method="post" style="display: inline;">
+                            <button type="submit" class="btn-save">📸 Update Snapshot</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- No changes -->
+                <div th:if="${!hasChanges}" class="no-changes">
+                    <div class="emoji">✨</div>
+                    <h3 style="color: var(--text); margin-bottom: 8px;">No Changes Detected</h3>
+                    <p>Your iTunes library matches the saved snapshot.</p>
+                </div>
+
+                <!-- Has changes -->
+                <div th:if="${hasChanges}">
+                    <p class="hint">
+                        <span th:if="${changedNotFoundCount > 0}" style="color: #dc3545;">
+                            ⚠️ <span th:text="${changedNotFoundCount}">0</span> changed song(s) are NOT found in the database - these may need attention!
+                        </span>
+                    </p>
+
+                    <!-- Section tabs -->
+                    <div class="section-tabs">
+                        <button type="button" class="section-tab active" th:classappend="${changedNotFoundCount > 0} ? 'warning' : ''" onclick="showSection('changed')">
+                            Changed<span class="badge" th:text="${changedCount}">0</span>
+                        </button>
+                        <button type="button" class="section-tab" onclick="showSection('added')">
+                            Added<span class="badge" th:text="${addedCount}">0</span>
+                        </button>
+                        <button type="button" class="section-tab" onclick="showSection('removed')">
+                            Removed<span class="badge" th:text="${removedCount}">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Changed Songs Section -->
+                    <div id="section-changed" class="change-section active">
+                        <div th:if="${#lists.isEmpty(changedSongs)}">
+                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">No changed songs.</p>
+                        </div>
+                        <table th:if="${!#lists.isEmpty(changedSongs)}">
+                            <thead>
+                                <tr>
+                                    <th class="track-num">#</th>
+                                    <th>Artist</th>
+                                    <th>Album</th>
+                                    <th>Song</th>
+                                    <th style="width: 80px;">Length</th>
+                                    <th style="width: 100px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="song, iter : ${changedSongs}" th:classappend="${!song.foundInDatabase} ? 'warning-row' : ''">
+                                    <td class="track-num">
+                                        <span th:if="${!song.foundInDatabase}" class="warning-icon">⚠️</span>
+                                        <span th:text="${iter.count}">1</span>
+                                    </td>
+                                    <td>
+                                        <div class="changed-value">
+                                            <span th:if="${song.artistChanged}" class="old-value" th:text="${song.oldArtist != null ? song.oldArtist : '(Unknown)'}">Old Artist</span>
+                                            <span class="new-value" th:classappend="${song.artistChanged} ? 'changed' : ''" th:text="${song.newArtist != null ? song.newArtist : '(Unknown)'}">New Artist</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="changed-value">
+                                            <span th:if="${song.albumChanged}" class="old-value" th:text="${song.oldAlbum != null ? song.oldAlbum : '(No Album)'}">Old Album</span>
+                                            <span class="new-value" th:classappend="${song.albumChanged} ? 'changed' : ''" th:text="${song.newAlbum != null ? song.newAlbum : '(No Album)'}">New Album</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="changed-value">
+                                            <span th:if="${song.nameChanged}" class="old-value" th:text="${song.oldName}">Old Name</span>
+                                            <span class="new-value" th:classappend="${song.nameChanged} ? 'changed' : ''" th:text="${song.newName}">New Name</span>
+                                        </div>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <div class="changed-value">
+                                            <span th:if="${song.lengthChanged}" class="old-value" th:text="${song.oldLengthFormatted != null ? song.oldLengthFormatted : '-'}">0:00</span>
+                                            <span class="new-value" th:classappend="${song.lengthChanged} ? 'changed' : ''" th:text="${song.newLengthFormatted != null ? song.newLengthFormatted : '-'}">0:00</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:if="${song.foundInDatabase}" class="status-badge found">
+                                            <a th:href="@{/songs/{id}(id=${song.databaseSongId})}" style="color: inherit; text-decoration: none;">✓ In DB</a>
+                                        </span>
+                                        <span th:if="${!song.foundInDatabase}" class="status-badge not-found">✗ Not Found</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Added Songs Section -->
+                    <div id="section-added" class="change-section">
+                        <div th:if="${#lists.isEmpty(addedSongs)}">
+                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">No added songs.</p>
+                        </div>
+                        <table th:if="${!#lists.isEmpty(addedSongs)}">
+                            <thead>
+                                <tr>
+                                    <th class="track-num">#</th>
+                                    <th>Artist</th>
+                                    <th>Album</th>
+                                    <th>Song</th>
+                                    <th class="year">Year</th>
+                                    <th style="width: 100px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="song, iter : ${addedSongs}">
+                                    <td class="track-num" th:text="${iter.count}">1</td>
+                                    <td th:classappend="${!song.foundInDatabase} ? 'added-not-in-db' : ''">
+                                        <a th:if="${song.foundInDatabase}" th:href="@{/artists(q=${song.artist})}" 
+                                           th:text="${song.artist != null ? song.artist : '(Unknown Artist)'}"
+                                           target="_blank"
+                                           style="color: inherit; text-decoration: none;">Artist</a>
+                                        <span th:if="${!song.foundInDatabase}" th:text="${song.artist != null ? song.artist : '(Unknown Artist)'}">Artist</span>
+                                    </td>
+                                    <td th:classappend="${!song.foundInDatabase} ? 'added-not-in-db' : ''" th:text="${song.album != null ? song.album : '(No Album)'}">Album</td>
+                                    <td th:classappend="${!song.foundInDatabase} ? 'added-not-in-db' : ''" th:text="${song.name}">Song</td>
+                                    <td class="year" th:text="${song.year != null ? song.year : '-'}">-</td>
+                                    <td>
+                                        <span th:if="${song.foundInDatabase}" class="status-badge found">
+                                            <a th:href="@{/songs/{id}(id=${song.databaseSongId})}" style="color: inherit; text-decoration: none;">✓ In DB</a>
+                                        </span>
+                                        <span th:if="${!song.foundInDatabase}" class="status-badge not-found">✗ Not in DB</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Removed Songs Section -->
+                    <div id="section-removed" class="change-section">
+                        <div th:if="${#lists.isEmpty(removedSongs)}">
+                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">No removed songs.</p>
+                        </div>
+                        <table th:if="${!#lists.isEmpty(removedSongs)}">
+                            <thead>
+                                <tr>
+                                    <th class="track-num">#</th>
+                                    <th>Artist</th>
+                                    <th>Album</th>
+                                    <th>Song</th>
+                                    <th class="year">Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="song, iter : ${removedSongs}">
+                                    <td class="track-num" th:text="${iter.count}">1</td>
+                                    <td th:text="${song.artist != null ? song.artist : '(Unknown Artist)'}">Artist</td>
+                                    <td th:text="${song.album != null ? song.album : '(No Album)'}">Album</td>
+                                    <td th:text="${song.name}">Song</td>
+                                    <td class="year" th:text="${song.year != null ? song.year : '-'}">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.change-section').forEach(el => el.classList.remove('active'));
+            // Deactivate all tabs
+            document.querySelectorAll('.section-tab').forEach(el => el.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById('section-' + section).classList.add('active');
+            // Activate selected tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

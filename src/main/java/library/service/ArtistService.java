@@ -122,10 +122,8 @@ public class ArtistService {
             // Set featured song count (index 23)
             dto.setFeaturedSongCount(row[23] != null ? ((Number) row[23]).intValue() : 0);
             
-            // Check iTunes presence only if filter is active (performance optimization)
-            if (filterByItunes) {
-                dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
-            }
+            // Check iTunes presence for badge display
+            dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
             
             artists.add(dto);
         }

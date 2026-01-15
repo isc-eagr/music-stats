@@ -15,7 +15,8 @@
 .artist-name {
     font-size: 18px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-top: 6px;
+    margin-bottom: 6px;
     color: #ffffff;
     white-space: nowrap;
     overflow: hidden;

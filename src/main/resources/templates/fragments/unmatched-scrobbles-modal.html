@@ -270,8 +270,8 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Release Date *</label>
-                            <input type="text" autocomplete="off" id="wizardSongReleaseDate" placeholder="dd/mm/yyyy" required>
+                            <label>Release Date <span id="releaseDateOptionalLabel" style="color: #888; font-size: 11px;"></span></label>
+                            <input type="text" autocomplete="off" id="wizardSongReleaseDate" placeholder="dd/mm/yyyy">
                         </div>
                         <div class="form-group">
                             <label>Length * (mm:ss)</label>
@@ -660,6 +660,10 @@
                 document.getElementById('newAlbumForm').style.display = 'none';
                 document.getElementById('createNewAlbumOption').classList.remove('selected');
                 
+                // Clear album form fields
+                document.getElementById('newAlbumName').value = wizardState.scrobbleData.album || '';
+                document.getElementById('newAlbumReleaseDate').value = '';
+                
                 // Load albums if existing artist
                 if (wizardState.selectedArtistId) {
                     loadArtistAlbums(wizardState.selectedArtistId);
@@ -697,6 +701,14 @@
                 
                 // Update display
                 document.getElementById('selectedAlbumDisplay').textContent = wizardState.selectedAlbumName || '(Single)';
+                
+                // Update release date label based on whether an album is selected
+                const releaseDateLabel = document.getElementById('releaseDateOptionalLabel');
+                if (wizardState.selectedAlbumId || wizardState.isNewAlbum) {
+                    releaseDateLabel.textContent = '(optional if same as album)';
+                } else {
+                    releaseDateLabel.textContent = '*';
+                }
                 
                 // Clear song fields when entering step 3
                 document.getElementById('wizardSongReleaseDate').value = '';
@@ -755,13 +767,15 @@
                 return;
             }
             
-            // Validate song release date
+            // Validate song release date (only required if no album selected)
             const songReleaseDate = document.getElementById('wizardSongReleaseDate').value.trim();
-            if (!songReleaseDate) {
-                alert('Please enter a release date for the song');
+            const hasAlbum = wizardState.selectedAlbumId || wizardState.isNewAlbum;
+            
+            if (!hasAlbum && !songReleaseDate) {
+                alert('Please enter a release date for the song (required when no album is selected)');
                 return;
             }
-            if (!/^\d{2}\/\d{2}\/\d{4}$/.test(songReleaseDate)) {
+            if (songReleaseDate && !/^\d{2}\/\d{2}\/\d{4}$/.test(songReleaseDate)) {
                 alert('Please enter the release date in dd/mm/yyyy format');
                 return;
             }
@@ -1005,17 +1019,50 @@
                 button.innerHTML = originalText;
                 
                 if (data.success) {
-                    let message = '✓ Found in iTunes: ';
+                    // Check if this is a partial match and ask for confirmation
+                    if (data.matchType === 'partial') {
+                        const confirmMsg = '⚠️ Partial match found (artist + song only, album did not match).\n\n' +
+                                         'Do you want to use this data anyway?';
+                        if (!confirm(confirmMsg)) {
+                            statusEl.textContent = '⚠️ Partial match - Cancelled by user';
+                            statusEl.style.color = '#ffa94d';
+                            return; // User canceled
+                        }
+                    }
+
+                    let message = data.matchType === 'partial' ? '⚠️ Partial match - Found in iTunes: ' : '✓ Found in iTunes: ';
                     const parts = [];
                     
-                    // Populate release date if found
+                    // Get album release date (from DB if selected, from input if newly created)
+                    let albumReleaseDate = null;
+                    if (wizardState.selectedAlbumId) {
+                        // TODO: Would need to fetch from server, but for now we'll skip if album exists
+                        // For existing albums, we assume the release date might be the same
+                        albumReleaseDate = 'unknown'; // Marker to skip population for existing albums
+                    } else if (wizardState.isNewAlbum && wizardState.newAlbumReleaseDate) {
+                        albumReleaseDate = wizardState.newAlbumReleaseDate;
+                    }
+                    
+                    // Populate release date if found and different from album
                     if (data.releaseDate) {
                         // Convert YYYY-MM-DD to dd/MM/yyyy format
                         const dateParts = data.releaseDate.split('-');
                         if (dateParts.length === 3) {
                             const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                            document.getElementById('wizardSongReleaseDate').value = formatted;
-                            parts.push(`Release: ${formatted}`);
+                            
+                            // Only populate if no album or if date is different from album
+                            if (!albumReleaseDate) {
+                                // No album selected - populate normally
+                                document.getElementById('wizardSongReleaseDate').value = formatted;
+                                parts.push(`Release: ${formatted}`);
+                            } else if (albumReleaseDate !== 'unknown' && albumReleaseDate !== formatted) {
+                                // New album with different release date - populate
+                                document.getElementById('wizardSongReleaseDate').value = formatted;
+                                parts.push(`Release: ${formatted} (different from album)`);
+                            } else {
+                                // Same as album or existing album - skip
+                                parts.push(`Release: ${formatted} (skipped - same as album)`);
+                            }
                         }
                     }
                     
@@ -1028,7 +1075,7 @@
                     
                     if (parts.length > 0) {
                         statusEl.textContent = message + parts.join(', ');
-                        statusEl.style.color = '#69db7c';
+                        statusEl.style.color = data.matchType === 'partial' ? '#ffa94d' : '#69db7c';
                     } else {
                         statusEl.textContent = '✓ Song found but no date/length available';
                         statusEl.style.color = '#ffa94d';

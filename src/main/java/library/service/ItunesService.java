@@ -83,8 +83,8 @@ public class ItunesService {
         Set<String> artistKeys = new HashSet<>();
         
         for (ItunesSong song : allSongs) {
-            // Song keys
-            songKeys.add(createLookupKey(song.getArtist(), song.getName()));
+            // Song keys (artist||album||song)
+            songKeys.add(createSongLookupKey(song.getArtist(), song.getAlbum(), song.getName()));
             
             // Album keys
             if (song.getAlbum() != null && !song.getAlbum().isBlank()) {
@@ -142,6 +142,15 @@ public class ItunesService {
     }
 
     /**
+     * Get all songs from the iTunes library.
+     * Used by the changes detection feature.
+     */
+    public List<ItunesSong> getAllItunesSongs() throws Exception {
+        ensureCacheLoaded();
+        return cachedAllSongs != null ? new ArrayList<>(cachedAllSongs) : new ArrayList<>();
+    }
+
+    /**
      * Find unmatched songs using the cached iTunes library data.
      * This method leverages the in-memory cache for maximum performance.
      */
@@ -156,7 +165,7 @@ public class ItunesService {
         // Filter to only unmatched songs
         List<ItunesSong> unmatched = new ArrayList<>();
         for (ItunesSong song : cachedAllSongs) {
-            String key = createLookupKey(song.getArtist(), song.getName());
+            String key = createSongLookupKey(song.getArtist(), song.getAlbum(), song.getName());
             if (!dbSongKeys.contains(key)) {
                 unmatched.add(song);
             }
@@ -180,28 +189,48 @@ public class ItunesService {
     }
 
     /**
-     * DTO for an iTunes song entry
+     * DTO for an iTunes song entry.
+     * 
+     * About Track ID vs Persistent ID:
+     * - Track ID: A numeric ID assigned during a session. Can change when library is rebuilt.
+     * - Persistent ID: A hexadecimal string that remains stable across library rebuilds.
+     *   This is the true unique identifier for tracking changes over time.
      */
     public static class ItunesSong {
+        private String persistentId;  // Stable hex identifier (e.g., "A1B2C3D4E5F6")
+        private Integer trackId;      // Numeric ID that may change
         private String artist;
         private String album;
         private String name;
         private Integer trackNumber;
         private Integer year;
+        private Integer totalTime;    // Total Time in milliseconds
 
-        public ItunesSong(String artist, String album, String name, Integer trackNumber, Integer year) {
+        public ItunesSong(String persistentId, Integer trackId, String artist, String album, 
+                          String name, Integer trackNumber, Integer year, Integer totalTime) {
+            this.persistentId = persistentId;
+            this.trackId = trackId;
             this.artist = artist;
             this.album = album;
             this.name = name;
             this.trackNumber = trackNumber;
             this.year = year;
+            this.totalTime = totalTime;
         }
 
+        public String getPersistentId() { return persistentId; }
+        public Integer getTrackId() { return trackId; }
         public String getArtist() { return artist; }
         public String getAlbum() { return album; }
         public String getName() { return name; }
         public Integer getTrackNumber() { return trackNumber; }
         public Integer getYear() { return year; }
+        public Integer getTotalTime() { return totalTime; }
+        
+        // Get length in seconds (converted from milliseconds)
+        public Integer getLengthSeconds() {
+            return totalTime != null ? totalTime / 1000 : null;
+        }
     }
 
     /**
@@ -316,11 +345,14 @@ public class ItunesService {
      * Parse a single track dict element and extract song info
      */
     private ItunesSong parseTrackDict(Element trackDict) {
+        String persistentId = null;
+        Integer trackId = null;
         String name = null;
         String artist = null;
         String album = null;
         Integer trackNumber = null;
         Integer year = null;
+        Integer totalTime = null;
         Boolean isPodcast = false;
         Boolean isAudiobook = false;
         Boolean isPlaylistOnly = false;
@@ -340,6 +372,16 @@ public class ItunesService {
                 currentKey = elem.getTextContent();
             } else if (currentKey != null) {
                 switch (currentKey) {
+                    case "Persistent ID":
+                        persistentId = elem.getTextContent();
+                        break;
+                    case "Track ID":
+                        try {
+                            trackId = Integer.parseInt(elem.getTextContent());
+                        } catch (NumberFormatException e) {
+                            trackId = null;
+                        }
+                        break;
                     case "Name":
                         name = elem.getTextContent();
                         break;
@@ -366,6 +408,13 @@ public class ItunesService {
                             year = null;
                         }
                         break;
+                    case "Total Time":
+                        try {
+                            totalTime = Integer.parseInt(elem.getTextContent());
+                        } catch (NumberFormatException e) {
+                            totalTime = null;
+                        }
+                        break;
                     case "Podcast":
                         isPodcast = "true".equals(tagName) || "true".equalsIgnoreCase(elem.getTextContent());
                         break;
@@ -390,12 +439,15 @@ public class ItunesService {
             return null;
         }
 
-        // Only include items with at least a name
+        // Only include items with at least a name and a persistent ID
         if (name == null || name.isBlank()) {
             return null;
         }
+        if (persistentId == null || persistentId.isBlank()) {
+            return null;
+        }
 
-        return new ItunesSong(artist, album, name, trackNumber, year);
+        return new ItunesSong(persistentId, trackId, artist, album, name, trackNumber, year, totalTime);
     }
 
     /**
@@ -408,7 +460,7 @@ public class ItunesService {
         List<ItunesSong> unmatched = new ArrayList<>();
 
         for (ItunesSong song : itunesSongs) {
-            String key = createLookupKey(song.getArtist(), song.getName());
+            String key = createSongLookupKey(song.getArtist(), song.getAlbum(), song.getName());
             if (!dbSongKeys.contains(key)) {
                 unmatched.add(song);
             }
@@ -432,21 +484,23 @@ public class ItunesService {
     }
 
     /**
-     * Build a lookup set of all songs in the database using normalized artist||song keys
+     * Build a lookup set of all songs in the database using normalized artist||album||song keys
      */
     private Set<String> buildDatabaseLookup() {
         Set<String> keys = new HashSet<>();
 
         String sql = """
-            SELECT ar.name as artist_name, s.name as song_name
+            SELECT ar.name as artist_name, al.name as album_name, s.name as song_name
             FROM Song s
             INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album al ON s.album_id = al.id
             """;
 
         jdbcTemplate.query(sql, rs -> {
             String artistName = rs.getString("artist_name");
+            String albumName = rs.getString("album_name");
             String songName = rs.getString("song_name");
-            String key = createLookupKey(artistName, songName);
+            String key = createSongLookupKey(artistName, albumName, songName);
             keys.add(key);
         });
 
@@ -484,13 +538,13 @@ public class ItunesService {
     // ============ iTunes Presence Checking Methods ============
 
     /**
-     * Check if a song exists in iTunes library (exact match by artist + song name).
+     * Check if a song exists in iTunes library (exact match by artist + album + song name).
      */
-    public boolean songExistsInItunes(String artistName, String songName) {
+    public boolean songExistsInItunes(String artistName, String albumName, String songName) {
         if (!libraryExists()) return false;
         try {
             ensureCacheLoaded();
-            String key = createLookupKey(artistName, songName);
+            String key = createSongLookupKey(artistName, albumName, songName);
             return cachedSongKeys.contains(key);
         } catch (Exception e) {
             return false;
@@ -532,6 +586,17 @@ public class ItunesService {
         String a = StringNormalizer.normalizeForSearch(artist != null ? artist : "");
         String al = StringNormalizer.normalizeForSearch(album != null ? album : "");
         return a + "||" + al;
+    }
+
+    /**
+     * Create normalized lookup key for artist + album + song.
+     * Uses case-insensitive matching with accent normalization.
+     */
+    private String createSongLookupKey(String artist, String album, String song) {
+        String a = StringNormalizer.normalizeForSearch(artist != null ? artist : "");
+        String al = StringNormalizer.normalizeForSearch(album != null ? album : "");
+        String s = StringNormalizer.normalizeForSearch(song != null ? song : "");
+        return a + "||" + al + "||" + s;
     }
 
     // ============ Methods to get cached sets for filtering ============

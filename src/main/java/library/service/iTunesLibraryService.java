@@ -220,10 +220,12 @@ public class iTunesLibraryService {
     public static class iTunesTrackData {
         public final String releaseDate; // YYYY-MM-DD format
         public final Integer lengthSeconds; // song length in seconds
+        public final String matchType; // "exact" or "partial" (without album)
 
-        public iTunesTrackData(String releaseDate, Integer lengthSeconds) {
+        public iTunesTrackData(String releaseDate, Integer lengthSeconds, String matchType) {
             this.releaseDate = releaseDate;
             this.lengthSeconds = lengthSeconds;
+            this.matchType = matchType;
         }
     }
 
@@ -287,7 +289,15 @@ public class iTunesLibraryService {
                     songName != null ? songName : ""
                 );
 
-                if (trackKey.equals(searchKey) || trackKeyNoAlbum.equals(searchKeyNoAlbum)) {
+                // Determine match type
+                String matchType = null;
+                if (trackKey.equals(searchKey)) {
+                    matchType = "exact";
+                } else if (trackKeyNoAlbum.equals(searchKeyNoAlbum)) {
+                    matchType = "partial";
+                }
+
+                if (matchType != null) {
                     // Found a match! Extract release date and length
                     String releaseDateRaw = extractDateValue(trackDict, "Release Date");
                     String yearRaw = extractIntegerValue(trackDict, "Year");
@@ -311,7 +321,7 @@ public class iTunesLibraryService {
                         }
                     }
 
-                    return new iTunesTrackData(releaseDate, lengthSeconds);
+                    return new iTunesTrackData(releaseDate, lengthSeconds, matchType);
                 }
             }
 

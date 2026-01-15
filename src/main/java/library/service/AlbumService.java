@@ -128,10 +128,8 @@ public class AlbumService {
             // Set organized (index 25)
             dto.setOrganized(row[25] != null && ((Number) row[25]).intValue() == 1);
             
-            // Check iTunes presence only if filter is active (performance optimization)
-            if (filterByItunes) {
-                dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
-            }
+            // Check iTunes presence for badge display
+            dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
             
             albums.add(dto);
         }

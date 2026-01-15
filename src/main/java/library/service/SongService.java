@@ -138,10 +138,8 @@ public class SongService {
                 dto.setLengthFormatted(String.format("%d:%02d", minutes, seconds));
             }
             
-            // Check iTunes presence only if filter is active (performance optimization)
-            if (filterByItunes) {
-                dto.setInItunes(itunesService.songExistsInItunes(dto.getArtistName(), dto.getName()));
-            }
+            // Check iTunes presence for badge display
+            dto.setInItunes(itunesService.songExistsInItunes(dto.getArtistName(), dto.getAlbumName(), dto.getName()));
             
             songs.add(dto);
         }

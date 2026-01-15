@@ -265,6 +265,12 @@ public class AlbumRepository {
         // Release Date filter
         if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
             switch (releaseDateMode) {
+                case "isnull":
+                    sql.append(" AND a.release_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND a.release_date IS NOT NULL");
+                    break;
                 case "exact":
                     if (releaseDate != null && !releaseDate.isEmpty()) {
                         sql.append(" AND DATE(a.release_date) = ?");
@@ -676,6 +682,11 @@ public class AlbumRepository {
                 "FROM Album a " +
                 "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
             
+            // Add song_stats JOIN if we need to filter by length
+            if (lengthMin != null || lengthMax != null || (lengthMode != null && !lengthMode.isEmpty())) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as album_length FROM Song GROUP BY album_id) song_stats ON song_stats.album_id = a.id ");
+            }
+            
             // Add play_stats JOIN if we need to filter by play count or listened date
             if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
                 sql.append("""
@@ -831,6 +842,12 @@ public class AlbumRepository {
         // Release Date filter
         if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
             switch (releaseDateMode) {
+                case "isnull":
+                    sql.append(" AND a.release_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND a.release_date IS NOT NULL");
+                    break;
                 case "exact":
                     if (releaseDate != null && !releaseDate.isEmpty()) {
                         sql.append(" AND DATE(a.release_date) = ?");

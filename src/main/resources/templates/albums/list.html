@@ -588,6 +588,10 @@
                                     </div>
                                     <div class="filter-item-content">
                                         <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="isnull"
+                                                    th:classappend="${releaseDateMode == 'isnull'} ? 'active' : ''">Is Null</button>
+                                            <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="isnotnull"
+                                                    th:classappend="${releaseDateMode == 'isnotnull'} ? 'active' : ''">Is Not Null</button>
                                             <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="exact"
                                                     th:classappend="${releaseDateMode == 'exact'} ? 'active' : ''">Exact</button>
                                             <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="gte"
@@ -598,7 +602,7 @@
                                                     th:classappend="${releaseDateMode == 'between'} ? 'active' : ''">Between</button>
                                         </div>
                                         <input type="hidden" autocomplete="off" name="releaseDateMode" id="releaseDateModeInput" th:value="${releaseDateMode}" />
-                                        <div id="releaseDateSingle" th:style="${releaseDateMode == 'between'} ? 'display:none' : ''">
+                                        <div id="releaseDateSingle" th:style="${releaseDateMode == 'between' || releaseDateMode == 'isnull' || releaseDateMode == 'isnotnull'} ? 'display:none' : ''">
                                             <label class="field"><span>Date</span>
                                                 <input type="text" autocomplete="off" name="releaseDate" th:value="${releaseDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
@@ -877,6 +881,35 @@
             <div class="filter-chip" th:if="${countryMode == 'isnotnull'}">
                 <span class="filter-chip-label">Country is not null</span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('country')" type="button">×</button>
+            </div>
+            
+            <!-- Release Date filter chips -->
+            <div class="filter-chip" th:if="${releaseDateMode == 'isnull'}">
+                <span class="filter-chip-label">Release Date is null</span>
+                <button class="filter-chip-remove" onclick="removeFilter('releaseDateMode')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${releaseDateMode == 'isnotnull'}">
+                <span class="filter-chip-label">Release Date is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilter('releaseDateMode')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${releaseDate != null and !releaseDate.isEmpty() and releaseDateMode != 'between'}">
+                <span class="filter-chip-label" th:switch="${releaseDateMode}">
+                    <span th:case="'exact'">Release Date is</span>
+                    <span th:case="'gte'">Release Date on or after</span>
+                    <span th:case="'lte'">Release Date on or before</span>
+                    <span th:case="*">Release Date is</span>
+                </span>
+                <span class="filter-chip-value" th:text="${releaseDateFormatted != null ? releaseDateFormatted : releaseDate}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('releaseDate', 'releaseDateMode')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${releaseDateMode == 'between' and releaseDateFrom != null and !releaseDateFrom.isEmpty() and releaseDateTo != null and !releaseDateTo.isEmpty()}">
+                <span class="filter-chip-label">Release Date between</span>
+                <span class="filter-chip-value" th:text="${releaseDateFromFormatted != null ? releaseDateFromFormatted : releaseDateFrom}"></span>
+                <span> and </span>
+                <span class="filter-chip-value" th:text="${releaseDateToFormatted != null ? releaseDateToFormatted : releaseDateTo}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('releaseDateFrom', 'releaseDateTo', 'releaseDateMode')" type="button">×</button>
             </div>
             
             <!-- First Listened Date filter chips -->
@@ -1562,6 +1595,9 @@
                             if (mode === 'between') {
                                 if (singleDiv) singleDiv.style.display = 'none';
                                 if (rangeDiv) rangeDiv.style.display = 'block';
+                            } else if (mode === 'isnull' || mode === 'isnotnull') {
+                                if (singleDiv) singleDiv.style.display = 'none';
+                                if (rangeDiv) rangeDiv.style.display = 'none';
                             } else {
                                 if (singleDiv) singleDiv.style.display = 'block';
                                 if (rangeDiv) rangeDiv.style.display = 'none';

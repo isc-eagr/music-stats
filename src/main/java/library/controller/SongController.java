@@ -325,7 +325,7 @@ public class SongController {
         
         // Add iTunes presence
         Song songEntity = song.get();
-        songEntity.setInItunes(itunesService.songExistsInItunes(artistName, songEntity.getName()));
+        songEntity.setInItunes(itunesService.songExistsInItunes(artistName, albumName, songEntity.getName()));
         model.addAttribute("song", songEntity);
         
         // Add album release date for inheritance display
@@ -636,6 +636,7 @@ public class SongController {
                 response.put("success", true);
                 response.put("releaseDate", trackData.releaseDate);
                 response.put("lengthSeconds", trackData.lengthSeconds);
+                response.put("matchType", trackData.matchType);
                 
                 // Format length as mm:ss for display
                 if (trackData.lengthSeconds != null) {
@@ -699,6 +700,7 @@ public class SongController {
                 response.put("success", true);
                 response.put("releaseDate", trackData.releaseDate);
                 response.put("lengthSeconds", trackData.lengthSeconds);
+                response.put("matchType", trackData.matchType);
                 response.put("populateReleaseDate", populateReleaseDate);
                 if (trackData.lengthSeconds != null) {
                     int minutes = trackData.lengthSeconds / 60;

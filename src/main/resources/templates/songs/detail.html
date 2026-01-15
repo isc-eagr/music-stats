@@ -325,7 +325,7 @@
                                 <div class="form-group">
                                     <label for="releaseDate">Release Date</label>
                                     <span class="attribute-text" data-field="releaseDate"
-                                          th:classappend="${song.releaseDateFormatted != null ? '' : (albumReleaseDate != null ? 'attribute-inherited' : '')}">
+                                          th:classappend="${song.releaseDateFormatted != null ? 'attribute-overridden' : (albumReleaseDate != null ? 'attribute-inherited' : '')}">
                                         <th:block th:if="${song.releaseDateFormatted != null}" th:text="${song.releaseDateFormatted}"></th:block>
                                         <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate != null}" th:text="${albumReleaseDate}"></th:block>
                                         <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate == null}">-</th:block>
@@ -1948,6 +1948,15 @@
                 button.innerHTML = originalText;
 
                 if (data.success) {
+                    // Check if this is a partial match and ask for confirmation
+                    if (data.matchType === 'partial') {
+                        const confirmMsg = '⚠️ Partial match found (artist + song only, album did not match).\n\n' +
+                                         'Do you want to use this data anyway?';
+                        if (!confirm(confirmMsg)) {
+                            return; // User canceled
+                        }
+                    }
+
                     // Populate release date if found and allowed
                     if (data.releaseDate && data.populateReleaseDate) {
                         // Convert YYYY-MM-DD to dd/MM/yyyy format
@@ -1968,6 +1977,9 @@
 
                     // Show success message
                     let message = 'Successfully fetched from iTunes:\n';
+                    if (data.matchType === 'partial') {
+                        message = '⚠️ Partial match - Successfully fetched from iTunes:\n';
+                    }
                     if (data.releaseDate) {
                         message += `- Release Date: ${data.releaseDate}`;
                         if (!data.populateReleaseDate) {
