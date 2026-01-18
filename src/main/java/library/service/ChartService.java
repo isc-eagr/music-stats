@@ -463,7 +463,7 @@ public class ChartService {
                 al.name as album_name,
                 g.id as gender_id,
                 COUNT(*) as play_count,
-                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                 MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image
             FROM Scrobble scr
             INNER JOIN Song s ON scr.song_id = s.id
@@ -1150,7 +1150,7 @@ public class ChartService {
         String songSql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
-                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -1361,7 +1361,7 @@ public class ChartService {
         String sql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
-                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -2688,7 +2688,7 @@ public class ChartService {
                 ar.gender_id,
                 COUNT(*) as weeks_count,
                 MIN(ce.position) as peak_position,
-                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                 MIN(c.period_start_date) as first_appearance,
                 s.album_id,
                 MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image
@@ -2983,7 +2983,7 @@ public class ChartService {
         String sql = """
             SELECT s.id, s.name, ar.id as artist_id, ar.name as artist_name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
-                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -3252,7 +3252,7 @@ public class ChartService {
         String sql = """
             SELECT s.id, s.name, ar.id as primary_artist_id, ar.name as primary_artist_name, 
                    MIN(ce.position) as peak_position, COUNT(*) as total_weeks,
-                   MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                   MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                    s.album_id
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id

@@ -143,6 +143,12 @@ public final class SqlFilterHelper {
                     params.add(dateTo);
                 }
                 break;
+            case "isnull":
+                sql.append(" AND ").append(dateExpression).append(" IS NULL");
+                break;
+            case "isnotnull":
+                sql.append(" AND ").append(dateExpression).append(" IS NOT NULL");
+                break;
             default:
                 // Unknown mode - ignore
                 break;

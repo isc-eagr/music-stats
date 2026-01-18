@@ -19,9 +19,8 @@
             </div>
             <div class="controls">
                 <div class="search-bar">
-                    <form method="get" action="/genders">
-                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search genders...">
-                        <button type="submit" class="btn-action">Search</button>
+                    <form method="get" action="/genders" id="genderSearchForm">
+                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search genders..." oninput="this.form.submit()" id="searchInput">
                     </form>
                 </div>
                 
@@ -240,6 +239,15 @@
             const name = encodeURIComponent(element.getAttribute('data-name'));
             window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + id + '&filterName=' + name;
         }
+
+        // Auto-focus search input if there's a search query
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput && searchInput.value) {
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
+        });
     </script>
 </body>
 </html>

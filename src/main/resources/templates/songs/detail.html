@@ -17,6 +17,21 @@
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Highlight for externally fetched data - uses gender colors */
+        .field-highlight {
+            box-shadow: 0 0 8px 2px #4CAF50 !important;
+            border-color: #4CAF50 !important;
+        }
+        .gender-male .field-highlight {
+            box-shadow: 0 0 8px 2px #4a90d9 !important;
+            border-color: #4a90d9 !important;
+        }
+        .gender-female .field-highlight {
+            box-shadow: 0 0 8px 2px #d94a8a !important;
+            border-color: #d94a8a !important;
+        }
+    </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -60,7 +75,7 @@
                          th:alt="${song.name}"
                          id="songImage"
                          class="item-image-large clickable-image"
-                         onclick="openImageModal(this.src)"
+                         onclick="openSongImageModal()"
                          style="cursor: pointer;">
                       <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
                           class="length-overlay"
@@ -71,7 +86,7 @@
                          id="albumImage"
                          class="item-image-large clickable-image"
                          style="cursor: pointer;"
-                         onclick="openImageModal(this.src)"
+                         onclick="openSongImageModal()"
                          onerror="this.style.display='none'; document.getElementById('noImagePlaceholder').style.display='flex';">
                     <div th:if="${!hasImage and song.albumId == null}" class="no-image-large" id="noImagePlaceholder">
                         <span>🎵</span>
@@ -94,14 +109,19 @@
                     <div class="image-upload-overlay">
                         <input type="file" autocomplete="off" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
-                            Upload Image
+                            Upload
+                        </button>
+                        <button type="button" class="btn-fetch-external" id="btnFetchExternal" 
+                                th:attr="data-artist=${artistName},data-song=${song.name},data-id=${song.id},data-has-image=${hasImage}"
+                                onclick="openExternalFetchFromButton(this, 'song', 'image')">
+                            Fetch
                         </button>
                         <button type="button" class="btn-remove-image" id="btnRemoveMain" th:if="${hasImage}" onclick="removeImage()">
                             Remove
                         </button>
                         <!-- Gallery-specific buttons -->
                         <button type="button" class="btn-set-default" id="btnSetDefault" onclick="setAsDefaultImage()" style="display: none;">
-                            Set as Default
+                            Default
                         </button>
                         <button type="button" class="btn-remove-gallery" id="btnRemoveGallery" onclick="removeGalleryImage()" style="display: none;">
                             Remove
@@ -329,25 +349,26 @@
                                         <th:block th:if="${song.releaseDateFormatted != null}" th:text="${song.releaseDateFormatted}"></th:block>
                                         <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate != null}" th:text="${albumReleaseDate}"></th:block>
                                         <th:block th:if="${song.releaseDateFormatted == null and albumReleaseDate == null}">-</th:block>
+                                        <th:block th:if="${artist != null and artist.birthDate != null and (song.releaseDate != null or (album != null and album.releaseDate != null))}">
+                                            <th:block th:with="effectiveReleaseDate=${song.releaseDate != null ? song.releaseDate : album.releaseDate}">
+                                                <th:block th:if="${artist.deathDate != null and effectiveReleaseDate.toLocalDate().isAfter(artist.deathDate)}">
+                                                    <span class="release-age-text">(Posthumous)</span>
+                                                </th:block>
+                                                <th:block th:if="${artist.deathDate == null or !effectiveReleaseDate.toLocalDate().isAfter(artist.deathDate)}"
+                                                          th:with="ageAtRelease=${T(java.time.temporal.ChronoUnit).YEARS.between(artist.birthDate, effectiveReleaseDate.toLocalDate())}">
+                                                    <span class="release-age-text" th:text="' (at ' + ${ageAtRelease} + ' years old)'"></span>
+                                                </th:block>
+                                            </th:block>
+                                        </th:block>
                                     </span>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <input type="text" autocomplete="off"
-                                               id="releaseDate" 
-                                               name="releaseDate" 
-                                               th:value="${song.releaseDateInput != null ? song.releaseDateInput : ''}" 
-                                               placeholder="dd/MM/yyyy"
-                                               pattern="\d{2}/\d{2}/\d{4}"
-                                               class="editable-input"
-                                               style="display:none; flex: 1;" />
-                                        <button type="button" 
-                                                id="fetchItunesDataBtn" 
-                                                class="btn-action" 
-                                                onclick="fetchItunesData()"
-                                                style="display:none; white-space: nowrap; padding: 6px 12px; font-size: 0.85em;"
-                                                title="Fetch release date and length from iTunes library">
-                                            🎵 Fetch from iTunes
-                                        </button>
-                                    </div>
+                                    <input type="text" autocomplete="off"
+                                           id="releaseDate" 
+                                           name="releaseDate" 
+                                           th:value="${song.releaseDateInput != null ? song.releaseDateInput : ''}" 
+                                           placeholder="dd/MM/yyyy"
+                                           pattern="\d{2}/\d{2}/\d{4}"
+                                           class="editable-input"
+                                           style="display:none;" />
                                 </div>
                                 
                                 <!-- Column 2: Genre, Subgenre, Language, Country, Ethnicity -->
@@ -431,7 +452,7 @@
                                     <input type="hidden" id="lengthSeconds" name="lengthSeconds" th:value="${song.lengthSeconds}" />
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>Country</label>
                                     <span class="attribute-text attribute-inherited" th:text="${artistCountry != null ? artistCountry : '-'}">-</span>
                                 </div>
@@ -526,8 +547,12 @@
                         </div>
                         
                         <div class="form-actions" id="formActions" style="display:none;">
-                            <button type="submit" class="btn-action">Save</button>
-                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                            <button type="submit" class="btn-action" onclick="clearAllHighlights()">Save</button>
+                            <button type="button" class="btn-negative" onclick="clearAllHighlights(); cancelEdit()">Cancel</button>
+                            <button type="button" class="btn-action" id="btnFetchItunes" onclick="fetchItunesData()" title="Fetch release date and length from local iTunes library">Local iTunes</button>
+                            <button type="button" class="btn-fetch-external" id="btnFetchExternalMeta" 
+                                    th:attr="data-artist=${artistName},data-song=${song.name},data-id=${song.id},data-has-image=${hasImage}"
+                                    onclick="openSongExternalMetadataSearch()">External</button>
                         </div>
                     </form>
                 </div>
@@ -659,6 +684,8 @@
                                     <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
                                          th:alt="${artist.country}" />
                                 </span>
+                                <!-- Death indicator overlay -->
+                                <span class="death-overlay" th:if="${artist.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(artist.deathDate, 'dd-MMM-yyyy')}">†</span>
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${artist.id}}">
@@ -915,9 +942,9 @@
                 editBtn.style.display = 'none';
                 deleteBtn.style.display = 'none';
                 formActions.style.display = 'flex';
-                if (fetchItunesDataBtn) {
-                    fetchItunesDataBtn.style.display = 'inline-block';
-                }
+                
+                // Hide view-only fields (like Country which belongs to artist)
+                document.querySelectorAll('.view-only-field').forEach(el => el.style.display = 'none');
                 
                 // Populate length formatted field with mm:ss value
                 const lengthSeconds = document.getElementById('lengthSeconds').value;
@@ -1255,7 +1282,7 @@
                 img.id = 'songImage';
                 img.className = 'item-image-large clickable-image';
                 img.style.cursor = 'pointer';
-                img.onclick = function() { openImageModal(this.src); };
+                img.onclick = function() { openSongImageModal(); };
                 const container = document.querySelector('.item-image-container');
                 // Insert after the gallery nav buttons
                 const navRight = document.getElementById('galleryNext');
@@ -1289,6 +1316,24 @@
                 }
                 if (albumImg) albumImg.style.display = 'none';
                 if (placeholder) placeholder.style.display = 'none';
+            }
+        }
+
+        function openSongImageModal() {
+            const img = document.getElementById('songImage') || document.getElementById('albumImage');
+            if (!img) return;
+            
+            // Build gallery context if there are multiple images
+            if (galleryImages.length > 1) {
+                const galleryContext = {
+                    images: galleryImages,
+                    entityType: 'songs',
+                    entityId: songId,
+                    currentIndex: currentGalleryIndex
+                };
+                openImageModal(img.src, galleryContext);
+            } else {
+                openImageModal(img.src);
             }
         }
 
@@ -1495,6 +1540,11 @@
 
         .form-group.form-group-checkbox .attribute-text {
             margin-left: 4px;
+        }
+
+        .release-age-text {
+            color: #999;
+            font-size: 0.85em;
         }
 
         .form-group.form-group-checkbox .checkbox-container {
@@ -1794,6 +1844,9 @@
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
     
+    <!-- External Fetch Modal (iTunes Store, Spotify, Deezer) -->
+    <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
+    
     <script>
         // Make song/album image clickable to open modal
         document.addEventListener('DOMContentLoaded', function() {
@@ -1802,16 +1855,12 @@
             
             if (songImage) {
                 songImage.classList.add('clickable');
-                songImage.addEventListener('click', function() {
-                    openImageModal(this.src);
-                });
+                // Note: click handler is already set inline via onclick attribute
             }
             
             if (albumImage && albumImage.style.display !== 'none') {
                 albumImage.classList.add('clickable');
-                albumImage.addEventListener('click', function() {
-                    openImageModal(this.src);
-                });
+                // Note: click handler is already set inline via onclick attribute
             }
             
             // Load song chart run if on chart-history tab
@@ -1920,7 +1969,7 @@
         
         // Fetch release date and song length from iTunes XML (by fields)
         function fetchItunesData() {
-            const button = document.getElementById('fetchItunesDataBtn');
+            const button = document.getElementById('btnFetchItunes');
             const songName = document.getElementById('songNameHidden') ? document.getElementById('songNameHidden').value : '';
             const artistName = document.getElementById('artistNameHidden') ? document.getElementById('artistNameHidden').value : '';
             const albumName = document.getElementById('albumNameHidden') ? document.getElementById('albumNameHidden').value : '';
@@ -1963,7 +2012,12 @@
                         const parts = data.releaseDate.split('-');
                         if (parts.length === 3) {
                             const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                            document.getElementById('releaseDate').value = formatted;
+                            const releaseDateField = document.getElementById('releaseDate');
+                            // Only populate if different from current value
+                            if (releaseDateField.value !== formatted) {
+                                releaseDateField.value = formatted;
+                                highlightField('releaseDate');
+                            }
                         }
                     }
 
@@ -1971,8 +2025,14 @@
                     if (data.lengthSeconds) {
                         const ls = document.getElementById('lengthSeconds');
                         const lf = document.getElementById('lengthFormatted');
-                        if (ls) ls.value = data.lengthSeconds;
-                        if (lf && data.lengthFormatted) lf.value = data.lengthFormatted;
+                        // Only populate if different from current value
+                        if (ls && ls.value !== String(data.lengthSeconds)) {
+                            ls.value = data.lengthSeconds;
+                        }
+                        if (lf && data.lengthFormatted && lf.value !== data.lengthFormatted) {
+                            lf.value = data.lengthFormatted;
+                            highlightField('lengthFormatted');
+                        }
                     }
 
                     // Show success message
@@ -2014,6 +2074,466 @@
                 });
             }
         });
+        
+        // ==================== External Metadata Search for Song Edit ====================
+        function highlightField(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.add('field-highlight');
+                // Remove highlight when field value changes
+                const removeHighlight = () => {
+                    el.classList.remove('field-highlight');
+                    el.removeEventListener('input', removeHighlight);
+                    el.removeEventListener('change', removeHighlight);
+                };
+                el.addEventListener('input', removeHighlight);
+                el.addEventListener('change', removeHighlight);
+            }
+        }
+        
+        // Remove all highlights (called on cancel/save)
+        function clearAllHighlights() {
+            document.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+        }
+        
+        function openSongExternalMetadataSearch() {
+            const artistName = document.getElementById('artistNameHidden') ? document.getElementById('artistNameHidden').value : '';
+            const songName = document.getElementById('name').value || /*[[${song.name}]]*/ '';
+            const hasImage = /*[[${hasImage}]]*/ false;
+            
+            // Open the unified external fetch modal in 'metadata' mode
+            openExternalFetchModal(artistName, songName, songId, 'song', hasImage, 'metadata', function(selectedItem) {
+                // Callback to populate form fields with selected metadata
+                
+                // Set release date if available
+                if (selectedItem.releaseDate) {
+                    const dateParts = selectedItem.releaseDate.split('-');
+                    if (dateParts.length === 3) {
+                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        const releaseDateEl = document.getElementById('releaseDate');
+                        const oldValue = releaseDateEl.value;
+                        releaseDateEl.value = formatted;
+                        // Trigger Flatpickr update
+                        const fp = releaseDateEl._flatpickr;
+                        if (fp) fp.setDate(formatted, true, 'd/m/Y');
+                        // Only highlight if value changed
+                        if (oldValue !== formatted) {
+                            highlightField('releaseDate');
+                        }
+                    }
+                }
+                
+                // Set length if available
+                if (selectedItem.lengthSeconds && selectedItem.lengthFormatted) {
+                    const lengthSecondsEl = document.getElementById('lengthSeconds');
+                    const lengthFormattedEl = document.getElementById('lengthFormatted');
+                    const oldLengthValue = lengthFormattedEl ? lengthFormattedEl.value : '';
+                    if (lengthSecondsEl) lengthSecondsEl.value = selectedItem.lengthSeconds;
+                    if (lengthFormattedEl) {
+                        lengthFormattedEl.value = selectedItem.lengthFormatted;
+                        // Only highlight if value changed
+                        if (oldLengthValue !== selectedItem.lengthFormatted) {
+                            highlightField('lengthFormatted');
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ==================== Apple Music Metadata Search for Song Edit (Legacy - kept for reference) ====================
+        function openSongAppleMetadataSearch() {
+            const artistName = /*[[${artistName}]]*/ '';
+            const songName = document.getElementById('name').value || /*[[${song.name}]]*/ '';
+            
+            // Create modal if needed
+            let modal = document.getElementById('songAppleMetadataModal');
+            if (!modal) {
+                createSongAppleMetadataModal();
+                modal = document.getElementById('songAppleMetadataModal');
+            }
+            
+            document.getElementById('songAppleMetaSearchInput').value = artistName + ' - ' + songName;
+            document.getElementById('songAppleMetaResults').innerHTML = '<div style="text-align:center; color:#888; padding:40px;">Click Search to find results</div>';
+            document.getElementById('songAppleMetaStatus').style.display = 'none';
+            
+            modal.style.display = 'flex';
+            performSongAppleMetadataSearch();
+        }
+        
+        function createSongAppleMetadataModal() {
+            const modalHtml = `
+                <div id="songAppleMetadataModal" class="am-modal" onclick="if(event.target===this) closeSongAppleMetadataModal()">
+                    <div class="am-modal-content" onclick="event.stopPropagation()">
+                        <div class="am-modal-header">
+                            <h3>Search Apple Music for Song</h3>
+                            <button class="am-modal-close" onclick="closeSongAppleMetadataModal()">&times;</button>
+                        </div>
+                        <div class="am-modal-body">
+                            <div class="am-search-form">
+                                <input type="text" id="songAppleMetaSearchInput" class="am-search-input" placeholder="Artist - Song">
+                                <select id="songAppleMetaCountrySelect" class="am-country-select" style="width:100px;">
+                                    <option value="us">🇺🇸 US</option>
+                                    <option value="mx">🇲🇽 MX</option>
+                                    <option value="es">🇪🇸 ES</option>
+                                    <option value="gb">🇬🇧 UK</option>
+                                </select>
+                                <button type="button" class="am-btn-search" onclick="performSongAppleMetadataSearch()">Search</button>
+                            </div>
+                            <div id="songAppleMetaStatus" class="am-search-status" style="display:none;">Searching...</div>
+                            <div id="songAppleMetaResults" class="am-results-grid" style="display:none;"></div>
+                        </div>
+                        <div class="am-modal-footer">
+                            <span style="color:#888; font-size:12px;">Select an item to populate release date, length and image</span>
+                            <button type="button" class="am-btn-cancel" onclick="closeSongAppleMetadataModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeSongAppleMetadataModal() {
+            const modal = document.getElementById('songAppleMetadataModal');
+            if (modal) modal.style.display = 'none';
+        }
+        
+        function performSongAppleMetadataSearch() {
+            const searchInput = document.getElementById('songAppleMetaSearchInput').value.trim();
+            const country = document.getElementById('songAppleMetaCountrySelect').value;
+            if (!searchInput) return;
+            
+            const statusEl = document.getElementById('songAppleMetaStatus');
+            const resultsEl = document.getElementById('songAppleMetaResults');
+            statusEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            
+            const parts = searchInput.split(' - ');
+            const artist = parts[0] || searchInput;
+            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+            
+            fetch(`/api/apple-music/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&country=${country}`)
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.style.display = 'none';
+                    if (!data || data.length === 0) {
+                        resultsEl.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">No results found</div>';
+                        resultsEl.style.display = 'block';
+                        return;
+                    }
+                    songAppleMetaSearchResults = sortSongAppleMetaResults(data, artist, title);
+                    renderSongAppleMetaResults();
+                    resultsEl.style.display = 'grid';
+                })
+                .catch(err => {
+                    statusEl.style.display = 'none';
+                    resultsEl.innerHTML = '<div style="text-align:center; color:#ff6b6b; padding:40px;">Error searching Apple Music</div>';
+                    resultsEl.style.display = 'block';
+                });
+        }
+        
+        function sortSongAppleMetaResults(results, searchArtist, searchTitle) {
+            const normArtist = (searchArtist || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const normTitle = (searchTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fuzzyTitle = removeSongVariationKeywords(searchTitle);
+            
+            return results.map(item => {
+                const itemArtist = (item.artistName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const itemTitle = (item.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const itemTitleFuzzy = removeSongVariationKeywords(item.title);
+                
+                let score = 0, matchType = 'none';
+                if (itemArtist === normArtist && itemTitle === normTitle) { score = 1000; matchType = 'exact'; }
+                else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) { score = 950; matchType = 'fuzzy'; }
+                else if (itemArtist === normArtist) { score = 500; matchType = 'artist'; }
+                else if (itemTitle === normTitle) { score = 400; matchType = 'title'; }
+                else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) { score = 200; }
+                else if (itemTitle.includes(normTitle) || normTitle.includes(itemTitle)) { score = 100; }
+                return { ...item, matchScore: score, matchType };
+            }).sort((a, b) => b.matchScore - a.matchScore);
+        }
+        
+        function removeSongVariationKeywords(str) {
+            if (!str) return '';
+            const keywords = ['remix', 'remaster', 'remastered', 'live', 'acoustic', 'radio edit', 'version', 'explicit', 'clean', 'feat', 'ft'];
+            let normalized = str.toLowerCase();
+            keywords.forEach(k => normalized = normalized.replace(new RegExp(k, 'gi'), ''));
+            return normalized.trim().replace(/[^a-z0-9]/g, '');
+        }
+        
+        function renderSongAppleMetaResults() {
+            const resultsEl = document.getElementById('songAppleMetaResults');
+            resultsEl.innerHTML = songAppleMetaSearchResults.map((item, idx) => {
+                const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                const matchBadge = item.matchType === 'exact' ? '<span class="match-badge exact">Exact</span>' :
+                                  item.matchType === 'fuzzy' ? '<span class="match-badge fuzzy">Close</span>' : '';
+                let releaseDateDisplay = '';
+                if (item.releaseDate) {
+                    const d = new Date(item.releaseDate + 'T00:00:00');
+                    releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                return `
+                    <div class="am-result-item ${matchClass}" onclick="selectSongAppleMetaResult(${idx})" style="cursor:pointer;">
+                        <span class="am-result-type">${item.type}</span>
+                        ${matchBadge}
+                        <img class="am-result-image" src="${item.thumbnailUrl}" alt="" loading="lazy">
+                        <div class="am-result-info">
+                            <div class="am-result-title" title="${escapeSongAttr(item.title)}">${escapeSongHtml(item.title)}</div>
+                            <div class="am-result-artist">${escapeSongHtml(item.artistName)}</div>
+                            ${item.albumName ? `<div class="am-result-album">${escapeSongHtml(item.albumName)}</div>` : ''}
+                            ${metaLine ? `<div class="am-result-meta">${metaLine}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function escapeSongHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function escapeSongAttr(text) {
+            if (!text) return '';
+            return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        
+        function selectSongAppleMetaResult(index) {
+            const item = songAppleMetaSearchResults[index];
+            if (!item) return;
+            
+            const statusEl = document.getElementById('songAppleMetadataStatus');
+            const parts = [];
+            
+            // Set release date if available
+            if (item.releaseDate) {
+                const dateParts = item.releaseDate.split('-');
+                if (dateParts.length === 3) {
+                    const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    document.getElementById('releaseDate').value = formatted;
+                    // Trigger Flatpickr update
+                    const fp = document.getElementById('releaseDate')._flatpickr;
+                    if (fp) fp.setDate(formatted, true, 'd/m/Y');
+                    parts.push('Release: ' + formatted);
+                }
+            }
+            
+            // Set length if available
+            if (item.lengthSeconds && item.lengthFormatted) {
+                const lengthSecondsEl = document.getElementById('lengthSeconds');
+                const lengthFormattedEl = document.getElementById('lengthFormatted');
+                if (lengthSecondsEl) lengthSecondsEl.value = item.lengthSeconds;
+                if (lengthFormattedEl) lengthFormattedEl.value = item.lengthFormatted;
+                parts.push('Length: ' + item.lengthFormatted);
+            }
+            
+            // Save image via API
+            if (item.fullUrl) {
+                parts.push('Image...');
+                fetch('/api/apple-music/save-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageUrls: [item.fullUrl],
+                        entityId: songId,
+                        entityType: 'song',
+                        hasExistingImage: /*[[${hasImage}]]*/ false
+                    })
+                }).then(r => r.json()).then(data => {
+                    if (data.success && statusEl) {
+                        statusEl.textContent = '✓ Selected + Image saved!';
+                        statusEl.style.color = '#69db7c';
+                    }
+                }).catch(err => console.error('Failed to save image:', err));
+            }
+            
+            if (statusEl) {
+                statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected from Apple Music');
+                statusEl.style.color = '#69db7c';
+            }
+            
+            closeSongAppleMetadataModal();
+        }
+        
+        // ==================== Spotify Metadata Search for Song Edit ====================
+        let songSpotifyMetaSearchResults = [];
+        
+        function openSongSpotifyMetadataSearch() {
+            const artistName = /*[[${artistName}]]*/ '';
+            const songName = document.getElementById('name').value || /*[[${song.name}]]*/ '';
+            
+            // Create modal if needed
+            let modal = document.getElementById('songSpotifyMetadataModal');
+            if (!modal) {
+                createSongSpotifyMetadataModal();
+                modal = document.getElementById('songSpotifyMetadataModal');
+            }
+            
+            document.getElementById('songSpotifyMetaSearchInput').value = artistName + ' - ' + songName;
+            document.getElementById('songSpotifyMetaResults').innerHTML = '<div style="text-align:center; color:#888; padding:40px;">Click Search to find results</div>';
+            document.getElementById('songSpotifyMetaStatus').style.display = 'none';
+            
+            modal.style.display = 'flex';
+            performSongSpotifyMetadataSearch();
+        }
+        
+        function createSongSpotifyMetadataModal() {
+            const modalHtml = `
+                <div id="songSpotifyMetadataModal" class="sp-modal" onclick="if(event.target===this) closeSongSpotifyMetadataModal()">
+                    <div class="sp-modal-content" onclick="event.stopPropagation()">
+                        <div class="sp-modal-header">
+                            <h3><span class="spotify-logo">●</span> Search Spotify for Song</h3>
+                            <button class="sp-modal-close" onclick="closeSongSpotifyMetadataModal()">&times;</button>
+                        </div>
+                        <div class="sp-modal-body">
+                            <div class="sp-search-form">
+                                <input type="text" id="songSpotifyMetaSearchInput" class="sp-search-input" placeholder="Artist - Song">
+                                <select id="songSpotifyMetaCountrySelect" class="sp-country-select" style="width:100px;">
+                                    <option value="US">🇺🇸 US</option>
+                                    <option value="MX">🇲🇽 MX</option>
+                                    <option value="ES">🇪🇸 ES</option>
+                                    <option value="GB">🇬🇧 UK</option>
+                                </select>
+                                <button type="button" class="sp-btn-search" onclick="performSongSpotifyMetadataSearch()">Search</button>
+                            </div>
+                            <div id="songSpotifyMetaStatus" class="sp-search-status" style="display:none;">Searching...</div>
+                            <div id="songSpotifyMetaResults" class="sp-results-grid" style="display:none;"></div>
+                        </div>
+                        <div class="sp-modal-footer">
+                            <span style="color:#888; font-size:12px;">Select an item to populate release date, length and image</span>
+                            <button type="button" class="sp-btn-cancel" onclick="closeSongSpotifyMetadataModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeSongSpotifyMetadataModal() {
+            const modal = document.getElementById('songSpotifyMetadataModal');
+            if (modal) modal.style.display = 'none';
+        }
+        
+        function performSongSpotifyMetadataSearch() {
+            const searchInput = document.getElementById('songSpotifyMetaSearchInput').value.trim();
+            const market = document.getElementById('songSpotifyMetaCountrySelect').value;
+            if (!searchInput) return;
+            
+            const statusEl = document.getElementById('songSpotifyMetaStatus');
+            const resultsEl = document.getElementById('songSpotifyMetaResults');
+            statusEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            
+            const parts = searchInput.split(' - ');
+            const artist = parts[0] || searchInput;
+            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+            
+            fetch(`/api/spotify/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&market=${market}`)
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.style.display = 'none';
+                    if (!data || data.length === 0) {
+                        resultsEl.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">No results found</div>';
+                        resultsEl.style.display = 'block';
+                        return;
+                    }
+                    songSpotifyMetaSearchResults = sortSongAppleMetaResults(data, artist, title); // Reuse same sorting logic
+                    renderSongSpotifyMetaResults();
+                    resultsEl.style.display = 'grid';
+                })
+                .catch(err => {
+                    statusEl.style.display = 'none';
+                    resultsEl.innerHTML = '<div style="text-align:center; color:#ff6b6b; padding:40px;">Error searching Spotify</div>';
+                    resultsEl.style.display = 'block';
+                });
+        }
+        
+        function renderSongSpotifyMetaResults() {
+            const resultsEl = document.getElementById('songSpotifyMetaResults');
+            resultsEl.innerHTML = songSpotifyMetaSearchResults.map((item, idx) => {
+                const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                const matchBadge = item.matchType === 'exact' ? '<span class="sp-match-badge exact">Exact</span>' :
+                                  item.matchType === 'fuzzy' ? '<span class="sp-match-badge fuzzy">Close</span>' : '';
+                let releaseDateDisplay = '';
+                if (item.releaseDate) {
+                    const d = new Date(item.releaseDate + 'T00:00:00');
+                    releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                return `
+                    <div class="sp-result-item ${matchClass}" onclick="selectSongSpotifyMetaResult(${idx})" style="cursor:pointer;">
+                        <span class="sp-result-type">${item.type}</span>
+                        ${matchBadge}
+                        <img class="sp-result-image" src="${item.thumbnailUrl}" alt="" loading="lazy">
+                        <div class="sp-result-info">
+                            <div class="sp-result-title" title="${escapeSongAttr(item.title)}">${escapeSongHtml(item.title)}</div>
+                            <div class="sp-result-artist">${escapeSongHtml(item.artistName)}</div>
+                            ${item.albumName ? `<div class="sp-result-album">${escapeSongHtml(item.albumName)}</div>` : ''}
+                            ${metaLine ? `<div class="sp-result-meta">${metaLine}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function selectSongSpotifyMetaResult(index) {
+            const item = songSpotifyMetaSearchResults[index];
+            if (!item) return;
+            
+            const statusEl = document.getElementById('songAppleMetadataStatus');
+            const parts = [];
+            
+            // Set release date if available
+            if (item.releaseDate) {
+                const dateParts = item.releaseDate.split('-');
+                if (dateParts.length === 3) {
+                    const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    document.getElementById('releaseDate').value = formatted;
+                    // Trigger Flatpickr update
+                    const fp = document.getElementById('releaseDate')._flatpickr;
+                    if (fp) fp.setDate(formatted, true, 'd/m/Y');
+                    parts.push('Release: ' + formatted);
+                }
+            }
+            
+            // Set length if available
+            if (item.lengthSeconds && item.lengthFormatted) {
+                const lengthSecondsEl = document.getElementById('lengthSeconds');
+                const lengthFormattedEl = document.getElementById('lengthFormatted');
+                if (lengthSecondsEl) lengthSecondsEl.value = item.lengthSeconds;
+                if (lengthFormattedEl) lengthFormattedEl.value = item.lengthFormatted;
+                parts.push('Length: ' + item.lengthFormatted);
+            }
+            
+            // Save image via Spotify API
+            if (item.fullUrl) {
+                parts.push('Image...');
+                fetch('/api/spotify/save-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageUrls: [item.fullUrl],
+                        entityId: songId,
+                        entityType: 'song',
+                        hasExistingImage: /*[[${hasImage}]]*/ false
+                    })
+                }).then(r => r.json()).then(data => {
+                    if (data.success && statusEl) {
+                        statusEl.textContent = '✓ From Spotify + Image saved!';
+                        statusEl.style.color = '#1DB954';
+                    }
+                }).catch(err => console.error('Failed to save image:', err));
+            }
+            
+            if (statusEl) {
+                statusEl.textContent = '✓ From Spotify: ' + (parts.length > 0 ? parts.join(', ') : 'Selected');
+                statusEl.style.color = '#1DB954';
+            }
+            
+            closeSongSpotifyMetadataModal();
+        }
     </script>
 </body>
 </html>

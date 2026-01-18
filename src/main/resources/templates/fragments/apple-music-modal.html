@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Apple Music Search Modal Fragment</title>
+</head>
+<body>
+    <!-- Apple Music Search Modal Fragment -->
+    <th:block th:fragment="apple-music-modal">
+        <div id="appleMusicModal" class="am-modal">
+            <div class="am-modal-content" onclick="event.stopPropagation()">
+                <div class="am-modal-header">
+                    <h3>Search Apple Music Images</h3>
+                    <button class="am-modal-close" onclick="closeAppleMusicModal(event)">&times;</button>
+                </div>
+                
+                <div class="am-modal-body">
+                    <!-- Search form -->
+                    <div class="am-search-form">
+                        <input type="text" id="amSearchInput" class="am-search-input" placeholder="Artist - Title">
+                        <select id="amCountrySelect" class="am-country-select">
+                            <option value="us" selected>🇺🇸 United States</option>
+                            <option value="gb">🇬🇧 United Kingdom</option>
+                            <option value="ca">🇨🇦 Canada</option>
+                            <option value="au">🇦🇺 Australia</option>
+                            <option value="de">🇩🇪 Germany</option>
+                            <option value="fr">🇫🇷 France</option>
+                            <option value="es">🇪🇸 Spain</option>
+                            <option value="it">🇮🇹 Italy</option>
+                            <option value="jp">🇯🇵 Japan</option>
+                            <option value="kr">🇰🇷 South Korea</option>
+                            <option value="mx">🇲🇽 Mexico</option>
+                            <option value="br">🇧🇷 Brazil</option>
+                            <option value="in">🇮🇳 India</option>
+                            <option value="cn">🇨🇳 China</option>
+                            <option value="ru">🇷🇺 Russia</option>
+                        </select>
+                        <button type="button" class="am-btn-search" onclick="performAppleMusicSearch()">Search</button>
+                    </div>
+                    
+                    <!-- Search status -->
+                    <div id="amSearchStatus" class="am-search-status" style="display: none;">
+                        Searching Apple Music...
+                    </div>
+                    
+                    <!-- Error message -->
+                    <div id="amErrorMessage" class="am-error-message" style="display: none;">
+                        No results found
+                    </div>
+                    
+                    <!-- Results grid -->
+                    <div id="amResultsGrid" class="am-results-grid" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="am-modal-footer">
+                    <span id="amSelectedCount">0 selected</span>
+                    <div class="am-modal-buttons">
+                        <button type="button" class="am-btn-cancel" onclick="closeAppleMusicModal(event)">Cancel</button>
+                        <button type="button" class="am-btn-save" id="amSaveBtn" onclick="saveSelectedImages()" disabled>
+                            Save Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            .am-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .am-modal.show {
+                display: flex;
+            }
+            
+            .am-modal-content {
+                background: var(--surface, #1a1a2e);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                width: 90%;
+                max-width: 900px;
+                max-height: 85vh;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            }
+            
+            .am-modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .am-modal-header h3 {
+                margin: 0;
+                color: #fff;
+                font-size: 18px;
+            }
+            
+            .am-modal-close {
+                background: transparent;
+                border: none;
+                color: #fff;
+                font-size: 28px;
+                cursor: pointer;
+                padding: 0 8px;
+                line-height: 1;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            
+            .am-modal-close:hover {
+                opacity: 1;
+            }
+            
+            .am-modal-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                min-height: 300px;
+            }
+            
+            .am-search-form {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .am-search-input {
+                flex: 1;
+                padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+            }
+            
+            .am-search-input::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+            }
+            
+            .am-search-input:focus {
+                outline: none;
+                border-color: rgba(255, 255, 255, 0.4);
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .am-country-select {
+                padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                min-width: 160px;
+            }
+            
+            .am-country-select option {
+                background: #1a1a1a;
+                color: #fff;
+            }
+            
+            .am-country-select:focus {
+                outline: none;
+                border-color: rgba(255, 255, 255, 0.4);
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .am-btn-search {
+                padding: 10px 20px;
+                background: #4CAF50;
+                border: none;
+                color: #fff;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+            }
+            
+            .am-btn-search:hover {
+                background: #45a049;
+            }
+            
+            .am-search-status {
+                text-align: center;
+                color: var(--text-muted, #888);
+                font-size: 14px;
+                padding: 40px;
+            }
+            
+            .am-search-status::before {
+                content: "⏳ ";
+            }
+            
+            .am-error-message {
+                text-align: center;
+                color: #ff6b6b;
+                font-size: 14px;
+                padding: 40px;
+            }
+            
+            .am-results-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 16px;
+            }
+            
+            .am-result-item {
+                position: relative;
+                border: 2px solid transparent;
+                border-radius: 8px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            
+            .am-result-item:hover {
+                border-color: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+            
+            .am-result-item.selected {
+                border-color: #4CAF50;
+                box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+            }
+            
+            .am-result-item.selected::after {
+                content: "✓";
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 24px;
+                height: 24px;
+                background: #4CAF50;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 14px;
+                font-weight: bold;
+                z-index: 11;
+            }
+            
+            .am-result-image {
+                width: 100%;
+                aspect-ratio: 1;
+                object-fit: cover;
+                display: block;
+            }
+            
+            .am-result-info {
+                padding: 8px 10px;
+                background: rgba(0, 0, 0, 0.6);
+            }
+            
+            .am-result-title {
+                font-size: 12px;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-bottom: 2px;
+            }
+            
+            .am-result-artist {
+                font-size: 11px;
+                color: var(--text-muted, #888);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .am-result-album {
+                font-size: 10px;
+                color: var(--text-muted, #666);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-top: 2px;
+                font-style: italic;
+            }
+            
+            .am-result-meta {
+                font-size: 10px;
+                color: #9ca3af;
+                margin-top: 4px;
+                padding-top: 4px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .am-result-type {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                background: rgba(0, 0, 0, 0.7);
+                color: #fff;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                text-transform: uppercase;
+            }
+            
+            .match-badge {
+                position: absolute;
+                top: 36px;
+                right: 8px;
+                font-size: 9px;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-weight: 600;
+                text-transform: uppercase;
+                z-index: 10;
+            }
+            
+            .match-badge.exact {
+                background: #4CAF50;
+                color: #fff;
+            }
+            
+            .match-badge.fuzzy {
+                background: #FF9800;
+                color: #fff;
+            }
+            
+            .am-result-item.exact-match {
+                border-color: #4CAF50;
+                box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+            }
+            
+            .am-result-item.fuzzy-match {
+                border-color: #FF9800;
+                box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+            }
+            
+            .am-modal-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            #amSelectedCount {
+                color: var(--text-muted, #888);
+                font-size: 14px;
+            }
+            
+            .am-modal-buttons {
+                display: flex;
+                gap: 12px;
+            }
+            
+            .am-btn-cancel {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+            
+            .am-btn-cancel:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            
+            .am-btn-save {
+                background: #4CAF50;
+                border: none;
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+            }
+            
+            .am-btn-save:hover:not(:disabled) {
+                background: #45a049;
+            }
+            
+            .am-btn-save:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            /* Saving state */
+            .am-btn-save.saving {
+                pointer-events: none;
+            }
+            
+            .am-btn-save.saving::after {
+                content: "...";
+            }
+        </style>
+        
+        <script>
+            // Apple Music Modal State
+            let amSelectedImages = [];
+            let amEntityId = null;
+            let amEntityType = null;
+            let amHasExistingImage = false;
+
+            // Helper function to open modal from button with data attributes
+            function openAppleMusicModalFromButton(button, entityType) {
+                const artist = button.getAttribute('data-artist');
+                const title = button.getAttribute('data-' + (entityType === 'album' ? 'album' : 'song'));
+                const id = button.getAttribute('data-id');
+                const hasImage = button.getAttribute('data-has-image') === 'true';
+                openAppleMusicModal(artist, title, id, entityType, hasImage);
+            }
+
+            function openAppleMusicModal(artist, title, entityId, entityType, hasExisting) {
+                amEntityId = entityId;
+                amEntityType = entityType;
+                amHasExistingImage = hasExisting;
+                amSelectedImages = [];
+                
+                const modal = document.getElementById('appleMusicModal');
+                const searchInput = document.getElementById('amSearchInput');
+                const status = document.getElementById('amSearchStatus');
+                const error = document.getElementById('amErrorMessage');
+                const grid = document.getElementById('amResultsGrid');
+                const saveBtn = document.getElementById('amSaveBtn');
+                
+                // Set search input value
+                searchInput.value = artist + ' - ' + title;
+                
+                // Reset state
+                status.style.display = 'none';
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateSelectedCount();
+                
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                
+                // Auto-perform initial search
+                performAppleMusicSearch();
+            }
+
+            function performAppleMusicSearch() {
+                const searchInput = document.getElementById('amSearchInput');
+                const searchValue = searchInput.value.trim();
+                const countrySelect = document.getElementById('amCountrySelect');
+                const country = countrySelect.value;
+                
+                if (!searchValue) {
+                    alert('Please enter a search term');
+                    return;
+                }
+                
+                const status = document.getElementById('amSearchStatus');
+                const error = document.getElementById('amErrorMessage');
+                const grid = document.getElementById('amResultsGrid');
+                const saveBtn = document.getElementById('amSaveBtn');
+                
+                // Reset results
+                amSelectedImages = [];
+                status.style.display = 'block';
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateSelectedCount();
+                
+                // Parse search (split by ' - ' or just use whole string)
+                const parts = searchValue.split(' - ');
+                const artist = parts[0] || searchValue;
+                const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+                
+                // Perform search
+                const searchUrl = `/api/apple-music/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&country=${country}`;
+                
+                fetch(searchUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        status.style.display = 'none';
+                        
+                        if (!data || data.length === 0) {
+                            error.textContent = 'No results found. Try uploading an image manually.';
+                            error.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Sort results by match quality
+                        const sortedData = sortResultsByMatchQuality(data, artist, title);
+                        
+                        // Render results
+                        grid.innerHTML = sortedData.map((item, index) => {
+                            const matchClass = item.matchType === 'exact' ? 'exact-match' : 
+                                             item.matchType === 'fuzzy' ? 'fuzzy-match' : 
+                                             item.matchType === 'artist' ? 'artist-match' :
+                                             item.matchType === 'title' ? 'title-match' : '';
+                            const matchBadge = item.matchType === 'exact' ? '<span class="match-badge exact">Exact Match</span>' :
+                                             item.matchType === 'fuzzy' ? '<span class="match-badge fuzzy">Close Match</span>' : '';
+                            // Format release date for display (YYYY-MM-DD -> dd MMM yyyy)
+                            let releaseDateDisplay = '';
+                            if (item.releaseDate) {
+                                const d = new Date(item.releaseDate + 'T00:00:00');
+                                releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            }
+                            const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                            return `
+                            <div class="am-result-item ${matchClass}" data-index="${index}" data-url="${item.fullUrl}" 
+                                 data-release-date="${item.releaseDate || ''}" 
+                                 data-length-seconds="${item.lengthSeconds || ''}"
+                                 data-length-formatted="${item.lengthFormatted || ''}"
+                                 data-title="${escapeAttr(item.title)}"
+                                 data-artist="${escapeAttr(item.artistName)}"
+                                 onclick="toggleAmSelection(this)">
+                                <span class="am-result-type">${item.type}</span>
+                                ${matchBadge}
+                                <img class="am-result-image" src="${item.thumbnailUrl}" alt="${item.title}" loading="lazy">
+                                <div class="am-result-info">
+                                    <div class="am-result-title" title="${escapeAttr(item.title)}">${escapeHtml(item.title)}</div>
+                                    <div class="am-result-artist" title="${escapeAttr(item.artistName)}">${escapeHtml(item.artistName)}</div>
+                                    ${item.type === 'song' && item.albumName ? `<div class="am-result-album" title="${escapeAttr(item.albumName)}">${escapeHtml(item.albumName)}</div>` : ''}
+                                    ${metaLine ? `<div class="am-result-meta">${metaLine}</div>` : ''}
+                                </div>
+                            </div>
+                        `}).join('');
+                        
+                        grid.style.display = 'grid';
+                    })
+                    .catch(err => {
+                        console.error('Apple Music search error:', err);
+                        status.style.display = 'none';
+                        error.textContent = '❌ Error searching Apple Music. Please try again.';
+                        error.style.display = 'block';
+                    });
+            }
+
+            function closeAppleMusicModal(event) {
+                if (event && event.target.classList.contains('am-modal-content')) {
+                    return;
+                }
+                const modal = document.getElementById('appleMusicModal');
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+
+            function normalizeForMatch(str) {
+                if (!str) return '';
+                return str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            }
+
+            function removeVariationKeywords(str) {
+                if (!str) return '';
+                const keywords = ['deluxe', 'remaster', 'remastered', 'anniversary', 'special', 'revised', 'edition', 'version', 'expanded', 'bonus', 'explicit', 'clean'];
+                let normalized = str.toLowerCase();
+                keywords.forEach(keyword => {
+                    normalized = normalized.replace(new RegExp(keyword, 'g'), '');
+                });
+                // Also remove common ordinal numbers (10th, 20th, etc.)
+                normalized = normalized.replace(/\d+(st|nd|rd|th)?/g, '');
+                return normalized.trim().replace(/[^a-z0-9]/g, '');
+            }
+
+            function sortResultsByMatchQuality(results, searchArtist, searchTitle) {
+                const normArtist = normalizeForMatch(searchArtist);
+                const normTitle = normalizeForMatch(searchTitle);
+                const fuzzyTitle = removeVariationKeywords(searchTitle);
+                
+                return results.map(item => {
+                    const itemArtist = normalizeForMatch(item.artistName);
+                    const itemTitle = normalizeForMatch(item.title);
+                    const itemTitleFuzzy = removeVariationKeywords(item.title);
+                    
+                    let score = 0;
+                    let matchType = 'none';
+                    
+                    // Exact match (artist + title) = highest priority
+                    if (itemArtist === normArtist && itemTitle === normTitle) {
+                        score = 1000;
+                        matchType = 'exact';
+                    }
+                    // Fuzzy match (artist exact + title fuzzy)
+                    else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) {
+                        score = 950;
+                        matchType = 'fuzzy';
+                    }
+                    // Exact artist match only
+                    else if (itemArtist === normArtist) {
+                        score = 500;
+                        matchType = 'artist';
+                    }
+                    // Exact title match only
+                    else if (itemTitle === normTitle) {
+                        score = 400;
+                        matchType = 'title';
+                    }
+                    // Partial artist match
+                    else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) {
+                        score = 200;
+                    }
+                    // Partial title match
+                    else if (itemTitle.includes(normTitle) || normTitle.includes(itemTitle)) {
+                        score = 100;
+                    }
+                    // Everything else
+                    else {
+                        score = 0;
+                    }
+                    
+                    return { ...item, matchScore: score, matchType: matchType };
+                }).sort((a, b) => b.matchScore - a.matchScore);
+            }
+
+            function toggleAmSelection(element) {
+                const url = element.dataset.url;
+                const index = amSelectedImages.indexOf(url);
+                
+                if (index > -1) {
+                    amSelectedImages.splice(index, 1);
+                    element.classList.remove('selected');
+                } else {
+                    amSelectedImages.push(url);
+                    element.classList.add('selected');
+                }
+                
+                updateSelectedCount();
+            }
+
+            function updateSelectedCount() {
+                const countEl = document.getElementById('amSelectedCount');
+                const saveBtn = document.getElementById('amSaveBtn');
+                const count = amSelectedImages.length;
+                
+                countEl.textContent = count === 1 ? '1 selected' : `${count} selected`;
+                saveBtn.disabled = count === 0;
+            }
+
+            function saveSelectedImages() {
+                if (amSelectedImages.length === 0) return;
+                
+                const saveBtn = document.getElementById('amSaveBtn');
+                saveBtn.textContent = 'Saving';
+                saveBtn.classList.add('saving');
+                saveBtn.disabled = true;
+                
+                const requestData = {
+                    imageUrls: amSelectedImages,
+                    entityId: amEntityId,
+                    entityType: amEntityType,
+                    hasExistingImage: amHasExistingImage
+                };
+                
+                fetch('/api/apple-music/save-images', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload page to show new images
+                        window.location.reload();
+                    } else {
+                        alert('Error saving images: ' + (data.error || 'Unknown error'));
+                        saveBtn.textContent = 'Save Selected';
+                        saveBtn.classList.remove('saving');
+                        saveBtn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error saving images:', err);
+                    alert('Error saving images. Please try again.');
+                    saveBtn.textContent = 'Save Selected';
+                    saveBtn.classList.remove('saving');
+                    saveBtn.disabled = false;
+                });
+            }
+
+            // Helper functions for escaping HTML
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            function escapeAttr(text) {
+                if (!text) return '';
+                return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const modal = document.getElementById('appleMusicModal');
+                    if (modal && modal.classList.contains('show')) {
+                        closeAppleMusicModal(event);
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

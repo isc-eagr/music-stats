@@ -137,9 +137,8 @@
             <h1>Artists</h1>
             <div class="controls">
                 <div class="search-bar">
-                    <form method="get" action="/artists">
-                        <input type="text" name="q" value="" placeholder="Search artists...">
-                        <button type="submit">Search</button>
+                    <form method="get" action="/artists" id="artistSearchForm">
+                        <input type="text" name="q" value="" placeholder="Search artists..." oninput="this.form.submit()" id="searchInput">
                     </form>
                 </div>
                 

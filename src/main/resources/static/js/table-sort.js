@@ -38,7 +38,9 @@
 
   function parseDate(txt){
     // Parse "dd MMM yyyy" format (e.g., "21 Nov 2025" or "1 Feb 2012")
-    const parts = txt.trim().split(/\s+/);
+    // Also handles "dd-MMM-yyyy" format (e.g., "01-Nov-2025" or "1-Feb-2012")
+    const separator = txt.includes('-') ? /-/ : /\s+/;
+    const parts = txt.trim().split(separator);
     if(parts.length === 3){
       const day = parseInt(parts[0]);
       const month = monthMap[parts[1].toLowerCase().substring(0, 3)];

@@ -764,7 +764,7 @@ public class TimeframeService {
         if (needWinningGender || needWinningGenre || needWinningEthnicity || needWinningLanguage || needWinningCountry) {
             StringBuilder whereClause = new StringBuilder("\n            WHERE 1=1");
             
-            if (needWinningGender) {
+            if (needWinningGender && winningGender != null) {
                 String placeholders = String.join(",", winningGender.stream().map(id -> "?").toList());
                 if ("includes".equals(winningGenderMode)) {
                     whereClause.append(" AND wgn.gender_id IN (").append(placeholders).append(")");
@@ -775,7 +775,7 @@ public class TimeframeService {
                 }
             }
             
-            if (needWinningGenre) {
+            if (needWinningGenre && winningGenre != null) {
                 String placeholders = String.join(",", winningGenre.stream().map(id -> "?").toList());
                 if ("includes".equals(winningGenreMode)) {
                     whereClause.append(" AND wgr.genre_id IN (").append(placeholders).append(")");
@@ -786,7 +786,7 @@ public class TimeframeService {
                 }
             }
             
-            if (needWinningEthnicity) {
+            if (needWinningEthnicity && winningEthnicity != null) {
                 String placeholders = String.join(",", winningEthnicity.stream().map(id -> "?").toList());
                 if ("includes".equals(winningEthnicityMode)) {
                     whereClause.append(" AND weth.ethnicity_id IN (").append(placeholders).append(")");
@@ -797,7 +797,7 @@ public class TimeframeService {
                 }
             }
             
-            if (needWinningLanguage) {
+            if (needWinningLanguage && winningLanguage != null) {
                 String placeholders = String.join(",", winningLanguage.stream().map(id -> "?").toList());
                 if ("includes".equals(winningLanguageMode)) {
                     whereClause.append(" AND wlang.language_id IN (").append(placeholders).append(")");
@@ -808,7 +808,7 @@ public class TimeframeService {
                 }
             }
             
-            if (needWinningCountry) {
+            if (needWinningCountry && winningCountry != null) {
                 String placeholders = String.join(",", winningCountry.stream().map(c -> "?").toList());
                 if ("includes".equals(winningCountryMode)) {
                     whereClause.append(" AND wcty.country IN (").append(placeholders).append(")");

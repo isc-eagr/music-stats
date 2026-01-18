@@ -29,7 +29,11 @@ public class SongRepository {
                                               String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                               String listenedDateFrom, String listenedDateTo,
-                                              String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                                              String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                              Integer ageMin, Integer ageMax, String ageMode,
+                                              Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                              String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                              String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                               Integer playCountMin, Integer playCountMax,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -89,7 +93,7 @@ public class SongRepository {
                 CAST(strftime('%Y', COALESCE(s.release_date, alb.release_date)) AS TEXT) as release_year,
                 COALESCE(s.release_date, alb.release_date) as release_date,
                 s.length_seconds,
-                CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image,
+                CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
                 COALESCE(play_stats.play_count, 0) as play_count,
                 COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
@@ -383,13 +387,14 @@ public class SongRepository {
             }
         }
         
-        // Has Image filter (checks single_cover directly on song)
-        if (hasImage != null && !hasImage.isEmpty()) {
-            if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NOT NULL ");
-            } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NULL ");
-            }
+        // Image Count filter (counts primary image + gallery images)
+        if (imageCountMin != null) {
+            sql.append(" AND ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) >= ? ");
+            params.add(imageCountMin);
+        }
+        if (imageCountMax != null) {
+            sql.append(" AND ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) <= ? ");
+            params.add(imageCountMax);
         }
         
         // Play count filter
@@ -426,6 +431,112 @@ public class SongRepository {
                 sql.append(" AND s.is_single = 1 ");
             } else if ("false".equalsIgnoreCase(isSingle)) {
                 sql.append(" AND s.is_single = 0 ");
+            }
+        }
+        
+        // Age filter (artist's current age, or age at death if deceased)
+        if (ageMin != null || ageMax != null) {
+            String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ? ");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ? ");
+                params.add(ageMax);
+            }
+        }
+        
+        // Age at Release filter (artist's age when song was released)
+        if (ageAtReleaseMin != null || ageAtReleaseMax != null) {
+            String ageAtReleaseExpr = "CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageAtReleaseMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ? ");
+                params.add(ageAtReleaseMin);
+            }
+            if (ageAtReleaseMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ? ");
+                params.add(ageAtReleaseMax);
+            }
+        }
+        
+        // Birth Date filter
+        if (birthDateMode != null && !birthDateMode.isEmpty()) {
+            switch (birthDateMode) {
+                case "isnull":
+                    sql.append(" AND ar.birth_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND ar.birth_date IS NOT NULL");
+                    break;
+                case "exact":
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) = ?");
+                        params.add(birthDate);
+                    }
+                    break;
+                case "gte":
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) >= ?");
+                        params.add(birthDate);
+                    }
+                    break;
+                case "lte":
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) <= ?");
+                        params.add(birthDate);
+                    }
+                    break;
+                case "between":
+                    if (birthDateFrom != null && !birthDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) >= ?");
+                        params.add(birthDateFrom);
+                    }
+                    if (birthDateTo != null && !birthDateTo.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) <= ?");
+                        params.add(birthDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // Death Date filter
+        if (deathDateMode != null && !deathDateMode.isEmpty()) {
+            switch (deathDateMode) {
+                case "isnull":
+                    sql.append(" AND ar.death_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND ar.death_date IS NOT NULL");
+                    break;
+                case "exact":
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) = ?");
+                        params.add(deathDate);
+                    }
+                    break;
+                case "gte":
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) >= ?");
+                        params.add(deathDate);
+                    }
+                    break;
+                case "lte":
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) <= ?");
+                        params.add(deathDate);
+                    }
+                    break;
+                case "between":
+                    if (deathDateFrom != null && !deathDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) >= ?");
+                        params.add(deathDateFrom);
+                    }
+                    if (deathDateTo != null && !deathDateTo.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) <= ?");
+                        params.add(deathDateTo);
+                    }
+                    break;
             }
         }
         
@@ -525,6 +636,7 @@ public class SongRepository {
             case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(", s.name");
             case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "age_at_release" -> sql.append(" ORDER BY CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             default -> sql.append(" ORDER BY s.name ").append(dir);
         }
         
@@ -579,7 +691,11 @@ public class SongRepository {
                                       String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                       String listenedDateFrom, String listenedDateTo,
-                                      String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle,
+                                      String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                      Integer ageMin, Integer ageMax, String ageMode,
+                                      Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                      String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                      String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                       Integer playCountMin, Integer playCountMax,
                                       Integer lengthMin, Integer lengthMax, String lengthMode,
                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -916,13 +1032,14 @@ public class SongRepository {
             }
         }
         
-        // Has Image filter (checks single_cover directly on song)
-        if (hasImage != null && !hasImage.isEmpty()) {
-            if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NOT NULL ");
-            } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND s.single_cover IS NULL ");
-            }
+        // Image Count filter (counts primary image + gallery images)
+        if (imageCountMin != null) {
+            sql.append(" AND ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) >= ? ");
+            params.add(imageCountMin);
+        }
+        if (imageCountMax != null) {
+            sql.append(" AND ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) <= ? ");
+            params.add(imageCountMax);
         }
         
         // Has Featured Artists filter
@@ -949,6 +1066,112 @@ public class SongRepository {
                 sql.append(" AND s.is_single = 1 ");
             } else if ("false".equalsIgnoreCase(isSingle)) {
                 sql.append(" AND s.is_single = 0 ");
+            }
+        }
+        
+        // Age filter (artist's current age, or age at death if deceased)
+        if (ageMin != null || ageMax != null) {
+            String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ? ");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ? ");
+                params.add(ageMax);
+            }
+        }
+        
+        // Age at Release filter (artist's age when song was released)
+        if (ageAtReleaseMin != null || ageAtReleaseMax != null) {
+            String ageAtReleaseExpr = "CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageAtReleaseMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ? ");
+                params.add(ageAtReleaseMin);
+            }
+            if (ageAtReleaseMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ? ");
+                params.add(ageAtReleaseMax);
+            }
+        }
+        
+        // Birth Date filter
+        if (birthDateMode != null && !birthDateMode.isEmpty()) {
+            switch (birthDateMode) {
+                case "isnull":
+                    sql.append(" AND ar.birth_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND ar.birth_date IS NOT NULL");
+                    break;
+                case "exact":
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) = ?");
+                        params.add(birthDate);
+                    }
+                    break;
+                case "gte":
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) >= ?");
+                        params.add(birthDate);
+                    }
+                    break;
+                case "lte":
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) <= ?");
+                        params.add(birthDate);
+                    }
+                    break;
+                case "between":
+                    if (birthDateFrom != null && !birthDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) >= ?");
+                        params.add(birthDateFrom);
+                    }
+                    if (birthDateTo != null && !birthDateTo.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) <= ?");
+                        params.add(birthDateTo);
+                    }
+                    break;
+            }
+        }
+        
+        // Death Date filter
+        if (deathDateMode != null && !deathDateMode.isEmpty()) {
+            switch (deathDateMode) {
+                case "isnull":
+                    sql.append(" AND ar.death_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND ar.death_date IS NOT NULL");
+                    break;
+                case "exact":
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) = ?");
+                        params.add(deathDate);
+                    }
+                    break;
+                case "gte":
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) >= ?");
+                        params.add(deathDate);
+                    }
+                    break;
+                case "lte":
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) <= ?");
+                        params.add(deathDate);
+                    }
+                    break;
+                case "between":
+                    if (deathDateFrom != null && !deathDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) >= ?");
+                        params.add(deathDateFrom);
+                    }
+                    if (deathDateTo != null && !deathDateTo.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) <= ?");
+                        params.add(deathDateTo);
+                    }
+                    break;
             }
         }
         
@@ -1774,8 +1997,118 @@ public class SongRepository {
             }
             sql.append(")");
         }
+
+        // Age filter (artist's current age, or age at death if deceased)
+        Integer ageMin = filter.getAgeMin();
+        Integer ageMax = filter.getAgeMax();
+        if (ageMin != null || ageMax != null) {
+            String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ?");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ?");
+                params.add(ageMax);
+            }
+        }
+        
+        // Age at Release filter (artist's age when song/album was released)
+        Integer ageAtReleaseMin = filter.getAgeAtReleaseMin();
+        Integer ageAtReleaseMax = filter.getAgeAtReleaseMax();
+        if (ageAtReleaseMin != null || ageAtReleaseMax != null) {
+            String ageAtReleaseExpr = "CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageAtReleaseMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ?");
+                params.add(ageAtReleaseMin);
+            }
+            if (ageAtReleaseMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ?");
+                params.add(ageAtReleaseMax);
+            }
+        }
+        
+        // Birth Date filter
+        String birthDateMode = filter.getBirthDateMode();
+        if (birthDateMode != null && !birthDateMode.isEmpty()) {
+            String birthDate = filter.getBirthDate();
+            String birthDateFrom = filter.getBirthDateFrom();
+            String birthDateTo = filter.getBirthDateTo();
+            switch (birthDateMode) {
+                case "isnull" -> sql.append(" AND ar.birth_date IS NULL");
+                case "isnotnull" -> sql.append(" AND ar.birth_date IS NOT NULL");
+                case "exact" -> {
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) = DATE(?)");
+                        params.add(birthDate);
+                    }
+                }
+                case "gte" -> {
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) >= DATE(?)");
+                        params.add(birthDate);
+                    }
+                }
+                case "lte" -> {
+                    if (birthDate != null && !birthDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) <= DATE(?)");
+                        params.add(birthDate);
+                    }
+                }
+                case "between" -> {
+                    if (birthDateFrom != null && !birthDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) >= DATE(?)");
+                        params.add(birthDateFrom);
+                    }
+                    if (birthDateTo != null && !birthDateTo.isEmpty()) {
+                        sql.append(" AND DATE(ar.birth_date) <= DATE(?)");
+                        params.add(birthDateTo);
+                    }
+                }
+            }
+        }
+        
+        // Death Date filter
+        String deathDateMode = filter.getDeathDateMode();
+        if (deathDateMode != null && !deathDateMode.isEmpty()) {
+            String deathDate = filter.getDeathDate();
+            String deathDateFrom = filter.getDeathDateFrom();
+            String deathDateTo = filter.getDeathDateTo();
+            switch (deathDateMode) {
+                case "isnull" -> sql.append(" AND ar.death_date IS NULL");
+                case "isnotnull" -> sql.append(" AND ar.death_date IS NOT NULL");
+                case "exact" -> {
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) = DATE(?)");
+                        params.add(deathDate);
+                    }
+                }
+                case "gte" -> {
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) >= DATE(?)");
+                        params.add(deathDate);
+                    }
+                }
+                case "lte" -> {
+                    if (deathDate != null && !deathDate.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) <= DATE(?)");
+                        params.add(deathDate);
+                    }
+                }
+                case "between" -> {
+                    if (deathDateFrom != null && !deathDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) >= DATE(?)");
+                        params.add(deathDateFrom);
+                    }
+                    if (deathDateTo != null && !deathDateTo.isEmpty()) {
+                        sql.append(" AND DATE(ar.death_date) <= DATE(?)");
+                        params.add(deathDateTo);
+                    }
+                }
+            }
+        }
     }
-    
+
     /**
      * Builds a subquery expression for MIN(scrobble_date) based on entity type.
      */
@@ -5923,7 +6256,7 @@ public class SongRepository {
                 ar.country,
                 s.length_seconds,
                 s.is_single,
-                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                 MAX(CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
                 COUNT(*) as plays,
                 SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
@@ -6235,7 +6568,7 @@ public class SongRepository {
                 ar.country,
                 s.length_seconds,
                 s.is_single,
-                MAX(CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                 MAX(CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
                 COUNT(*) as plays,
                 SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,

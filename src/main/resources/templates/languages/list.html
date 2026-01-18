@@ -22,9 +22,8 @@
             </div>
             <div class="controls">
                 <div class="search-bar">
-                    <form method="get" action="/languages">
-                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search languages...">
-                        <button type="submit" class="btn-action">Search</button>
+                    <form method="get" action="/languages" id="languageSearchForm">
+                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search languages..." oninput="this.form.submit()" id="searchInput">
                     </form>
                 </div>
                 
@@ -435,5 +434,15 @@
             justify-content: flex-end;
         }
     </style>
+    <script>
+        // Auto-focus search input if there's a search query
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput && searchInput.value) {
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
+        });
+    </script>
 </body>
 </html>

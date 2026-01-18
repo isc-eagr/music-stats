@@ -137,10 +137,10 @@ public class ScrobbleController {
             Object rawItems = request.get("items");
             int totalDeleted = 0;
             if (rawItems instanceof java.util.List) {
-                java.util.List items = (java.util.List) rawItems;
+                java.util.List<?> items = (java.util.List<?>) rawItems;
                 for (Object o : items) {
                     if (!(o instanceof java.util.Map)) continue;
-                    java.util.Map m = (java.util.Map) o;
+                    java.util.Map<?, ?> m = (java.util.Map<?, ?>) o;
                     String account = m.get("account") != null ? m.get("account").toString() : null;
                     String artist = m.get("artist") != null ? m.get("artist").toString() : null;
                     String album = m.get("album") != null ? m.get("album").toString() : null;
@@ -236,15 +236,20 @@ public class ScrobbleController {
             Integer newArtistEthnicityId = request.get("newArtistEthnicityId") != null && !request.get("newArtistEthnicityId").toString().isEmpty() 
                 ? Integer.parseInt(request.get("newArtistEthnicityId").toString()) : null;
             String newArtistCountry = (String) request.get("newArtistCountry");
+            String newArtistBirthDate = (String) request.get("newArtistBirthDate");
+            String newArtistDeathDate = (String) request.get("newArtistDeathDate");
+            Boolean newArtistIsBand = request.get("newArtistIsBand") != null ? (Boolean) request.get("newArtistIsBand") : null;
             
             Integer albumId = request.get("albumId") != null ? ((Number) request.get("albumId")).intValue() : null;
             String newAlbumName = (String) request.get("newAlbumName");
             String newAlbumReleaseDate = (String) request.get("newAlbumReleaseDate");
+            String newAlbumImageUrl = (String) request.get("newAlbumImageUrl");
             
             String songName = (String) request.get("songName");
             String songReleaseDate = (String) request.get("songReleaseDate");
             Integer songLengthSeconds = request.get("songLengthSeconds") != null 
                 ? ((Number) request.get("songLengthSeconds")).intValue() : null;
+            String songImageUrl = (String) request.get("songImageUrl");
             
             if (songName == null || songName.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Song name is required"));
@@ -281,6 +286,15 @@ public class ScrobbleController {
                 if (newArtistCountry != null && !newArtistCountry.isBlank()) {
                     artistData.put("country", newArtistCountry);
                 }
+                if (newArtistBirthDate != null && !newArtistBirthDate.isBlank()) {
+                    artistData.put("birthDate", newArtistBirthDate);
+                }
+                if (newArtistDeathDate != null && !newArtistDeathDate.isBlank()) {
+                    artistData.put("deathDate", newArtistDeathDate);
+                }
+                if (newArtistIsBand != null) {
+                    artistData.put("isBand", newArtistIsBand);
+                }
                 artistId = artistService.createArtist(artistData);
                 canonicalArtist = newArtistName;
             } else {
@@ -289,6 +303,7 @@ public class ScrobbleController {
             
             // 2. Get or create album (optional)
             String canonicalAlbum = null;
+            boolean isNewAlbum = false;
             if (albumId != null) {
                 // Use existing album
                 var album = albumService.findById(albumId);
@@ -305,8 +320,22 @@ public class ScrobbleController {
                 }
                 albumId = albumService.createAlbum(albumData);
                 canonicalAlbum = newAlbumName;
+                isNewAlbum = true;
             }
             // If albumId is still null, song will be a single (no album)
+            
+            // 2b. Download and save album image if provided
+            if (isNewAlbum && newAlbumImageUrl != null && !newAlbumImageUrl.isBlank()) {
+                try {
+                    byte[] imageBytes = downloadImage(newAlbumImageUrl);
+                    if (imageBytes != null && imageBytes.length > 0) {
+                        albumService.updateAlbumImage(albumId, imageBytes);
+                    }
+                } catch (Exception e) {
+                    // Log but don't fail the whole operation
+                    System.err.println("Failed to download album image: " + e.getMessage());
+                }
+            }
             
             // 3. Create song with release date and length
             Map<String, Object> songData = new HashMap<>();
@@ -322,6 +351,19 @@ public class ScrobbleController {
                 songData.put("lengthSeconds", songLengthSeconds);
             }
             Integer songId = songService.createSong(songData);
+            
+            // 3b. Download and save song image if provided
+            if (songImageUrl != null && !songImageUrl.isBlank()) {
+                try {
+                    byte[] imageBytes = downloadImage(songImageUrl);
+                    if (imageBytes != null && imageBytes.length > 0) {
+                        songService.updateSongImage(songId, imageBytes);
+                    }
+                } catch (Exception e) {
+                    // Log but don't fail the whole operation
+                    System.err.println("Failed to download song image: " + e.getMessage());
+                }
+            }
             
             // 4. Assign scrobbles with canonical names
             int updatedCount = scrobbleService.assignScrobblesToSongWithCanonicalNames(
@@ -435,6 +477,27 @@ public class ScrobbleController {
                 "success", false,
                 "error", e.getMessage()
             ));
+        }
+    }
+    
+    /**
+     * Download image from URL and return bytes.
+     */
+    private byte[] downloadImage(String imageUrl) throws Exception {
+        java.net.URI uri = java.net.URI.create(imageUrl);
+        java.net.HttpURLConnection connection = (java.net.HttpURLConnection) uri.toURL().openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("User-Agent", "MusicStatsApp/1.0");
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(15000);
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode != 200) {
+            throw new RuntimeException("HTTP error downloading image: " + responseCode);
+        }
+
+        try (java.io.InputStream is = connection.getInputStream()) {
+            return is.readAllBytes();
         }
     }
 }

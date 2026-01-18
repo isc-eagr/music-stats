@@ -23,9 +23,8 @@
             <div class="controls">
                 <div class="search-bar">
                     <form method="get" action="/subgenres" id="searchForm">
-                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search subgenres...">
+                        <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search subgenres..." oninput="this.form.submit()" id="searchInput">
                         <input type="hidden" name="parentGenre" th:value="${selectedParentGenre}">
-                        <button type="submit" class="btn-action">Search</button>
                     </form>
                 </div>
                 
@@ -514,5 +513,15 @@
             margin-bottom: 8px;
         }
     </style>
+    <script>
+        // Auto-focus search input if there's a search query
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput && searchInput.value) {
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
+        });
+    </script>
 </body>
 </html>

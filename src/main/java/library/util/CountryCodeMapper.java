@@ -10,10 +10,10 @@ import java.util.Map;
 public class CountryCodeMapper {
     private final Map<String, String> nameToCode = new HashMap<>();
 
+    @SuppressWarnings("deprecation")
     public CountryCodeMapper() {
         String[] iso = Locale.getISOCountries();
         for (String code : iso) {
-            @SuppressWarnings("deprecation")
             Locale loc = new Locale("", code);
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {

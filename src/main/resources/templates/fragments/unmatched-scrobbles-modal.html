@@ -173,8 +173,17 @@
                     <div id="newArtistForm" style="display: none; margin-top: 12px; padding: 12px; background: #1e3a1e; border-radius: 6px;">
                         <div class="form-group">
                             <label>Artist Name *</label>
-                            <input type="text" autocomplete="off" id="newArtistName" placeholder="Enter artist name">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" autocomplete="off" id="newArtistName" placeholder="Enter artist name" style="flex: 1;">
+                                <button type="button" class="btn-fetch-external" onclick="openNewArtistExternalFetch()" title="Fetch birth/death date and country from MusicBrainz">
+                                    Fetch External
+                                </button>
+                            </div>
                         </div>
+                        <!-- Hidden fields for MusicBrainz data -->
+                        <input type="hidden" id="newArtistBirthDate" value="">
+                        <input type="hidden" id="newArtistDeathDate" value="">
+                        <input type="hidden" id="newArtistIsBand" value="">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div class="form-group">
                                 <label>Gender *</label>
@@ -250,6 +259,19 @@
                             <label>Release Date *</label>
                             <input type="text" autocomplete="off" id="newAlbumReleaseDate" placeholder="dd/mm/yyyy" required>
                         </div>
+                        <div class="form-group" style="margin-top: 8px;">
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-action btn-fetch-external-edit" id="wizardAlbumExternalSearchBtn" onclick="wizardSearchExternalForAlbum()" style="flex: 1;">
+                                    External
+                                </button>
+                            </div>
+                            <div id="wizardAlbumAppleStatus" style="color: #888; font-size: 12px; margin-top: 6px; text-align: center;"></div>
+                        </div>
+                        <!-- Album Image Preview -->
+                        <div id="wizardAlbumImagePreview" style="display: none; margin-top: 12px; text-align: center;">
+                            <img id="wizardAlbumImagePreviewImg" src="" style="max-width: 150px; max-height: 150px; border-radius: 6px; border: 2px solid #4CAF50;">
+                            <input type="hidden" id="wizardAlbumImageUrl">
+                        </div>
                     </div>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(2)">← Back</button>
@@ -282,10 +304,20 @@
                         </div>
                     </div>
                     <div class="form-group" style="margin-top: 8px;">
-                        <button type="button" class="btn btn-action" id="wizardFetchItunesBtn" onclick="wizardFetchFromItunes()" style="width: 100%;">
-                            🎵 Fetch from iTunes
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-action" id="wizardFetchItunesBtn" onclick="wizardFetchFromItunes()" style="flex: 1;">
+                                🎵 Local iTunes
+                            </button>
+                            <button type="button" class="btn btn-action btn-fetch-external-edit" id="wizardSongExternalSearchBtn" onclick="wizardSearchExternalForSong()" style="flex: 1;">
+                                External
+                            </button>
+                        </div>
                         <div id="wizardItunesFetchStatus" style="color: #888; font-size: 12px; margin-top: 6px; text-align: center;"></div>
+                        <!-- Song Image Preview -->
+                        <div id="wizardSongImagePreview" style="display: none; margin-top: 12px; text-align: center;">
+                            <img id="wizardSongImagePreviewImg" src="" style="max-width: 100px; max-height: 100px; border-radius: 6px; border: 2px solid #4CAF50;">
+                            <input type="hidden" id="wizardSongImageUrl">
+                        </div>
                     </div>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(3)">← Back</button>
@@ -613,6 +645,46 @@
             }
         }
         
+        // Open artist fetch modal to get birth/death date and country from MusicBrainz
+        function openNewArtistExternalFetch() {
+            const artistName = document.getElementById('newArtistName').value.trim();
+            if (!artistName) {
+                alert('Please enter an artist name first');
+                return;
+            }
+            
+            // Open the artist fetch modal with a callback to populate fields
+            openArtistFetchModal(artistName, null, function(artistData) {
+                // Populate hidden fields for birth/death dates
+                document.getElementById('newArtistBirthDate').value = artistData.birthDate || '';
+                document.getElementById('newArtistDeathDate').value = artistData.deathDate || '';
+                document.getElementById('newArtistIsBand').value = (artistData.type === 'Group' || artistData.type === 'Orchestra' || artistData.type === 'Choir') ? 'true' : 'false';
+                
+                // Set country dropdown if we can find a match
+                if (artistData.country) {
+                    const countrySelect = document.getElementById('newArtistCountry');
+                    const options = Array.from(countrySelect.options);
+                    const match = options.find(opt => opt.text.toLowerCase() === artistData.country.toLowerCase());
+                    if (match) {
+                        countrySelect.value = match.value;
+                    } else {
+                        console.log('Country not found in dropdown:', artistData.country);
+                    }
+                }
+                
+                // Show a confirmation message
+                const confirmMsg = [];
+                if (artistData.birthDate) confirmMsg.push('Birth: ' + artistData.birthDate);
+                if (artistData.deathDate) confirmMsg.push('Death: ' + artistData.deathDate);
+                if (artistData.country) confirmMsg.push('Country: ' + artistData.country);
+                if (artistData.type) confirmMsg.push('Type: ' + artistData.type);
+                
+                if (confirmMsg.length > 0) {
+                    console.log('Applied MusicBrainz data:', confirmMsg.join(', '));
+                }
+            });
+        }
+        
         function wizardNextStep(currentStep) {
             if (currentStep === 1) {
                 // Validate artist selection
@@ -809,14 +881,19 @@
                 newArtistSubgenreId: wizardState.isNewArtist ? (document.getElementById('newArtistSubgenre').value || null) : null,
                 newArtistEthnicityId: wizardState.isNewArtist ? (document.getElementById('newArtistEthnicity').value || null) : null,
                 newArtistCountry: wizardState.isNewArtist ? (document.getElementById('newArtistCountry').value || null) : null,
+                newArtistBirthDate: wizardState.isNewArtist ? (document.getElementById('newArtistBirthDate').value || null) : null,
+                newArtistDeathDate: wizardState.isNewArtist ? (document.getElementById('newArtistDeathDate').value || null) : null,
+                newArtistIsBand: wizardState.isNewArtist ? (document.getElementById('newArtistIsBand').value === 'true' ? true : (document.getElementById('newArtistIsBand').value === 'false' ? false : null)) : null,
                 
                 albumId: wizardState.isNewAlbum ? null : wizardState.selectedAlbumId,
                 newAlbumName: wizardState.isNewAlbum ? wizardState.selectedAlbumName : null,
                 newAlbumReleaseDate: wizardState.isNewAlbum ? wizardState.newAlbumReleaseDate : null,
+                newAlbumImageUrl: wizardState.newAlbumImageUrl || null,
                 
                 songName: songName,
                 songReleaseDate: songReleaseDate,
-                songLengthSeconds: lengthSeconds
+                songLengthSeconds: lengthSeconds,
+                songImageUrl: wizardState.newSongImageUrl || null
             };
             
             fetch('/scrobbles/api/create-and-assign', {
@@ -1094,6 +1171,453 @@
             });
         }
 
+        // ==================== External Fetch for Wizard (uses unified modal in 'both' mode) ====================
+        
+        function wizardSearchExternalForAlbum() {
+            const artistName = wizardState.selectedArtistName || '';
+            const albumName = document.getElementById('newAlbumName').value.trim();
+            
+            if (!artistName && !albumName) {
+                document.getElementById('wizardAlbumAppleStatus').textContent = 'Enter album name first';
+                document.getElementById('wizardAlbumAppleStatus').style.color = '#ff6b6b';
+                return;
+            }
+            
+            // Open unified modal in 'metadata' mode (since album doesn't exist yet, no image to save)
+            // But we capture the image URL for later use when album is created
+            openExternalFetchModal(artistName, albumName, null, 'album', false, 'metadata', function(selectedItem) {
+                const statusEl = document.getElementById('wizardAlbumAppleStatus');
+                const parts = [];
+                
+                // Set release date if available
+                if (selectedItem.releaseDate) {
+                    const dateParts = selectedItem.releaseDate.split('-');
+                    if (dateParts.length === 3) {
+                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        document.getElementById('newAlbumReleaseDate').value = formatted;
+                        parts.push('Release: ' + formatted);
+                    }
+                }
+                
+                // Store image URL for later use when creating album
+                if (selectedItem.url) {
+                    document.getElementById('wizardAlbumImageUrl').value = selectedItem.url;
+                    document.getElementById('wizardAlbumImagePreviewImg').src = selectedItem.url.replace(/1000x1000|cover_xl/, '300x300').replace('cover_xl', 'cover_medium');
+                    document.getElementById('wizardAlbumImagePreview').style.display = 'block';
+                    parts.push('Image selected');
+                }
+                
+                // Update status
+                if (statusEl) {
+                    statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected');
+                    statusEl.style.color = '#69db7c';
+                }
+            });
+        }
+        
+        function wizardSearchExternalForSong() {
+            const artistName = wizardState.selectedArtistName || '';
+            const songName = document.getElementById('wizardSongNameInput').value.trim();
+            const albumName = wizardState.selectedAlbumName === '(Single)' ? '' : (wizardState.selectedAlbumName || '');
+            
+            if (!artistName && !songName) {
+                document.getElementById('wizardItunesFetchStatus').textContent = 'Enter song name first';
+                document.getElementById('wizardItunesFetchStatus').style.color = '#ff6b6b';
+                return;
+            }
+            
+            const searchTitle = songName || albumName;
+            
+            // Open unified modal in 'metadata' mode (since song doesn't exist yet, no image to save)
+            // But we capture the image URL for later use when song is created
+            openExternalFetchModal(artistName, searchTitle, null, 'song', false, 'metadata', function(selectedItem) {
+                const statusEl = document.getElementById('wizardItunesFetchStatus');
+                const parts = [];
+                
+                // Set release date if available
+                if (selectedItem.releaseDate) {
+                    const dateParts = selectedItem.releaseDate.split('-');
+                    if (dateParts.length === 3) {
+                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        document.getElementById('wizardSongReleaseDate').value = formatted;
+                        parts.push('Release: ' + formatted);
+                    }
+                }
+                
+                // Set length if available
+                if (selectedItem.lengthSeconds && selectedItem.lengthFormatted) {
+                    document.getElementById('wizardSongLength').value = selectedItem.lengthFormatted;
+                    document.getElementById('wizardSongLengthSeconds').value = selectedItem.lengthSeconds;
+                    parts.push('Length: ' + selectedItem.lengthFormatted);
+                }
+                
+                // Store image URL for later use when creating song
+                if (selectedItem.url) {
+                    document.getElementById('wizardSongImageUrl').value = selectedItem.url;
+                    document.getElementById('wizardSongImagePreviewImg').src = selectedItem.url.replace(/1000x1000|cover_xl/, '300x300').replace('cover_xl', 'cover_medium');
+                    document.getElementById('wizardSongImagePreview').style.display = 'block';
+                    parts.push('Image selected');
+                }
+                
+                // Update status
+                if (statusEl) {
+                    statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected');
+                    statusEl.style.color = '#69db7c';
+                }
+            });
+        }
+
+        // ==================== Apple Music Search for Wizard (Legacy - kept for reference) ====================
+        let wizardAppleSearchResults = [];
+        let wizardAppleSearchContext = null; // 'album' or 'song'
+        
+        function wizardSearchAppleForAlbum() {
+            const artistName = wizardState.selectedArtistName || '';
+            const albumName = document.getElementById('newAlbumName').value.trim();
+            
+            if (!artistName && !albumName) {
+                document.getElementById('wizardAlbumAppleStatus').textContent = 'Enter album name first';
+                document.getElementById('wizardAlbumAppleStatus').style.color = '#ff6b6b';
+                return;
+            }
+            
+            wizardAppleSearchContext = 'album';
+            openWizardAppleSearchModal(artistName, albumName);
+        }
+        
+        function wizardSearchAppleForSong() {
+            const artistName = wizardState.selectedArtistName || '';
+            const songName = document.getElementById('wizardSongNameInput').value.trim();
+            const albumName = wizardState.selectedAlbumName === '(Single)' ? '' : (wizardState.selectedAlbumName || '');
+            
+            if (!artistName && !songName) {
+                document.getElementById('wizardItunesFetchStatus').textContent = 'Enter song name first';
+                document.getElementById('wizardItunesFetchStatus').style.color = '#ff6b6b';
+                return;
+            }
+            
+            wizardAppleSearchContext = 'song';
+            // For songs, use the song name as the title for searching
+            openWizardAppleSearchModal(artistName, songName || albumName);
+        }
+        
+        function openWizardAppleSearchModal(artist, title) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('wizardAppleSearchModal');
+            if (!modal) {
+                createWizardAppleSearchModal();
+                modal = document.getElementById('wizardAppleSearchModal');
+            }
+            
+            // Set search input
+            document.getElementById('wizardAppleSearchInput').value = artist + (title ? ' - ' + title : '');
+            document.getElementById('wizardAppleSearchResults').innerHTML = '<div class="no-results">Click Search to find results</div>';
+            document.getElementById('wizardAppleSearchResults').style.display = 'block';
+            
+            modal.classList.add('active');
+            
+            // Auto-search
+            performWizardAppleSearch();
+        }
+        
+        function createWizardAppleSearchModal() {
+            const modalHtml = `
+                <div id="wizardAppleSearchModal" class="unmatched-modal">
+                    <div class="unmatched-modal-content" style="max-width: 800px;">
+                        <div class="unmatched-modal-header">
+                            <h2>Search Apple Music</h2>
+                            <span class="unmatched-modal-close" onclick="closeWizardAppleSearchModal()">&times;</span>
+                        </div>
+                        <div class="unmatched-modal-body">
+                            <div class="form-group">
+                                <div class="search-row">
+                                    <input type="text" autocomplete="off" id="wizardAppleSearchInput" placeholder="Artist - Title" style="flex: 1;">
+                                    <select id="wizardAppleCountrySelect" style="width: 120px;">
+                                        <option value="us">🇺🇸 US</option>
+                                        <option value="mx">🇲🇽 MX</option>
+                                        <option value="es">🇪🇸 ES</option>
+                                        <option value="gb">🇬🇧 UK</option>
+                                    </select>
+                                    <button type="button" class="btn btn-action" onclick="performWizardAppleSearch()">Search</button>
+                                </div>
+                            </div>
+                            <div id="wizardAppleSearchStatus" style="text-align: center; color: #888; padding: 20px; display: none;">
+                                ⏳ Searching...
+                            </div>
+                            <div id="wizardAppleSearchResults" class="wizard-apple-results" style="display: none;">
+                            </div>
+                        </div>
+                        <div class="unmatched-modal-footer">
+                            <button type="button" class="btn btn-negative" onclick="closeWizardAppleSearchModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    .wizard-apple-results {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                        gap: 12px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                        padding: 8px;
+                    }
+                    .wizard-apple-result-item {
+                        background: #2a2a2a;
+                        border: 2px solid transparent;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .wizard-apple-result-item:hover {
+                        border-color: rgba(255,255,255,0.3);
+                        transform: translateY(-2px);
+                    }
+                    .wizard-apple-result-item.exact-match {
+                        border-color: #4CAF50;
+                        box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+                    }
+                    .wizard-apple-result-item.fuzzy-match {
+                        border-color: #FF9800;
+                        box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+                    }
+                    .wizard-apple-result-img {
+                        width: 100%;
+                        aspect-ratio: 1;
+                        object-fit: cover;
+                    }
+                    .wizard-apple-result-info {
+                        padding: 8px;
+                    }
+                    .wizard-apple-result-title {
+                        font-size: 12px;
+                        color: #fff;
+                        font-weight: 600;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .wizard-apple-result-artist {
+                        font-size: 11px;
+                        color: #888;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .wizard-apple-result-meta {
+                        font-size: 10px;
+                        color: #9ca3af;
+                        margin-top: 4px;
+                    }
+                    .wizard-apple-result-type {
+                        position: absolute;
+                        top: 6px;
+                        left: 6px;
+                        background: rgba(0,0,0,0.7);
+                        color: #fff;
+                        font-size: 9px;
+                        padding: 2px 5px;
+                        border-radius: 3px;
+                        text-transform: uppercase;
+                    }
+                    .wizard-apple-match-badge {
+                        position: absolute;
+                        top: 6px;
+                        right: 6px;
+                        font-size: 8px;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    }
+                    .wizard-apple-match-badge.exact { background: #4CAF50; color: #fff; }
+                    .wizard-apple-match-badge.fuzzy { background: #FF9800; color: #fff; }
+                </style>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeWizardAppleSearchModal() {
+            const modal = document.getElementById('wizardAppleSearchModal');
+            if (modal) modal.classList.remove('active');
+        }
+        
+        function performWizardAppleSearch() {
+            const searchInput = document.getElementById('wizardAppleSearchInput').value.trim();
+            const country = document.getElementById('wizardAppleCountrySelect').value;
+            
+            if (!searchInput) return;
+            
+            const statusEl = document.getElementById('wizardAppleSearchStatus');
+            const resultsEl = document.getElementById('wizardAppleSearchResults');
+            
+            statusEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            
+            // Parse search
+            const parts = searchInput.split(' - ');
+            const artist = parts[0] || searchInput;
+            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+            
+            fetch(`/api/apple-music/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&country=${country}`)
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.style.display = 'none';
+                    
+                    if (!data || data.length === 0) {
+                        resultsEl.innerHTML = '<div class="no-results">No results found. Try different search terms.</div>';
+                        resultsEl.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Sort by match quality
+                    wizardAppleSearchResults = sortWizardAppleResults(data, artist, title);
+                    
+                    // Render results
+                    resultsEl.innerHTML = wizardAppleSearchResults.map((item, idx) => {
+                        const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                        const matchBadge = item.matchType === 'exact' ? '<span class="wizard-apple-match-badge exact">Exact</span>' :
+                                          item.matchType === 'fuzzy' ? '<span class="wizard-apple-match-badge fuzzy">Close</span>' : '';
+                        // Format release date
+                        let releaseDateDisplay = '';
+                        if (item.releaseDate) {
+                            const d = new Date(item.releaseDate + 'T00:00:00');
+                            releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                        }
+                        const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                        return `
+                            <div class="wizard-apple-result-item ${matchClass}" style="position: relative;" 
+                                 onclick="selectWizardAppleResult(${idx})">
+                                <span class="wizard-apple-result-type">${item.type}</span>
+                                ${matchBadge}
+                                <img class="wizard-apple-result-img" src="${item.thumbnailUrl}" alt="${escapeHtml(item.title)}" loading="lazy">
+                                <div class="wizard-apple-result-info">
+                                    <div class="wizard-apple-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>
+                                    <div class="wizard-apple-result-artist" title="${escapeHtml(item.artistName)}">${escapeHtml(item.artistName)}</div>
+                                    ${metaLine ? `<div class="wizard-apple-result-meta">${metaLine}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    resultsEl.style.display = 'grid';
+                })
+                .catch(err => {
+                    console.error('Apple search error:', err);
+                    statusEl.style.display = 'none';
+                    resultsEl.innerHTML = '<div class="no-results">Error searching Apple Music</div>';
+                    resultsEl.style.display = 'block';
+                });
+        }
+        
+        function sortWizardAppleResults(results, searchArtist, searchTitle) {
+            const normArtist = normalizeForMatchWizard(searchArtist);
+            const normTitle = normalizeForMatchWizard(searchTitle);
+            const fuzzyTitle = removeVariationKeywordsWizard(searchTitle);
+            
+            return results.map(item => {
+                const itemArtist = normalizeForMatchWizard(item.artistName);
+                const itemTitle = normalizeForMatchWizard(item.title);
+                const itemTitleFuzzy = removeVariationKeywordsWizard(item.title);
+                
+                let score = 0;
+                let matchType = 'none';
+                
+                if (itemArtist === normArtist && itemTitle === normTitle) {
+                    score = 1000;
+                    matchType = 'exact';
+                } else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) {
+                    score = 950;
+                    matchType = 'fuzzy';
+                } else if (itemArtist === normArtist) {
+                    score = 500;
+                    matchType = 'artist';
+                } else if (itemTitle === normTitle) {
+                    score = 400;
+                    matchType = 'title';
+                } else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) {
+                    score = 200;
+                } else if (itemTitle.includes(normTitle) || normTitle.includes(itemTitle)) {
+                    score = 100;
+                }
+                
+                return { ...item, matchScore: score, matchType: matchType };
+            }).sort((a, b) => b.matchScore - a.matchScore);
+        }
+        
+        function normalizeForMatchWizard(str) {
+            if (!str) return '';
+            return str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+        }
+        
+        function removeVariationKeywordsWizard(str) {
+            if (!str) return '';
+            const keywords = ['deluxe', 'remaster', 'remastered', 'anniversary', 'special', 'revised', 'edition', 'version', 'expanded', 'bonus', 'explicit', 'clean'];
+            let normalized = str.toLowerCase();
+            keywords.forEach(keyword => {
+                normalized = normalized.replace(new RegExp(keyword, 'g'), '');
+            });
+            normalized = normalized.replace(/\d+(st|nd|rd|th)?/g, '');
+            return normalized.trim().replace(/[^a-z0-9]/g, '');
+        }
+        
+        function selectWizardAppleResult(index) {
+            const item = wizardAppleSearchResults[index];
+            if (!item) return;
+            
+            if (wizardAppleSearchContext === 'album') {
+                // Populate album form
+                if (item.releaseDate) {
+                    // Convert YYYY-MM-DD to dd/MM/yyyy
+                    const parts = item.releaseDate.split('-');
+                    if (parts.length === 3) {
+                        document.getElementById('newAlbumReleaseDate').value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                }
+                // Store image URL for later saving
+                if (item.fullUrl) {
+                    document.getElementById('wizardAlbumImageUrl').value = item.fullUrl;
+                    document.getElementById('wizardAlbumImagePreviewImg').src = item.thumbnailUrl;
+                    document.getElementById('wizardAlbumImagePreview').style.display = 'block';
+                    wizardState.newAlbumImageUrl = item.fullUrl;
+                }
+                document.getElementById('wizardAlbumAppleStatus').textContent = '✓ Selected: ' + item.title;
+                document.getElementById('wizardAlbumAppleStatus').style.color = '#69db7c';
+            } else if (wizardAppleSearchContext === 'song') {
+                // Populate song form
+                const statusEl = document.getElementById('wizardItunesFetchStatus');
+                const parts = [];
+                
+                if (item.releaseDate) {
+                    const dateParts = item.releaseDate.split('-');
+                    if (dateParts.length === 3) {
+                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        document.getElementById('wizardSongReleaseDate').value = formatted;
+                        parts.push(`Release: ${formatted}`);
+                    }
+                }
+                if (item.lengthSeconds && item.lengthFormatted) {
+                    document.getElementById('wizardSongLength').value = item.lengthFormatted;
+                    document.getElementById('wizardSongLengthSeconds').value = item.lengthSeconds;
+                    parts.push(`Length: ${item.lengthFormatted}`);
+                }
+                // Store image URL
+                if (item.fullUrl) {
+                    document.getElementById('wizardSongImageUrl').value = item.fullUrl;
+                    document.getElementById('wizardSongImagePreviewImg').src = item.thumbnailUrl;
+                    document.getElementById('wizardSongImagePreview').style.display = 'block';
+                    wizardState.newSongImageUrl = item.fullUrl;
+                }
+                
+                if (parts.length > 0) {
+                    statusEl.textContent = 'Selected: ' + parts.join(', ');
+                    statusEl.style.color = '#69db7c';
+                }
+            }
+            
+            closeWizardAppleSearchModal();
+        }
+
         // ==================== Utility Functions ====================
         function escapeHtml(text) {
             if (!text) return '';
@@ -1105,6 +1629,314 @@
         function escapeJs(text) {
             if (!text) return '';
             return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // ==================== Spotify Search for Wizard ====================
+        let wizardSpotifySearchResults = [];
+        let wizardSpotifySearchContext = null; // 'album' or 'song'
+        
+        function wizardSearchSpotifyForAlbum() {
+            const artistName = wizardState.selectedArtistName || '';
+            const albumName = document.getElementById('newAlbumName').value.trim();
+            
+            if (!artistName && !albumName) {
+                document.getElementById('wizardAlbumAppleStatus').textContent = 'Enter album name first';
+                document.getElementById('wizardAlbumAppleStatus').style.color = '#ff6b6b';
+                return;
+            }
+            
+            wizardSpotifySearchContext = 'album';
+            openWizardSpotifySearchModal(artistName, albumName);
+        }
+        
+        function wizardSearchSpotifyForSong() {
+            const artistName = wizardState.selectedArtistName || '';
+            const songName = document.getElementById('wizardSongNameInput').value.trim();
+            const albumName = wizardState.selectedAlbumName === '(Single)' ? '' : (wizardState.selectedAlbumName || '');
+            
+            if (!artistName && !songName) {
+                document.getElementById('wizardItunesFetchStatus').textContent = 'Enter song name first';
+                document.getElementById('wizardItunesFetchStatus').style.color = '#ff6b6b';
+                return;
+            }
+            
+            wizardSpotifySearchContext = 'song';
+            openWizardSpotifySearchModal(artistName, songName || albumName);
+        }
+        
+        function openWizardSpotifySearchModal(artist, title) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('wizardSpotifySearchModal');
+            if (!modal) {
+                createWizardSpotifySearchModal();
+                modal = document.getElementById('wizardSpotifySearchModal');
+            }
+            
+            // Set search input
+            document.getElementById('wizardSpotifySearchInput').value = artist + (title ? ' - ' + title : '');
+            document.getElementById('wizardSpotifySearchResults').innerHTML = '<div class="no-results">Click Search to find results</div>';
+            document.getElementById('wizardSpotifySearchResults').style.display = 'block';
+            
+            modal.classList.add('active');
+            
+            // Auto-search
+            performWizardSpotifySearch();
+        }
+        
+        function createWizardSpotifySearchModal() {
+            const modalHtml = `
+                <div id="wizardSpotifySearchModal" class="unmatched-modal">
+                    <div class="unmatched-modal-content" style="max-width: 800px;">
+                        <div class="unmatched-modal-header" style="border-bottom-color: rgba(30, 215, 96, 0.3);">
+                            <h2><span style="color: #1DB954;">●</span> Search Spotify</h2>
+                            <span class="unmatched-modal-close" onclick="closeWizardSpotifySearchModal()">&times;</span>
+                        </div>
+                        <div class="unmatched-modal-body">
+                            <div class="form-group">
+                                <div class="search-row">
+                                    <input type="text" autocomplete="off" id="wizardSpotifySearchInput" placeholder="Artist - Title" style="flex: 1;">
+                                    <select id="wizardSpotifyCountrySelect" style="width: 120px;">
+                                        <option value="US">🇺🇸 US</option>
+                                        <option value="MX">🇲🇽 MX</option>
+                                        <option value="ES">🇪🇸 ES</option>
+                                        <option value="GB">🇬🇧 UK</option>
+                                    </select>
+                                    <button type="button" class="btn btn-action btn-spotify-wizard" onclick="performWizardSpotifySearch()">Search</button>
+                                </div>
+                            </div>
+                            <div id="wizardSpotifySearchStatus" style="text-align: center; color: #888; padding: 20px; display: none;">
+                                ⏳ Searching...
+                            </div>
+                            <div id="wizardSpotifySearchResults" class="wizard-spotify-results" style="display: none;">
+                            </div>
+                        </div>
+                        <div class="unmatched-modal-footer">
+                            <button type="button" class="btn btn-negative" onclick="closeWizardSpotifySearchModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    .btn-spotify-wizard {
+                        background-color: #1a472d !important;
+                        color: #1DB954 !important;
+                        border: 1px solid #1DB954 !important;
+                    }
+                    .btn-spotify-wizard:hover {
+                        background-color: #1DB954 !important;
+                        color: #fff !important;
+                    }
+                    .wizard-spotify-results {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                        gap: 12px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                        padding: 8px;
+                    }
+                    .wizard-spotify-result-item {
+                        background: #2a2a2a;
+                        border: 2px solid transparent;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .wizard-spotify-result-item:hover {
+                        border-color: rgba(30, 215, 96, 0.5);
+                        transform: translateY(-2px);
+                    }
+                    .wizard-spotify-result-item.exact-match {
+                        border-color: #1DB954;
+                        box-shadow: 0 0 8px rgba(30, 215, 96, 0.3);
+                    }
+                    .wizard-spotify-result-item.fuzzy-match {
+                        border-color: #FF9800;
+                        box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+                    }
+                    .wizard-spotify-result-img {
+                        width: 100%;
+                        aspect-ratio: 1;
+                        object-fit: cover;
+                    }
+                    .wizard-spotify-result-info {
+                        padding: 8px;
+                    }
+                    .wizard-spotify-result-title {
+                        font-size: 12px;
+                        color: #fff;
+                        font-weight: 600;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .wizard-spotify-result-artist {
+                        font-size: 11px;
+                        color: #888;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .wizard-spotify-result-meta {
+                        font-size: 10px;
+                        color: #9ca3af;
+                        margin-top: 4px;
+                    }
+                    .wizard-spotify-result-type {
+                        position: absolute;
+                        top: 6px;
+                        left: 6px;
+                        background: rgba(30, 215, 96, 0.9);
+                        color: #fff;
+                        font-size: 9px;
+                        padding: 2px 5px;
+                        border-radius: 3px;
+                        text-transform: uppercase;
+                    }
+                    .wizard-spotify-match-badge {
+                        position: absolute;
+                        top: 6px;
+                        right: 6px;
+                        font-size: 8px;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    }
+                    .wizard-spotify-match-badge.exact { background: #1DB954; color: #fff; }
+                    .wizard-spotify-match-badge.fuzzy { background: #FF9800; color: #fff; }
+                </style>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeWizardSpotifySearchModal() {
+            const modal = document.getElementById('wizardSpotifySearchModal');
+            if (modal) modal.classList.remove('active');
+        }
+        
+        function performWizardSpotifySearch() {
+            const searchInput = document.getElementById('wizardSpotifySearchInput').value.trim();
+            const market = document.getElementById('wizardSpotifyCountrySelect').value;
+            
+            if (!searchInput) return;
+            
+            const statusEl = document.getElementById('wizardSpotifySearchStatus');
+            const resultsEl = document.getElementById('wizardSpotifySearchResults');
+            
+            statusEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            
+            // Parse search
+            const parts = searchInput.split(' - ');
+            const artist = parts[0] || searchInput;
+            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+            
+            fetch(`/api/spotify/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&market=${market}`)
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.style.display = 'none';
+                    
+                    if (!data || data.length === 0) {
+                        resultsEl.innerHTML = '<div class="no-results">No results found. Try different search terms.</div>';
+                        resultsEl.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Sort by match quality (reuse the same logic)
+                    wizardSpotifySearchResults = sortWizardAppleResults(data, artist, title);
+                    
+                    // Render results
+                    resultsEl.innerHTML = wizardSpotifySearchResults.map((item, idx) => {
+                        const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                        const matchBadge = item.matchType === 'exact' ? '<span class="wizard-spotify-match-badge exact">Exact</span>' :
+                                          item.matchType === 'fuzzy' ? '<span class="wizard-spotify-match-badge fuzzy">Close</span>' : '';
+                        // Format release date
+                        let releaseDateDisplay = '';
+                        if (item.releaseDate) {
+                            const d = new Date(item.releaseDate + 'T00:00:00');
+                            releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                        }
+                        const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                        return `
+                            <div class="wizard-spotify-result-item ${matchClass}" style="position: relative;" 
+                                 onclick="selectWizardSpotifyResult(${idx})">
+                                <span class="wizard-spotify-result-type">${item.type}</span>
+                                ${matchBadge}
+                                <img class="wizard-spotify-result-img" src="${item.thumbnailUrl}" alt="${escapeHtml(item.title)}" loading="lazy">
+                                <div class="wizard-spotify-result-info">
+                                    <div class="wizard-spotify-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>
+                                    <div class="wizard-spotify-result-artist" title="${escapeHtml(item.artistName)}">${escapeHtml(item.artistName)}</div>
+                                    ${metaLine ? `<div class="wizard-spotify-result-meta">${metaLine}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    resultsEl.style.display = 'grid';
+                })
+                .catch(err => {
+                    console.error('Spotify search error:', err);
+                    statusEl.style.display = 'none';
+                    resultsEl.innerHTML = '<div class="no-results">Error searching Spotify. Make sure API is configured.</div>';
+                    resultsEl.style.display = 'block';
+                });
+        }
+        
+        function selectWizardSpotifyResult(index) {
+            const item = wizardSpotifySearchResults[index];
+            if (!item) return;
+            
+            if (wizardSpotifySearchContext === 'album') {
+                // Populate album form
+                if (item.releaseDate) {
+                    // Convert YYYY-MM-DD to dd/MM/yyyy
+                    const parts = item.releaseDate.split('-');
+                    if (parts.length === 3) {
+                        document.getElementById('newAlbumReleaseDate').value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                }
+                // Store image URL for later saving
+                if (item.fullUrl) {
+                    document.getElementById('wizardAlbumImageUrl').value = item.fullUrl;
+                    document.getElementById('wizardAlbumImagePreviewImg').src = item.thumbnailUrl;
+                    document.getElementById('wizardAlbumImagePreview').style.display = 'block';
+                    wizardState.newAlbumImageUrl = item.fullUrl;
+                }
+                document.getElementById('wizardAlbumAppleStatus').textContent = '✓ Selected from Spotify: ' + item.title;
+                document.getElementById('wizardAlbumAppleStatus').style.color = '#1DB954';
+            } else if (wizardSpotifySearchContext === 'song') {
+                // Populate song form
+                const statusEl = document.getElementById('wizardItunesFetchStatus');
+                const parts = [];
+                
+                if (item.releaseDate) {
+                    const dateParts = item.releaseDate.split('-');
+                    if (dateParts.length === 3) {
+                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        document.getElementById('wizardSongReleaseDate').value = formatted;
+                        parts.push(`Release: ${formatted}`);
+                    }
+                }
+                if (item.lengthSeconds && item.lengthFormatted) {
+                    document.getElementById('wizardSongLength').value = item.lengthFormatted;
+                    document.getElementById('wizardSongLengthSeconds').value = item.lengthSeconds;
+                    parts.push(`Length: ${item.lengthFormatted}`);
+                }
+                // Store image URL
+                if (item.fullUrl) {
+                    document.getElementById('wizardSongImageUrl').value = item.fullUrl;
+                    document.getElementById('wizardSongImagePreviewImg').src = item.thumbnailUrl;
+                    document.getElementById('wizardSongImagePreview').style.display = 'block';
+                    wizardState.newSongImageUrl = item.fullUrl;
+                }
+                
+                if (parts.length > 0) {
+                    statusEl.textContent = 'From Spotify: ' + parts.join(', ');
+                    statusEl.style.color = '#1DB954';
+                }
+            }
+            
+            closeWizardSpotifySearchModal();
         }
     </script>
 </body>

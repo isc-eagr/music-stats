@@ -54,7 +54,12 @@ public class SongService {
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                        String listenedDateFrom, String listenedDateTo,
-                                       String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle, String inItunes,
+                                       String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                       Integer ageMin, Integer ageMax, String ageMode,
+                                       Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                       String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                       String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                                       String inItunes,
                                        Integer playCountMin, Integer playCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -77,7 +82,11 @@ public class SongService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode,
+                ageAtReleaseMin, ageAtReleaseMax,
+                birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -176,7 +185,12 @@ public class SongService {
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                           String listenedDateFrom, String listenedDateTo,
-                          String organized, String hasImage, String hasFeaturedArtists, String isBand, String isSingle, String inItunes,
+                          String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                          Integer ageMin, Integer ageMax, String ageMode,
+                          Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                          String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                          String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                          String inItunes,
                           Integer playCountMin, Integer playCountMax,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -194,7 +208,12 @@ public class SongService {
                     firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                     lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                     listenedDateFrom, listenedDateTo,
-                    organized, hasImage, hasFeaturedArtists, isBand, isSingle, inItunes,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    inItunes,
                     playCountMin, playCountMax,
                     lengthMin, lengthMax, lengthMode,
                     weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -209,7 +228,11 @@ public class SongService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode,
+                ageAtReleaseMin, ageAtReleaseMax,
+                birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -390,9 +413,11 @@ public class SongService {
             updateScrobblesForSongAlbumChange(song.getId(), newAlbumName);
         }
         
-        // Try to match unmatched scrobbles with the current song details
-        // This catches scrobbles that might now match after the song was renamed or album changed
-        tryMatchUnmatchedScrobblesForSong(song);
+        // Only try to match unmatched scrobbles if name or album changed (expensive operation)
+        boolean nameChanged = oldName != null && !oldName.equals(song.getName());
+        if (nameChanged || albumChanged) {
+            tryMatchUnmatchedScrobblesForSong(song);
+        }
         
         return song;
     }
@@ -455,9 +480,13 @@ public class SongService {
     }
     
     public byte[] getSongImage(Integer id) {
-        // Use COALESCE to check single_cover first, then fall back to album image
+        // Priority: 1) single_cover, 2) first SongImage gallery image, 3) album image
         String sql = """
-            SELECT COALESCE(s.single_cover, a.image) as image
+            SELECT COALESCE(
+                s.single_cover,
+                (SELECT image FROM SongImage WHERE song_id = s.id ORDER BY display_order ASC LIMIT 1),
+                a.image
+            ) as image
             FROM Song s
             LEFT JOIN Album a ON s.album_id = a.id
             WHERE s.id = ?
@@ -480,8 +509,22 @@ public class SongService {
     }
 
     // Gallery methods for secondary images
+    // If song has no single_cover, the first SongImage is used as the default image,
+    // so we exclude it from the gallery list to avoid showing it twice
     public List<SongImage> getSecondaryImages(Integer songId) {
-        return songImageRepository.findBySongIdOrderByDisplayOrderAsc(songId);
+        List<SongImage> allImages = songImageRepository.findBySongIdOrderByDisplayOrderAsc(songId);
+        
+        // Check if the song has its own single_cover
+        byte[] singleCover = getSongOwnImage(songId);
+        boolean hasSingleCover = singleCover != null && singleCover.length > 0;
+        
+        // If no single_cover and there are gallery images, the first one is the "default"
+        // so we skip it to avoid duplication in the gallery
+        if (!hasSingleCover && allImages.size() > 0) {
+            return allImages.subList(1, allImages.size());
+        }
+        
+        return allImages;
     }
 
     public int getSecondaryImageCount(Integer songId) {
@@ -494,7 +537,41 @@ public class SongService {
                 .orElse(null);
     }
 
-    public void addSecondaryImage(Integer songId, byte[] imageData) {
+    /**
+     * Check if an image already exists for this song (either as single_cover or in gallery).
+     * Uses byte length first for speed, then compares actual data.
+     */
+    public boolean isDuplicateImage(Integer songId, byte[] imageData) {
+        if (imageData == null || imageData.length == 0) return false;
+        
+        // Check against single_cover
+        byte[] singleCover = getSongOwnImage(songId);
+        if (singleCover != null && singleCover.length == imageData.length && java.util.Arrays.equals(singleCover, imageData)) {
+            return true;
+        }
+        
+        // Check against gallery images
+        List<SongImage> galleryImages = songImageRepository.findBySongIdOrderByDisplayOrderAsc(songId);
+        for (SongImage existing : galleryImages) {
+            byte[] existingData = existing.getImage();
+            if (existingData != null && existingData.length == imageData.length && java.util.Arrays.equals(existingData, imageData)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Add a secondary image to the song gallery.
+     * @return true if image was added, false if it was a duplicate and skipped
+     */
+    public boolean addSecondaryImage(Integer songId, byte[] imageData) {
+        // Check for duplicates first
+        if (isDuplicateImage(songId, imageData)) {
+            return false; // Skip duplicate
+        }
+        
         Integer maxOrder = songImageRepository.getMaxDisplayOrder(songId);
         SongImage image = new SongImage();
         image.setSongId(songId);
@@ -502,6 +579,7 @@ public class SongService {
         image.setDisplayOrder(maxOrder + 1);
         image.setCreationDate(new java.sql.Timestamp(System.currentTimeMillis()));
         songImageRepository.save(image);
+        return true;
     }
 
     @Transactional
@@ -592,6 +670,7 @@ public class SongService {
         String[] iso = Locale.getISOCountries();
         Set<String> names = new TreeSet<>();
         for (String code : iso) {
+            @SuppressWarnings("deprecation")
             Locale loc = new Locale("", code);
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {
@@ -1113,7 +1192,9 @@ public class SongService {
                 (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(scr.play_count, 0) as play_count,
-                COALESCE(scr.time_listened, 0) as time_listened
+                COALESCE(scr.time_listened, 0) as time_listened,
+                a.birth_date,
+                a.death_date
             FROM SongFeaturedArtist sfa
             INNER JOIN Artist a ON sfa.artist_id = a.id
             LEFT JOIN Gender g ON a.gender_id = g.id
@@ -1155,6 +1236,10 @@ public class SongService {
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             dto.setFeatureCount(1); // For songs, each featured artist only appears once
+            String birthDateStr = rs.getString("birth_date");
+            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
+            String deathDateStr = rs.getString("death_date");
+            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
         }, songId);
     }
@@ -1163,7 +1248,7 @@ public class SongService {
     public List<Map<String, Object>> searchSongs(String artistQuery, String songQuery, int limit) {
         StringBuilder sql = new StringBuilder(
             "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
-            "CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_image " +
+            "CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image " +
             "FROM Song s " +
             "JOIN Artist a ON s.artist_id = a.id " +
             "LEFT JOIN Album al ON s.album_id = al.id " +

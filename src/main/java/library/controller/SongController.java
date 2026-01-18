@@ -10,7 +10,6 @@ import library.repository.LookupRepository;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
-import library.service.ScrobbleService;
 import library.service.SongService;
 import library.service.ItunesService;
 import library.util.DateFormatUtils;
@@ -37,10 +36,9 @@ public class SongController {
     private final iTunesLibraryService iTunesLibraryService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
-    private final ScrobbleService scrobbleService;
 
     public SongController(SongService songService, ChartService chartService, ArtistService artistService, 
-                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository, ItunesService itunesService, ScrobbleService scrobbleService) {
+                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository, ItunesService itunesService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -48,7 +46,6 @@ public class SongController {
         this.iTunesLibraryService = iTunesLibraryService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
-        this.scrobbleService = scrobbleService;
     }
     
     @InitBinder
@@ -111,6 +108,19 @@ public class SongController {
             @RequestParam(required = false) String countryMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
@@ -126,7 +136,8 @@ public class SongController {
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) String organized,
-            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) Integer imageCountMin,
+            @RequestParam(required = false) Integer imageCountMax,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
@@ -160,6 +171,12 @@ public class SongController {
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
         String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
         String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
+        String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
+        String birthDateFromConverted = DateFormatUtils.convertToIsoFormat(birthDateFrom);
+        String birthDateToConverted = DateFormatUtils.convertToIsoFormat(birthDateTo);
+        String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
+        String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
+        String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         
         // Get filtered and sorted songs
         List<SongCardDTO> songs = songService.getSongs(
@@ -170,7 +187,11 @@ public class SongController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle, inItunes,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -185,7 +206,11 @@ public class SongController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle, inItunes,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -219,8 +244,28 @@ public class SongController {
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
+        model.addAttribute("ageMin", ageMin);
+        model.addAttribute("ageMax", ageMax);
+        model.addAttribute("ageMode", ageMode);
+        model.addAttribute("ageAtReleaseMin", ageAtReleaseMin);
+        model.addAttribute("ageAtReleaseMax", ageAtReleaseMax);
+        model.addAttribute("birthDate", birthDate);
+        model.addAttribute("birthDateFrom", birthDateFrom);
+        model.addAttribute("birthDateTo", birthDateTo);
+        model.addAttribute("birthDateMode", birthDateMode);
+        model.addAttribute("birthDateFormatted", DateFormatUtils.convertToDisplayFormat(birthDate));
+        model.addAttribute("birthDateFromFormatted", DateFormatUtils.convertToDisplayFormat(birthDateFrom));
+        model.addAttribute("birthDateToFormatted", DateFormatUtils.convertToDisplayFormat(birthDateTo));
+        model.addAttribute("deathDate", deathDate);
+        model.addAttribute("deathDateFrom", deathDateFrom);
+        model.addAttribute("deathDateTo", deathDateTo);
+        model.addAttribute("deathDateMode", deathDateMode);
+        model.addAttribute("deathDateFormatted", DateFormatUtils.convertToDisplayFormat(deathDate));
+        model.addAttribute("deathDateFromFormatted", DateFormatUtils.convertToDisplayFormat(deathDateFrom));
+        model.addAttribute("deathDateToFormatted", DateFormatUtils.convertToDisplayFormat(deathDateTo));
         model.addAttribute("selectedOrganized", organized);
-        model.addAttribute("selectedHasImage", hasImage);
+        model.addAttribute("imageCountMin", imageCountMin);
+        model.addAttribute("imageCountMax", imageCountMax);
         model.addAttribute("selectedHasFeaturedArtists", hasFeaturedArtists);
         model.addAttribute("selectedIsBand", isBand);
         model.addAttribute("selectedIsSingle", isSingle);
@@ -297,9 +342,9 @@ public class SongController {
             return "redirect:/songs";
         }
         
-        // Check if song has an image
-        byte[] image = songService.getSongImage(id);
-        boolean hasImage = (image != null && image.length > 0);
+        // Check if song has its own image (not falling back to album)
+        byte[] ownImage = songService.getSongOwnImage(id);
+        boolean hasImage = (ownImage != null && ownImage.length > 0);
         
         // Get artist and album names
         String artistName = songService.getArtistName(song.get().getArtistId());
@@ -544,8 +589,8 @@ public class SongController {
             if (file.isEmpty()) {
                 return "error";
             }
-            songService.addSecondaryImage(id, file.getBytes());
-            return "success";
+            boolean added = songService.addSecondaryImage(id, file.getBytes());
+            return added ? "success" : "duplicate";
         } catch (Exception e) {
             e.printStackTrace();
             return "error";
@@ -763,7 +808,12 @@ public class SongController {
             // Songs chart filters
             Integer songsWeeklyChartPeak, Integer songsWeeklyChartWeeks,
             Integer songsSeasonalChartPeak, Integer songsSeasonalChartSeasons,
-            Integer songsYearlyChartPeak, Integer songsYearlyChartYears) {
+            Integer songsYearlyChartPeak, Integer songsYearlyChartYears,
+            // Age/date filters
+            Integer ageMin, Integer ageMax, String ageMode,
+            Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+            String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+            String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode) {
         
         return ChartFilterDTO.builder()
             .setName(q)
@@ -821,7 +871,21 @@ public class SongController {
             .setSongsSeasonalChartPeak(songsSeasonalChartPeak)
             .setSongsSeasonalChartSeasons(songsSeasonalChartSeasons)
             .setSongsYearlyChartPeak(songsYearlyChartPeak)
-            .setSongsYearlyChartYears(songsYearlyChartYears);
+            .setSongsYearlyChartYears(songsYearlyChartYears)
+            // Age/date filters
+            .setAgeMin(ageMin)
+            .setAgeMax(ageMax)
+            .setAgeMode(ageMode)
+            .setAgeAtReleaseMin(ageAtReleaseMin)
+            .setAgeAtReleaseMax(ageAtReleaseMax)
+            .setBirthDate(DateFormatUtils.convertToIsoFormat(birthDate))
+            .setBirthDateFrom(DateFormatUtils.convertToIsoFormat(birthDateFrom))
+            .setBirthDateTo(DateFormatUtils.convertToIsoFormat(birthDateTo))
+            .setBirthDateMode(birthDateMode)
+            .setDeathDate(DateFormatUtils.convertToIsoFormat(deathDate))
+            .setDeathDateFrom(DateFormatUtils.convertToIsoFormat(deathDateFrom))
+            .setDeathDateTo(DateFormatUtils.convertToIsoFormat(deathDateTo))
+            .setDeathDateMode(deathDateMode);
     }
     
     // API endpoint for General tab chart data (pie charts)
@@ -881,6 +945,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit,
@@ -900,7 +977,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -967,6 +1048,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -985,7 +1079,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1049,6 +1147,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1067,7 +1178,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1131,6 +1246,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1149,7 +1277,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1213,6 +1345,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1231,7 +1376,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1295,6 +1444,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1313,7 +1475,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1377,6 +1543,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1395,7 +1574,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1459,6 +1642,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "0") int limit) {
@@ -1477,7 +1673,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
@@ -1541,6 +1741,19 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(defaultValue = "false") boolean includeGroups,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(defaultValue = "10") int limit) {
@@ -1559,7 +1772,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
         
         // Set include toggles for top artists
         filter.setIncludeGroups(includeGroups);
@@ -1624,7 +1841,20 @@ public class SongController {
             @RequestParam(required = false) Integer songsSeasonalChartPeak,
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
-            @RequestParam(required = false) Integer songsYearlyChartYears) {
+            @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode) {
         
         ChartFilterDTO filter = buildChartFilter(
             q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
@@ -1640,7 +1870,11 @@ public class SongController {
             albumsYearlyChartPeak, albumsYearlyChartYears,
             songsWeeklyChartPeak, songsWeeklyChartWeeks,
             songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears);
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
         
         return songService.getFilteredChartData(filter);
     }
@@ -1756,7 +1990,8 @@ public class SongController {
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) String organized,
-            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) Integer imageCountMin,
+            @RequestParam(required = false) Integer imageCountMax,
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
@@ -1788,7 +2023,12 @@ public class SongController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, isSingle, null, // inItunes not used in export
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                null, null, null,           // ageMin, ageMax, ageMode (not used in export)
+                null, null,                 // ageAtReleaseMin, ageAtReleaseMax (not used in export)
+                null, null, null, null,     // birthDate, birthDateFrom, birthDateTo, birthDateMode (not used in export)
+                null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode (not used in export)
+                null,                       // inItunes (not used in export)
                 playCountMin, playCountMax,
                 null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)

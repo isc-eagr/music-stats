@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -48,13 +49,16 @@ public class ArtistService {
                                           List<Integer> subgenreIds, String subgenreMode,
                                           List<Integer> languageIds, String languageMode,
                                           List<String> countries, String countryMode,
+                                          String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                           List<String> accounts, String accountMode,
+                                          Integer ageMin, Integer ageMax, String ageMode,
                                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                           String listenedDateFrom, String listenedDateTo,
-                                          String organized, String hasImage, String isBand, String inItunes,
+                                          String organized, Integer imageCountMin, Integer imageCountMax, String isBand, String inItunes,
                                           Integer playCountMin, Integer playCountMax,
                                           Integer albumCountMin, Integer albumCountMax,
+                                          String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                           Integer songCountMin, Integer songCountMax,
                                           String sortBy, String sortDir, int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
@@ -74,13 +78,15 @@ public class ArtistService {
         List<Object[]> results = artistRepository.findArtistsWithStats(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                countries, countryMode, accounts, accountMode,
+                countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                accounts, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, hasImage, isBand,
+                organized, imageCountMin, imageCountMax, isBand,
                 playCountMin, playCountMax,
-                albumCountMin, albumCountMax, songCountMin, songCountMax,
+                albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                songCountMin, songCountMax,
                 sortBy, sortDir, actualLimit, actualOffset
         );
         
@@ -122,6 +128,10 @@ public class ArtistService {
             // Set featured song count (index 23)
             dto.setFeaturedSongCount(row[23] != null ? ((Number) row[23]).intValue() : 0);
             
+            // Set birth date (index 24) and death date (index 25)
+            dto.setBirthDate(parseDateSafely(row[24]));
+            dto.setDeathDate(parseDateSafely(row[25]));
+            
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
             
@@ -154,13 +164,16 @@ public class ArtistService {
                             List<Integer> subgenreIds, String subgenreMode,
                             List<Integer> languageIds, String languageMode,
                             List<String> countries, String countryMode,
+                            String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                             List<String> accounts, String accountMode,
+                            Integer ageMin, Integer ageMax, String ageMode,
                             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                             String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                             String listenedDateFrom, String listenedDateTo,
-                            String organized, String hasImage, String isBand, String inItunes,
+                            String organized, Integer imageCountMin, Integer imageCountMax, String isBand, String inItunes,
                             Integer playCountMin, Integer playCountMax,
                             Integer albumCountMin, Integer albumCountMax,
+                            String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                             Integer songCountMin, Integer songCountMax) {
         // Normalize empty lists to null here as well
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
@@ -176,25 +189,29 @@ public class ArtistService {
             // Get all artists matching filters (without pagination) and filter by iTunes
             List<ArtistCardDTO> allArtists = getArtists(name, genderIds, genderMode, ethnicityIds, ethnicityMode,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                    countries, countryMode, accounts, accountMode,
+                    countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    accounts, accountMode, ageMin, ageMax, ageMode,
                     firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                     lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                     listenedDateFrom, listenedDateTo,
-                    organized, hasImage, isBand, inItunes,
-                    playCountMin, playCountMax, albumCountMin, albumCountMax, songCountMin, songCountMax,
+                    organized, imageCountMin, imageCountMax, isBand, inItunes,
+                    playCountMin, playCountMax, albumCountMin, albumCountMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
                     "plays", "desc", 0, Integer.MAX_VALUE);
             return allArtists.size();
         }
         
         return artistRepository.countArtistsWithFilters(name, genderIds, genderMode, 
                 ethnicityIds, ethnicityMode, genreIds, genreMode, subgenreIds, subgenreMode,
-                languageIds, languageMode, countries, countryMode, accounts, accountMode,
+                languageIds, languageMode, countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                accounts, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, hasImage, isBand,
+                organized, imageCountMin, imageCountMax, isBand,
                 playCountMin, playCountMax,
-                albumCountMin, albumCountMax, songCountMin, songCountMax);
+                albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                songCountMin, songCountMax);
     }
     
     public Optional<Artist> getArtistById(Integer id) {
@@ -279,14 +296,12 @@ public class ArtistService {
             artist.getId()
         );
         
-        // If artist name changed, update all associated scrobbles
+        // If artist name changed, update all associated scrobbles and try to match unmatched ones
         if (oldName != null && !oldName.equals(artist.getName())) {
             updateScrobblesForArtistNameChange(artist.getId(), artist.getName());
+            // Only try to match unmatched scrobbles if name changed (expensive operation)
+            tryMatchUnmatchedScrobblesForArtist(artist.getId(), artist.getName());
         }
-        
-        // Try to match unmatched scrobbles with the new artist name
-        // This catches scrobbles that might now match after the artist was renamed
-        tryMatchUnmatchedScrobblesForArtist(artist.getId(), artist.getName());
         
         return artist;
     }
@@ -364,7 +379,41 @@ public class ArtistService {
                 .orElse(null);
     }
 
-    public void addSecondaryImage(Integer artistId, byte[] imageData) {
+    /**
+     * Check if an image already exists for this artist (either as primary or in gallery).
+     * Uses byte length first for speed, then compares actual data.
+     */
+    public boolean isDuplicateImage(Integer artistId, byte[] imageData) {
+        if (imageData == null || imageData.length == 0) return false;
+        
+        // Check against primary image
+        byte[] primaryImage = getArtistImage(artistId);
+        if (primaryImage != null && primaryImage.length == imageData.length && java.util.Arrays.equals(primaryImage, imageData)) {
+            return true;
+        }
+        
+        // Check against gallery images
+        List<ArtistImage> galleryImages = artistImageRepository.findByArtistIdOrderByDisplayOrderAsc(artistId);
+        for (ArtistImage existing : galleryImages) {
+            byte[] existingData = existing.getImage();
+            if (existingData != null && existingData.length == imageData.length && java.util.Arrays.equals(existingData, imageData)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Add a secondary image to the artist gallery.
+     * @return true if image was added, false if it was a duplicate and skipped
+     */
+    public boolean addSecondaryImage(Integer artistId, byte[] imageData) {
+        // Check for duplicates first
+        if (isDuplicateImage(artistId, imageData)) {
+            return false; // Skip duplicate
+        }
+        
         Integer maxOrder = artistImageRepository.getMaxDisplayOrder(artistId);
         ArtistImage image = new ArtistImage();
         image.setArtistId(artistId);
@@ -372,6 +421,7 @@ public class ArtistService {
         image.setDisplayOrder(maxOrder + 1);
         image.setCreationDate(new java.sql.Timestamp(System.currentTimeMillis()));
         artistImageRepository.save(image);
+        return true;
     }
 
     @Transactional
@@ -426,6 +476,7 @@ public class ArtistService {
         String[] iso = Locale.getISOCountries();
         Set<String> names = new TreeSet<>();
         for (String code : iso) {
+            @SuppressWarnings("deprecation")
             Locale loc = new Locale("", code);
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {
@@ -438,11 +489,9 @@ public class ArtistService {
     public int[] getAlbumAndSongCounts(int artistId) {
         Integer songCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM Song WHERE artist_id = ?", Integer.class, artistId);
-        if (songCount == null) songCount = 0;
         Integer albumCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(DISTINCT album_id) FROM Song WHERE artist_id = ? AND album_id IS NOT NULL", Integer.class, artistId);
-        if (albumCount == null) albumCount = 0;
-        return new int[]{albumCount, songCount};
+        return new int[]{albumCount != null ? albumCount : 0, songCount != null ? songCount : 0};
     }
     
     // Cached play stats to avoid multiple queries
@@ -709,7 +758,7 @@ public class ArtistService {
                 s.id,
                 s.name,
                 s.length_seconds,
-                s.single_cover IS NOT NULL as has_image,
+                (s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id)) as has_image,
                 a.image IS NOT NULL as album_has_image,
                 COALESCE(s.release_date, a.release_date) as release_date,
                 a.name as album_name,
@@ -1027,7 +1076,7 @@ public class ArtistService {
     // Find artist by ID
     public Artist findById(Integer id) {
         if (id == null) return null;
-        String sql = "SELECT id, name, gender_id, country, ethnicity_id, genre_id, subgenre_id, language_id, is_band FROM Artist WHERE id = ?";
+        String sql = "SELECT id, name, gender_id, country, ethnicity_id, genre_id, subgenre_id, language_id, is_band, birth_date, death_date FROM Artist WHERE id = ?";
         try {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
                 Artist a = new Artist();
@@ -1040,6 +1089,10 @@ public class ArtistService {
                 a.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
                 a.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
                 a.setIsBand(rs.getInt("is_band") == 1);
+                String birthStr = rs.getString("birth_date");
+                if (birthStr != null) a.setBirthDate(java.time.LocalDate.parse(birthStr));
+                String deathStr = rs.getString("death_date");
+                if (deathStr != null) a.setDeathDate(java.time.LocalDate.parse(deathStr));
                 return a;
             }, id);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
@@ -1069,8 +1122,53 @@ public class ArtistService {
         if (data.get("languageId") != null) {
             artist.setLanguageId(((Number) data.get("languageId")).intValue());
         }
+        // Parse birth date from string (YYYY-MM-DD or YYYY-MM or YYYY)
+        if (data.get("birthDate") != null) {
+            String birthDateStr = (String) data.get("birthDate");
+            java.time.LocalDate birthDate = parseFlexibleDate(birthDateStr);
+            if (birthDate != null) {
+                artist.setBirthDate(birthDate);
+            }
+        }
+        // Parse death date from string
+        if (data.get("deathDate") != null) {
+            String deathDateStr = (String) data.get("deathDate");
+            java.time.LocalDate deathDate = parseFlexibleDate(deathDateStr);
+            if (deathDate != null) {
+                artist.setDeathDate(deathDate);
+            }
+        }
+        // Set isBand flag
+        if (data.get("isBand") != null) {
+            artist.setIsBand((Boolean) data.get("isBand"));
+        }
         Artist created = createArtist(artist);
         return created.getId();
+    }
+
+    // Parse flexible date format from MusicBrainz (YYYY, YYYY-MM, YYYY-MM-DD)
+    private java.time.LocalDate parseFlexibleDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        dateStr = dateStr.trim();
+        try {
+            // Full date: YYYY-MM-DD
+            if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                return java.time.LocalDate.parse(dateStr, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            // Year and month: YYYY-MM -> assume first day of month
+            if (dateStr.matches("\\d{4}-\\d{2}")) {
+                return java.time.LocalDate.parse(dateStr + "-01", java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            // Year only: YYYY -> assume January 1st
+            if (dateStr.matches("\\d{4}")) {
+                return java.time.LocalDate.parse(dateStr + "-01-01", java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to parse date: " + dateStr + " - " + e.getMessage());
+        }
+        return null;
     }
 
     // Helper method to format date strings (from scrobble_date)
@@ -1105,6 +1203,24 @@ public class ArtistService {
         } catch (Exception e) {
             return dateTimeString;
         }
+    }
+    
+    /**
+     * Safely parse a date stored as ISO string (YYYY-MM-DD).
+     * Will fail on numeric timestamps - those should be fixed in the database.
+     */
+    private LocalDate parseDateSafely(Object value) {
+        if (value == null) {
+            return null;
+        }
+        
+        String strValue = value.toString().trim();
+        if (strValue.isEmpty()) {
+            return null;
+        }
+        
+        // Parse as ISO date string (YYYY-MM-DD)
+        return LocalDate.parse(strValue);
     }
     
     // Get scrobbles for an artist with pagination
@@ -1198,6 +1314,8 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                a.birth_date,
+                a.death_date,
                 a.gender_id,
                 g.name as gender_name,
                 a.ethnicity_id,
@@ -1264,6 +1382,10 @@ public class ArtistService {
             if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
                 dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
             }
+            String birthDateStr = rs.getString("birth_date");
+            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
+            String deathDateStr = rs.getString("death_date");
+            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
         }, artistId);
     }
@@ -1279,6 +1401,8 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                a.birth_date,
+                a.death_date,
                 a.gender_id,
                 g.name as gender_name,
                 a.ethnicity_id,
@@ -1321,6 +1445,8 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                a.birth_date,
+                a.death_date,
                 a.gender_id,
                 g.name as gender_name,
                 a.ethnicity_id,
@@ -1389,6 +1515,10 @@ public class ArtistService {
             if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
                 dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
             }
+            String birthDateStr = rs.getString("birth_date");
+            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
+            String deathDateStr = rs.getString("death_date");
+            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
         }, artistId, artistId, artistId, artistId);
     }
@@ -1406,6 +1536,8 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                a.birth_date,
+                a.death_date,
                 a.gender_id,
                 g.name as gender_name,
                 a.ethnicity_id,
@@ -1463,6 +1595,10 @@ public class ArtistService {
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
+            String birthDateStr = rs.getString("birth_date");
+            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
+            String deathDateStr = rs.getString("death_date");
+            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
         }, artistId);
     }
@@ -1476,6 +1612,8 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                a.birth_date,
+                a.death_date,
                 a.gender_id,
                 g.name as gender_name,
                 a.ethnicity_id,
@@ -1533,6 +1671,10 @@ public class ArtistService {
             long timeListened = rs.getLong("time_listened");
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
+            String birthDateStr = rs.getString("birth_date");
+            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
+            String deathDateStr = rs.getString("death_date");
+            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
         }, artistId);
     }
@@ -1734,7 +1876,7 @@ public class ArtistService {
                 s.id,
                 s.name,
                 s.length_seconds,
-                s.single_cover IS NOT NULL as has_image,
+                (s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id)) as has_image,
                 a.image IS NOT NULL as album_has_image,
                 COALESCE(s.release_date, a.release_date) as release_date,
                 a.name as album_name,
@@ -2278,7 +2420,7 @@ public class ArtistService {
                 s.id,
                 s.name,
                 s.length_seconds,
-                s.single_cover IS NOT NULL as has_image,
+                (s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id)) as has_image,
                 a.image IS NOT NULL as album_has_image,
                 COALESCE(s.release_date, a.release_date) as release_date,
                 a.name as album_name,
@@ -2772,5 +2914,46 @@ public class ArtistService {
             artist.put("genderId", rs.getObject("genderId") != null ? rs.getInt("genderId") : null);
             return artist;
         }, ids.toArray());
+    }
+
+    /**
+     * Update artist metadata from external source (MusicBrainz).
+     * Only updates fields that are provided (non-null).
+     */
+    public void updateArtistMetadata(Long artistId, java.time.LocalDate birthDate, 
+                                      java.time.LocalDate deathDate, String country, Boolean isBand) {
+        StringBuilder sql = new StringBuilder("UPDATE Artist SET ");
+        List<Object> params = new ArrayList<>();
+        List<String> updates = new ArrayList<>();
+        
+        if (birthDate != null) {
+            updates.add("birth_date = ?");
+            params.add(birthDate.toString()); // Store as ISO string: YYYY-MM-DD
+        }
+        
+        if (deathDate != null) {
+            updates.add("death_date = ?");
+            params.add(deathDate.toString()); // Store as ISO string: YYYY-MM-DD
+        }
+        
+        if (country != null && !country.trim().isEmpty()) {
+            updates.add("country = ?");
+            params.add(country.trim());
+        }
+        
+        if (isBand != null) {
+            updates.add("is_band = ?");
+            params.add(isBand ? 1 : 0);
+        }
+        
+        if (updates.isEmpty()) {
+            return; // Nothing to update
+        }
+        
+        sql.append(String.join(", ", updates));
+        sql.append(" WHERE id = ?");
+        params.add(artistId);
+        
+        jdbcTemplate.update(sql.toString(), params.toArray());
     }
 }

@@ -17,6 +17,21 @@
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Highlight for externally fetched data - uses gender colors */
+        .field-highlight {
+            box-shadow: 0 0 8px 2px #4CAF50 !important;
+            border-color: #4CAF50 !important;
+        }
+        .gender-male .field-highlight {
+            box-shadow: 0 0 8px 2px #4a90d9 !important;
+            border-color: #4a90d9 !important;
+        }
+        .gender-female .field-highlight {
+            box-shadow: 0 0 8px 2px #d94a8a !important;
+            border-color: #d94a8a !important;
+        }
+    </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -54,7 +69,7 @@
                          th:alt="${album.name}"
                          id="albumImage"
                          class="item-image-large clickable-image"
-                         onclick="openImageModal(this.src)"
+                         onclick="openAlbumImageModal()"
                          style="cursor: pointer;">
                       <span th:if="${albumLengthFormatted != null and !#strings.isEmpty(albumLengthFormatted)}"
                           class="length-overlay"
@@ -77,14 +92,19 @@
                     <div class="image-upload-overlay">
                         <input type="file" autocomplete="off" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         <button type="button" class="btn-upload-image" id="btnUploadImage" onclick="document.getElementById('imageInput').click()">
-                            Upload Image
+                            Upload
+                        </button>
+                        <button type="button" class="btn-fetch-external" id="btnFetchExternal" 
+                                th:attr="data-artist=${artistName},data-album=${album.name},data-id=${album.id},data-has-image=${hasImage}"
+                                onclick="openExternalFetchFromButton(this, 'album', 'image')">
+                            Fetch
                         </button>
                         <button type="button" class="btn-remove-image" id="btnRemoveMain" th:if="${hasImage}" onclick="removeImage()">
                             Remove
                         </button>
                         <!-- Gallery-specific buttons -->
                         <button type="button" class="btn-set-default" id="btnSetDefault" onclick="setAsDefaultImage()" style="display: none;">
-                            Set as Default
+                            Default
                         </button>
                         <button type="button" class="btn-remove-gallery" id="btnRemoveGallery" onclick="removeGalleryImage()" style="display: none;">
                             Remove
@@ -282,11 +302,23 @@
                                 <span class="attribute-text" data-field="name" th:text="${album.name}" style="display:none;">Album Name</span>
                                 <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" class="editable-input" />
                             </div>
+                            
                             <div class="attributes-grid">
                                 <!-- Column 1: Release Date, First/Last Listened, Length -->
                                 <div class="form-group">
                                     <label for="releaseDate">Release Date</label>
-                                    <span class="attribute-text" data-field="releaseDate" th:text="${album.releaseDateFormatted != null ? album.releaseDateFormatted : '-'}">-</span>
+                                    <span class="attribute-text" data-field="releaseDate">
+                                        <th:block th:text="${album.releaseDateFormatted != null ? album.releaseDateFormatted : '-'}">-</th:block>
+                                        <th:block th:if="${artist != null and artist.birthDate != null and album.releaseDate != null}">
+                                            <th:block th:if="${artist.deathDate != null and album.releaseDate.toLocalDate().isAfter(artist.deathDate)}">
+                                                <span class="release-age-text">(Posthumous)</span>
+                                            </th:block>
+                                            <th:block th:if="${artist.deathDate == null or !album.releaseDate.toLocalDate().isAfter(artist.deathDate)}"
+                                                      th:with="ageAtRelease=${T(java.time.temporal.ChronoUnit).YEARS.between(artist.birthDate, album.releaseDate.toLocalDate())}">
+                                                <span class="release-age-text" th:text="' (at ' + ${ageAtRelease} + ' years old)'"></span>
+                                            </th:block>
+                                        </th:block>
+                                    </span>
                                     <input type="text" autocomplete="off" id="releaseDate" name="releaseDate" th:value="${album.releaseDateInput}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" style="display:none;" />
                                 </div>
                                 
@@ -357,7 +389,7 @@
                                     <span class="attribute-text" th:text="${albumLengthFormatted != null ? albumLengthFormatted : '-'}">-</span>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>Country</label>
                                     <span class="attribute-text attribute-inherited" th:text="${artistCountry != null ? artistCountry : '-'}">-</span>
                                 </div>
@@ -381,8 +413,11 @@
                         </div>
                         
                         <div class="form-actions" id="formActions" style="display:none;">
-                            <button type="submit" class="btn-action">Save</button>
-                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                            <button type="submit" class="btn-action" onclick="clearAllHighlights()">Save</button>
+                            <button type="button" class="btn-negative" onclick="clearAllHighlights(); cancelEdit()">Cancel</button>
+                            <button type="button" class="btn-fetch-external" id="btnFetchExternalMeta" 
+                                    th:attr="data-artist=${artistName},data-album=${album.name},data-id=${album.id},data-has-image=${hasImage}"
+                                    onclick="openAlbumExternalMetadataSearch()">External</button>
                         </div>
                     </form>
                 </div>
@@ -570,6 +605,8 @@
                                     <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
                                          th:alt="${artist.country}" />
                                 </span>
+                                <!-- Death indicator overlay -->
+                                <span class="death-overlay" th:if="${artist.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(artist.deathDate, 'dd-MMM-yyyy')}">†</span>
                                 <!-- Feature count badge for albums -->
                                 <span th:if="${artist.featureCount > 1}" class="feature-count-badge" 
                                       th:text="${artist.featureCount}" th:title="${artist.featureCount + ' songs'}"></span>
@@ -865,10 +902,19 @@
                 deleteBtn.style.display = 'none';
                 formActions.style.display = 'flex';
                 
+                // Hide view-only fields (like Country which belongs to artist)
+                document.querySelectorAll('.view-only-field').forEach(el => el.style.display = 'none');
+                
                 // Show name field group
                 const nameFieldGroup = document.getElementById('nameFieldGroup');
                 if (nameFieldGroup) {
                     nameFieldGroup.style.display = 'block';
+                }
+                
+                // Show external fetch button in release date field
+                const fetchExternalMetaBtn = document.getElementById('fetchExternalMetaBtn');
+                if (fetchExternalMetaBtn) {
+                    fetchExternalMetaBtn.style.display = 'inline-block';
                 }
                 
                 // Switch labels to edit mode (show "Override" labels)
@@ -1103,7 +1149,7 @@
                 img.id = 'albumImage';
                 img.className = 'item-image-large clickable-image';
                 img.style.cursor = 'pointer';
-                img.onclick = function() { openImageModal(this.src); };
+                img.onclick = function() { openAlbumImageModal(); };
                 const container = document.querySelector('.item-image-container');
                 // Insert after the gallery nav buttons
                 const navRight = document.getElementById('galleryNext');
@@ -1134,6 +1180,24 @@
                     img.style.display = 'block';
                 }
                 if (placeholder) placeholder.style.display = 'none';
+            }
+        }
+
+        function openAlbumImageModal() {
+            const img = document.getElementById('albumImage');
+            if (!img) return;
+            
+            // Build gallery context if there are multiple images
+            if (galleryImages.length > 1) {
+                const galleryContext = {
+                    images: galleryImages,
+                    entityType: 'albums',
+                    entityId: albumId,
+                    currentIndex: currentGalleryIndex
+                };
+                openImageModal(img.src, galleryContext);
+            } else {
+                openImageModal(img.src);
             }
         }
 
@@ -1295,6 +1359,11 @@
             margin-left: 4px;
         }
 
+        .release-age-text {
+            color: #999;
+            font-size: 0.85em;
+        }
+
         .form-group.form-group-checkbox .checkbox-container {
             margin: 0;
             padding: 0;
@@ -1427,6 +1496,9 @@
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
     
+    <!-- External Fetch Modal (iTunes Store, Spotify, Deezer) -->
+    <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
+    
     <script th:inline="javascript">
         /*<![CDATA[*/
         const albumId = /*[[${album.id}]]*/ null;
@@ -1439,9 +1511,7 @@
                 const albumImage = document.getElementById('albumImage');
                 if (albumImage) {
                     albumImage.classList.add('clickable');
-                    albumImage.addEventListener('click', function() {
-                        openImageModal(this.src);
-                    });
+                    // Note: click handler is already set inline via onclick attribute
                 }
                 
                 // Load album chart run if on chart-history tab and has chart history
@@ -1567,6 +1637,442 @@
                 });
             }
         });
+        
+        // External Metadata Search for Album Edit Mode
+        function highlightField(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.remove('field-highlight');
+                void el.offsetWidth; // Trigger reflow
+                el.classList.add('field-highlight');
+                // Remove highlight when user modifies the field
+                const removeHighlight = () => {
+                    el.classList.remove('field-highlight');
+                    el.removeEventListener('input', removeHighlight);
+                    el.removeEventListener('change', removeHighlight);
+                };
+                el.addEventListener('input', removeHighlight);
+                el.addEventListener('change', removeHighlight);
+            }
+        }
+        
+        function clearAllHighlights() {
+            document.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+        }
+        
+        function openAlbumExternalMetadataSearch() {
+            const artistName = /*[[${artistName}]]*/ '';
+            const albumName = document.getElementById('name').value || /*[[${album.name}]]*/ '';
+            const hasImage = /*[[${hasImage}]]*/ false;
+            
+            // Open the unified external fetch modal in 'metadata' mode
+            openExternalFetchModal(artistName, albumName, albumId, 'album', hasImage, 'metadata', function(selectedItem) {
+                // Callback to populate form fields with selected metadata
+                
+                // Set release date if available
+                if (selectedItem.releaseDate) {
+                    const dateParts = selectedItem.releaseDate.split('-');
+                    if (dateParts.length === 3) {
+                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        const releaseDateEl = document.getElementById('releaseDate');
+                        const oldValue = releaseDateEl.value;
+                        releaseDateEl.value = formatted;
+                        // Trigger Flatpickr update
+                        const fp = releaseDateEl._flatpickr;
+                        if (fp) fp.setDate(formatted, true, 'd/m/Y');
+                        // Only highlight if value changed
+                        if (oldValue !== formatted) {
+                            highlightField('releaseDate');
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Apple Music Metadata Search for Album Edit Mode (Legacy - kept for reference)
+        function openAppleMetadataSearch() {
+            const artistName = /*[[${artistName}]]*/ '';
+            const albumName = document.getElementById('name').value || /*[[${album.name}]]*/ '';
+            
+            // Create modal if needed
+            let modal = document.getElementById('appleMetadataModal');
+            if (!modal) {
+                createAppleMetadataModal();
+                modal = document.getElementById('appleMetadataModal');
+            }
+            
+            document.getElementById('appleMetaSearchInput').value = artistName + ' - ' + albumName;
+            document.getElementById('appleMetaResults').innerHTML = '<div style="text-align:center; color:#888; padding:40px;">Click Search to find results</div>';
+            document.getElementById('appleMetaStatus').style.display = 'none';
+            
+            modal.style.display = 'flex';
+            performAppleMetadataSearch();
+        }
+        
+        let appleMetaSearchResults = [];
+        
+        function createAppleMetadataModal() {
+            const modalHtml = `
+                <div id="appleMetadataModal" class="am-modal" onclick="if(event.target===this) closeAppleMetadataModal()">
+                    <div class="am-modal-content" onclick="event.stopPropagation()">
+                        <div class="am-modal-header">
+                            <h3>Search Apple Music for Album</h3>
+                            <button class="am-modal-close" onclick="closeAppleMetadataModal()">&times;</button>
+                        </div>
+                        <div class="am-modal-body">
+                            <div class="am-search-form">
+                                <input type="text" id="appleMetaSearchInput" class="am-search-input" placeholder="Artist - Album">
+                                <select id="appleMetaCountrySelect" class="am-country-select" style="width:100px;">
+                                    <option value="us">🇺🇸 US</option>
+                                    <option value="mx">🇲🇽 MX</option>
+                                    <option value="es">🇪🇸 ES</option>
+                                    <option value="gb">🇬🇧 UK</option>
+                                </select>
+                                <button type="button" class="am-btn-search" onclick="performAppleMetadataSearch()">Search</button>
+                            </div>
+                            <div id="appleMetaStatus" class="am-search-status" style="display:none;">Searching...</div>
+                            <div id="appleMetaResults" class="am-results-grid" style="display:none;"></div>
+                        </div>
+                        <div class="am-modal-footer">
+                            <span style="color:#888; font-size:12px;">Select an item to populate release date and image</span>
+                            <button type="button" class="am-btn-cancel" onclick="closeAppleMetadataModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeAppleMetadataModal() {
+            const modal = document.getElementById('appleMetadataModal');
+            if (modal) modal.style.display = 'none';
+        }
+        
+        function performAppleMetadataSearch() {
+            const searchInput = document.getElementById('appleMetaSearchInput').value.trim();
+            const country = document.getElementById('appleMetaCountrySelect').value;
+            if (!searchInput) return;
+            
+            const statusEl = document.getElementById('appleMetaStatus');
+            const resultsEl = document.getElementById('appleMetaResults');
+            statusEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            
+            const parts = searchInput.split(' - ');
+            const artist = parts[0] || searchInput;
+            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+            
+            fetch(`/api/apple-music/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&country=${country}`)
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.style.display = 'none';
+                    if (!data || data.length === 0) {
+                        resultsEl.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">No results found</div>';
+                        resultsEl.style.display = 'block';
+                        return;
+                    }
+                    appleMetaSearchResults = sortAppleMetaResults(data, artist, title);
+                    renderAppleMetaResults();
+                    resultsEl.style.display = 'grid';
+                })
+                .catch(err => {
+                    statusEl.style.display = 'none';
+                    resultsEl.innerHTML = '<div style="text-align:center; color:#ff6b6b; padding:40px;">Error searching Apple Music</div>';
+                    resultsEl.style.display = 'block';
+                });
+        }
+        
+        function sortAppleMetaResults(results, searchArtist, searchTitle) {
+            const normArtist = (searchArtist || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const normTitle = (searchTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fuzzyTitle = removeVariationKeywords(searchTitle);
+            
+            return results.map(item => {
+                const itemArtist = (item.artistName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const itemTitle = (item.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const itemTitleFuzzy = removeVariationKeywords(item.title);
+                
+                let score = 0, matchType = 'none';
+                if (itemArtist === normArtist && itemTitle === normTitle) { score = 1000; matchType = 'exact'; }
+                else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) { score = 950; matchType = 'fuzzy'; }
+                else if (itemArtist === normArtist) { score = 500; matchType = 'artist'; }
+                else if (itemTitle === normTitle) { score = 400; matchType = 'title'; }
+                else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) { score = 200; }
+                else if (itemTitle.includes(normTitle) || normTitle.includes(itemTitle)) { score = 100; }
+                return { ...item, matchScore: score, matchType };
+            }).sort((a, b) => b.matchScore - a.matchScore);
+        }
+        
+        function removeVariationKeywords(str) {
+            if (!str) return '';
+            const keywords = ['deluxe', 'remaster', 'remastered', 'anniversary', 'special', 'revised', 'edition', 'version', 'expanded', 'bonus', 'explicit', 'clean'];
+            let normalized = str.toLowerCase();
+            keywords.forEach(k => normalized = normalized.replace(new RegExp(k, 'g'), ''));
+            normalized = normalized.replace(/\d+(st|nd|rd|th)?/g, '');
+            return normalized.trim().replace(/[^a-z0-9]/g, '');
+        }
+        
+        function renderAppleMetaResults() {
+            const resultsEl = document.getElementById('appleMetaResults');
+            resultsEl.innerHTML = appleMetaSearchResults.map((item, idx) => {
+                const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                const matchBadge = item.matchType === 'exact' ? '<span class="match-badge exact">Exact</span>' :
+                                  item.matchType === 'fuzzy' ? '<span class="match-badge fuzzy">Close</span>' : '';
+                let releaseDateDisplay = '';
+                if (item.releaseDate) {
+                    const d = new Date(item.releaseDate + 'T00:00:00');
+                    releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                return `
+                    <div class="am-result-item ${matchClass}" onclick="selectAppleMetaResult(${idx})" style="cursor:pointer;">
+                        <span class="am-result-type">${item.type}</span>
+                        ${matchBadge}
+                        <img class="am-result-image" src="${item.thumbnailUrl}" alt="" loading="lazy">
+                        <div class="am-result-info">
+                            <div class="am-result-title" title="${escapeAttr(item.title)}">${escapeHtml(item.title)}</div>
+                            <div class="am-result-artist">${escapeHtml(item.artistName)}</div>
+                            ${releaseDateDisplay ? `<div class="am-result-meta">${releaseDateDisplay}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function escapeAttr(text) {
+            if (!text) return '';
+            return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        
+        function selectAppleMetaResult(index) {
+            const item = appleMetaSearchResults[index];
+            if (!item) return;
+            
+            const statusEl = document.getElementById('appleMetadataStatus');
+            const parts = [];
+            
+            // Set release date if available
+            if (item.releaseDate) {
+                const dateParts = item.releaseDate.split('-');
+                if (dateParts.length === 3) {
+                    const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    document.getElementById('releaseDate').value = formatted;
+                    // Trigger Flatpickr update if it's initialized
+                    const fp = document.getElementById('releaseDate')._flatpickr;
+                    if (fp) {
+                        fp.setDate(document.getElementById('releaseDate').value, true, 'd/m/Y');
+                    }
+                    parts.push('Release: ' + formatted);
+                }
+            }
+            
+            // Save image via API
+            if (item.fullUrl) {
+                parts.push('Image queued...');
+                fetch('/api/apple-music/save-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageUrls: [item.fullUrl],
+                        entityId: albumId,
+                        entityType: 'album',
+                        hasExistingImage: /*[[${hasImage}]]*/ false
+                    })
+                }).then(r => r.json()).then(data => {
+                    if (data.success) {
+                        // Update status and reload to show new image
+                        if (statusEl) {
+                            statusEl.textContent = '✓ Image saved! Reload to see changes.';
+                            statusEl.style.color = '#69db7c';
+                        }
+                    }
+                }).catch(err => console.error('Failed to save image:', err));
+            }
+            
+            if (statusEl) {
+                statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected from Apple Music');
+                statusEl.style.color = '#69db7c';
+            }
+            
+            closeAppleMetadataModal();
+        }
+        
+        // Spotify Metadata Search for Album Edit Mode
+        function openSpotifyMetadataSearch() {
+            const artistName = /*[[${artistName}]]*/ '';
+            const albumName = document.getElementById('name').value || /*[[${album.name}]]*/ '';
+            
+            // Create modal if needed
+            let modal = document.getElementById('spotifyMetadataModal');
+            if (!modal) {
+                createSpotifyMetadataModal();
+                modal = document.getElementById('spotifyMetadataModal');
+            }
+            
+            document.getElementById('spotifyMetaSearchInput').value = artistName + ' - ' + albumName;
+            document.getElementById('spotifyMetaResults').innerHTML = '<div style="text-align:center; color:#888; padding:40px;">Click Search to find results</div>';
+            document.getElementById('spotifyMetaStatus').style.display = 'none';
+            
+            modal.style.display = 'flex';
+            performSpotifyMetadataSearch();
+        }
+        
+        let spotifyMetaSearchResults = [];
+        
+        function createSpotifyMetadataModal() {
+            const modalHtml = `
+                <div id="spotifyMetadataModal" class="sp-modal" onclick="if(event.target===this) closeSpotifyMetadataModal()">
+                    <div class="sp-modal-content" onclick="event.stopPropagation()">
+                        <div class="sp-modal-header">
+                            <h3><span class="spotify-logo">●</span> Search Spotify for Album</h3>
+                            <button class="sp-modal-close" onclick="closeSpotifyMetadataModal()">&times;</button>
+                        </div>
+                        <div class="sp-modal-body">
+                            <div class="sp-search-form">
+                                <input type="text" id="spotifyMetaSearchInput" class="sp-search-input" placeholder="Artist - Album">
+                                <select id="spotifyMetaCountrySelect" class="sp-country-select" style="width:100px;">
+                                    <option value="US">🇺🇸 US</option>
+                                    <option value="MX">🇲🇽 MX</option>
+                                    <option value="ES">🇪🇸 ES</option>
+                                    <option value="GB">🇬🇧 UK</option>
+                                </select>
+                                <button type="button" class="sp-btn-search" onclick="performSpotifyMetadataSearch()">Search</button>
+                            </div>
+                            <div id="spotifyMetaStatus" class="sp-search-status" style="display:none;">Searching...</div>
+                            <div id="spotifyMetaResults" class="sp-results-grid" style="display:none;"></div>
+                        </div>
+                        <div class="sp-modal-footer">
+                            <span style="color:#888; font-size:12px;">Select an item to populate release date and image</span>
+                            <button type="button" class="sp-btn-cancel" onclick="closeSpotifyMetadataModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeSpotifyMetadataModal() {
+            const modal = document.getElementById('spotifyMetadataModal');
+            if (modal) modal.style.display = 'none';
+        }
+        
+        function performSpotifyMetadataSearch() {
+            const searchInput = document.getElementById('spotifyMetaSearchInput').value.trim();
+            const market = document.getElementById('spotifyMetaCountrySelect').value;
+            if (!searchInput) return;
+            
+            const statusEl = document.getElementById('spotifyMetaStatus');
+            const resultsEl = document.getElementById('spotifyMetaResults');
+            statusEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            
+            const parts = searchInput.split(' - ');
+            const artist = parts[0] || searchInput;
+            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+            
+            fetch(`/api/spotify/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&market=${market}`)
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.style.display = 'none';
+                    if (!data || data.length === 0) {
+                        resultsEl.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">No results found</div>';
+                        resultsEl.style.display = 'block';
+                        return;
+                    }
+                    spotifyMetaSearchResults = sortAppleMetaResults(data, artist, title); // Reuse same sorting logic
+                    renderSpotifyMetaResults();
+                    resultsEl.style.display = 'grid';
+                })
+                .catch(err => {
+                    statusEl.style.display = 'none';
+                    resultsEl.innerHTML = '<div style="text-align:center; color:#ff6b6b; padding:40px;">Error searching Spotify</div>';
+                    resultsEl.style.display = 'block';
+                });
+        }
+        
+        function renderSpotifyMetaResults() {
+            const resultsEl = document.getElementById('spotifyMetaResults');
+            resultsEl.innerHTML = spotifyMetaSearchResults.map((item, idx) => {
+                const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                const matchBadge = item.matchType === 'exact' ? '<span class="sp-match-badge exact">Exact</span>' :
+                                  item.matchType === 'fuzzy' ? '<span class="sp-match-badge fuzzy">Close</span>' : '';
+                let releaseDateDisplay = '';
+                if (item.releaseDate) {
+                    const d = new Date(item.releaseDate + 'T00:00:00');
+                    releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                return `
+                    <div class="sp-result-item ${matchClass}" onclick="selectSpotifyMetaResult(${idx})" style="cursor:pointer;">
+                        <span class="sp-result-type">${item.type}</span>
+                        ${matchBadge}
+                        <img class="sp-result-image" src="${item.thumbnailUrl}" alt="" loading="lazy">
+                        <div class="sp-result-info">
+                            <div class="sp-result-title" title="${escapeAttr(item.title)}">${escapeHtml(item.title)}</div>
+                            <div class="sp-result-artist">${escapeHtml(item.artistName)}</div>
+                            ${releaseDateDisplay ? `<div class="sp-result-meta">${releaseDateDisplay}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function selectSpotifyMetaResult(index) {
+            const item = spotifyMetaSearchResults[index];
+            if (!item) return;
+            
+            const statusEl = document.getElementById('appleMetadataStatus');
+            const parts = [];
+            
+            // Set release date if available
+            if (item.releaseDate) {
+                const dateParts = item.releaseDate.split('-');
+                if (dateParts.length === 3) {
+                    const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    document.getElementById('releaseDate').value = formatted;
+                    // Trigger Flatpickr update if it's initialized
+                    const fp = document.getElementById('releaseDate')._flatpickr;
+                    if (fp) {
+                        fp.setDate(document.getElementById('releaseDate').value, true, 'd/m/Y');
+                    }
+                    parts.push('Release: ' + formatted);
+                }
+            }
+            
+            // Save image via Spotify API
+            if (item.fullUrl) {
+                parts.push('Image queued...');
+                fetch('/api/spotify/save-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageUrls: [item.fullUrl],
+                        entityId: albumId,
+                        entityType: 'album',
+                        hasExistingImage: /*[[${hasImage}]]*/ false
+                    })
+                }).then(r => r.json()).then(data => {
+                    if (data.success) {
+                        if (statusEl) {
+                            statusEl.textContent = '✓ From Spotify! Image saved. Reload to see changes.';
+                            statusEl.style.color = '#1DB954';
+                        }
+                    }
+                }).catch(err => console.error('Failed to save image:', err));
+            }
+            
+            if (statusEl) {
+                statusEl.textContent = '✓ From Spotify: ' + (parts.length > 0 ? parts.join(', ') : 'Selected');
+                statusEl.style.color = '#1DB954';
+            }
+            
+            closeSpotifyMetadataModal();
+        }
         /*]]>*/
     </script>
 </body>

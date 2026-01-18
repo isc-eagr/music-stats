@@ -53,7 +53,12 @@ public class AlbumService {
                                          String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                          String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                          String listenedDateFrom, String listenedDateTo,
-                                         String organized, String hasImage, String hasFeaturedArtists, String isBand, String inItunes,
+                                         String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand,
+                                         Integer ageMin, Integer ageMax, String ageMode,
+                                         Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                         String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                         String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                                         String inItunes,
                                          Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                          Integer lengthMin, Integer lengthMax, String lengthMode,
                                          Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -76,7 +81,11 @@ public class AlbumService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, hasImage, hasFeaturedArtists, isBand,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand,
+                ageMin, ageMax, ageMode,
+                ageAtReleaseMin, ageAtReleaseMax,
+                birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -166,7 +175,12 @@ public class AlbumService {
                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                            String listenedDateFrom, String listenedDateTo,
-                           String organized, String hasImage, String hasFeaturedArtists, String isBand, String inItunes,
+                           String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand,
+                           Integer ageMin, Integer ageMax, String ageMode,
+                           Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                           String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                           String inItunes,
                            Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                            Integer lengthMin, Integer lengthMax, String lengthMode,
                            Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -184,7 +198,12 @@ public class AlbumService {
                     firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                     lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                     listenedDateFrom, listenedDateTo,
-                    organized, hasImage, hasFeaturedArtists, isBand, inItunes,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    inItunes,
                     playCountMin, playCountMax, songCountMin, songCountMax,
                     lengthMin, lengthMax, lengthMode,
                     weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -199,7 +218,11 @@ public class AlbumService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, hasImage, hasFeaturedArtists, isBand,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand,
+                ageMin, ageMax, ageMode,
+                ageAtReleaseMin, ageAtReleaseMax,
+                birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -273,11 +296,9 @@ public class AlbumService {
         String sql = "SELECT a.release_date FROM Album a INNER JOIN Artist ar ON a.artist_id = ar.id WHERE lower(a.name) = lower(?) AND lower(ar.name) = lower(?) LIMIT 1";
         try {
             String releaseDate = jdbcTemplate.queryForObject(sql, String.class, albumName.trim(), artistName.trim());
-            if (releaseDate == null) return null;
             // Normalize to YYYY-MM-DD if possible
-            if (releaseDate.contains("T")) releaseDate = releaseDate.replace('T', ' ');
-            if (releaseDate.length() >= 10) return releaseDate.substring(0, 10);
-            return releaseDate;
+            if (releaseDate != null && releaseDate.contains("T")) releaseDate = releaseDate.replace('T', ' ');
+            return releaseDate != null && releaseDate.length() >= 10 ? releaseDate.substring(0, 10) : releaseDate;
         } catch (Exception e) {
             return null;
         }
@@ -314,14 +335,12 @@ public class AlbumService {
             album.getId()
         );
         
-        // If album name changed, update all associated scrobbles
+        // If album name changed, update all associated scrobbles and try to match unmatched ones
         if (oldName != null && !oldName.equals(album.getName())) {
             updateScrobblesForAlbumNameChange(album.getId(), album.getName());
+            // Only try to match unmatched scrobbles if name changed (expensive operation)
+            tryMatchUnmatchedScrobblesForAlbum(album.getId(), album.getName());
         }
-        
-        // Try to match unmatched scrobbles with the new album name
-        // This catches scrobbles that might now match after the album was renamed
-        tryMatchUnmatchedScrobblesForAlbum(album.getId(), album.getName());
         
         return album;
     }
@@ -345,16 +364,14 @@ public class AlbumService {
      */
     private void tryMatchUnmatchedScrobblesForAlbum(int albumId, String albumName) {
         // Get artist name for this album
-        String artistName = null;
+        String artistName;
         try {
             artistName = jdbcTemplate.queryForObject(
                 "SELECT a.name FROM Artist a JOIN Album al ON a.id = al.artist_id WHERE al.id = ?",
                 String.class, albumId);
         } catch (Exception e) {
-            return; // Can't match without artist name
+            return; // Can't match without artist name (no result or error)
         }
-        
-        if (artistName == null) return;
         
         // Get all songs in this album and try to match unmatched scrobbles
         String sql = """
@@ -408,7 +425,41 @@ public class AlbumService {
                 .orElse(null);
     }
 
-    public void addSecondaryImage(Integer albumId, byte[] imageData) {
+    /**
+     * Check if an image already exists for this album (either as primary or in gallery).
+     * Uses byte length first for speed, then compares actual data.
+     */
+    public boolean isDuplicateImage(Integer albumId, byte[] imageData) {
+        if (imageData == null || imageData.length == 0) return false;
+        
+        // Check against primary image
+        byte[] primaryImage = getAlbumImage(albumId);
+        if (primaryImage != null && primaryImage.length == imageData.length && java.util.Arrays.equals(primaryImage, imageData)) {
+            return true;
+        }
+        
+        // Check against gallery images
+        List<AlbumImage> galleryImages = albumImageRepository.findByAlbumIdOrderByDisplayOrderAsc(albumId);
+        for (AlbumImage existing : galleryImages) {
+            byte[] existingData = existing.getImage();
+            if (existingData != null && existingData.length == imageData.length && java.util.Arrays.equals(existingData, imageData)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Add a secondary image to the album gallery.
+     * @return true if image was added, false if it was a duplicate and skipped
+     */
+    public boolean addSecondaryImage(Integer albumId, byte[] imageData) {
+        // Check for duplicates first
+        if (isDuplicateImage(albumId, imageData)) {
+            return false; // Skip duplicate
+        }
+        
         Integer maxOrder = albumImageRepository.getMaxDisplayOrder(albumId);
         AlbumImage image = new AlbumImage();
         image.setAlbumId(albumId);
@@ -416,6 +467,7 @@ public class AlbumService {
         image.setDisplayOrder(maxOrder + 1);
         image.setCreationDate(new java.sql.Timestamp(System.currentTimeMillis()));
         albumImageRepository.save(image);
+        return true;
     }
 
     @Transactional
@@ -485,6 +537,7 @@ public class AlbumService {
         String[] iso = Locale.getISOCountries();
         Set<String> names = new TreeSet<>();
         for (String code : iso) {
+            @SuppressWarnings("deprecation")
             Locale loc = new Locale("", code);
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {
@@ -1193,7 +1246,9 @@ public class AlbumService {
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
                 COUNT(sfa.song_id) as feature_count,
-                GROUP_CONCAT(s.name, '||') as song_names
+                GROUP_CONCAT(s.name, '||') as song_names,
+                a.birth_date,
+                a.death_date
             FROM SongFeaturedArtist sfa
             INNER JOIN Song s ON sfa.song_id = s.id
             INNER JOIN Artist a ON sfa.artist_id = a.id
@@ -1243,6 +1298,10 @@ public class AlbumService {
             if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
                 dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
             }
+            String birthDateStr = rs.getString("birth_date");
+            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
+            String deathDateStr = rs.getString("death_date");
+            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
         }, albumId);
     }

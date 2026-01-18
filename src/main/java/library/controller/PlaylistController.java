@@ -103,7 +103,11 @@ public class PlaylistController {
                 null, null, null, null,     // firstListenedDate, from, to, mode
                 null, null, null, null,     // lastListenedDate, from, to, mode
                 null, null,                 // listenedDateFrom, listenedDateTo
-                null, null, null, null, null, // organized, hasImage, hasFeaturedArtists, isBand, isSingle
+                null, null, null, null, null, null, // organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle
+                null, null, null,           // ageMin, ageMax, ageMode
+                null, null,                 // ageAtReleaseMin, ageAtReleaseMax
+                null, null, null, null,     // birthDate, birthDateFrom, birthDateTo, birthDateMode
+                null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode
                 null,                       // inItunes
                 null, null,                 // playCountMin, playCountMax
                 null, null, null,           // lengthMin, lengthMax, lengthMode

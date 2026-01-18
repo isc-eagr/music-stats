@@ -27,6 +27,8 @@ public class ArtistCardDTO {
     private Boolean organized;
     private Integer featuredSongCount; // Count of songs where this artist is featured
     private Boolean inItunes; // Whether artist exists in iTunes library
+    private java.time.LocalDate birthDate;
+    private java.time.LocalDate deathDate;
 
     // Getters and Setters
     public Integer getId() {
@@ -239,5 +241,21 @@ public class ArtistCardDTO {
 
     public void setInItunes(Boolean inItunes) {
         this.inItunes = inItunes;
+    }
+
+    public java.time.LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(java.time.LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public java.time.LocalDate getDeathDate() {
+        return deathDate;
+    }
+
+    public void setDeathDate(java.time.LocalDate deathDate) {
+        this.deathDate = deathDate;
     }
 }

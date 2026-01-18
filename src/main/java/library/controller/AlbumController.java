@@ -8,7 +8,6 @@ import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.ItunesService;
-import library.service.ScrobbleService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,15 +29,13 @@ public class AlbumController {
     private final ArtistService artistService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
-    private final ScrobbleService scrobbleService;
 
-    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService, LookupRepository lookupRepository, ItunesService itunesService, ScrobbleService scrobbleService) {
+    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService, LookupRepository lookupRepository, ItunesService itunesService) {
         this.albumService = albumService;
         this.chartService = chartService;
         this.artistService = artistService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
-        this.scrobbleService = scrobbleService;
     }
     
     @InitBinder
@@ -85,6 +82,11 @@ public class AlbumController {
     @GetMapping
     public String listAlbums(
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
             @RequestParam(required = false) String artist,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
@@ -100,8 +102,17 @@ public class AlbumController {
             @RequestParam(required = false) String countryMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(required = false) String organized,
-            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) Integer imageCountMin,
+            @RequestParam(required = false) Integer imageCountMax,
             @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
@@ -150,6 +161,12 @@ public class AlbumController {
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
         String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
         String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
+        String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
+        String birthDateFromConverted = DateFormatUtils.convertToIsoFormat(birthDateFrom);
+        String birthDateToConverted = DateFormatUtils.convertToIsoFormat(birthDateTo);
+        String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
+        String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
+        String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         
         // Get filtered and sorted albums
         List<AlbumCardDTO> albums = albumService.getAlbums(
@@ -160,7 +177,11 @@ public class AlbumController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -175,7 +196,11 @@ public class AlbumController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, hasFeaturedArtists, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -208,8 +233,28 @@ public class AlbumController {
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
+        model.addAttribute("ageMin", ageMin);
+        model.addAttribute("ageMax", ageMax);
+        model.addAttribute("ageMode", ageMode);
+        model.addAttribute("ageAtReleaseMin", ageAtReleaseMin);
+        model.addAttribute("ageAtReleaseMax", ageAtReleaseMax);
+        model.addAttribute("birthDate", birthDate);
+        model.addAttribute("birthDateFrom", birthDateFrom);
+        model.addAttribute("birthDateTo", birthDateTo);
+        model.addAttribute("birthDateMode", birthDateMode);
+        model.addAttribute("birthDateFormatted", DateFormatUtils.convertToDisplayFormat(birthDate));
+        model.addAttribute("birthDateFromFormatted", DateFormatUtils.convertToDisplayFormat(birthDateFrom));
+        model.addAttribute("birthDateToFormatted", DateFormatUtils.convertToDisplayFormat(birthDateTo));
+        model.addAttribute("deathDate", deathDate);
+        model.addAttribute("deathDateFrom", deathDateFrom);
+        model.addAttribute("deathDateTo", deathDateTo);
+        model.addAttribute("deathDateMode", deathDateMode);
+        model.addAttribute("deathDateFormatted", DateFormatUtils.convertToDisplayFormat(deathDate));
+        model.addAttribute("deathDateFromFormatted", DateFormatUtils.convertToDisplayFormat(deathDateFrom));
+        model.addAttribute("deathDateToFormatted", DateFormatUtils.convertToDisplayFormat(deathDateTo));
         model.addAttribute("selectedOrganized", organized);
-        model.addAttribute("selectedHasImage", hasImage);
+        model.addAttribute("imageCountMin", imageCountMin);
+        model.addAttribute("imageCountMax", imageCountMax);
         model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("selectedHasFeaturedArtists", hasFeaturedArtists);
         model.addAttribute("selectedIsBand", isBand);
@@ -528,8 +573,8 @@ public class AlbumController {
             if (file.isEmpty()) {
                 return "error";
             }
-            albumService.addSecondaryImage(id, file.getBytes());
-            return "success";
+            boolean added = albumService.addSecondaryImage(id, file.getBytes());
+            return added ? "success" : "duplicate";
         } catch (Exception e) {
             e.printStackTrace();
             return "error";

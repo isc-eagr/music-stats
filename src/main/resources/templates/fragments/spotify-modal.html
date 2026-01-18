@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Spotify Search Modal Fragment</title>
+</head>
+<body>
+    <!-- Spotify Search Modal Fragment -->
+    <th:block th:fragment="spotify-modal">
+        <div id="spotifyModal" class="sp-modal">
+            <div class="sp-modal-content" onclick="event.stopPropagation()">
+                <div class="sp-modal-header">
+                    <h3><span class="spotify-logo">●</span> Search Spotify Images</h3>
+                    <button class="sp-modal-close" onclick="closeSpotifyModal(event)">&times;</button>
+                </div>
+                
+                <div class="sp-modal-body">
+                    <!-- Search form -->
+                    <div class="sp-search-form">
+                        <input type="text" id="spSearchInput" class="sp-search-input" placeholder="Artist - Title">
+                        <select id="spCountrySelect" class="sp-country-select">
+                            <option value="US" selected>🇺🇸 United States</option>
+                            <option value="GB">🇬🇧 United Kingdom</option>
+                            <option value="CA">🇨🇦 Canada</option>
+                            <option value="AU">🇦🇺 Australia</option>
+                            <option value="DE">🇩🇪 Germany</option>
+                            <option value="FR">🇫🇷 France</option>
+                            <option value="ES">🇪🇸 Spain</option>
+                            <option value="IT">🇮🇹 Italy</option>
+                            <option value="JP">🇯🇵 Japan</option>
+                            <option value="KR">🇰🇷 South Korea</option>
+                            <option value="MX">🇲🇽 Mexico</option>
+                            <option value="BR">🇧🇷 Brazil</option>
+                            <option value="IN">🇮🇳 India</option>
+                            <option value="SE">🇸🇪 Sweden</option>
+                            <option value="NL">🇳🇱 Netherlands</option>
+                        </select>
+                        <button type="button" class="sp-btn-search" onclick="performSpotifySearch()">Search</button>
+                    </div>
+                    
+                    <!-- Search status -->
+                    <div id="spSearchStatus" class="sp-search-status" style="display: none;">
+                        Searching Spotify...
+                    </div>
+                    
+                    <!-- Error message -->
+                    <div id="spErrorMessage" class="sp-error-message" style="display: none;">
+                        No results found
+                    </div>
+                    
+                    <!-- Results grid -->
+                    <div id="spResultsGrid" class="sp-results-grid" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="sp-modal-footer">
+                    <span id="spSelectedCount">0 selected</span>
+                    <div class="sp-modal-buttons">
+                        <button type="button" class="sp-btn-cancel" onclick="closeSpotifyModal(event)">Cancel</button>
+                        <button type="button" class="sp-btn-save" id="spSaveBtn" onclick="saveSpotifySelectedImages()" disabled>
+                            Save Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            .sp-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .sp-modal.show {
+                display: flex;
+            }
+            
+            .sp-modal-content {
+                background: var(--surface, #1a1a2e);
+                border: 1px solid rgba(30, 215, 96, 0.3);
+                border-radius: 12px;
+                width: 90%;
+                max-width: 900px;
+                max-height: 85vh;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            }
+            
+            .sp-modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid rgba(30, 215, 96, 0.2);
+            }
+            
+            .sp-modal-header h3 {
+                margin: 0;
+                color: #fff;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .spotify-logo {
+                color: #1DB954;
+                font-size: 24px;
+            }
+            
+            .sp-modal-close {
+                background: transparent;
+                border: none;
+                color: #fff;
+                font-size: 28px;
+                cursor: pointer;
+                padding: 0 8px;
+                line-height: 1;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            
+            .sp-modal-close:hover {
+                opacity: 1;
+            }
+            
+            .sp-modal-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                min-height: 300px;
+            }
+            
+            .sp-search-form {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .sp-search-input {
+                flex: 1;
+                padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(30, 215, 96, 0.3);
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+            }
+            
+            .sp-search-input::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+            }
+            
+            .sp-search-input:focus {
+                outline: none;
+                border-color: #1DB954;
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .sp-country-select {
+                padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(30, 215, 96, 0.3);
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                min-width: 160px;
+            }
+            
+            .sp-country-select option {
+                background: #1a1a1a;
+                color: #fff;
+            }
+            
+            .sp-country-select:focus {
+                outline: none;
+                border-color: #1DB954;
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .sp-btn-search {
+                padding: 10px 20px;
+                background: #1DB954;
+                border: none;
+                color: #fff;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+            }
+            
+            .sp-btn-search:hover {
+                background: #1ed760;
+            }
+            
+            .sp-search-status {
+                text-align: center;
+                color: var(--text-muted, #888);
+                font-size: 14px;
+                padding: 40px;
+            }
+            
+            .sp-search-status::before {
+                content: "⏳ ";
+            }
+            
+            .sp-error-message {
+                text-align: center;
+                color: #ff6b6b;
+                font-size: 14px;
+                padding: 40px;
+            }
+            
+            .sp-results-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 16px;
+            }
+            
+            .sp-result-item {
+                position: relative;
+                border: 2px solid transparent;
+                border-radius: 8px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            
+            .sp-result-item:hover {
+                border-color: rgba(30, 215, 96, 0.5);
+                transform: translateY(-2px);
+            }
+            
+            .sp-result-item.selected {
+                border-color: #1DB954;
+                box-shadow: 0 0 12px rgba(30, 215, 96, 0.4);
+            }
+            
+            .sp-result-item.selected::after {
+                content: "✓";
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 24px;
+                height: 24px;
+                background: #1DB954;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 14px;
+                font-weight: bold;
+                z-index: 11;
+            }
+            
+            .sp-result-image {
+                width: 100%;
+                aspect-ratio: 1;
+                object-fit: cover;
+                display: block;
+            }
+            
+            .sp-result-info {
+                padding: 8px 10px;
+                background: rgba(0, 0, 0, 0.6);
+            }
+            
+            .sp-result-title {
+                font-size: 12px;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-bottom: 2px;
+            }
+            
+            .sp-result-artist {
+                font-size: 11px;
+                color: var(--text-muted, #888);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .sp-result-album {
+                font-size: 10px;
+                color: var(--text-muted, #666);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-top: 2px;
+                font-style: italic;
+            }
+            
+            .sp-result-meta {
+                font-size: 10px;
+                color: #9ca3af;
+                margin-top: 4px;
+                padding-top: 4px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .sp-result-type {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                background: rgba(30, 215, 96, 0.9);
+                color: #fff;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                text-transform: uppercase;
+            }
+            
+            .sp-match-badge {
+                position: absolute;
+                top: 36px;
+                right: 8px;
+                font-size: 9px;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-weight: 600;
+                text-transform: uppercase;
+                z-index: 10;
+            }
+            
+            .sp-match-badge.exact {
+                background: #1DB954;
+                color: #fff;
+            }
+            
+            .sp-match-badge.fuzzy {
+                background: #FF9800;
+                color: #fff;
+            }
+            
+            .sp-result-item.exact-match {
+                border-color: #1DB954;
+                box-shadow: 0 0 8px rgba(30, 215, 96, 0.3);
+            }
+            
+            .sp-result-item.fuzzy-match {
+                border-color: #FF9800;
+                box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+            }
+            
+            .sp-modal-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-top: 1px solid rgba(30, 215, 96, 0.2);
+            }
+            
+            #spSelectedCount {
+                color: var(--text-muted, #888);
+                font-size: 14px;
+            }
+            
+            .sp-modal-buttons {
+                display: flex;
+                gap: 12px;
+            }
+            
+            .sp-btn-cancel {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+            
+            .sp-btn-cancel:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            
+            .sp-btn-save {
+                background: #1DB954;
+                border: none;
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+            }
+            
+            .sp-btn-save:hover:not(:disabled) {
+                background: #1ed760;
+            }
+            
+            .sp-btn-save:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            /* Saving state */
+            .sp-btn-save.saving {
+                pointer-events: none;
+            }
+            
+            .sp-btn-save.saving::after {
+                content: "...";
+            }
+        </style>
+        
+        <script>
+            // Spotify Modal State
+            let spSelectedImages = [];
+            let spEntityId = null;
+            let spEntityType = null;
+            let spHasExistingImage = false;
+
+            // Helper function to open modal from button with data attributes
+            function openSpotifyModalFromButton(button, entityType) {
+                const artist = button.getAttribute('data-artist');
+                const title = button.getAttribute('data-' + (entityType === 'album' ? 'album' : 'song'));
+                const id = button.getAttribute('data-id');
+                const hasImage = button.getAttribute('data-has-image') === 'true';
+                openSpotifyModal(artist, title, id, entityType, hasImage);
+            }
+
+            function openSpotifyModal(artist, title, entityId, entityType, hasExisting) {
+                spEntityId = entityId;
+                spEntityType = entityType;
+                spHasExistingImage = hasExisting;
+                spSelectedImages = [];
+                
+                const modal = document.getElementById('spotifyModal');
+                const searchInput = document.getElementById('spSearchInput');
+                const status = document.getElementById('spSearchStatus');
+                const error = document.getElementById('spErrorMessage');
+                const grid = document.getElementById('spResultsGrid');
+                const saveBtn = document.getElementById('spSaveBtn');
+                
+                // Set search input value
+                searchInput.value = artist + ' - ' + title;
+                
+                // Reset state
+                status.style.display = 'none';
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateSpSelectedCount();
+                
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                
+                // Auto-perform initial search
+                performSpotifySearch();
+            }
+
+            function performSpotifySearch() {
+                const searchInput = document.getElementById('spSearchInput');
+                const searchValue = searchInput.value.trim();
+                const countrySelect = document.getElementById('spCountrySelect');
+                const country = countrySelect.value;
+                
+                if (!searchValue) {
+                    alert('Please enter a search term');
+                    return;
+                }
+                
+                const status = document.getElementById('spSearchStatus');
+                const error = document.getElementById('spErrorMessage');
+                const grid = document.getElementById('spResultsGrid');
+                const saveBtn = document.getElementById('spSaveBtn');
+                
+                // Reset results
+                spSelectedImages = [];
+                status.style.display = 'block';
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateSpSelectedCount();
+                
+                // Parse search (split by ' - ' or just use whole string)
+                const parts = searchValue.split(' - ');
+                const artist = parts[0] || searchValue;
+                const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
+                
+                // Perform search
+                const searchUrl = `/api/spotify/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&market=${country}`;
+                
+                fetch(searchUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        status.style.display = 'none';
+                        
+                        if (!data || data.length === 0) {
+                            error.textContent = 'No results found. Try uploading an image manually.';
+                            error.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Sort results by match quality
+                        const sortedData = sortSpResultsByMatchQuality(data, artist, title);
+                        
+                        // Render results
+                        grid.innerHTML = sortedData.map((item, index) => {
+                            const matchClass = item.matchType === 'exact' ? 'exact-match' : 
+                                             item.matchType === 'fuzzy' ? 'fuzzy-match' : 
+                                             item.matchType === 'artist' ? 'artist-match' :
+                                             item.matchType === 'title' ? 'title-match' : '';
+                            const matchBadge = item.matchType === 'exact' ? '<span class="sp-match-badge exact">Exact Match</span>' :
+                                             item.matchType === 'fuzzy' ? '<span class="sp-match-badge fuzzy">Close Match</span>' : '';
+                            // Format release date for display (YYYY-MM-DD -> dd MMM yyyy)
+                            let releaseDateDisplay = '';
+                            if (item.releaseDate) {
+                                const d = new Date(item.releaseDate + 'T00:00:00');
+                                releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            }
+                            const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                            return `
+                            <div class="sp-result-item ${matchClass}" data-index="${index}" data-url="${item.fullUrl}" 
+                                 data-release-date="${item.releaseDate || ''}" 
+                                 data-length-seconds="${item.lengthSeconds || ''}"
+                                 data-length-formatted="${item.lengthFormatted || ''}"
+                                 data-title="${escapeSpAttr(item.title)}"
+                                 data-artist="${escapeSpAttr(item.artistName)}"
+                                 onclick="toggleSpSelection(this)">
+                                <span class="sp-result-type">${item.type}</span>
+                                ${matchBadge}
+                                <img class="sp-result-image" src="${item.thumbnailUrl}" alt="${item.title}" loading="lazy">
+                                <div class="sp-result-info">
+                                    <div class="sp-result-title" title="${escapeSpAttr(item.title)}">${escapeSpHtml(item.title)}</div>
+                                    <div class="sp-result-artist" title="${escapeSpAttr(item.artistName)}">${escapeSpHtml(item.artistName)}</div>
+                                    ${item.type === 'song' && item.albumName ? `<div class="sp-result-album" title="${escapeSpAttr(item.albumName)}">${escapeSpHtml(item.albumName)}</div>` : ''}
+                                    ${metaLine ? `<div class="sp-result-meta">${metaLine}</div>` : ''}
+                                </div>
+                            </div>
+                        `}).join('');
+                        
+                        grid.style.display = 'grid';
+                    })
+                    .catch(err => {
+                        console.error('Spotify search error:', err);
+                        status.style.display = 'none';
+                        error.textContent = '❌ Error searching Spotify. Please try again.';
+                        error.style.display = 'block';
+                    });
+            }
+
+            function closeSpotifyModal(event) {
+                if (event && event.target.classList.contains('sp-modal-content')) {
+                    return;
+                }
+                const modal = document.getElementById('spotifyModal');
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+
+            function normalizeSpForMatch(str) {
+                if (!str) return '';
+                return str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            }
+
+            function removeSpVariationKeywords(str) {
+                if (!str) return '';
+                const keywords = ['deluxe', 'remaster', 'remastered', 'anniversary', 'special', 'revised', 'edition', 'version', 'expanded', 'bonus', 'explicit', 'clean'];
+                let normalized = str.toLowerCase();
+                keywords.forEach(keyword => {
+                    normalized = normalized.replace(new RegExp(keyword, 'g'), '');
+                });
+                normalized = normalized.replace(/\d+(st|nd|rd|th)?/g, '');
+                return normalized.trim().replace(/[^a-z0-9]/g, '');
+            }
+
+            function sortSpResultsByMatchQuality(results, searchArtist, searchTitle) {
+                const normArtist = normalizeSpForMatch(searchArtist);
+                const normTitle = normalizeSpForMatch(searchTitle);
+                const fuzzyTitle = removeSpVariationKeywords(searchTitle);
+                
+                return results.map(item => {
+                    const itemArtist = normalizeSpForMatch(item.artistName);
+                    const itemTitle = normalizeSpForMatch(item.title);
+                    const itemTitleFuzzy = removeSpVariationKeywords(item.title);
+                    
+                    let score = 0;
+                    let matchType = 'none';
+                    
+                    if (itemArtist === normArtist && itemTitle === normTitle) {
+                        score = 1000;
+                        matchType = 'exact';
+                    }
+                    else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) {
+                        score = 950;
+                        matchType = 'fuzzy';
+                    }
+                    else if (itemArtist === normArtist) {
+                        score = 500;
+                        matchType = 'artist';
+                    }
+                    else if (itemTitle === normTitle) {
+                        score = 400;
+                        matchType = 'title';
+                    }
+                    else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) {
+                        score = 200;
+                    }
+                    else if (itemTitle.includes(normTitle) || normTitle.includes(itemArtist)) {
+                        score = 100;
+                    }
+                    else {
+                        score = 0;
+                    }
+                    
+                    return { ...item, matchScore: score, matchType: matchType };
+                }).sort((a, b) => b.matchScore - a.matchScore);
+            }
+
+            function toggleSpSelection(element) {
+                const url = element.dataset.url;
+                const index = spSelectedImages.indexOf(url);
+                
+                if (index > -1) {
+                    spSelectedImages.splice(index, 1);
+                    element.classList.remove('selected');
+                } else {
+                    spSelectedImages.push(url);
+                    element.classList.add('selected');
+                }
+                
+                updateSpSelectedCount();
+            }
+
+            function updateSpSelectedCount() {
+                const countEl = document.getElementById('spSelectedCount');
+                const saveBtn = document.getElementById('spSaveBtn');
+                const count = spSelectedImages.length;
+                
+                countEl.textContent = count === 1 ? '1 selected' : `${count} selected`;
+                saveBtn.disabled = count === 0;
+            }
+
+            function saveSpotifySelectedImages() {
+                if (spSelectedImages.length === 0) return;
+                
+                const saveBtn = document.getElementById('spSaveBtn');
+                saveBtn.textContent = 'Saving';
+                saveBtn.classList.add('saving');
+                saveBtn.disabled = true;
+                
+                const requestData = {
+                    imageUrls: spSelectedImages,
+                    entityId: spEntityId,
+                    entityType: spEntityType,
+                    hasExistingImage: spHasExistingImage
+                };
+                
+                fetch('/api/spotify/save-images', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error saving images: ' + (data.error || 'Unknown error'));
+                        saveBtn.textContent = 'Save Selected';
+                        saveBtn.classList.remove('saving');
+                        saveBtn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error saving images:', err);
+                    alert('Error saving images. Please try again.');
+                    saveBtn.textContent = 'Save Selected';
+                    saveBtn.classList.remove('saving');
+                    saveBtn.disabled = false;
+                });
+            }
+
+            // Helper functions for escaping HTML
+            function escapeSpHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            function escapeSpAttr(text) {
+                if (!text) return '';
+                return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const modal = document.getElementById('spotifyModal');
+                    if (modal && modal.classList.contains('show')) {
+                        closeSpotifyModal(event);
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

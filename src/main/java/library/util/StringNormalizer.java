@@ -39,8 +39,23 @@ public final class StringNormalizer {
     }
     
     /**
-     * Normalizes a string for search: lowercase + strip accents + trim.
-     * Use this for building lookup keys and preparing search terms.
+     * Normalizes a string for import: lowercase + strip accents + trim.
+     * Use this for exact matching during scrobble import - does NOT remove parentheses or featured artists.
+     * This is more strict than normalizeForSearch() to avoid false matches.
+     * 
+     * @param input The input string
+     * @return The normalized string, or null if input is null
+     */
+    public static String normalizeForImport(String input) {
+        if (input == null) {
+            return null;
+        }
+        return stripAccents(input.toLowerCase().trim());
+    }
+    
+    /**
+     * Normalizes a string for fuzzy search: lowercase + strip accents + trim + remove parentheses/brackets + remove featuring.
+     * Use this for fuzzy matching and search functionality where you want to ignore variations.
      * 
      * @param input The input string
      * @return The normalized string, or null if input is null

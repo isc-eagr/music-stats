@@ -83,17 +83,17 @@ public class ItunesService {
         Set<String> artistKeys = new HashSet<>();
         
         for (ItunesSong song : allSongs) {
-            // Song keys (artist||album||song)
-            songKeys.add(createSongLookupKey(song.getArtist(), song.getAlbum(), song.getName()));
+            // Song keys (artist||album||song) - using strict matching
+            songKeys.add(createStrictSongLookupKey(song.getArtist(), song.getAlbum(), song.getName()));
             
-            // Album keys
+            // Album keys - using strict matching
             if (song.getAlbum() != null && !song.getAlbum().isBlank()) {
-                albumKeys.add(createAlbumLookupKey(song.getArtist(), song.getAlbum()));
+                albumKeys.add(createStrictAlbumLookupKey(song.getArtist(), song.getAlbum()));
             }
             
-            // Artist keys
+            // Artist keys - using strict matching
             if (song.getArtist() != null && !song.getArtist().isBlank()) {
-                artistKeys.add(StringNormalizer.normalizeForSearch(song.getArtist()));
+                artistKeys.add(normalizeForStrictMatch(song.getArtist()));
             }
         }
         
@@ -153,19 +153,20 @@ public class ItunesService {
     /**
      * Find unmatched songs using the cached iTunes library data.
      * This method leverages the in-memory cache for maximum performance.
+     * Uses STRICT matching for the iTunes Only page - only case and punctuation differences allowed.
      */
     private List<ItunesSong> findUnmatchedSongsFromCache() {
         if (cachedAllSongs == null || cachedAllSongs.isEmpty()) {
             return new ArrayList<>();
         }
         
-        // Build lookup set from database
-        Set<String> dbSongKeys = buildDatabaseLookup();
+        // Build lookup set from database using strict matching
+        Set<String> dbSongKeys = buildDatabaseLookupStrict();
         
         // Filter to only unmatched songs
         List<ItunesSong> unmatched = new ArrayList<>();
         for (ItunesSong song : cachedAllSongs) {
-            String key = createSongLookupKey(song.getArtist(), song.getAlbum(), song.getName());
+            String key = createStrictSongLookupKey(song.getArtist(), song.getAlbum(), song.getName());
             if (!dbSongKeys.contains(key)) {
                 unmatched.add(song);
             }
@@ -508,6 +509,32 @@ public class ItunesService {
     }
 
     /**
+     * Build a lookup set of all songs in the database using STRICT matching.
+     * Only normalizes case and punctuation - no removal of parentheses, brackets, or featuring text.
+     * Used specifically for the iTunes Only page.
+     */
+    private Set<String> buildDatabaseLookupStrict() {
+        Set<String> keys = new HashSet<>();
+
+        String sql = """
+            SELECT ar.name as artist_name, al.name as album_name, s.name as song_name
+            FROM Song s
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album al ON s.album_id = al.id
+            """;
+
+        jdbcTemplate.query(sql, rs -> {
+            String artistName = rs.getString("artist_name");
+            String albumName = rs.getString("album_name");
+            String songName = rs.getString("song_name");
+            String key = createStrictSongLookupKey(artistName, albumName, songName);
+            keys.add(key);
+        });
+
+        return keys;
+    }
+
+    /**
      * Create normalized lookup key for artist + song.
      * Uses case-insensitive matching with accent normalization.
      */
@@ -538,13 +565,14 @@ public class ItunesService {
     // ============ iTunes Presence Checking Methods ============
 
     /**
-     * Check if a song exists in iTunes library (exact match by artist + album + song name).
+     * Check if a song exists in iTunes library (strict match by artist + album + song name).
+     * Only case and punctuation differences are ignored.
      */
     public boolean songExistsInItunes(String artistName, String albumName, String songName) {
         if (!libraryExists()) return false;
         try {
             ensureCacheLoaded();
-            String key = createSongLookupKey(artistName, albumName, songName);
+            String key = createStrictSongLookupKey(artistName, albumName, songName);
             return cachedSongKeys.contains(key);
         } catch (Exception e) {
             return false;
@@ -553,12 +581,13 @@ public class ItunesService {
 
     /**
      * Check if at least one song from an album exists in iTunes library.
+     * Uses strict matching - only case and punctuation differences are ignored.
      */
     public boolean albumExistsInItunes(String artistName, String albumName) {
         if (!libraryExists()) return false;
         try {
             ensureCacheLoaded();
-            String key = createAlbumLookupKey(artistName, albumName);
+            String key = createStrictAlbumLookupKey(artistName, albumName);
             return cachedAlbumKeys.contains(key);
         } catch (Exception e) {
             return false;
@@ -567,12 +596,13 @@ public class ItunesService {
 
     /**
      * Check if at least one song from an artist exists in iTunes library.
+     * Uses strict matching - only case and punctuation differences are ignored.
      */
     public boolean artistExistsInItunes(String artistName) {
         if (!libraryExists()) return false;
         try {
             ensureCacheLoaded();
-            String key = StringNormalizer.normalizeForSearch(artistName != null ? artistName : "");
+            String key = normalizeForStrictMatch(artistName);
             return cachedArtistKeys.contains(key);
         } catch (Exception e) {
             return false;
@@ -589,6 +619,16 @@ public class ItunesService {
     }
 
     /**
+     * Create strict lookup key for artist + album.
+     * Only normalizes case and punctuation - no removal of parentheses, brackets, or featuring text.
+     */
+    private String createStrictAlbumLookupKey(String artist, String album) {
+        String a = normalizeForStrictMatch(artist);
+        String al = normalizeForStrictMatch(album);
+        return a + "||" + al;
+    }
+
+    /**
      * Create normalized lookup key for artist + album + song.
      * Uses case-insensitive matching with accent normalization.
      */
@@ -597,6 +637,33 @@ public class ItunesService {
         String al = StringNormalizer.normalizeForSearch(album != null ? album : "");
         String s = StringNormalizer.normalizeForSearch(song != null ? song : "");
         return a + "||" + al + "||" + s;
+    }
+
+    /**
+     * Create strict lookup key for artist + album + song for iTunes Only page.
+     * Only normalizes case and punctuation - no removal of parentheses, brackets, or featuring text.
+     */
+    private String createStrictSongLookupKey(String artist, String album, String song) {
+        String a = normalizeForStrictMatch(artist);
+        String al = normalizeForStrictMatch(album);
+        String s = normalizeForStrictMatch(song);
+        return a + "||" + al + "||" + s;
+    }
+
+    /**
+     * Normalize for strict matching: lowercase + strip accents + trim + remove punctuation only.
+     * Does NOT remove parentheses, brackets, or featuring text.
+     */
+    private String normalizeForStrictMatch(String input) {
+        if (input == null || input.isBlank()) {
+            return "";
+        }
+        String result = StringNormalizer.stripAccents(input.toLowerCase().trim());
+        // Remove only punctuation characters, keeping parentheses, brackets, etc.
+        result = result.replaceAll("[\\\\.,'!?\"\\-_:;\\/&%]", "");
+        // Collapse whitespace
+        result = result.replaceAll("\\s+", " ").trim();
+        return result;
     }
 
     // ============ Methods to get cached sets for filtering ============

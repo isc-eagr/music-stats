@@ -1388,6 +1388,51 @@
                         </div>
                     </div>
 
+                    <!-- Age Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Age
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <input type="hidden" name="ageMode" id="ageModeInput" th:value="${ageMode}" />
+                            <div id="ageRange">
+                                <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="number" autocomplete="off" name="ageMin" id="ageMin" 
+                                           th:value="${ageMin}" placeholder="Min" min="0"
+                                           style="width: 80px;">
+                                    <span>to</span>
+                                    <input type="number" autocomplete="off" name="ageMax" id="ageMax" 
+                                           th:value="${ageMax}" placeholder="Max" min="0"
+                                           style="width: 80px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Age at Release Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Age at Release
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="number" autocomplete="off" name="ageAtReleaseMin" id="ageAtReleaseMin" 
+                                       th:value="${ageAtReleaseMin}" placeholder="Min" min="0"
+                                       style="width: 80px;">
+                                <span>to</span>
+                                <input type="number" autocomplete="off" name="ageAtReleaseMax" id="ageAtReleaseMax" 
+                                       th:value="${ageAtReleaseMax}" placeholder="Max" min="0"
+                                       style="width: 80px;">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Album Filter (chip-select) -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -1502,6 +1547,46 @@
                         </div>
                     </div>
                     
+                    <!-- Birth Date Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Birth Date
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-modifiers">
+                                <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="exact"
+                                        th:classappend="${birthDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="gte"
+                                        th:classappend="${birthDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="lte"
+                                        th:classappend="${birthDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="between"
+                                        th:classappend="${birthDateMode == 'between'} ? 'active' : ''">Between</button>
+                                <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="isnull"
+                                        th:classappend="${birthDateMode == 'isnull'} ? 'active' : ''">Is Null</button>
+                                <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="isnotnull"
+                                        th:classappend="${birthDateMode == 'isnotnull'} ? 'active' : ''">Is Not Null</button>
+                            </div>
+                            <input type="hidden" name="birthDateMode" id="birthDateModeInput" th:value="${birthDateMode}" />
+                            <div id="birthDateSingle" th:style="${birthDateMode == 'between' or birthDateMode == 'isnull' or birthDateMode == 'isnotnull'} ? 'display:none' : ''">
+                                <label class="field"><span>Date</span>
+                                    <input type="text" autocomplete="off" name="birthDate" th:value="${birthDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                            </div>
+                            <div id="birthDateRange" th:style="${birthDateMode != 'between'} ? 'display:none' : ''">
+                                <label class="field"><span>From</span>
+                                    <input type="text" autocomplete="off" name="birthDateFrom" th:value="${birthDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>To</span>
+                                    <input type="text" autocomplete="off" name="birthDateTo" th:value="${birthDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Country Filter -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -1539,6 +1624,46 @@
                                         </label>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Death Date Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Death Date
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-modifiers">
+                                <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="exact"
+                                        th:classappend="${deathDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="gte"
+                                        th:classappend="${deathDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="lte"
+                                        th:classappend="${deathDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="between"
+                                        th:classappend="${deathDateMode == 'between'} ? 'active' : ''">Between</button>
+                                <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="isnull"
+                                        th:classappend="${deathDateMode == 'isnull'} ? 'active' : ''">Is Null</button>
+                                <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="isnotnull"
+                                        th:classappend="${deathDateMode == 'isnotnull'} ? 'active' : ''">Is Not Null</button>
+                            </div>
+                            <input type="hidden" name="deathDateMode" id="deathDateModeInput" th:value="${deathDateMode}" />
+                            <div id="deathDateSingle" th:style="${deathDateMode == 'between' or deathDateMode == 'isnull' or deathDateMode == 'isnotnull'} ? 'display:none' : ''">
+                                <label class="field"><span>Date</span>
+                                    <input type="text" autocomplete="off" name="deathDate" th:value="${deathDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                            </div>
+                            <div id="deathDateRange" th:style="${deathDateMode != 'between'} ? 'display:none' : ''">
+                                <label class="field"><span>From</span>
+                                    <input type="text" autocomplete="off" name="deathDateFrom" th:value="${deathDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>To</span>
+                                    <input type="text" autocomplete="off" name="deathDateTo" th:value="${deathDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -2123,6 +2248,10 @@
                                           (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or
                                           (listenedDateTo != null and !listenedDateTo.isEmpty()) or
                                           (filterType != null and !filterType.isEmpty()) or
+                                          ageMode != null or ageMin != null or ageMax != null or
+                                          ageAtReleaseMin != null or ageAtReleaseMax != null or
+                                          (birthDate != null and !birthDate.isEmpty()) or birthDateMode != null or
+                                          (deathDate != null and !deathDate.isEmpty()) or deathDateMode != null or
                                           albumsSeasonalChartPeak != null or albumsSeasonalChartSeasons != null or
                                           albumsWeeklyChartPeak != null or albumsWeeklyChartWeeks != null or
                                           albumsYearlyChartPeak != null or albumsYearlyChartYears != null or
@@ -2176,6 +2305,26 @@
                             </span>
                         </span>
                         
+                        <!-- Age filter chips -->
+                        <span class="filter-chip" th:if="${(ageMin != null) or (ageMax != null)}">
+                            <span class="filter-chip-label">Age</span>
+                            <span class="filter-chip-value">
+                                <span th:if="${ageMin != null}" th:text="${ageMin} + '+'"></span>
+                                <span th:if="${ageMin != null and ageMax != null}"> to </span>
+                                <span th:if="${ageMax != null}" th:text="${ageMax}"></span>
+                            </span>
+                        </span>
+                        
+                        <!-- Age at Release filter chip -->
+                        <span class="filter-chip" th:if="${(ageAtReleaseMin != null) or (ageAtReleaseMax != null)}">
+                            <span class="filter-chip-label">Age at Release</span>
+                            <span class="filter-chip-value">
+                                <span th:if="${ageAtReleaseMin != null}" th:text="${ageAtReleaseMin} + '+'"></span>
+                                <span th:if="${ageAtReleaseMin != null and ageAtReleaseMax != null}"> to </span>
+                                <span th:if="${ageAtReleaseMax != null}" th:text="${ageAtReleaseMax}"></span>
+                            </span>
+                        </span>
+                        
                         <!-- Artist filter chip -->
                         <span class="filter-chip" th:if="${selectedArtists != null and !selectedArtists.isEmpty()}">
                             <span class="filter-chip-label">Artist</span>
@@ -2184,12 +2333,58 @@
                             </span>
                         </span>
                         
+                        <!-- Birth Date filter chips -->
+                        <span class="filter-chip" th:if="${birthDateMode == 'isnull'}">
+                            <span class="filter-chip-label">Birth Date is null</span>
+                        </span>
+                        <span class="filter-chip" th:if="${birthDateMode == 'isnotnull'}">
+                            <span class="filter-chip-label">Birth Date is not null</span>
+                        </span>
+                        <span class="filter-chip" th:if="${birthDate != null and !birthDate.isEmpty() and birthDateMode != 'between' and birthDateMode != 'isnull' and birthDateMode != 'isnotnull'}">
+                            <span class="filter-chip-label" th:switch="${birthDateMode}">
+                                <span th:case="'exact'">Birth Date is</span>
+                                <span th:case="'gte'">Birth Date on or after</span>
+                                <span th:case="'lte'">Birth Date on or before</span>
+                                <span th:case="*">Birth Date is</span>
+                            </span>
+                            <span class="filter-chip-value" th:text="${birthDate}"></span>
+                        </span>
+                        <span class="filter-chip" th:if="${birthDateMode == 'between' and birthDateFrom != null and !birthDateFrom.isEmpty() and birthDateTo != null and !birthDateTo.isEmpty()}">
+                            <span class="filter-chip-label">Birth Date between</span>
+                            <span class="filter-chip-value" th:text="${birthDateFrom}"></span>
+                            <span> and </span>
+                            <span class="filter-chip-value" th:text="${birthDateTo}"></span>
+                        </span>
+                        
                         <!-- Country filter chip -->
                         <span class="filter-chip" th:if="${selectedCountries != null and !selectedCountries.isEmpty()}">
                             <span class="filter-chip-label" th:text="${countryMode == 'excludes' ? 'Country excludes' : 'Country includes'}">Country includes</span>
                             <span class="filter-chip-value" th:each="countryName, iterStat : ${selectedCountries}">
                                 <span th:text="${countryName}"></span><span th:if="${!iterStat.last}">, </span>
                             </span>
+                        </span>
+                        
+                        <!-- Death Date filter chips -->
+                        <span class="filter-chip" th:if="${deathDateMode == 'isnull'}">
+                            <span class="filter-chip-label">Death Date is null</span>
+                        </span>
+                        <span class="filter-chip" th:if="${deathDateMode == 'isnotnull'}">
+                            <span class="filter-chip-label">Death Date is not null</span>
+                        </span>
+                        <span class="filter-chip" th:if="${deathDate != null and !deathDate.isEmpty() and deathDateMode != 'between' and deathDateMode != 'isnull' and deathDateMode != 'isnotnull'}">
+                            <span class="filter-chip-label" th:switch="${deathDateMode}">
+                                <span th:case="'exact'">Death Date is</span>
+                                <span th:case="'gte'">Death Date on or after</span>
+                                <span th:case="'lte'">Death Date on or before</span>
+                                <span th:case="*">Death Date is</span>
+                            </span>
+                            <span class="filter-chip-value" th:text="${deathDate}"></span>
+                        </span>
+                        <span class="filter-chip" th:if="${deathDateMode == 'between' and deathDateFrom != null and !deathDateFrom.isEmpty() and deathDateTo != null and !deathDateTo.isEmpty()}">
+                            <span class="filter-chip-label">Death Date between</span>
+                            <span class="filter-chip-value" th:text="${deathDateFrom}"></span>
+                            <span> and </span>
+                            <span class="filter-chip-value" th:text="${deathDateTo}"></span>
                         </span>
                         
                         <!-- Ethnicity filter chip -->
@@ -2955,6 +3150,16 @@
                 flatpickr(el, flatpickrConfig);
             });
             
+            // Birth Date
+            document.querySelectorAll('input[name="birthDate"], input[name="birthDateFrom"], input[name="birthDateTo"]').forEach(function(el) {
+                flatpickr(el, flatpickrConfig);
+            });
+            
+            // Death Date
+            document.querySelectorAll('input[name="deathDate"], input[name="deathDateFrom"], input[name="deathDateTo"]').forEach(function(el) {
+                flatpickr(el, flatpickrConfig);
+            });
+            
             // Listen Date Range (different format yyyy-mm-dd)
             document.querySelectorAll('input[name="listenedDateFrom"], input[name="listenedDateTo"]').forEach(function(el) {
                 flatpickr(el, { dateFormat: "Y-m-d", allowInput: true });
@@ -2964,10 +3169,80 @@
             setupDateModeToggle('firstListenedDate');
             setupDateModeToggle('lastListenedDate');
             setupDateModeToggle('releaseDate');
+            setupDateModeToggle('birthDate');
+            setupDateModeToggle('deathDate');
+            
+            // Setup Age filter mode toggle
+            setupAgeModeToggle();
             
             // Initialize chip-select components for Artist, Album, Song filters
             initChipSelectFilters();
+            
+            // Setup generic filter modifier handlers (gender, ethnicity, genre, subgenre, language, country, account, etc.)
+            setupGenericFilterModifiers();
         });
+        
+        /**
+         * Generic handler for filter-modifier buttons (includes/excludes/isnull/isnotnull)
+         * for lookup filters like gender, ethnicity, genre, subgenre, language, country, account
+         */
+        function setupGenericFilterModifiers() {
+            // Get all filter-modifier buttons NOT already handled by date/age specific handlers
+            const dateFilters = ['firstListenedDate', 'lastListenedDate', 'releaseDate', 'birthDate', 'deathDate', 'age'];
+            const modifierButtons = document.querySelectorAll('.filter-modifier');
+            
+            modifierButtons.forEach(function(button) {
+                const filterName = button.getAttribute('data-filter');
+                // Skip buttons already handled by specific date/age handlers
+                if (dateFilters.includes(filterName)) return;
+                
+                button.addEventListener('click', function() {
+                    // Toggle active state within the same group
+                    const group = this.parentElement;
+                    group.querySelectorAll('.filter-modifier').forEach(function(btn) {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Update the hidden input for the mode
+                    const mode = this.getAttribute('data-mode');
+                    if (filterName && mode) {
+                        const modeInput = document.getElementById(filterName + 'Mode');
+                        if (modeInput) {
+                            modeInput.value = mode;
+                        }
+                    }
+                    
+                    // If selecting a null-mode, clear any selected chips and uncheck checkboxes
+                    if (mode === 'isnull' || mode === 'isnotnull') {
+                        const chipsContainer = document.getElementById(filterName + 'Chips');
+                        if (chipsContainer) {
+                            while (chipsContainer.firstChild) chipsContainer.removeChild(chipsContainer.firstChild);
+                            // show placeholder label if present
+                            const label = chipsContainer.nextElementSibling;
+                            if (label && label.classList.contains('multi-select-label')) label.style.display = 'block';
+                        }
+                        const dropdown = document.getElementById(filterName + 'Dropdown');
+                        if (dropdown) {
+                            dropdown.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+                            // hide the dropdown and mark display as disabled
+                            dropdown.classList.remove('show');
+                            dropdown.style.display = 'none';
+                            const display = dropdown.previousElementSibling;
+                            if (display) { display.classList.add('disabled'); display.style.pointerEvents = 'none'; display.style.opacity = '0.6'; }
+                        }
+                    } else {
+                        // Re-enable dropdown/display when switching back to includes/excludes
+                        const dropdown = document.getElementById(filterName + 'Dropdown');
+                        if (dropdown) {
+                            dropdown.style.display = '';
+                            const display = dropdown.previousElementSibling;
+                            if (display) { display.classList.remove('disabled'); display.style.pointerEvents = ''; display.style.opacity = ''; }
+                        }
+                    }
+                });
+            });
+        }
         
         function setupDateModeToggle(fieldName) {
             const buttons = document.querySelectorAll('.filter-modifier[data-filter="' + fieldName + '"]');
@@ -2988,11 +3263,39 @@
                         if (mode === 'between') {
                             singleDiv.style.display = 'none';
                             rangeDiv.style.display = '';
+                        } else if (mode === 'isnull' || mode === 'isnotnull') {
+                            singleDiv.style.display = 'none';
+                            rangeDiv.style.display = 'none';
                         } else {
                             singleDiv.style.display = '';
                             rangeDiv.style.display = 'none';
                         }
                     }
+                });
+            });
+        }
+        
+        function setupAgeModeToggle() {
+            const buttons = document.querySelectorAll('.filter-modifier[data-filter="age"]');
+            buttons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    const modeInput = document.getElementById('ageModeInput');
+                    const ageRange = document.getElementById('ageRange');
+                    
+                    // If clicking the same mode button, toggle it off
+                    if (this.classList.contains('active')) {
+                        this.classList.remove('active');
+                        if (modeInput) modeInput.value = '';
+                        if (ageRange) ageRange.style.display = '';
+                        return;
+                    }
+                    
+                    // Update active state
+                    buttons.forEach(function(b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+                    
+                    if (modeInput) modeInput.value = mode;
                 });
             });
         }

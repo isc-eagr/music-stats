@@ -32,8 +32,15 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            String deathDate,
+            String deathDateFrom,
+            String deathDateTo,
+            String deathDateMode,
             List<String> accounts,
             String accountMode,
+            Integer ageMin,
+            Integer ageMax,
+            String ageMode,
             String firstListenedDate,
             String firstListenedDateFrom,
             String firstListenedDateTo,
@@ -45,12 +52,17 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String listenedDateFrom,
             String listenedDateTo,
             String organized,
-            String hasImage,
+            Integer imageCountMin,
+            Integer imageCountMax,
             String isBand,
             Integer playCountMin,
             Integer playCountMax,
             Integer albumCountMin,
             Integer albumCountMax,
+            String birthDate,
+            String birthDateFrom,
+            String birthDateTo,
+            String birthDateMode,
             Integer songCountMin,
             Integer songCountMax,
             String sortBy,
@@ -116,7 +128,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    play_stats.first_listened, ");
         sql.append("    play_stats.last_listened, ");
         sql.append("    a.organized, ");
-        sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count ");
+        sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count, ");
+        sql.append("    a.birth_date, ");
+        sql.append("    a.death_date ");
         sql.append("FROM Artist a ");
         sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
         sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
@@ -187,6 +201,26 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
         
+        // Birth Date filter
+        SqlFilterHelper.appendDateFilter(sql, params, "a.birth_date", birthDate, birthDateFrom, birthDateTo, birthDateMode);
+        
+        // Death Date filter
+        SqlFilterHelper.appendDateFilter(sql, params, "a.death_date", deathDate, deathDateFrom, deathDateTo, deathDateMode);
+        
+        // Age filter
+        if (ageMin != null || ageMax != null) {
+            // Age is calculated as years between birth_date and (death_date or current date)
+            String ageExpr = "CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND a.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ? ");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND a.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ? ");
+                params.add(ageMax);
+            }
+        }
+        
         // Organized filter
         if (organized != null && !organized.isEmpty()) {
             if ("true".equalsIgnoreCase(organized)) {
@@ -196,13 +230,14 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             }
         }
         
-        // Has Image filter
-        if (hasImage != null && !hasImage.isEmpty()) {
-            if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND a.image IS NOT NULL ");
-            } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND a.image IS NULL ");
-            }
+        // Image Count filter
+        if (imageCountMin != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) >= ? ");
+            params.add(imageCountMin);
+        }
+        if (imageCountMax != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) <= ? ");
+            params.add(imageCountMax);
         }
         
         // Is Band filter
@@ -247,7 +282,13 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         sql.append(" ORDER BY ");
-        if ("songs".equals(sortBy)) {
+        if ("age".equals(sortBy)) {
+            sql.append(" CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER) " + direction + " NULLS LAST, a.name ASC");
+        } else if ("birth_date".equals(sortBy)) {
+            sql.append(" a.birth_date " + direction + " NULLS LAST, a.name ASC");
+        } else if ("death_date".equals(sortBy)) {
+            sql.append(" a.death_date " + direction + " NULLS LAST, a.name ASC");
+        } else if ("songs".equals(sortBy)) {
             sql.append(" song_count " + direction + ", a.name ASC");
         } else if ("featured".equals(sortBy)) {
             sql.append(" featured_song_count " + direction + ", a.name ASC");
@@ -296,7 +337,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getString("first_listened"),
                 rs.getString("last_listened"),
                 rs.getObject("organized"),
-                rs.getInt("featured_song_count")
+                rs.getInt("featured_song_count"),
+                rs.getString("birth_date"),
+                rs.getString("death_date")
             };
         }, params.toArray());
     }
@@ -316,8 +359,15 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            String deathDate,
+            String deathDateFrom,
+            String deathDateTo,
+            String deathDateMode,
             List<String> accounts,
             String accountMode,
+            Integer ageMin,
+            Integer ageMax,
+            String ageMode,
             String firstListenedDate,
             String firstListenedDateFrom,
             String firstListenedDateTo,
@@ -329,12 +379,17 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String listenedDateFrom,
             String listenedDateTo,
             String organized,
-            String hasImage,
+            Integer imageCountMin,
+            Integer imageCountMax,
             String isBand,
             Integer playCountMin,
             Integer playCountMax,
             Integer albumCountMin,
             Integer albumCountMax,
+            String birthDate,
+            String birthDateFrom,
+            String birthDateTo,
+            String birthDateMode,
             Integer songCountMin,
             Integer songCountMax
     ) {
@@ -439,6 +494,26 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
         
+        // Birth Date filter
+        SqlFilterHelper.appendDateFilter(sql, params, "a.birth_date", birthDate, birthDateFrom, birthDateTo, birthDateMode);
+        
+        // Death Date filter
+        SqlFilterHelper.appendDateFilter(sql, params, "a.death_date", deathDate, deathDateFrom, deathDateTo, deathDateMode);
+        
+        // Age filter
+        if (ageMin != null || ageMax != null) {
+            // Age is calculated as years between birth_date and (death_date or current date)
+            String ageExpr = "CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND a.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ? ");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND a.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ? ");
+                params.add(ageMax);
+            }
+        }
+        
         // Organized filter
         if (organized != null && !organized.isEmpty()) {
             if ("true".equalsIgnoreCase(organized)) {
@@ -448,13 +523,14 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             }
         }
         
-        // Has Image filter
-        if (hasImage != null && !hasImage.isEmpty()) {
-            if ("true".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND a.image IS NOT NULL ");
-            } else if ("false".equalsIgnoreCase(hasImage)) {
-                sql.append(" AND a.image IS NULL ");
-            }
+        // Image Count filter (counts primary image + gallery images)
+        if (imageCountMin != null) {
+            sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id)) >= ? ");
+            params.add(imageCountMin);
+        }
+        if (imageCountMax != null) {
+            sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id)) <= ? ");
+            params.add(imageCountMax);
         }
         
         // Is Band filter

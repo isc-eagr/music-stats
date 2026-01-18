@@ -4,7 +4,7 @@
  */
 
 /**
- * Parses a display date string like "1 Feb 2012" into a sortable timestamp
+ * Parses a display date string like "1 Feb 2012" or "01-Feb-2012" into a sortable timestamp
  */
 function parseDisplayDate(dateStr) {
     if (!dateStr || dateStr === '' || dateStr === '-') return 0;
@@ -14,7 +14,10 @@ function parseDisplayDate(dateStr) {
         'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
     };
     
-    const parts = dateStr.trim().split(' ');
+    // Handle both "1 Feb 2012" (space-separated) and "01-Feb-2012" (dash-separated)
+    const separator = dateStr.includes('-') ? '-' : ' ';
+    const parts = dateStr.trim().split(separator);
+    
     if (parts.length === 3) {
         const day = parseInt(parts[0], 10);
         const month = months[parts[1].toLowerCase().substring(0, 3)];

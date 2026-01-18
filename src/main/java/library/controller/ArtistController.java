@@ -8,7 +8,6 @@ import library.repository.LookupRepository;
 import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.ItunesService;
-import library.service.ScrobbleService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,14 +29,12 @@ public class ArtistController {
     private final ChartService chartService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
-    private final ScrobbleService scrobbleService;
 
-    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository, ItunesService itunesService, ScrobbleService scrobbleService) {
+    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository, ItunesService itunesService) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
-        this.scrobbleService = scrobbleService;
     }
     
     @InitBinder
@@ -118,10 +115,18 @@ public class ArtistController {
             @RequestParam(required = false) String languageMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
             @RequestParam(required = false) String organized,
-            @RequestParam(required = false) String hasImage,
+            @RequestParam(required = false) Integer imageCountMin,
+            @RequestParam(required = false) Integer imageCountMax,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) String firstListenedDate,
@@ -138,6 +143,10 @@ public class ArtistController {
             @RequestParam(required = false) Integer playCountMax,
             @RequestParam(required = false) Integer albumCountMin,
             @RequestParam(required = false) Integer albumCountMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
             @RequestParam(required = false) Integer songCountMin,
             @RequestParam(required = false) Integer songCountMax,
             @RequestParam(defaultValue = "plays") String sortby,
@@ -155,30 +164,44 @@ public class ArtistController {
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
         String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
         String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
+        String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
+        String birthDateFromConverted = DateFormatUtils.convertToIsoFormat(birthDateFrom);
+        String birthDateToConverted = DateFormatUtils.convertToIsoFormat(birthDateTo);
+        String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
+        String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
+        String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         
         // Get filtered and sorted artists
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
-                subgenre, subgenreMode, language, languageMode, country, countryMode, account, accountMode,
+                subgenre, subgenreMode, language, languageMode, country, countryMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, isBand, inItunes,
                 playCountMin, playCountMax,
-                albumCountMin, albumCountMax, songCountMin, songCountMax,
+                albumCountMin, albumCountMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                songCountMin, songCountMax,
                 sortby, sortdir, page, perpage
         );
         
         // Get total count for pagination
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
-                languageMode, country, countryMode, account, accountMode,
+                languageMode, country, countryMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, hasImage, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, isBand, inItunes,
                 playCountMin, playCountMax,
-                albumCountMin, albumCountMax, songCountMin, songCountMax);
+                albumCountMin, albumCountMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                songCountMin, songCountMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
@@ -208,7 +231,8 @@ public class ArtistController {
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
-        model.addAttribute("selectedHasImage", hasImage);
+        model.addAttribute("imageCountMin", imageCountMin);
+        model.addAttribute("imageCountMax", imageCountMax);
         model.addAttribute("selectedIsBand", isBand);
         model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("playCountMin", playCountMin);
@@ -217,6 +241,29 @@ public class ArtistController {
         model.addAttribute("albumCountMax", albumCountMax);
         model.addAttribute("songCountMin", songCountMin);
         model.addAttribute("songCountMax", songCountMax);
+        
+        // Age filter attributes
+        model.addAttribute("ageMin", ageMin);
+        model.addAttribute("ageMax", ageMax);
+        model.addAttribute("ageMode", ageMode);
+        
+        // Birth date filter attributes
+        model.addAttribute("birthDate", birthDate);
+        model.addAttribute("birthDateFrom", birthDateFrom);
+        model.addAttribute("birthDateTo", birthDateTo);
+        model.addAttribute("birthDateMode", birthDateMode);
+        model.addAttribute("birthDateFormatted", DateFormatUtils.convertToDisplayFormat(birthDate));
+        model.addAttribute("birthDateFromFormatted", DateFormatUtils.convertToDisplayFormat(birthDateFrom));
+        model.addAttribute("birthDateToFormatted", DateFormatUtils.convertToDisplayFormat(birthDateTo));
+        
+        // Death date filter attributes
+        model.addAttribute("deathDate", deathDate);
+        model.addAttribute("deathDateFrom", deathDateFrom);
+        model.addAttribute("deathDateTo", deathDateTo);
+        model.addAttribute("deathDateMode", deathDateMode);
+        model.addAttribute("deathDateFormatted", DateFormatUtils.convertToDisplayFormat(deathDate));
+        model.addAttribute("deathDateFromFormatted", DateFormatUtils.convertToDisplayFormat(deathDateFrom));
+        model.addAttribute("deathDateToFormatted", DateFormatUtils.convertToDisplayFormat(deathDateTo));
         
         // First listened date filter attributes
         model.addAttribute("firstListenedDate", firstListenedDate);
@@ -780,8 +827,8 @@ public class ArtistController {
             if (file.isEmpty()) {
                 return "error";
             }
-            artistService.addSecondaryImage(id, file.getBytes());
-            return "success";
+            boolean added = artistService.addSecondaryImage(id, file.getBytes());
+            return added ? "success" : "duplicate";
         } catch (Exception e) {
             e.printStackTrace();
             return "error";

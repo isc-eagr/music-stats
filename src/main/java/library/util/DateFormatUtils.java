@@ -38,4 +38,36 @@ public final class DateFormatUtils {
         }
         return dateStr;
     }
+    
+    /**
+     * Converts date format from dd/MM/yyyy to dd MMM yyyy for display.
+     * Returns the original string if parsing fails.
+     *
+     * @param dateStr the date string in dd/MM/yyyy format
+     * @return display formatted date string (dd MMM yyyy) or original if invalid
+     */
+    public static String convertToDisplayFormat(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Try to parse dd/MM/yyyy format
+            if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] parts = dateStr.split("/");
+                if (parts.length == 3) {
+                    int day = Integer.parseInt(parts[0]);
+                    int month = Integer.parseInt(parts[1]);
+                    int year = Integer.parseInt(parts[2]);
+                    String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                    if (month >= 1 && month <= 12) {
+                        return String.format("%02d %s %d", day, months[month - 1], year);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // If parsing fails, return original
+        }
+        return dateStr;
+    }
 }

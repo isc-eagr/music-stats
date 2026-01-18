@@ -44,13 +44,14 @@ public class ScrobbleService {
     
     /**
      * Creates a normalized lookup key from artist, album, and song name.
-     * Uses lowercase, trimming, and accent stripping for better matching.
-     * E.g., "José" matches "Jose", "María" matches "Maria"
+     * Uses lowercase, trimming, and accent stripping for exact matching during import.
+     * Does NOT remove parentheses or featured artists to avoid false matches.
+     * E.g., "José" matches "Jose", but "7 Days" does NOT match "7 Days (feat. Fat Joe)"
      */
     private String createLookupKey(String artist, String album, String song) {
-        String a = artist != null ? library.util.StringNormalizer.normalizeForSearch(artist) : "";
-        String al = album != null ? library.util.StringNormalizer.normalizeForSearch(album) : "";
-        String s = song != null ? library.util.StringNormalizer.normalizeForSearch(song) : "";
+        String a = artist != null ? library.util.StringNormalizer.normalizeForImport(artist) : "";
+        String al = album != null ? library.util.StringNormalizer.normalizeForImport(album) : "";
+        String s = song != null ? library.util.StringNormalizer.normalizeForImport(song) : "";
         return a + "||" + al + "||" + s;
     }
     
@@ -747,29 +748,13 @@ public class ScrobbleService {
      * Get the total number of unique weeks since the first scrobble in the database.
      */
     public int getTotalWeeksSinceFirstScrobble() {
-        String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y-%W', scrobble_date))
-            FROM (
-                SELECT DATE(MIN(scrobble_date), 'weekday 0', '-6 days') as start_date FROM Scrobble WHERE scrobble_date IS NOT NULL
-                UNION ALL
-                SELECT DATE('now')
-            )
-            CROSS JOIN (
-                WITH RECURSIVE dates(d) AS (
-                    SELECT DATE((SELECT MIN(scrobble_date) FROM Scrobble WHERE scrobble_date IS NOT NULL))
-                    UNION ALL
-                    SELECT DATE(d, '+7 days') FROM dates WHERE d < DATE('now')
-                )
-                SELECT d as scrobble_date FROM dates
-            )
-            """;
         try {
-            // Simplified approach: calculate weeks between first scrobble and now
-            String simpleSql = """
+            // Calculate weeks between first scrobble and now
+            String sql = """
                 SELECT CAST((julianday('now') - julianday(MIN(DATE(scrobble_date)))) / 7 AS INTEGER) + 1 
                 FROM Scrobble WHERE scrobble_date IS NOT NULL
                 """;
-            Integer weeks = jdbcTemplate.queryForObject(simpleSql, Integer.class);
+            Integer weeks = jdbcTemplate.queryForObject(sql, Integer.class);
             return weeks != null && weeks > 0 ? weeks : 1;
         } catch (Exception e) {
             return 1;

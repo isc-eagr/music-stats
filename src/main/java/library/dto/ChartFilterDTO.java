@@ -77,6 +77,27 @@ public class ChartFilterDTO {
     private String isBand; // "true", "false", or null
     private String isSingle; // "true", "false", or null
     
+    // Age filter
+    private Integer ageMin;
+    private Integer ageMax;
+    private String ageMode;
+    
+    // Age at Release filter
+    private Integer ageAtReleaseMin;
+    private Integer ageAtReleaseMax;
+    
+    // Birth Date filter
+    private String birthDate;
+    private String birthDateFrom;
+    private String birthDateTo;
+    private String birthDateMode;
+    
+    // Death Date filter
+    private String deathDate;
+    private String deathDateFrom;
+    private String deathDateTo;
+    private String deathDateMode;
+    
     // Include toggles for Top Artists aggregation
     private boolean includeGroups; // Include songs from artist's groups
     private boolean includeFeatured; // Include featured songs
@@ -233,6 +254,45 @@ public class ChartFilterDTO {
     public String getIsSingle() { return isSingle; }
     public ChartFilterDTO setIsSingle(String isSingle) { this.isSingle = isSingle; return this; }
     
+    public Integer getAgeMin() { return ageMin; }
+    public ChartFilterDTO setAgeMin(Integer ageMin) { this.ageMin = ageMin; return this; }
+    
+    public Integer getAgeMax() { return ageMax; }
+    public ChartFilterDTO setAgeMax(Integer ageMax) { this.ageMax = ageMax; return this; }
+    
+    public String getAgeMode() { return ageMode; }
+    public ChartFilterDTO setAgeMode(String ageMode) { this.ageMode = ageMode; return this; }
+    
+    public Integer getAgeAtReleaseMin() { return ageAtReleaseMin; }
+    public ChartFilterDTO setAgeAtReleaseMin(Integer ageAtReleaseMin) { this.ageAtReleaseMin = ageAtReleaseMin; return this; }
+    
+    public Integer getAgeAtReleaseMax() { return ageAtReleaseMax; }
+    public ChartFilterDTO setAgeAtReleaseMax(Integer ageAtReleaseMax) { this.ageAtReleaseMax = ageAtReleaseMax; return this; }
+    
+    public String getBirthDate() { return birthDate; }
+    public ChartFilterDTO setBirthDate(String birthDate) { this.birthDate = birthDate; return this; }
+    
+    public String getBirthDateFrom() { return birthDateFrom; }
+    public ChartFilterDTO setBirthDateFrom(String birthDateFrom) { this.birthDateFrom = birthDateFrom; return this; }
+    
+    public String getBirthDateTo() { return birthDateTo; }
+    public ChartFilterDTO setBirthDateTo(String birthDateTo) { this.birthDateTo = birthDateTo; return this; }
+    
+    public String getBirthDateMode() { return birthDateMode; }
+    public ChartFilterDTO setBirthDateMode(String birthDateMode) { this.birthDateMode = birthDateMode; return this; }
+    
+    public String getDeathDate() { return deathDate; }
+    public ChartFilterDTO setDeathDate(String deathDate) { this.deathDate = deathDate; return this; }
+    
+    public String getDeathDateFrom() { return deathDateFrom; }
+    public ChartFilterDTO setDeathDateFrom(String deathDateFrom) { this.deathDateFrom = deathDateFrom; return this; }
+    
+    public String getDeathDateTo() { return deathDateTo; }
+    public ChartFilterDTO setDeathDateTo(String deathDateTo) { this.deathDateTo = deathDateTo; return this; }
+    
+    public String getDeathDateMode() { return deathDateMode; }
+    public ChartFilterDTO setDeathDateMode(String deathDateMode) { this.deathDateMode = deathDateMode; return this; }
+    
     public boolean isIncludeGroups() { return includeGroups; }
     public ChartFilterDTO setIncludeGroups(boolean includeGroups) { this.includeGroups = includeGroups; return this; }
     
@@ -311,6 +371,15 @@ public class ChartFilterDTO {
                (listenedDateTo != null && !listenedDateTo.isEmpty()) ||
                playCountMin != null || playCountMax != null ||
                hasFeaturedArtists != null || isBand != null || isSingle != null ||
+               // Age filters
+               ageMin != null || ageMax != null ||
+               ageAtReleaseMin != null || ageAtReleaseMax != null ||
+               (birthDate != null && !birthDate.isEmpty()) ||
+               (birthDateFrom != null && !birthDateFrom.isEmpty()) ||
+               (birthDateTo != null && !birthDateTo.isEmpty()) ||
+               (deathDate != null && !deathDate.isEmpty()) ||
+               (deathDateFrom != null && !deathDateFrom.isEmpty()) ||
+               (deathDateTo != null && !deathDateTo.isEmpty()) ||
                // Albums chart filters
                albumsWeeklyChartPeak != null || albumsWeeklyChartWeeks != null ||
                albumsSeasonalChartPeak != null || albumsSeasonalChartSeasons != null ||

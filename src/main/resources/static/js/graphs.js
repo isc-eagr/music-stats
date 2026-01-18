@@ -1745,7 +1745,7 @@ function renderTopArtistsTable() {
             <td class="rank-col">${rank}</td>
             <td class="cover-col artist-cover">
                 <div style="cursor:pointer;">
-                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openImageModal('/artists/${artist.id}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
+                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openArtistImageModalFromGraphs(${artist.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
                     <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎤</div>
                 </div>
             </td>
@@ -1786,7 +1786,7 @@ function renderTopAlbumsTable() {
             <td class="rank-col">${rank}</td>
             <td class="cover-col">
                 <div style="cursor:pointer;">
-                    <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openImageModal('/albums/${album.id}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                    <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openAlbumImageModalFromGraphs(${album.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                     <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
                 </div>
             </td>
@@ -1829,18 +1829,18 @@ function renderTopSongsTable() {
         if (song.hasImage && song.albumHasImage && song.albumId) {
             // Case 1: Song has image AND album has image - show album by default, song on hover
             coverHtml = `<div class="hover-image-container" style="display:block;position:relative;width:50px;height:50px;cursor:pointer;">
-                <img src="/albums/${song.albumId}/image" alt="" class="album-image-default clickable-image" onclick="openImageModal('/songs/${song.id}/image')" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:1;transition:opacity 0.2s;z-index:2;">
-                <img src="/songs/${song.id}/image" alt="" class="song-image-hover clickable-image" onclick="openImageModal('/songs/${song.id}/image')" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0;transition:opacity 0.2s;z-index:1;">
+                <img src="/albums/${song.albumId}/image" alt="" class="album-image-default clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:1;transition:opacity 0.2s;z-index:2;">
+                <img src="/songs/${song.id}/image" alt="" class="song-image-hover clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0;transition:opacity 0.2s;z-index:1;">
             </div>`;
         } else if (song.hasImage) {
             // Case 2: Song has image but album doesn't - just show song image
             coverHtml = `<div style="cursor:pointer;">
-                <img src="/songs/${song.id}/image" alt="" class="clickable-image" onclick="openImageModal('/songs/${song.id}/image')" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                <img src="/songs/${song.id}/image" alt="" class="clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
             </div>`;
         } else if (song.albumId) {
             // Case 3: Song doesn't have image but album does - show album image
             coverHtml = `<div style="cursor:pointer;">
-                   <img src="/albums/${song.albumId}/image" alt="" class="inherited-cover clickable-image" onclick="openImageModal('/albums/${song.albumId}/image')" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                   <img src="/albums/${song.albumId}/image" alt="" class="inherited-cover clickable-image" onclick="openAlbumImageModalFromGraphs(${song.albumId})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                    <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
                </div>`;
         } else {
@@ -2092,6 +2092,88 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Gallery-aware image modal functions for graphs page
+function openArtistImageModalFromGraphs(artistId) {
+    fetch(`/artists/${artistId}/images`)
+        .then(response => response.json())
+        .then(data => {
+            const imageIds = data.map(img => img.id);
+            const hasDefaultImage = true;
+            
+            let artistGalleryImages = hasDefaultImage ? [0, ...imageIds] : (imageIds.length > 0 ? imageIds : [0]);
+            
+            if (artistGalleryImages.length > 1) {
+                const galleryContext = {
+                    images: artistGalleryImages,
+                    entityType: 'artists',
+                    entityId: artistId,
+                    currentIndex: 0
+                };
+                openImageModal(`/artists/${artistId}/image`, galleryContext);
+            } else {
+                openImageModal(`/artists/${artistId}/image`);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading artist gallery:', error);
+            openImageModal(`/artists/${artistId}/image`);
+        });
+}
+
+function openAlbumImageModalFromGraphs(albumId) {
+    fetch(`/albums/${albumId}/images`)
+        .then(response => response.json())
+        .then(data => {
+            const imageIds = data.map(img => img.id);
+            const hasDefaultImage = true;
+            
+            let albumGalleryImages = hasDefaultImage ? [0, ...imageIds] : (imageIds.length > 0 ? imageIds : [0]);
+            
+            if (albumGalleryImages.length > 1) {
+                const galleryContext = {
+                    images: albumGalleryImages,
+                    entityType: 'albums',
+                    entityId: albumId,
+                    currentIndex: 0
+                };
+                openImageModal(`/albums/${albumId}/image`, galleryContext);
+            } else {
+                openImageModal(`/albums/${albumId}/image`);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading album gallery:', error);
+            openImageModal(`/albums/${albumId}/image`);
+        });
+}
+
+function openSongImageModalFromGraphs(songId) {
+    fetch(`/songs/${songId}/images`)
+        .then(response => response.json())
+        .then(data => {
+            const imageIds = data.map(img => img.id);
+            const hasDefaultImage = true;
+            
+            let songGalleryImages = hasDefaultImage ? [0, ...imageIds] : (imageIds.length > 0 ? imageIds : [0]);
+            
+            if (songGalleryImages.length > 1) {
+                const galleryContext = {
+                    images: songGalleryImages,
+                    entityType: 'songs',
+                    entityId: songId,
+                    currentIndex: 0
+                };
+                openImageModal(`/songs/${songId}/image`, galleryContext);
+            } else {
+                openImageModal(`/songs/${songId}/image`);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading song gallery:', error);
+            openImageModal(`/songs/${songId}/image`);
+        });
 }
 
 // Initialize modal close on click outside and read URL params for toggles

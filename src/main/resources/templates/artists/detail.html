@@ -47,7 +47,7 @@
                          th:alt="${artist.name}"
                          id="artistImage"
                          class="item-image-large clickable-image"
-                         onclick="openImageModal(this.src)"
+                         onclick="openArtistImageModal()"
                          style="cursor: pointer;">
                     <div th:unless="${hasImage}" class="no-image-large" id="noImagePlaceholder">
                         <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
@@ -58,6 +58,9 @@
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
                              th:alt="${artist.country}" />
                     </span>
+
+                    <!-- Death indicator overlay -->
+                    <span class="death-overlay" th:if="${artist.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(artist.deathDate, 'dd-MMM-yyyy')}">†</span>
 
                     <!-- Image Counter -->
                     <div class="gallery-counter" id="galleryCounter" style="display: none;">
@@ -319,7 +322,16 @@
                                 
                                 <div class="form-group">
                                     <label for="birthDate">Birth Date</label>
-                                    <span class="attribute-text" data-field="birthDate" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd-MMM-yyyy') : '-'}">-</span>
+                                    <span class="attribute-text" data-field="birthDate">
+                                        <th:block th:if="${artist.birthDate != null}">
+                                            <span th:text="${#temporals.format(artist.birthDate, 'dd-MMM-yyyy')}"></span>
+                                            <span style="color: var(--text-muted); margin-left: 4px;" 
+                                                  th:with="endDate=${artist.deathDate != null ? artist.deathDate : #temporals.createNow()},
+                                                           years=${T(java.time.temporal.ChronoUnit).YEARS.between(artist.birthDate, endDate)}"
+                                                  th:text="'(' + ${years} + ' years old)'"></span>
+                                        </th:block>
+                                        <th:block th:if="${artist.birthDate == null}">-</th:block>
+                                    </span>
                                     <input type="text" autocomplete="off" id="birthDate" name="birthDate" th:value="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : ''}" placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" class="editable-input" style="display:none;" />
                                 </div>
                                 
@@ -416,8 +428,9 @@
                         </div>
                         
                         <div class="form-actions" id="formActions" style="display: none;">
-                            <button type="submit" class="btn-action">Save</button>
-                            <button type="button" class="btn-negative" onclick="cancelEdit()">Cancel</button>
+                            <button type="submit" class="btn-action" onclick="clearAllHighlights()">Save</button>
+                            <button type="button" class="btn-negative" onclick="clearAllHighlights(); cancelEdit()">Cancel</button>
+                            <button type="button" class="btn-fetch-external" id="btnFetchExternal" th:data-artist-name="${artist.name}" th:data-artist-id="${artist.id}">External</button>
                         </div>
                     </form>
                 </div>
@@ -494,8 +507,8 @@
                                         data-totalplays=${album.totalPlays},
                                         data-timelistened=${album.totalListeningTimeSeconds}">
                                 <td class="cover-col">
-                                    <div style="cursor:pointer;" th:onclick="|openImageModal('/albums/' + ${album.id} + '/image')|" th:title="${album.name}">
-                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                    <div style="cursor:pointer;" th:onclick="|openAlbumImageModalFromArtist(${album.id})|" th:title="${album.name}">
+                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                         <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
                                     </div>
                                 </td>
@@ -573,12 +586,12 @@
                                         <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container" style="width:50px;height:50px;">
                                             <img th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
                                                  th:alt="${song.name}"
-                                                 th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                                                 th:onclick="|openSongImageModalFromArtist(${song.id})|"
                                                  class="album-image-default clickable-image"
                                                  style="border-radius:4px;">
                                             <img th:src="@{'/songs/' + ${song.id} + '/image'}" 
                                                  th:alt="${song.name}"
-                                                 th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                                                 th:onclick="|openSongImageModalFromArtist(${song.id})|"
                                                  class="song-image-hover clickable-image"
                                                  style="border-radius:4px;">
                                         </div>
@@ -586,14 +599,14 @@
                                         <img th:if="${song.hasImage and !song.albumHasImage}" 
                                              th:src="@{'/songs/' + ${song.id} + '/image'}" 
                                              th:alt="${song.name}" 
-                                             th:onclick="|openImageModal('/songs/' + ${song.id} + '/image')|"
+                                             th:onclick="|openSongImageModalFromArtist(${song.id})|"
                                              class="clickable-image"
                                              style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                         <!-- Case 3: Song doesn't have image but album does - show album image with opacity -->
                                         <img th:if="${!song.hasImage and song.albumId != null}" 
                                              th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
                                              th:alt="${song.name}"
-                                             th:onclick="|openImageModal('/albums/' + ${song.albumId} + '/image')|"
+                                             th:onclick="|openAlbumImageModalFromArtist(${song.albumId})|"
                                              class="inherited-cover clickable-image"
                                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                                              style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
@@ -731,6 +744,8 @@
                                     <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(group.country)})}"
                                          th:alt="${group.country}" />
                                 </span>
+                                <!-- Death indicator overlay -->
+                                <span class="death-overlay" th:if="${group.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(group.deathDate, 'dd-MMM-yyyy')}">†</span>
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${group.id}}">
@@ -779,6 +794,8 @@
                                     <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(member.country)})}"
                                          th:alt="${member.country}" />
                                 </span>
+                                <!-- Death indicator overlay -->
+                                <span class="death-overlay" th:if="${member.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(member.deathDate, 'dd-MMM-yyyy')}">†</span>
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${member.id}}">
@@ -832,6 +849,8 @@
                                     <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(collab.country)})}"
                                          th:alt="${collab.country}" />
                                 </span>
+                                <!-- Death indicator overlay -->
+                                <span class="death-overlay" th:if="${collab.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(collab.deathDate, 'dd-MMM-yyyy')}">†</span>
                                 <!-- Feature count badge for artists -->
                                 <span th:if="${collab.featureCount > 1}" class="feature-count-badge" 
                                       th:text="${collab.featureCount}" th:title="${collab.featureCount + ' songs'}"></span>
@@ -892,8 +911,8 @@
                                     <tr th:each="entry : ${albumChartHistory}"
                                         th:classappend="${includeGroups and entry.fromGroup} ? 'group-item-row' : ''">
                                         <td class="cover-col">
-                                            <div style="cursor:pointer;" th:onclick="|openImageModal('/albums/' + ${entry.id} + '/image')| " th:title="${entry.name}">
-                                                <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                            <div style="cursor:pointer;" th:onclick="|openAlbumImageModalFromArtist(${entry.id})| " th:title="${entry.name}">
+                                                <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                                 <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
                                             </div>
                                         </td>
@@ -963,14 +982,14 @@
                                                     <img th:if="${entry.albumId != null}"
                                                          th:src="@{'/albums/' + ${entry.albumId} + '/image'}" 
                                                          th:alt="${entry.name}"
-                                                         th:onclick="|openImageModal('/songs/' + ${entry.id} + '/image')|"
+                                                         th:onclick="|openSongImageModalFromArtist(${entry.id})|"
                                                          class="album-image-default clickable-image"
                                                          onerror="this.style.display='none';"
                                                          style="border-radius:4px;">
                                                     <!-- Show song image on hover or if no album -->
                                                     <img th:src="@{'/songs/' + ${entry.id} + '/image'}" 
                                                          th:alt="${entry.name}"
-                                                         th:onclick="|openImageModal('/songs/' + ${entry.id} + '/image')|"
+                                                         th:onclick="|openSongImageModalFromArtist(${entry.id})|"
                                                          th:class="${entry.albumId != null} ? 'song-image-hover clickable-image' : 'clickable-image'"
                                                          style="border-radius:4px;">
                                                 </div>
@@ -978,7 +997,7 @@
                                                 <img th:if="${!entry.hasImage and entry.albumId != null}" 
                                                      th:src="@{'/albums/' + ${entry.albumId} + '/image'}" 
                                                      th:alt="${entry.name}"
-                                                     th:onclick="|openImageModal('/albums/' + ${entry.albumId} + '/image')|"
+                                                     th:onclick="|openAlbumImageModalFromArtist(${entry.albumId})|"
                                                      class="inherited-cover clickable-image"
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                                                      style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
@@ -1688,7 +1707,7 @@
                 img.id = 'artistImage';
                 img.className = 'item-image-large clickable-image';
                 img.style.cursor = 'pointer';
-                img.onclick = function() { openImageModal(this.src); };
+                img.onclick = function() { openArtistImageModal(); };
                 const container = document.querySelector('.item-image-container');
                 const navRight = document.getElementById('galleryNext');
                 if (navRight && navRight.nextSibling) {
@@ -1713,6 +1732,94 @@
                 }
                 if (placeholder) placeholder.style.display = 'none';
             }
+        }
+
+        function openArtistImageModal() {
+            const img = document.getElementById('artistImage');
+            if (!img) return;
+            
+            // Build gallery context if there are multiple images
+            if (galleryImages.length > 1) {
+                const galleryContext = {
+                    images: galleryImages,
+                    entityType: 'artists',
+                    entityId: artistId,
+                    currentIndex: currentGalleryIndex
+                };
+                openImageModal(img.src, galleryContext);
+            } else {
+                openImageModal(img.src);
+            }
+        }
+
+        function openAlbumImageModalFromArtist(albumId) {
+            // Fetch the album's gallery images first
+            fetch(`/albums/${albumId}/images`)
+                .then(response => response.json())
+                .then(data => {
+                    const imageIds = data.map(img => img.id);
+                    const hasDefaultImage = true; // Assume album has default image if we're clicking it
+                    
+                    let albumGalleryImages = [];
+                    if (hasDefaultImage) {
+                        albumGalleryImages = [0, ...imageIds];
+                    } else {
+                        albumGalleryImages = imageIds.length > 0 ? imageIds : [0];
+                    }
+                    
+                    // Open modal with gallery context if multiple images
+                    if (albumGalleryImages.length > 1) {
+                        const galleryContext = {
+                            images: albumGalleryImages,
+                            entityType: 'albums',
+                            entityId: albumId,
+                            currentIndex: 0
+                        };
+                        openImageModal(`/albums/${albumId}/image`, galleryContext);
+                    } else {
+                        openImageModal(`/albums/${albumId}/image`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading album gallery:', error);
+                    // Fallback to just opening the image
+                    openImageModal(`/albums/${albumId}/image`);
+                });
+        }
+
+        function openSongImageModalFromArtist(songId) {
+            // Fetch the song's gallery images first
+            fetch(`/songs/${songId}/images`)
+                .then(response => response.json())
+                .then(data => {
+                    const imageIds = data.map(img => img.id);
+                    const hasDefaultImage = true; // Assume song has default image if we're clicking it
+                    
+                    let songGalleryImages = [];
+                    if (hasDefaultImage) {
+                        songGalleryImages = [0, ...imageIds];
+                    } else {
+                        songGalleryImages = imageIds.length > 0 ? imageIds : [0];
+                    }
+                    
+                    // Open modal with gallery context if multiple images
+                    if (songGalleryImages.length > 1) {
+                        const galleryContext = {
+                            images: songGalleryImages,
+                            entityType: 'songs',
+                            entityId: songId,
+                            currentIndex: 0
+                        };
+                        openImageModal(`/songs/${songId}/image`, galleryContext);
+                    } else {
+                        openImageModal(`/songs/${songId}/image`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading song gallery:', error);
+                    // Fallback to just opening the image
+                    openImageModal(`/songs/${songId}/image`);
+                });
         }
 
         function handleGalleryImageUpload(event) {
@@ -1900,6 +2007,20 @@
     </script>
     
     <style>
+        /* Field highlight for external metadata fetch */
+        .field-highlight {
+            box-shadow: 0 0 8px 2px #4CAF50 !important;
+            border-color: #4CAF50 !important;
+        }
+        .gender-male .field-highlight {
+            box-shadow: 0 0 8px 2px #4a90d9 !important;
+            border-color: #4a90d9 !important;
+        }
+        .gender-female .field-highlight {
+            box-shadow: 0 0 8px 2px #d94a8a !important;
+            border-color: #d94a8a !important;
+        }
+        
         /* Make disabled delete buttons visually distinct */
         .btn-negative:disabled {
             opacity: 0.4;
@@ -2286,9 +2407,7 @@
             const artistImage = document.getElementById('artistImage');
             if (artistImage) {
                 artistImage.classList.add('clickable');
-                artistImage.addEventListener('click', function() {
-                    openImageModal(this.src);
-                });
+                // Note: click handler is already set inline via onclick attribute
             }
         });
         
@@ -2398,5 +2517,155 @@
             });
         });
     </script>
+    
+    <!-- Script to wire up the Fetch External button -->
+    <script>
+        function highlightField(fieldId) {
+            let el = document.getElementById(fieldId);
+            // If the element is a hidden select wrapped by searchable-select, highlight the wrapper's display element
+            if (el && el.closest('.searchable-select-wrapper')) {
+                const wrapper = el.closest('.searchable-select-wrapper');
+                const display = wrapper.querySelector('.searchable-select-display');
+                if (display) el = display;
+            }
+            // If the element is hidden (like a select in view mode without searchable wrapper), find the corresponding attribute-text span
+            else if (el && el.style.display === 'none') {
+                const span = document.querySelector(`span.attribute-text[data-field="${fieldId}"]`);
+                if (span) el = span;
+            }
+            if (el) {
+                el.classList.remove('field-highlight');
+                void el.offsetWidth; // Trigger reflow
+                el.classList.add('field-highlight');
+                // Remove highlight when user modifies the field
+                const removeHighlight = () => {
+                    el.classList.remove('field-highlight');
+                    el.removeEventListener('input', removeHighlight);
+                    el.removeEventListener('change', removeHighlight);
+                };
+                el.addEventListener('input', removeHighlight);
+                el.addEventListener('change', removeHighlight);
+            }
+        }
+        
+        function clearAllHighlights() {
+            document.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const fetchBtn = document.getElementById('btnFetchExternal');
+            if (fetchBtn) {
+                fetchBtn.addEventListener('click', function() {
+                    const artistName = this.getAttribute('data-artist-name');
+                    const artistId = parseInt(this.getAttribute('data-artist-id'));
+                    
+                    // Open with callback to populate form fields instead of saving directly
+                    openArtistFetchModal(artistName, artistId, function(selectedArtist) {
+                        // Populate birth date
+                        if (selectedArtist.birthDate) {
+                            const dateParts = selectedArtist.birthDate.split('-');
+                            let formatted = '';
+                            if (dateParts.length === 3) {
+                                formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                            } else if (dateParts.length === 2) {
+                                formatted = `01/${dateParts[1]}/${dateParts[0]}`; // Use first of month
+                            } else if (dateParts.length === 1 && dateParts[0].length === 4) {
+                                formatted = `01/01/${dateParts[0]}`; // Use first of year
+                            }
+                            if (formatted) {
+                                const birthDateInput = document.getElementById('birthDate');
+                                if (birthDateInput) {
+                                    const oldValue = birthDateInput.value;
+                                    birthDateInput.value = formatted;
+                                    const fp = birthDateInput._flatpickr;
+                                    if (fp) fp.setDate(formatted, true, 'd/m/Y');
+                                    // Only highlight if value changed
+                                    if (oldValue !== formatted) {
+                                        highlightField('birthDate');
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Populate death date
+                        if (selectedArtist.deathDate) {
+                            const dateParts = selectedArtist.deathDate.split('-');
+                            let formatted = '';
+                            if (dateParts.length === 3) {
+                                formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                            } else if (dateParts.length === 2) {
+                                formatted = `01/${dateParts[1]}/${dateParts[0]}`;
+                            } else if (dateParts.length === 1 && dateParts[0].length === 4) {
+                                formatted = `01/01/${dateParts[0]}`;
+                            }
+                            if (formatted) {
+                                const deathDateInput = document.getElementById('deathDate');
+                                if (deathDateInput) {
+                                    const oldValue = deathDateInput.value;
+                                    deathDateInput.value = formatted;
+                                    const fp = deathDateInput._flatpickr;
+                                    if (fp) fp.setDate(formatted, true, 'd/m/Y');
+                                    // Only highlight if value changed
+                                    if (oldValue !== formatted) {
+                                        highlightField('deathDate');
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Populate country
+                        if (selectedArtist.country) {
+                            const countrySelect = document.getElementById('country');
+                            if (countrySelect) {
+                                const oldValue = countrySelect.value;
+                                // Try to find matching option
+                                const options = countrySelect.options;
+                                let newValue = null;
+                                for (let i = 0; i < options.length; i++) {
+                                    if (options[i].value === selectedArtist.country || 
+                                        options[i].text === selectedArtist.country) {
+                                        newValue = options[i].value;
+                                        countrySelect.value = newValue;
+                                        // Update the searchable-select display
+                                        const wrapper = countrySelect.closest('.searchable-select-wrapper');
+                                        if (wrapper) {
+                                            const display = wrapper.querySelector('.searchable-select-display');
+                                            if (display) {
+                                                display.textContent = options[i].text;
+                                                display.classList.add('has-value');
+                                            }
+                                        }
+                                        // Trigger change event
+                                        countrySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                                        break;
+                                    }
+                                }
+                                // Only highlight if value changed
+                                if (newValue !== null && oldValue !== newValue) {
+                                    highlightField('country');
+                                }
+                            }
+                        }
+                        
+                        // Populate Is Band based on type (Group, Orchestra, Choir = true)
+                        if (selectedArtist.type) {
+                            const isBandCheckbox = document.getElementById('isBand');
+                            if (isBandCheckbox) {
+                                const bandTypes = ['Group', 'Orchestra', 'Choir'];
+                                const isBand = bandTypes.includes(selectedArtist.type);
+                                if (isBandCheckbox.checked !== isBand) {
+                                    isBandCheckbox.checked = isBand;
+                                    highlightField('isBand');
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+    
+    <!-- Artist Fetch Modal (MusicBrainz) -->
+    <th:block th:replace="~{fragments/artist-fetch-modal :: artist-fetch-modal}"></th:block>
 </body>
 </html>

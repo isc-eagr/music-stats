@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>External Fetch Modal Fragment</title>
+</head>
+<body>
+    <!-- Unified External Fetch Modal Fragment -->
+    <!-- Used for fetching images and/or metadata from iTunes Store, Spotify, and Deezer -->
+    <!-- 
+        Usage modes:
+        - 'image': Only fetch and save images (Place A - image overlay buttons)
+        - 'metadata': Only fetch metadata like release date, length (Place B - edit mode)
+        - 'both': Fetch both image and metadata (Place C - import wizard)
+    -->
+    <th:block th:fragment="external-fetch-modal">
+        <div id="externalFetchModal" class="ef-modal">
+            <div class="ef-modal-content" onclick="event.stopPropagation()">
+                <div class="ef-modal-header">
+                    <h3 id="efModalTitle">Fetch Externally</h3>
+                    <button class="ef-modal-close" onclick="closeExternalFetchModal(event)">&times;</button>
+                </div>
+                
+                <div class="ef-modal-body">
+                    <!-- Service selector tabs -->
+                    <div class="ef-service-tabs">
+                        <button type="button" class="ef-service-tab active" data-service="itunes" onclick="switchService('itunes')">
+                            iTunes Store
+                        </button>
+                        <button type="button" class="ef-service-tab" data-service="spotify" onclick="switchService('spotify')">
+                            Spotify
+                        </button>
+                        <button type="button" class="ef-service-tab" data-service="deezer" onclick="switchService('deezer')">
+                            Deezer
+                        </button>
+                        <button type="button" class="ef-service-tab" data-service="musicbrainz" onclick="switchService('musicbrainz')">
+                            MusicBrainz
+                        </button>
+                    </div>
+                    
+                    <!-- Search form -->
+                    <div class="ef-search-form">
+                        <input type="text" id="efSearchInput" class="ef-search-input" placeholder="Artist Song Name" 
+                               onkeydown="if(event.key==='Enter') performExternalSearch()">
+                        <select id="efEntitySelect" class="ef-entity-select">
+                            <option value="song" selected>Songs</option>
+                            <option value="album">Albums</option>
+                        </select>
+                        <button type="button" class="ef-btn-search" onclick="performExternalSearch()">Search</button>
+                    </div>
+                    
+                    <!-- URL field for direct modification -->
+                    <div class="ef-url-form" id="efUrlForm" style="display: none;">
+                        <input type="text" id="efUrlInput" class="ef-url-input" placeholder="API URL will appear here">
+                        <button type="button" class="ef-btn-url-fetch" onclick="performExternalSearchWithUrl()">Fetch</button>
+                    </div>
+                    
+                    <!-- Search status -->
+                    <div id="efSearchStatus" class="ef-search-status" style="display: none;">
+                        Searching...
+                    </div>
+                    
+                    <!-- Error message -->
+                    <div id="efErrorMessage" class="ef-error-message" style="display: none;">
+                        No results found
+                    </div>
+                    
+                    <!-- Results grid -->
+                    <div id="efResultsGrid" class="ef-results-grid" style="display: none;">
+                    </div>
+                    
+                    <!-- Releases sub-view (for browsing all editions of an album) -->
+                    <div id="efReleasesView" class="ef-releases-view" style="display: none;">
+                        <div class="ef-releases-header">
+                            <button type="button" class="ef-btn-back" onclick="closeReleasesView()">
+                                ← Back to Search
+                            </button>
+                            <h4 id="efReleasesTitle">Album Editions</h4>
+                        </div>
+                        <div id="efReleasesLoading" class="ef-search-status">Loading editions...</div>
+                        <div id="efReleasesGrid" class="ef-releases-grid"></div>
+                    </div>
+                </div>
+                
+                <div class="ef-modal-footer">
+                    <span id="efSelectedCount">0 selected</span>
+                    <div class="ef-modal-buttons">
+                        <button type="button" class="ef-btn-cancel" onclick="closeExternalFetchModal(event)">Cancel</button>
+                        <button type="button" class="ef-btn-save" id="efSaveBtn" onclick="saveExternalSelection()" disabled>
+                            Save Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            .ef-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .ef-modal.show {
+                display: flex;
+            }
+            
+            .ef-modal-content {
+                background: var(--surface, #1a1a2e);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                width: 90%;
+                max-width: 900px;
+                max-height: 85vh;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            }
+            
+            .ef-modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .ef-modal-header h3 {
+                margin: 0;
+                color: #fff;
+                font-size: 18px;
+            }
+            
+            .ef-modal-close {
+                background: transparent;
+                border: none;
+                color: #fff;
+                font-size: 28px;
+                cursor: pointer;
+                padding: 0 8px;
+                line-height: 1;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            
+            .ef-modal-close:hover {
+                opacity: 1;
+            }
+            
+            .ef-modal-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                min-height: 300px;
+            }
+            
+            /* Service tabs */
+            .ef-service-tabs {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+            
+            .ef-service-tab {
+                flex: 1;
+                padding: 10px 16px;
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 13px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .ef-service-tab:hover {
+                background: rgba(255, 255, 255, 0.12);
+                color: #fff;
+            }
+            
+            .ef-service-tab.active {
+                background: rgba(76, 175, 80, 0.2);
+                border-color: #4CAF50;
+                color: #fff;
+            }
+            
+            .ef-service-tab.active[data-service="itunes"] {
+                background: rgba(251, 91, 137, 0.2);
+                border-color: #fb5b89;
+            }
+            
+            .ef-service-tab.active[data-service="spotify"] {
+                background: rgba(30, 215, 96, 0.2);
+                border-color: #1ed760;
+            }
+            
+            .ef-service-tab.active[data-service="deezer"] {
+                background: rgba(254, 170, 4, 0.2);
+                border-color: #feaa04;
+            }
+            
+            .ef-service-tab.active[data-service="musicbrainz"] {
+                background: rgba(186, 53, 104, 0.2);
+                border-color: #ba3568;
+            }
+            
+            .ef-search-form {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .ef-search-input {
+                flex: 1;
+                padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+            }
+            
+            .ef-search-input::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+            }
+            
+            .ef-search-input:focus {
+                outline: none;
+                border-color: rgba(255, 255, 255, 0.4);
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .ef-entity-select {
+                padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                min-width: 100px;
+            }
+            
+            .ef-entity-select option {
+                background: #1a1a1a;
+                color: #fff;
+            }
+            
+            .ef-entity-select:focus {
+                outline: none;
+                border-color: rgba(255, 255, 255, 0.4);
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .ef-btn-search {
+                padding: 10px 20px;
+                background: #4CAF50;
+                border: none;
+                color: #fff;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+            }
+            
+            .ef-btn-search:hover {
+                background: #45a049;
+            }
+            
+            /* URL modification form */
+            .ef-url-form {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+            
+            .ef-url-input {
+                flex: 1;
+                padding: 8px 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 4px;
+                color: #aaa;
+                font-size: 12px;
+                font-family: monospace;
+            }
+            
+            .ef-url-input:focus {
+                outline: none;
+                border-color: rgba(255, 255, 255, 0.3);
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+            }
+            
+            .ef-btn-url-fetch {
+                padding: 8px 14px;
+                background: rgba(76, 175, 80, 0.3);
+                border: 1px solid rgba(76, 175, 80, 0.5);
+                color: #69db7c;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.2s;
+            }
+            
+            .ef-btn-url-fetch:hover {
+                background: rgba(76, 175, 80, 0.5);
+            }
+            
+            .ef-search-status {
+                text-align: center;
+                color: var(--text-muted, #888);
+                font-size: 14px;
+                padding: 40px;
+            }
+            
+            .ef-search-status::before {
+                content: "⏳ ";
+            }
+            
+            .ef-error-message {
+                text-align: center;
+                color: #ff6b6b;
+                font-size: 14px;
+                padding: 40px;
+            }
+            
+            .ef-results-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 16px;
+            }
+            
+            .ef-result-item {
+                position: relative;
+                border: 2px solid transparent;
+                border-radius: 8px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            
+            .ef-result-item:hover {
+                border-color: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+            
+            .ef-result-item.selected {
+                border-color: #4CAF50;
+                box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+            }
+            
+            .ef-result-item.selected::after {
+                content: "✓";
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 24px;
+                height: 24px;
+                background: #4CAF50;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 14px;
+                font-weight: bold;
+                z-index: 11;
+            }
+            
+            .ef-result-image {
+                width: 100%;
+                aspect-ratio: 1;
+                object-fit: cover;
+                display: block;
+            }
+            
+            .ef-result-image.no-image {
+                display: none;
+            }
+            
+            .ef-no-image-placeholder {
+                width: 100%;
+                aspect-ratio: 1;
+                background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                color: rgba(255, 255, 255, 0.3);
+                font-size: 48px;
+            }
+            
+            .ef-no-image-placeholder.show {
+                display: flex;
+            }
+            
+            .ef-result-info {
+                padding: 8px 10px;
+                background: rgba(0, 0, 0, 0.6);
+            }
+            
+            .ef-result-title {
+                font-size: 12px;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-bottom: 2px;
+            }
+            
+            .ef-result-artist {
+                font-size: 11px;
+                color: var(--text-muted, #888);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .ef-result-album {
+                font-size: 10px;
+                color: var(--text-muted, #666);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-top: 2px;
+                font-style: italic;
+            }
+            
+            .ef-result-meta {
+                font-size: 10px;
+                color: #9ca3af;
+                margin-top: 4px;
+                padding-top: 4px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .ef-result-type {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                background: rgba(0, 0, 0, 0.7);
+                color: #fff;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                text-transform: uppercase;
+            }
+            
+            .match-badge {
+                position: absolute;
+                top: 36px;
+                right: 8px;
+                font-size: 9px;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-weight: 600;
+                text-transform: uppercase;
+                z-index: 10;
+            }
+            
+            .match-badge.exact {
+                background: #4CAF50;
+                color: #fff;
+            }
+            
+            .match-badge.fuzzy {
+                background: #FF9800;
+                color: #fff;
+            }
+            
+            .ef-result-item.exact-match {
+                border-color: #4CAF50;
+                box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+            }
+            
+            .ef-result-item.fuzzy-match {
+                border-color: #FF9800;
+                box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+            }
+            
+            .ef-modal-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            #efSelectedCount {
+                color: var(--text-muted, #888);
+                font-size: 14px;
+            }
+            
+            .ef-modal-buttons {
+                display: flex;
+                gap: 12px;
+            }
+            
+            .ef-btn-cancel {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+            
+            .ef-btn-cancel:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            
+            .ef-btn-save {
+                background: #4CAF50;
+                border: none;
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+            }
+            
+            .ef-btn-save:hover:not(:disabled) {
+                background: #45a049;
+            }
+            
+            .ef-btn-save:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            .ef-btn-save.saving {
+                pointer-events: none;
+            }
+            
+            .ef-btn-save.saving::after {
+                content: "...";
+            }
+            
+            /* Releases View Styles */
+            .ef-releases-view {
+                display: none;
+            }
+            
+            .ef-releases-header {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 16px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .ef-releases-header h4 {
+                margin: 0;
+                color: #fff;
+                font-size: 16px;
+            }
+            
+            .ef-btn-back {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #fff;
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+            }
+            
+            .ef-btn-back:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            
+            .ef-btn-editions {
+                display: block;
+                width: 100%;
+                padding: 6px 10px;
+                margin-top: 6px;
+                background: rgba(147, 112, 219, 0.3);
+                border: 1px solid rgba(147, 112, 219, 0.5);
+                color: #fff;
+                font-size: 11px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .ef-btn-editions:hover {
+                background: rgba(147, 112, 219, 0.5);
+            }
+            
+            .ef-releases-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 16px;
+            }
+            
+            .ef-release-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 12px;
+                border: 2px solid transparent;
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.05);
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .ef-release-item:hover {
+                border-color: rgba(255, 255, 255, 0.3);
+                background: rgba(255, 255, 255, 0.08);
+            }
+            
+            .ef-release-item.selected {
+                border-color: #4CAF50;
+                box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+            }
+            
+            .ef-release-item.selected::before {
+                content: "✓";
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 20px;
+                height: 20px;
+                background: #4CAF50;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            
+            .ef-release-item {
+                position: relative;
+            }
+            
+            .ef-release-thumb {
+                width: 80px;
+                height: 80px;
+                object-fit: cover;
+                border-radius: 4px;
+                flex-shrink: 0;
+                background: rgba(0, 0, 0, 0.3);
+            }
+            
+            .ef-release-info {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .ef-release-title {
+                font-size: 13px;
+                color: #fff;
+                margin-bottom: 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .ef-release-desc {
+                font-size: 11px;
+                color: var(--text-muted, #888);
+                margin-bottom: 4px;
+            }
+            
+            .ef-release-label {
+                font-size: 10px;
+                color: #666;
+                font-style: italic;
+            }
+            
+            .ef-release-no-cover {
+                color: #ff9800;
+                font-size: 10px;
+                margin-top: 4px;
+            }
+        </style>
+        
+        <script>
+            // External Fetch Modal State
+            let efSelectedItems = [];  // Array of {url, releaseDate, lengthSeconds, lengthFormatted, title, artist}
+            let efEntityId = null;
+            let efEntityType = null;   // 'album' or 'song'
+            let efHasExistingImage = false;
+            let efCurrentService = 'itunes';  // 'itunes', 'spotify', or 'deezer'
+            let efFetchMode = 'image';  // 'image', 'metadata', or 'both'
+            let efOnMetadataSelect = null;  // Callback for metadata selection in 'metadata' mode
+
+            /**
+             * Open external fetch modal from a button with data attributes
+             * @param {HTMLElement} button - Button element with data-* attributes
+             * @param {string} entityType - 'album' or 'song'
+             * @param {string} mode - 'image', 'metadata', or 'both'
+             */
+            function openExternalFetchFromButton(button, entityType, mode) {
+                const artist = button.getAttribute('data-artist');
+                const title = button.getAttribute('data-' + (entityType === 'album' ? 'album' : 'song'));
+                const id = button.getAttribute('data-id');
+                const hasImage = button.getAttribute('data-has-image') === 'true';
+                openExternalFetchModal(artist, title, id, entityType, hasImage, mode);
+            }
+
+            /**
+             * Open external fetch modal
+             * @param {string} artist - Artist name
+             * @param {string} title - Album or song title
+             * @param {number|string} entityId - ID of the entity
+             * @param {string} entityType - 'album' or 'song'
+             * @param {boolean} hasExisting - Whether entity already has an image
+             * @param {string} mode - 'image' (only save image), 'metadata' (only return metadata), 'both' (save image + return metadata)
+             * @param {function} onMetadataCallback - Optional callback for metadata mode
+             */
+            function openExternalFetchModal(artist, title, entityId, entityType, hasExisting, mode, onMetadataCallback) {
+                efEntityId = entityId;
+                efEntityType = entityType;
+                efHasExistingImage = hasExisting;
+                efSelectedItems = [];
+                efFetchMode = mode || 'image';
+                efOnMetadataSelect = onMetadataCallback || null;
+                efCurrentService = 'itunes';  // Default to iTunes
+                
+                const modal = document.getElementById('externalFetchModal');
+                const searchInput = document.getElementById('efSearchInput');
+                const status = document.getElementById('efSearchStatus');
+                const error = document.getElementById('efErrorMessage');
+                const grid = document.getElementById('efResultsGrid');
+                const saveBtn = document.getElementById('efSaveBtn');
+                const titleEl = document.getElementById('efModalTitle');
+                
+                // Set title based on mode
+                if (efFetchMode === 'image') {
+                    titleEl.textContent = 'Fetch Image';
+                } else if (efFetchMode === 'metadata') {
+                    titleEl.textContent = 'Fetch Metadata';
+                } else {
+                    titleEl.textContent = 'Fetch Externally';
+                }
+                
+                // Update save button text based on mode
+                if (efFetchMode === 'metadata') {
+                    saveBtn.textContent = 'Use Selected';
+                } else {
+                    saveBtn.textContent = 'Save Selected';
+                }
+                saveBtn.classList.remove('saving'); // Reset saving state from previous use
+                
+                // Set search input value (artist + item name, no dashes)
+                searchInput.value = artist + ' ' + title;
+                
+                // Set entity selector based on entityType
+                const entitySelect = document.getElementById('efEntitySelect');
+                if (entitySelect) {
+                    entitySelect.value = entityType; // 'album' or 'song'
+                }
+                
+                // Reset state
+                status.style.display = 'none';
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateEfSelectedCount();
+                
+                // Reset service tabs
+                document.querySelectorAll('.ef-service-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.service === 'itunes');
+                });
+                
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                
+                // Auto-perform initial search
+                performExternalSearch();
+            }
+
+            function switchService(service) {
+                efCurrentService = service;
+                
+                // Update tab styles
+                document.querySelectorAll('.ef-service-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.service === service);
+                });
+                
+                // Clear selection when switching services
+                efSelectedItems = [];
+                updateEfSelectedCount();
+                
+                // Re-perform search with new service
+                performExternalSearch();
+            }
+
+            function performExternalSearch() {
+                const searchInput = document.getElementById('efSearchInput');
+                const searchValue = searchInput.value.trim();
+                const entitySelect = document.getElementById('efEntitySelect');
+                const entity = entitySelect.value; // 'song' or 'album'
+                
+                if (!searchValue) {
+                    alert('Please enter a search term');
+                    return;
+                }
+                
+                const status = document.getElementById('efSearchStatus');
+                const error = document.getElementById('efErrorMessage');
+                const grid = document.getElementById('efResultsGrid');
+                const saveBtn = document.getElementById('efSaveBtn');
+                
+                // Reset results
+                efSelectedItems = [];
+                status.style.display = 'block';
+                const entityLabel = entity === 'song' ? 'songs' : 'albums';
+                status.textContent = `Searching ${getServiceDisplayName(efCurrentService)} for ${entityLabel}...`;
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateEfSelectedCount();
+                
+                // Use search term directly (no parsing needed)
+                const searchTerm = searchValue;
+                
+                // Build URL based on selected service and entity
+                let searchUrl;  // Our internal proxy URL
+                let externalUrl;  // The actual external API URL for reference
+                if (efCurrentService === 'itunes') {
+                    searchUrl = `/api/apple-music/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
+                    const itunesEntity = entity === 'song' ? 'song' : 'album';
+                    externalUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=${itunesEntity}&limit=50`;
+                } else if (efCurrentService === 'spotify') {
+                    searchUrl = `/api/spotify/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
+                    const spotifyType = entity === 'song' ? 'track' : 'album';
+                    externalUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=${spotifyType}&limit=50`;
+                } else if (efCurrentService === 'deezer') {
+                    searchUrl = `/api/deezer/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
+                    const deezerType = entity === 'song' ? 'track' : 'album';
+                    externalUrl = `https://api.deezer.com/search/${deezerType}?q=${encodeURIComponent(searchTerm)}&limit=50`;
+                } else if (efCurrentService === 'musicbrainz') {
+                    searchUrl = `/api/musicbrainz/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
+                    const mbType = entity === 'song' ? 'recording' : 'release';
+                    externalUrl = `https://musicbrainz.org/ws/2/${mbType}?query=${encodeURIComponent(searchTerm)}&fmt=json&limit=25`;
+                }
+                
+                // Show the external API URL in the URL input for reference
+                const urlForm = document.getElementById('efUrlForm');
+                const urlInput = document.getElementById('efUrlInput');
+                if (urlForm && urlInput) {
+                    urlInput.value = externalUrl || searchUrl;
+                    urlForm.style.display = 'flex';
+                }
+                
+                executeExternalFetch(searchUrl, searchValue);
+            }
+            
+            // Execute fetch with a given URL (used by both search and custom URL)
+            function executeExternalFetch(searchUrl, searchTermForMatching) {
+                const status = document.getElementById('efSearchStatus');
+                const error = document.getElementById('efErrorMessage');
+                const grid = document.getElementById('efResultsGrid');
+                
+                fetch(searchUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        status.style.display = 'none';
+                        
+                        if (!data || data.length === 0) {
+                            error.textContent = 'No results found. Try a different search or service.';
+                            error.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Sort results by match quality (use search term for matching)
+                        const sortedData = sortResultsByMatchQuality(data, searchTermForMatching, '');
+                        
+                        // Render results
+                        grid.innerHTML = sortedData.map((item, index) => {
+                            const matchClass = item.matchType === 'exact' ? 'exact-match' : 
+                                             item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
+                            const matchBadge = item.matchType === 'exact' ? '<span class="match-badge exact">Exact</span>' :
+                                             item.matchType === 'fuzzy' ? '<span class="match-badge fuzzy">Close</span>' : '';
+                            
+                            // Format release date for display (YYYY-MM-DD -> dd MMM yyyy)
+                            let releaseDateDisplay = '';
+                            if (item.releaseDate) {
+                                const d = new Date(item.releaseDate + 'T00:00:00');
+                                releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            }
+                            const metaLine = [releaseDateDisplay, item.lengthFormatted].filter(x => x).join(' • ');
+                            
+                            // Add "All Editions" button for MusicBrainz albums with a release group ID
+                            const showEditionsBtn = (item.service === 'musicbrainz' && item.type === 'Album' && item.releaseGroupId && item.releaseGroupId !== '' && efFetchMode !== 'metadata');
+                            const editionsBtn = showEditionsBtn ? 
+                                `<button type="button" class="ef-btn-editions" onclick="event.stopPropagation(); browseEditions('${item.releaseGroupId}', '${efEscapeAttr(item.title)}')">
+                                    Browse All Editions
+                                </button>` : '';
+                            
+                            return `
+                            <div class="ef-result-item ${matchClass}" data-index="${index}" 
+                                 data-url="${item.fullUrl}" 
+                                 data-release-date="${item.releaseDate || ''}" 
+                                 data-length-seconds="${item.lengthSeconds || ''}"
+                                 data-length-formatted="${item.lengthFormatted || ''}"
+                                 data-title="${efEscapeAttr(item.title)}"
+                                 data-artist="${efEscapeAttr(item.artistName)}"
+                                 data-album="${efEscapeAttr(item.albumName || '')}"
+                                 onclick="toggleEfSelection(this)">
+                                <span class="ef-result-type">${item.type}</span>
+                                ${matchBadge}
+                                <img class="ef-result-image" src="${item.thumbnailUrl || ''}" alt="${item.title}" loading="lazy"
+                                     onerror="this.classList.add('no-image'); this.nextElementSibling.classList.add('show');">
+                                <div class="ef-no-image-placeholder">♪</div>
+                                <div class="ef-result-info">
+                                    <div class="ef-result-title" title="${efEscapeAttr(item.title)}">${efEscapeHtml(item.title)}</div>
+                                    <div class="ef-result-artist" title="${efEscapeAttr(item.artistName)}">${efEscapeHtml(item.artistName)}</div>
+                                    ${item.albumName ? `<div class="ef-result-album" title="${efEscapeAttr(item.albumName)}">${efEscapeHtml(item.albumName)}</div>` : ''}
+                                    ${metaLine ? `<div class="ef-result-meta">${metaLine}</div>` : ''}
+                                    ${editionsBtn}
+                                </div>
+                            </div>
+                        `}).join('');
+                        
+                        grid.style.display = 'grid';
+                    })
+                    .catch(err => {
+                        console.error('External search error:', err);
+                        status.style.display = 'none';
+                        error.textContent = `❌ Error fetching from URL. Please try again.`;
+                        error.style.display = 'block';
+                    });
+            }
+            
+            // Use the URL field directly for custom fetching
+            // Parses external API URL and routes through our internal proxy to handle CORS and response normalization
+            function performExternalSearchWithUrl() {
+                const urlInput = document.getElementById('efUrlInput');
+                const customUrl = urlInput.value.trim();
+                
+                if (!customUrl) {
+                    alert('Please enter a URL');
+                    return;
+                }
+                
+                const status = document.getElementById('efSearchStatus');
+                const error = document.getElementById('efErrorMessage');
+                const grid = document.getElementById('efResultsGrid');
+                const saveBtn = document.getElementById('efSaveBtn');
+                const entitySelect = document.getElementById('efEntitySelect');
+                const entity = entitySelect.value; // 'song' or 'album'
+                
+                // Reset results
+                efSelectedItems = [];
+                status.style.display = 'block';
+                status.textContent = 'Fetching from custom URL...';
+                error.style.display = 'none';
+                grid.style.display = 'none';
+                grid.innerHTML = '';
+                saveBtn.disabled = true;
+                updateEfSelectedCount();
+                
+                // Get search term from input for matching (optional)
+                const searchInput = document.getElementById('efSearchInput');
+                const searchValue = searchInput.value.trim();
+                
+                // Parse the external URL and route through our proxy to avoid CORS issues
+                let proxyUrl = null;
+                try {
+                    const url = new URL(customUrl);
+                    const limit = url.searchParams.get('limit') || '50'; // Extract limit parameter
+                    
+                    if (customUrl.includes('itunes.apple.com')) {
+                        // iTunes: https://itunes.apple.com/search?term=XXX&entity=song&limit=50
+                        const term = url.searchParams.get('term') || searchValue;
+                        proxyUrl = `/api/apple-music/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}`;
+                    } else if (customUrl.includes('api.spotify.com')) {
+                        // Spotify: https://api.spotify.com/v1/search?q=XXX&type=track&limit=50
+                        const term = url.searchParams.get('q') || searchValue;
+                        proxyUrl = `/api/spotify/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}`;
+                    } else if (customUrl.includes('api.deezer.com')) {
+                        // Deezer: https://api.deezer.com/search/track?q=XXX&limit=50
+                        const term = url.searchParams.get('q') || searchValue;
+                        proxyUrl = `/api/deezer/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}`;
+                    } else if (customUrl.includes('musicbrainz.org')) {
+                        // MusicBrainz: https://musicbrainz.org/ws/2/recording?query=XXX&limit=25
+                        const term = url.searchParams.get('query') || searchValue;
+                        proxyUrl = `/api/musicbrainz/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}`;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse URL:', e);
+                }
+                
+                if (!proxyUrl) {
+                    error.textContent = '❌ Could not parse URL. Please use a valid iTunes, Spotify, Deezer, or MusicBrainz search URL.';
+                    error.style.display = 'block';
+                    status.style.display = 'none';
+                    return;
+                }
+                
+                executeExternalFetch(proxyUrl, searchValue);
+            }
+
+            function getServiceDisplayName(service) {
+                switch(service) {
+                    case 'itunes': return 'iTunes Store';
+                    case 'spotify': return 'Spotify';
+                    case 'deezer': return 'Deezer';
+                    case 'musicbrainz': return 'MusicBrainz';
+                    default: return service;
+                }
+            }
+
+            function closeExternalFetchModal(event) {
+                if (event && event.target.classList.contains('ef-modal-content')) {
+                    return;
+                }
+                const modal = document.getElementById('externalFetchModal');
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+                
+                // Reset URL form
+                const urlForm = document.getElementById('efUrlForm');
+                if (urlForm) urlForm.style.display = 'none';
+                
+                // Reset releases view if open
+                if (efReleasesInView) {
+                    const searchForm = document.querySelector('.ef-search-form');
+                    const serviceTabs = document.querySelector('.ef-service-tabs');
+                    const releasesView = document.getElementById('efReleasesView');
+                    if (searchForm) searchForm.style.display = 'flex';
+                    if (serviceTabs) serviceTabs.style.display = 'flex';
+                    if (releasesView) releasesView.style.display = 'none';
+                    efReleasesInView = false;
+                }
+            }
+
+            function efNormalizeForMatch(str) {
+                if (!str) return '';
+                return str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            }
+
+            function efRemoveVariationKeywords(str) {
+                if (!str) return '';
+                const keywords = ['deluxe', 'remaster', 'remastered', 'anniversary', 'special', 'revised', 'edition', 'version', 'expanded', 'bonus', 'explicit', 'clean'];
+                let normalized = str.toLowerCase();
+                keywords.forEach(keyword => {
+                    normalized = normalized.replace(new RegExp(keyword, 'g'), '');
+                });
+                normalized = normalized.replace(/\d+(st|nd|rd|th)?/g, '');
+                return normalized.trim().replace(/[^a-z0-9]/g, '');
+            }
+
+            function sortResultsByMatchQuality(results, searchArtist, searchTitle) {
+                // If searchTitle is empty, assume searchArtist is the full search term "Artist Title"
+                // Try to match against item.artistName + item.title combined
+                const isFullTerm = !searchTitle || searchTitle.trim() === '';
+                
+                if (isFullTerm) {
+                    const normFullSearch = efNormalizeForMatch(searchArtist);
+                    
+                    return results.map(item => {
+                        const itemArtist = efNormalizeForMatch(item.artistName);
+                        const itemTitle = efNormalizeForMatch(item.title);
+                        const itemFull = itemArtist + itemTitle;  // Combined
+                        const itemTitleFuzzy = efRemoveVariationKeywords(item.title);
+                        
+                        let score = 0;
+                        let matchType = 'none';
+                        
+                        // Check if full search matches artist+title combined
+                        // Priority: exact match > artist match > title match > everything else
+                        if (normFullSearch === itemFull) {
+                            score = 1000;
+                            matchType = 'exact';
+                        } else if (normFullSearch.includes(itemArtist) && normFullSearch.includes(itemTitle)) {
+                            score = 950;
+                            matchType = 'fuzzy';
+                        } else if (normFullSearch.includes(itemArtist) || itemArtist.includes(normFullSearch)) {
+                            score = 500;
+                            matchType = 'artist';
+                        } else if (normFullSearch.includes(itemTitle) || itemTitle.includes(normFullSearch)) {
+                            score = 400;
+                            matchType = 'title';
+                        } else if (itemFull.includes(normFullSearch) || normFullSearch.includes(itemFull)) {
+                            score = 300;
+                        } else {
+                            score = 0;
+                        }
+                        
+                        return { ...item, matchScore: score, matchType: matchType };
+                    }).sort((a, b) => b.matchScore - a.matchScore);
+                }
+                
+                // Original logic for when artist and title are separate
+                const normArtist = efNormalizeForMatch(searchArtist);
+                const normTitle = efNormalizeForMatch(searchTitle);
+                const fuzzyTitle = efRemoveVariationKeywords(searchTitle);
+                
+                return results.map(item => {
+                    const itemArtist = efNormalizeForMatch(item.artistName);
+                    const itemTitle = efNormalizeForMatch(item.title);
+                    const itemTitleFuzzy = efRemoveVariationKeywords(item.title);
+                    
+                    let score = 0;
+                    let matchType = 'none';
+                    
+                    if (itemArtist === normArtist && itemTitle === normTitle) {
+                        score = 1000;
+                        matchType = 'exact';
+                    } else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) {
+                        score = 950;
+                        matchType = 'fuzzy';
+                    } else if (itemArtist === normArtist) {
+                        score = 500;
+                        matchType = 'artist';
+                    } else if (itemTitle === normTitle) {
+                        score = 400;
+                        matchType = 'title';
+                    } else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) {
+                        score = 200;
+                    } else if (itemTitle.includes(normTitle) || normTitle.includes(itemTitle)) {
+                        score = 100;
+                    } else {
+                        score = 0;
+                    }
+                    
+                    return { ...item, matchScore: score, matchType: matchType };
+                }).sort((a, b) => b.matchScore - a.matchScore);
+            }
+
+            function toggleEfSelection(element) {
+                const itemData = {
+                    url: element.dataset.url,
+                    releaseDate: element.dataset.releaseDate,
+                    lengthSeconds: element.dataset.lengthSeconds,
+                    lengthFormatted: element.dataset.lengthFormatted,
+                    title: element.dataset.title,
+                    artist: element.dataset.artist,
+                    album: element.dataset.album
+                };
+                
+                const existingIndex = efSelectedItems.findIndex(item => item.url === itemData.url);
+                
+                if (existingIndex > -1) {
+                    efSelectedItems.splice(existingIndex, 1);
+                    element.classList.remove('selected');
+                } else {
+                    // For metadata mode, only allow single selection
+                    if (efFetchMode === 'metadata') {
+                        efSelectedItems = [itemData];
+                        document.querySelectorAll('.ef-result-item.selected').forEach(el => el.classList.remove('selected'));
+                    } else {
+                        efSelectedItems.push(itemData);
+                    }
+                    element.classList.add('selected');
+                }
+                
+                updateEfSelectedCount();
+            }
+
+            function updateEfSelectedCount() {
+                const countEl = document.getElementById('efSelectedCount');
+                const saveBtn = document.getElementById('efSaveBtn');
+                const count = efSelectedItems.length;
+                
+                countEl.textContent = count === 1 ? '1 selected' : `${count} selected`;
+                saveBtn.disabled = count === 0;
+            }
+
+            function saveExternalSelection() {
+                if (efSelectedItems.length === 0) return;
+                
+                const saveBtn = document.getElementById('efSaveBtn');
+                saveBtn.textContent = efFetchMode === 'metadata' ? 'Loading' : 'Saving';
+                saveBtn.classList.add('saving');
+                saveBtn.disabled = true;
+                
+                // Metadata-only mode: just call the callback and close
+                if (efFetchMode === 'metadata') {
+                    if (efOnMetadataSelect && efSelectedItems.length > 0) {
+                        efOnMetadataSelect(efSelectedItems[0]);
+                    }
+                    closeExternalFetchModal();
+                    return;
+                }
+                
+                // Image or Both mode: save images
+                const imageUrls = efSelectedItems.map(item => item.url);
+                
+                // Determine which API endpoint to use
+                let saveUrl;
+                if (efCurrentService === 'itunes') {
+                    saveUrl = '/api/apple-music/save-images';
+                } else if (efCurrentService === 'spotify') {
+                    saveUrl = '/api/spotify/save-images';
+                } else if (efCurrentService === 'deezer') {
+                    saveUrl = '/api/deezer/save-images';
+                } else if (efCurrentService === 'musicbrainz') {
+                    saveUrl = '/api/deezer/save-images'; // MusicBrainz uses same generic image save endpoint
+                }
+                
+                const requestData = {
+                    imageUrls: imageUrls,
+                    entityId: efEntityId,
+                    entityType: efEntityType,
+                    hasExistingImage: efHasExistingImage
+                };
+                
+                fetch(saveUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // For 'both' mode, also call metadata callback before reload
+                        if (efFetchMode === 'both' && efOnMetadataSelect && efSelectedItems.length > 0) {
+                            efOnMetadataSelect(efSelectedItems[0]);
+                        }
+                        // Show message if duplicates were skipped
+                        if (data.skippedDuplicates && data.skippedDuplicates > 0) {
+                            const msg = data.skippedDuplicates === 1 
+                                ? '1 image was skipped (duplicate)' 
+                                : `${data.skippedDuplicates} images were skipped (duplicates)`;
+                            alert(data.savedCount > 0 
+                                ? `Saved ${data.savedCount} image(s). ${msg}.`
+                                : `No images saved. ${msg}.`);
+                        }
+                        // Reload page to show new images
+                        window.location.reload();
+                    } else {
+                        alert('Error saving images: ' + (data.error || 'Unknown error'));
+                        saveBtn.textContent = 'Save Selected';
+                        saveBtn.classList.remove('saving');
+                        saveBtn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error saving images:', err);
+                    alert('Error saving images. Please try again.');
+                    saveBtn.textContent = 'Save Selected';
+                    saveBtn.classList.remove('saving');
+                    saveBtn.disabled = false;
+                });
+            }
+
+            function efEscapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            function efEscapeAttr(text) {
+                if (!text) return '';
+                return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+            
+            // ==========================================
+            // Releases View Functions (MusicBrainz editions)
+            // ==========================================
+            
+            let efReleasesInView = false;  // Track if we're showing releases view
+            
+            /**
+             * Browse all editions/releases for a MusicBrainz release group
+             */
+            function browseEditions(releaseGroupId, albumTitle) {
+                const searchForm = document.querySelector('.ef-search-form');
+                const serviceTabs = document.querySelector('.ef-service-tabs');
+                const resultsGrid = document.getElementById('efResultsGrid');
+                const releasesView = document.getElementById('efReleasesView');
+                const releasesTitle = document.getElementById('efReleasesTitle');
+                const releasesLoading = document.getElementById('efReleasesLoading');
+                const releasesGrid = document.getElementById('efReleasesGrid');
+                
+                // Hide main search UI, show releases view
+                searchForm.style.display = 'none';
+                serviceTabs.style.display = 'none';
+                resultsGrid.style.display = 'none';
+                releasesView.style.display = 'block';
+                releasesLoading.style.display = 'block';
+                releasesGrid.innerHTML = '';
+                releasesTitle.textContent = `${albumTitle} - All Editions`;
+                efReleasesInView = true;
+                
+                // Clear current selections (we'll re-select in releases view)
+                efSelectedItems = [];
+                updateEfSelectedCount();
+                
+                // Fetch all releases for this release group
+                fetch(`/api/musicbrainz/release-group/${releaseGroupId}/releases`)
+                    .then(response => response.json())
+                    .then(releases => {
+                        releasesLoading.style.display = 'none';
+                        
+                        if (!releases || releases.length === 0) {
+                            releasesGrid.innerHTML = '<div class="ef-error-message">No editions found</div>';
+                            return;
+                        }
+                        
+                        // Render releases
+                        releasesGrid.innerHTML = releases.map((release, index) => `
+                            <div class="ef-release-item" data-index="${index}"
+                                 data-url="${release.fullUrl}"
+                                 data-title="${efEscapeAttr(release.title)}"
+                                 data-date="${release.date || ''}"
+                                 data-release-id="${release.releaseId}"
+                                 onclick="toggleReleaseSelection(this)">
+                                <img class="ef-release-thumb" 
+                                     src="${release.thumbnailUrl}" 
+                                     alt="${efEscapeAttr(release.title)}"
+                                     loading="lazy"
+                                     onerror="this.style.opacity='0.3'; this.parentElement.querySelector('.ef-release-no-cover')?.style?.display = 'block';">
+                                <div class="ef-release-info">
+                                    <div class="ef-release-title">${efEscapeHtml(release.title)}</div>
+                                    <div class="ef-release-desc">${efEscapeHtml(release.description)}</div>
+                                    ${release.label ? `<div class="ef-release-label">${efEscapeHtml(release.label)}</div>` : ''}
+                                    <div class="ef-release-no-cover" style="display:none;">⚠️ May not have cover</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    })
+                    .catch(err => {
+                        console.error('Error fetching releases:', err);
+                        releasesLoading.style.display = 'none';
+                        releasesGrid.innerHTML = '<div class="ef-error-message">Error loading editions</div>';
+                    });
+            }
+            
+            /**
+             * Toggle selection on a release in the releases view
+             */
+            function toggleReleaseSelection(element) {
+                const itemData = {
+                    url: element.dataset.url,
+                    releaseDate: element.dataset.date,
+                    title: element.dataset.title,
+                    releaseId: element.dataset.releaseId
+                };
+                
+                const existingIndex = efSelectedItems.findIndex(item => item.url === itemData.url);
+                
+                if (existingIndex > -1) {
+                    efSelectedItems.splice(existingIndex, 1);
+                    element.classList.remove('selected');
+                } else {
+                    efSelectedItems.push(itemData);
+                    element.classList.add('selected');
+                }
+                
+                updateEfSelectedCount();
+            }
+            
+            /**
+             * Close releases view and go back to search results
+             */
+            function closeReleasesView() {
+                const searchForm = document.querySelector('.ef-search-form');
+                const serviceTabs = document.querySelector('.ef-service-tabs');
+                const resultsGrid = document.getElementById('efResultsGrid');
+                const releasesView = document.getElementById('efReleasesView');
+                
+                // Show main search UI, hide releases view
+                searchForm.style.display = 'flex';
+                serviceTabs.style.display = 'flex';
+                resultsGrid.style.display = 'grid';
+                releasesView.style.display = 'none';
+                efReleasesInView = false;
+                
+                // Keep selected items (they'll save when user clicks save)
+            }
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const modal = document.getElementById('externalFetchModal');
+                    if (modal && modal.classList.contains('show')) {
+                        // If in releases view, go back first
+                        if (efReleasesInView) {
+                            closeReleasesView();
+                        } else {
+                            closeExternalFetchModal(event);
+                        }
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>
