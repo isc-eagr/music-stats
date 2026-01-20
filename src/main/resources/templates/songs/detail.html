@@ -17,6 +17,7 @@
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
     <style>
         /* Highlight for externally fetched data - uses gender colors */
         .field-highlight {
@@ -798,38 +799,254 @@
     </div>
     
     <script th:if="${activeTab == 'plays'}" th:inline="javascript">
-        // Initialize plays by year chart
+        // Initialize plays by month chart (grouped by year)
         document.addEventListener('DOMContentLoaded', function() {
-            const playsByYearData = /*[[${playsByYear}]]*/ [];
+            const playsByMonthData = /*[[${playsByMonth}]]*/ [];
             const artistGender = /*[[${artistGender}]]*/ '';
+            // Release date: use song's release date, fallback to album's release date
+            const songReleaseDate = /*[[${song.releaseDate != null ? song.releaseDate.toString() : null}]]*/ null;
+            const albumReleaseDate = /*[[${album != null && album.releaseDate != null ? album.releaseDate.toString() : null}]]*/ null;
+            const effectiveReleaseDate = songReleaseDate || albumReleaseDate;
             
-            if (playsByYearData && playsByYearData.length > 0) {
+            if (playsByMonthData && playsByMonthData.length > 0) {
                 const ctx = document.getElementById('playsByYearChart').getContext('2d');
                 
-                // Fill in missing years with 0 plays (only between first and last year)
-                const filledData = [];
-                const years = playsByYearData.map(d => parseInt(d.year)).sort((a, b) => a - b);
-                const minYear = years[0];
-                const maxYear = years[years.length - 1];
-                const yearMap = {};
-                playsByYearData.forEach(d => yearMap[d.year] = d.playCount);
+                // Create styled tooltip div for year hovering
+                const tooltipDiv = document.createElement('div');
+                tooltipDiv.style.cssText = `
+                    position: absolute;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                    pointer-events: none;
+                    z-index: 1000;
+                    display: none;
+                    white-space: nowrap;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                `;
+                document.body.appendChild(tooltipDiv);
                 
+                // Create release chip for pre-chart releases
+                const releaseChip = document.createElement('div');
+                releaseChip.style.cssText = `
+                    position: absolute;
+                    background: linear-gradient(135deg, rgba(147, 51, 234, 0.95), rgba(79, 70, 229, 0.95));
+                    color: white;
+                    padding: 8px 14px;
+                    border-radius: 20px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                    pointer-events: none;
+                    z-index: 1001;
+                    display: none;
+                    white-space: nowrap;
+                    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
+                    left: 10px;
+                    top: 20px;
+                `;
+                const chartCanvas = document.getElementById('playsByYearChart');
+                const chartParent = chartCanvas.parentElement;
+                chartParent.style.position = 'relative';
+                // Don't set overflow on parent, use body instead
+                document.body.appendChild(releaseChip);
+                
+                // Add double-click for fullscreen
+                chartCanvas.addEventListener('dblclick', () => {
+                    openChartFullscreen();
+                });
+                chartCanvas.style.cursor = 'pointer';
+                
+                function openChartFullscreen() {
+                    const modal = document.createElement('div');
+                    modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.95);
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 40px;
+                    `;
+                    
+                    const closeBtn = document.createElement('button');
+                    closeBtn.textContent = '✕';
+                    closeBtn.style.cssText = `
+                        position: absolute;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 255, 255, 0.1);
+                        border: 2px solid rgba(255, 255, 255, 0.3);
+                        color: white;
+                        font-size: 24px;
+                        width: 50px;
+                        height: 50px;
+                        border-radius: 50%;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    `;
+                    closeBtn.onmouseover = () => {
+                        closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+                        closeBtn.style.transform = 'scale(1.1)';
+                    };
+                    closeBtn.onmouseout = () => {
+                        closeBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+                        closeBtn.style.transform = 'scale(1)';
+                    };
+                    closeBtn.onclick = () => document.body.removeChild(modal);
+                    
+                    const canvasClone = chartCanvas.cloneNode(true);
+                    canvasClone.style.cssText = 'max-width: 100%; max-height: 100%; width: auto; height: auto;';
+                    
+                    modal.appendChild(closeBtn);
+                    modal.appendChild(canvasClone);
+                    document.body.appendChild(modal);
+                    
+                    modal.onclick = (e) => {
+                        if (e.target === modal) document.body.removeChild(modal);
+                    };
+                    
+                    // Re-render chart in fullscreen
+                    const ctxClone = canvasClone.getContext('2d');
+                    canvasClone.width = window.innerWidth - 100;
+                    canvasClone.height = window.innerHeight - 100;
+                    new Chart(ctxClone, chartInstance.config);
+                }
+                
+                const canvasContainer = document.getElementById('playsByYearChart').parentElement;
+                canvasContainer.addEventListener('mousemove', (e) => {
+                    const rect = document.getElementById('playsByYearChart').getBoundingClientRect();
+                    tooltipDiv.style.left = (e.pageX + 10) + 'px';
+                    tooltipDiv.style.top = (e.pageY - 25) + 'px';
+                });
+                
+                canvasContainer.addEventListener('mouseleave', () => {
+                    hideYearTooltip();
+                    hideReleaseChip();
+                });
+                
+                function showYearTooltip(year, plays) {
+                    tooltipDiv.textContent = year + ': ' + plays.toLocaleString() + ' plays';
+                    tooltipDiv.style.display = 'block';
+                }
+                
+                function hideYearTooltip() {
+                    tooltipDiv.style.display = 'none';
+                }
+                
+                function showReleaseChip(text) {
+                    releaseChip.textContent = '📅 ' + text;
+                    const rect = chartCanvas.getBoundingClientRect();
+                    releaseChip.style.left = (rect.left + 10) + 'px';
+                    releaseChip.style.top = (rect.top + 20) + 'px';
+                    // Apply gender-based colors
+                    const chipGradient = isFemale 
+                        ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.95), rgba(219, 39, 119, 0.95))'
+                        : 'linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95))';
+                    const chipShadow = isFemale 
+                        ? '0 4px 12px rgba(236, 72, 153, 0.4)'
+                        : '0 4px 12px rgba(59, 130, 246, 0.4)';
+                    releaseChip.style.background = chipGradient;
+                    releaseChip.style.boxShadow = chipShadow;
+                    releaseChip.style.display = 'block';
+                    console.log('Showing release chip:', text, 'at', releaseChip.style.left, releaseChip.style.top);
+                }
+                
+                function hideReleaseChip() {
+                    releaseChip.style.display = 'none';
+                    console.log('Hiding release chip');
+                }
+                
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                // Build a map of existing data
+                const dataMap = {};
+                playsByMonthData.forEach(d => {
+                    dataMap[d.year + '-' + d.month] = d.playCount;
+                });
+                
+                // Find year range based on actual play data
+                const allYears = [...new Set(playsByMonthData.map(d => parseInt(d.year)))].sort((a, b) => a - b);
+                const minYear = allYears[0];
+                const maxYear = allYears[allYears.length - 1];
+                
+                // Fill in all months between first and last play data point
+                const filledData = [];
                 for (let year = minYear; year <= maxYear; year++) {
-                    filledData.push({
-                        year: year.toString(),
-                        playCount: yearMap[year.toString()] || 0
-                    });
+                    for (let month = 1; month <= 12; month++) {
+                        const monthStr = month.toString().padStart(2, '0');
+                        const key = year + '-' + monthStr;
+                        filledData.push({
+                            year: year.toString(),
+                            month: monthStr,
+                            monthIndex: month - 1,
+                            label: year + '-' + monthStr,
+                            playCount: dataMap[key] || 0
+                        });
+                    }
                 }
                 
                 // Determine bar color based on gender
                 const isFemale = artistGender && artistGender.toLowerCase().includes('female');
                 const barColor = isFemale ? 'rgba(236, 72, 153, 0.8)' : 'rgba(59, 130, 246, 0.8)';
                 const borderColor = isFemale ? 'rgba(236, 72, 153, 1)' : 'rgba(59, 130, 246, 1)';
+                // Release line color: lighter shade based on gender
+                const releaseColor = isFemale ? 'rgba(244, 114, 182, 0.9)' : 'rgba(147, 197, 253, 0.9)';
                 
-                new Chart(ctx, {
+                // Calculate total plays per year for hover display
+                const yearTotals = {};
+                filledData.forEach(d => {
+                    if (!yearTotals[d.year]) yearTotals[d.year] = 0;
+                    yearTotals[d.year] += d.playCount;
+                });
+                
+                // Build release date annotation if available
+                const annotations = {};
+                let releaseBeforeChart = false;
+                let releaseDisplayText = '';
+                let releaseLineTooltip = null;
+                
+                if (effectiveReleaseDate) {
+                    const releaseDate = new Date(effectiveReleaseDate);
+                    const releaseYear = releaseDate.getUTCFullYear();
+                    const releaseMonth = releaseDate.getUTCMonth(); // 0-11
+                    releaseDisplayText = monthNames[releaseMonth] + ' ' + releaseYear;
+                    
+                    // Check if release is before the chart range
+                    if (releaseYear < minYear || (releaseYear === minYear && releaseMonth < 0)) {
+                        releaseBeforeChart = true;
+                        releaseLineTooltip = '📅 Released: ' + releaseDisplayText;
+                    } else {
+                        // Find the index in filledData that matches this year/month
+                        const releaseIndex = filledData.findIndex(d => 
+                            parseInt(d.year) === releaseYear && d.monthIndex === releaseMonth
+                        );
+                        
+                        if (releaseIndex !== -1) {
+                            releaseLineTooltip = '📅 Released: ' + releaseDisplayText;
+                            annotations.releaseLine = {
+                                type: 'line',
+                                xMin: releaseIndex,
+                                xMax: releaseIndex,
+                                borderColor: releaseColor,
+                                borderWidth: 2,
+                                borderDash: [6, 4]
+                            };
+                        }
+                    }
+                }
+                
+                const chartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: filledData.map(d => d.year),
+                        labels: filledData.map(d => d.label),
                         datasets: [{
                             label: 'Plays',
                             data: filledData.map(d => d.playCount),
@@ -838,11 +1055,96 @@
                             borderWidth: 1
                         }]
                     },
+                    plugins: [{
+                        id: 'yearSeparators',
+                        afterDatasetsDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+                            
+                            ctx.save();
+                            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                            ctx.lineWidth = 1.5;
+                            ctx.setLineDash([]);
+                            
+                            filledData.forEach((item, idx) => {
+                                if (item.monthIndex === 0 && idx > 0) {
+                                    const x = xAxis.getPixelForValue(idx - 0.5);
+                                    ctx.beginPath();
+                                    ctx.moveTo(x, yAxis.top);
+                                    ctx.lineTo(x, yAxis.bottom);
+                                    ctx.stroke();
+                                }
+                            });
+                            ctx.restore();
+                        }
+                    }],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        onHover: function(event, activeElements) {
+                            const chart = chartInstance;
+                            const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                            const dataX = chart.scales.x.getValueForPixel(canvasPosition.x);
+                            
+                            // Show release chip if release is before chart range
+                            if (releaseBeforeChart && releaseDisplayText) {
+                                console.log('Should show chip - releaseBeforeChart:', releaseBeforeChart, 'text:', releaseDisplayText);
+                                showReleaseChip(releaseDisplayText);
+                            } else {
+                                console.log('Hiding chip - releaseBeforeChart:', releaseBeforeChart, 'text:', releaseDisplayText);
+                                hideReleaseChip();
+                            }
+                            
+                            // Priority 1: Show release tooltip when hovering near release line
+                            if (annotations.releaseLine) {
+                                const releaseIdx = annotations.releaseLine.xMin;
+                                if (Math.abs(dataX - releaseIdx) < 0.5) {
+                                    chart.canvas.title = releaseLineTooltip;
+                                    hideYearTooltip();
+                                    return;
+                                }
+                            }
+                            
+                            // Priority 2: If not hovering on a bar, show year total
+                            if (activeElements.length === 0 && dataX >= 0 && dataX < filledData.length) {
+                                const idx = Math.round(dataX);
+                                const item = filledData[idx];
+                                if (item && yearTotals[item.year] !== undefined) {
+                                    showYearTooltip(item.year, yearTotals[item.year]);
+                                    chart.canvas.title = '';
+                                    return;
+                                }
+                            }
+                            
+                            chart.canvas.title = '';
+                            hideYearTooltip();
+                        },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            annotation: {
+                                annotations: annotations
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(tooltipItems) {
+                                        const idx = tooltipItems[0].dataIndex;
+                                        const item = filledData[idx];
+                                        return monthNames[item.monthIndex] + ' ' + item.year;
+                                    },
+                                    afterTitle: function(tooltipItems) {
+                                        // Check if hovering near release line
+                                        if (annotations.releaseLine && tooltipItems.length > 0) {
+                                            const idx = tooltipItems[0].dataIndex;
+                                            const releaseIdx = annotations.releaseLine.xMin;
+                                            if (Math.abs(idx - releaseIdx) < 0.5) {
+                                                return releaseLineTooltip;
+                                            }
+                                        }
+                                        return null;
+                                    }
+                                }
+                            }
                         },
                         scales: {
                             y: {
@@ -851,8 +1153,22 @@
                                 grid: { color: 'rgba(255,255,255,0.1)' }
                             },
                             x: {
-                                ticks: { color: '#9ca3af' },
-                                grid: { display: false }
+                                offset: true,
+                                ticks: { 
+                                    color: '#9ca3af',
+                                    callback: function(value, index) {
+                                        // Only show label for January of each year
+                                        const item = filledData[index];
+                                        if (item.monthIndex === 0) {
+                                            return item.year;
+                                        }
+                                        return '';
+                                    },
+                                    maxRotation: 0
+                                },
+                                grid: { 
+                                    display: false
+                                }
                             }
                         }
                     }
@@ -1082,7 +1398,7 @@
             const playCount = /*[[${songPlayCount}]]*/ 0;
             
             if (playCount > 0) {
-                alert('Cannot delete song with existing plays (' + playCount + ' plays)');
+                showWarningToast('Cannot delete song with existing plays (' + playCount + ' plays)');
                 return;
             }
             
@@ -1097,14 +1413,14 @@
                     if (data === 'success') {
                         window.location.href = '/songs';
                     } else if (data.startsWith('error:')) {
-                        alert(data.substring(6));
+                        showErrorToast(data.substring(6));
                     } else {
-                        alert('Failed to delete song');
+                        showErrorToast('Failed to delete song');
                     }
                 })
                 .catch(error => {
                     console.error('Error deleting song:', error);
-                    alert('Error deleting song');
+                    showErrorToast('Error deleting song');
                 });
             }
         }
@@ -1134,12 +1450,12 @@
             if (!file) return;
             
             if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
+                showWarningToast('Please select an image file');
                 return;
             }
             
             if (file.size > 5 * 1024 * 1024) {
-                alert('Image size must be less than 5MB');
+                showWarningToast('Image size must be less than 5MB');
                 return;
             }
             
@@ -1160,12 +1476,12 @@
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    alert('Failed to upload image');
+                    showErrorToast('Failed to upload image');
                 }
             })
             .catch(error => {
                 console.error('Error uploading image:', error);
-                alert('Error uploading image');
+                showErrorToast('Error uploading image');
             });
         }
         
@@ -1183,12 +1499,12 @@
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    alert('Failed to remove image');
+                    showErrorToast('Failed to remove image');
                 }
             })
             .catch(error => {
                 console.error('Error removing image:', error);
-                alert('Error removing image');
+                showErrorToast('Error removing image');
             });
         }
         
@@ -1341,8 +1657,8 @@
             const currentImageId = galleryImages[currentGalleryIndex];
             if (currentImageId === 0) return; // Already on default
             fetch(`/songs/${songId}/images/${currentImageId}/set-default`, { method: 'POST' })
-                .then(response => { if (response.ok) window.location.reload(); else alert('Failed to set as default'); })
-                .catch(error => { console.error('Error:', error); alert('Error setting default image'); });
+                .then(response => { if (response.ok) window.location.reload(); else showErrorToast('Failed to set as default'); })
+                .catch(error => { console.error('Error:', error); showErrorToast('Error setting default image'); });
         }
 
         function removeGalleryImage() {
@@ -1356,9 +1672,9 @@
                         if (currentGalleryIndex >= galleryImages.length) currentGalleryIndex = galleryImages.length - 1;
                         updateGalleryImage();
                         updateGalleryUI();
-                    } else { alert('Failed to remove image'); }
+                    } else { showErrorToast('Failed to remove image'); }
                 })
-                .catch(error => { console.error('Error:', error); alert('Error removing image'); });
+                .catch(error => { console.error('Error:', error); showErrorToast('Error removing image'); });
         }
         // ============ END GALLERY FUNCTIONALITY ============
 
@@ -1975,7 +2291,7 @@
             const albumName = document.getElementById('albumNameHidden') ? document.getElementById('albumNameHidden').value : '';
 
             if ((!songName || songName.trim() === '') && (!artistName || artistName.trim() === '')) {
-                alert('Missing song or artist name for lookup');
+                showWarningToast('Missing song or artist name for lookup');
                 return;
             }
 
@@ -2050,16 +2366,16 @@
                     if (data.lengthFormatted) {
                         message += `- Length: ${data.lengthFormatted}`;
                     }
-                    alert(message);
+                    showSuccessToast(message);
                 } else {
-                    alert(data.message || 'Failed to fetch data from iTunes library');
+                    showErrorToast(data.message || 'Failed to fetch data from iTunes library');
                 }
             })
             .catch(error => {
                 button.disabled = false;
                 button.innerHTML = originalText;
                 console.error('Error fetching iTunes data:', error);
-                alert('Error fetching data from iTunes library');
+                showErrorToast('Error fetching data from iTunes library');
             });
         }
         

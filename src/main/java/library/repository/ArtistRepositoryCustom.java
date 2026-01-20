@@ -1,6 +1,7 @@
 package library.repository;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ArtistRepositoryCustom {
     
@@ -94,6 +95,61 @@ public interface ArtistRepositoryCustom {
             Integer imageCountMin,
             Integer imageCountMax,
             String isBand,
+            Integer playCountMin,
+            Integer playCountMax,
+            Integer albumCountMin,
+            Integer albumCountMax,
+            String birthDate,
+            String birthDateFrom,
+            String birthDateTo,
+            String birthDateMode,
+            Integer songCountMin,
+            Integer songCountMax
+    );
+    
+    /**
+     * Count artists grouped by gender for the filtered dataset.
+     * Returns a Map with gender_id as key and count as value.
+     * More efficient than loading all artists and counting in memory.
+     */
+    Map<Integer, Long> countArtistsByGenderWithFilters(
+            String name,
+            List<Integer> genderIds,
+            String genderMode,
+            List<Integer> ethnicityIds,
+            String ethnicityMode,
+            List<Integer> genreIds,
+            String genreMode,
+            List<Integer> subgenreIds,
+            String subgenreMode,
+            List<Integer> languageIds,
+            String languageMode,
+            List<String> countries,
+            String countryMode,
+            String deathDate,
+            String deathDateFrom,
+            String deathDateTo,
+            String deathDateMode,
+            List<String> accounts,
+            String accountMode,
+            Integer ageMin,
+            Integer ageMax,
+            String ageMode,
+            String firstListenedDate,
+            String firstListenedDateFrom,
+            String firstListenedDateTo,
+            String firstListenedDateMode,
+            String lastListenedDate,
+            String lastListenedDateFrom,
+            String lastListenedDateTo,
+            String lastListenedDateMode,
+            String listenedDateFrom,
+            String listenedDateTo,
+            String organized,
+            Integer imageCountMin,
+            Integer imageCountMax,
+            String isBand,
+            String inItunes,
             Integer playCountMin,
             Integer playCountMax,
             Integer albumCountMin,

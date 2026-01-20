@@ -601,3 +601,152 @@ a.number-one-item:hover {
         font-size: 36px;
     }
 }
+
+/* Gender Counters and Pagination Container */
+.pagination-and-counters-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 2px 0;
+    padding: 2px 0;
+    position: relative;
+}
+
+.gender-counters-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.per-page-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.per-page-container label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.per-page-container input[type="number"] {
+    width: 70px;
+    padding: 6px 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    text-align: center;
+}
+
+.per-page-container input[type="number"]:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.gender-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+}
+
+.gender-counter .counter-icon {
+    font-size: 16px;
+}
+
+.gender-counter .counter-value {
+    font-weight: 600;
+    color: #fff;
+}
+
+.gender-counter .counter-percentage {
+    font-size: 12px;
+    color: #888;
+    margin-left: 2px;
+}
+
+.gender-male-counter {
+    border-color: rgba(74, 158, 255, 0.3);
+    background-color: rgba(74, 158, 255, 0.1);
+}
+
+.gender-male-counter .counter-icon {
+    color: #4a9eff;
+}
+
+.gender-female-counter {
+    border-color: rgba(255, 107, 157, 0.3);
+    background-color: rgba(255, 107, 157, 0.1);
+}
+
+.gender-female-counter .counter-icon {
+    color: #ff6b9d;
+}
+
+.gender-other-counter {
+    border-color: rgba(107, 114, 128, 0.3);
+    background-color: rgba(107, 114, 128, 0.1);
+}
+
+.gender-other-counter .counter-icon {
+    color: #6b7280;
+}
+
+/* Ensure pagination stays centered within the wrapper */
+.pagination-and-counters-wrapper .pagination {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+}
+
+/* Mobile responsive adjustments for gender counters */
+@media (max-width: 768px) {
+    .pagination-and-counters-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .pagination-and-counters-wrapper .pagination {
+        position: static;
+        transform: none;
+        left: auto;
+    }
+    
+    .gender-counters-container {
+        justify-content: center;
+    }
+    
+    .per-page-container {
+        justify-content: center;
+    }
+    
+    .gender-counter {
+        font-size: 12px;
+        padding: 5px 10px;
+        gap: 5px;
+    }
+    
+    .gender-counter .counter-icon {
+        font-size: 14px;
+    }
+    
+    .gender-counter .counter-percentage {
+        font-size: 11px;
+    }
+}

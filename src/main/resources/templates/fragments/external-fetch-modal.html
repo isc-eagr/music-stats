@@ -813,7 +813,7 @@
                 const entity = entitySelect.value; // 'song' or 'album'
                 
                 if (!searchValue) {
-                    alert('Please enter a search term');
+                    showWarningToast('Please enter a search term');
                     return;
                 }
                 
@@ -952,7 +952,7 @@
                 const customUrl = urlInput.value.trim();
                 
                 if (!customUrl) {
-                    alert('Please enter a URL');
+                    showWarningToast('Please enter a URL');
                     return;
                 }
                 
@@ -1239,14 +1239,14 @@
                             const msg = data.skippedDuplicates === 1 
                                 ? '1 image was skipped (duplicate)' 
                                 : `${data.skippedDuplicates} images were skipped (duplicates)`;
-                            alert(data.savedCount > 0 
+                            showInfoToast(data.savedCount > 0 
                                 ? `Saved ${data.savedCount} image(s). ${msg}.`
                                 : `No images saved. ${msg}.`);
                         }
                         // Reload page to show new images
                         window.location.reload();
                     } else {
-                        alert('Error saving images: ' + (data.error || 'Unknown error'));
+                        showErrorToast('Error saving images: ' + (data.error || 'Unknown error'));
                         saveBtn.textContent = 'Save Selected';
                         saveBtn.classList.remove('saving');
                         saveBtn.disabled = false;
@@ -1254,7 +1254,7 @@
                 })
                 .catch(err => {
                     console.error('Error saving images:', err);
-                    alert('Error saving images. Please try again.');
+                    showErrorToast('Error saving images. Please try again.');
                     saveBtn.textContent = 'Save Selected';
                     saveBtn.classList.remove('saving');
                     saveBtn.disabled = false;

@@ -1135,13 +1135,13 @@
                     badge.onclick = function(e) { e.stopPropagation(); };
                 } else {
                     const error = await response.text();
-                    alert('Failed to generate chart: ' + error);
+                    showErrorToast('Failed to generate chart: ' + error);
                     badge.classList.remove('pending');
                     badge.classList.add('not-started');
                     badge.innerHTML = '✗';
                 }
             } catch (error) {
-                alert('Error generating chart: ' + error.message);
+                showErrorToast('Error generating chart: ' + error.message);
                 badge.classList.remove('pending');
                 badge.classList.add('not-started');
                 badge.innerHTML = '✗';

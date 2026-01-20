@@ -474,7 +474,7 @@
                 const country = countrySelect.value;
                 
                 if (!searchValue) {
-                    alert('Please enter a search term');
+                    showWarningToast('Please enter a search term');
                     return;
                 }
                 
@@ -678,7 +678,7 @@
                     if (data.success) {
                         window.location.reload();
                     } else {
-                        alert('Error saving images: ' + (data.error || 'Unknown error'));
+                        showErrorToast('Error saving images: ' + (data.error || 'Unknown error'));
                         saveBtn.textContent = 'Save Selected';
                         saveBtn.classList.remove('saving');
                         saveBtn.disabled = false;
@@ -686,7 +686,7 @@
                 })
                 .catch(err => {
                     console.error('Error saving images:', err);
-                    alert('Error saving images. Please try again.');
+                    showErrorToast('Error saving images. Please try again.');
                     saveBtn.textContent = 'Save Selected';
                     saveBtn.classList.remove('saving');
                     saveBtn.disabled = false;

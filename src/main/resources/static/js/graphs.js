@@ -32,6 +32,16 @@ let topTabData = {
     songs: []
 };
 
+// Infinite scroll state for top tables - tracks how many rows are currently displayed
+let topInfiniteScrollState = {
+    artists: { displayedRows: 100, batchSize: 50 },
+    albums: { displayedRows: 100, batchSize: 50 },
+    songs: { displayedRows: 100, batchSize: 50 }
+};
+
+// Whether infinite scroll is enabled
+let infiniteScrollEnabled = true;
+
 // Current sort state for each table
 let topSortState = {
     artists: { column: 'plays', direction: 'desc' },
@@ -720,7 +730,8 @@ function loadTabData(tabName, forceReload = false) {
     
     // Add top limit only for top tab (always) or other tabs if their "Apply Limit" checkbox is checked
     if (tabName === 'top') {
-        params.set('limit', getTopLimit());
+        // For infinite scroll, fetch all data - the UI will progressively render rows as user scrolls
+        params.set('limit', 999999);
     } else {
         // For non-top tabs, only apply limit if checkbox is checked
         const checkboxId = 'applyLimit' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
@@ -732,8 +743,6 @@ function loadTabData(tabName, forceReload = false) {
     
     const apiUrl = '/songs/api/charts/' + tabName + '?' + params.toString();
     
-    console.log('Fetching chart data from:', apiUrl);
-    
     fetch(apiUrl)
         .then(response => {
             if (!response.ok) {
@@ -742,8 +751,6 @@ function loadTabData(tabName, forceReload = false) {
             return response.json();
         })
         .then(data => {
-            console.log('Chart data received for', tabName + ':', data);
-            
             // Hide loading, show content
             if (loadingEl) loadingEl.style.display = 'none';
             if (contentEl) contentEl.style.display = 'block';
@@ -1621,6 +1628,9 @@ function resetChartsLoaded() {
  * Renders the Top tables with artist, album, and song data
  */
 function renderTopTables(data) {
+    // Reset infinite scroll state
+    resetInfiniteScrollState();
+    
     // Store data for client-side sorting
     topTabData.artists = data.topArtists || [];
     topTabData.albums = data.topAlbums || [];
@@ -1630,6 +1640,9 @@ function renderTopTables(data) {
     renderTopArtistsTable();
     renderTopAlbumsTable();
     renderTopSongsTable();
+    
+    // Setup infinite scroll listeners
+    setupInfiniteScroll();
     
     // Setup sorting handlers
     setupTopTableSorting();
@@ -1738,7 +1751,13 @@ function renderTopArtistsTable() {
         return;
     }
     
-    tbody.innerHTML = data.map((artist, index) => {
+    // If infinite scroll is disabled, render based on top limit input
+    // If enabled, render initial batch for progressive loading
+    const rowsToRender = infiniteScrollEnabled ? 
+        data.slice(0, topInfiniteScrollState.artists.displayedRows) : 
+        data.slice(0, getTopLimit());
+    
+    tbody.innerHTML = rowsToRender.map((artist, index) => {
         const rank = index + 1;
         return `
         <tr style="${getGenderRowStyle(artist.genderId)}">
@@ -1779,7 +1798,13 @@ function renderTopAlbumsTable() {
         return;
     }
     
-    tbody.innerHTML = data.map((album, index) => {
+    // If infinite scroll is disabled, render based on top limit input
+    // If enabled, render initial batch for progressive loading
+    const rowsToRender = infiniteScrollEnabled ? 
+        data.slice(0, topInfiniteScrollState.albums.displayedRows) : 
+        data.slice(0, getTopLimit());
+    
+    tbody.innerHTML = rowsToRender.map((album, index) => {
         const rank = index + 1;
         return `
         <tr style="${getGenderRowStyle(album.genderId)}">
@@ -1792,7 +1817,7 @@ function renderTopAlbumsTable() {
             </td>
             <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
-            <td style="text-align:right;"${(album.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
             <td style="text-align:right;">${(album.primaryPlays || 0).toLocaleString()}</td>
             <td style="text-align:right;">${(album.legacyPlays || 0).toLocaleString()}</td>
             <td style="text-align:right;">${album.lengthFormatted || '-'}</td>
@@ -1823,7 +1848,13 @@ function renderTopSongsTable() {
         return;
     }
     
-    tbody.innerHTML = data.map((song, index) => {
+    // If infinite scroll is disabled, render based on top limit input
+    // If enabled, render initial batch for progressive loading
+    const rowsToRender = infiniteScrollEnabled ? 
+        data.slice(0, topInfiniteScrollState.songs.displayedRows) : 
+        data.slice(0, getTopLimit());
+    
+    tbody.innerHTML = rowsToRender.map((song, index) => {
         const rank = index + 1;
         let coverHtml;
         if (song.hasImage && song.albumHasImage && song.albumId) {
@@ -2174,6 +2205,209 @@ function openSongImageModalFromGraphs(songId) {
             console.error('Error loading song gallery:', error);
             openImageModal(`/songs/${songId}/image`);
         });
+}
+
+/**
+ * Setup infinite scroll for top tables
+ */
+function setupInfiniteScroll() {
+    const containers = {
+        artists: document.getElementById('topArtistsTableContainer'),
+        albums: document.getElementById('topAlbumsTableContainer'),
+        songs: document.getElementById('topSongsTableContainer')
+    };
+    
+    Object.entries(containers).forEach(([type, container]) => {
+        if (!container) {
+            return;
+        }
+        
+        // Remove any existing scroll listeners first
+        const oldListener = container._scrollListener;
+        if (oldListener) {
+            container.removeEventListener('scroll', oldListener);
+        }
+        
+        // Create new listener
+        const scrollListener = function() {
+            // Only trigger if infinite scroll is enabled
+            if (!infiniteScrollEnabled) return;
+            
+            // Check if near bottom (within 200px)
+            const scrollPosition = container.scrollTop + container.clientHeight;
+            const scrollHeight = container.scrollHeight;
+            
+            if (scrollPosition >= scrollHeight - 200) {
+                loadMoreTopData(type);
+            }
+        };
+        
+        // Store reference and add listener
+        container._scrollListener = scrollListener;
+        container.addEventListener('scroll', scrollListener);
+    });
+}
+
+/**
+ * Toggle infinite scroll on/off
+ */
+function toggleInfiniteScroll() {
+    const toggle = document.getElementById('infiniteScrollToggle');
+    infiniteScrollEnabled = toggle.checked;
+    
+    // Re-render tables to apply the new mode
+    renderTopArtistsTable();
+    renderTopAlbumsTable();
+    renderTopSongsTable();
+}
+
+/**
+ * Load more data for a specific top table (from already-loaded data)
+ */
+function loadMoreTopData(type) {
+    const state = topInfiniteScrollState[type];
+    const allData = topTabData[type];
+    
+    // Check if there's more data to show
+    if (state.displayedRows >= allData.length) {
+        return;
+    }
+    
+    // Calculate how many more rows to add
+    const newDisplayedRows = Math.min(state.displayedRows + state.batchSize, allData.length);
+    const newRows = allData.slice(state.displayedRows, newDisplayedRows);
+    
+    // Update displayed count
+    state.displayedRows = newDisplayedRows;
+    
+    // Append rows
+    if (type === 'artists') {
+        appendTopArtistsRows(newRows, state.displayedRows - newRows.length);
+    } else if (type === 'albums') {
+        appendTopAlbumsRows(newRows, state.displayedRows - newRows.length);
+    } else if (type === 'songs') {
+        appendTopSongsRows(newRows, state.displayedRows - newRows.length);
+    }
+}
+
+/**
+ * Append artists rows to table
+ */
+function appendTopArtistsRows(data, startRank) {
+    const tbody = document.querySelector('#topArtistsTable tbody');
+    if (!tbody) return;
+    
+    data.forEach((artist, index) => {
+        const rank = startRank + index + 1;
+        const row = document.createElement('tr');
+        row.style.cssText = getGenderRowStyle(artist.genderId);
+        row.innerHTML = `
+            <td class="rank-col">${rank}</td>
+            <td class="cover-col artist-cover">
+                <div style="cursor:pointer;">
+                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openArtistImageModalFromGraphs(${artist.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
+                    <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎤</div>
+                </div>
+            </td>
+            <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
+            <td style="text-align:right;"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(artist.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(artist.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${artist.timeListenedFormatted || '-'}</td>
+            <td>${artist.firstListened || '-'}</td>
+            <td>${artist.lastListened || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+/**
+ * Append albums rows to table
+ */
+function appendTopAlbumsRows(data, startRank) {
+    const tbody = document.querySelector('#topAlbumsTable tbody');
+    if (!tbody) return;
+    
+    data.forEach((album, index) => {
+        const rank = startRank + index + 1;
+        const row = document.createElement('tr');
+        row.style.cssText = getGenderRowStyle(album.genderId);
+        row.innerHTML = `
+            <td class="rank-col">${rank}</td>
+            <td class="cover-col">
+                <div>
+                    <img src="/albums/${album.id}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                    <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
+                </div>
+            </td>
+            <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
+            <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
+            <td style="text-align:right;"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(album.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(album.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${album.lengthFormatted || '-'}</td>
+            <td style="text-align:right;">${album.timeListenedFormatted || '-'}</td>
+            <td>${album.releaseDate || '-'}</td>
+            <td>${album.firstListened || '-'}</td>
+            <td>${album.lastListened || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+/**
+ * Append songs rows to table
+ */
+function appendTopSongsRows(data, startRank) {
+    const tbody = document.querySelector('#topSongsTable tbody');
+    if (!tbody) return;
+    
+    data.forEach((song, index) => {
+        const rank = startRank + index + 1;
+        const row = document.createElement('tr');
+        row.style.cssText = getGenderRowStyle(song.genderId);
+        if (song.isFeatured) {
+            row.classList.add('featured-song-row');
+        }
+        row.innerHTML = `
+            <td class="rank-col">${rank}</td>
+            <td class="cover-col">
+                <div>
+                    ${song.hasImage ? 
+                        `<img src="/songs/${song.id}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                         <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>` :
+                        song.albumId ?
+                        `<img src="/albums/${song.albumId}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                         <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>` :
+                        `<div style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>`
+                    }
+                </div>
+            </td>
+            <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
+            <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName || '-')}</a>` : '-'}</td>
+            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isFeatured ? '<span class="featured-artist-label">(feat.)</span>' : ''}</td>
+            <td style="text-align:right;"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(song.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${(song.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${song.lengthFormatted || '-'}</td>
+            <td style="text-align:right;">${song.timeListenedFormatted || '-'}</td>
+            <td>${song.releaseDate || '-'}</td>
+            <td>${song.firstListened || '-'}</td>
+            <td>${song.lastListened || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+/**
+ * Reset infinite scroll state when filters change or sort changes
+ */
+function resetInfiniteScrollState() {
+    topInfiniteScrollState = {
+        artists: { displayedRows: 100, batchSize: 50 },
+        albums: { displayedRows: 100, batchSize: 50 },
+        songs: { displayedRows: 100, batchSize: 50 }
+    };
 }
 
 // Initialize modal close on click outside and read URL params for toggles

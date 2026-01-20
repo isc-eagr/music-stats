@@ -3,6 +3,7 @@ package library.controller;
 import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
 import library.dto.FeaturedArtistCardDTO;
+import library.dto.GenderCountDTO;
 import library.entity.Artist;
 import library.repository.LookupRepository;
 import library.service.ArtistService;
@@ -152,7 +153,7 @@ public class ArtistController {
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "40") int perpage,
+            @RequestParam(defaultValue = "100") int perpage,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -204,9 +205,25 @@ public class ArtistController {
                 songCountMin, songCountMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
+        // Get gender counts for the filtered dataset
+        GenderCountDTO genderCounts = artistService.countArtistsByGender(q, gender, genderMode, ethnicity, 
+                ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
+                languageMode, country, countryMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                account, accountMode, ageMin, ageMax, ageMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
+                organized, imageCountMin, imageCountMax, isBand, inItunes,
+                playCountMin, playCountMax,
+                albumCountMin, albumCountMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                songCountMin, songCountMax);
+        
         // Add data to model
         model.addAttribute("currentSection", "artists");
         model.addAttribute("artists", artists);
+        model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
@@ -333,8 +350,8 @@ public class ArtistController {
         model.addAttribute("genres", artistService.getGenres());
         model.addAttribute("subgenres", artistService.getSubGenres());
         model.addAttribute("languages", artistService.getLanguages());
-        // Add dynamic countries list
-        model.addAttribute("countries", artistService.getCountries());
+        // Use ALL countries for edit mode dropdown
+        model.addAttribute("countries", artistService.getAllCountries());
         
         // Add iTunes presence
         Artist artistEntity = artist.get();
@@ -578,6 +595,7 @@ public class ArtistController {
                 model.addAttribute("scrobblesPageSize", pageSize);
                 model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(id, effectiveGroupIds));
+                model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(id, effectiveGroupIds));
             } else if (includeMain && effectiveGroupIds == null) {
                 // Main only
                 scrobbles = new java.util.ArrayList<>(artistService.getScrobblesForArtist(id, playsPage, pageSize));
@@ -597,6 +615,7 @@ public class ArtistController {
                 model.addAttribute("scrobblesPageSize", pageSize);
                 model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
+                model.addAttribute("playsByMonth", artistService.getPlaysByMonthForArtist(id));
             } else if (!includeMain && effectiveGroupIds != null) {
                 // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
                 scrobbles = new java.util.ArrayList<>(artistService.getAggregatedScrobblesForArtist(0, effectiveGroupIds, playsPage, pageSize));
@@ -616,6 +635,7 @@ public class ArtistController {
                 model.addAttribute("scrobblesPageSize", pageSize);
                 model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(0, effectiveGroupIds));
+                model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(0, effectiveGroupIds));
             } else {
                 // No main, no groups - only featured
                 if (includeFeatured && hasFeaturedSongs) {
@@ -627,6 +647,7 @@ public class ArtistController {
                     model.addAttribute("scrobblesPageSize", pageSize);
                     model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                     model.addAttribute("playsByYear", artistService.getFeaturedPlaysByYear(id));
+                    model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 } else {
                     model.addAttribute("scrobbles", java.util.Collections.emptyList());
                     model.addAttribute("scrobblesTotalCount", 0L);
@@ -634,6 +655,7 @@ public class ArtistController {
                     model.addAttribute("scrobblesPageSize", pageSize);
                     model.addAttribute("scrobblesTotalPages", 0);
                     model.addAttribute("playsByYear", java.util.Collections.emptyMap());
+                    model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 }
             }
         }

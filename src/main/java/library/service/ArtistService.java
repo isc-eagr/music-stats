@@ -4,7 +4,9 @@ import library.dto.ArtistAlbumDTO;
 import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
 import library.dto.FeaturedArtistCardDTO;
+import library.dto.GenderCountDTO;
 import library.dto.PlaysByYearDTO;
+import library.dto.PlaysByMonthDTO;
 import library.dto.ScrobbleDTO;
 import library.entity.Artist;
 import library.entity.ArtistImage;
@@ -212,6 +214,66 @@ public class ArtistService {
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax);
+    }
+    
+    /**
+     * Count artists by gender for the filtered dataset.
+     * Returns a GenderCountDTO with male, female, and other counts.
+     * Uses efficient SQL GROUP BY instead of loading all records.
+     */
+    public GenderCountDTO countArtistsByGender(String name, List<Integer> genderIds, String genderMode,
+                            List<Integer> ethnicityIds, String ethnicityMode,
+                            List<Integer> genreIds, String genreMode,
+                            List<Integer> subgenreIds, String subgenreMode,
+                            List<Integer> languageIds, String languageMode,
+                            List<String> countries, String countryMode,
+                            String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                            List<String> accounts, String accountMode,
+                            Integer ageMin, Integer ageMax, String ageMode,
+                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                            String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                            String listenedDateFrom, String listenedDateTo,
+                            String organized, Integer imageCountMin, Integer imageCountMax, String isBand, String inItunes,
+                            Integer playCountMin, Integer playCountMax,
+                            Integer albumCountMin, Integer albumCountMax,
+                            String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                            Integer songCountMin, Integer songCountMax) {
+        // Normalize empty lists to null
+        if (genderIds != null && genderIds.isEmpty()) genderIds = null;
+        if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
+        if (genreIds != null && genreIds.isEmpty()) genreIds = null;
+        if (subgenreIds != null && subgenreIds.isEmpty()) subgenreIds = null;
+        if (languageIds != null && languageIds.isEmpty()) languageIds = null;
+        if (countries != null && countries.isEmpty()) countries = null;
+        if (accounts != null && accounts.isEmpty()) accounts = null;
+        
+        // Use efficient SQL-based counting with GROUP BY
+        Map<Integer, Long> genderCounts = artistRepository.countArtistsByGenderWithFilters(
+                name, genderIds, genderMode, ethnicityIds, ethnicityMode,
+                genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
+                countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                accounts, accountMode, ageMin, ageMax, ageMode,
+                firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
+                organized, imageCountMin, imageCountMax, isBand, inItunes,
+                playCountMin, playCountMax, albumCountMin, albumCountMax,
+                birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax);
+        
+        // Gender ID 1 = Female, Gender ID 2 = Male
+        long femaleCount = genderCounts.getOrDefault(1, 0L);
+        long maleCount = genderCounts.getOrDefault(2, 0L);
+        long otherCount = 0L;
+        
+        // Sum up all other gender IDs (including null)
+        for (Map.Entry<Integer, Long> entry : genderCounts.entrySet()) {
+            Integer genderId = entry.getKey();
+            if (genderId == null || (genderId != 1 && genderId != 2)) {
+                otherCount += entry.getValue();
+            }
+        }
+        
+        return new GenderCountDTO(maleCount, femaleCount, otherCount);
     }
     
     public Optional<Artist> getArtistById(Integer id) {
@@ -472,7 +534,18 @@ public class ArtistService {
         return lookupRepository.getAllLanguages();
     }
     
+    /**
+     * Get only the distinct countries that exist in the Artist table (for filters)
+     */
     public List<String> getCountries() {
+        String sql = "SELECT DISTINCT country FROM Artist WHERE country IS NOT NULL AND country != '' ORDER BY country";
+        return jdbcTemplate.queryForList(sql, String.class);
+    }
+    
+    /**
+     * Get all possible country names from ISO list (for edit mode dropdowns)
+     */
+    public List<String> getAllCountries() {
         String[] iso = Locale.getISOCountries();
         Set<String> names = new TreeSet<>();
         for (String code : iso) {
@@ -1295,6 +1368,29 @@ public class ArtistService {
         }, artistId);
     }
     
+    // Get plays by month for an artist
+    public List<PlaysByMonthDTO> getPlaysByMonthForArtist(int artistId) {
+        String sql = """
+            SELECT 
+                strftime('%Y', scr.scrobble_date) as year,
+                strftime('%m', scr.scrobble_date) as month,
+                COUNT(*) as play_count
+            FROM Scrobble scr
+            INNER JOIN Song s ON scr.song_id = s.id
+            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
+            GROUP BY strftime('%Y', scr.scrobble_date), strftime('%m', scr.scrobble_date)
+            ORDER BY year ASC, month ASC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            PlaysByMonthDTO dto = new PlaysByMonthDTO();
+            dto.setYear(rs.getString("year"));
+            dto.setMonth(rs.getString("month"));
+            dto.setPlayCount(rs.getLong("play_count"));
+            return dto;
+        }, artistId);
+    }
+    
     // Get artist gender name
     public String getArtistGenderName(int artistId) {
         String sql = "SELECT g.name FROM Artist a LEFT JOIN Gender g ON a.gender_id = g.id WHERE a.id = ?";
@@ -1854,6 +1950,31 @@ public class ArtistService {
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PlaysByYearDTO dto = new PlaysByYearDTO();
             dto.setYear(rs.getString("year"));
+            dto.setPlayCount(rs.getLong("play_count"));
+            return dto;
+        }, allArtistIds.toArray());
+    }
+    
+    /**
+     * Get aggregated plays by month for an artist including all groups
+     */
+    public List<PlaysByMonthDTO> getAggregatedPlaysByMonth(int artistId, List<Integer> groupIds) {
+        List<Integer> allArtistIds = new ArrayList<>();
+        allArtistIds.add(artistId);
+        if (groupIds != null) {
+            allArtistIds.addAll(groupIds);
+        }
+        
+        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
+        String sql = "SELECT strftime('%Y', scr.scrobble_date) as year, strftime('%m', scr.scrobble_date) as month, COUNT(*) as play_count " +
+            "FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id " +
+            "WHERE s.artist_id IN (" + placeholders + ") AND scr.scrobble_date IS NOT NULL " +
+            "GROUP BY strftime('%Y', scr.scrobble_date), strftime('%m', scr.scrobble_date) ORDER BY year ASC, month ASC";
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            PlaysByMonthDTO dto = new PlaysByMonthDTO();
+            dto.setYear(rs.getString("year"));
+            dto.setMonth(rs.getString("month"));
             dto.setPlayCount(rs.getLong("play_count"));
             return dto;
         }, allArtistIds.toArray());

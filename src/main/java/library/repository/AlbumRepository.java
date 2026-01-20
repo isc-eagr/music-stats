@@ -4,7 +4,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class AlbumRepository {
@@ -1312,5 +1314,344 @@ public class AlbumRepository {
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
+    }
+    
+    /**
+     * Count albums grouped by gender (from artist) for the filtered dataset.
+     * Returns a Map with gender_id as key and count as value.
+     * More efficient than loading all albums and counting in memory.
+     */
+    public Map<Integer, Long> countAlbumsByGenderWithFilters(String name, String artistName,
+                                       List<Integer> genreIds, String genreMode,
+                                       List<Integer> subgenreIds, String subgenreMode,
+                                       List<Integer> languageIds, String languageMode,
+                                       List<Integer> genderIds, String genderMode,
+                                       List<Integer> ethnicityIds, String ethnicityMode,
+                                       List<String> countries, String countryMode,
+                                       List<String> accounts, String accountMode,
+                                       String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                                       String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                       String listenedDateFrom, String listenedDateTo,
+                                       String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand,
+                                       Integer ageMin, Integer ageMax, String ageMode,
+                                       Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                       String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                       String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                                       String inItunes,
+                                       Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
+                                       Integer lengthMin, Integer lengthMax, String lengthMode,
+                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                       Integer yearlyChartPeak, Integer yearlyChartYears) {
+        // Build account filter subquery for play_stats if we need play count filter
+        StringBuilder accountFilterClause = new StringBuilder();
+        List<Object> accountParams = new ArrayList<>();
+        
+        // Build listened date filter clause for play_stats subquery
+        StringBuilder listenedDateFilterClause = new StringBuilder();
+        List<Object> listenedDateParams = new ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateParams.add(listenedDateTo);
+        }
+        boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account NOT IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        }
+        
+        StringBuilder sql = new StringBuilder();
+        
+        // Use a more efficient approach with JOIN for account filtering
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            sql.append(
+                "SELECT ar.gender_id, COUNT(DISTINCT a.id) as cnt " +
+                "FROM Album a " +
+                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
+            
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+                sql.append("""
+                    LEFT JOIN (
+                        SELECT s.album_id, COUNT(*) as play_count
+                        FROM Scrobble scr
+                        JOIN Song s ON scr.song_id = s.id
+                        WHERE 1=1 """);
+                sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
+                sql.append("""
+                        GROUP BY s.album_id
+                    ) play_stats ON play_stats.album_id = a.id
+                    """);
+            }
+            
+            sql.append("INNER JOIN Song s ON s.album_id = a.id " +
+                "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
+                "WHERE scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+            }
+            sql.append(") ");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            sql.append(
+                "SELECT ar.gender_id, COUNT(DISTINCT a.id) as cnt " +
+                "FROM Album a " +
+                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
+            
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+                sql.append("""
+                    LEFT JOIN (
+                        SELECT s.album_id, COUNT(*) as play_count
+                        FROM Scrobble scr
+                        JOIN Song s ON scr.song_id = s.id
+                        WHERE 1=1 """);
+                sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
+                sql.append("""
+                        GROUP BY s.album_id
+                    ) play_stats ON play_stats.album_id = a.id
+                    """);
+            }
+            
+            sql.append("WHERE NOT EXISTS ( " +
+                "    SELECT 1 FROM Scrobble scr " +
+                "    JOIN Song song ON scr.song_id = song.id " +
+                "    WHERE song.album_id = a.id AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+            }
+            sql.append(") ) AND 1=1 ");
+        } else {
+            sql.append(
+                "SELECT ar.gender_id, COUNT(*) as cnt " +
+                "FROM Album a " +
+                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
+            
+            if (lengthMin != null || lengthMax != null || (lengthMode != null && !lengthMode.isEmpty())) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as album_length FROM Song GROUP BY album_id) song_stats ON song_stats.album_id = a.id ");
+            }
+            
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+                sql.append("""
+                    LEFT JOIN (
+                        SELECT s.album_id, COUNT(*) as play_count
+                        FROM Scrobble scr
+                        JOIN Song s ON scr.song_id = s.id
+                        WHERE 1=1 """);
+                sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
+                sql.append("""
+                        GROUP BY s.album_id
+                    ) play_stats ON play_stats.album_id = a.id
+                    """);
+            }
+            
+            sql.append("WHERE 1=1 ");
+        }
+        
+        List<Object> params = new ArrayList<>();
+        
+        // Add account params for play_stats subquery
+        if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+            params.addAll(accountParams);
+            params.addAll(listenedDateParams);
+        }
+        
+        // Account params for main query if using includes or excludes mode
+        if (accounts != null && !accounts.isEmpty()) {
+            params.addAll(accounts);
+        }
+        
+        // Name filters with accent-insensitive search
+        if (name != null && !name.trim().isEmpty()) {
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("a.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
+        }
+        
+        // Artist name filter
+        if (artistName != null && !artistName.trim().isEmpty()) {
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
+        }
+        
+        // Gender filter (filter on artist gender)
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, "ar.gender_id", genderIds, genderMode);
+        
+        // Genre filter (using COALESCE to check album override first, then artist)
+        String genreExpr = "COALESCE(a.override_genre_id, ar.genre_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, genreExpr, genreIds, genreMode);
+        
+        // Subgenre filter
+        String subgenreExpr = "COALESCE(a.override_subgenre_id, ar.subgenre_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, subgenreExpr, subgenreIds, subgenreMode);
+        
+        // Language filter
+        String languageExpr = "COALESCE(a.override_language_id, ar.language_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, languageExpr, languageIds, languageMode);
+        
+        // Ethnicity filter
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, "ar.ethnicity_id", ethnicityIds, ethnicityMode);
+        
+        // Country filter
+        library.util.SqlFilterHelper.appendStringFilter(sql, params, "ar.country", countries, countryMode);
+        
+        // Release date filter
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "a.release_date", releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+        
+        // First listened date filter
+        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
+        
+        // Last listened date filter
+        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
+        
+        // Birth date filter
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "ar.birth_date", birthDate, birthDateFrom, birthDateTo, birthDateMode);
+        
+        // Death date filter
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "ar.death_date", deathDate, deathDateFrom, deathDateTo, deathDateMode);
+        
+        // Age filter
+        if (ageMin != null || ageMax != null) {
+            String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ?");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ?");
+                params.add(ageMax);
+            }
+        }
+        
+        // Age at release filter
+        if (ageAtReleaseMin != null || ageAtReleaseMax != null) {
+            String ageAtReleaseExpr = "CAST((julianday(a.release_date) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageAtReleaseMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND a.release_date IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ?");
+                params.add(ageAtReleaseMin);
+            }
+            if (ageAtReleaseMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND a.release_date IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ?");
+                params.add(ageAtReleaseMax);
+            }
+        }
+        
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND a.organized = 1");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (a.organized = 0 OR a.organized IS NULL)");
+            }
+        }
+        
+        // Image count filter
+        if (imageCountMin != null) {
+            sql.append(" AND ((CASE WHEN a.cover_image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = a.id)) >= ?");
+            params.add(imageCountMin);
+        }
+        if (imageCountMax != null) {
+            sql.append(" AND ((CASE WHEN a.cover_image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = a.id)) <= ?");
+            params.add(imageCountMax);
+        }
+        
+        // Has featured artists filter
+        if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM FeaturedArtist fa JOIN Song fs ON fa.song_id = fs.id WHERE fs.album_id = a.id)");
+            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM FeaturedArtist fa JOIN Song fs ON fa.song_id = fs.id WHERE fs.album_id = a.id)");
+            }
+        }
+        
+        // Is band filter
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 1");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 0");
+            }
+        }
+        
+        // In iTunes filter
+        if (inItunes != null && !inItunes.isEmpty()) {
+            if ("true".equalsIgnoreCase(inItunes)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM Song s2 WHERE s2.album_id = a.id AND s2.in_itunes = 1)");
+            } else if ("false".equalsIgnoreCase(inItunes)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM Song s2 WHERE s2.album_id = a.id AND s2.in_itunes = 1)");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ?");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ?");
+            params.add(playCountMax);
+        }
+        
+        // Song count filter
+        if (songCountMin != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song WHERE album_id = a.id) >= ?");
+            params.add(songCountMin);
+        }
+        if (songCountMax != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song WHERE album_id = a.id) <= ?");
+            params.add(songCountMax);
+        }
+        
+        // Length filter
+        if (lengthMin != null || lengthMax != null || (lengthMode != null && !lengthMode.isEmpty())) {
+            String lengthExpr = "COALESCE(song_stats.album_length, 0)";
+            if ("isnull".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND ").append(lengthExpr).append(" = 0");
+            } else if ("isnotnull".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND ").append(lengthExpr).append(" > 0");
+            } else {
+                if (lengthMin != null) {
+                    sql.append(" AND ").append(lengthExpr).append(" >= ?");
+                    params.add(lengthMin);
+                }
+                if (lengthMax != null) {
+                    sql.append(" AND ").append(lengthExpr).append(" <= ?");
+                    params.add(lengthMax);
+                }
+            }
+        }
+        
+        // Add GROUP BY
+        sql.append(" GROUP BY ar.gender_id");
+        
+        Map<Integer, Long> result = new HashMap<>();
+        jdbcTemplate.query(sql.toString(), rs -> {
+            Integer genderId = rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null;
+            Long cnt = rs.getLong("cnt");
+            result.put(genderId, cnt);
+        }, params.toArray());
+        
+        return result;
     }
 }

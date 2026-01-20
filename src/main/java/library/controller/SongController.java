@@ -2,6 +2,7 @@ package library.controller;
 
 import library.dto.ChartFilterDTO;
 import library.dto.FeaturedArtistDTO;
+import library.dto.GenderCountDTO;
 import library.dto.SongCardDTO;
 import library.entity.Album;
 import library.entity.Artist;
@@ -156,7 +157,7 @@ public class SongController {
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "40") int perpage,
+            @RequestParam(defaultValue = "100") int perpage,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -216,9 +217,27 @@ public class SongController {
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
+        // Get gender counts for the filtered dataset
+        GenderCountDTO genderCounts = songService.countSongsByGender(q, artist, album,
+                genre, genreMode, subgenre, subgenreMode, language, languageMode,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                inItunes,
+                playCountMin, playCountMax,
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+        
         // Add data to model
         model.addAttribute("currentSection", "songs");
         model.addAttribute("songs", songs);
+        model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
@@ -483,6 +502,7 @@ public class SongController {
             model.addAttribute("scrobblesPageSize", pageSize);
             model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) songService.countScrobblesForSong(id) / pageSize));
             model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
+            model.addAttribute("playsByMonth", songService.getPlaysByMonthForSong(id));
         }
         
         // Always load seasonal/yearly chart history for sidebar chips

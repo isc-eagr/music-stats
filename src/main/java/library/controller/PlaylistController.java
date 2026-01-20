@@ -128,7 +128,7 @@ public class PlaylistController {
         
         String m3uContent = playlistService.generateM3U(songIds);
         
-        String filename = name.replaceAll("[^a-zA-Z0-9-_]", "_") + ".m3u";
+        String filename = name.replaceAll("[^a-zA-Z0-9\\s\\-_]", "_") + ".m3u";
         
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -146,7 +146,7 @@ public class PlaylistController {
         
         String m3u8Content = playlistService.generateM3U8(songIds);
         
-        String filename = name.replaceAll("[^a-zA-Z0-9-_]", "_") + ".m3u8";
+        String filename = name.replaceAll("[^a-zA-Z0-9\\s\\-_]", "_") + ".m3u8";
         
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -164,7 +164,7 @@ public class PlaylistController {
         
         String psContent = playlistService.generatePowerShellScript(songIds, name);
         
-        String filename = name.replaceAll("[^a-zA-Z0-9-_]", "_") + ".ps1";
+        String filename = name.replaceAll("[^a-zA-Z0-9\\s\\-_]", "_") + ".ps1";
         
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -182,7 +182,7 @@ public class PlaylistController {
         
         String txtContent = playlistService.generateiTunesTxt(songIds);
         
-        String filename = name.replaceAll("[^a-zA-Z0-9-_]", "_") + ".txt";
+        String filename = name.replaceAll("[^a-zA-Z0-9\\s\\-_]", "_") + ".txt";
         
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -239,7 +239,7 @@ public class PlaylistController {
             String txtContent = playlistService.generateiTunesTxt(songIds);
             
             // Write to file
-            String filename = name.replaceAll("[^a-zA-Z0-9-_ ]", "_") + ".txt";
+            String filename = name.replaceAll("[^a-zA-Z0-9\\s\\-_]", "_") + ".txt";
             java.nio.file.Path filePath = folderPath.resolve(filename);
             java.nio.file.Files.writeString(filePath, txtContent, java.nio.charset.StandardCharsets.UTF_8);
             

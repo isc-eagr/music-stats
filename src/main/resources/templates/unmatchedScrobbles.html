@@ -281,12 +281,12 @@
                     closeDeleteModal();
                     location.reload();
                 } else {
-                    alert('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
+                    showErrorToast('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
                     btn.disabled = false;
                     btn.textContent = 'Delete Permanently';
                 }
             } catch (err) {
-                alert('Error deleting scrobbles: ' + err.message);
+                showErrorToast('Error deleting scrobbles: ' + err.message);
                 btn.disabled = false;
                 btn.textContent = 'Delete Permanently';
             }
@@ -360,11 +360,11 @@
                     closeBulkDeleteModal();
                     location.reload();
                 } else {
-                    alert('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
+                    showErrorToast('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
                     btn.disabled = false; btn.textContent = 'Delete Permanently';
                 }
             } catch (err) {
-                alert('Error deleting scrobbles: ' + err.message);
+                showErrorToast('Error deleting scrobbles: ' + err.message);
                 btn.disabled = false; btn.textContent = 'Delete Permanently';
             }
         }

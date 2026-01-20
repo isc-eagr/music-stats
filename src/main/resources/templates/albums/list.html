@@ -27,9 +27,9 @@
             </div>
             <div class="controls">
                 <div class="search-bar">
-                    <form method="get" action="/albums" autocomplete="off" id="albumSearchForm">
-                        <input type="text" name="q" th:value="${searchQuery}" placeholder="Search albums..." autocomplete="off" id="searchInput">
-                    </form>
+                    <input type="text" th:value="${searchQuery}" placeholder="Search albums..." autocomplete="off" id="searchInput"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
+                    <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
                 
                 <div class="filter-section">
@@ -55,12 +55,6 @@
                             <span th:if="${sortDir == 'desc'}">↓</span>
                             <span th:if="${sortDir != 'desc'}">↑</span>
                         </button>
-                    </div>
-                    
-                    <div class="page-size-section">
-                        <label for="pageSizeInput">Per Page:</label>
-                        <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
-                               onchange="changePageSize(this.value)">
                     </div>
                     
                     <div class="filters" id="filterPanel">
@@ -1252,7 +1246,28 @@
             </button>
         </div>
         
-        <!-- Pagination controls (top) -->
+        <!-- Gender Counters and Pagination Container -->
+        <div class="pagination-and-counters-wrapper">
+            <!-- Gender Counters (left-aligned) -->
+            <div class="gender-counters-container">
+                <span class="gender-counter gender-male-counter" title="Male">
+                    <span class="counter-icon">♂</span>
+                    <span class="counter-value" th:text="${genderCounts.maleCount}">0</span>
+                    <span class="counter-percentage" th:text="${genderCounts.maleCount + genderCounts.femaleCount + genderCounts.otherCount > 0 ? '(' + #numbers.formatDecimal(genderCounts.maleCount * 100.0 / (genderCounts.maleCount + genderCounts.femaleCount + genderCounts.otherCount), 1, 1) + '%)' : '(0.0%)'}"></span>
+                </span>
+                <span class="gender-counter gender-female-counter" title="Female">
+                    <span class="counter-icon">♀</span>
+                    <span class="counter-value" th:text="${genderCounts.femaleCount}">0</span>
+                    <span class="counter-percentage" th:text="${genderCounts.maleCount + genderCounts.femaleCount + genderCounts.otherCount > 0 ? '(' + #numbers.formatDecimal(genderCounts.femaleCount * 100.0 / (genderCounts.maleCount + genderCounts.femaleCount + genderCounts.otherCount), 1, 1) + '%)' : '(0.0%)'}"></span>
+                </span>
+                <span class="gender-counter gender-other-counter" title="Other/Unknown">
+                    <span class="counter-icon">◐</span>
+                    <span class="counter-value" th:text="${genderCounts.otherCount}">0</span>
+                    <span class="counter-percentage" th:text="${genderCounts.maleCount + genderCounts.femaleCount + genderCounts.otherCount > 0 ? '(' + #numbers.formatDecimal(genderCounts.otherCount * 100.0 / (genderCounts.maleCount + genderCounts.femaleCount + genderCounts.otherCount), 1, 1) + '%)' : '(0.0%)'}"></span>
+                </span>
+            </div>
+        
+        <!-- Pagination controls (top) - center-aligned -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
                th:href="@{/albums(q=${searchQuery}, artist=${selectedArtist}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
@@ -1276,6 +1291,14 @@
                th:href="@{/albums(q=${searchQuery}, artist=${selectedArtist}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
+        
+            <!-- Per Page selector (right-aligned) -->
+            <div class="per-page-container">
+                <label for="pageSizeInput">Per Page:</label>
+                <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
+                       onchange="changePageSize(this.value)">
+            </div>
+        </div> <!-- Close pagination-and-counters-wrapper -->
         
         <!-- Pagination info -->
         <div class="pagination-info">
@@ -1993,7 +2016,7 @@
             })
             .catch(error => {
                 console.error('Error creating album:', error);
-                alert('Error creating album');
+                showErrorToast('Error creating album');
             });
         }
         
@@ -2098,6 +2121,34 @@
     </div>
     
     <style>
+        /* Gender counters below filter chips */
+        .gender-counters-container {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0 12px 0;
+            font-size: 13px;
+        }
+        .gender-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+        }
+        .gender-male-counter {
+            color: #4a90d9;
+        }
+        .gender-female-counter {
+            color: #d94a8a;
+        }
+        .gender-other-counter {
+            color: #888;
+        }
+        .counter-icon {
+            font-size: 14px;
+        }
+        
         .modal {
             display: none;
             position: fixed;
@@ -2240,7 +2291,7 @@
                 searchInput.addEventListener('input', function() {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
-                        this.form.submit();
+                        performSearchWithFilters(searchInput.value);
                     }, 400); // Wait 400ms after last keystroke
                 });
             }

@@ -458,7 +458,7 @@
                 const songIds = playlistGenMatchedSongs.map(s => s.id);
                 
                 if (songIds.length === 0) {
-                    alert('No songs to export - all songs are missing from iTunes library');
+                    showWarningToast('No songs to export - all songs are missing from iTunes library');
                     return;
                 }
                 

@@ -172,3 +172,58 @@ function navigateToGraph(element, filterType) {
     const name = encodeURIComponent(element.dataset.name);
     window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + id + '&filterName=' + name;
 }
+
+/**
+ * Initialize search form to preserve filters when searching.
+ * Call this on page load to set up the search form interception.
+ * @param {string} formId - The ID of the search form (e.g., 'artistSearchForm')
+ */
+function initializeSearchFormWithFilters(formId) {
+    const form = document.getElementById(formId);
+    if (!form) {
+        console.warn('Search form not found:', formId);
+        return;
+    }
+    
+    const searchInput = form.querySelector('input[name="q"]');
+    if (!searchInput) {
+        console.warn('Search input not found in form:', formId);
+        return;
+    }
+    
+    // Handle form submit
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearchWithFilters(searchInput.value);
+    });
+    
+    // Also handle Enter key press on the input
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            performSearchWithFilters(searchInput.value);
+        }
+    });
+}
+
+/**
+ * Perform search while preserving current URL filters.
+ * @param {string} searchQuery - The search query string
+ */
+function performSearchWithFilters(searchQuery) {
+    // Get current URL parameters
+    const currentUrl = new URL(window.location);
+    
+    // Update or set the search query
+    if (searchQuery && searchQuery.trim() !== '') {
+        currentUrl.searchParams.set('q', searchQuery.trim());
+    } else {
+        currentUrl.searchParams.delete('q');
+    }
+    
+    // Reset to page 0 when searching
+    currentUrl.searchParams.set('page', '0');
+    
+    // Navigate with all preserved parameters
+    window.location.href = currentUrl.toString();
+}

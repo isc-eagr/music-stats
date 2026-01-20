@@ -368,7 +368,7 @@
                 const searchValue = searchInput.value.trim();
                 
                 if (!searchValue) {
-                    alert('Please enter an artist name');
+                    showWarningToast('Please enter an artist name');
                     return;
                 }
                 
@@ -486,7 +486,7 @@
                 
                 // Otherwise, apply to existing artist via API
                 if (!afArtistId) {
-                    alert('No artist ID specified');
+                    showErrorToast('No artist ID specified');
                     return;
                 }
                 
@@ -505,14 +505,14 @@
                         // Refresh page to show updated data
                         window.location.reload();
                     } else {
-                        alert('Error: ' + (result.error || 'Failed to apply metadata'));
+                        showErrorToast('Error: ' + (result.error || 'Failed to apply metadata'));
                         applyBtn.disabled = false;
                         applyBtn.textContent = 'Apply Selected';
                     }
                 })
                 .catch(err => {
                     console.error('Apply error:', err);
-                    alert('Error applying metadata. Please try again.');
+                    showErrorToast('Error applying metadata. Please try again.');
                     applyBtn.disabled = false;
                     applyBtn.textContent = 'Apply Selected';
                 });

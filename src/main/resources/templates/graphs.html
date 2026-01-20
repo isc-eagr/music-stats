@@ -419,6 +419,8 @@
         
         .top-table-container {
             overflow-x: auto;
+            overflow-y: auto;
+            max-height: 600px;
             background: #1a1a1a;
             border-radius: 8px;
             border: 1px solid #2a2a2a;
@@ -2035,11 +2037,7 @@
                             </span>
                         </div>
                         <div class="filter-item-content">
-                            <div class="entity-selector" style="margin-bottom: 10px;">
-                                <label style="margin-right: 12px;"><input type="radio" autocomplete="off" name="playCountEntity" value="artist" th:checked="${playCountEntity == 'artist'}"> Artist</label>
-                                <label style="margin-right: 12px;"><input type="radio" autocomplete="off" name="playCountEntity" value="album" th:checked="${playCountEntity == 'album'}"> Album</label>
-                                <label><input type="radio" autocomplete="off" name="playCountEntity" value="song" th:checked="${playCountEntity == null || playCountEntity == 'song'}"> Song</label>
-                            </div>
+                            <input type="hidden" name="playCountEntity" value="song" />
                             <div class="filter-group">
                                 <label class="field"><span>Min</span>
                                     <input type="number" autocomplete="off" name="playCountMin" th:value="${playCountMin}" placeholder="0" min="0" style="width: 100%;" />
@@ -2570,8 +2568,12 @@
                         <button class="chart-sort-btn active" data-metric="plays" onclick="changeChartSortMetric('plays')">Plays</button>
                         <button class="chart-sort-btn" data-metric="listeningTime" onclick="changeChartSortMetric('listeningTime')">Time</button>
                         <span style="color: #999; font-size: 13px; margin-left: 16px;">Show top:</span>
-                        <input type="number" autocomplete="off" id="topLimitInput" value="50" min="1" max="100" onchange="reloadTopData()" 
+                        <input type="number" autocomplete="off" id="topLimitInput" value="100" min="1" max="100" onchange="reloadTopData()" 
                                style="width: 60px; padding: 4px 8px; background: #0a0a0a; border: 1px solid #404040; border-radius: 4px; color: #e5e7eb; font-size: 13px;">
+                        <label style="margin-left: 16px; display: flex; align-items: center; gap: 6px; color: #999; font-size: 13px; cursor: pointer;">
+                            <input type="checkbox" id="infiniteScrollToggle" onchange="toggleInfiniteScroll()" checked style="accent-color: #3b82f6;">
+                            <span>Infinite Scroll</span>
+                        </label>
                     </div>
                     <button id="scalingToggleBtn" class="scaling-toggle-btn" onclick="toggleRelativeScaling()" 
                             title="Toggle between percentage (M/F distribution within each category) and relative scaling (compare totals across categories)">
@@ -3616,7 +3618,7 @@
         function openTopSongsPlaylistGenerator() {
             // Get the current top songs from the topTabData (already loaded)
             if (!topTabData || !topTabData.songs || topTabData.songs.length === 0) {
-                alert('No songs loaded. Please wait for the data to load.');
+                showWarningToast('No songs loaded. Please wait for the data to load.');
                 return;
             }
             
@@ -3629,7 +3631,7 @@
             }));
             
             // Generate default playlist name
-            const limit = document.getElementById('topLimitInput').value || 50;
+            const limit = document.getElementById('topLimitInput').value || 100;
             let defaultName = 'Top ' + limit + ' Songs';
             
             // Add filter context if any

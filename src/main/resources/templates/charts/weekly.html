@@ -1228,13 +1228,13 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('Chart regenerated successfully!');
+                    showSuccessToast('Chart regenerated successfully!');
                     window.location.reload();
                 } else {
-                    alert('Failed to regenerate chart: ' + data.error);
+                    showErrorToast('Failed to regenerate chart: ' + data.error);
                 }
             } catch (error) {
-                alert('Error regenerating chart: ' + error.message);
+                showErrorToast('Error regenerating chart: ' + error.message);
             }
         }
         
@@ -1257,7 +1257,7 @@
                 
                 const userConfirm = prompt('Type "regenerate" to confirm this destructive action:');
                 if (userConfirm !== 'regenerate') {
-                    alert('Regeneration cancelled.');
+                    showWarningToast('Regeneration cancelled.');
                     return;
                 }
                 
@@ -1270,10 +1270,10 @@
                     showProgressModal();
                     startProgressPolling();
                 } else {
-                    alert('Failed to start regeneration: ' + data.error);
+                    showErrorToast('Failed to start regeneration: ' + data.error);
                 }
             } catch (error) {
-                alert('Error starting regeneration: ' + error.message);
+                showErrorToast('Error starting regeneration: ' + error.message);
             }
         }
         
@@ -1288,10 +1288,10 @@
                     showProgressModal();
                     startProgressPolling();
                 } else {
-                    alert('Failed to start generation: ' + data.error);
+                    showErrorToast('Failed to start generation: ' + data.error);
                 }
             } catch (error) {
-                alert('Error starting generation: ' + error.message);
+                showErrorToast('Error starting generation: ' + error.message);
             }
         }
         
@@ -1412,7 +1412,7 @@
             });
             
             if (songs.length === 0) {
-                alert('No songs found in the chart');
+                showWarningToast('No songs found in the chart');
                 return;
             }
             

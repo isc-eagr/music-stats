@@ -6,7 +6,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class SongRepository {
@@ -1269,6 +1271,270 @@ public class SongRepository {
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
+    }
+    
+    /**
+     * Count songs grouped by gender for the filtered dataset.
+     * Returns a Map with gender_id as key and count as value.
+     * More efficient than loading all songs and counting in memory.
+     * Uses COALESCE(s.override_gender_id, ar.gender_id) as the effective gender.
+     */
+    public Map<Integer, Long> countSongsByGenderWithFilters(String name, String artistName, String albumName,
+                                              List<Integer> genreIds, String genreMode,
+                                              List<Integer> subgenreIds, String subgenreMode,
+                                              List<Integer> languageIds, String languageMode,
+                                              List<Integer> genderIds, String genderMode,
+                                              List<Integer> ethnicityIds, String ethnicityMode,
+                                              List<String> countries, String countryMode,
+                                              List<String> accounts, String accountMode,
+                                              String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                                              String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                              String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                              String listenedDateFrom, String listenedDateTo,
+                                              String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                              Integer ageMin, Integer ageMax, String ageMode,
+                                              Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                              String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                              String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                                              String inItunes,
+                                              Integer playCountMin, Integer playCountMax,
+                                              Integer lengthMin, Integer lengthMax, String lengthMode,
+                                              Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                              Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                              Integer yearlyChartPeak, Integer yearlyChartYears) {
+        // Build account filter subquery for the play_stats join
+        StringBuilder accountFilterClause = new StringBuilder();
+        List<Object> accountParams = new ArrayList<>();
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            accountFilterClause.append(" AND scr.account NOT IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) accountFilterClause.append(",");
+                accountFilterClause.append("?");
+                accountParams.add(accounts.get(i));
+            }
+            accountFilterClause.append(")");
+        }
+        
+        // Build listened date filter clause
+        StringBuilder listenedDateFilterClause = new StringBuilder();
+        List<Object> listenedDateParams = new ArrayList<>();
+        if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateParams.add(listenedDateFrom);
+        }
+        if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
+            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateParams.add(listenedDateTo);
+        }
+        boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
+        
+        StringBuilder sql = new StringBuilder();
+        
+        // Build base query with effective gender for grouping
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+            sql.append(
+                "SELECT COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id, COUNT(DISTINCT s.id) as cnt " +
+                "FROM Song s " +
+                "LEFT JOIN Artist ar ON s.artist_id = ar.id " +
+                "LEFT JOIN Album al ON s.album_id = al.id ");
+            
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+                sql.append("LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble scr WHERE 1=1 ");
+                sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
+                sql.append(" GROUP BY song_id) play_stats ON play_stats.song_id = s.id ");
+            }
+            
+            sql.append("INNER JOIN Scrobble scr ON scr.song_id = s.id " +
+                "WHERE scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+            }
+            sql.append(") ");
+        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            sql.append(
+                "SELECT COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id, COUNT(DISTINCT s.id) as cnt " +
+                "FROM Song s " +
+                "LEFT JOIN Artist ar ON s.artist_id = ar.id " +
+                "LEFT JOIN Album al ON s.album_id = al.id ");
+            
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+                sql.append("LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble scr WHERE 1=1 ");
+                sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
+                sql.append(" GROUP BY song_id) play_stats ON play_stats.song_id = s.id ");
+            }
+            
+            sql.append("WHERE NOT EXISTS (" +
+                "SELECT 1 FROM Scrobble scr WHERE scr.song_id = s.id AND scr.account IN (");
+            for (int i = 0; i < accounts.size(); i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+            }
+            sql.append(")) AND 1=1 ");
+        } else {
+            sql.append(
+                "SELECT COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id, COUNT(*) as cnt " +
+                "FROM Song s " +
+                "LEFT JOIN Artist ar ON s.artist_id = ar.id " +
+                "LEFT JOIN Album al ON s.album_id = al.id ");
+            
+            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+                sql.append("LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Scrobble scr WHERE 1=1 ");
+                sql.append(accountFilterClause);
+                sql.append(listenedDateFilterClause);
+                sql.append(" GROUP BY song_id) play_stats ON play_stats.song_id = s.id ");
+            }
+            
+            sql.append("WHERE 1=1 ");
+        }
+        
+        List<Object> params = new ArrayList<>();
+        
+        // Add account params for play_stats subquery
+        if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
+            params.addAll(accountParams);
+            params.addAll(listenedDateParams);
+        }
+        
+        // Account params for main query
+        if (accounts != null && !accounts.isEmpty()) {
+            params.addAll(accounts);
+        }
+        
+        // Name filter with accent-insensitive search
+        if (name != null && !name.trim().isEmpty()) {
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("s.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
+        }
+        
+        // Artist name filter
+        if (artistName != null && !artistName.trim().isEmpty()) {
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
+        }
+        
+        // Album name filter
+        if (albumName != null && !albumName.trim().isEmpty()) {
+            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("al.name")).append(" LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(albumName) + "%");
+        }
+        
+        // Gender filter (uses effective gender)
+        String genderExpr = "COALESCE(s.override_gender_id, ar.gender_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, genderExpr, genderIds, genderMode);
+        
+        // Genre filter
+        String genreExpr = "COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, genreExpr, genreIds, genreMode);
+        
+        // Subgenre filter
+        String subgenreExpr = "COALESCE(s.override_subgenre_id, al.override_subgenre_id, ar.subgenre_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, subgenreExpr, subgenreIds, subgenreMode);
+        
+        // Language filter
+        String languageExpr = "COALESCE(s.override_language_id, al.override_language_id, ar.language_id)";
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, languageExpr, languageIds, languageMode);
+        
+        // Ethnicity filter
+        library.util.SqlFilterHelper.appendIdFilter(sql, params, "ar.ethnicity_id", ethnicityIds, ethnicityMode);
+        
+        // Country filter
+        library.util.SqlFilterHelper.appendStringFilter(sql, params, "ar.country", countries, countryMode);
+        
+        // Release date filter
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "s.release_date", releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+        
+        // First listened date filter
+        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id = s.id)";
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
+        
+        // Last listened date filter
+        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id = s.id)";
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
+        
+        // Birth date filter
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "ar.birth_date", birthDate, birthDateFrom, birthDateTo, birthDateMode);
+        
+        // Death date filter
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "ar.death_date", deathDate, deathDateFrom, deathDateTo, deathDateMode);
+        
+        // Organized filter
+        if (organized != null && !organized.isEmpty()) {
+            if ("true".equalsIgnoreCase(organized)) {
+                sql.append(" AND s.organized = 1");
+            } else if ("false".equalsIgnoreCase(organized)) {
+                sql.append(" AND (s.organized = 0 OR s.organized IS NULL)");
+            }
+        }
+        
+        // Is single filter
+        if (isSingle != null && !isSingle.isEmpty()) {
+            if ("true".equalsIgnoreCase(isSingle)) {
+                sql.append(" AND s.is_single = 1");
+            } else if ("false".equalsIgnoreCase(isSingle)) {
+                sql.append(" AND (s.is_single = 0 OR s.is_single IS NULL)");
+            }
+        }
+        
+        // Is band filter
+        if (isBand != null && !isBand.isEmpty()) {
+            if ("true".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 1");
+            } else if ("false".equalsIgnoreCase(isBand)) {
+                sql.append(" AND ar.is_band = 0");
+            }
+        }
+        
+        // In iTunes filter
+        if (inItunes != null && !inItunes.isEmpty()) {
+            if ("true".equalsIgnoreCase(inItunes)) {
+                sql.append(" AND s.in_itunes = 1");
+            } else if ("false".equalsIgnoreCase(inItunes)) {
+                sql.append(" AND (s.in_itunes = 0 OR s.in_itunes IS NULL)");
+            }
+        }
+        
+        // Play count filter
+        if (playCountMin != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) >= ?");
+            params.add(playCountMin);
+        }
+        if (playCountMax != null) {
+            sql.append(" AND COALESCE(play_stats.play_count, 0) <= ?");
+            params.add(playCountMax);
+        }
+        
+        // Length filter
+        if (lengthMin != null) {
+            sql.append(" AND s.length_seconds >= ?");
+            params.add(lengthMin);
+        }
+        if (lengthMax != null) {
+            sql.append(" AND s.length_seconds <= ?");
+            params.add(lengthMax);
+        }
+        
+        // Add GROUP BY
+        sql.append(" GROUP BY effective_gender_id");
+        
+        Map<Integer, Long> result = new HashMap<>();
+        jdbcTemplate.query(sql.toString(), rs -> {
+            Integer genderId = rs.getObject("effective_gender_id") != null ? rs.getInt("effective_gender_id") : null;
+            Long cnt = rs.getLong("cnt");
+            result.put(genderId, cnt);
+        }, params.toArray());
+        
+        return result;
     }
     
     // Get filtered chart data for gender breakdown
@@ -5860,10 +6126,10 @@ public class SongRepository {
                     ar.language_id,
                     lang.name as language,
                     ar.country,
-                    agg.plays,
-                    agg.primary_plays,
-                    agg.legacy_plays,
-                    agg.time_listened,
+                    COALESCE(agg.plays, 0) as plays,
+                    COALESCE(agg.primary_plays, 0) as primary_plays,
+                    COALESCE(agg.legacy_plays, 0) as legacy_plays,
+                    COALESCE(agg.time_listened, 0) as time_listened,
                     agg.first_listened,
                     agg.last_listened
                 FROM Artist ar
@@ -5874,20 +6140,32 @@ public class SongRepository {
                 INNER JOIN (
                     SELECT 
                         s.artist_id,
-                        COUNT(*) as plays,
-                        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
-                        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                        SUM(s.length_seconds) as time_listened,
-                        MIN(scr.scrobble_date) as first_listened,
-                        MAX(scr.scrobble_date) as last_listened
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                        SUM(COALESCE(play_stats.plays, 0)) as plays,
+                        SUM(COALESCE(play_stats.primary_plays, 0)) as primary_plays,
+                        SUM(COALESCE(play_stats.legacy_plays, 0)) as legacy_plays,
+                        SUM(COALESCE(play_stats.time_listened, 0)) as time_listened,
+                        MIN(play_stats.first_listened) as first_listened,
+                        MAX(play_stats.last_listened) as last_listened
+                    FROM Song s
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Album alb ON s.album_id = alb.id
+                    LEFT JOIN (
+                        SELECT 
+                            scr.song_id,
+                            COUNT(*) as plays,
+                            SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                            SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                            SUM(s2.length_seconds) as time_listened,
+                            MIN(scr.scrobble_date) as first_listened,
+                            MAX(scr.scrobble_date) as last_listened
+                        FROM Scrobble scr
+                        INNER JOIN Song s2 ON scr.song_id = s2.id
+                        GROUP BY scr.song_id
+                    ) play_stats ON play_stats.song_id = s.id
                     WHERE 1=1 """ + songFilterClause.toString() + """
                     GROUP BY s.artist_id
                 ) agg ON ar.id = agg.artist_id
-                ORDER BY agg.plays DESC, agg.last_listened ASC
+                ORDER BY plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
         } else if (hasArtistFilter) {
@@ -5907,10 +6185,10 @@ public class SongRepository {
                     ar.language_id,
                     lang.name as language,
                     ar.country,
-                    agg.plays,
-                    agg.primary_plays,
-                    agg.legacy_plays,
-                    agg.time_listened,
+                    COALESCE(agg.plays, 0) as plays,
+                    COALESCE(agg.primary_plays, 0) as primary_plays,
+                    COALESCE(agg.legacy_plays, 0) as legacy_plays,
+                    COALESCE(agg.time_listened, 0) as time_listened,
                     agg.first_listened,
                     agg.last_listened
                 FROM Artist ar
@@ -5921,20 +6199,32 @@ public class SongRepository {
                 INNER JOIN (
                     SELECT 
                         s.artist_id,
-                        COUNT(*) as plays,
-                        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
-                        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                        SUM(s.length_seconds) as time_listened,
-                        MIN(scr.scrobble_date) as first_listened,
-                        MAX(scr.scrobble_date) as last_listened
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                        SUM(COALESCE(play_stats.plays, 0)) as plays,
+                        SUM(COALESCE(play_stats.primary_plays, 0)) as primary_plays,
+                        SUM(COALESCE(play_stats.legacy_plays, 0)) as legacy_plays,
+                        SUM(COALESCE(play_stats.time_listened, 0)) as time_listened,
+                        MIN(play_stats.first_listened) as first_listened,
+                        MAX(play_stats.last_listened) as last_listened
+                    FROM Song s
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Album alb ON s.album_id = alb.id
+                    LEFT JOIN (
+                        SELECT 
+                            scr.song_id,
+                            COUNT(*) as plays,
+                            SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                            SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                            SUM(s2.length_seconds) as time_listened,
+                            MIN(scr.scrobble_date) as first_listened,
+                            MAX(scr.scrobble_date) as last_listened
+                        FROM Scrobble scr
+                        INNER JOIN Song s2 ON scr.song_id = s2.id
+                        GROUP BY scr.song_id
+                    ) play_stats ON play_stats.song_id = s.id
                     WHERE 1=1 """ + songFilterClause.toString() + """
                     GROUP BY s.artist_id
                 ) agg ON ar.id = agg.artist_id
-                ORDER BY agg.plays DESC, agg.last_listened ASC
+                ORDER BY plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
         } else {
@@ -6105,10 +6395,10 @@ public class SongRepository {
                 lang.name as language,
                 ar.country,
                 album_len.album_length,
-                agg.plays,
-                agg.primary_plays,
-                agg.legacy_plays,
-                agg.time_listened,
+                COALESCE(agg.plays, 0) as plays,
+                COALESCE(agg.primary_plays, 0) as primary_plays,
+                COALESCE(agg.legacy_plays, 0) as legacy_plays,
+                COALESCE(agg.time_listened, 0) as time_listened,
                 agg.first_listened,
                 agg.last_listened
             FROM Album alb
@@ -6123,23 +6413,35 @@ public class SongRepository {
                 WHERE album_id IS NOT NULL
                 GROUP BY album_id
             ) album_len ON alb.id = album_len.album_id
-            INNER JOIN (
+            LEFT JOIN (
                 SELECT 
                     s.album_id,
-                    COUNT(*) as plays,
-                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
-                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                    SUM(s.length_seconds) as time_listened,
-                    MIN(scr.scrobble_date) as first_listened,
-                    MAX(scr.scrobble_date) as last_listened
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                    COALESCE(play_stats.plays, 0) as plays,
+                    COALESCE(play_stats.primary_plays, 0) as primary_plays,
+                    COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
+                    COALESCE(play_stats.time_listened, 0) as time_listened,
+                    play_stats.first_listened,
+                    play_stats.last_listened
+                FROM Song s
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
+                LEFT JOIN (
+                    SELECT 
+                        scr.song_id,
+                        COUNT(*) as plays,
+                        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                        SUM(s2.length_seconds) as time_listened,
+                        MIN(scr.scrobble_date) as first_listened,
+                        MAX(scr.scrobble_date) as last_listened
+                    FROM Scrobble scr
+                    INNER JOIN Song s2 ON scr.song_id = s2.id
+                    GROUP BY scr.song_id
+                ) play_stats ON play_stats.song_id = s.id
                 WHERE s.album_id IS NOT NULL """ + songFilterClause.toString() + """
-                GROUP BY s.album_id
             ) agg ON alb.id = agg.album_id
-            ORDER BY agg.plays DESC, agg.last_listened ASC
+            WHERE agg.album_id IS NOT NULL
+            ORDER BY plays DESC, agg.last_listened ASC
             LIMIT ?
             """;
         
@@ -6256,17 +6558,16 @@ public class SongRepository {
                 ar.country,
                 s.length_seconds,
                 s.is_single,
-                MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
-                MAX(CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
-                COUNT(*) as plays,
-                SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
-                SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
-                COALESCE(s.length_seconds, 0) * COUNT(*) as time_listened,
-                MIN(scr.scrobble_date) as first_listened,
-                MAX(scr.scrobble_date) as last_listened
+                CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END as has_image,
+                CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
+                COALESCE(play_stats.plays, 0) as plays,
+                COALESCE(play_stats.primary_plays, 0) as primary_plays,
+                COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
+                COALESCE(s.length_seconds, 0) * COALESCE(play_stats.plays, 0) as time_listened,
+                play_stats.first_listened,
+                play_stats.last_listened
                 """ + featuredOnColumn + fromGroupColumn + primaryArtistColumns + sourceArtistColumns + " " + """
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            FROM Song s
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -6280,8 +6581,18 @@ public class SongRepository {
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
+            LEFT JOIN (
+                SELECT 
+                    scr.song_id,
+                    COUNT(*) as plays,
+                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
+                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                    MIN(scr.scrobble_date) as first_listened,
+                    MAX(scr.scrobble_date) as last_listened
+                FROM Scrobble scr
+                GROUP BY scr.song_id
+            ) play_stats ON play_stats.song_id = s.id
             WHERE 1=1 """ + songFilterClause.toString() + """
-             GROUP BY s.id
             ORDER BY plays DESC, last_listened ASC
             LIMIT ?
             """;

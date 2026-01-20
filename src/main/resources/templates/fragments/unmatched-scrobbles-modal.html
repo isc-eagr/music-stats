@@ -79,6 +79,12 @@
                 cursor: not-allowed;
                 pointer-events: none;
             }
+            
+            /* Field highlight for externally fetched data */
+            .wizard-field-highlight {
+                box-shadow: 0 0 8px 2px #4CAF50 !important;
+                border-color: #4CAF50 !important;
+            }
         </style>
     </th:block>
 
@@ -390,6 +396,26 @@
         // Unmatched list data (populated from import result or API)
         let unmatchedList = [];
 
+        // ==================== Field Highlight Utilities ====================
+        function highlightWizardField(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.add('wizard-field-highlight');
+                // Remove highlight when field value changes
+                const removeHighlight = () => {
+                    el.classList.remove('wizard-field-highlight');
+                    el.removeEventListener('input', removeHighlight);
+                    el.removeEventListener('change', removeHighlight);
+                };
+                el.addEventListener('input', removeHighlight);
+                el.addEventListener('change', removeHighlight);
+            }
+        }
+        
+        function clearAllWizardHighlights() {
+            document.querySelectorAll('.wizard-field-highlight').forEach(el => el.classList.remove('wizard-field-highlight'));
+        }
+
         // ==================== Unmatched List Modal ====================
         function openUnmatchedListModal(data) {
             unmatchedList = data || [];
@@ -649,7 +675,7 @@
         function openNewArtistExternalFetch() {
             const artistName = document.getElementById('newArtistName').value.trim();
             if (!artistName) {
-                alert('Please enter an artist name first');
+                showWarningToast('Please enter an artist name first');
                 return;
             }
             
@@ -691,7 +717,7 @@
                 if (wizardState.isNewArtist) {
                     wizardState.selectedArtistName = document.getElementById('newArtistName').value.trim();
                     if (!wizardState.selectedArtistName) {
-                        alert('Please enter an artist name');
+                        showWarningToast('Please enter an artist name');
                         return;
                     }
                     // Validate mandatory artist fields
@@ -701,23 +727,23 @@
                     const ethnicityId = document.getElementById('newArtistEthnicity').value;
                     
                     if (!genderId) {
-                        alert('Please select a gender for the artist');
+                        showWarningToast('Please select a gender for the artist');
                         return;
                     }
                     if (!languageId) {
-                        alert('Please select a language for the artist');
+                        showWarningToast('Please select a language for the artist');
                         return;
                     }
                     if (!genreId) {
-                        alert('Please select a genre for the artist');
+                        showWarningToast('Please select a genre for the artist');
                         return;
                     }
                     if (!ethnicityId) {
-                        alert('Please select an ethnicity for the artist');
+                        showWarningToast('Please select an ethnicity for the artist');
                         return;
                     }
                 } else if (!wizardState.selectedArtistId) {
-                    alert('Please select an artist');
+                    showWarningToast('Please select an artist');
                     return;
                 }
                 
@@ -749,18 +775,18 @@
                 if (wizardState.isNewAlbum) {
                     wizardState.selectedAlbumName = document.getElementById('newAlbumName').value.trim();
                     if (!wizardState.selectedAlbumName) {
-                        alert('Please enter an album name');
+                        showWarningToast('Please enter an album name');
                         return;
                     }
                     // Validate release date for new album
                     const releaseDate = document.getElementById('newAlbumReleaseDate').value.trim();
                     if (!releaseDate) {
-                        alert('Please enter a release date for the album');
+                        showWarningToast('Please enter a release date for the album');
                         return;
                     }
                     // Validate date format (dd/mm/yyyy)
                     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(releaseDate)) {
-                        alert('Please enter the release date in dd/mm/yyyy format');
+                        showWarningToast('Please enter the release date in dd/mm/yyyy format');
                         return;
                     }
                     wizardState.newAlbumReleaseDate = releaseDate;
@@ -835,7 +861,7 @@
         function createAndAssignSong() {
             const songName = document.getElementById('wizardSongNameInput').value.trim();
             if (!songName) {
-                alert('Please enter a song name');
+                showWarningToast('Please enter a song name');
                 return;
             }
             
@@ -844,22 +870,22 @@
             const hasAlbum = wizardState.selectedAlbumId || wizardState.isNewAlbum;
             
             if (!hasAlbum && !songReleaseDate) {
-                alert('Please enter a release date for the song (required when no album is selected)');
+                showWarningToast('Please enter a release date for the song (required when no album is selected)');
                 return;
             }
             if (songReleaseDate && !/^\d{2}\/\d{2}\/\d{4}$/.test(songReleaseDate)) {
-                alert('Please enter the release date in dd/mm/yyyy format');
+                showWarningToast('Please enter the release date in dd/mm/yyyy format');
                 return;
             }
             
             // Validate song length
             const songLength = document.getElementById('wizardSongLength').value.trim();
             if (!songLength) {
-                alert('Please enter the song length');
+                showWarningToast('Please enter the song length');
                 return;
             }
             if (!/^[0-9]{1,2}:[0-5][0-9]$/.test(songLength)) {
-                alert('Please enter the length in mm:ss format (e.g., 3:45)');
+                showWarningToast('Please enter the length in mm:ss format (e.g., 3:45)');
                 return;
             }
             
@@ -907,19 +933,19 @@
                     const importCount = wizardState.scrobbleData.cnt || wizardState.scrobbleData.count || 0;
                     let msg = `Success! Created song and assigned ${data.updatedCount} scrobble(s).`;
                     if (data.updatedCount > importCount) {
-                        msg += `\n(${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
+                        msg += ` (${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
                     }
-                    alert(msg);
+                    showSuccessToast(msg);
                     // Refresh list BEFORE closing (so scrobbleData is still available)
                     refreshUnmatchedList();
                     closeCreateWizard();
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    showErrorToast('Error: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(err => {
                 console.error('Error creating and assigning:', err);
-                alert('Error creating song');
+                showErrorToast('Error creating song');
             });
         }
 
@@ -1001,7 +1027,7 @@
         
         function assignMatchedSong() {
             if (!matchState.selectedSongId) {
-                alert('Please select a song');
+                showWarningToast('Please select a song');
                 return;
             }
             
@@ -1022,19 +1048,19 @@
                     const importCount = matchState.scrobbleData.cnt || matchState.scrobbleData.count || 0;
                     let msg = `Success! Matched ${data.updatedCount} scrobble(s) to this song.`;
                     if (data.updatedCount > importCount) {
-                        msg += `\n(${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
+                        msg += ` (${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
                     }
-                    alert(msg);
+                    showSuccessToast(msg);
                     // Refresh list BEFORE closing (so scrobbleData is still available)
                     refreshUnmatchedList();
                     closeMatchModal();
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    showErrorToast('Error: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(err => {
                 console.error('Error assigning song:', err);
-                alert('Error assigning song');
+                showErrorToast('Error assigning song');
             });
         }
         
@@ -1126,16 +1152,26 @@
                         const dateParts = data.releaseDate.split('-');
                         if (dateParts.length === 3) {
                             const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                            const releaseDateField = document.getElementById('wizardSongReleaseDate');
+                            const currentValue = releaseDateField.value;
                             
                             // Only populate if no album or if date is different from album
                             if (!albumReleaseDate) {
                                 // No album selected - populate normally
-                                document.getElementById('wizardSongReleaseDate').value = formatted;
+                                releaseDateField.value = formatted;
                                 parts.push(`Release: ${formatted}`);
+                                // Highlight if value was changed
+                                if (currentValue !== formatted) {
+                                    highlightWizardField('wizardSongReleaseDate');
+                                }
                             } else if (albumReleaseDate !== 'unknown' && albumReleaseDate !== formatted) {
                                 // New album with different release date - populate
-                                document.getElementById('wizardSongReleaseDate').value = formatted;
+                                releaseDateField.value = formatted;
                                 parts.push(`Release: ${formatted} (different from album)`);
+                                // Highlight if value was changed
+                                if (currentValue !== formatted) {
+                                    highlightWizardField('wizardSongReleaseDate');
+                                }
                             } else {
                                 // Same as album or existing album - skip
                                 parts.push(`Release: ${formatted} (skipped - same as album)`);
@@ -1145,9 +1181,15 @@
                     
                     // Populate length if found
                     if (data.lengthSeconds && data.lengthFormatted) {
-                        document.getElementById('wizardSongLength').value = data.lengthFormatted;
+                        const lengthField = document.getElementById('wizardSongLength');
+                        const currentValue = lengthField.value;
+                        lengthField.value = data.lengthFormatted;
                         document.getElementById('wizardSongLengthSeconds').value = data.lengthSeconds;
                         parts.push(`Length: ${data.lengthFormatted}`);
+                        // Highlight if value was changed
+                        if (currentValue !== data.lengthFormatted) {
+                            highlightWizardField('wizardSongLength');
+                        }
                     }
                     
                     if (parts.length > 0) {
