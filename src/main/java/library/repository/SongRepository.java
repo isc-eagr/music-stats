@@ -1495,14 +1495,9 @@ public class SongRepository {
             }
         }
         
-        // In iTunes filter
-        if (inItunes != null && !inItunes.isEmpty()) {
-            if ("true".equalsIgnoreCase(inItunes)) {
-                sql.append(" AND s.in_itunes = 1");
-            } else if ("false".equalsIgnoreCase(inItunes)) {
-                sql.append(" AND (s.in_itunes = 0 OR s.in_itunes IS NULL)");
-            }
-        }
+        // In iTunes filter - NOT implemented in SQL
+        // iTunes status is determined by checking against an in-memory map from iTunes XML
+        // This filter must be applied in the service layer after fetching data
         
         // Play count filter
         if (playCountMin != null) {
@@ -1994,6 +1989,9 @@ public class SongRepository {
                 sql.append(" AND s.is_single = 0");
             }
         }
+        
+        // Note: inItunes filter is NOT handled here - it's done in memory via ItunesService
+        // because iTunes status is determined by checking against an in-memory map from iTunes XML
         
         // Handle entity-aware filters: First/Last Listened Date, Play Count
         // These use subqueries to aggregate scrobble data by the selected entity type
@@ -6086,22 +6084,57 @@ public class SongRepository {
     }
 
     /**
+     * Builds a filter clause for scrobble-level queries (only scrobble_date filters).
+     * This is separate from song-level filters so it can be applied in subqueries where scr alias exists.
+     */
+    private void buildScrobbleDateFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        String listenedDateFrom = filter.getListenedDateFrom();
+        String listenedDateTo = filter.getListenedDateTo();
+        
+        if (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty() && 
+            listenedDateTo != null && !listenedDateTo.trim().isEmpty()) {
+            sql.append(" AND DATE(scr.scrobble_date) >= DATE(?) AND DATE(scr.scrobble_date) <= DATE(?)");
+            params.add(listenedDateFrom);
+            params.add(listenedDateTo);
+        } else if (listenedDateFrom != null && !listenedDateFrom.trim().isEmpty()) {
+            sql.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            params.add(listenedDateFrom);
+        } else if (listenedDateTo != null && !listenedDateTo.trim().isEmpty()) {
+            sql.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            params.add(listenedDateTo);
+        }
+    }
+    
+    /**
      * Get top artists filtered using full ChartFilterDTO.
      * Filters songs first, then aggregates by artist.
      * Supports includeGroups (include plays from artist's groups) and includeFeatured (include featured song plays).
      */
     private java.util.List<java.util.Map<String, Object>> getTopArtistsFilteredByDTO(ChartFilterDTO filter, int limit) {
+        // Build song-level filter clause  
         StringBuilder songFilterClause = new StringBuilder();
-        java.util.List<Object> params = new java.util.ArrayList<>();
+        java.util.List<Object> songParams = new java.util.ArrayList<>();
+        // Temporarily store and clear listened date filters to build song-level filter without them
+        String savedListenedDateFrom = filter.getListenedDateFrom();
+        String savedListenedDateTo = filter.getListenedDateTo();
+        filter.setListenedDateFrom(null);
+        filter.setListenedDateTo(null);
+        buildFilterClause(songFilterClause, songParams, filter);
+        // Restore listened date filters
+        filter.setListenedDateFrom(savedListenedDateFrom);
+        filter.setListenedDateTo(savedListenedDateTo);
         
-        // Build song-level filter clause (this applies all entity-aware filters)
-        buildFilterClause(songFilterClause, params, filter);
+        // Build scrobble date filter separately
+        StringBuilder scrobbleDateFilter = new StringBuilder();
+        java.util.List<Object> scrobbleDateParams = new java.util.ArrayList<>();
+        buildScrobbleDateFilter(scrobbleDateFilter, scrobbleDateParams, filter);
+        
+        // Combine parameters in the right order
+        java.util.List<Object> params = new java.util.ArrayList<>();
         
         boolean includeGroups = filter.isIncludeGroups();
         boolean includeFeatured = filter.isIncludeFeatured();
         boolean hasArtistFilter = filter.getArtistIds() != null && !filter.getArtistIds().isEmpty();
-        
-        params.add(limit);
         
         String sql;
         
@@ -6160,6 +6193,7 @@ public class SongRepository {
                             MAX(scr.scrobble_date) as last_listened
                         FROM Scrobble scr
                         INNER JOIN Song s2 ON scr.song_id = s2.id
+                        WHERE 1=1""" + scrobbleDateFilter.toString() + """
                         GROUP BY scr.song_id
                     ) play_stats ON play_stats.song_id = s.id
                     WHERE 1=1 """ + songFilterClause.toString() + """
@@ -6168,6 +6202,10 @@ public class SongRepository {
                 ORDER BY plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
+            // Add scrobble date params first, then song params, then limit
+            params.addAll(scrobbleDateParams);
+            params.addAll(songParams);
+            params.add(limit);
         } else if (hasArtistFilter) {
             // When there's an artist filter with includeGroups/includeFeatured, use the simple query.
             // The filter clause already expands to include group and featured songs.
@@ -6219,6 +6257,7 @@ public class SongRepository {
                             MAX(scr.scrobble_date) as last_listened
                         FROM Scrobble scr
                         INNER JOIN Song s2 ON scr.song_id = s2.id
+                        WHERE 1=1""" + scrobbleDateFilter.toString() + """
                         GROUP BY scr.song_id
                     ) play_stats ON play_stats.song_id = s.id
                     WHERE 1=1 """ + songFilterClause.toString() + """
@@ -6227,6 +6266,10 @@ public class SongRepository {
                 ORDER BY plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
+            // Add scrobble date params first, then song params, then limit
+            params.addAll(scrobbleDateParams);
+            params.addAll(songParams);
+            params.add(limit);
         } else {
             // No artist filter, but includeGroups/includeFeatured is set.
             // Build union query to attribute group/featured plays to individual artists.
@@ -6244,14 +6287,16 @@ public class SongRepository {
                 INNER JOIN Song s ON scr.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                WHERE 1=1 """ + songFilterClause.toString());
+                WHERE 1=1 """ + scrobbleDateFilter.toString() + songFilterClause.toString());
+            // Add scrobble date params and song params for Part 1
+            params.addAll(scrobbleDateParams);
+            params.addAll(songParams);
 
             if (includeGroups) {
                 // Part 2: Group plays - attribute to group members
-                // Clone params for each additional clause
-                for (Object param : new java.util.ArrayList<>(params.subList(0, params.size() - 1))) {
-                    params.add(param);
-                }
+                // Clone scrobble date params and song params for Part 2
+                params.addAll(scrobbleDateParams);
+                params.addAll(songParams);
                 unionParts.append("""
                     
                     UNION ALL
@@ -6267,15 +6312,14 @@ public class SongRepository {
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Album alb ON s.album_id = alb.id
                     INNER JOIN ArtistMember am ON s.artist_id = am.group_artist_id
-                    WHERE 1=1 """ + songFilterClause.toString());
+                    WHERE 1=1 """ + scrobbleDateFilter.toString() + songFilterClause.toString());
             }
             
             if (includeFeatured) {
                 // Part 3: Featured plays - attribute to featured artists
-                // Clone params for each additional clause
-                for (Object param : new java.util.ArrayList<>(params.subList(0, params.size() - 1))) {
-                    params.add(param);
-                }
+                // Clone scrobble date params and song params for Part 3
+                params.addAll(scrobbleDateParams);
+                params.addAll(songParams);
                 unionParts.append("""
                     
                     UNION ALL
@@ -6291,7 +6335,7 @@ public class SongRepository {
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Album alb ON s.album_id = alb.id
                     INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id
-                    WHERE 1=1 """ + songFilterClause.toString());
+                    WHERE 1=1 """ + scrobbleDateFilter.toString() + songFilterClause.toString());
             }
             
             sql = """
@@ -6336,6 +6380,8 @@ public class SongRepository {
                 ORDER BY agg.plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
+            // Add limit parameter for the union query
+            params.add(limit);
         }
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -6369,12 +6415,28 @@ public class SongRepository {
      * Filters songs first, then aggregates by album.
      */
     private java.util.List<java.util.Map<String, Object>> getTopAlbumsFilteredByDTO(ChartFilterDTO filter, int limit) {
+        // Build song-level filter clause  
         StringBuilder songFilterClause = new StringBuilder();
+        java.util.List<Object> songParams = new java.util.ArrayList<>();
+        // Temporarily store and clear listened date filters to build song-level filter without them
+        String savedListenedDateFrom = filter.getListenedDateFrom();
+        String savedListenedDateTo = filter.getListenedDateTo();
+        filter.setListenedDateFrom(null);
+        filter.setListenedDateTo(null);
+        buildFilterClause(songFilterClause, songParams, filter);
+        // Restore listened date filters
+        filter.setListenedDateFrom(savedListenedDateFrom);
+        filter.setListenedDateTo(savedListenedDateTo);
+        
+        // Build scrobble date filter separately
+        StringBuilder scrobbleDateFilter = new StringBuilder();
+        java.util.List<Object> scrobbleDateParams = new java.util.ArrayList<>();
+        buildScrobbleDateFilter(scrobbleDateFilter, scrobbleDateParams, filter);
+        
+        // Combine parameters: scrobble date params, then song params, then limit
         java.util.List<Object> params = new java.util.ArrayList<>();
-
-        // Build song-level filter clause (this applies all entity-aware filters)
-        buildFilterClause(songFilterClause, params, filter);
-
+        params.addAll(scrobbleDateParams);
+        params.addAll(songParams);
         params.add(limit);
 
         String sql = """
@@ -6416,12 +6478,12 @@ public class SongRepository {
             LEFT JOIN (
                 SELECT 
                     s.album_id,
-                    COALESCE(play_stats.plays, 0) as plays,
-                    COALESCE(play_stats.primary_plays, 0) as primary_plays,
-                    COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
-                    COALESCE(play_stats.time_listened, 0) as time_listened,
-                    play_stats.first_listened,
-                    play_stats.last_listened
+                    SUM(COALESCE(play_stats.plays, 0)) as plays,
+                    SUM(COALESCE(play_stats.primary_plays, 0)) as primary_plays,
+                    SUM(COALESCE(play_stats.legacy_plays, 0)) as legacy_plays,
+                    SUM(COALESCE(play_stats.time_listened, 0)) as time_listened,
+                    MIN(play_stats.first_listened) as first_listened,
+                    MAX(play_stats.last_listened) as last_listened
                 FROM Song s
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
@@ -6436,9 +6498,11 @@ public class SongRepository {
                         MAX(scr.scrobble_date) as last_listened
                     FROM Scrobble scr
                     INNER JOIN Song s2 ON scr.song_id = s2.id
+                    WHERE 1=1""" + scrobbleDateFilter.toString() + """
                     GROUP BY scr.song_id
                 ) play_stats ON play_stats.song_id = s.id
                 WHERE s.album_id IS NOT NULL """ + songFilterClause.toString() + """
+                GROUP BY s.album_id
             ) agg ON alb.id = agg.album_id
             WHERE agg.album_id IS NOT NULL
             ORDER BY plays DESC, agg.last_listened ASC
@@ -6495,32 +6559,44 @@ public class SongRepository {
      * When includeGroups/includeFeatured is set with an artist filter, marks songs as fromGroup/featuredOn.
      */
     private java.util.List<java.util.Map<String, Object>> getTopSongsFilteredByDTO(ChartFilterDTO filter, int limit) {
+        // Build song-level filter clause  
         StringBuilder songFilterClause = new StringBuilder();
-        java.util.List<Object> params = new java.util.ArrayList<>();
+        java.util.List<Object> songParams = new java.util.ArrayList<>();
+        // Temporarily store and clear listened date filters to build song-level filter without them
+        String savedListenedDateFrom = filter.getListenedDateFrom();
+        String savedListenedDateTo = filter.getListenedDateTo();
+        filter.setListenedDateFrom(null);
+        filter.setListenedDateTo(null);
+        buildFilterClause(songFilterClause, songParams, filter);
+        // Restore listened date filters
+        filter.setListenedDateFrom(savedListenedDateFrom);
+        filter.setListenedDateTo(savedListenedDateTo);
         
-        // Build song-level filter clause (this applies all entity-aware filters)
-        buildFilterClause(songFilterClause, params, filter);
+        // Build scrobble date filter separately
+        StringBuilder scrobbleDateFilter = new StringBuilder();
+        java.util.List<Object> scrobbleDateParams = new java.util.ArrayList<>();
+        buildScrobbleDateFilter(scrobbleDateFilter, scrobbleDateParams, filter);
         
         java.util.List<Integer> artistIds = filter.getArtistIds();
         boolean includeGroups = filter.isIncludeGroups();
         boolean includeFeatured = filter.isIncludeFeatured();
         boolean hasArtistFilter = artistIds != null && !artistIds.isEmpty();
         
-        params.add(limit);
-        
         // Build the SQL with optional columns for featured/group detection
         String featuredOnColumn = "";
         String fromGroupColumn = "";
         String primaryArtistColumns = "";
         String sourceArtistColumns = "";
-        String featuredJoin = "";
-        String groupMemberJoin = "";
+        
+        // Lists to hold feature/group params separately
+        java.util.List<Object> featuredParams = new java.util.ArrayList<>();
+        java.util.List<Object> groupParams = new java.util.ArrayList<>();
         
         if (hasArtistFilter && includeFeatured) {
             // Add column to detect if the song features the selected artist(s)
             String artistPlaceholders = String.join(",", artistIds.stream().map(id -> "?").toList());
             featuredOnColumn = ", CASE WHEN EXISTS (SELECT 1 FROM SongFeaturedArtist sfa2 WHERE sfa2.song_id = s.id AND sfa2.artist_id IN (" + artistPlaceholders + ")) THEN 1 ELSE 0 END as featured_on";
-            for (Integer id : artistIds) params.add(params.size() - 1, id); // Insert before limit
+            featuredParams.addAll(artistIds);
             
             // Add primary artist info (the main artist of featured songs)
             primaryArtistColumns = ", s.artist_id as primary_artist_id, ar.name as primary_artist_name";
@@ -6530,8 +6606,8 @@ public class SongRepository {
             // Add column to detect if the song is from a group the selected artist(s) belong to
             String artistPlaceholders = String.join(",", artistIds.stream().map(id -> "?").toList());
             fromGroupColumn = ", CASE WHEN s.artist_id NOT IN (" + artistPlaceholders + ") AND EXISTS (SELECT 1 FROM ArtistMember am WHERE am.group_artist_id = s.artist_id AND am.member_artist_id IN (" + artistPlaceholders + ")) THEN 1 ELSE 0 END as from_group";
-            for (Integer id : artistIds) params.add(params.size() - 1, id); // Insert before limit
-            for (Integer id : artistIds) params.add(params.size() - 1, id); // Insert before limit (for second IN clause)
+            groupParams.addAll(artistIds); // First IN clause
+            groupParams.addAll(artistIds); // Second IN clause
             
             // Add source artist info (the group)
             sourceArtistColumns = ", s.artist_id as source_artist_id, ar.name as source_artist_name";
@@ -6590,12 +6666,27 @@ public class SongRepository {
                     MIN(scr.scrobble_date) as first_listened,
                     MAX(scr.scrobble_date) as last_listened
                 FROM Scrobble scr
+                WHERE 1=1""" + scrobbleDateFilter.toString() + """
                 GROUP BY scr.song_id
             ) play_stats ON play_stats.song_id = s.id
             WHERE 1=1 """ + songFilterClause.toString() + """
-            ORDER BY plays DESC, last_listened ASC
+            
+            ORDER BY plays DESC, play_stats.last_listened ASC
             LIMIT ?
             """;
+        
+        // Build final params list in the order they appear in the SQL:
+        // 1. scrobble date params (in play_stats WHERE)
+        // 2. featured params (in featuredOnColumn CASE WHEN)
+        // 3. group params (in fromGroupColumn CASE WHEN)
+        // 4. song filter params (in main WHERE)
+        // 5. limit
+        java.util.List<Object> finalParams = new java.util.ArrayList<>();
+        finalParams.addAll(scrobbleDateParams);
+        finalParams.addAll(featuredParams);
+        finalParams.addAll(groupParams);
+        finalParams.addAll(songParams);
+        finalParams.add(limit);
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
@@ -6663,7 +6754,7 @@ public class SongRepository {
             }
             
             return row;
-        }, params.toArray());
+        }, finalParams.toArray());
     }
     
     private java.util.List<java.util.Map<String, Object>> getTopArtistsFiltered(String filterClause, java.util.List<Object> filterParams, String listenedDateFrom, String listenedDateTo, int limit) {

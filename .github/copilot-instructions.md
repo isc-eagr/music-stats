@@ -7,7 +7,7 @@ When giving code examples or explanations, keep them clear and concise, but don'
 
 Do not ever do pulls or pushes or checkouts to the repository. The user will handle all git operations.
 
-Always apply small changes at a time. Don't work on huge tasks in one go, because we will get rate-limited. Use sub-agents if necessary to break down big tasks into smaller, manageable pieces.
+Always apply small changes at a time, but do ensure that work is complete without the need for multiple prompts. Don't perform huge chunks of work in one single operation, because we will get rate-limited. Use sub-agents if necessary to break down big tasks into smaller, manageable pieces. But do ensure completeness after you're done. Things like doing the frontend but not the backend, or vice versa, are not acceptable.
 
 Gender is heavily built into the application. Most calculations and statistics are separated by gender, and it's displayed heavily in the UI via blue/pink colors. Always keep this in mind when making changes or suggestions.
 

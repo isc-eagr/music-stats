@@ -89,6 +89,8 @@ public class GraphsController {
             @RequestParam(required = false) String genreMode,
             // Has Featured Artists filter
             @RequestParam(required = false) String hasFeaturedArtists,
+            // In iTunes filter
+            @RequestParam(required = false) String inItunes,
             // Is Band filter
             @RequestParam(required = false) String isBand,
             // Is Single filter
@@ -258,6 +260,9 @@ public class GraphsController {
         
         // Has Featured Artists filter
         model.addAttribute("selectedHasFeaturedArtists", hasFeaturedArtists);
+        
+        // In iTunes filter
+        model.addAttribute("selectedInItunes", inItunes);
         
         // Is Band filter
         model.addAttribute("selectedIsBand", isBand);

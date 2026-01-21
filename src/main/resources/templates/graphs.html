@@ -1711,6 +1711,25 @@
                         </div>
                     </div>
                     
+                    <!-- Exists in iTunes Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Exists in iTunes
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <select name="inItunes" id="inItunesSelect">
+                                    <option value="">All</option>
+                                    <option value="true" th:selected="${selectedInItunes == 'true'}">✅ In iTunes</option>
+                                    <option value="false" th:selected="${selectedInItunes == 'false'}">❌ Not in iTunes</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- First Listened Date Filter -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -2391,6 +2410,12 @@
                             <span class="filter-chip-value" th:each="ethnicityId, iterStat : ${selectedEthnicities}">
                                 <span th:text="${ethnicities.get(ethnicityId)}"></span><span th:if="${!iterStat.last}">, </span>
                             </span>
+                        </span>
+                        
+                        <!-- Exists in iTunes filter chip -->
+                        <span class="filter-chip" th:if="${selectedInItunes != null and !selectedInItunes.isEmpty()}">
+                            <span class="filter-chip-label">In iTunes</span>
+                            <span class="filter-chip-value" th:text="${selectedInItunes == 'true' ? 'Yes' : 'No'}"></span>
                         </span>
                         
                         <!-- First Listened Date filter chip -->

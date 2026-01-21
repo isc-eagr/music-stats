@@ -3808,7 +3808,10 @@ input.flatpickr-input:focus {
     .pagination .page-btn {
         min-height: 44px;
     }
-    
+}
+
+/* Touch dropdowns - only apply when NOT in mobile nav (where dropdowns are always expanded) */
+@media (pointer: coarse) and (min-width: 901px) {
     /* Dropdowns - disable hover, require tap */
     .app-nav-dropdown:hover .app-nav-dropdown-menu {
         display: none;

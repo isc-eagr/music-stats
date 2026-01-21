@@ -76,6 +76,7 @@ public class ChartFilterDTO {
     private String hasFeaturedArtists; // "true", "false", or null
     private String isBand; // "true", "false", or null
     private String isSingle; // "true", "false", or null
+    private String inItunes; // "true", "false", or null
     
     // Age filter
     private Integer ageMin;
@@ -253,6 +254,9 @@ public class ChartFilterDTO {
     
     public String getIsSingle() { return isSingle; }
     public ChartFilterDTO setIsSingle(String isSingle) { this.isSingle = isSingle; return this; }
+    
+    public String getInItunes() { return inItunes; }
+    public ChartFilterDTO setInItunes(String inItunes) { this.inItunes = inItunes; return this; }
     
     public Integer getAgeMin() { return ageMin; }
     public ChartFilterDTO setAgeMin(Integer ageMin) { this.ageMin = ageMin; return this; }

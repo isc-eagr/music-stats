@@ -1053,53 +1053,119 @@ public class SongService {
         return dateTimeString;
     }
     
+    /**
+     * Apply iTunes filter to the ChartFilterDTO by setting songIds to only include songs
+     * that match the inItunes criteria. This must be called before passing the filter
+     * to repository methods.
+     * 
+     * @param filter the chart filter DTO with inItunes set
+     */
+    private void applyItunesFilter(ChartFilterDTO filter) {
+        String inItunes = filter.getInItunes();
+        if (inItunes == null || inItunes.isEmpty()) {
+            return; // No iTunes filter, nothing to do
+        }
+        
+        boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
+        
+        // Query all songs with their artist and album names for matching
+        String sql = """
+            SELECT s.id, ar.name as artist_name, COALESCE(alb.name, '') as album_name, s.name as song_name
+            FROM Song s
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album alb ON s.album_id = alb.id
+            """;
+        
+        List<Integer> matchingIds = new ArrayList<>();
+        
+        List<Map<String, Object>> allSongs = jdbcTemplate.queryForList(sql);
+        for (Map<String, Object> row : allSongs) {
+            Integer songId = (Integer) row.get("id");
+            String artistName = (String) row.get("artist_name");
+            String albumName = (String) row.get("album_name");
+            String songName = (String) row.get("song_name");
+            
+            boolean existsInItunes = itunesService.songExistsInItunes(artistName, albumName, songName);
+            if (existsInItunes == wantInItunes) {
+                matchingIds.add(songId);
+            }
+        }
+        
+        // If no songs match, add an impossible ID so queries return empty results
+        if (matchingIds.isEmpty()) {
+            matchingIds.add(-1);
+        }
+        
+        // Merge with existing songIds filter (if any)
+        List<Integer> existingSongIds = filter.getSongIds();
+        if (existingSongIds != null && !existingSongIds.isEmpty()) {
+            // Intersection: keep only IDs that are in both lists
+            matchingIds.retainAll(existingSongIds);
+            if (matchingIds.isEmpty()) {
+                matchingIds.add(-1);
+            }
+        }
+        
+        filter.setSongIds(matchingIds);
+    }
+    
     // Get filtered chart data for gender breakdown (using ChartFilterDTO)
     public Map<String, Object> getFilteredChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getFilteredChartData(filter);
     }
     
     // Get General tab chart data (5 pie charts: Artists, Albums, Songs, Plays, Listening Time)
     public Map<String, Object> getGeneralChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getGeneralChartData(filter);
     }
     
     // Get Genre tab chart data (5 bar charts grouped by genre)
     public Map<String, Object> getGenreChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getGenreChartData(filter);
     }
     
     // Get Subgenre tab chart data (5 bar charts grouped by subgenre)
     public Map<String, Object> getSubgenreChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getSubgenreChartData(filter);
     }
     
     // Get Ethnicity tab chart data (5 bar charts grouped by ethnicity)
     public Map<String, Object> getEthnicityChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getEthnicityChartData(filter);
     }
     
     // Get Language tab chart data (5 bar charts grouped by language)
     public Map<String, Object> getLanguageChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getLanguageChartData(filter);
     }
     
     // Get Country tab chart data (5 bar charts grouped by country)
     public Map<String, Object> getCountryChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getCountryChartData(filter);
     }
     
     // Get Release Year tab chart data (4 bar charts grouped by release year - no artists)
     public Map<String, Object> getReleaseYearChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getReleaseYearChartData(filter);
     }
     
     // Get Listen Year tab chart data (5 bar charts grouped by year listened)
     public Map<String, Object> getListenYearChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getListenYearChartData(filter);
     }
     
     // Get Top tab data (top artists, albums, songs by play count)
     public Map<String, Object> getTopChartData(ChartFilterDTO filter) {
+        applyItunesFilter(filter);
         return songRepository.getTopChartData(filter);
     }
     

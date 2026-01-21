@@ -53,7 +53,8 @@ public class TimeframeService {
                     winningGender, winningGenderMode, winningGenre, winningGenreMode,
                     winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
                     winningCountry, winningCountryMode, artistCountMin, albumCountMin, songCountMin,
-                    playsMin, timeMin);
+                    playsMin, timeMin,
+                    maleArtistPctMin, maleAlbumPctMin, maleSongPctMin, malePlayPctMin, maleTimePctMin);
         
         // Build period key expression based on type
         String periodKeyExpr = getPeriodKeyExpression(periodType);
@@ -400,7 +401,8 @@ public class TimeframeService {
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "        MAX(scr.scrobble_date) as max_scrobble_date, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(scr.scrobble_date) ASC) as rn " +
             "    FROM Scrobble scr " +
             "    JOIN Song s ON scr.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
@@ -425,7 +427,8 @@ public class TimeframeService {
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "        MAX(scr.scrobble_date) as max_scrobble_date, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(scr.scrobble_date) ASC) as rn " +
             "    FROM Scrobble scr " +
             "    JOIN Song s ON scr.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
@@ -451,7 +454,8 @@ public class TimeframeService {
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC) as rn " +
+            "        MAX(scr.scrobble_date) as max_scrobble_date, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(scr.scrobble_date) ASC) as rn " +
             "    FROM Scrobble scr " +
             "    JOIN Song s ON scr.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
@@ -507,7 +511,9 @@ public class TimeframeService {
             List<Integer> winningLanguage, String winningLanguageMode,
             List<String> winningCountry, String winningCountryMode,
             Integer artistCountMin, Integer albumCountMin, Integer songCountMin,
-            Integer playsMin, Long timeMin) {
+            Integer playsMin, Long timeMin,
+            Double maleArtistPctMin, Double maleAlbumPctMin, Double maleSongPctMin,
+            Double malePlayPctMin, Double maleTimePctMin) {
         
         // Winning attribute filters would exclude 0-play periods
         if (winningGenderMode != null && !"excludes".equals(winningGenderMode) && winningGender != null && !winningGender.isEmpty()) return true;
@@ -522,6 +528,13 @@ public class TimeframeService {
         if (songCountMin != null && songCountMin > 0) return true;
         if (playsMin != null && playsMin > 0) return true;
         if (timeMin != null && timeMin > 0) return true;
+        
+        // Male percentage filters would exclude periods that don't meet the criteria
+        if (maleArtistPctMin != null && maleArtistPctMin > 0) return true;
+        if (maleAlbumPctMin != null && maleAlbumPctMin > 0) return true;
+        if (maleSongPctMin != null && maleSongPctMin > 0) return true;
+        if (malePlayPctMin != null && malePlayPctMin > 0) return true;
+        if (maleTimePctMin != null && maleTimePctMin > 0) return true;
         
         return false;
     }
@@ -831,7 +844,8 @@ public class TimeframeService {
                 winningGender, winningGenderMode, winningGenre, winningGenreMode,
                 winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
                 winningCountry, winningCountryMode, artistCountMin, albumCountMin, songCountMin,
-                playsMin, timeMin)) {
+                playsMin, timeMin,
+                maleArtistPctMin, maleAlbumPctMin, maleSongPctMin, malePlayPctMin, maleTimePctMin)) {
             // Return count of all possible periods
             List<String> allPeriods = switch (periodType) {
                 case "days" -> generateAllDayKeys();
