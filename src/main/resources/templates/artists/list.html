@@ -1115,7 +1115,7 @@
                                   th:classappend="${artist.inItunes ? 'in-itunes' : 'not-in-itunes'}"
                                   class="itunes-badge"
                                   th:title="${artist.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                  th:text="${artist.inItunes ? '✓' : '✗'}"></span><span th:text="${artist.name}">Artist Name</span>
+                                  th:text="${artist.inItunes ? '✓' : '✗'}"></span><span th:text="${artist.name}" th:title="${artist.name}">Artist Name</span>
                         </h3>
                     </a>
                     
@@ -2105,10 +2105,16 @@
             // Debounced search - waits for user to stop typing
             if (searchInput) {
                 let debounceTimer;
+                let pendingSearchValue = null;
                 searchInput.addEventListener('input', function() {
                     clearTimeout(debounceTimer);
+                    pendingSearchValue = searchInput.value;
                     debounceTimer = setTimeout(() => {
-                        performSearchWithFilters(searchInput.value);
+                        // Only navigate if the input value hasn't changed since we set the timer
+                        // This prevents wiping out text the user typed while the page was loading
+                        if (searchInput.value === pendingSearchValue) {
+                            performSearchWithFilters(searchInput.value);
+                        }
                     }, 400); // Wait 400ms after last keystroke
                 });
             }

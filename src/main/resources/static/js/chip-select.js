@@ -37,7 +37,7 @@ class ChipSelect {
         this.genderField = options.genderField || null; // Optional: for gender-based coloring
         this.minChars = options.minChars || 2;
         this.initialValues = options.initialValues || [];
-        this.debounceMs = options.debounceMs || 300;
+        this.debounceMs = options.debounceMs || 500;
         this.staticOptions = options.staticOptions || null; // If provided, use static options instead of API
         
         this.container = document.getElementById(this.containerId);
@@ -49,6 +49,7 @@ class ChipSelect {
         this.selectedItems = new Map(); // Map of value -> {label, genderId}
         this.debounceTimer = null;
         this.isOpen = false;
+        this.lastSearchQuery = ''; // Track the last query sent to prevent race conditions
         
         this.init();
     }
@@ -103,6 +104,8 @@ class ChipSelect {
             }
             
             this.debounceTimer = setTimeout(() => {
+                // Store what we're searching for to compare later
+                this.lastSearchQuery = query;
                 this.search(query);
             }, this.debounceMs);
         });
@@ -154,7 +157,10 @@ class ChipSelect {
                 opt[this.labelField].toLowerCase().includes(query.toLowerCase()) &&
                 !this.selectedItems.has(String(opt[this.valueField]))
             );
-            this.renderDropdown(filtered);
+            // Only update if this search is still relevant (user hasn't typed more)
+            if (this.inputEl.value.trim() === query) {
+                this.renderDropdown(filtered);
+            }
         } else {
             // Fetch from API
             try {
@@ -162,6 +168,13 @@ class ChipSelect {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Search failed');
                 const results = await response.json();
+                
+                // Only update dropdown if user hasn't typed more since this search started
+                const currentInput = this.inputEl.value.trim();
+                if (currentInput !== query) {
+                    // User has typed more, ignore these results
+                    return;
+                }
                 
                 // Filter out already selected items
                 const filtered = results.filter(item => 
@@ -171,8 +184,11 @@ class ChipSelect {
                 this.renderDropdown(filtered);
             } catch (error) {
                 console.error('ChipSelect search error:', error);
-                this.dropdownEl.innerHTML = '<div class="chip-select-no-results">Search failed</div>';
-                this.openDropdown();
+                // Only show error if search is still relevant
+                if (this.inputEl.value.trim() === query) {
+                    this.dropdownEl.innerHTML = '<div class="chip-select-no-results">Search failed</div>';
+                    this.openDropdown();
+                }
             }
         }
     }

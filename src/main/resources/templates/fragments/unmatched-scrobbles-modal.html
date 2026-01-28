@@ -55,9 +55,10 @@
             
             /* Search results */
             .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #333; border-radius: 6px; margin-top: 8px; }
-            .search-result-item { padding: 10px 12px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.2s; }
+            .search-result-item { padding: 10px 12px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.2s, transform 0.1s; }
             .search-result-item:last-child { border-bottom: none; }
             .search-result-item:hover { background: #2a2a2a; }
+            .search-result-item:active { transform: scale(0.98); }
             .search-result-item.selected { background: #3a3a3a; border-left: 3px solid var(--success, #22c55e); }
             .result-name { font-weight: 600; color: #fff; }
             .result-meta { font-size: 12px; color: #888; margin-top: 2px; }
@@ -84,6 +85,70 @@
             .wizard-field-highlight {
                 box-shadow: 0 0 8px 2px #4CAF50 !important;
                 border-color: #4CAF50 !important;
+            }
+            
+            /* Loading overlay for wizard */
+            .wizard-loading-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(26, 26, 26, 0.85);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                gap: 12px;
+                z-index: 100;
+                border-radius: 8px;
+            }
+            .wizard-loading-overlay.active {
+                display: flex;
+            }
+            .wizard-spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid rgba(255, 255, 255, 0.1);
+                border-top-color: var(--success, #22c55e);
+                border-radius: 50%;
+                animation: wizard-spin 0.8s linear infinite;
+            }
+            @keyframes wizard-spin {
+                to { transform: rotate(360deg); }
+            }
+            .wizard-loading-text {
+                color: #ccc;
+                font-size: 14px;
+            }
+            
+            /* Search result item loading state */
+            .search-result-item.loading {
+                opacity: 0.6;
+                pointer-events: none;
+                position: relative;
+            }
+            .search-result-item.loading::after {
+                content: '⏳';
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            
+            /* Mini loading indicator for inline actions */
+            .wizard-inline-loading {
+                display: none;
+                color: #888;
+                font-size: 13px;
+                padding: 8px 12px;
+                text-align: center;
+            }
+            .wizard-inline-loading.active {
+                display: block;
+            }
+            .wizard-inline-loading::before {
+                content: '⏳ ';
             }
         </style>
     </th:block>
@@ -124,7 +189,12 @@
 
     <!-- Create Wizard Modal -->
     <div th:fragment="create-wizard-modal" id="createWizardModal" class="unmatched-modal">
-        <div class="unmatched-modal-content">
+        <div class="unmatched-modal-content" style="position: relative;">
+            <!-- Loading overlay for wizard initialization -->
+            <div id="wizardLoadingOverlay" class="wizard-loading-overlay">
+                <div class="wizard-spinner"></div>
+                <div class="wizard-loading-text" id="wizardLoadingText">Loading...</div>
+            </div>
             <div class="unmatched-modal-header">
                 <h2>Create Song for Scrobbles</h2>
                 <span class="unmatched-modal-close" onclick="closeCreateWizard()">&times;</span>
@@ -186,11 +256,17 @@
                                 </button>
                             </div>
                         </div>
-                        <!-- Hidden fields for MusicBrainz data -->
-                        <input type="hidden" id="newArtistBirthDate" value="">
-                        <input type="hidden" id="newArtistDeathDate" value="">
+                        <!-- Birth/Death date fields and hidden isBand flag -->
                         <input type="hidden" id="newArtistIsBand" value="">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group">
+                                <label>Birth Date <span style="color: #888; font-size: 11px;">(or Formed if band)</span></label>
+                                <input type="text" autocomplete="off" id="newArtistBirthDate" placeholder="YYYY-MM-DD or YYYY">
+                            </div>
+                            <div class="form-group">
+                                <label>Death Date <span style="color: #888; font-size: 11px;">(or Disbanded if band)</span></label>
+                                <input type="text" autocomplete="off" id="newArtistDeathDate" placeholder="YYYY-MM-DD or YYYY">
+                            </div>
                             <div class="form-group">
                                 <label>Gender *</label>
                                 <select id="newArtistGender" required>
@@ -277,6 +353,12 @@
                         <div id="wizardAlbumImagePreview" style="display: none; margin-top: 12px; text-align: center;">
                             <img id="wizardAlbumImagePreviewImg" src="" style="max-width: 150px; max-height: 150px; border-radius: 6px; border: 2px solid #4CAF50;">
                             <input type="hidden" id="wizardAlbumImageUrl">
+                            <div style="margin-top: 8px;">
+                                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #ccc; font-size: 13px;">
+                                    <input type="checkbox" id="wizardAlbumSaveImage" checked style="cursor: pointer;">
+                                    <span>Save</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="wizard-nav">
@@ -323,6 +405,12 @@
                         <div id="wizardSongImagePreview" style="display: none; margin-top: 12px; text-align: center;">
                             <img id="wizardSongImagePreviewImg" src="" style="max-width: 100px; max-height: 100px; border-radius: 6px; border: 2px solid #4CAF50;">
                             <input type="hidden" id="wizardSongImageUrl">
+                            <div style="margin-top: 8px;">
+                                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #ccc; font-size: 13px;">
+                                    <input type="checkbox" id="wizardSongSaveImage" checked style="cursor: pointer;">
+                                    <span>Save</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="wizard-nav">
@@ -477,20 +565,40 @@
             showWizardStep(1);
             resetWizardForms();
             
-            // Load all dropdowns for new artist form
-            loadAllArtistDropdowns();
-            
-            // Open modal
+            // Open modal with loading overlay
             document.getElementById('createWizardModal').classList.add('active');
+            showWizardLoading('Preparing wizard...');
             
-            // Auto-search for artist
-            if (row.artist) {
-                searchWizardArtists();
+            // Load all dropdowns for new artist form (with loading tracking)
+            loadAllArtistDropdownsWithCallback(() => {
+                hideWizardLoading();
+                // Auto-search for artist after dropdowns are loaded
+                if (row.artist) {
+                    searchWizardArtists();
+                }
+            });
+        }
+        
+        // Show/hide wizard loading overlay
+        function showWizardLoading(message) {
+            const overlay = document.getElementById('wizardLoadingOverlay');
+            const text = document.getElementById('wizardLoadingText');
+            if (overlay) {
+                text.textContent = message || 'Loading...';
+                overlay.classList.add('active');
+            }
+        }
+        
+        function hideWizardLoading() {
+            const overlay = document.getElementById('wizardLoadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
             }
         }
         
         function closeCreateWizard() {
             document.getElementById('createWizardModal').classList.remove('active');
+            hideWizardLoading();
             wizardState = { scrobbleData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false };
         }
         
@@ -607,6 +715,49 @@
             loadCountries();
         }
         
+        // Load all dropdowns with a callback when all are complete
+        function loadAllArtistDropdownsWithCallback(callback) {
+            const promises = [
+                fetch('/genders/api/list').then(r => r.json()).then(data => {
+                    const select = document.getElementById('newArtistGender');
+                    select.innerHTML = '<option value="">-- Select Gender --</option>';
+                    data.forEach(g => { select.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)}</option>`; });
+                }),
+                fetch('/languages/api/list').then(r => r.json()).then(data => {
+                    const select = document.getElementById('newArtistLanguage');
+                    select.innerHTML = '<option value="">-- Select Language --</option>';
+                    data.forEach(l => { select.innerHTML += `<option value="${l.id}">${escapeHtml(l.name)}</option>`; });
+                }),
+                fetch('/genres/api/list').then(r => r.json()).then(data => {
+                    const select = document.getElementById('newArtistGenre');
+                    select.innerHTML = '<option value="">-- Select Genre --</option>';
+                    data.forEach(g => { select.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)}</option>`; });
+                }),
+                fetch('/subgenres/api/list').then(r => r.json()).then(data => {
+                    const select = document.getElementById('newArtistSubgenre');
+                    select.innerHTML = '<option value="">-- Select Subgenre (optional) --</option>';
+                    data.forEach(sg => { select.innerHTML += `<option value="${sg.id}">${escapeHtml(sg.name)}</option>`; });
+                }),
+                fetch('/ethnicities/api/list').then(r => r.json()).then(data => {
+                    const select = document.getElementById('newArtistEthnicity');
+                    select.innerHTML = '<option value="">-- Select Ethnicity --</option>';
+                    data.forEach(e => { select.innerHTML += `<option value="${e.id}">${escapeHtml(e.name)}</option>`; });
+                }),
+                fetch('/countries/api/list').then(r => r.json()).then(data => {
+                    const select = document.getElementById('newArtistCountry');
+                    select.innerHTML = '<option value="">-- Select Country (optional) --</option>';
+                    data.forEach(c => { select.innerHTML += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`; });
+                })
+            ];
+            
+            Promise.all(promises)
+                .then(() => { if (callback) callback(); })
+                .catch(err => { 
+                    console.error('Error loading dropdowns:', err);
+                    if (callback) callback(); // Still call callback on error
+                });
+        }
+        
         function handleWizardArtistSearchKeyup(event) {
             if (event.key === 'Enter') searchWizardArtists();
         }
@@ -615,10 +766,13 @@
             const query = document.getElementById('wizardArtistSearch').value.trim();
             if (!query) return;
             
+            const container = document.getElementById('wizardArtistResults');
+            // Show loading state
+            container.innerHTML = '<div class="wizard-inline-loading active">Searching for artists...</div>';
+            
             fetch(`/artists/api/search?q=${encodeURIComponent(query)}&limit=20`)
                 .then(r => r.json())
                 .then(data => {
-                    const container = document.getElementById('wizardArtistResults');
                     if (!data || data.length === 0) {
                         container.innerHTML = '<div class="no-results">No artists found. Create a new one below.</div>';
                         return;
@@ -632,19 +786,26 @@
                 })
                 .catch(err => {
                     console.error('Error searching artists:', err);
-                    document.getElementById('wizardArtistResults').innerHTML = '<div class="no-results">Error searching artists</div>';
+                    container.innerHTML = '<div class="no-results">Error searching artists</div>';
                 });
         }
         
         function selectWizardArtist(id, name) {
+            // Add immediate visual feedback with a brief "click" effect
+            const selectedEl = document.querySelector(`#wizardArtistResults .search-result-item[data-id="${id}"]`);
+            if (selectedEl) {
+                selectedEl.style.transform = 'scale(0.98)';
+                setTimeout(() => { selectedEl.style.transform = ''; }, 100);
+            }
+            
             // Deselect create new option
             document.getElementById('createNewArtistOption').classList.remove('selected');
             document.getElementById('newArtistForm').style.display = 'none';
             wizardState.isNewArtist = false;
             
-            // Select this artist
-            document.querySelectorAll('#wizardArtistResults .search-result-item').forEach(el => el.classList.remove('selected'));
-            document.querySelector(`#wizardArtistResults .search-result-item[data-id="${id}"]`).classList.add('selected');
+            // Select this artist (only deselect others, not re-selecting current)
+            document.querySelectorAll('#wizardArtistResults .search-result-item.selected').forEach(el => el.classList.remove('selected'));
+            if (selectedEl) selectedEl.classList.add('selected');
             
             wizardState.selectedArtistId = id;
             wizardState.selectedArtistName = name;
@@ -681,10 +842,21 @@
             
             // Open the artist fetch modal with a callback to populate fields
             openArtistFetchModal(artistName, null, function(artistData) {
-                // Populate hidden fields for birth/death dates
-                document.getElementById('newArtistBirthDate').value = artistData.birthDate || '';
-                document.getElementById('newArtistDeathDate').value = artistData.deathDate || '';
+                // Populate birth/death date fields
+                const birthDateInput = document.getElementById('newArtistBirthDate');
+                const deathDateInput = document.getElementById('newArtistDeathDate');
+                
+                birthDateInput.value = artistData.birthDate || '';
+                deathDateInput.value = artistData.deathDate || '';
                 document.getElementById('newArtistIsBand').value = (artistData.type === 'Group' || artistData.type === 'Orchestra' || artistData.type === 'Choir') ? 'true' : 'false';
+                
+                // Highlight fields that were populated
+                if (artistData.birthDate) {
+                    highlightWizardField('newArtistBirthDate');
+                }
+                if (artistData.deathDate) {
+                    highlightWizardField('newArtistDeathDate');
+                }
                 
                 // Set country dropdown if we can find a match
                 if (artistData.country) {
@@ -693,6 +865,7 @@
                     const match = options.find(opt => opt.text.toLowerCase() === artistData.country.toLowerCase());
                     if (match) {
                         countrySelect.value = match.value;
+                        highlightWizardField('newArtistCountry');
                     } else {
                         console.log('Country not found in dropdown:', artistData.country);
                     }
@@ -706,7 +879,7 @@
                 if (artistData.type) confirmMsg.push('Type: ' + artistData.type);
                 
                 if (confirmMsg.length > 0) {
-                    console.log('Applied MusicBrainz data:', confirmMsg.join(', '));
+                    showSuccessToast('Fetched: ' + confirmMsg.join(', '));
                 }
             });
         }
@@ -762,9 +935,12 @@
                 document.getElementById('newAlbumName').value = wizardState.scrobbleData.album || '';
                 document.getElementById('newAlbumReleaseDate').value = '';
                 
-                // Load albums if existing artist
+                // Load albums if existing artist (show loading while doing so)
                 if (wizardState.selectedArtistId) {
-                    loadArtistAlbums(wizardState.selectedArtistId);
+                    showWizardLoading('Loading albums...');
+                    loadArtistAlbumsWithCallback(wizardState.selectedArtistId, () => {
+                        hideWizardLoading();
+                    });
                 } else {
                     document.getElementById('wizardAlbumSelect').innerHTML = '<option value="">-- No Album (Single) --</option>';
                 }
@@ -846,6 +1022,35 @@
                 .catch(err => console.error('Error loading albums:', err));
         }
         
+        // Load albums with callback when complete
+        function loadArtistAlbumsWithCallback(artistId, callback) {
+            fetch(`/albums/api/by-artist?artistId=${artistId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('wizardAlbumSelect');
+                    select.innerHTML = '<option value="">-- No Album (Single) --</option>';
+                    data.forEach(album => {
+                        const option = document.createElement('option');
+                        option.value = album.id;
+                        option.textContent = album.name;
+                        select.appendChild(option);
+                    });
+                    
+                    // Try to auto-select matching album
+                    if (wizardState.scrobbleData && wizardState.scrobbleData.album) {
+                        const match = data.find(a => a.name.toLowerCase() === wizardState.scrobbleData.album.toLowerCase());
+                        if (match) {
+                            select.value = match.id;
+                        }
+                    }
+                    if (callback) callback();
+                })
+                .catch(err => {
+                    console.error('Error loading albums:', err);
+                    if (callback) callback();
+                });
+        }
+        
         function toggleCreateNewAlbum() {
             const option = document.getElementById('createNewAlbumOption');
             const form = document.getElementById('newAlbumForm');
@@ -914,13 +1119,19 @@
                 albumId: wizardState.isNewAlbum ? null : wizardState.selectedAlbumId,
                 newAlbumName: wizardState.isNewAlbum ? wizardState.selectedAlbumName : null,
                 newAlbumReleaseDate: wizardState.isNewAlbum ? wizardState.newAlbumReleaseDate : null,
-                newAlbumImageUrl: wizardState.newAlbumImageUrl || null,
+                newAlbumImageUrl: (wizardState.newAlbumImageUrl && document.getElementById('wizardAlbumSaveImage') && document.getElementById('wizardAlbumSaveImage').checked) ? wizardState.newAlbumImageUrl : null,
                 
                 songName: songName,
                 songReleaseDate: songReleaseDate,
                 songLengthSeconds: lengthSeconds,
-                songImageUrl: wizardState.newSongImageUrl || null
+                songImageUrl: (wizardState.newSongImageUrl && document.getElementById('wizardSongSaveImage') && document.getElementById('wizardSongSaveImage').checked) ? wizardState.newSongImageUrl : null
             };
+            
+            // Show loading state on the button
+            const createBtn = document.getElementById('wizardCreateBtn');
+            const originalText = createBtn.textContent;
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating...';
             
             fetch('/scrobbles/api/create-and-assign', {
                 method: 'POST',
@@ -941,11 +1152,15 @@
                     closeCreateWizard();
                 } else {
                     showErrorToast('Error: ' + (data.error || 'Unknown error'));
+                    createBtn.disabled = false;
+                    createBtn.textContent = originalText;
                 }
             })
             .catch(err => {
                 console.error('Error creating and assigning:', err);
                 showErrorToast('Error creating song');
+                createBtn.disabled = false;
+                createBtn.textContent = originalText;
             });
         }
 
@@ -991,6 +1206,10 @@
                 return;
             }
             
+            const container = document.getElementById('matchSongResults');
+            // Show loading state
+            container.innerHTML = '<div class="wizard-inline-loading active">Searching for songs...</div>';
+            
             let url = '/songs/api/search?';
             const params = [];
             if (artistFilter) params.push(`artist=${encodeURIComponent(artistFilter)}`);
@@ -1000,7 +1219,6 @@
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    const container = document.getElementById('matchSongResults');
                     if (!data || data.length === 0) {
                         container.innerHTML = '<div class="no-results">No songs found</div>';
                         return;
@@ -1014,12 +1232,16 @@
                 })
                 .catch(err => {
                     console.error('Error searching songs:', err);
-                    document.getElementById('matchSongResults').innerHTML = '<div class="no-results">Error searching songs</div>';
+                    container.innerHTML = '<div class="no-results">Error searching songs</div>';
                 });
         }
         
         function selectMatchSong(id, element) {
-            document.querySelectorAll('#matchSongResults .search-result-item').forEach(el => el.classList.remove('selected'));
+            // Add immediate visual feedback
+            element.style.transform = 'scale(0.98)';
+            setTimeout(() => { element.style.transform = ''; }, 100);
+            
+            document.querySelectorAll('#matchSongResults .search-result-item.selected').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
             matchState.selectedSongId = id;
             document.getElementById('matchAssignBtn').disabled = false;
@@ -1030,6 +1252,12 @@
                 showWarningToast('Please select a song');
                 return;
             }
+            
+            // Show loading state on the button
+            const assignBtn = document.getElementById('matchAssignBtn');
+            const originalText = assignBtn.textContent;
+            assignBtn.disabled = true;
+            assignBtn.textContent = 'Matching...';
             
             fetch('/scrobbles/api/assign', {
                 method: 'POST',
@@ -1056,11 +1284,15 @@
                     closeMatchModal();
                 } else {
                     showErrorToast('Error: ' + (data.error || 'Unknown error'));
+                    assignBtn.disabled = false;
+                    assignBtn.textContent = originalText;
                 }
             })
             .catch(err => {
                 console.error('Error assigning song:', err);
                 showErrorToast('Error assigning song');
+                assignBtn.disabled = false;
+                assignBtn.textContent = originalText;
             });
         }
         
@@ -1276,13 +1508,34 @@
                 const statusEl = document.getElementById('wizardItunesFetchStatus');
                 const parts = [];
                 
-                // Set release date if available
+                // Get album release date (from new album form if creating one)
+                let albumReleaseDate = null;
+                if (wizardState.selectedAlbumId) {
+                    // Existing album - skip population to avoid duplicating album release date
+                    albumReleaseDate = 'unknown'; // Marker to skip population
+                } else if (wizardState.isNewAlbum && wizardState.newAlbumReleaseDate) {
+                    albumReleaseDate = wizardState.newAlbumReleaseDate;
+                }
+                
+                // Set release date if available and different from album
                 if (selectedItem.releaseDate) {
                     const dateParts = selectedItem.releaseDate.split('-');
                     if (dateParts.length === 3) {
                         const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                        document.getElementById('wizardSongReleaseDate').value = formatted;
-                        parts.push('Release: ' + formatted);
+                        
+                        // Only populate if no album or if date is different from album
+                        if (!albumReleaseDate) {
+                            // No album selected - populate normally
+                            document.getElementById('wizardSongReleaseDate').value = formatted;
+                            parts.push('Release: ' + formatted);
+                        } else if (albumReleaseDate !== 'unknown' && albumReleaseDate !== formatted) {
+                            // New album with different release date - populate
+                            document.getElementById('wizardSongReleaseDate').value = formatted;
+                            parts.push('Release: ' + formatted + ' (different from album)');
+                        } else {
+                            // Same as album or existing album - skip
+                            parts.push('Release: ' + formatted + ' (skipped - same as album)');
+                        }
                     }
                 }
                 

@@ -1394,7 +1394,8 @@
         }
         
         function confirmDelete() {
-            const songName = document.querySelector('.item-name-top').textContent;
+            const songName = /*[[${song.name}]]*/ '';
+            const artistName = /*[[${artistName}]]*/ '';
             const playCount = /*[[${songPlayCount}]]*/ 0;
             
             if (playCount > 0) {
@@ -1402,7 +1403,8 @@
                 return;
             }
             
-            if (confirm('Are you sure you want to delete "' + songName + '"?\n\nThis action cannot be undone!')) {
+            const displayName = artistName ? songName + ' by ' + artistName : songName;
+            if (confirm('Are you sure you want to delete "' + displayName + '"?\n\nThis action cannot be undone!')) {
                 const songId = window.location.pathname.split('/').pop();
                 
                 fetch(`/songs/${songId}`, {

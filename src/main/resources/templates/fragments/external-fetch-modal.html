@@ -345,13 +345,17 @@
                 border-radius: 8px;
                 overflow: hidden;
                 cursor: pointer;
-                transition: all 0.2s ease;
+                transition: all 0.2s ease, transform 0.1s ease;
                 background: rgba(255, 255, 255, 0.05);
             }
             
             .ef-result-item:hover {
                 border-color: rgba(255, 255, 255, 0.3);
                 transform: translateY(-2px);
+            }
+            
+            .ef-result-item:active {
+                transform: scale(0.97);
             }
             
             .ef-result-item.selected {
@@ -1143,6 +1147,10 @@
             }
 
             function toggleEfSelection(element) {
+                // Add immediate visual feedback
+                element.style.transform = 'scale(0.97)';
+                setTimeout(() => { element.style.transform = ''; }, 100);
+                
                 const itemData = {
                     url: element.dataset.url,
                     releaseDate: element.dataset.releaseDate,

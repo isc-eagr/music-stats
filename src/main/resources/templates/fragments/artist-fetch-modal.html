@@ -185,12 +185,16 @@
                 border: 2px solid transparent;
                 border-radius: 8px;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.2s, transform 0.1s;
             }
             
             .af-result-item:hover {
                 background: rgba(255, 255, 255, 0.1);
                 border-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            .af-result-item:active {
+                transform: scale(0.98);
             }
             
             .af-result-item.selected {
@@ -454,8 +458,12 @@
             }
             
             function selectArtistResult(element) {
-                // Deselect all
-                document.querySelectorAll('.af-result-item').forEach(item => {
+                // Add immediate visual feedback
+                element.style.transform = 'scale(0.98)';
+                setTimeout(() => { element.style.transform = ''; }, 100);
+                
+                // Deselect all (only ones that are selected)
+                document.querySelectorAll('.af-result-item.selected').forEach(item => {
                     item.classList.remove('selected');
                 });
                 

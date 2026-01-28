@@ -1403,7 +1403,7 @@
                                   th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
                                   class="itunes-badge"
                                   th:title="${song.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                  th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}">Song Name</span>
+                                  th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}" th:title="${song.name}">Song Name</span>
                             <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
                         </h3>
                     </a>
@@ -1416,8 +1416,9 @@
                         <a th:if="${song.albumId != null}"
                            th:href="@{'/albums/' + ${song.albumId}}"
                            th:text="${song.albumName}"
+                           th:title="${song.albumName}"
                            class="metadata-link"></a>
-                        <span th:if="${song.albumId == null}" th:text="${song.albumName}"></span>
+                        <span th:if="${song.albumId == null}" th:text="${song.albumName}" th:title="${song.albumName}"></span>
                     </div>
                     
                     <!-- Attribute chips -->
@@ -2554,10 +2555,16 @@
             // Debounced search - waits for user to stop typing
             if (searchInput) {
                 let debounceTimer;
+                let pendingSearchValue = null;
                 searchInput.addEventListener('input', function() {
                     clearTimeout(debounceTimer);
+                    pendingSearchValue = searchInput.value;
                     debounceTimer = setTimeout(() => {
-                        performSearchWithFilters(searchInput.value);
+                        // Only navigate if the input value hasn't changed since we set the timer
+                        // This prevents wiping out text the user typed while the page was loading
+                        if (searchInput.value === pendingSearchValue) {
+                            performSearchWithFilters(searchInput.value);
+                        }
                     }, 400); // Wait 400ms after last keystroke
                 });
             }

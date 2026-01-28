@@ -393,6 +393,7 @@
                                     <th>Album</th>
                                     <th>Song</th>
                                     <th class="year">Year</th>
+                                    <th style="width: 100px;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -400,8 +401,19 @@
                                     <td class="track-num" th:text="${iter.count}">1</td>
                                     <td th:text="${song.artist != null ? song.artist : '(Unknown Artist)'}">Artist</td>
                                     <td th:text="${song.album != null ? song.album : '(No Album)'}">Album</td>
-                                    <td th:text="${song.name}">Song</td>
+                                    <td>
+                                        <a th:if="${song.foundInDatabase}" th:href="@{/songs/{id}(id=${song.databaseSongId})}" 
+                                           th:text="${song.name}"
+                                           style="color: inherit; text-decoration: none;">Song</a>
+                                        <span th:if="${!song.foundInDatabase}" th:text="${song.name}">Song</span>
+                                    </td>
                                     <td class="year" th:text="${song.year != null ? song.year : '-'}">-</td>
+                                    <td>
+                                        <span th:if="${song.foundInDatabase}" class="status-badge found">
+                                            <a th:href="@{/songs/{id}(id=${song.databaseSongId})}" style="color: inherit; text-decoration: none;">✓ In DB</a>
+                                        </span>
+                                        <span th:if="${!song.foundInDatabase}" class="status-badge not-found">✗ Not in DB</span>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>

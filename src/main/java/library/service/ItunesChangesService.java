@@ -131,13 +131,20 @@ public class ItunesChangesService {
         for (ItunesSnapshot snapshot : snapshotSongs) {
             String persistentId = snapshot.getPersistentId();
             if (!currentByPersistentId.containsKey(persistentId)) {
+                // Check if the removed song exists in our database
+                String key = createSongLookupKey(snapshot.getArtist(), snapshot.getAlbum(), snapshot.getName());
+                boolean found = dbSongKeys.contains(key);
+                Long songId = dbSongKeyToId.get(key);
+                
                 removedSongs.add(new ItunesRemovedSongDTO(
                     persistentId,
                     snapshot.getArtist(),
                     snapshot.getAlbum(),
                     snapshot.getName(),
                     snapshot.getTrackNumber(),
-                    snapshot.getYear()
+                    snapshot.getYear(),
+                    found,
+                    songId
                 ));
             }
         }

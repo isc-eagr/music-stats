@@ -1279,7 +1279,8 @@
         }
         
         function confirmDelete() {
-            const albumName = document.querySelector('.item-name-top').textContent;
+            const albumName = /*[[${album.name}]]*/ '';
+            const artistName = /*[[${artistName}]]*/ '';
             const playCount = /*[[${albumPlayCount}]]*/ 0;
             
             if (playCount > 0) {
@@ -1287,7 +1288,8 @@
                 return;
             }
             
-            if (confirm('Are you sure you want to delete "' + albumName + '"?\n\nThis will also delete all songs in this album. This action cannot be undone!')) {
+            const displayName = artistName ? albumName + ' by ' + artistName : albumName;
+            if (confirm('Are you sure you want to delete "' + displayName + '"?\n\nThis will also delete all songs in this album. This action cannot be undone!')) {
                 // albumId is defined globally
                 
                 fetch(`/albums/${albumId}`, {
