@@ -599,7 +599,13 @@
         function closeCreateWizard() {
             document.getElementById('createWizardModal').classList.remove('active');
             hideWizardLoading();
-            wizardState = { scrobbleData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false };
+            // Reset the button state
+            const createBtn = document.getElementById('wizardCreateBtn');
+            createBtn.disabled = false;
+            createBtn.textContent = 'Create & Assign Scrobbles';
+            // Reset state and forms
+            wizardState = { scrobbleData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false, newAlbumImageUrl: null, newSongImageUrl: null, newAlbumReleaseDate: null };
+            resetWizardForms();
         }
         
         function showWizardStep(step) {
@@ -626,6 +632,43 @@
             document.getElementById('newAlbumForm').style.display = 'none';
             document.getElementById('createNewAlbumOption').classList.remove('selected');
             document.getElementById('wizardStep1Next').disabled = true;
+            
+            // Clear album artwork preview
+            const albumPreview = document.getElementById('wizardAlbumImagePreview');
+            if (albumPreview) {
+                albumPreview.style.display = 'none';
+                document.getElementById('wizardAlbumImagePreviewImg').src = '';
+                document.getElementById('wizardAlbumImageUrl').value = '';
+                document.getElementById('wizardAlbumSaveImage').checked = true;
+            }
+            
+            // Clear song artwork preview
+            const songPreview = document.getElementById('wizardSongImagePreview');
+            if (songPreview) {
+                songPreview.style.display = 'none';
+                document.getElementById('wizardSongImagePreviewImg').src = '';
+                document.getElementById('wizardSongImageUrl').value = '';
+                document.getElementById('wizardSongSaveImage').checked = true;
+            }
+            
+            // Clear step 2 and 3 form inputs
+            const newAlbumName = document.getElementById('newAlbumNameInput');
+            if (newAlbumName) newAlbumName.value = '';
+            const newAlbumReleaseDate = document.getElementById('newAlbumReleaseDate');
+            if (newAlbumReleaseDate) newAlbumReleaseDate.value = '';
+            const wizardAlbumAppleStatus = document.getElementById('wizardAlbumAppleStatus');
+            if (wizardAlbumAppleStatus) wizardAlbumAppleStatus.textContent = '';
+            
+            const songNameInput = document.getElementById('wizardSongNameInput');
+            if (songNameInput) songNameInput.value = '';
+            const songReleaseDate = document.getElementById('wizardSongReleaseDate');
+            if (songReleaseDate) songReleaseDate.value = '';
+            const songLength = document.getElementById('wizardSongLength');
+            if (songLength) songLength.value = '';
+            const songLengthSeconds = document.getElementById('wizardSongLengthSeconds');
+            if (songLengthSeconds) songLengthSeconds.value = '';
+            const itunesFetchStatus = document.getElementById('wizardItunesFetchStatus');
+            if (itunesFetchStatus) itunesFetchStatus.textContent = '';
         }
         
         function loadGenders() {

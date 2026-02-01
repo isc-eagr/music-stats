@@ -481,6 +481,40 @@ public class ScrobbleController {
     }
     
     /**
+     * API endpoint to delete all scrobbles for a specific song.
+     * This is a dangerous operation that removes all listening history for the song.
+     * 
+     * DELETE /scrobbles/api/song/{songId}
+     */
+    @DeleteMapping("/api/song/{songId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteScrobblesForSong(@PathVariable Long songId) {
+        try {
+            if (songId == null || songId < 1) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Valid song ID is required"
+                ));
+            }
+            
+            int deletedCount = scrobbleService.deleteScrobblesForSong(songId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "deletedCount", deletedCount,
+                "songId", songId
+            ));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
+    }
+    
+    /**
      * Download image from URL and return bytes.
      */
     private byte[] downloadImage(String imageUrl) throws Exception {

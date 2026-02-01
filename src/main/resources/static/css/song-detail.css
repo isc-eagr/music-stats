@@ -4,8 +4,9 @@
 .detail-right-section {
     margin-top: 120px; /* Align with image top (accounting for name overlay and metadata) */
 }
-/* Mobile - remove margin top since layout stacks */
-@media (max-width: 900px) {
+
+/* Tablet and Mobile - remove margin top since layout stacks */
+@media (max-width: 1024px) {
     .detail-right-section {
         margin-top: 0;
     }

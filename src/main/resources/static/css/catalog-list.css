@@ -477,6 +477,69 @@ a.winning-chip:hover {
     pointer-events: none;
 }
 
+/* Mobile-specific: Expand/collapse button for ranking chips */
+.chips-expand-btn {
+    display: none;
+    width: 100%;
+    padding: 6px 12px;
+    margin-top: 4px;
+    background: rgba(100, 100, 100, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chips-expand-btn:hover {
+    background: rgba(100, 100, 100, 0.5);
+    color: #fff;
+}
+
+.chips-expand-btn .expand-icon {
+    margin-left: 4px;
+    transition: transform 0.2s;
+}
+
+.winning-chips.expanded + .chips-expand-btn .expand-icon {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 480px) {
+    /* Show expand button on mobile when chips overflow */
+    .ranking-chips-section .chips-expand-btn {
+        display: block;
+    }
+    
+    /* Collapsed state (default on mobile) */
+    .ranking-chips-section .winning-chips {
+        max-height: 64px;
+        overflow: hidden;
+        position: relative;
+        transition: max-height 0.3s ease;
+    }
+    
+    /* Expanded state */
+    .ranking-chips-section .winning-chips.expanded {
+        max-height: 500px;
+    }
+    
+    /* Gradient fade when collapsed */
+    .ranking-chips-section .winning-chips:not(.expanded)::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 24px;
+        background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.9));
+        pointer-events: none;
+    }
+}
+
 /* Range inputs in filter panel */
 .range-inputs {
     display: flex;

@@ -73,6 +73,15 @@
     cursor: default;
 }
 
+/* Row number column - narrow width */
+.top-table th.row-num-col,
+.top-table td.row-num-col {
+    width: 35px;
+    text-align: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
 .top-table .cover-col {
     width: 60px;
     padding: 4px 8px;

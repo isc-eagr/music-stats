@@ -474,30 +474,25 @@ public class AlbumController {
         model.addAttribute("seasonalChartHistory", chartService.getChartHistoryForItem(id, "album", "seasonal"));
         model.addAttribute("yearlyChartHistory", chartService.getChartHistoryForItem(id, "album", "yearly"));
         
-        // Add featured artist cards (for the Featured Artists tab)
-        if ("featured".equals(tab)) {
-            model.addAttribute("featuredArtistCards", albumService.getFeaturedArtistCardsForAlbum(id));
-        }
+        // Add featured artist cards (always pre-loaded for Featured Artists tab)
+        model.addAttribute("featuredArtistCards", albumService.getFeaturedArtistCardsForAlbum(id));
         
-        if ("plays".equals(tab)) {
-            int pageSize = 100;
-            model.addAttribute("scrobbles", albumService.getScrobblesForAlbum(id, playsPage, pageSize));
-            model.addAttribute("scrobblesTotalCount", albumService.countScrobblesForAlbum(id));
-            model.addAttribute("scrobblesPage", playsPage);
-            model.addAttribute("scrobblesPageSize", pageSize);
-            model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) albumService.countScrobblesForAlbum(id) / pageSize));
-            model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
-            model.addAttribute("playsByMonth", albumService.getPlaysByMonthForAlbum(id));
-        }
+        // Always load plays data (eager loading for all tabs)
+        int pageSize = 100;
+        model.addAttribute("scrobbles", albumService.getScrobblesForAlbum(id, playsPage, pageSize));
+        model.addAttribute("scrobblesTotalCount", albumService.countScrobblesForAlbum(id));
+        model.addAttribute("scrobblesPage", playsPage);
+        model.addAttribute("scrobblesPageSize", pageSize);
+        model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) albumService.countScrobblesForAlbum(id) / pageSize));
+        model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
+        model.addAttribute("playsByMonth", albumService.getPlaysByMonthForAlbum(id));
         
-        // Add chart history for the Chart History tab (seasonal/yearly already added above for chips)
-        if ("chart-history".equals(tab)) {
-            model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
-            model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
-            // Songs' seasonal/yearly chart history
-            model.addAttribute("seasonalSongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "seasonal"));
-            model.addAttribute("yearlySongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "yearly"));
-        }
+        // Always load chart history data (eager loading for all tabs)
+        model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
+        model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
+        // Songs' seasonal/yearly chart history
+        model.addAttribute("seasonalSongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "seasonal"));
+        model.addAttribute("yearlySongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "yearly"));
         
         // Add ranking chips data - optimized single query
         java.util.Map<String, Integer> rankings = albumService.getAllAlbumRankings(id);

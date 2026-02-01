@@ -96,13 +96,14 @@ public class ItunesChangesService {
                     songId
                 ));
             } else {
-                // Check if artist, album, name, or length changed
+                // Check if artist, albumArtist, album, name, or length changed
                 boolean artistChanged = !nullSafeEquals(snapshot.getArtist(), current.getArtist());
+                boolean albumArtistChanged = !nullSafeEquals(snapshot.getAlbumArtist(), current.getAlbumArtist());
                 boolean albumChanged = !nullSafeEquals(snapshot.getAlbum(), current.getAlbum());
                 boolean nameChanged = !nullSafeEquals(snapshot.getName(), current.getName());
                 boolean lengthChanged = !nullSafeEquals(snapshot.getTotalTime(), current.getTotalTime());
 
-                if (artistChanged || albumChanged || nameChanged || lengthChanged) {
+                if (artistChanged || albumArtistChanged || albumChanged || nameChanged || lengthChanged) {
                     // Something changed - check if new values are in database
                     String key = createSongLookupKey(current.getArtist(), current.getAlbum(), current.getName());
                     boolean found = dbSongKeys.contains(key);
@@ -111,9 +112,11 @@ public class ItunesChangesService {
                     changedSongs.add(new ItunesChangedSongDTO(
                         persistentId,
                         snapshot.getArtist(),
+                        snapshot.getAlbumArtist(),
                         snapshot.getAlbum(),
                         snapshot.getName(),
                         current.getArtist(),
+                        current.getAlbumArtist(),
                         current.getAlbum(),
                         current.getName(),
                         current.getTrackNumber(),
@@ -189,6 +192,7 @@ public class ItunesChangesService {
                 song.getPersistentId(),
                 song.getTrackId(),
                 song.getArtist(),
+                song.getAlbumArtist(),
                 song.getAlbum(),
                 song.getName(),
                 song.getTrackNumber(),

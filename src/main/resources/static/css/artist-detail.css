@@ -4,3 +4,9 @@
 .detail-sidebar .item-image-container {
     aspect-ratio: 2/3;
 }
+/* Mobile - maintain portrait aspect but smaller size */
+@media (max-width: 768px) {
+    .artist-detail .detail-sidebar .item-image-container {
+        aspect-ratio: 2/3;
+    }
+}

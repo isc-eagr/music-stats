@@ -551,28 +551,27 @@ public class ArtistController {
         // Tab and plays data
         model.addAttribute("activeTab", tab);
         
-        // Add collaborated artist cards (for the Artist Associations tab)
-        if ("collaborated".equals(tab)) {
-            if (includeMain && effectiveGroupIds != null) {
-                // Main + Groups
-                model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(id, effectiveGroupIds));
-            } else if (includeMain && effectiveGroupIds == null) {
-                // Main only
-                model.addAttribute("collaboratedArtistCards", artistService.getCollaboratedArtistsForArtist(id));
-            } else if (!includeMain && effectiveGroupIds != null) {
-                // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
-                model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(0, effectiveGroupIds));
+        // Add collaborated artist cards (always pre-loaded for Artist Associations tab)
+        if (includeMain && effectiveGroupIds != null) {
+            // Main + Groups
+            model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(id, effectiveGroupIds));
+        } else if (includeMain && effectiveGroupIds == null) {
+            // Main only
+            model.addAttribute("collaboratedArtistCards", artistService.getCollaboratedArtistsForArtist(id));
+        } else if (!includeMain && effectiveGroupIds != null) {
+            // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
+            model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(0, effectiveGroupIds));
+        } else {
+            // No main, no groups - only featured collaborators
+            if (includeFeatured && hasFeaturedSongs) {
+                model.addAttribute("collaboratedArtistCards", artistService.getFeaturedCollaboratedArtists(id));
             } else {
-                // No main, no groups - only featured collaborators
-                if (includeFeatured && hasFeaturedSongs) {
-                    model.addAttribute("collaboratedArtistCards", artistService.getFeaturedCollaboratedArtists(id));
-                } else {
-                    model.addAttribute("collaboratedArtistCards", java.util.Collections.emptyList());
-                }
+                model.addAttribute("collaboratedArtistCards", java.util.Collections.emptyList());
             }
         }
         
-        if ("plays".equals(tab)) {
+        // Always load plays/scrobbles data (eager loading for all tabs)
+        {
             int pageSize = 100;
             List<library.dto.ScrobbleDTO> scrobbles;
             
@@ -660,8 +659,8 @@ public class ArtistController {
             }
         }
         
-        // Add chart history for the Chart History tab (separate lists for songs and albums)
-        if ("chart-history".equals(tab)) {
+        // Always load chart history data (eager loading for all tabs)
+        {
             List<library.dto.ChartHistoryDTO> songHistory;
             List<library.dto.ChartHistoryDTO> albumHistory;
             List<java.util.Map<String, Object>> seasonalSongHistory;

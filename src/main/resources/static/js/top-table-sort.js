@@ -66,7 +66,7 @@ function initTopTableSort(tableId, options = {}) {
     const defaults = {
         defaultColumn: 'totalplays',
         defaultDirection: 'desc',
-        numericColumns: ['primaryplays', 'legacyplays', 'totalplays', 'timelistened'],
+        numericColumns: ['primaryplays', 'legacyplays', 'totalplays', 'timelistened', 'length'],
         dateColumns: ['releasedate', 'firstlistened', 'lastlistened'],
         summaryRowId: null
     };
@@ -129,6 +129,15 @@ function initTopTableSort(tableId, options = {}) {
         if (summaryRow) {
             tbody.appendChild(summaryRow);
         }
+        
+        // Update row numbers to always be sequential 1, 2, 3, etc.
+        let rowNum = 1;
+        rows.forEach(row => {
+            const rowNumCell = row.querySelector('.row-num-col');
+            if (rowNumCell) {
+                rowNumCell.textContent = rowNum++;
+            }
+        });
         
         updateTopTableSortIndicators(tableId, currentSort.column, currentSort.direction);
     }

@@ -260,26 +260,30 @@
                        class="winning-chip chart-chip yearly-chart"
                        th:text="${entry.displayName}"></a>
                 </div>
+                <button type="button" class="chips-expand-btn" onclick="toggleChipsExpand(this)">
+                    Show more <span class="expand-icon">▼</span>
+                </button>
             </div>
             
             <!-- Tab Navigation -->
             <div class="detail-tabs">
-                <a th:href="@{'/albums/' + ${album.id}}" 
+                <a href="#" onclick="switchTab(event, 'general')" 
                    th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
-                   class="detail-tab">General</a>
-                <a th:href="@{'/albums/' + ${album.id} + '?tab=plays'}" 
+                   class="detail-tab" id="generalTab">General</a>
+                <a href="#" onclick="switchTab(event, 'plays')" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
-                   class="detail-tab">Plays</a>
-                <a th:href="@{'/albums/' + ${album.id} + '?tab=featured'}" 
+                   class="detail-tab" id="playsTab">Plays</a>
+                <a href="#" onclick="switchTab(event, 'featured')" 
                    th:classappend="${activeTab == 'featured'} ? 'active' : ''"
-                   class="detail-tab">Featured Artists</a>
-                <a th:href="@{'/albums/' + ${album.id} + '?tab=chart-history'}" 
+                   class="detail-tab" id="featuredTab">Featured Artists</a>
+                <a href="#" onclick="switchTab(event, 'chart-history')" 
                    th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
-                   class="detail-tab">Chart History</a>
+                   class="detail-tab" id="chartHistoryTab">Chart History</a>
             </div>
             
             <!-- Right side: Stacked cards layout for General and Statistics -->
-            <div class="detail-right-section" th:if="${activeTab == 'general' or activeTab == null}">
+            <div class="detail-right-section" id="generalSectionContent"
+                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -464,12 +468,14 @@
             </div>
             
             <!-- Songs List Section - Inside grid, spanning full width of right column -->
-            <div class="detail-content-section" th:if="${(activeTab == 'general' or activeTab == null) and songs != null and !songs.isEmpty()}">
+            <div class="detail-content-section general-tab-section" th:if="${(activeTab == 'general' or activeTab == null) and songs != null and !songs.isEmpty()}"
+                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <h2 class="section-title">Songs</h2>
                 <div class="top-table-container">
                     <table class="top-table" id="songsTable">
                         <thead>
                             <tr>
+                                <th class="row-num-col" data-no-sort>#</th>
                                 <th data-sort="name">Song Name</th>
                                 <th data-sort="totalplays" style="text-align:right;">Total</th>
                                 <th data-sort="primaryplays" style="text-align:right;" class="hide-mobile">Primary</th>
@@ -482,7 +488,7 @@
                             </tr>
                         </thead>
                         <tbody id="songsTableBody">
-                            <tr th:each="song : ${songs}"
+                            <tr th:each="song, iter : ${songs}"
                                 th:attr="data-name=${song.name},
                                         data-length=${song.length != null ? song.length : 0},
                                         data-releasedate=${song.releaseDate},
@@ -492,6 +498,7 @@
                                         data-legacyplays=${song.robertloverPlays},
                                         data-totalplays=${song.totalPlays},
                                         data-timelistened=${song.totalListeningTimeSeconds}">
+                                <td class="row-num-col" th:text="${iter.count}">1</td>
                                 <td>
                                     <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
@@ -511,7 +518,8 @@
             </div>
             
             <!-- Plays Tab Content -->
-            <div class="plays-tab-content" th:if="${activeTab == 'plays'}">
+            <div class="plays-tab-content" id="playsTabContent"
+                 th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
                     <h2 class="section-title">Plays by Year</h2>
@@ -579,7 +587,8 @@
             </div>
             
             <!-- Featured Artists Tab Content -->
-            <div class="featured-tab-content" th:if="${activeTab == 'featured'}">
+            <div class="featured-tab-content" id="featuredTabContent" 
+                 th:style="${activeTab == 'featured'} ? 'display: block !important;' : 'display: none !important;'">
                 <div class="detail-content-card">
                     <h2 class="section-title">Featured Artists 
                         <span class="item-count">(<span th:text="${featuredArtistCards != null ? featuredArtistCards.size() : 0}">0</span>)</span>
@@ -639,7 +648,8 @@
             </div>
             
             <!-- Chart History Tab Content -->
-            <div class="featured-tab-content" th:if="${activeTab == 'chart-history'}">
+            <div class="featured-tab-content" id="chartHistoryTabContent"
+                 th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- Album Chart History -->
                 <div class="detail-content-card">
                     <h2 class="section-title">💿 Album 
@@ -820,7 +830,7 @@
         </div>
     </div>
     
-    <script th:if="${activeTab == 'plays'}" th:inline="javascript">
+    <script th:inline="javascript">
         // Initialize plays by month chart (grouped by year)
         document.addEventListener('DOMContentLoaded', function() {
             const playsByMonthData = /*[[${playsByMonth}]]*/ [];
@@ -2387,6 +2397,52 @@
             }
             
             closeSpotifyMetadataModal();
+        }
+        
+        // Mobile: Toggle ranking chips expand/collapse
+        function toggleChipsExpand(btn) {
+            const chipsContainer = btn.previousElementSibling;
+            if (chipsContainer && chipsContainer.classList.contains('winning-chips')) {
+                const isExpanded = chipsContainer.classList.toggle('expanded');
+                btn.innerHTML = isExpanded ? 'Show less <span class="expand-icon">▲</span>' : 'Show more <span class="expand-icon">▼</span>';
+            }
+        }
+        
+        function switchTab(event, tabName) {
+            event.preventDefault();
+            
+            // Get all tab content sections
+            const generalSection = document.getElementById('generalSectionContent');
+            const featuredSection = document.getElementById('featuredTabContent');
+            const playsSection = document.getElementById('playsTabContent');
+            const chartHistorySection = document.getElementById('chartHistoryTabContent');
+            const generalTabSections = document.querySelectorAll('.general-tab-section');
+            
+            // Hide all tab content sections
+            if (generalSection) generalSection.style.cssText = 'display: none !important;';
+            if (featuredSection) featuredSection.style.cssText = 'display: none !important;';
+            if (playsSection) playsSection.style.cssText = 'display: none !important;';
+            if (chartHistorySection) chartHistorySection.style.cssText = 'display: none !important;';
+            generalTabSections.forEach(section => section.style.cssText = 'display: none !important;');
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.detail-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab and activate it
+            if (tabName === 'featured' && featuredSection) {
+                featuredSection.style.cssText = 'display: block !important;';
+                document.getElementById('featuredTab').classList.add('active');
+            } else if (tabName === 'plays' && playsSection) {
+                playsSection.style.cssText = 'display: block !important;';
+                document.getElementById('playsTab').classList.add('active');
+            } else if (tabName === 'chart-history' && chartHistorySection) {
+                chartHistorySection.style.cssText = 'display: block !important;';
+                document.getElementById('chartHistoryTab').classList.add('active');
+            } else if (tabName === 'general' && generalSection) {
+                generalSection.style.cssText = 'display: block !important;';
+                generalTabSections.forEach(section => section.style.cssText = 'display: block !important;');
+                document.getElementById('generalTab').classList.add('active');
+            }
         }
         /*]]>*/
     </script>

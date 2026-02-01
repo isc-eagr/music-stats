@@ -229,6 +229,24 @@
     const parent = tbody || table;
     regularRows.forEach(r=> parent.appendChild(r));
     specialRows.forEach(r=> parent.appendChild(r));
+    
+    // Update row numbers after sorting
+    updateRowNumbers(table);
+  }
+  
+  function updateRowNumbers(table) {
+    const tbody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
+    let rows = Array.from((tbody || table).rows);
+    if(!tbody) rows = rows.slice(1);
+    
+    let rowNumber = 1;
+    rows.forEach(row => {
+      const rowNumCell = row.querySelector('.row-num-col');
+      // Only number regular rows, skip summary rows and non-sortable rows
+      if (rowNumCell && !row.classList.contains('non-sortable-row') && !row.classList.contains('summary-row')) {
+        rowNumCell.textContent = rowNumber++;
+      }
+    });
   }
 
   // Export for external use
@@ -236,7 +254,8 @@
     parseDate: parseDate,
     parseTimeToSeconds: parseTimeToSeconds,
     makeSortable: makeSortable,
-    sortByColumn: sortByColumn
+    sortByColumn: sortByColumn,
+    updateRowNumbers: updateRowNumbers
   };
 
   document.addEventListener('DOMContentLoaded', function(){

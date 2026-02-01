@@ -281,26 +281,30 @@
                        class="winning-chip chart-chip yearly-chart"
                        th:text="${entry.displayName}"></a>
                 </div>
+                <button type="button" class="chips-expand-btn" onclick="toggleChipsExpand(this)">
+                    Show more <span class="expand-icon">▼</span>
+                </button>
             </div>
             
             <!-- Tab Navigation -->
             <div class="detail-tabs">
-                <a th:href="@{'/songs/' + ${song.id}}" 
+                <a href="#" onclick="switchTab(event, 'general')" 
                    th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
-                   class="detail-tab">General</a>
-                <a th:href="@{'/songs/' + ${song.id} + '?tab=plays'}" 
+                   class="detail-tab" id="generalTab">General</a>
+                <a href="#" onclick="switchTab(event, 'plays')" 
                    th:classappend="${activeTab == 'plays'} ? 'active' : ''"
-                   class="detail-tab">Plays</a>
-                <a th:href="@{'/songs/' + ${song.id} + '?tab=featured'}" 
+                   class="detail-tab" id="playsTab">Plays</a>
+                <a href="#" onclick="switchTab(event, 'featured')" 
                    th:classappend="${activeTab == 'featured'} ? 'active' : ''"
-                   class="detail-tab">Featured Artists</a>
-                <a th:href="@{'/songs/' + ${song.id} + '?tab=chart-history'}" 
+                   class="detail-tab" id="featuredTab">Featured Artists</a>
+                <a href="#" onclick="switchTab(event, 'chart-history')" 
                    th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
-                   class="detail-tab">Chart History</a>
+                   class="detail-tab" id="chartHistoryTab">Chart History</a>
             </div>
             
             <!-- Right side: Stacked cards layout for General and Statistics -->
-            <div class="detail-right-section" th:if="${activeTab == 'general' or activeTab == null}">
+            <div class="detail-right-section" id="generalSectionContent"
+                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -311,6 +315,11 @@
                                     th:disabled="${songPlayCount > 0}"
                                     th:title="${songPlayCount > 0 ? 'Cannot delete song with existing plays' : 'Delete this song'}"
                                     onclick="confirmDelete()">Delete</button>
+                            <button type="button" class="btn-negative" id="deleteScrobblesBtn" 
+                                    th:if="${songPlayCount > 0}"
+                                    style="background: #991b1b;"
+                                    title="⚠️ DANGER: Delete ALL listening history for this song"
+                                    onclick="confirmDeleteAllScrobbles()">Delete All Scrobbles</button>
                         </div>
                     </div>
                     
@@ -595,7 +604,8 @@
             </div>
             
             <!-- Plays Tab Content -->
-            <div class="plays-tab-content" th:if="${activeTab == 'plays'}">
+            <div class="plays-tab-content" id="playsTabContent"
+                 th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
                     <h2 class="section-title">Plays by Year</h2>
@@ -659,7 +669,8 @@
             </div>
             
             <!-- Featured Artists Tab Content -->
-            <div class="featured-tab-content" th:if="${activeTab == 'featured'}">
+            <div class="featured-tab-content" id="featuredTabContent" 
+                 th:style="${activeTab == 'featured'} ? 'display: block !important;' : 'display: none !important;'">
                 <div class="detail-content-card">
                     <h2 class="section-title">Featured Artists 
                         <span class="item-count">(<span th:text="${featuredArtistCards != null ? featuredArtistCards.size() : 0}">0</span>)</span>
@@ -715,7 +726,8 @@
             </div>
             
             <!-- Chart History Tab Content -->
-            <div class="featured-tab-content" th:if="${activeTab == 'chart-history'}">
+            <div class="featured-tab-content" id="chartHistoryTabContent"
+                 th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
                 <div class="detail-content-card">
                     <h2 class="section-title">Chart History 
                         <span class="item-count">(<span th:text="${chartHistory != null ? chartHistory.size() : 0}">0</span>)</span>
@@ -798,7 +810,7 @@
         </div>
     </div>
     
-    <script th:if="${activeTab == 'plays'}" th:inline="javascript">
+    <script th:inline="javascript">
         // Initialize plays by month chart (grouped by year)
         document.addEventListener('DOMContentLoaded', function() {
             const playsByMonthData = /*[[${playsByMonth}]]*/ [];
@@ -1427,6 +1439,67 @@
             }
         }
         
+        function confirmDeleteAllScrobbles() {
+            const songName = /*[[${song.name}]]*/ '';
+            const artistName = /*[[${artistName}]]*/ '';
+            const playCount = /*[[${songPlayCount}]]*/ 0;
+            
+            const displayName = artistName ? songName + ' by ' + artistName : songName;
+            
+            // First confirmation
+            const firstConfirm = confirm(
+                '⚠️ DANGER: Delete ALL Scrobbles ⚠️\n\n' +
+                'You are about to permanently delete ALL ' + playCount + ' scrobbles for:\n\n' +
+                '"' + displayName + '"\n\n' +
+                'This will completely erase the listening history for this song.\n\n' +
+                'Are you ABSOLUTELY SURE you want to continue?'
+            );
+            
+            if (!firstConfirm) return;
+            
+            // Second confirmation with typed input
+            const confirmText = prompt(
+                '⛔ FINAL WARNING ⛔\n\n' +
+                'This action CANNOT be undone!\n' +
+                'All ' + playCount + ' plays will be permanently deleted.\n\n' +
+                'Type "DELETE" (all caps) to confirm:'
+            );
+            
+            if (confirmText !== 'DELETE') {
+                if (confirmText !== null) {
+                    showWarningToast('Deletion cancelled - you must type "DELETE" exactly');
+                }
+                return;
+            }
+            
+            const songId = window.location.pathname.split('/').pop();
+            const deleteBtn = document.getElementById('deleteScrobblesBtn');
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+            
+            fetch(`/scrobbles/api/song/${songId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessToast('Successfully deleted ' + data.deletedCount + ' scrobbles');
+                    // Reload page to reflect the change
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showErrorToast('Error: ' + (data.error || 'Unknown error'));
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = 'Delete All Scrobbles';
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting scrobbles:', error);
+                showErrorToast('Error deleting scrobbles');
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete All Scrobbles';
+            });
+        }
+        
         function showTooltip(element) {
             const tooltip = element.querySelector('.tooltiptext') || element;
             if (tooltip.classList.contains('tooltiptext')) {
@@ -1804,6 +1877,49 @@
         });
         
         // Note: rely on global showTooltip/hideTooltip defined in fragments/navigation.html
+        
+        // Mobile: Toggle ranking chips expand/collapse
+        function toggleChipsExpand(btn) {
+            const chipsContainer = btn.previousElementSibling;
+            if (chipsContainer && chipsContainer.classList.contains('winning-chips')) {
+                const isExpanded = chipsContainer.classList.toggle('expanded');
+                btn.innerHTML = isExpanded ? 'Show less <span class="expand-icon">▲</span>' : 'Show more <span class="expand-icon">▼</span>';
+            }
+        }
+        
+        function switchTab(event, tabName) {
+            event.preventDefault();
+            
+            // Get all tab content sections
+            const generalSection = document.getElementById('generalSectionContent');
+            const featuredSection = document.getElementById('featuredTabContent');
+            const playsSection = document.getElementById('playsTabContent');
+            const chartHistorySection = document.getElementById('chartHistoryTabContent');
+            
+            // Hide all tab content sections
+            if (generalSection) generalSection.style.cssText = 'display: none !important;';
+            if (featuredSection) featuredSection.style.cssText = 'display: none !important;';
+            if (playsSection) playsSection.style.cssText = 'display: none !important;';
+            if (chartHistorySection) chartHistorySection.style.cssText = 'display: none !important;';
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.detail-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab and activate it
+            if (tabName === 'featured' && featuredSection) {
+                featuredSection.style.cssText = 'display: block !important;';
+                document.getElementById('featuredTab').classList.add('active');
+            } else if (tabName === 'plays' && playsSection) {
+                playsSection.style.cssText = 'display: block !important;';
+                document.getElementById('playsTab').classList.add('active');
+            } else if (tabName === 'chart-history' && chartHistorySection) {
+                chartHistorySection.style.cssText = 'display: block !important;';
+                document.getElementById('chartHistoryTab').classList.add('active');
+            } else if (tabName === 'general' && generalSection) {
+                generalSection.style.cssText = 'display: block !important;';
+                document.getElementById('generalTab').classList.add('active');
+            }
+        }
     </script>
     
     <style>

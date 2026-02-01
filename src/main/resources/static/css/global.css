@@ -3630,6 +3630,164 @@ input.flatpickr-input:focus {
         padding: 8px 12px;
         font-size: 13px;
     }
+    
+    /* MOBILE DETAIL PAGE - Compact horizontal header layout using Grid */
+    .detail-sidebar {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 8px 16px;
+        max-width: 100% !important;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 8px;
+    }
+    
+    /* Image - spans all rows on the left */
+    .detail-sidebar .item-image-container {
+        grid-column: 1;
+        grid-row: 1 / -1;
+        width: 100% !important;
+        min-width: unset;
+        aspect-ratio: 1/1 !important;
+        align-self: start;
+        border-radius: 10px;
+    }
+    
+    /* Artist images maintain portrait ratio */
+    .artist-detail .detail-sidebar .item-image-container {
+        aspect-ratio: 2/3 !important;
+    }
+    
+    /* Name overlay - top right */
+    .detail-sidebar .item-name-overlay {
+        grid-column: 2;
+        grid-row: 1;
+        padding: 0;
+        margin-bottom: 0;
+        min-width: 0;
+    }
+    
+    .detail-sidebar .item-name-top {
+        font-size: 18px;
+        line-height: 1.25;
+        margin-bottom: 4px;
+        word-break: break-word;
+    }
+    
+    /* Song/Album metadata under the title */
+    .detail-sidebar .song-metadata,
+    .detail-sidebar .album-metadata {
+        margin-top: 6px !important;
+        font-size: 13px !important;
+    }
+    
+    /* Stats row - middle right */
+    .detail-sidebar .item-stats {
+        grid-column: 2;
+        grid-row: 2;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 0;
+        font-size: 13px;
+        justify-content: flex-start;
+    }
+    
+    .detail-sidebar .item-stats .stat-icon {
+        font-size: 13px;
+    }
+    
+    /* Ranking chips - bottom right */
+    .detail-sidebar .ranking-chips-section {
+        grid-column: 2;
+        grid-row: 3;
+        margin-top: 4px;
+        margin-bottom: 0;
+        text-align: left;
+    }
+    
+    .detail-sidebar .winning-chips {
+        max-height: 80px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 0;
+        padding: 0;
+        justify-content: flex-start;
+    }
+    
+    .detail-sidebar .winning-chips.expanded {
+        max-height: none;
+    }
+    
+    .detail-sidebar .winning-chip {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+    
+    /* Show expand button on 768px screens */
+    .ranking-chips-section .chips-expand-btn {
+        display: block;
+    }
+    
+    /* Gradient fade when collapsed */
+    .ranking-chips-section .winning-chips:not(.expanded)::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 28px;
+        background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.95));
+        pointer-events: none;
+    }
+    
+    /* Image upload overlay - compact on mobile */
+    .detail-sidebar .image-upload-overlay {
+        padding: 8px;
+    }
+    
+    .detail-sidebar .btn-upload-image,
+    .detail-sidebar .btn-fetch-external,
+    .detail-sidebar .btn-remove-image {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+    
+    /* Section header - stack title and buttons on mobile */
+    .section-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .section-header .section-title {
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+    
+    .edit-button-container {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .edit-button-container .btn-action,
+    .edit-button-container .btn-negative {
+        padding: 8px 12px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+    
+    /* Form groups - more compact on mobile */
+    .form-group {
+        padding: 8px 12px;
+    }
+    
+    .form-group label {
+        font-size: 11px;
+    }
+    
+    .attribute-text {
+        font-size: 14px;
+    }
 }
 
 /* Phone-specific (very small screens) */
@@ -3709,11 +3867,6 @@ input.flatpickr-input:focus {
         width: 100%;
     }
     
-    /* Detail sidebar - smaller max */
-    .detail-sidebar {
-        max-width: 220px;
-    }
-    
     /* Detail content cards - even more compact */
     .detail-content-card {
         padding: 16px;
@@ -3747,6 +3900,187 @@ input.flatpickr-input:focus {
     .top-table .cover-col .cover-placeholder {
         width: 32px;
         height: 32px;
+    }
+    
+    /* MOBILE DETAIL PAGE - Compact horizontal layout using Grid */
+    .detail-sidebar {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 6px 12px;
+        max-width: 100% !important;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 12px;
+    }
+    
+    /* Image - spans all rows on left, smaller on phone */
+    .detail-sidebar .item-image-container {
+        grid-column: 1;
+        grid-row: 1 / -1;
+        width: 100% !important;
+        min-width: unset;
+        aspect-ratio: 1/1 !important;
+        align-self: start;
+        border-radius: 8px;
+    }
+    
+    /* Artist images maintain portrait on very small screens */
+    .artist-detail .detail-sidebar .item-image-container {
+        aspect-ratio: 2/3 !important;
+    }
+    
+    /* Name overlay - top right */
+    .detail-sidebar .item-name-overlay {
+        grid-column: 2;
+        grid-row: 1;
+        padding: 0;
+        margin-bottom: 0;
+    }
+    
+    .detail-sidebar .item-name-top {
+        font-size: 16px;
+        line-height: 1.2;
+        margin-bottom: 2px;
+        word-break: break-word;
+    }
+    
+    /* Song/Album metadata under the title */
+    .detail-sidebar .song-metadata,
+    .detail-sidebar .album-metadata {
+        margin-top: 4px !important;
+        font-size: 12px !important;
+    }
+    
+    /* Stats row - middle right */
+    .detail-sidebar .item-stats {
+        grid-column: 2;
+        grid-row: 2;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 0;
+        font-size: 12px;
+    }
+    
+    .detail-sidebar .item-stats .stat {
+        gap: 3px;
+    }
+    
+    .detail-sidebar .item-stats .stat-icon {
+        font-size: 12px;
+    }
+    
+    /* Ranking chips - bottom right, collapse to 2 rows max */
+    .detail-sidebar .ranking-chips-section {
+        grid-column: 2;
+        grid-row: 3;
+        margin-top: 2px;
+        margin-bottom: 0;
+    }
+    
+    .detail-sidebar .winning-chips {
+        max-height: 56px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 0;
+        padding: 0;
+    }
+    
+    .detail-sidebar .winning-chips.expanded {
+        max-height: none;
+    }
+    
+    .detail-sidebar .winning-chip {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+    
+    .detail-sidebar .chip-group-separator {
+        margin: 2px 0;
+    }
+    
+    /* Hide image upload overlay on very small screens - tap image to edit */
+    .detail-sidebar .image-upload-overlay {
+        display: none !important;
+    }
+    
+    /* Flag overlay smaller */
+    .detail-sidebar .flag-overlay {
+        width: 20px;
+        height: 15px;
+        top: 4px;
+        left: 4px;
+    }
+    
+    /* Death overlay smaller */
+    .detail-sidebar .death-overlay {
+        width: 22px;
+        height: 22px;
+        font-size: 14px;
+        top: 4px;
+        right: 4px;
+    }
+    
+    /* Length overlay smaller */
+    .detail-sidebar .length-overlay {
+        font-size: 9px;
+        padding: 1px 4px;
+        bottom: 4px;
+        right: 4px;
+    }
+    
+    /* Section header - fully stacked on phone */
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .section-header .section-title {
+        font-size: 11px;
+    }
+    
+    .edit-button-container {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .edit-button-container .btn-action,
+    .edit-button-container .btn-negative {
+        flex: 1;
+        max-width: 100px;
+        padding: 8px 10px;
+        font-size: 11px;
+        min-height: 38px;
+    }
+    
+    /* Detail content cards - tighter padding */
+    .detail-content-card {
+        border-radius: 10px;
+    }
+    
+    .detail-content-card > .section-title,
+    .detail-content-card > .section-header {
+        border-radius: 10px 10px 0 0;
+    }
+    
+    /* Form sections more compact */
+    .form-section {
+        padding: 8px !important;
+    }
+    
+    .form-group {
+        padding: 6px 10px;
+    }
+    
+    .form-group label {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+    
+    .attribute-text {
+        font-size: 13px;
     }
     
     /* Pagination - very compact */

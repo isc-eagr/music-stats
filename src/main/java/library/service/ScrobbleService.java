@@ -732,6 +732,18 @@ public class ScrobbleService {
     }
     
     /**
+     * Deletes all scrobbles for a specific song.
+     * This is a dangerous operation that removes all listening history for the song.
+     * 
+     * @param songId The ID of the song whose scrobbles should be deleted
+     * @return The number of scrobbles deleted
+     */
+    public int deleteScrobblesForSong(Long songId) {
+        String sql = "DELETE FROM scrobble WHERE song_id = ?";
+        return jdbcTemplate.update(sql, songId);
+    }
+    
+    /**
      * Get the total number of unique days since the first scrobble in the database.
      */
     public int getTotalDaysSinceFirstScrobble() {

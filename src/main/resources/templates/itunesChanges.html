@@ -293,6 +293,7 @@
                                 <tr>
                                     <th class="track-num">#</th>
                                     <th>Artist</th>
+                                    <th>Album Artist</th>
                                     <th>Album</th>
                                     <th>Song</th>
                                     <th style="width: 80px;">Length</th>
@@ -309,6 +310,12 @@
                                         <div class="changed-value">
                                             <span th:if="${song.artistChanged}" class="old-value" th:text="${song.oldArtist != null ? song.oldArtist : '(Unknown)'}">Old Artist</span>
                                             <span class="new-value" th:classappend="${song.artistChanged} ? 'changed' : ''" th:text="${song.newArtist != null ? song.newArtist : '(Unknown)'}">New Artist</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="changed-value">
+                                            <span th:if="${song.albumArtistChanged}" class="old-value" th:text="${song.oldAlbumArtist != null ? song.oldAlbumArtist : '(None)'}">Old Album Artist</span>
+                                            <span class="new-value" th:classappend="${song.albumArtistChanged} ? 'changed' : ''" th:text="${song.newAlbumArtist != null ? song.newAlbumArtist : '(None)'}">New Album Artist</span>
                                         </div>
                                     </td>
                                     <td>

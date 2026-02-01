@@ -201,17 +201,19 @@ public class ItunesService {
         private String persistentId;  // Stable hex identifier (e.g., "A1B2C3D4E5F6")
         private Integer trackId;      // Numeric ID that may change
         private String artist;
+        private String albumArtist;   // Album Artist (may differ from Artist for compilations)
         private String album;
         private String name;
         private Integer trackNumber;
         private Integer year;
         private Integer totalTime;    // Total Time in milliseconds
 
-        public ItunesSong(String persistentId, Integer trackId, String artist, String album, 
+        public ItunesSong(String persistentId, Integer trackId, String artist, String albumArtist, String album, 
                           String name, Integer trackNumber, Integer year, Integer totalTime) {
             this.persistentId = persistentId;
             this.trackId = trackId;
             this.artist = artist;
+            this.albumArtist = albumArtist;
             this.album = album;
             this.name = name;
             this.trackNumber = trackNumber;
@@ -222,6 +224,7 @@ public class ItunesService {
         public String getPersistentId() { return persistentId; }
         public Integer getTrackId() { return trackId; }
         public String getArtist() { return artist; }
+        public String getAlbumArtist() { return albumArtist; }
         public String getAlbum() { return album; }
         public String getName() { return name; }
         public Integer getTrackNumber() { return trackNumber; }
@@ -350,6 +353,7 @@ public class ItunesService {
         Integer trackId = null;
         String name = null;
         String artist = null;
+        String albumArtist = null;
         String album = null;
         Integer trackNumber = null;
         Integer year = null;
@@ -388,6 +392,9 @@ public class ItunesService {
                         break;
                     case "Artist":
                         artist = elem.getTextContent();
+                        break;
+                    case "Album Artist":
+                        albumArtist = elem.getTextContent();
                         break;
                     case "Album":
                         album = elem.getTextContent();
@@ -448,7 +455,7 @@ public class ItunesService {
             return null;
         }
 
-        return new ItunesSong(persistentId, trackId, artist, album, name, trackNumber, year, totalTime);
+        return new ItunesSong(persistentId, trackId, artist, albumArtist, album, name, trackNumber, year, totalTime);
     }
 
     /**

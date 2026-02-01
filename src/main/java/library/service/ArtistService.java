@@ -1516,7 +1516,7 @@ public class ArtistService {
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
                 COUNT(DISTINCT s.id) as feature_count,
-                GROUP_CONCAT(DISTINCT s.name, '||') as song_names
+                GROUP_CONCAT(s.name, '||') as song_names
             FROM SongFeaturedArtist sfa_me
             INNER JOIN Song s ON sfa_me.song_id = s.id
             INNER JOIN Artist a ON s.artist_id = a.id
@@ -1540,7 +1540,7 @@ public class ArtistService {
             
             SELECT 
                 a.id,
-                a.name,
+                a.name as name,
                 a.birth_date,
                 a.death_date,
                 a.gender_id,
@@ -1560,7 +1560,7 @@ public class ArtistService {
                 COALESCE(scr.play_count, 0) as play_count,
                 COALESCE(scr.time_listened, 0) as time_listened,
                 COUNT(DISTINCT s.id) as feature_count,
-                GROUP_CONCAT(DISTINCT s.name, '||') as song_names
+                GROUP_CONCAT(s.name, '||') as song_names
             FROM SongFeaturedArtist sfa_me
             INNER JOIN Song s ON sfa_me.song_id = s.id
             INNER JOIN SongFeaturedArtist sfa_other ON s.id = sfa_other.song_id

@@ -11,11 +11,13 @@ public class ItunesChangedSongDTO {
     
     // Old values (from snapshot)
     private String oldArtist;
+    private String oldAlbumArtist;
     private String oldAlbum;
     private String oldName;
     
     // New values (from current XML)
     private String newArtist;
+    private String newAlbumArtist;
     private String newAlbum;
     private String newName;
     private Integer trackNumber;
@@ -27,6 +29,7 @@ public class ItunesChangedSongDTO {
     
     // Change flags
     private boolean artistChanged;
+    private boolean albumArtistChanged;
     private boolean albumChanged;
     private boolean nameChanged;
     private boolean lengthChanged;
@@ -41,16 +44,18 @@ public class ItunesChangedSongDTO {
     }
 
     public ItunesChangedSongDTO(String persistentId,
-                                 String oldArtist, String oldAlbum, String oldName,
-                                 String newArtist, String newAlbum, String newName,
+                                 String oldArtist, String oldAlbumArtist, String oldAlbum, String oldName,
+                                 String newArtist, String newAlbumArtist, String newAlbum, String newName,
                                  Integer trackNumber, Integer year,
                                  boolean foundInDatabase, Long databaseSongId,
                                  Integer oldTotalTime, Integer newTotalTime) {
         this.persistentId = persistentId;
         this.oldArtist = oldArtist;
+        this.oldAlbumArtist = oldAlbumArtist;
         this.oldAlbum = oldAlbum;
         this.oldName = oldName;
         this.newArtist = newArtist;
+        this.newAlbumArtist = newAlbumArtist;
         this.newAlbum = newAlbum;
         this.newName = newName;
         this.trackNumber = trackNumber;
@@ -62,6 +67,7 @@ public class ItunesChangedSongDTO {
         
         // Compute change flags
         this.artistChanged = !nullSafeEquals(oldArtist, newArtist);
+        this.albumArtistChanged = !nullSafeEquals(oldAlbumArtist, newAlbumArtist);
         this.albumChanged = !nullSafeEquals(oldAlbum, newAlbum);
         this.nameChanged = !nullSafeEquals(oldName, newName);
         this.lengthChanged = !nullSafeEquals(oldTotalTime, newTotalTime);
@@ -99,14 +105,17 @@ public class ItunesChangedSongDTO {
     // Getters
     public String getPersistentId() { return persistentId; }
     public String getOldArtist() { return oldArtist; }
+    public String getOldAlbumArtist() { return oldAlbumArtist; }
     public String getOldAlbum() { return oldAlbum; }
     public String getOldName() { return oldName; }
     public String getNewArtist() { return newArtist; }
+    public String getNewAlbumArtist() { return newAlbumArtist; }
     public String getNewAlbum() { return newAlbum; }
     public String getNewName() { return newName; }
     public Integer getTrackNumber() { return trackNumber; }
     public Integer getYear() { return year; }
     public boolean isArtistChanged() { return artistChanged; }
+    public boolean isAlbumArtistChanged() { return albumArtistChanged; }
     public boolean isAlbumChanged() { return albumChanged; }
     public boolean isNameChanged() { return nameChanged; }
     public boolean isLengthChanged() { return lengthChanged; }
@@ -118,14 +127,17 @@ public class ItunesChangedSongDTO {
     // Setters
     public void setPersistentId(String persistentId) { this.persistentId = persistentId; }
     public void setOldArtist(String oldArtist) { this.oldArtist = oldArtist; }
+    public void setOldAlbumArtist(String oldAlbumArtist) { this.oldAlbumArtist = oldAlbumArtist; }
     public void setOldAlbum(String oldAlbum) { this.oldAlbum = oldAlbum; }
     public void setOldName(String oldName) { this.oldName = oldName; }
     public void setNewArtist(String newArtist) { this.newArtist = newArtist; }
+    public void setNewAlbumArtist(String newAlbumArtist) { this.newAlbumArtist = newAlbumArtist; }
     public void setNewAlbum(String newAlbum) { this.newAlbum = newAlbum; }
     public void setNewName(String newName) { this.newName = newName; }
     public void setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; }
     public void setYear(Integer year) { this.year = year; }
     public void setArtistChanged(boolean artistChanged) { this.artistChanged = artistChanged; }
+    public void setAlbumArtistChanged(boolean albumArtistChanged) { this.albumArtistChanged = albumArtistChanged; }
     public void setAlbumChanged(boolean albumChanged) { this.albumChanged = albumChanged; }
     public void setNameChanged(boolean nameChanged) { this.nameChanged = nameChanged; }
     public void setLengthChanged(boolean lengthChanged) { this.lengthChanged = lengthChanged; }

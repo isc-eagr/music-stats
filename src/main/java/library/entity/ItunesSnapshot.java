@@ -35,6 +35,9 @@ public class ItunesSnapshot {
     @Column(name = "artist", length = 500)
     private String artist;
 
+    @Column(name = "album_artist", length = 500)
+    private String albumArtist;
+
     @Column(name = "album", length = 500)
     private String album;
 
@@ -65,11 +68,12 @@ public class ItunesSnapshot {
     public ItunesSnapshot() {
     }
 
-    public ItunesSnapshot(String persistentId, Integer trackId, String artist, String album, 
+    public ItunesSnapshot(String persistentId, Integer trackId, String artist, String albumArtist, String album, 
                           String name, Integer trackNumber, Integer year, Integer totalTime) {
         this.persistentId = persistentId;
         this.trackId = trackId;
         this.artist = artist;
+        this.albumArtist = albumArtist;
         this.album = album;
         this.name = name;
         this.trackNumber = trackNumber;
@@ -104,6 +108,9 @@ public class ItunesSnapshot {
 
     public String getArtist() { return artist; }
     public void setArtist(String artist) { this.artist = artist; }
+
+    public String getAlbumArtist() { return albumArtist; }
+    public void setAlbumArtist(String albumArtist) { this.albumArtist = albumArtist; }
 
     public String getAlbum() { return album; }
     public void setAlbum(String album) { this.album = album; }
