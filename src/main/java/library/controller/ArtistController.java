@@ -777,6 +777,51 @@ public class ArtistController {
 
         // Add new ranking chips
         model.addAttribute("overallPosition", artistService.getArtistOverallPosition(id));
+        
+        // Add #1 song achievement chips
+        Integer numberOneSongsCount = chartService.getNumberOneSongsCount(id);
+        model.addAttribute("numberOneSongsCount", numberOneSongsCount);
+        model.addAttribute("numberOneWeeksCount", chartService.getNumberOneWeeksCount(id));
+        
+        // Get list of #1 songs for tooltip
+        if (numberOneSongsCount != null && numberOneSongsCount > 0) {
+            model.addAttribute("numberOneSongsList", chartService.getNumberOneSongNames(id));
+        }
+        
+        // Add #1 album achievement chips
+        Integer numberOneAlbumsCount = chartService.getNumberOneAlbumsCount(id);
+        model.addAttribute("numberOneAlbumsCount", numberOneAlbumsCount);
+        model.addAttribute("numberOneAlbumWeeksCount", chartService.getNumberOneAlbumWeeksCount(id));
+        
+        // Get list of #1 albums for tooltip
+        if (numberOneAlbumsCount != null && numberOneAlbumsCount > 0) {
+            model.addAttribute("numberOneAlbumsList", chartService.getNumberOneAlbumNames(id));
+        }
+        
+        // Add #1 featured song achievement chips
+        Integer numberOneFeaturedSongsCount = chartService.getNumberOneFeaturedSongsCount(id);
+        model.addAttribute("numberOneFeaturedSongsCount", numberOneFeaturedSongsCount);
+        model.addAttribute("numberOneFeaturedWeeksCount", chartService.getNumberOneFeaturedWeeksCount(id));
+        
+        // Get list of #1 featured songs for tooltip
+        if (numberOneFeaturedSongsCount != null && numberOneFeaturedSongsCount > 0) {
+            model.addAttribute("numberOneFeaturedSongsList", chartService.getNumberOneFeaturedSongNames(id));
+        }
+        
+        // Reverse the year rankings order for artist detail page (most recent first)
+        Map<Integer, Integer> yearRanks = artistService.getArtistRanksByYear(id);
+        if (yearRanks != null && !yearRanks.isEmpty()) {
+            // Convert to list, reverse it, and create a new LinkedHashMap in reversed order
+            List<Map.Entry<Integer, Integer>> yearList = new java.util.ArrayList<>(yearRanks.entrySet());
+            java.util.Collections.reverse(yearList);
+            Map<Integer, Integer> reversedYearRanks = new java.util.LinkedHashMap<>();
+            for (Map.Entry<Integer, Integer> entry : yearList) {
+                reversedYearRanks.put(entry.getKey(), entry.getValue());
+            }
+            model.addAttribute("ranksByYear", reversedYearRanks);
+        } else {
+            model.addAttribute("ranksByYear", yearRanks);
+        }
 
         return "artists/detail";
     }

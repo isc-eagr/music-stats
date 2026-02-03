@@ -11,6 +11,7 @@ public class ItunesAddedSongDTO {
     private String name;
     private Integer trackNumber;
     private Integer year;
+    private String genre;
     
     // Whether this song already exists in the Music Stats database
     private boolean foundInDatabase;
@@ -20,7 +21,7 @@ public class ItunesAddedSongDTO {
     }
 
     public ItunesAddedSongDTO(String persistentId, String artist, String album, String name,
-                               Integer trackNumber, Integer year,
+                               Integer trackNumber, Integer year, String genre,
                                boolean foundInDatabase, Long databaseSongId) {
         this.persistentId = persistentId;
         this.artist = artist;
@@ -28,6 +29,7 @@ public class ItunesAddedSongDTO {
         this.name = name;
         this.trackNumber = trackNumber;
         this.year = year;
+        this.genre = genre;
         this.foundInDatabase = foundInDatabase;
         this.databaseSongId = databaseSongId;
     }
@@ -39,6 +41,7 @@ public class ItunesAddedSongDTO {
     public String getName() { return name; }
     public Integer getTrackNumber() { return trackNumber; }
     public Integer getYear() { return year; }
+    public String getGenre() { return genre; }
     public boolean isFoundInDatabase() { return foundInDatabase; }
     public Long getDatabaseSongId() { return databaseSongId; }
 
@@ -49,6 +52,7 @@ public class ItunesAddedSongDTO {
     public void setName(String name) { this.name = name; }
     public void setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; }
     public void setYear(Integer year) { this.year = year; }
+    public void setGenre(String genre) { this.genre = genre; }
     public void setFoundInDatabase(boolean foundInDatabase) { this.foundInDatabase = foundInDatabase; }
     public void setDatabaseSongId(Long databaseSongId) { this.databaseSongId = databaseSongId; }
 }

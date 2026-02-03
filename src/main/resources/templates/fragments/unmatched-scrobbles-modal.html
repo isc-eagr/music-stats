@@ -555,15 +555,15 @@
             document.getElementById('wizardSongName').textContent = row.song || '(none)';
             document.getElementById('wizardScrobbleCount').textContent = row.cnt || row.count || 0;
             
-            // Pre-fill search fields
+            // Reset to step 1
+            showWizardStep(1);
+            resetWizardForms();
+            
+            // Pre-fill search fields AFTER reset
             document.getElementById('wizardArtistSearch').value = row.artist || '';
             document.getElementById('newArtistName').value = row.artist || '';
             document.getElementById('newAlbumName').value = row.album || '';
             document.getElementById('wizardSongNameInput').value = row.song || '';
-            
-            // Reset to step 1
-            showWizardStep(1);
-            resetWizardForms();
             
             // Open modal with loading overlay
             document.getElementById('createWizardModal').classList.add('active');
@@ -1412,68 +1412,77 @@
                     const parts = [];
                     
                     // Get album release date (from DB if selected, from input if newly created)
-                    let albumReleaseDate = null;
+                    let albumReleaseDatePromise;
                     if (wizardState.selectedAlbumId) {
-                        // TODO: Would need to fetch from server, but for now we'll skip if album exists
-                        // For existing albums, we assume the release date might be the same
-                        albumReleaseDate = 'unknown'; // Marker to skip population for existing albums
-                    } else if (wizardState.isNewAlbum && wizardState.newAlbumReleaseDate) {
-                        albumReleaseDate = wizardState.newAlbumReleaseDate;
+                        // Fetch album release date from server
+                        albumReleaseDatePromise = fetch(`/albums/api/${wizardState.selectedAlbumId}/release-date`)
+                            .then(r => r.json())
+                            .then(data => data.releaseDate)
+                            .catch(() => null);
+                    } else if (wizardState.isNewAlbum) {
+                        // Read directly from form field
+                        albumReleaseDatePromise = Promise.resolve(document.getElementById('newAlbumReleaseDate').value.trim() || null);
+                    } else {
+                        // No album selected
+                        albumReleaseDatePromise = Promise.resolve(null);
                     }
                     
-                    // Populate release date if found and different from album
-                    if (data.releaseDate) {
-                        // Convert YYYY-MM-DD to dd/MM/yyyy format
-                        const dateParts = data.releaseDate.split('-');
-                        if (dateParts.length === 3) {
-                            const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                            const releaseDateField = document.getElementById('wizardSongReleaseDate');
-                            const currentValue = releaseDateField.value;
-                            
-                            // Only populate if no album or if date is different from album
-                            if (!albumReleaseDate) {
-                                // No album selected - populate normally
-                                releaseDateField.value = formatted;
-                                parts.push(`Release: ${formatted}`);
-                                // Highlight if value was changed
-                                if (currentValue !== formatted) {
-                                    highlightWizardField('wizardSongReleaseDate');
+                    // Wait for album release date, then populate song release date if different
+                    albumReleaseDatePromise.then(albumReleaseDate => {
+                        // Populate release date if found and different from album
+                        if (data.releaseDate) {
+                            // Convert YYYY-MM-DD to dd/MM/yyyy format
+                            const dateParts = data.releaseDate.split('-');
+                            if (dateParts.length === 3) {
+                                const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                                const releaseDateField = document.getElementById('wizardSongReleaseDate');
+                                const currentValue = releaseDateField.value;
+                                
+                                // Only populate if no album or if date is different from album
+                                if (!albumReleaseDate) {
+                                    // No album selected - populate normally
+                                    releaseDateField.value = formatted;
+                                    parts.push(`Release: ${formatted}`);
+                                    // Highlight if value was changed
+                                    if (currentValue !== formatted) {
+                                        highlightWizardField('wizardSongReleaseDate');
+                                    }
+                                } else if (albumReleaseDate !== formatted) {
+                                    // Album has different release date - populate
+                                    releaseDateField.value = formatted;
+                                    parts.push(`Release: ${formatted} (different from album)`);
+                                    // Highlight if value was changed
+                                    if (currentValue !== formatted) {
+                                        highlightWizardField('wizardSongReleaseDate');
+                                    }
+                                } else {
+                                    // Same as album - skip
+                                    parts.push(`Release: ${formatted} (skipped - same as album)`);
                                 }
-                            } else if (albumReleaseDate !== 'unknown' && albumReleaseDate !== formatted) {
-                                // New album with different release date - populate
-                                releaseDateField.value = formatted;
-                                parts.push(`Release: ${formatted} (different from album)`);
-                                // Highlight if value was changed
-                                if (currentValue !== formatted) {
-                                    highlightWizardField('wizardSongReleaseDate');
-                                }
-                            } else {
-                                // Same as album or existing album - skip
-                                parts.push(`Release: ${formatted} (skipped - same as album)`);
                             }
                         }
-                    }
-                    
-                    // Populate length if found
-                    if (data.lengthSeconds && data.lengthFormatted) {
-                        const lengthField = document.getElementById('wizardSongLength');
-                        const currentValue = lengthField.value;
-                        lengthField.value = data.lengthFormatted;
-                        document.getElementById('wizardSongLengthSeconds').value = data.lengthSeconds;
-                        parts.push(`Length: ${data.lengthFormatted}`);
-                        // Highlight if value was changed
-                        if (currentValue !== data.lengthFormatted) {
-                            highlightWizardField('wizardSongLength');
+                        
+                        // Populate length if found
+                        if (data.lengthSeconds && data.lengthFormatted) {
+                            const lengthField = document.getElementById('wizardSongLength');
+                            const currentValue = lengthField.value;
+                            lengthField.value = data.lengthFormatted;
+                            document.getElementById('wizardSongLengthSeconds').value = data.lengthSeconds;
+                            parts.push(`Length: ${data.lengthFormatted}`);
+                            // Highlight if value was changed
+                            if (currentValue !== data.lengthFormatted) {
+                                highlightWizardField('wizardSongLength');
+                            }
                         }
-                    }
-                    
-                    if (parts.length > 0) {
-                        statusEl.textContent = message + parts.join(', ');
-                        statusEl.style.color = data.matchType === 'partial' ? '#ffa94d' : '#69db7c';
-                    } else {
-                        statusEl.textContent = '✓ Song found but no date/length available';
-                        statusEl.style.color = '#ffa94d';
-                    }
+                        
+                        if (parts.length > 0) {
+                            statusEl.textContent = message + parts.join(', ');
+                            statusEl.style.color = data.matchType === 'partial' ? '#ffa94d' : '#69db7c';
+                        } else {
+                            statusEl.textContent = '✓ Song found but no date/length available';
+                            statusEl.style.color = '#ffa94d';
+                        }
+                    });
                 } else {
                     statusEl.textContent = '✗ ' + (data.message || 'Song not found in iTunes library');
                     statusEl.style.color = '#ff6b6b';
@@ -1521,6 +1530,7 @@
                     document.getElementById('wizardAlbumImageUrl').value = selectedItem.url;
                     document.getElementById('wizardAlbumImagePreviewImg').src = selectedItem.url.replace(/1000x1000|cover_xl/, '300x300').replace('cover_xl', 'cover_medium');
                     document.getElementById('wizardAlbumImagePreview').style.display = 'block';
+                    wizardState.newAlbumImageUrl = selectedItem.url; // Store in state for payload
                     parts.push('Image selected');
                 }
                 
@@ -1551,57 +1561,68 @@
                 const statusEl = document.getElementById('wizardItunesFetchStatus');
                 const parts = [];
                 
-                // Get album release date (from new album form if creating one)
-                let albumReleaseDate = null;
+                // Get album release date (from DB if selected, from input if newly created)
+                let albumReleaseDatePromise;
                 if (wizardState.selectedAlbumId) {
-                    // Existing album - skip population to avoid duplicating album release date
-                    albumReleaseDate = 'unknown'; // Marker to skip population
-                } else if (wizardState.isNewAlbum && wizardState.newAlbumReleaseDate) {
-                    albumReleaseDate = wizardState.newAlbumReleaseDate;
+                    // Fetch album release date from server
+                    albumReleaseDatePromise = fetch(`/albums/api/${wizardState.selectedAlbumId}/release-date`)
+                        .then(r => r.json())
+                        .then(data => data.releaseDate)
+                        .catch(() => null);
+                } else if (wizardState.isNewAlbum) {
+                    // Read directly from form field
+                    albumReleaseDatePromise = Promise.resolve(document.getElementById('newAlbumReleaseDate').value.trim() || null);
+                } else {
+                    // No album selected
+                    albumReleaseDatePromise = Promise.resolve(null);
                 }
                 
-                // Set release date if available and different from album
-                if (selectedItem.releaseDate) {
-                    const dateParts = selectedItem.releaseDate.split('-');
-                    if (dateParts.length === 3) {
-                        const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                        
-                        // Only populate if no album or if date is different from album
-                        if (!albumReleaseDate) {
-                            // No album selected - populate normally
-                            document.getElementById('wizardSongReleaseDate').value = formatted;
-                            parts.push('Release: ' + formatted);
-                        } else if (albumReleaseDate !== 'unknown' && albumReleaseDate !== formatted) {
-                            // New album with different release date - populate
-                            document.getElementById('wizardSongReleaseDate').value = formatted;
-                            parts.push('Release: ' + formatted + ' (different from album)');
-                        } else {
-                            // Same as album or existing album - skip
-                            parts.push('Release: ' + formatted + ' (skipped - same as album)');
+                // Wait for album release date, then set song release date if different
+                albumReleaseDatePromise.then(albumReleaseDate => {
+                    // Set release date if available and different from album
+                    if (selectedItem.releaseDate) {
+                        const dateParts = selectedItem.releaseDate.split('-');
+                        if (dateParts.length === 3) {
+                            const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                            
+                            // Only populate if no album or if date is different from album
+                            if (!albumReleaseDate) {
+                                // No album selected - populate normally
+                                document.getElementById('wizardSongReleaseDate').value = formatted;
+                                parts.push('Release: ' + formatted);
+                            } else if (albumReleaseDate !== formatted) {
+                                // Album has different release date - populate
+                                document.getElementById('wizardSongReleaseDate').value = formatted;
+                                parts.push('Release: ' + formatted + ' (different from album)');
+                            } else {
+                                // Same as album - skip
+                                parts.push('Release: ' + formatted + ' (skipped - same as album)');
+                            }
                         }
                     }
-                }
-                
-                // Set length if available
-                if (selectedItem.lengthSeconds && selectedItem.lengthFormatted) {
-                    document.getElementById('wizardSongLength').value = selectedItem.lengthFormatted;
-                    document.getElementById('wizardSongLengthSeconds').value = selectedItem.lengthSeconds;
-                    parts.push('Length: ' + selectedItem.lengthFormatted);
-                }
-                
-                // Store image URL for later use when creating song
-                if (selectedItem.url) {
-                    document.getElementById('wizardSongImageUrl').value = selectedItem.url;
-                    document.getElementById('wizardSongImagePreviewImg').src = selectedItem.url.replace(/1000x1000|cover_xl/, '300x300').replace('cover_xl', 'cover_medium');
-                    document.getElementById('wizardSongImagePreview').style.display = 'block';
-                    parts.push('Image selected');
-                }
-                
-                // Update status
-                if (statusEl) {
-                    statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected');
-                    statusEl.style.color = '#69db7c';
-                }
+                    
+                    // Set length if available
+                    if (selectedItem.lengthSeconds && selectedItem.lengthFormatted) {
+                        document.getElementById('wizardSongLength').value = selectedItem.lengthFormatted;
+                        document.getElementById('wizardSongLengthSeconds').value = selectedItem.lengthSeconds;
+                        parts.push('Length: ' + selectedItem.lengthFormatted);
+                    }
+                    
+                    // Store image URL for later use when creating song
+                    if (selectedItem.url) {
+                        document.getElementById('wizardSongImageUrl').value = selectedItem.url;
+                        document.getElementById('wizardSongImagePreviewImg').src = selectedItem.url.replace(/1000x1000|cover_xl/, '300x300').replace('cover_xl', 'cover_medium');
+                        document.getElementById('wizardSongImagePreview').style.display = 'block';
+                        wizardState.newSongImageUrl = selectedItem.url; // Store in state for payload
+                        parts.push('Image selected');
+                    }
+                    
+                    // Update status
+                    if (statusEl) {
+                        statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected');
+                        statusEl.style.color = '#69db7c';
+                    }
+                });
             });
         }
 

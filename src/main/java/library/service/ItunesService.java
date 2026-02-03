@@ -207,9 +207,10 @@ public class ItunesService {
         private Integer trackNumber;
         private Integer year;
         private Integer totalTime;    // Total Time in milliseconds
+        private String genre;         // Genre from iTunes
 
         public ItunesSong(String persistentId, Integer trackId, String artist, String albumArtist, String album, 
-                          String name, Integer trackNumber, Integer year, Integer totalTime) {
+                          String name, Integer trackNumber, Integer year, Integer totalTime, String genre) {
             this.persistentId = persistentId;
             this.trackId = trackId;
             this.artist = artist;
@@ -219,6 +220,7 @@ public class ItunesService {
             this.trackNumber = trackNumber;
             this.year = year;
             this.totalTime = totalTime;
+            this.genre = genre;
         }
 
         public String getPersistentId() { return persistentId; }
@@ -230,6 +232,7 @@ public class ItunesService {
         public Integer getTrackNumber() { return trackNumber; }
         public Integer getYear() { return year; }
         public Integer getTotalTime() { return totalTime; }
+        public String getGenre() { return genre; }
         
         // Get length in seconds (converted from milliseconds)
         public Integer getLengthSeconds() {
@@ -358,6 +361,7 @@ public class ItunesService {
         Integer trackNumber = null;
         Integer year = null;
         Integer totalTime = null;
+        String genre = null;
         Boolean isPodcast = false;
         Boolean isAudiobook = false;
         Boolean isPlaylistOnly = false;
@@ -423,6 +427,9 @@ public class ItunesService {
                             totalTime = null;
                         }
                         break;
+                    case "Genre":
+                        genre = elem.getTextContent();
+                        break;
                     case "Podcast":
                         isPodcast = "true".equals(tagName) || "true".equalsIgnoreCase(elem.getTextContent());
                         break;
@@ -455,7 +462,7 @@ public class ItunesService {
             return null;
         }
 
-        return new ItunesSong(persistentId, trackId, artist, albumArtist, album, name, trackNumber, year, totalTime);
+        return new ItunesSong(persistentId, trackId, artist, albumArtist, album, name, trackNumber, year, totalTime, genre);
     }
 
     /**

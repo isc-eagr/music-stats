@@ -120,6 +120,30 @@
                            class="winning-chip rank-chip overall"
                            th:text="'#' + ${overallPosition} + ' overall'"
                            th:title="'Rank #' + ${overallPosition} + ' among all artists'"></a>
+                        
+                        <!-- Number One Songs Count (with weeks) -->
+                        <a th:if="${numberOneSongsCount != null and numberOneSongsCount > 0}"
+                           th:href="@{'/artists/' + ${artist.id} + '?tab=chart-history'}"
+                           class="winning-chip rank-chip chart-achievement number-one-songs-chip"
+                           th:text="${numberOneSongsCount} + ' ' + (${numberOneSongsCount == 1} ? 'song' : 'songs') + ' at #1 (for ' + ${numberOneWeeksCount} + ' ' + (${numberOneWeeksCount == 1} ? 'week' : 'weeks') + ')'"
+                           th:attr="data-songs=${numberOneSongsList != null ? #strings.listJoin(numberOneSongsList, '|') : ''}">
+                        </a>
+                        
+                        <!-- Number One Featured Songs Count (with weeks) -->
+                        <a th:if="${numberOneFeaturedSongsCount != null and numberOneFeaturedSongsCount > 0}"
+                           th:href="@{'/artists/' + ${artist.id} + '?tab=chart-history'}"
+                           class="winning-chip rank-chip chart-achievement number-one-featured-songs-chip"
+                           th:text="${numberOneFeaturedSongsCount} + ' featured ' + (${numberOneFeaturedSongsCount == 1} ? 'song' : 'songs') + ' at #1 (for ' + ${numberOneFeaturedWeeksCount} + ' ' + (${numberOneFeaturedWeeksCount == 1} ? 'week' : 'weeks') + ')'"
+                           th:attr="data-featured-songs=${numberOneFeaturedSongsList != null ? #strings.listJoin(numberOneFeaturedSongsList, '|') : ''}">
+                        </a>
+                        
+                        <!-- Number One Albums Count (with weeks) -->
+                        <a th:if="${numberOneAlbumsCount != null and numberOneAlbumsCount > 0}"
+                           th:href="@{'/artists/' + ${artist.id} + '?tab=chart-history'}"
+                           class="winning-chip rank-chip chart-achievement number-one-albums-chip"
+                           th:text="${numberOneAlbumsCount} + ' ' + (${numberOneAlbumsCount == 1} ? 'album' : 'albums') + ' at #1 (for ' + ${numberOneAlbumWeeksCount} + ' ' + (${numberOneAlbumWeeksCount == 1} ? 'week' : 'weeks') + ')'"
+                           th:attr="data-albums=${numberOneAlbumsList != null ? #strings.listJoin(numberOneAlbumsList, '|') : ''}">
+                        </a>
 
                         <!-- GROUP 2: Catalog Rankings (Gender > Genre > Subgenre > Ethnicity > Country > Language) -->
                         <div class="chip-group-separator"></div>
@@ -2650,6 +2674,42 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         
+        /* Custom tooltip for #1 songs */
+        .number-one-tooltip {
+            position: fixed;
+            display: none;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.2);
+            z-index: 10000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .number-one-tooltip .tooltip-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .number-one-tooltip .tooltip-song {
+            font-size: 13px;
+            color: #e5e7eb;
+            padding: 4px 0;
+            line-height: 1.4;
+        }
+        
+        .number-one-songs-chip,
+        .number-one-featured-songs-chip,
+        .number-one-albums-chip {
+            cursor: help !important;
+        }
+        
         .dropdown-item {
             padding: 10px 12px;
             color: #e5e7eb;
@@ -2738,6 +2798,75 @@
                 url.searchParams.set('includeMain', 'false');
             }
             window.location.href = url.toString();
+        }
+        
+        // Custom tooltip for #1 songs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup tooltip for songs
+            const numberOneSongsChip = document.querySelector('.number-one-songs-chip');
+            if (numberOneSongsChip) {
+                const songs = numberOneSongsChip.getAttribute('data-songs');
+                if (songs) {
+                    const songsList = songs.split('|');
+                    setupNumberOneTooltip(numberOneSongsChip, songsList, 'Songs that reached #1:', '🏆');
+                }
+            }
+            
+            // Setup tooltip for featured songs
+            const numberOneFeaturedSongsChip = document.querySelector('.number-one-featured-songs-chip');
+            if (numberOneFeaturedSongsChip) {
+                const featuredSongs = numberOneFeaturedSongsChip.getAttribute('data-featured-songs');
+                if (featuredSongs) {
+                    const featuredSongsList = featuredSongs.split('|');
+                    setupNumberOneTooltip(numberOneFeaturedSongsChip, featuredSongsList, 'Featured songs that reached #1:', '🌟');
+                }
+            }
+            
+            // Setup tooltip for albums
+            const numberOneAlbumsChip = document.querySelector('.number-one-albums-chip');
+            if (numberOneAlbumsChip) {
+                const albums = numberOneAlbumsChip.getAttribute('data-albums');
+                if (albums) {
+                    const albumsList = albums.split('|');
+                    setupNumberOneTooltip(numberOneAlbumsChip, albumsList, 'Albums that reached #1:', '🏆');
+                }
+            }
+        });
+        
+        function setupNumberOneTooltip(chip, itemsList, title, icon) {
+            // Create tooltip element
+            const tooltip = document.createElement('div');
+            tooltip.className = 'number-one-tooltip';
+            tooltip.innerHTML = `<div class="tooltip-title">${title}</div>` +
+                itemsList.map(item => `<div class="tooltip-song">${icon} ${escapeHtml(item)}</div>`).join('');
+            document.body.appendChild(tooltip);
+            
+            // Show/hide tooltip on hover
+            chip.addEventListener('mouseenter', function(e) {
+                const rect = chip.getBoundingClientRect();
+                tooltip.style.display = 'block';
+                
+                // Calculate tooltip height after making it visible
+                const tooltipHeight = tooltip.offsetHeight;
+                
+                // Position above the chip
+                tooltip.style.left = rect.left + 'px';
+                tooltip.style.top = (rect.top - tooltipHeight - 8) + 'px';
+            });
+            
+            chip.addEventListener('mouseleave', function() {
+                tooltip.style.display = 'none';
+            });
+            
+            // Reposition on scroll
+            window.addEventListener('scroll', function() {
+                if (tooltip.style.display === 'block') {
+                    const rect = chip.getBoundingClientRect();
+                    const tooltipHeight = tooltip.offsetHeight;
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.top - tooltipHeight - 8) + 'px';
+                }
+            });
         }
         
         // Chips expandable modal functionality

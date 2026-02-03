@@ -296,6 +296,7 @@
                                     <th>Album Artist</th>
                                     <th>Album</th>
                                     <th>Song</th>
+                                    <th>Genre</th>
                                     <th style="width: 80px;">Length</th>
                                     <th style="width: 100px;">Status</th>
                                 </tr>
@@ -330,6 +331,12 @@
                                             <span class="new-value" th:classappend="${song.nameChanged} ? 'changed' : ''" th:text="${song.newName}">New Name</span>
                                         </div>
                                     </td>
+                                    <td>
+                                        <div class="changed-value">
+                                            <span th:if="${song.genreChanged}" class="old-value" th:text="${song.oldGenre != null ? song.oldGenre : '(No Genre)'}">Old Genre</span>
+                                            <span class="new-value" th:classappend="${song.genreChanged} ? 'changed' : ''" th:text="${song.newGenre != null ? song.newGenre : '(No Genre)'}">New Genre</span>
+                                        </div>
+                                    </td>
                                     <td style="text-align: center;">
                                         <div class="changed-value">
                                             <span th:if="${song.lengthChanged}" class="old-value" th:text="${song.oldLengthFormatted != null ? song.oldLengthFormatted : '-'}">0:00</span>
@@ -359,6 +366,7 @@
                                     <th>Artist</th>
                                     <th>Album</th>
                                     <th>Song</th>
+                                    <th>Genre</th>
                                     <th class="year">Year</th>
                                     <th style="width: 100px;">Status</th>
                                 </tr>
@@ -375,6 +383,7 @@
                                     </td>
                                     <td th:classappend="${!song.foundInDatabase} ? 'added-not-in-db' : ''" th:text="${song.album != null ? song.album : '(No Album)'}">Album</td>
                                     <td th:classappend="${!song.foundInDatabase} ? 'added-not-in-db' : ''" th:text="${song.name}">Song</td>
+                                    <td th:classappend="${!song.foundInDatabase} ? 'added-not-in-db' : ''" th:text="${song.genre != null ? song.genre : '(No Genre)'}">Genre</td>
                                     <td class="year" th:text="${song.year != null ? song.year : '-'}">-</td>
                                     <td>
                                         <span th:if="${song.foundInDatabase}" class="status-badge found">
@@ -399,6 +408,7 @@
                                     <th>Artist</th>
                                     <th>Album</th>
                                     <th>Song</th>
+                                    <th>Genre</th>
                                     <th class="year">Year</th>
                                     <th style="width: 100px;">Status</th>
                                 </tr>
@@ -414,6 +424,7 @@
                                            style="color: inherit; text-decoration: none;">Song</a>
                                         <span th:if="${!song.foundInDatabase}" th:text="${song.name}">Song</span>
                                     </td>
+                                    <td th:text="${song.genre != null ? song.genre : '(No Genre)'}">Genre</td>
                                     <td class="year" th:text="${song.year != null ? song.year : '-'}">-</td>
                                     <td>
                                         <span th:if="${song.foundInDatabase}" class="status-badge found">

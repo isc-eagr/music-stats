@@ -92,18 +92,20 @@ public class ItunesChangesService {
                     current.getName(),
                     current.getTrackNumber(),
                     current.getYear(),
+                    current.getGenre(),
                     found,
                     songId
                 ));
             } else {
-                // Check if artist, albumArtist, album, name, or length changed
+                // Check if artist, albumArtist, album, name, length, or genre changed
                 boolean artistChanged = !nullSafeEquals(snapshot.getArtist(), current.getArtist());
                 boolean albumArtistChanged = !nullSafeEquals(snapshot.getAlbumArtist(), current.getAlbumArtist());
                 boolean albumChanged = !nullSafeEquals(snapshot.getAlbum(), current.getAlbum());
                 boolean nameChanged = !nullSafeEquals(snapshot.getName(), current.getName());
                 boolean lengthChanged = !nullSafeEquals(snapshot.getTotalTime(), current.getTotalTime());
+                boolean genreChanged = !nullSafeEquals(snapshot.getGenre(), current.getGenre());
 
-                if (artistChanged || albumArtistChanged || albumChanged || nameChanged || lengthChanged) {
+                if (artistChanged || albumArtistChanged || albumChanged || nameChanged || lengthChanged || genreChanged) {
                     // Something changed - check if new values are in database
                     String key = createSongLookupKey(current.getArtist(), current.getAlbum(), current.getName());
                     boolean found = dbSongKeys.contains(key);
@@ -115,10 +117,12 @@ public class ItunesChangesService {
                         snapshot.getAlbumArtist(),
                         snapshot.getAlbum(),
                         snapshot.getName(),
+                        snapshot.getGenre(),
                         current.getArtist(),
                         current.getAlbumArtist(),
                         current.getAlbum(),
                         current.getName(),
+                        current.getGenre(),
                         current.getTrackNumber(),
                         current.getYear(),
                         found,
@@ -146,6 +150,7 @@ public class ItunesChangesService {
                     snapshot.getName(),
                     snapshot.getTrackNumber(),
                     snapshot.getYear(),
+                    snapshot.getGenre(),
                     found,
                     songId
                 ));
@@ -197,7 +202,8 @@ public class ItunesChangesService {
                 song.getName(),
                 song.getTrackNumber(),
                 song.getYear(),
-                song.getTotalTime()
+                song.getTotalTime(),
+                song.getGenre()
             );
             snapshot.setSnapshotDate(now);
             toSave.add(snapshot);

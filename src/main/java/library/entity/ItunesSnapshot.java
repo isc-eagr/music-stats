@@ -53,6 +53,9 @@ public class ItunesSnapshot {
     @Column(name = "total_time")
     private Integer totalTime;
 
+    @Column(name = "genre", length = 200)
+    private String genre;
+
     /**
      * When this snapshot was taken (when the library was last parsed and saved).
      */
@@ -69,7 +72,7 @@ public class ItunesSnapshot {
     }
 
     public ItunesSnapshot(String persistentId, Integer trackId, String artist, String albumArtist, String album, 
-                          String name, Integer trackNumber, Integer year, Integer totalTime) {
+                          String name, Integer trackNumber, Integer year, Integer totalTime, String genre) {
         this.persistentId = persistentId;
         this.trackId = trackId;
         this.artist = artist;
@@ -79,6 +82,7 @@ public class ItunesSnapshot {
         this.trackNumber = trackNumber;
         this.year = year;
         this.totalTime = totalTime;
+        this.genre = genre;
         this.snapshotDate = LocalDateTime.now();
         this.creationDate = LocalDateTime.now();
         this.updateDate = LocalDateTime.now();
@@ -126,6 +130,9 @@ public class ItunesSnapshot {
 
     public Integer getTotalTime() { return totalTime; }
     public void setTotalTime(Integer totalTime) { this.totalTime = totalTime; }
+
+    public String getGenre() { return genre; }
+    public void setGenre(String genre) { this.genre = genre; }
 
     public LocalDateTime getSnapshotDate() { return snapshotDate; }
     public void setSnapshotDate(LocalDateTime snapshotDate) { this.snapshotDate = snapshotDate; }

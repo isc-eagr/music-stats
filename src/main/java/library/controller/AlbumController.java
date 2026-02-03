@@ -662,6 +662,25 @@ public class AlbumController {
     }
     
     /**
+     * Get album release date by ID (for wizard validation).
+     * Returns date in dd/MM/yyyy format to match form inputs.
+     */
+    @GetMapping("/api/{id}/release-date")
+    @ResponseBody
+    public Map<String, Object> getAlbumReleaseDate(@PathVariable Integer id) {
+        Album album = albumService.findById(id);
+        Map<String, Object> response = new java.util.HashMap<>();
+        if (album != null && album.getReleaseDate() != null) {
+            // Convert java.sql.Date to dd/MM/yyyy format
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+            response.put("releaseDate", sdf.format(album.getReleaseDate()));
+        } else {
+            response.put("releaseDate", null);
+        }
+        return response;
+    }
+    
+    /**
      * Search albums by name or artist name for the seasonal/yearly chart editor.
      */
     @GetMapping("/api/search")

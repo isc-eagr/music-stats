@@ -1100,6 +1100,7 @@ public class AlbumService {
                 a.setId(rs.getInt("id"));
                 a.setArtistId(rs.getInt("artist_id"));
                 a.setName(rs.getString("name"));
+                a.setReleaseDate(parseDate(rs.getString("release_date")));
                 a.setOverrideGenreId(rs.getObject("override_genre_id") != null ? rs.getInt("override_genre_id") : null);
                 a.setOverrideSubgenreId(rs.getObject("override_subgenre_id") != null ? rs.getInt("override_subgenre_id") : null);
                 a.setOverrideLanguageId(rs.getObject("override_language_id") != null ? rs.getInt("override_language_id") : null);

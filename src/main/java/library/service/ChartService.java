@@ -3336,4 +3336,186 @@ public class ChartService {
             return entry;
         }, artistId, periodType);
     }
+    
+    /**
+     * Get the count of distinct songs that reached #1 on the weekly songs chart for an artist.
+     */
+    public Integer getNumberOneSongsCount(Integer artistId) {
+        String sql = """
+            SELECT COUNT(DISTINCT s.id) as count
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            WHERE s.artist_id = ? 
+              AND c.chart_type = 'song' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            """;
+        
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get the total number of weeks an artist had songs at #1 on the weekly songs chart.
+     */
+    public Integer getNumberOneWeeksCount(Integer artistId) {
+        String sql = """
+            SELECT COUNT(*) as count
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            WHERE s.artist_id = ? 
+              AND c.chart_type = 'song' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            """;
+        
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get the list of songs that reached #1 on the weekly songs chart for an artist.
+     * Returns song names sorted by the first week they reached #1 (most recent first).
+     */
+    public List<String> getNumberOneSongNames(Integer artistId) {
+        String sql = """
+            SELECT DISTINCT s.name, MIN(c.period_key) as first_number_one_week
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            WHERE s.artist_id = ? 
+              AND c.chart_type = 'song' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            GROUP BY s.id, s.name
+            ORDER BY first_number_one_week DESC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("name"), artistId);
+    }
+    
+    /**
+     * Get the count of distinct albums that reached #1 on the weekly albums chart for an artist.
+     */
+    public Integer getNumberOneAlbumsCount(Integer artistId) {
+        String sql = """
+            SELECT COUNT(DISTINCT al.id) as count
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album al ON ce.album_id = al.id
+            WHERE al.artist_id = ? 
+              AND c.chart_type = 'album' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            """;
+        
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get the total number of weeks an artist had albums at #1 on the weekly albums chart.
+     */
+    public Integer getNumberOneAlbumWeeksCount(Integer artistId) {
+        String sql = """
+            SELECT COUNT(*) as count
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album al ON ce.album_id = al.id
+            WHERE al.artist_id = ? 
+              AND c.chart_type = 'album' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            """;
+        
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get the list of albums that reached #1 on the weekly albums chart for an artist.
+     * Returns album names sorted by the first week they reached #1 (most recent first).
+     */
+    public List<String> getNumberOneAlbumNames(Integer artistId) {
+        String sql = """
+            SELECT DISTINCT al.name, MIN(c.period_key) as first_number_one_week
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album al ON ce.album_id = al.id
+            WHERE al.artist_id = ? 
+              AND c.chart_type = 'album' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            GROUP BY al.id, al.name
+            ORDER BY first_number_one_week DESC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("name"), artistId);
+    }
+    
+    /**
+     * Get the count of distinct featured songs that reached #1 on the weekly songs chart for an artist.
+     */
+    public Integer getNumberOneFeaturedSongsCount(Integer artistId) {
+        String sql = """
+            SELECT COUNT(DISTINCT s.id) as count
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN SongFeaturedArtist sfa ON sfa.song_id = s.id
+            WHERE sfa.artist_id = ? 
+              AND c.chart_type = 'song' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            """;
+        
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get the total number of weeks an artist had featured songs at #1 on the weekly songs chart.
+     */
+    public Integer getNumberOneFeaturedWeeksCount(Integer artistId) {
+        String sql = """
+            SELECT COUNT(*) as count
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN SongFeaturedArtist sfa ON sfa.song_id = s.id
+            WHERE sfa.artist_id = ? 
+              AND c.chart_type = 'song' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            """;
+        
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
+    }
+    
+    /**
+     * Get the list of featured songs that reached #1 on the weekly songs chart for an artist.
+     * Returns song names (with primary artist name) sorted by the first week they reached #1 (most recent first).
+     */
+    public List<String> getNumberOneFeaturedSongNames(Integer artistId) {
+        String sql = """
+            SELECT DISTINCT s.name || ' (by ' || ar.name || ')' as display_name, 
+                   MIN(c.period_key) as first_number_one_week
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Song s ON ce.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            INNER JOIN SongFeaturedArtist sfa ON sfa.song_id = s.id
+            WHERE sfa.artist_id = ? 
+              AND c.chart_type = 'song' 
+              AND c.period_type = 'weekly'
+              AND ce.position = 1
+            GROUP BY s.id, s.name, ar.name
+            ORDER BY first_number_one_week DESC
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("display_name"), artistId);
+    }
 }

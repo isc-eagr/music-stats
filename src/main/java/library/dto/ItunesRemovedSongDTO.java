@@ -11,6 +11,7 @@ public class ItunesRemovedSongDTO {
     private String name;
     private Integer trackNumber;
     private Integer year;
+    private String genre;
     private boolean foundInDatabase;
     private Long databaseSongId;
 
@@ -18,13 +19,14 @@ public class ItunesRemovedSongDTO {
     }
 
     public ItunesRemovedSongDTO(String persistentId, String artist, String album, String name,
-                                 Integer trackNumber, Integer year, boolean foundInDatabase, Long databaseSongId) {
+                                 Integer trackNumber, Integer year, String genre, boolean foundInDatabase, Long databaseSongId) {
         this.persistentId = persistentId;
         this.artist = artist;
         this.album = album;
         this.name = name;
         this.trackNumber = trackNumber;
         this.year = year;
+        this.genre = genre;
         this.foundInDatabase = foundInDatabase;
         this.databaseSongId = databaseSongId;
     }
@@ -36,6 +38,7 @@ public class ItunesRemovedSongDTO {
     public String getName() { return name; }
     public Integer getTrackNumber() { return trackNumber; }
     public Integer getYear() { return year; }
+    public String getGenre() { return genre; }
     public boolean isFoundInDatabase() { return foundInDatabase; }
     public Long getDatabaseSongId() { return databaseSongId; }
 
@@ -46,6 +49,7 @@ public class ItunesRemovedSongDTO {
     public void setName(String name) { this.name = name; }
     public void setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; }
     public void setYear(Integer year) { this.year = year; }
+    public void setGenre(String genre) { this.genre = genre; }
     public void setFoundInDatabase(boolean foundInDatabase) { this.foundInDatabase = foundInDatabase; }
     public void setDatabaseSongId(Long databaseSongId) { this.databaseSongId = databaseSongId; }
 }

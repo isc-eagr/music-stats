@@ -14,12 +14,14 @@ public class ItunesChangedSongDTO {
     private String oldAlbumArtist;
     private String oldAlbum;
     private String oldName;
+    private String oldGenre;
     
     // New values (from current XML)
     private String newArtist;
     private String newAlbumArtist;
     private String newAlbum;
     private String newName;
+    private String newGenre;
     private Integer trackNumber;
     private Integer year;
     
@@ -33,6 +35,7 @@ public class ItunesChangedSongDTO {
     private boolean albumChanged;
     private boolean nameChanged;
     private boolean lengthChanged;
+    private boolean genreChanged;
     
     // Whether the new values match a song in the database
     private boolean foundInDatabase;
@@ -44,8 +47,8 @@ public class ItunesChangedSongDTO {
     }
 
     public ItunesChangedSongDTO(String persistentId,
-                                 String oldArtist, String oldAlbumArtist, String oldAlbum, String oldName,
-                                 String newArtist, String newAlbumArtist, String newAlbum, String newName,
+                                 String oldArtist, String oldAlbumArtist, String oldAlbum, String oldName, String oldGenre,
+                                 String newArtist, String newAlbumArtist, String newAlbum, String newName, String newGenre,
                                  Integer trackNumber, Integer year,
                                  boolean foundInDatabase, Long databaseSongId,
                                  Integer oldTotalTime, Integer newTotalTime) {
@@ -54,10 +57,12 @@ public class ItunesChangedSongDTO {
         this.oldAlbumArtist = oldAlbumArtist;
         this.oldAlbum = oldAlbum;
         this.oldName = oldName;
+        this.oldGenre = oldGenre;
         this.newArtist = newArtist;
         this.newAlbumArtist = newAlbumArtist;
         this.newAlbum = newAlbum;
         this.newName = newName;
+        this.newGenre = newGenre;
         this.trackNumber = trackNumber;
         this.year = year;
         this.foundInDatabase = foundInDatabase;
@@ -71,6 +76,7 @@ public class ItunesChangedSongDTO {
         this.albumChanged = !nullSafeEquals(oldAlbum, newAlbum);
         this.nameChanged = !nullSafeEquals(oldName, newName);
         this.lengthChanged = !nullSafeEquals(oldTotalTime, newTotalTime);
+        this.genreChanged = !nullSafeEquals(oldGenre, newGenre);
     }
 
     private boolean nullSafeEquals(String a, String b) {
@@ -108,10 +114,12 @@ public class ItunesChangedSongDTO {
     public String getOldAlbumArtist() { return oldAlbumArtist; }
     public String getOldAlbum() { return oldAlbum; }
     public String getOldName() { return oldName; }
+    public String getOldGenre() { return oldGenre; }
     public String getNewArtist() { return newArtist; }
     public String getNewAlbumArtist() { return newAlbumArtist; }
     public String getNewAlbum() { return newAlbum; }
     public String getNewName() { return newName; }
+    public String getNewGenre() { return newGenre; }
     public Integer getTrackNumber() { return trackNumber; }
     public Integer getYear() { return year; }
     public boolean isArtistChanged() { return artistChanged; }
@@ -119,6 +127,7 @@ public class ItunesChangedSongDTO {
     public boolean isAlbumChanged() { return albumChanged; }
     public boolean isNameChanged() { return nameChanged; }
     public boolean isLengthChanged() { return lengthChanged; }
+    public boolean isGenreChanged() { return genreChanged; }
     public boolean isFoundInDatabase() { return foundInDatabase; }
     public Long getDatabaseSongId() { return databaseSongId; }
     public Integer getOldTotalTime() { return oldTotalTime; }
@@ -130,10 +139,12 @@ public class ItunesChangedSongDTO {
     public void setOldAlbumArtist(String oldAlbumArtist) { this.oldAlbumArtist = oldAlbumArtist; }
     public void setOldAlbum(String oldAlbum) { this.oldAlbum = oldAlbum; }
     public void setOldName(String oldName) { this.oldName = oldName; }
+    public void setOldGenre(String oldGenre) { this.oldGenre = oldGenre; }
     public void setNewArtist(String newArtist) { this.newArtist = newArtist; }
     public void setNewAlbumArtist(String newAlbumArtist) { this.newAlbumArtist = newAlbumArtist; }
     public void setNewAlbum(String newAlbum) { this.newAlbum = newAlbum; }
     public void setNewName(String newName) { this.newName = newName; }
+    public void setNewGenre(String newGenre) { this.newGenre = newGenre; }
     public void setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; }
     public void setYear(Integer year) { this.year = year; }
     public void setArtistChanged(boolean artistChanged) { this.artistChanged = artistChanged; }
@@ -141,6 +152,7 @@ public class ItunesChangedSongDTO {
     public void setAlbumChanged(boolean albumChanged) { this.albumChanged = albumChanged; }
     public void setNameChanged(boolean nameChanged) { this.nameChanged = nameChanged; }
     public void setLengthChanged(boolean lengthChanged) { this.lengthChanged = lengthChanged; }
+    public void setGenreChanged(boolean genreChanged) { this.genreChanged = genreChanged; }
     public void setFoundInDatabase(boolean foundInDatabase) { this.foundInDatabase = foundInDatabase; }
     public void setDatabaseSongId(Long databaseSongId) { this.databaseSongId = databaseSongId; }
     public void setOldTotalTime(Integer oldTotalTime) { this.oldTotalTime = oldTotalTime; }
