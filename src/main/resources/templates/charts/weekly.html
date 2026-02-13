@@ -693,10 +693,10 @@
             <div class="empty-state-icon">📊</div>
             <h2 class="empty-state-title">No Charts Generated Yet</h2>
             <p class="empty-state-text" th:if="${missingWeeksCount > 0}">
-                There are <span th:text="${missingWeeksCount}">0</span> weeks with scrobble data that don't have charts.
+                There are <span th:text="${missingWeeksCount}">0</span> weeks with play data that don't have charts.
             </p>
             <p class="empty-state-text" th:if="${missingWeeksCount == 0}">
-                No scrobble data available to generate charts.
+                No play data available to generate charts.
             </p>
             <button th:if="${missingWeeksCount > 0}" class="generate-all-btn" onclick="startBulkGeneration()">
                 Generate All Missing Charts

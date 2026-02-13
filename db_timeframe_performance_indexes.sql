@@ -2,19 +2,19 @@
 -- TIMEFRAME PERFORMANCE INDEXES
 -- ============================================
 -- These indexes specifically optimize the timeframe queries that aggregate
--- scrobbles by date periods (days, weeks, months, seasons, years, decades).
+-- plays by date periods (days, weeks, months, seasons, years, decades).
 --
 -- Run with: sqlite3 "C:\Music Stats DB\music-stats.db" < db_timeframe_performance_indexes.sql
 -- ============================================
 
 -- ===========================================
--- INDEX 1: Scrobble date + song_id covering index
+-- INDEX 1: Play date + song_id covering index
 -- ===========================================
 -- This is the MOST important index for timeframe queries.
--- The period_summary CTE needs: scrobble_date (for GROUP BY period), song_id (for JOIN)
--- Including scrobble_date first allows SQLite to scan by date ranges efficiently.
-CREATE INDEX IF NOT EXISTS idx_scrobble_date_song_id ON Scrobble(scrobble_date, song_id)
-WHERE scrobble_date IS NOT NULL;
+-- The period_summary CTE needs: play_date (for GROUP BY period), song_id (for JOIN)
+-- Including play_date first allows SQLite to scan by date ranges efficiently.
+CREATE INDEX IF NOT EXISTS idx_play_date_song_id ON Play(play_date, song_id)
+WHERE play_date IS NOT NULL;
 
 -- ===========================================
 -- INDEX 2: Song covering index for joins
@@ -56,10 +56,10 @@ CREATE INDEX IF NOT EXISTS idx_album_overrides ON Album(
 );
 
 -- ===========================================
--- INDEX 5: Scrobble song_id index (if not exists)
+-- INDEX 5: Play song_id index (if not exists)
 -- ===========================================
--- Essential for the Scrobble->Song join performance
-CREATE INDEX IF NOT EXISTS idx_scrobble_song_date ON Scrobble(song_id, scrobble_date);
+-- Essential for the Play->Song join performance
+CREATE INDEX IF NOT EXISTS idx_play_song_date ON Play(song_id, play_date);
 
 -- ===========================================
 -- Update SQLite query planner statistics
@@ -70,7 +70,7 @@ ANALYZE;
 -- NOTES
 -- ===========================================
 -- After creating these indexes, timeframe queries should:
--- 1. Use idx_scrobble_date_song_id for the main GROUP BY period_key scan
+-- 1. Use idx_play_date_song_id for the main GROUP BY period_key scan
 -- 2. Use idx_song_timeframe_cover for Song joins without table lookups
 -- 3. Use idx_artist_attrs for Artist attribute resolution
 --

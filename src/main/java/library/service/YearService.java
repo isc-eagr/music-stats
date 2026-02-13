@@ -17,14 +17,14 @@ public class YearService {
     }
 
     /**
-     * Get listen year statistics - organized by the year when scrobbles occurred.
+     * Get listen year statistics - organized by the year when plays occurred.
      * Includes empty cards for years with no listens within the range.
      */
     public List<YearCardDTO> getListenYears(String sortBy, String sortDir, int page, int perPage) {
-        // First, get the min and max years from scrobble data
-        String minMaxSql = "SELECT MIN(CAST(strftime('%Y', scrobble_date) AS INTEGER)) as min_year, " +
-                          "MAX(CAST(strftime('%Y', scrobble_date) AS INTEGER)) as max_year " +
-                          "FROM Scrobble WHERE scrobble_date IS NOT NULL";
+        // First, get the min and max years from play data
+        String minMaxSql = "SELECT MIN(CAST(strftime('%Y', play_date) AS INTEGER)) as min_year, " +
+                          "MAX(CAST(strftime('%Y', play_date) AS INTEGER)) as max_year " +
+                          "FROM Play WHERE play_date IS NOT NULL";
 
         Integer minYear = null;
         Integer maxYear = null;
@@ -48,10 +48,10 @@ public class YearService {
 
         String sql =
             "SELECT " +
-            "    CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) as year, " +
-            "    COUNT(DISTINCT scr.id) as play_count, " +
-            "    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count, " +
-            "    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count, " +
+            "    CAST(strftime('%Y', p.play_date) AS INTEGER) as year, " +
+            "    COUNT(DISTINCT p.id) as play_count, " +
+            "    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count, " +
             "    SUM(s.length_seconds) as time_listened, " +
             "    COUNT(DISTINCT ar.id) as artist_count, " +
             "    COUNT(DISTINCT al.id) as album_count, " +
@@ -65,18 +65,18 @@ public class YearService {
             "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count, " +
             "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count, " +
             "    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count, " +
-            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count, " +
-            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count, " +
-            "    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count, " +
             "    SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened, " +
             "    SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened, " +
             "    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened " +
-            "FROM Scrobble scr " +
-            "JOIN Song s ON scr.song_id = s.id " +
+            "FROM Play p " +
+            "JOIN Song s ON p.song_id = s.id " +
             "JOIN Artist ar ON s.artist_id = ar.id " +
             "LEFT JOIN Album al ON s.album_id = al.id " +
             "LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id " +
-            "WHERE scr.scrobble_date IS NOT NULL " +
+            "WHERE p.play_date IS NOT NULL " +
             "GROUP BY year";
 
         // Query all years with data
@@ -270,9 +270,9 @@ public class YearService {
         String sql =
             "SELECT " +
             "    CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) as year, " +
-            "    COUNT(DISTINCT scr.id) as play_count, " +
-            "    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count, " +
-            "    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count, " +
+            "    COUNT(DISTINCT p.id) as play_count, " +
+            "    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count, " +
             "    SUM(s.length_seconds) as time_listened, " +
             "    COUNT(DISTINCT ar.id) as artist_count, " +
             "    COUNT(DISTINCT al.id) as album_count, " +
@@ -286,9 +286,9 @@ public class YearService {
             "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count, " +
             "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count, " +
             "    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count, " +
-            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count, " +
-            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count, " +
-            "    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count, " +
+            "    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count, " +
             "    SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened, " +
             "    SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened, " +
             "    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened, " +
@@ -301,14 +301,14 @@ public class YearService {
             "    CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN s.id END) > 0 " +
             "         THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN s.id END)) " +
             "         ELSE NULL END as male_song_pct, " +
-            "    CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) > 0 " +
-            "         THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END)) " +
+            "    CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) > 0 " +
+            "         THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END)) " +
             "         ELSE NULL END as male_play_pct, " +
             "    CASE WHEN SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) > 0 " +
             "         THEN CAST(SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) AS REAL) / (SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END)) " +
             "         ELSE NULL END as male_time_pct " +
-            "FROM Scrobble scr " +
-            "JOIN Song s ON scr.song_id = s.id " +
+            "FROM Play p " +
+            "JOIN Song s ON p.song_id = s.id " +
             "JOIN Artist ar ON s.artist_id = ar.id " +
             "LEFT JOIN Album al ON s.album_id = al.id " +
             "LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id " +
@@ -356,9 +356,9 @@ public class YearService {
 
     public long countListenYears() {
         // Count total years in the range (including empty years)
-        String minMaxSql = "SELECT MIN(CAST(strftime('%Y', scrobble_date) AS INTEGER)) as min_year, " +
-                          "MAX(CAST(strftime('%Y', scrobble_date) AS INTEGER)) as max_year " +
-                          "FROM Scrobble WHERE scrobble_date IS NOT NULL";
+        String minMaxSql = "SELECT MIN(CAST(strftime('%Y', play_date) AS INTEGER)) as min_year, " +
+                          "MAX(CAST(strftime('%Y', play_date) AS INTEGER)) as max_year " +
+                          "FROM Play WHERE play_date IS NOT NULL";
         try {
             var result = jdbcTemplate.queryForMap(minMaxSql);
             Integer minYear = result.get("min_year") != null ? ((Number) result.get("min_year")).intValue() : null;
@@ -390,16 +390,16 @@ public class YearService {
         String topArtistSql =
             "WITH artist_plays AS ( " +
             "    SELECT " +
-            "        CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) as year, " +
+            "        CAST(strftime('%Y', p.play_date) AS INTEGER) as year, " +
             "        ar.id as artist_id, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', p.play_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    WHERE CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) IN (" + placeholders + ") " +
+            "    WHERE CAST(strftime('%Y', p.play_date) AS INTEGER) IN (" + placeholders + ") " +
             "    GROUP BY year, ar.id, ar.name, ar.gender_id " +
             ") " +
             "SELECT year, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
@@ -414,17 +414,17 @@ public class YearService {
         String topAlbumSql =
             "WITH album_plays AS ( " +
             "    SELECT " +
-            "        CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) as year, " +
+            "        CAST(strftime('%Y', p.play_date) AS INTEGER) as year, " +
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', p.play_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE al.id IS NOT NULL AND CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) IN (" + placeholders + ") " +
+            "    WHERE al.id IS NOT NULL AND CAST(strftime('%Y', p.play_date) AS INTEGER) IN (" + placeholders + ") " +
             "    GROUP BY year, al.id, al.name, ar.name " +
             ") " +
             "SELECT year, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
@@ -438,16 +438,16 @@ public class YearService {
         String topSongSql =
             "WITH song_plays AS ( " +
             "    SELECT " +
-            "        CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) as year, " +
+            "        CAST(strftime('%Y', p.play_date) AS INTEGER) as year, " +
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', p.play_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    WHERE CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) IN (" + placeholders + ") " +
+            "    WHERE CAST(strftime('%Y', p.play_date) AS INTEGER) IN (" + placeholders + ") " +
             "    GROUP BY year, s.id, s.name, ar.name " +
             ") " +
             "SELECT year, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
@@ -476,8 +476,8 @@ public class YearService {
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) IN (" + placeholders + ") " +
@@ -501,8 +501,8 @@ public class YearService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) IN (" + placeholders + ") " +
@@ -525,8 +525,8 @@ public class YearService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) IN (" + placeholders + ") " +

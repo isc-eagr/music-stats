@@ -687,27 +687,27 @@
                     </div>
                 </div>
                 
-                <!-- Scrobbles Table -->
+                <!-- Plays Table -->
                 <div class="detail-content-section">
                     <h2 class="section-title">Play History 
-                        <span class="scrobble-count">(<span th:text="${scrobblesTotalCount}">0</span> plays)</span>
+                        <span class="play-count">(<span th:text="${playsTotalCount}">0</span> plays)</span>
                     </h2>
                     
                     <!-- Top Pagination -->
-                    <div class="pagination pagination-top" th:if="${scrobblesTotalPages > 1}">
+                    <div class="pagination pagination-top" th:if="${playsTotalPages > 1}">
                         <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=0, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
-                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
-                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
-                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage + 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
-                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesTotalPages - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${playsPage - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${playsPage + 1}">1</span> of <span th:text="${playsTotalPages}">1</span></span>
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${playsPage + 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${playsTotalPages - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
                     </div>
                     
                     <div class="top-table-container">
-                        <table class="top-table" id="scrobblesTable">
+                        <table class="top-table" id="playsTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -717,24 +717,24 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="scrobble : ${scrobbles}"
-                                    th:class="${scrobble.fromGroup ? 'from-group' : (scrobble.fromFeatured ? 'featured-row' : '')}"
-                                    th:style="${scrobble.fromGroup ? 'background-color: rgba(0, 128, 128, 0.08);' : (scrobble.fromFeatured ? 'background-color: rgba(219, 112, 147, 0.08);' : '')}">
-                                    <td th:text="${scrobble.scrobbleDate}">-</td>
+                                <tr th:each="play : ${plays}"
+                                    th:class="${play.fromGroup ? 'from-group' : (play.fromFeatured ? 'featured-row' : '')}"
+                                    th:style="${play.fromGroup ? 'background-color: rgba(0, 128, 128, 0.08);' : (play.fromFeatured ? 'background-color: rgba(219, 112, 147, 0.08);' : '')}">
+                                    <td th:text="${play.playDate}">-</td>
                                     <td>
-                                        <a th:href="@{'/songs/' + ${scrobble.songId}}" th:text="${scrobble.songName}">Song</a>
-                                        <span th:if="${scrobble.fromGroup}" class="by-artist-label" style="color: teal; font-size: 0.85em; margin-left: 6px;"
-                                              th:text="'(by ' + ${scrobble.artistName} + ')'"></span>
-                                        <span th:if="${scrobble.fromFeatured}" class="feat-label" style="color: #db7093; font-size: 0.85em; margin-left: 6px;"
-                                              th:text="'(feat. on ' + ${scrobble.artistName} + ')'"></span>
+                                        <a th:href="@{'/songs/' + ${play.songId}}" th:text="${play.songName}">Song</a>
+                                        <span th:if="${play.fromGroup}" class="by-artist-label" style="color: teal; font-size: 0.85em; margin-left: 6px;"
+                                              th:text="'(by ' + ${play.artistName} + ')'"></span>
+                                        <span th:if="${play.fromFeatured}" class="feat-label" style="color: #db7093; font-size: 0.85em; margin-left: 6px;"
+                                              th:text="'(feat. on ' + ${play.artistName} + ')'"></span>
                                     </td>
                                     <td>
-                                        <a th:if="${scrobble.albumId != null}" th:href="@{'/albums/' + ${scrobble.albumId}}" th:text="${scrobble.albumName}">Album</a>
-                                        <span th:unless="${scrobble.albumId != null}">-</span>
+                                        <a th:if="${play.albumId != null}" th:href="@{'/albums/' + ${play.albumId}}" th:text="${play.albumName}">Album</a>
+                                        <span th:unless="${play.albumId != null}">-</span>
                                     </td>
-                                    <td th:text="${scrobble.account}">-</td>
+                                    <td th:text="${play.account}">-</td>
                                 </tr>
-                                <tr th:if="${scrobbles == null or scrobbles.isEmpty()}">
+                                <tr th:if="${plays == null or plays.isEmpty()}">
                                     <td colspan="4"><em>No plays recorded</em></td>
                                 </tr>
                             </tbody>
@@ -742,16 +742,16 @@
                     </div>
                     
                     <!-- Bottom Pagination -->
-                    <div class="pagination pagination-bottom" th:if="${scrobblesTotalPages > 1}">
+                    <div class="pagination pagination-bottom" th:if="${playsTotalPages > 1}">
                         <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=0, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
-                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
-                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
-                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesPage + 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
-                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${scrobblesTotalPages - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${playsPage - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${playsPage + 1}">1</span> of <span th:text="${playsTotalPages}">1</span></span>
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${playsPage + 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{/artists/{id}(id=${artist.id}, tab='plays', playsPage=${playsTotalPages - 1}, includeGroups=${includeGroups ? 'true' : null}, includeFeatured=${includeFeatured ? 'true' : null}, includeMain=${includeMain ? null : 'false'})}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
                     </div>
                 </div>
             </div>

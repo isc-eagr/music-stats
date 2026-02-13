@@ -12,7 +12,7 @@ Always apply small changes at a time, but do ensure that work is complete withou
 Gender is heavily built into the application. Most calculations and statistics are separated by gender, and it's displayed heavily in the UI via blue/pink colors. Always keep this in mind when making changes or suggestions.
 
 ## Project Overview
-A Spring Boot 3.3 music library management application with Thymeleaf UI for tracking artists, albums, songs, and Last.fm scrobble data. Uses SQLite database stored externally at `C:/Music Stats DB/music-stats.db`.
+A Spring Boot 3.3 music library management application with Thymeleaf UI for tracking artists, albums, songs, and Last.fm play data. Uses SQLite database stored externally at `C:/Music Stats DB/music-stats.db`.
 
 ## Architecture
 
@@ -20,9 +20,9 @@ A Spring Boot 3.3 music library management application with Thymeleaf UI for tra
 - **Artist** → has many Albums and Songs, with foreign keys to lookup tables (Gender, Ethnicity, Genre, SubGenre, Language)
 - **Album** → belongs to Artist, can override artist's genre/language
 - **Song** → belongs to Artist and optionally Album, can have its own override values
-- **Scrobble** → play history imported from Last.fm CSVs, linked to Song via `song_id`
+- **Play** → play history imported from Last.fm CSVs, linked to Song via `song_id`
 
-- There are 3 main catalogs: Songs, Artists, and Albums, all of which are tied to the Scrobble table which represents play counts.
+- There are 3 main catalogs: Songs, Artists, and Albums, all of which are tied to the Play table which represents play counts.
 - Secondary catalogs include Genres, Subgenres, Languages, Genders, Ethnicities.
 - Primary catalogs have a list page which lists all items in a card layout. They have a detail page with even more stats and information.
 - Secondary catalogs only have a list page which shows items in a card layout.
@@ -35,7 +35,7 @@ src/main/java/library/
 ├── controller/     # Spring MVC controllers (REST + Thymeleaf views)
 ├── service/        # Business logic layer
 ├── repository/     # JPA repositories + custom JDBC implementations
-├── entity/         # JPA entities (Artist, Album, Song, Scrobble)
+├── entity/         # JPA entities (Artist, Album, Song, Play)
 └── dto/            # Data transfer objects for list cards (AlbumCardDTO, ArtistCardDTO, SongCardDTO, etc.)
 ```
 
@@ -47,7 +47,7 @@ src/main/java/library/
 
 ### Entity Notes
 - `Song.java`, `Artist.java`, `Album.java`: Normalized schema with foreign keys to lookup tables
-- `Scrobble.java`: Play history with `@CsvBindByPosition` annotations for Last.fm CSV import
+- `Play.java`: Play history with `@CsvBindByPosition` annotations for Last.fm CSV import
 - `@Transient` fields on entities populate display names and computed stats
 
 ## Development Workflow
@@ -75,14 +75,14 @@ Filter logic centralizes in service layer, builds SQL dynamically via `appendFil
 
 Filters are always displayed in alphabetical order for consistency.
 
-### Scrobble Import Flow
-1. Upload CSV via `/scrobbles/upload` (file format: Last.fm export with positions 0=id, 1=date, 2=artist, 4=album, 6=song)
-2. Stream-parse with OpenCSV (`CsvBindByPosition` annotations on `Scrobble.java`)
+### Play Import Flow
+1. Upload CSV via `/plays/upload` (file format: Last.fm export with positions 0=id, 1=date, 2=artist, 4=album, 6=song)
+2. Stream-parse with OpenCSV (`CsvBindByPosition` annotations on `Play.java`)
 3. Match to songs using normalized lookup key: `artist||album||song` (lowercase, trimmed)
 4. Batch save in 2000-record transactions
 
 ### Date/Timezone Handling
-Scrobble dates from Last.fm are converted from UTC to Mexico City timezone. See `Scrobble.setScrobbleDate()` for pattern parsing logic.
+Play dates from Last.fm are converted from UTC to Mexico City timezone. See `Play.setPlayDate()` for pattern parsing logic.
 dd/MM/yyyy format is used throughout the application. For displaying dates, they're displayed as dd MMM yyyy in most places so those should be preferred. mm/dd/yyyy should be avoided everywhere.
 
 ### Lookup Tables
@@ -108,7 +108,7 @@ Prefer `JdbcTemplate` over JPQL for:
 - Performance-critical filtered queries
 
 ## External Dependencies
-- **OpenCSV** — CSV parsing for scrobble imports
+- **OpenCSV** — CSV parsing for play imports
 - **JSoup** — HTML scraping (scraping utilities in root package, not core to music stats)
 - **Apache POI / Fastexcel** — Excel handling
 - **Thymeleaf** — Server-side HTML templating with fragments in `templates/fragments/`

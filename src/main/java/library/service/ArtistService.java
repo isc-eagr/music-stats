@@ -7,7 +7,7 @@ import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
 import library.dto.PlaysByYearDTO;
 import library.dto.PlaysByMonthDTO;
-import library.dto.ScrobbleDTO;
+import library.dto.PlayDTO;
 import library.entity.Artist;
 import library.entity.ArtistImage;
 import library.repository.ArtistImageRepository;
@@ -358,22 +358,22 @@ public class ArtistService {
             artist.getId()
         );
         
-        // If artist name changed, update all associated scrobbles and try to match unmatched ones
+        // If artist name changed, update all associated plays and try to match unmatched ones
         if (oldName != null && !oldName.equals(artist.getName())) {
-            updateScrobblesForArtistNameChange(artist.getId(), artist.getName());
-            // Only try to match unmatched scrobbles if name changed (expensive operation)
-            tryMatchUnmatchedScrobblesForArtist(artist.getId(), artist.getName());
+            updatePlaysForArtistNameChange(artist.getId(), artist.getName());
+            // Only try to match unmatched plays if name changed (expensive operation)
+            tryMatchUnmatchedPlaysForArtist(artist.getId(), artist.getName());
         }
         
         return artist;
     }
     
     /**
-     * Update the artist name in all scrobbles for songs belonging to this artist
+     * Update the artist name in all plays for songs belonging to this artist
      */
-    private void updateScrobblesForArtistNameChange(int artistId, String newArtistName) {
+    private void updatePlaysForArtistNameChange(int artistId, String newArtistName) {
         String sql = """
-            UPDATE Scrobble 
+            UPDATE Play 
             SET artist = ?
             WHERE song_id IN (SELECT id FROM Song WHERE artist_id = ?)
             """;
@@ -381,20 +381,20 @@ public class ArtistService {
     }
     
     /**
-     * Try to match unmatched scrobbles to songs by this artist.
-     * For each song by this artist, look for unmatched scrobbles that match
+     * Try to match unmatched plays to songs by this artist.
+     * For each song by this artist, look for unmatched plays that match
      * the artist name, album name, and song name.
      */
-    private void tryMatchUnmatchedScrobblesForArtist(int artistId, String artistName) {
-        // Match scrobbles to songs by this artist where artist, album, and song name all match
+    private void tryMatchUnmatchedPlaysForArtist(int artistId, String artistName) {
+        // Match plays to songs by this artist where artist, album, and song name all match
         String sql = """
-            UPDATE Scrobble 
+            UPDATE Play 
             SET song_id = (
                 SELECT s.id FROM Song s 
                 LEFT JOIN Album al ON s.album_id = al.id
                 WHERE s.artist_id = ?
-                AND LOWER(s.name) = LOWER(Scrobble.song)
-                AND LOWER(COALESCE(al.name, '')) = LOWER(COALESCE(Scrobble.album, ''))
+                AND LOWER(s.name) = LOWER(Play.song)
+                AND LOWER(COALESCE(al.name, '')) = LOWER(COALESCE(Play.album, ''))
                 LIMIT 1
             ),
             artist = ?
@@ -404,8 +404,8 @@ public class ArtistService {
                 SELECT 1 FROM Song s 
                 LEFT JOIN Album al ON s.album_id = al.id
                 WHERE s.artist_id = ?
-                AND LOWER(s.name) = LOWER(Scrobble.song)
-                AND LOWER(COALESCE(al.name, '')) = LOWER(COALESCE(Scrobble.album, ''))
+                AND LOWER(s.name) = LOWER(Play.song)
+                AND LOWER(COALESCE(al.name, '')) = LOWER(COALESCE(Play.album, ''))
             )
             """;
         
@@ -578,10 +578,10 @@ public class ArtistService {
         String sql = """
             SELECT 
                 COUNT(*) as total_plays,
-                SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
-                SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays
-            FROM Scrobble scr 
-            INNER JOIN Song s ON scr.song_id = s.id 
+                SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays
+            FROM Play p 
+            INNER JOIN Song s ON p.song_id = s.id 
             WHERE s.artist_id = ?
             """;
         
@@ -612,7 +612,7 @@ public class ArtistService {
     
     // Return a string with per-account play counts for this artist (e.g. "lastfm: 12\nspotify: 3\n")
     public String getPlaysByAccountForArtist(int artistId) {
-        String sql = "SELECT scr.account, COUNT(*) as cnt FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? GROUP BY scr.account ORDER BY cnt DESC";
+        String sql = "SELECT p.account, COUNT(*) as cnt FROM Play p JOIN Song s ON p.song_id = s.id WHERE s.artist_id = ? GROUP BY p.account ORDER BY cnt DESC";
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, artistId);
         StringBuilder sb = new StringBuilder();
         for (Map<String, Object> row : rows) {
@@ -630,8 +630,8 @@ public class ArtistService {
     public String getTotalListeningTimeForArtist(int artistId) {
         String sql = """
             SELECT SUM(s.length_seconds) as total_seconds
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             WHERE s.artist_id = ?
             """;
         
@@ -655,12 +655,12 @@ public class ArtistService {
         }
     }
     
-    // Get first listened date for an artist (earliest scrobble)
+    // Get first listened date for an artist (earliest play)
     public String getFirstListenedDateForArtist(int artistId) {
         String sql = """
-            SELECT MIN(scr.scrobble_date)
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            SELECT MIN(p.play_date)
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             WHERE s.artist_id = ?
             """;
         
@@ -675,9 +675,9 @@ public class ArtistService {
     // Get first listened date for an artist as LocalDate (for calculations)
     public java.time.LocalDate getFirstListenedDateAsLocalDateForArtist(int artistId) {
         String sql = """
-            SELECT MIN(DATE(scr.scrobble_date))
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            SELECT MIN(DATE(p.play_date))
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             WHERE s.artist_id = ?
             """;
         
@@ -689,12 +689,12 @@ public class ArtistService {
         }
     }
 
-    // Get last listened date for an artist (most recent scrobble)
+    // Get last listened date for an artist (most recent play)
     public String getLastListenedDateForArtist(int artistId) {
         String sql = """
-            SELECT MAX(scr.scrobble_date)
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            SELECT MAX(p.play_date)
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             WHERE s.artist_id = ?
             """;
         
@@ -709,10 +709,10 @@ public class ArtistService {
     // Get unique days played for an artist
     public int getUniqueDaysPlayedForArtist(int artistId) {
         String sql = """
-            SELECT COUNT(DISTINCT DATE(scr.scrobble_date))
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
+            SELECT COUNT(DISTINCT DATE(p.play_date))
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
             """;
         try {
             Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
@@ -725,10 +725,10 @@ public class ArtistService {
     // Get unique weeks played for an artist
     public int getUniqueWeeksPlayedForArtist(int artistId) {
         String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y-%W', scr.scrobble_date))
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
+            SELECT COUNT(DISTINCT strftime('%Y-%W', p.play_date))
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
             """;
         try {
             Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
@@ -741,10 +741,10 @@ public class ArtistService {
     // Get unique months played for an artist
     public int getUniqueMonthsPlayedForArtist(int artistId) {
         String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y-%m', scr.scrobble_date))
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
+            SELECT COUNT(DISTINCT strftime('%Y-%m', p.play_date))
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
             """;
         try {
             Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
@@ -757,10 +757,10 @@ public class ArtistService {
     // Get unique years played for an artist
     public int getUniqueYearsPlayedForArtist(int artistId) {
         String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y', scr.scrobble_date))
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
+            SELECT COUNT(DISTINCT strftime('%Y', p.play_date))
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
             """;
         try {
             Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
@@ -801,9 +801,9 @@ public class ArtistService {
     public String getAveragePlaysPerSong(int artistId) {
         String sql = """
             SELECT AVG(play_count) FROM (
-                SELECT COALESCE(COUNT(scr.id), 0) as play_count
+                SELECT COALESCE(COUNT(p.id), 0) as play_count
                 FROM Song s
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 WHERE s.artist_id = ?
                 GROUP BY s.id
             )
@@ -856,9 +856,9 @@ public class ArtistService {
                     SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
                     SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
                     COUNT(*) as total_plays,
-                    MIN(scrobble_date) as first_listen,
-                    MAX(scrobble_date) as last_listen
-                FROM Scrobble
+                    MIN(play_date) as first_listen,
+                    MAX(play_date) as last_listen
+                FROM Play
                 GROUP BY song_id
             ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -960,14 +960,14 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT 
                     s.album_id,
-                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
-                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
+                    SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                    SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
                     COUNT(*) as total_plays,
-                    MIN(scr.scrobble_date) as first_listen,
-                    MAX(scr.scrobble_date) as last_listen,
+                    MIN(p.play_date) as first_listen,
+                    MAX(p.play_date) as last_listen,
                     SUM(s.length_seconds) as total_listening_seconds
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 WHERE s.album_id IS NOT NULL
                 GROUP BY s.album_id
             ) play_stats ON a.id = play_stats.album_id
@@ -1244,7 +1244,7 @@ public class ArtistService {
         return null;
     }
 
-    // Helper method to format date strings (from scrobble_date)
+    // Helper method to format date strings (from play_date)
     private String formatDate(String dateTimeString) {
         if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
             return "-";
@@ -1296,33 +1296,33 @@ public class ArtistService {
         return LocalDate.parse(strValue);
     }
     
-    // Get scrobbles for an artist with pagination
-    public List<ScrobbleDTO> getScrobblesForArtist(int artistId, int page, int pageSize) {
+    // Get plays for an artist with pagination
+    public List<PlayDTO> getPlaysForArtist(int artistId, int page, int pageSize) {
         int offset = page * pageSize;
         String sql = """
             SELECT 
-                scr.id,
-                scr.scrobble_date,
+                p.id,
+                p.play_date,
                 s.name as song_name,
                 s.id as song_id,
                 a.name as album_name,
                 a.id as album_id,
                 ar.name as artist_name,
                 ar.id as artist_id,
-                scr.account
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+                p.account
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album a ON s.album_id = a.id
             WHERE ar.id = ?
-            ORDER BY scr.scrobble_date DESC
+            ORDER BY p.play_date DESC
             LIMIT ? OFFSET ?
             """;
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            ScrobbleDTO dto = new ScrobbleDTO();
+            PlayDTO dto = new PlayDTO();
             dto.setId(rs.getInt("id"));
-            dto.setScrobbleDate(rs.getString("scrobble_date"));
+            dto.setPlayDate(rs.getString("play_date"));
             dto.setSongName(rs.getString("song_name"));
             dto.setSongId(rs.getInt("song_id"));
             dto.setAlbumName(rs.getString("album_name"));
@@ -1335,12 +1335,12 @@ public class ArtistService {
         }, artistId, pageSize, offset);
     }
     
-    // Count total scrobbles for an artist
-    public long countScrobblesForArtist(int artistId) {
+    // Count total plays for an artist
+    public long countPlaysForArtist(int artistId) {
         String sql = """
             SELECT COUNT(*)
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             WHERE s.artist_id = ?
             """;
         Long count = jdbcTemplate.queryForObject(sql, Long.class, artistId);
@@ -1351,12 +1351,12 @@ public class ArtistService {
     public List<PlaysByYearDTO> getPlaysByYearForArtist(int artistId) {
         String sql = """
             SELECT 
-                strftime('%Y', scr.scrobble_date) as year,
+                strftime('%Y', p.play_date) as year,
                 COUNT(*) as play_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
-            GROUP BY strftime('%Y', scr.scrobble_date)
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
+            GROUP BY strftime('%Y', p.play_date)
             ORDER BY year ASC
             """;
         
@@ -1372,13 +1372,13 @@ public class ArtistService {
     public List<PlaysByMonthDTO> getPlaysByMonthForArtist(int artistId) {
         String sql = """
             SELECT 
-                strftime('%Y', scr.scrobble_date) as year,
-                strftime('%m', scr.scrobble_date) as month,
+                strftime('%Y', p.play_date) as year,
+                strftime('%m', p.play_date) as month,
                 COUNT(*) as play_count
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE s.artist_id = ? AND scr.scrobble_date IS NOT NULL
-            GROUP BY strftime('%Y', scr.scrobble_date), strftime('%m', scr.scrobble_date)
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
+            GROUP BY strftime('%Y', p.play_date), strftime('%m', p.play_date)
             ORDER BY year ASC, month ASC
             """;
         
@@ -1441,8 +1441,8 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT s2.artist_id, COUNT(*) as play_count, 
                        SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Scrobble scr2
-                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                FROM Play p2
+                INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE s.artist_id = ?
@@ -1528,8 +1528,8 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT s2.artist_id, COUNT(*) as play_count, 
                        SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Scrobble scr2
-                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                FROM Play p2
+                INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE sfa_me.artist_id = ?
@@ -1573,8 +1573,8 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT s2.artist_id, COUNT(*) as play_count, 
                        SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Scrobble scr2
-                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                FROM Play p2
+                INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE sfa_me.artist_id = ?
@@ -1661,8 +1661,8 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT s2.artist_id, COUNT(*) as play_count, 
                        SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Scrobble scr2
-                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                FROM Play p2
+                INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE am.member_artist_id = ?
@@ -1737,8 +1737,8 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT s2.artist_id, COUNT(*) as play_count, 
                        SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Scrobble scr2
-                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                FROM Play p2
+                INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE am.group_artist_id = ?
@@ -1817,7 +1817,7 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
+        String sql = "SELECT COUNT(*) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
         
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
         return count != null ? count : 0;
@@ -1834,7 +1834,7 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ") AND scr.account = 'vatito'";
+        String sql = "SELECT COUNT(*) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ") AND p.account = 'vatito'";
         
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
         return count != null ? count : 0;
@@ -1851,7 +1851,7 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ") AND scr.account = 'robertlover'";
+        String sql = "SELECT COUNT(*) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ") AND p.account = 'robertlover'";
         
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
         return count != null ? count : 0;
@@ -1868,7 +1868,7 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT SUM(s.length_seconds) as total_seconds FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
+        String sql = "SELECT SUM(s.length_seconds) as total_seconds FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
         
         Long totalSeconds = jdbcTemplate.queryForObject(sql, Long.class, allArtistIds.toArray());
         if (totalSeconds == null || totalSeconds == 0) {
@@ -1900,7 +1900,7 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT MIN(scr.scrobble_date) FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
+        String sql = "SELECT MIN(p.play_date) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
         
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, allArtistIds.toArray());
@@ -1921,7 +1921,7 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT MAX(scr.scrobble_date) FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
+        String sql = "SELECT MAX(p.play_date) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
         
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, allArtistIds.toArray());
@@ -1942,10 +1942,10 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT strftime('%Y', scr.scrobble_date) as year, COUNT(*) as play_count " +
-            "FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id " +
-            "WHERE s.artist_id IN (" + placeholders + ") AND scr.scrobble_date IS NOT NULL " +
-            "GROUP BY strftime('%Y', scr.scrobble_date) ORDER BY year ASC";
+        String sql = "SELECT strftime('%Y', p.play_date) as year, COUNT(*) as play_count " +
+            "FROM Play p INNER JOIN Song s ON p.song_id = s.id " +
+            "WHERE s.artist_id IN (" + placeholders + ") AND p.play_date IS NOT NULL " +
+            "GROUP BY strftime('%Y', p.play_date) ORDER BY year ASC";
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PlaysByYearDTO dto = new PlaysByYearDTO();
@@ -1966,10 +1966,10 @@ public class ArtistService {
         }
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT strftime('%Y', scr.scrobble_date) as year, strftime('%m', scr.scrobble_date) as month, COUNT(*) as play_count " +
-            "FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id " +
-            "WHERE s.artist_id IN (" + placeholders + ") AND scr.scrobble_date IS NOT NULL " +
-            "GROUP BY strftime('%Y', scr.scrobble_date), strftime('%m', scr.scrobble_date) ORDER BY year ASC, month ASC";
+        String sql = "SELECT strftime('%Y', p.play_date) as year, strftime('%m', p.play_date) as month, COUNT(*) as play_count " +
+            "FROM Play p INNER JOIN Song s ON p.song_id = s.id " +
+            "WHERE s.artist_id IN (" + placeholders + ") AND p.play_date IS NOT NULL " +
+            "GROUP BY strftime('%Y', p.play_date), strftime('%m', p.play_date) ORDER BY year ASC, month ASC";
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PlaysByMonthDTO dto = new PlaysByMonthDTO();
@@ -2024,9 +2024,9 @@ public class ArtistService {
                     SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
                     SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
                     COUNT(*) as total_plays,
-                    MIN(scrobble_date) as first_listen,
-                    MAX(scrobble_date) as last_listen
-                FROM Scrobble
+                    MIN(play_date) as first_listen,
+                    MAX(play_date) as last_listen
+                FROM Play
                 GROUP BY song_id
             ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -2149,14 +2149,14 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT 
                     s.album_id,
-                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
-                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
+                    SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
+                    SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
                     COUNT(*) as total_plays,
-                    MIN(scr.scrobble_date) as first_listen,
-                    MAX(scr.scrobble_date) as last_listen,
+                    MIN(p.play_date) as first_listen,
+                    MAX(p.play_date) as last_listen,
                     SUM(s.length_seconds) as total_listening_seconds
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 WHERE s.album_id IS NOT NULL
                 GROUP BY s.album_id
             ) play_stats ON a.id = play_stats.album_id
@@ -2267,26 +2267,9 @@ public class ArtistService {
     }
     
     /**
-     * Count total scrobbles for an artist including all groups
+     * Get aggregated plays with pagination for an artist including all groups
      */
-    public long getAggregatedScrobbleCount(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Scrobble scr INNER JOIN Song s ON scr.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
-        
-        Long count = jdbcTemplate.queryForObject(sql, Long.class, allArtistIds.toArray());
-        return count != null ? count : 0;
-    }
-    
-    /**
-     * Get aggregated scrobbles with pagination for an artist including all groups
-     */
-    public List<ScrobbleDTO> getAggregatedScrobblesForArtist(int artistId, List<Integer> groupIds, int page, int pageSize) {
+    public List<PlayDTO> getAggregatedPlaysForArtist(int artistId, List<Integer> groupIds, int page, int pageSize) {
         List<Integer> allArtistIds = new ArrayList<>();
         allArtistIds.add(artistId);
         if (groupIds != null) {
@@ -2297,20 +2280,20 @@ public class ArtistService {
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
         String sql = """
             SELECT 
-                scr.scrobble_date,
+                p.play_date,
                 s.name as song_name,
                 s.id as song_id,
                 al.name as album_name,
                 al.id as album_id,
                 ar.name as artist_name,
                 ar.id as artist_id,
-                scr.account
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+                p.account
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             LEFT JOIN Album al ON s.album_id = al.id
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             WHERE s.artist_id IN (%s)
-            ORDER BY scr.scrobble_date DESC
+            ORDER BY p.play_date DESC
             LIMIT ? OFFSET ?
             """.formatted(placeholders);
         
@@ -2319,8 +2302,8 @@ public class ArtistService {
         params.add(offset);
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            ScrobbleDTO dto = new ScrobbleDTO();
-            dto.setScrobbleDate(rs.getString("scrobble_date"));
+            PlayDTO dto = new PlayDTO();
+            dto.setPlayDate(rs.getString("play_date"));
             dto.setSongName(rs.getString("song_name"));
             dto.setSongId(rs.getInt("song_id"));
             dto.setAlbumName(rs.getString("album_name"));
@@ -2380,8 +2363,8 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT s2.artist_id, COUNT(*) as play_count, 
                        SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Scrobble scr2
-                INNER JOIN Song s2 ON scr2.song_id = s2.id
+                FROM Play p2
+                INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE s.artist_id IN (%s)
@@ -2453,8 +2436,8 @@ public class ArtistService {
     public int getFeaturedPlayCount(int artistId) {
         String sql = """
             SELECT COUNT(*) 
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
             WHERE sfa.artist_id = ?
             """;
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
@@ -2467,9 +2450,9 @@ public class ArtistService {
     public int getFeaturedVatitoPlayCount(int artistId) {
         String sql = """
             SELECT COUNT(*) 
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
-            WHERE sfa.artist_id = ? AND sc.account = 'vatito'
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
+            WHERE sfa.artist_id = ? AND p.account = 'vatito'
             """;
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
         return count != null ? count : 0;
@@ -2481,9 +2464,9 @@ public class ArtistService {
     public int getFeaturedRobertloverPlayCount(int artistId) {
         String sql = """
             SELECT COUNT(*) 
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
-            WHERE sfa.artist_id = ? AND sc.account = 'robertlover'
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
+            WHERE sfa.artist_id = ? AND p.account = 'robertlover'
             """;
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
         return count != null ? count : 0;
@@ -2495,9 +2478,9 @@ public class ArtistService {
     public String getFeaturedListeningTime(int artistId) {
         String sql = """
             SELECT COALESCE(SUM(s.length_seconds), 0)
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
-            INNER JOIN Song s ON sc.song_id = s.id
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
+            INNER JOIN Song s ON p.song_id = s.id
             WHERE sfa.artist_id = ?
             """;
         Integer totalSeconds = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
@@ -2509,9 +2492,9 @@ public class ArtistService {
      */
     public String getFeaturedFirstListenedDate(int artistId) {
         String sql = """
-            SELECT MIN(sc.scrobble_date)
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            SELECT MIN(p.play_date)
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
             WHERE sfa.artist_id = ?
             """;
         String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
@@ -2523,9 +2506,9 @@ public class ArtistService {
      */
     public String getFeaturedLastListenedDate(int artistId) {
         String sql = """
-            SELECT MAX(sc.scrobble_date)
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            SELECT MAX(p.play_date)
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
             WHERE sfa.artist_id = ?
             """;
         String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
@@ -2569,9 +2552,9 @@ public class ArtistService {
                     SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
                     SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
                     COUNT(*) as total_plays,
-                    MIN(scrobble_date) as first_listen,
-                    MAX(scrobble_date) as last_listen
-                FROM Scrobble
+                    MIN(play_date) as first_listen,
+                    MAX(play_date) as last_listen
+                FROM Play
                 GROUP BY song_id
             ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -2633,28 +2616,28 @@ public class ArtistService {
     }
     
     /**
-     * Get scrobbles for songs where this artist is featured
+     * Get plays for songs where this artist is featured
      */
-    public List<ScrobbleDTO> getFeaturedScrobblesForArtist(int artistId, int page, int pageSize) {
+    public List<PlayDTO> getFeaturedPlaysForArtist(int artistId, int page, int pageSize) {
         String sql = """
-            SELECT sc.id, sc.scrobble_date, sc.account,
+            SELECT p.id, p.play_date, p.account,
                    s.id as song_id, s.name as song_name,
                    ar.id as artist_id, ar.name as artist_name,
                    a.id as album_id, a.name as album_name
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
-            INNER JOIN Song s ON sc.song_id = s.id
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
+            INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album a ON s.album_id = a.id
             WHERE sfa.artist_id = ?
-            ORDER BY sc.scrobble_date DESC
+            ORDER BY p.play_date DESC
             LIMIT ? OFFSET ?
             """;
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            ScrobbleDTO dto = new ScrobbleDTO();
+            PlayDTO dto = new PlayDTO();
             dto.setId(rs.getInt("id"));
-            dto.setScrobbleDate(rs.getString("scrobble_date"));
+            dto.setPlayDate(rs.getString("play_date"));
             dto.setAccount(rs.getString("account"));
             dto.setSongId(rs.getInt("song_id"));
             dto.setSongName(rs.getString("song_name"));
@@ -2669,13 +2652,13 @@ public class ArtistService {
     }
     
     /**
-     * Count scrobbles for songs where this artist is featured
+     * Count plays for songs where this artist is featured
      */
-    public long countFeaturedScrobblesForArtist(int artistId) {
+    public long countFeaturedPlaysForArtist(int artistId) {
         String sql = """
             SELECT COUNT(*)
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
             WHERE sfa.artist_id = ?
             """;
         Long count = jdbcTemplate.queryForObject(sql, Long.class, artistId);
@@ -2687,9 +2670,9 @@ public class ArtistService {
      */
     public java.util.Map<Integer, Integer> getFeaturedPlaysByYear(int artistId) {
         String sql = """
-            SELECT strftime('%Y', sc.scrobble_date) as year, COUNT(*) as count
-            FROM Scrobble sc
-            INNER JOIN SongFeaturedArtist sfa ON sc.song_id = sfa.song_id
+            SELECT strftime('%Y', p.play_date) as year, COUNT(*) as count
+            FROM Play p
+            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
             WHERE sfa.artist_id = ?
             GROUP BY year
             ORDER BY year
@@ -2721,10 +2704,11 @@ public class ArtistService {
                        a.ethnicity_id,
                        a.language_id,
                        a.country,
-                       COALESCE(COUNT(sc.id), 0) as play_count
+                       COALESCE(COUNT(p.id), 0) as play_count,
+                       MIN(p.play_date) as first_play
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 GROUP BY a.id, a.gender_id, a.genre_id, a.subgenre_id, a.ethnicity_id, a.language_id, a.country
             ),
             ranked_artists AS (
@@ -2736,23 +2720,24 @@ public class ArtistService {
                        language_id,
                        country,
                        play_count,
+                       first_play,
                        CASE WHEN gender_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC) 
                             END as gender_rank,
                        CASE WHEN genre_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY genre_id ORDER BY play_count DESC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY genre_id ORDER BY play_count DESC, first_play ASC) 
                             END as genre_rank,
                        CASE WHEN subgenre_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY subgenre_id ORDER BY play_count DESC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY subgenre_id ORDER BY play_count DESC, first_play ASC) 
                             END as subgenre_rank,
                        CASE WHEN ethnicity_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC, first_play ASC) 
                             END as ethnicity_rank,
                        CASE WHEN language_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY language_id ORDER BY play_count DESC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY language_id ORDER BY play_count DESC, first_play ASC) 
                             END as language_rank,
                        CASE WHEN country IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC, first_play ASC) 
                             END as country_rank
                 FROM artist_play_counts
             )
@@ -2790,10 +2775,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.gender_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY a.gender_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE a.gender_id IS NOT NULL
                 GROUP BY a.id, a.gender_id
             ) ranked
@@ -2814,10 +2799,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.genre_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY a.genre_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE a.genre_id IS NOT NULL
                 GROUP BY a.id, a.genre_id
             ) ranked
@@ -2838,10 +2823,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.subgenre_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY a.subgenre_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE a.subgenre_id IS NOT NULL
                 GROUP BY a.id, a.subgenre_id
             ) ranked
@@ -2862,10 +2847,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.ethnicity_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY a.ethnicity_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE a.ethnicity_id IS NOT NULL
                 GROUP BY a.id, a.ethnicity_id
             ) ranked
@@ -2886,10 +2871,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.language_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY a.language_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE a.language_id IS NOT NULL
                 GROUP BY a.id, a.language_id
             ) ranked
@@ -2910,10 +2895,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.country ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY a.country ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE a.country IS NOT NULL
                 GROUP BY a.id, a.country
             ) ranked
@@ -2935,12 +2920,12 @@ public class ArtistService {
         String sql = """
             SELECT year, rank FROM (
                 SELECT a.id, 
-                       strftime('%Y', sc.scrobble_date) as year,
-                       ROW_NUMBER() OVER (PARTITION BY strftime('%Y', sc.scrobble_date) ORDER BY COUNT(sc.id) DESC) as rank
+                       strftime('%Y', p.play_date) as year,
+                       ROW_NUMBER() OVER (PARTITION BY strftime('%Y', p.play_date) ORDER BY COUNT(p.id) DESC) as rank
                 FROM Artist a
                 INNER JOIN Song s ON s.artist_id = a.id
-                INNER JOIN Scrobble sc ON sc.song_id = s.id
-                GROUP BY a.id, strftime('%Y', sc.scrobble_date)
+                INNER JOIN Play p ON p.song_id = s.id
+                GROUP BY a.id, strftime('%Y', p.play_date)
             ) ranked
             WHERE id = ?
             ORDER BY year
@@ -2963,10 +2948,10 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 GROUP BY a.id
             ) ranked
             WHERE id = ?
@@ -2987,12 +2972,12 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Artist a
                 INNER JOIN Genre g ON a.genre_id = g.id
                 INNER JOIN Language l ON a.language_id = l.id
                 LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Scrobble sc ON sc.song_id = s.id
+                LEFT JOIN Play p ON p.song_id = s.id
                 WHERE g.name = 'Rap' AND l.name = 'Spanish'
                 GROUP BY a.id
             ) ranked

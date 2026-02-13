@@ -315,11 +315,11 @@
                                     th:disabled="${songPlayCount > 0}"
                                     th:title="${songPlayCount > 0 ? 'Cannot delete song with existing plays' : 'Delete this song'}"
                                     onclick="confirmDelete()">Delete</button>
-                            <button type="button" class="btn-negative" id="deleteScrobblesBtn" 
+                            <button type="button" class="btn-negative" id="deletePlaysBtn" 
                                     th:if="${songPlayCount > 0}"
                                     style="background: #991b1b;"
                                     title="⚠️ DANGER: Delete ALL listening history for this song"
-                                    onclick="confirmDeleteAllScrobbles()">Delete All Scrobbles</button>
+                                    onclick="confirmDeleteAllPlays()">Delete All Plays</button>
                         </div>
                     </div>
                     
@@ -614,27 +614,27 @@
                     </div>
                 </div>
                 
-                <!-- Scrobbles Table -->
+                <!-- Plays Table -->
                 <div class="detail-content-section">
                     <h2 class="section-title">Play History 
-                        <span class="scrobble-count">(<span th:text="${scrobblesTotalCount}">0</span> plays)</span>
+                        <span class="play-count">(<span th:text="${playsTotalCount}">0</span> plays)</span>
                     </h2>
                     
                     <!-- Top Pagination -->
-                    <div class="pagination pagination-top" th:if="${scrobblesTotalPages > 1}">
+                    <div class="pagination pagination-top" th:if="${playsTotalPages > 1}">
                         <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=0'}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
-                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
-                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
-                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
-                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${playsPage - 1}}"
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${playsPage + 1}">1</span> of <span th:text="${playsTotalPages}">1</span></span>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${playsPage + 1}}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${playsTotalPages - 1}}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
                     </div>
                     
                     <div class="top-table-container">
-                        <table class="top-table" id="scrobblesTable">
+                        <table class="top-table" id="playsTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -642,11 +642,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="scrobble : ${scrobbles}">
-                                    <td th:text="${scrobble.scrobbleDate}">-</td>
-                                    <td th:text="${scrobble.account}">-</td>
+                                <tr th:each="play : ${plays}">
+                                    <td th:text="${play.playDate}">-</td>
+                                    <td th:text="${play.account}">-</td>
                                 </tr>
-                                <tr th:if="${scrobbles == null or scrobbles.isEmpty()}">
+                                <tr th:if="${plays == null or plays.isEmpty()}">
                                     <td colspan="2"><em>No plays recorded</em></td>
                                 </tr>
                             </tbody>
@@ -654,16 +654,16 @@
                     </div>
                     
                     <!-- Bottom Pagination -->
-                    <div class="pagination pagination-bottom" th:if="${scrobblesTotalPages > 1}">
+                    <div class="pagination pagination-bottom" th:if="${playsTotalPages > 1}">
                         <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=0'}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
-                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage - 1}}"
-                           th:classappend="${scrobblesPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
-                        <span class="page-info">Page <span th:text="${scrobblesPage + 1}">1</span> of <span th:text="${scrobblesTotalPages}">1</span></span>
-                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesPage + 1}}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
-                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${scrobblesTotalPages - 1}}"
-                           th:classappend="${scrobblesPage >= scrobblesTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&laquo; First</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${playsPage - 1}}"
+                           th:classappend="${playsPage == 0} ? 'disabled' : ''" class="page-link">&lsaquo; Prev</a>
+                        <span class="page-info">Page <span th:text="${playsPage + 1}">1</span> of <span th:text="${playsTotalPages}">1</span></span>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${playsPage + 1}}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Next &rsaquo;</a>
+                        <a th:href="@{'/songs/' + ${song.id} + '?tab=plays&playsPage=' + ${playsTotalPages - 1}}"
+                           th:classappend="${playsPage >= playsTotalPages - 1} ? 'disabled' : ''" class="page-link">Last &raquo;</a>
                     </div>
                 </div>
             </div>
@@ -1439,7 +1439,7 @@
             }
         }
         
-        function confirmDeleteAllScrobbles() {
+        function confirmDeleteAllPlays() {
             const songName = /*[[${song.name}]]*/ '';
             const artistName = /*[[${artistName}]]*/ '';
             const playCount = /*[[${songPlayCount}]]*/ 0;
@@ -1448,8 +1448,8 @@
             
             // First confirmation
             const firstConfirm = confirm(
-                '⚠️ DANGER: Delete ALL Scrobbles ⚠️\n\n' +
-                'You are about to permanently delete ALL ' + playCount + ' scrobbles for:\n\n' +
+                '⚠️ DANGER: Delete ALL Plays ⚠️\n\n' +
+                'You are about to permanently delete ALL ' + playCount + ' plays for:\n\n' +
                 '"' + displayName + '"\n\n' +
                 'This will completely erase the listening history for this song.\n\n' +
                 'Are you ABSOLUTELY SURE you want to continue?'
@@ -1473,30 +1473,30 @@
             }
             
             const songId = window.location.pathname.split('/').pop();
-            const deleteBtn = document.getElementById('deleteScrobblesBtn');
+            const deleteBtn = document.getElementById('deletePlaysBtn');
             deleteBtn.disabled = true;
             deleteBtn.textContent = 'Deleting...';
             
-            fetch(`/scrobbles/api/song/${songId}`, {
+            fetch(`/plays/api/song/${songId}`, {
                 method: 'DELETE'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showSuccessToast('Successfully deleted ' + data.deletedCount + ' scrobbles');
+                    showSuccessToast('Successfully deleted ' + data.deletedCount + ' plays');
                     // Reload page to reflect the change
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
                     showErrorToast('Error: ' + (data.error || 'Unknown error'));
                     deleteBtn.disabled = false;
-                    deleteBtn.textContent = 'Delete All Scrobbles';
+                    deleteBtn.textContent = 'Delete All Plays';
                 }
             })
             .catch(error => {
-                console.error('Error deleting scrobbles:', error);
-                showErrorToast('Error deleting scrobbles');
+                console.error('Error deleting plays:', error);
+                showErrorToast('Error deleting plays');
                 deleteBtn.disabled = false;
-                deleteBtn.textContent = 'Delete All Scrobbles';
+                deleteBtn.textContent = 'Delete All Plays';
             });
         }
         

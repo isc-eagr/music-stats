@@ -579,7 +579,7 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Listened Date Filter (for scrobbles) -->
+                                <!-- Listened Date Filter (for plays) -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
@@ -940,7 +940,7 @@
                 <button class="filter-chip-remove" onclick="removeFilter('lastListenedDateFrom', 'lastListenedDateTo', 'lastListenedDateMode')" type="button">×</button>
             </div>
             
-            <!-- Listened Date filter chip (scrobble date range) -->
+            <!-- Listened Date filter chip (play date range) -->
             <div class="filter-chip" th:if="${listenedDateFrom != null and !listenedDateFrom.isEmpty()}">
                 <span class="filter-chip-label">Listened from</span>
                 <span class="filter-chip-value" th:text="${listenedDateFromFormatted != null ? listenedDateFromFormatted : listenedDateFrom}"></span>
@@ -1174,11 +1174,11 @@
                     <!-- Date information section -->
                     <div class="artist-dates" th:if="${artist.firstListenedDate != null or artist.lastListenedDate != null}">
                         <div class="date-item" th:if="${artist.firstListenedDate != null}">
-                            <span class="date-label">First:</span>
+                            <span class="date-label">First Listened:</span>
                             <span class="date-value" th:text="${artist.firstListenedDate}"></span>
                         </div>
                         <div class="date-item" th:if="${artist.lastListenedDate != null}">
-                            <span class="date-label">Last:</span>
+                            <span class="date-label">Last Listened:</span>
                             <span class="date-value" th:text="${artist.lastListenedDate}"></span>
                         </div>
                     </div>

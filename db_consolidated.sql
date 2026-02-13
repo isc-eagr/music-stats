@@ -144,14 +144,14 @@ CREATE TABLE IF NOT EXISTS Song (
     FOREIGN KEY (override_ethnicity_id) REFERENCES Ethnicity(id) ON DELETE SET NULL
 );
 
--- Scrobble table (play history)
-CREATE TABLE IF NOT EXISTS Scrobble (
+-- Play table (play history)
+CREATE TABLE IF NOT EXISTS Play (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     artist VARCHAR(255),
     album VARCHAR(255),
     song VARCHAR(255),
     lastfm_id INTEGER,
-    scrobble_date TIMESTAMP,
+    play_date TIMESTAMP,
     song_id INTEGER,
     account VARCHAR(255),
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -269,12 +269,12 @@ CREATE INDEX IF NOT EXISTS idx_song_name ON Song(name);
 CREATE INDEX IF NOT EXISTS idx_song_release_date ON Song(release_date);
 CREATE INDEX IF NOT EXISTS idx_song_organized ON Song(organized);
 
--- Scrobble indexes
-CREATE INDEX IF NOT EXISTS idx_scrobble_song_id ON Scrobble(song_id);
-CREATE INDEX IF NOT EXISTS idx_scrobble_date ON Scrobble(scrobble_date);
-CREATE INDEX IF NOT EXISTS idx_scrobble_account ON Scrobble(account);
-CREATE INDEX IF NOT EXISTS idx_scrobble_artist ON Scrobble(artist);
-CREATE INDEX IF NOT EXISTS idx_scrobble_lastfm_id ON Scrobble(lastfm_id);
+-- Play indexes
+CREATE INDEX IF NOT EXISTS idx_play_song_id ON Play(song_id);
+CREATE INDEX IF NOT EXISTS idx_play_date ON Play(play_date);
+CREATE INDEX IF NOT EXISTS idx_play_account ON Play(account);
+CREATE INDEX IF NOT EXISTS idx_play_artist ON Play(artist);
+CREATE INDEX IF NOT EXISTS idx_play_lastfm_id ON Play(lastfm_id);
 
 -- SongFeaturedArtist indexes
 CREATE INDEX IF NOT EXISTS idx_song_featured_artist_song ON SongFeaturedArtist(song_id);
@@ -310,8 +310,8 @@ CREATE INDEX IF NOT EXISTS idx_chartentry_position ON ChartEntry(chart_id, posit
 -- ============================================
 
 -- Composite indexes for account filtering
-CREATE INDEX IF NOT EXISTS idx_scrobble_account_songid ON Scrobble(account, song_id);
-CREATE INDEX IF NOT EXISTS idx_scrobble_account_date ON Scrobble(account, scrobble_date);
+CREATE INDEX IF NOT EXISTS idx_play_account_songid ON Play(account, song_id);
+CREATE INDEX IF NOT EXISTS idx_play_account_date ON Play(account, play_date);
 
 -- Indexes for Song joins
 CREATE INDEX IF NOT EXISTS idx_song_artistid_albumid ON Song(artist_id, album_id);
@@ -333,30 +333,30 @@ CREATE INDEX IF NOT EXISTS idx_artist_ethnicity_country ON Artist(ethnicity_id, 
 CREATE INDEX IF NOT EXISTS idx_artist_genre_gender ON Artist(genre_id, gender_id);
 
 -- Indexes for artist detail page
-CREATE INDEX IF NOT EXISTS idx_scrobble_songid_account ON Scrobble(song_id, account);
-CREATE INDEX IF NOT EXISTS idx_scrobble_songid_date ON Scrobble(song_id, scrobble_date);
+CREATE INDEX IF NOT EXISTS idx_play_songid_account ON Play(song_id, account);
+CREATE INDEX IF NOT EXISTS idx_play_songid_date ON Play(song_id, play_date);
 CREATE INDEX IF NOT EXISTS idx_song_artistid_length ON Song(artist_id, length_seconds);
 
 -- Covering indexes for hot queries
-CREATE INDEX IF NOT EXISTS idx_scrobble_cover_plays ON Scrobble(song_id, account, scrobble_date);
+CREATE INDEX IF NOT EXISTS idx_play_cover_plays ON Play(song_id, account, play_date);
 CREATE INDEX IF NOT EXISTS idx_song_cover_joins ON Song(id, artist_id, album_id, length_seconds);
 
 -- Indexes for Top Charts tab
 CREATE INDEX IF NOT EXISTS idx_song_artistid_albumid_length ON Song(artist_id, album_id, length_seconds);
 CREATE INDEX IF NOT EXISTS idx_song_albumid_length_notnull ON Song(album_id, length_seconds) WHERE album_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_scrobble_date_songid ON Scrobble(scrobble_date, song_id);
-CREATE INDEX IF NOT EXISTS idx_scrobble_songid_account_date ON Scrobble(song_id, account, scrobble_date);
+CREATE INDEX IF NOT EXISTS idx_play_date_songid ON Play(play_date, song_id);
+CREATE INDEX IF NOT EXISTS idx_play_songid_account_date ON Play(song_id, account, play_date);
 
 
 -- ============================================
 -- SECTION 6: TIMEFRAME PERFORMANCE INDEXES
 -- ============================================
 
--- Covering index for scrobble scans in timeframe CTEs
-CREATE INDEX IF NOT EXISTS idx_scrobble_covering_timeframe ON Scrobble(
-    scrobble_date,
+-- Covering index for play scans in timeframe CTEs
+CREATE INDEX IF NOT EXISTS idx_play_covering_timeframe ON Play(
+    play_date,
     song_id
-) WHERE scrobble_date IS NOT NULL;
+) WHERE play_date IS NOT NULL;
 
 -- Covering index for Song table joins
 CREATE INDEX IF NOT EXISTS idx_song_covering_joins ON Song(
@@ -422,12 +422,12 @@ BEGIN
     UPDATE Song SET update_date = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
--- Scrobble update trigger
-CREATE TRIGGER IF NOT EXISTS update_scrobble_timestamp 
-AFTER UPDATE ON Scrobble
+-- Play update trigger
+CREATE TRIGGER IF NOT EXISTS update_play_timestamp 
+AFTER UPDATE ON Play
 FOR EACH ROW
 BEGIN
-    UPDATE Scrobble SET update_date = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    UPDATE Play SET update_date = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 -- Gender update trigger

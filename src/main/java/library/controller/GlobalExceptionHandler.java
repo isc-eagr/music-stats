@@ -11,8 +11,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({MaxUploadSizeExceededException.class, MultipartException.class})
     public String handleMaxSizeException(Exception ex, RedirectAttributes redirectAttributes) {
-        // Use a flash attribute so the GET /scrobbles/upload can show the message after redirect
+        // Use a flash attribute so the GET /plays/upload can show the message after redirect
         redirectAttributes.addFlashAttribute("error", "Uploaded file is too large. Maximum allowed size is 100MB.");
-        return "redirect:/scrobbles/upload";
+        return "redirect:/plays/upload";
     }
 }

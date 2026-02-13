@@ -5,7 +5,7 @@
 -- SQLite doesn't support DROP COLUMN directly, so we need to recreate the table
 -- This migration preserves all data except the status column
 
--- Disable foreign key checks temporarily (Scrobble references Song)
+-- Disable foreign key checks temporarily (Play references Song)
 PRAGMA foreign_keys = OFF;
 
 -- Step 1: Drop the status index

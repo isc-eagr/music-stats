@@ -1,6 +1,6 @@
 package library.controller;
 
-import library.service.ScrobbleService;
+import library.service.PlayService;
 import library.service.ArtistService;
 import library.service.AlbumService;
 import library.service.SongService;
@@ -15,17 +15,17 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/scrobbles")
-public class ScrobbleController {
+@RequestMapping("/plays")
+public class PlayController {
     
-    private final ScrobbleService scrobbleService;
+    private final PlayService playService;
     private final ArtistService artistService;
     private final AlbumService albumService;
     private final SongService songService;
     
-    public ScrobbleController(ScrobbleService scrobbleService,
+    public PlayController(PlayService playService,
                               ArtistService artistService, AlbumService albumService, SongService songService) {
-        this.scrobbleService = scrobbleService;
+        this.playService = playService;
         this.artistService = artistService;
         this.albumService = albumService;
         this.songService = songService;
@@ -35,8 +35,8 @@ public class ScrobbleController {
     @GetMapping("/upload")
     public String showUploadForm(Model model) {
         model.addAttribute("accounts", List.of("vatito", "robertlover"));
-        model.addAttribute("maxLastfmIds", scrobbleService.getMaxLastfmIdByAccount());
-        return "insertScrobblesForm";
+        model.addAttribute("maxLastfmIds", playService.getMaxLastfmIdByAccount());
+        return "insertPlaysForm";
     }
 
     // Handle the uploaded file and stream-import
@@ -48,28 +48,28 @@ public class ScrobbleController {
                                Model model) {
         if (account == null || account.isBlank()) account = "uploaded";
         try {
-            ScrobbleService.ImportResult result = scrobbleService.importScrobblesWithUnmatched(file, account, batchSize, dryRun);
+            PlayService.ImportResult result = playService.importPlaysWithUnmatched(file, account, batchSize, dryRun);
             model.addAttribute("stats", result.stats);
             model.addAttribute("unmatchedList", result.unmatchedGrouped);
             model.addAttribute("dryRun", dryRun);
             model.addAttribute("account", account);
             model.addAttribute("batchSize", batchSize);
-            return "insertScrobblesResult";
+            return "insertPlaysResult";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "insertScrobblesResult";
+            return "insertPlaysResult";
         }
     }
 
     /**
-     * Page that shows unmatched scrobbles grouped by artist/album/song with counts.
+     * Page that shows unmatched plays grouped by artist/album/song with counts.
      * Supports optional account filter via ?account=<accountName>
      */
     @GetMapping("/unmatched")
-    public String showUnmatchedScrobbles(@RequestParam(value = "account", required = false) String account,
+    public String showUnmatchedPlays(@RequestParam(value = "account", required = false) String account,
                                          Model model) {
         // Fetch list of distinct accounts for the UI
-        java.util.List<String> accounts = scrobbleService.getDistinctAccounts();
+        java.util.List<String> accounts = playService.getDistinctAccounts();
 
         // Interpret empty string as "no filter" (show all)
         String serviceAccount;
@@ -80,9 +80,9 @@ public class ScrobbleController {
         }
 
         // Fetch unmatched rows filtered by account (if provided)
-        java.util.List<java.util.Map<String, Object>> rows = scrobbleService.getUnmatchedScrobbles(serviceAccount);
+        java.util.List<java.util.Map<String, Object>> rows = playService.getUnmatchedPlays(serviceAccount);
         
-        // Calculate total unmatched scrobbles count
+        // Calculate total unmatched plays count
         long totalUnmatchedCount = rows.stream()
             .mapToLong(row -> row.get("cnt") != null ? ((Number) row.get("cnt")).longValue() : 0)
             .sum();
@@ -92,25 +92,25 @@ public class ScrobbleController {
         model.addAttribute("totalUnmatchedCount", totalUnmatchedCount);
         model.addAttribute("accounts", accounts);
         model.addAttribute("selectedAccount", account == null ? "" : account);
-        return "unmatchedScrobbles";
+        return "unmatchedPlays";
     }
     
     /**
-     * API endpoint to delete unmatched scrobbles by their identifying fields.
+     * API endpoint to delete unmatched plays by their identifying fields.
      * 
-     * DELETE /scrobbles/api/unmatched
+     * DELETE /plays/api/unmatched
      * Body: { "account": "...", "artist": "...", "album": "...", "song": "..." }
      */
     @DeleteMapping("/api/unmatched")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteUnmatchedScrobbles(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> deleteUnmatchedPlays(@RequestBody Map<String, Object> request) {
         try {
             String account = (String) request.get("account");
             String artist = (String) request.get("artist");
             String album = (String) request.get("album");
             String song = (String) request.get("song");
             
-            int deletedCount = scrobbleService.deleteUnmatchedScrobbles(account, artist, album, song);
+            int deletedCount = playService.deleteUnmatchedPlays(account, artist, album, song);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -127,7 +127,7 @@ public class ScrobbleController {
 
     /**
      * Batch delete endpoint to remove multiple unmatched groups at once.
-     * POST /scrobbles/api/unmatched/delete-selected
+     * POST /plays/api/unmatched/delete-selected
      * Body: { items: [ { account, artist, album, song }, ... ] }
      */
     @PostMapping("/api/unmatched/delete-selected")
@@ -145,7 +145,7 @@ public class ScrobbleController {
                     String artist = m.get("artist") != null ? m.get("artist").toString() : null;
                     String album = m.get("album") != null ? m.get("album").toString() : null;
                     String song = m.get("song") != null ? m.get("song").toString() : null;
-                    totalDeleted += scrobbleService.deleteUnmatchedScrobbles(account, artist, album, song);
+                    totalDeleted += playService.deleteUnmatchedPlays(account, artist, album, song);
                 }
             }
 
@@ -163,15 +163,15 @@ public class ScrobbleController {
     }
     
     /**
-     * API endpoint to assign unmatched scrobbles to an existing song.
-     * Matches scrobbles by account, artist, album, and song name.
+     * API endpoint to assign unmatched plays to an existing song.
+     * Matches plays by account, artist, album, and song name.
      * 
-     * POST /scrobbles/api/assign
+     * POST /plays/api/assign
      * Body: { "account": "...", "artist": "...", "album": "...", "song": "...", "songId": 123 }
      */
     @PostMapping("/api/assign")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> assignScrobblesToSong(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> assignPlaysToSong(@RequestBody Map<String, Object> request) {
         try {
             String account = (String) request.get("account");
             String artist = (String) request.get("artist");
@@ -186,7 +186,7 @@ public class ScrobbleController {
                 ));
             }
             
-            int updatedCount = scrobbleService.assignScrobblesToSong(account, artist, album, song, songId);
+            int updatedCount = playService.assignPlaysToSong(account, artist, album, song, songId);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -202,12 +202,12 @@ public class ScrobbleController {
     }
     
     /**
-     * API endpoint to create artist/album/song and assign scrobbles.
-     * Creates entities as needed and updates scrobbles with canonical names.
+     * API endpoint to create artist/album/song and assign plays.
+     * Creates entities as needed and updates plays with canonical names.
      * 
-     * POST /scrobbles/api/create-and-assign
+     * POST /plays/api/create-and-assign
      * Body: { 
-     *   scrobbleArtist, scrobbleAlbum, scrobbleSong, scrobbleAccount,
+     *   playArtist, playAlbum, playSong, playAccount,
      *   artistId (or null), newArtistName, newArtistGenderId, newArtistLanguageId, 
      *   newArtistGenreId, newArtistSubgenreId, newArtistEthnicityId, newArtistCountry,
      *   albumId (or null), newAlbumName, newAlbumReleaseDate,
@@ -218,10 +218,10 @@ public class ScrobbleController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createAndAssign(@RequestBody Map<String, Object> request) {
         try {
-            String scrobbleArtist = (String) request.get("scrobbleArtist");
-            String scrobbleAlbum = (String) request.get("scrobbleAlbum");
-            String scrobbleSong = (String) request.get("scrobbleSong");
-            String scrobbleAccount = (String) request.get("scrobbleAccount");
+            String playArtist = (String) request.get("playArtist");
+            String playAlbum = (String) request.get("playAlbum");
+            String playSong = (String) request.get("playSong");
+            String playAccount = (String) request.get("playAccount");
             
             Integer artistId = request.get("artistId") != null ? ((Number) request.get("artistId")).intValue() : null;
             String newArtistName = (String) request.get("newArtistName");
@@ -365,9 +365,9 @@ public class ScrobbleController {
                 }
             }
             
-            // 4. Assign scrobbles with canonical names
-            int updatedCount = scrobbleService.assignScrobblesToSongWithCanonicalNames(
-                scrobbleAccount, scrobbleArtist, scrobbleAlbum, scrobbleSong,
+            // 4. Assign plays with canonical names
+            int updatedCount = playService.assignPlaysToSongWithCanonicalNames(
+                playAccount, playArtist, playAlbum, playSong,
                 songId, canonicalArtist, canonicalAlbum, songName
             );
             
@@ -389,10 +389,10 @@ public class ScrobbleController {
     }
     
     /**
-     * API endpoint to fetch recent scrobbles from Last.fm API.
-     * Fetches scrobbles newer than the max lastfm_id for the given account.
+     * API endpoint to fetch recent plays from Last.fm API.
+     * Fetches plays newer than the max lastfm_id for the given account.
      * 
-     * POST /scrobbles/api/fetch-lastfm
+     * POST /plays/api/fetch-lastfm
      * Body: { "account": "vatito", "apiKey": "..." }
      */
     @PostMapping("/api/fetch-lastfm")
@@ -416,7 +416,7 @@ public class ScrobbleController {
                 ));
             }
             
-            ScrobbleService.ImportResult result = scrobbleService.fetchAndImportFromLastfm(account, apiKey);
+            PlayService.ImportResult result = playService.fetchAndImportPlaysFromLastfm(account, apiKey);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -427,7 +427,7 @@ public class ScrobbleController {
             if (result.validation != null) {
                 Map<String, Object> validation = new HashMap<>();
                 validation.put("lastfmPlaycount", result.validation.lastfmPlaycount);
-                validation.put("localScrobbleCount", result.validation.localScrobbleCount);
+                validation.put("localPlayCount", result.validation.localPlayCount);
                 validation.put("matches", result.validation.matches);
                 validation.put("difference", result.validation.difference);
                 response.put("validation", validation);
@@ -445,14 +445,14 @@ public class ScrobbleController {
     }
     
     /**
-     * API endpoint to delete scrobbles from the last N days.
+     * API endpoint to delete plays from the last N days.
      * 
-     * POST /scrobbles/api/delete-recent
+     * POST /plays/api/delete-recent
      * Body: { "days": 10 }
      */
     @PostMapping("/api/delete-recent")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteRecentScrobbles(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> deleteRecentPlays(@RequestBody Map<String, Object> request) {
         try {
             Integer days = request.get("days") != null ? ((Number) request.get("days")).intValue() : null;
             
@@ -463,7 +463,7 @@ public class ScrobbleController {
                 ));
             }
             
-            int deletedCount = scrobbleService.deleteRecentScrobbles(days);
+            int deletedCount = playService.deleteRecentPlays(days);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -481,14 +481,14 @@ public class ScrobbleController {
     }
     
     /**
-     * API endpoint to delete all scrobbles for a specific song.
+     * API endpoint to delete all plays for a specific song.
      * This is a dangerous operation that removes all listening history for the song.
      * 
-     * DELETE /scrobbles/api/song/{songId}
+     * DELETE /plays/api/song/{songId}
      */
     @DeleteMapping("/api/song/{songId}")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteScrobblesForSong(@PathVariable Long songId) {
+    public ResponseEntity<Map<String, Object>> deletePlaysForSong(@PathVariable Long songId) {
         try {
             if (songId == null || songId < 1) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -497,7 +497,7 @@ public class ScrobbleController {
                 ));
             }
             
-            int deletedCount = scrobbleService.deleteScrobblesForSong(songId);
+            int deletedCount = playService.deletePlaysForSong(songId);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,

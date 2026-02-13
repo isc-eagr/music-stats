@@ -71,9 +71,9 @@ public class CountryService {
         String sql = """
             SELECT 
                 ar.country,
-                COUNT(DISTINCT scr.id) as play_count,
-                COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
-                COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
+                COUNT(DISTINCT p.id) as play_count,
+                COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
+                COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
                 COALESCE(SUM(s.length_seconds), 0) as time_listened,
                 COUNT(DISTINCT ar.id) as artist_count,
                 COUNT(DISTINCT al.id) as album_count,
@@ -87,9 +87,9 @@ public class CountryService {
                 COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
                 COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
                 COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count,
-                COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count,
-                COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count,
-                COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count,
+                COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count,
+                COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count,
+                COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count,
                 SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
                 SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
                 SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened,
@@ -102,8 +102,8 @@ public class CountryService {
                 CASE WHEN SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END) > 0 
                      THEN CAST(SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) AS REAL) / (SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END)) 
                      ELSE NULL END as male_song_pct,
-                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) > 0 
-                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END)) 
+                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) > 0 
+                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END)) 
                      ELSE NULL END as male_play_pct,
                 CASE WHEN SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) > 0 
                      THEN CAST(SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) AS REAL) / (SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END)) 
@@ -112,7 +112,7 @@ public class CountryService {
             JOIN Song s ON ar.id = s.artist_id
             LEFT JOIN Album al ON s.album_id = al.id
             LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Play p ON s.id = p.song_id
             WHERE ar.country IS NOT NULL AND ar.country != ''
                 AND (? IS NULL OR ar.country LIKE '%' || ? || '%')
             GROUP BY ar.country
@@ -203,8 +203,8 @@ public class CountryService {
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE ar.country IN (" + placeholders + ") " +
             "    GROUP BY ar.country, ar.id, ar.name, ar.gender_id " +
@@ -227,8 +227,8 @@ public class CountryService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND ar.country IN (" + placeholders + ") " +
@@ -251,8 +251,8 @@ public class CountryService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE ar.country IN (" + placeholders + ") " +
             "    GROUP BY ar.country, s.id, s.name, ar.name " +

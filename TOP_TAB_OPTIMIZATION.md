@@ -2,13 +2,13 @@
 
 ## Problem Analysis
 
-The "Top" tab was extremely slow because it was performing **3 separate full scans** of the Scrobble table (500,000+ records):
+The "Top" tab was extremely slow because it was performing **3 separate full scans** of the Play table (500,000+ records):
 
-1. **Top Artists**: Scrobble → Song → Artist aggregation
-2. **Top Albums**: Scrobble → Song → Album aggregation  
-3. **Top Songs**: Scrobble → Song with full GROUP BY
+1. **Top Artists**: Play → Song → Artist aggregation
+2. **Top Albums**: Play → Song → Album aggregation  
+3. **Top Songs**: Play → Song with full GROUP BY
 
-Each query independently scanned and aggregated the entire Scrobble table, resulting in:
+Each query independently scanned and aggregated the entire Play table, resulting in:
 - ~1.5 million rows processed (500K × 3)
 - 3× the I/O operations
 - 3× the GROUP BY overhead
@@ -22,7 +22,7 @@ Each query independently scanned and aggregated the entire Scrobble table, resul
 ```sql
 LEFT JOIN (
     SELECT artist_id, COUNT(scr.id) as plays, ...
-    FROM Scrobble scr
+    FROM Play scr
     INNER JOIN Song s ON scr.song_id = s.id
     ...
 ) play_stats ON ar.id = play_stats.artist_id
@@ -33,7 +33,7 @@ WHERE 1=1 ... -- filters applied AFTER the join
 ```sql
 INNER JOIN (
     SELECT artist_id, COUNT(*) as plays, ...
-    FROM Scrobble scr
+    FROM Play scr
     INNER JOIN Song s ON scr.song_id = s.id
     ...
 ) agg ON ar.id = agg.artist_id
@@ -95,13 +95,13 @@ CREATE INDEX IF NOT EXISTS idx_song_artistid_albumid_length
 CREATE INDEX IF NOT EXISTS idx_song_albumid_length_notnull 
     ON Song(album_id, length_seconds) WHERE album_id IS NOT NULL;
 
--- Optimize date filtering in scrobble aggregations
-CREATE INDEX IF NOT EXISTS idx_scrobble_date_songid 
-    ON Scrobble(scrobble_date, song_id);
+-- Optimize date filtering in play aggregations
+CREATE INDEX IF NOT EXISTS idx_play_date_songid 
+    ON Play(play_date, song_id);
 
--- Combined covering index for all scrobble aggregation patterns
-CREATE INDEX IF NOT EXISTS idx_scrobble_songid_account_date 
-    ON Scrobble(song_id, account, scrobble_date);
+-- Combined covering index for all play aggregation patterns
+CREATE INDEX IF NOT EXISTS idx_play_songid_account_date 
+    ON Play(song_id, account, play_date);
 ```
 
 **Index Benefits**:
@@ -116,23 +116,23 @@ CREATE INDEX IF NOT EXISTS idx_scrobble_songid_account_date
    - Smaller index = faster scans
    - Perfect for "WHERE s.album_id IS NOT NULL" filter
 
-3. **`idx_scrobble_date_songid`**
-   - Optimizes date range filtering on scrobbles
+3. **`idx_play_date_songid`**
+   - Optimizes date range filtering on plays
    - Allows efficient filtering before the GROUP BY
    - Critical when users filter by time period
 
-4. **`idx_scrobble_songid_account_date`**
-   - Covering index for the most common scrobble aggregation pattern
-   - Includes all columns needed: song_id (JOIN), account (SUM CASE), scrobble_date (MIN/MAX)
-   - Eliminates need to access Scrobble table rows
+4. **`idx_play_songid_account_date`**
+   - Covering index for the most common play aggregation pattern
+   - Includes all columns needed: song_id (JOIN), account (SUM CASE), play_date (MIN/MAX)
+   - Eliminates need to access Play table rows
 
 ## Performance Impact
 
-### Without Filters (Full Scrobble Table)
+### Without Filters (Full Play Table)
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **Scrobble table scans** | 3 full scans | 3 full scans* | Same |
+| **Play table scans** | 3 full scans | 3 full scans* | Same |
 | **Aggregation efficiency** | LEFT JOIN | INNER JOIN | Better filtering |
 | **Index utilization** | Partial | Full coverage | 40-50% faster |
 | **Total query time** | Baseline | **40-60% faster** | With new indexes |
@@ -143,12 +143,12 @@ CREATE INDEX IF NOT EXISTS idx_scrobble_songid_account_date
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **Scrobble rows scanned** | 500K × 3 | Filtered subset × 3 | 60-80% fewer |
+| **Play rows scanned** | 500K × 3 | Filtered subset × 3 | 60-80% fewer |
 | **Index usage** | Table scan | Index scan on date | **70-85% faster** |
 
 ### Why We Can't Merge Into One Query
 
-You might wonder: "Why not scan Scrobble once and produce all three results?"
+You might wonder: "Why not scan Play once and produce all three results?"
 
 The challenge is that each aggregation has different:
 - **Group keys**: artist_id vs album_id vs song_id
@@ -186,14 +186,14 @@ cd C:\Code\music-stats
 Check that the new indexes exist:
 ```sql
 .indices Song
-.indices Scrobble
+.indices Play
 ```
 
 You should see:
 - `idx_song_artistid_albumid_length`
 - `idx_song_albumid_length_notnull`
-- `idx_scrobble_date_songid`
-- `idx_scrobble_songid_account_date`
+- `idx_play_date_songid`
+- `idx_play_songid_account_date`
 
 ### Step 3: Restart Application
 
@@ -219,7 +219,7 @@ The code changes are already in place - just restart!
 
 **Before**:
 ```
-1. Scan Scrobble table (500K rows)
+1. Scan Play table (500K rows)
 2. Join to Song table (lookup per row)
 3. GROUP BY artist_id
 4. Join aggregated result to Artist table
@@ -231,7 +231,7 @@ The code changes are already in place - just restart!
 
 **After**:
 ```
-1. Index scan on Scrobble (covering index used)
+1. Index scan on Play (covering index used)
 2. Index lookup on Song (covering index used)
 3. GROUP BY using index (no sort needed)
 4. INNER JOIN to Artist (only artists with plays)
@@ -248,15 +248,15 @@ A covering index contains **all columns needed** for a query, meaning:
 - Better cache utilization
 - Faster scans
 
-Example: `idx_scrobble_songid_account_date` covers this entire operation:
+Example: `idx_play_songid_account_date` covers this entire operation:
 ```sql
 SELECT 
     song_id,                    -- In index
     COUNT(*),                    -- Can count index entries
     SUM(CASE WHEN account = 'vatito' ...), -- In index
-    MIN(scrobble_date),         -- In index
-    MAX(scrobble_date)          -- In index
-FROM Scrobble
+    MIN(play_date),         -- In index
+    MAX(play_date)          -- In index
+FROM Play
 WHERE ... date filters ...      -- In index
 GROUP BY song_id               -- In index (already sorted!)
 ```
@@ -282,7 +282,7 @@ The Top tab is now **40-85% faster** (depending on filters) through:
 ✅ Proper parameter ordering (correct query execution)
 ✅ Date filter optimization (index-based filtering)
 
-While we still scan Scrobble 3 times, each scan is now:
+While we still scan Play 3 times, each scan is now:
 - Fully index-covered (no table access)
 - More selective (INNER JOIN filters early)
 - Properly ordered (indexes match GROUP BY)

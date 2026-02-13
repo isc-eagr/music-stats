@@ -15,15 +15,15 @@ import jakarta.persistence.Table;
 import com.opencsv.bean.CsvBindByPosition;
 
 @Entity
-@Table (name="scrobble", schema="stats")
-public class Scrobble {
+@Table (name="play", schema="stats")
+public class Play {
 	
 	/*
-	 	create table scrobble (
+	 	create table play (
 		id integer primary key AUTO_INCREMENT,
 		song_id integer,
         lastfm_id integer,
-		scrobble_date datetime,
+		play_date datetime,
 		artist varchar(2000),
 		song varchar(2000),
 		album varchar(2000),
@@ -40,9 +40,9 @@ public class Scrobble {
 	@CsvBindByPosition(position = 0)
 	private int lastfmId;
 	
-	@Column (name="scrobble_date")
+	@Column (name="play_date")
 	@CsvBindByPosition(position = 1)
-	private String scrobbleDate;
+	private String playDate;
 	
 	@Column (name="artist")
 	@CsvBindByPosition(position = 2)
@@ -70,16 +70,16 @@ public class Scrobble {
 		this.id = id;
 	}
 
-	public String getScrobbleDate() {
-		return scrobbleDate;
+	public String getPlayDate() {
+		return playDate;
 	}
 
-	public void setScrobbleDate(String scrobbleDate) {
-		if (scrobbleDate == null) {
-			this.scrobbleDate = null;
+	public void setPlayDate(String playDate) {
+		if (playDate == null) {
+			this.playDate = null;
 			return;
 		}
-		String trimmed = scrobbleDate.trim();
+		String trimmed = playDate.trim();
 		// Try multiple formats safely. If parsing fails, store the original trimmed value.
 		// Known original pattern used in legacy code: "dd MMM yyyy, HH:mm VV" (e.g., "21 Nov 2025, 12:00 UTC")
 		String[] patterns = new String[] {
@@ -94,30 +94,30 @@ public class Scrobble {
 				DateTimeFormatter fmt = DateTimeFormatter.ofPattern(pattern);
 				// When pattern includes zone (VV), parse as ZonedDateTime; otherwise assume UTC then convert
 				if (pattern.contains("VV")) {
-					ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(trimmed + (pattern.contains("VV") && !trimmed.endsWith("UTC") && !trimmed.matches(".*\\s[A-Z]{3,}$") ? " UTC" : ""), fmt);
-					ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
-					if(utcScrobbleDate.getYear()==1970)
-						mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
-					this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+					ZonedDateTime utcPlayDate = ZonedDateTime.parse(trimmed + (pattern.contains("VV") && !trimmed.endsWith("UTC") && !trimmed.matches(".*\\s[A-Z]{3,}$") ? " UTC" : ""), fmt);
+					ZonedDateTime mexicanPlayDate = utcPlayDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+					if(utcPlayDate.getYear()==1970)
+						mexicanPlayDate = utcPlayDate.plusYears(40);
+					this.playDate = mexicanPlayDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 					return;
 				} else {
 					// Parse without zone; assume input is UTC-like and convert
 					try {
-						ZonedDateTime utcScrobbleDate = ZonedDateTime.parse(trimmed + " UTC", DateTimeFormatter.ofPattern(pattern + " VV"));
-						ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
-						if(utcScrobbleDate.getYear()==1970)
-							mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
-						this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+						ZonedDateTime utcPlayDate = ZonedDateTime.parse(trimmed + " UTC", DateTimeFormatter.ofPattern(pattern + " VV"));
+						ZonedDateTime mexicanPlayDate = utcPlayDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+						if(utcPlayDate.getYear()==1970)
+							mexicanPlayDate = utcPlayDate.plusYears(40);
+						this.playDate = mexicanPlayDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 						return;
 					} catch (DateTimeParseException e) {
 						// fallback: try to parse LocalDateTime style via the pattern, then interpret as UTC
 						try {
 							java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(trimmed, DateTimeFormatter.ofPattern(pattern));
-							ZonedDateTime utcScrobbleDate = ldt.atZone(ZoneId.of("UTC"));
-							ZonedDateTime mexicanScrobbleDate = utcScrobbleDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
-							if(utcScrobbleDate.getYear()==1970)
-								mexicanScrobbleDate = utcScrobbleDate.plusYears(40);
-							this.scrobbleDate = mexicanScrobbleDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+							ZonedDateTime utcPlayDate = ldt.atZone(ZoneId.of("UTC"));
+							ZonedDateTime mexicanPlayDate = utcPlayDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+							if(utcPlayDate.getYear()==1970)
+								mexicanPlayDate = utcPlayDate.plusYears(40);
+							this.playDate = mexicanPlayDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 							return;
 						} catch (Exception ex) {
 							// continue to next pattern
@@ -129,7 +129,7 @@ public class Scrobble {
 			}
 		}
 		// If we couldn't parse with any pattern, just save the raw trimmed string (no exception thrown)
-		this.scrobbleDate = trimmed;
+		this.playDate = trimmed;
 	}
 
 	public String getArtist() {
@@ -182,7 +182,7 @@ public class Scrobble {
 
 	public String toString() {
 		return this.getArtist()+" - "+this.getSong()+" - "+this.getAlbum()+" - "
-				+this.getScrobbleDate()+" - " + this.getId();
+				+this.getPlayDate()+" - " + this.getId();
 	}
 	
 }

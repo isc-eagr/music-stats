@@ -65,9 +65,9 @@ public class GenderService {
             LEFT JOIN (
                 SELECT 
                     COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id,
-                    COUNT(DISTINCT scr.id) as play_count,
-                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
-                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
+                    COUNT(DISTINCT p.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
@@ -75,7 +75,7 @@ public class GenderService {
                 FROM Song s
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 WHERE COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL
                 GROUP BY effective_gender_id
             ) stats ON g.id = stats.effective_gender_id
@@ -138,8 +138,8 @@ public class GenderService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
             "    GROUP BY gender_id, ar.id, ar.name " +
@@ -161,8 +161,8 @@ public class GenderService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
@@ -185,8 +185,8 @@ public class GenderService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
             "    GROUP BY gender_id, s.id, s.name, ar.name " +

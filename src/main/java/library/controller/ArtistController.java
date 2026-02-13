@@ -300,7 +300,7 @@ public class ArtistController {
         model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
         
-        // Listened date filter attributes (filters by actual scrobble date)
+        // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
         model.addAttribute("listenedDateTo", listenedDateTo);
         model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
@@ -570,89 +570,89 @@ public class ArtistController {
             }
         }
         
-        // Always load plays/scrobbles data (eager loading for all tabs)
+        // Always load plays data (eager loading for all tabs)
         {
             int pageSize = 100;
-            List<library.dto.ScrobbleDTO> scrobbles;
+            List<library.dto.PlayDTO> plays;
             
             if (includeMain && effectiveGroupIds != null) {
                 // Main + Groups
-                scrobbles = new java.util.ArrayList<>(artistService.getAggregatedScrobblesForArtist(id, effectiveGroupIds, playsPage, pageSize));
-                long totalCount = artistService.getAggregatedScrobbleCount(id, effectiveGroupIds);
+                plays = new java.util.ArrayList<>(artistService.getAggregatedPlaysForArtist(id, effectiveGroupIds, playsPage, pageSize));
+                long totalCount = artistService.getAggregatedPlayCount(id, effectiveGroupIds);
                 if (includeFeatured && hasFeaturedSongs) {
-                    List<library.dto.ScrobbleDTO> featuredScrobbles = artistService.getFeaturedScrobblesForArtist(id, 0, pageSize);
-                    scrobbles.addAll(featuredScrobbles);
-                    scrobbles.sort((a, b) -> b.getScrobbleDate().compareTo(a.getScrobbleDate()));
-                    if (scrobbles.size() > pageSize) {
-                        scrobbles = scrobbles.subList(0, pageSize);
+                    List<library.dto.PlayDTO> featuredPlays = artistService.getFeaturedPlaysForArtist(id, 0, pageSize);
+                    plays.addAll(featuredPlays);
+                    plays.sort((a, b) -> b.getPlayDate().compareTo(a.getPlayDate()));
+                    if (plays.size() > pageSize) {
+                        plays = plays.subList(0, pageSize);
                     }
-                    totalCount += artistService.countFeaturedScrobblesForArtist(id);
+                    totalCount += artistService.countFeaturedPlaysForArtist(id);
                 }
-                model.addAttribute("scrobbles", scrobbles);
-                model.addAttribute("scrobblesTotalCount", totalCount);
-                model.addAttribute("scrobblesPage", playsPage);
-                model.addAttribute("scrobblesPageSize", pageSize);
-                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
+                model.addAttribute("plays", plays);
+                model.addAttribute("playsTotalCount", totalCount);
+                model.addAttribute("playsPage", playsPage);
+                model.addAttribute("playsPageSize", pageSize);
+                model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(id, effectiveGroupIds));
                 model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(id, effectiveGroupIds));
             } else if (includeMain && effectiveGroupIds == null) {
                 // Main only
-                scrobbles = new java.util.ArrayList<>(artistService.getScrobblesForArtist(id, playsPage, pageSize));
-                long totalCount = artistService.countScrobblesForArtist(id);
+                plays = new java.util.ArrayList<>(artistService.getPlaysForArtist(id, playsPage, pageSize));
+                long totalCount = artistService.countPlaysForArtist(id);
                 if (includeFeatured && hasFeaturedSongs) {
-                    List<library.dto.ScrobbleDTO> featuredScrobbles = artistService.getFeaturedScrobblesForArtist(id, 0, pageSize);
-                    scrobbles.addAll(featuredScrobbles);
-                    scrobbles.sort((a, b) -> b.getScrobbleDate().compareTo(a.getScrobbleDate()));
-                    if (scrobbles.size() > pageSize) {
-                        scrobbles = scrobbles.subList(0, pageSize);
+                    List<library.dto.PlayDTO> featuredPlays = artistService.getFeaturedPlaysForArtist(id, 0, pageSize);
+                    plays.addAll(featuredPlays);
+                    plays.sort((a, b) -> b.getPlayDate().compareTo(a.getPlayDate()));
+                    if (plays.size() > pageSize) {
+                        plays = plays.subList(0, pageSize);
                     }
-                    totalCount += artistService.countFeaturedScrobblesForArtist(id);
+                    totalCount += artistService.countFeaturedPlaysForArtist(id);
                 }
-                model.addAttribute("scrobbles", scrobbles);
-                model.addAttribute("scrobblesTotalCount", totalCount);
-                model.addAttribute("scrobblesPage", playsPage);
-                model.addAttribute("scrobblesPageSize", pageSize);
-                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
+                model.addAttribute("plays", plays);
+                model.addAttribute("playsTotalCount", totalCount);
+                model.addAttribute("playsPage", playsPage);
+                model.addAttribute("playsPageSize", pageSize);
+                model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
                 model.addAttribute("playsByMonth", artistService.getPlaysByMonthForArtist(id));
             } else if (!includeMain && effectiveGroupIds != null) {
                 // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
-                scrobbles = new java.util.ArrayList<>(artistService.getAggregatedScrobblesForArtist(0, effectiveGroupIds, playsPage, pageSize));
-                long totalCount = artistService.getAggregatedScrobbleCount(0, effectiveGroupIds);
+                plays = new java.util.ArrayList<>(artistService.getAggregatedPlaysForArtist(0, effectiveGroupIds, playsPage, pageSize));
+                long totalCount = artistService.getAggregatedPlayCount(0, effectiveGroupIds);
                 if (includeFeatured && hasFeaturedSongs) {
-                    List<library.dto.ScrobbleDTO> featuredScrobbles = artistService.getFeaturedScrobblesForArtist(id, 0, pageSize);
-                    scrobbles.addAll(featuredScrobbles);
-                    scrobbles.sort((a, b) -> b.getScrobbleDate().compareTo(a.getScrobbleDate()));
-                    if (scrobbles.size() > pageSize) {
-                        scrobbles = scrobbles.subList(0, pageSize);
+                    List<library.dto.PlayDTO> featuredPlays = artistService.getFeaturedPlaysForArtist(id, 0, pageSize);
+                    plays.addAll(featuredPlays);
+                    plays.sort((a, b) -> b.getPlayDate().compareTo(a.getPlayDate()));
+                    if (plays.size() > pageSize) {
+                        plays = plays.subList(0, pageSize);
                     }
-                    totalCount += artistService.countFeaturedScrobblesForArtist(id);
+                    totalCount += artistService.countFeaturedPlaysForArtist(id);
                 }
-                model.addAttribute("scrobbles", scrobbles);
-                model.addAttribute("scrobblesTotalCount", totalCount);
-                model.addAttribute("scrobblesPage", playsPage);
-                model.addAttribute("scrobblesPageSize", pageSize);
-                model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
+                model.addAttribute("plays", plays);
+                model.addAttribute("playsTotalCount", totalCount);
+                model.addAttribute("playsPage", playsPage);
+                model.addAttribute("playsPageSize", pageSize);
+                model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                 model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(0, effectiveGroupIds));
                 model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(0, effectiveGroupIds));
             } else {
                 // No main, no groups - only featured
                 if (includeFeatured && hasFeaturedSongs) {
-                    scrobbles = artistService.getFeaturedScrobblesForArtist(id, playsPage, pageSize);
-                    long totalCount = artistService.countFeaturedScrobblesForArtist(id);
-                    model.addAttribute("scrobbles", scrobbles);
-                    model.addAttribute("scrobblesTotalCount", totalCount);
-                    model.addAttribute("scrobblesPage", playsPage);
-                    model.addAttribute("scrobblesPageSize", pageSize);
-                    model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) totalCount / pageSize));
+                    plays = artistService.getFeaturedPlaysForArtist(id, playsPage, pageSize);
+                    long totalCount = artistService.countFeaturedPlaysForArtist(id);
+                    model.addAttribute("plays", plays);
+                    model.addAttribute("playsTotalCount", totalCount);
+                    model.addAttribute("playsPage", playsPage);
+                    model.addAttribute("playsPageSize", pageSize);
+                    model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
                     model.addAttribute("playsByYear", artistService.getFeaturedPlaysByYear(id));
                     model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 } else {
-                    model.addAttribute("scrobbles", java.util.Collections.emptyList());
-                    model.addAttribute("scrobblesTotalCount", 0L);
-                    model.addAttribute("scrobblesPage", 0);
-                    model.addAttribute("scrobblesPageSize", pageSize);
-                    model.addAttribute("scrobblesTotalPages", 0);
+                    model.addAttribute("plays", java.util.Collections.emptyList());
+                    model.addAttribute("playsTotalCount", 0L);
+                    model.addAttribute("playsPage", 0);
+                    model.addAttribute("playsPageSize", pageSize);
+                    model.addAttribute("playsTotalPages", 0);
                     model.addAttribute("playsByYear", java.util.Collections.emptyMap());
                     model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 }

@@ -113,7 +113,7 @@
     object-fit: cover;
 }
 
-.scrobble-count {
+.play-count {
     font-size: 0.85em;
     font-weight: normal;
     color: #9ca3af;
@@ -161,17 +161,17 @@
     font-size: 14px;
 }
 
-/* Scrobbles table adjustments */
-#scrobblesTable {
+/* Plays table adjustments */
+#playsTable {
     font-size: 14px;
 }
 
-#scrobblesTable td:first-child {
+#playsTable td:first-child {
     white-space: nowrap;
     width: 180px;
 }
 
-#scrobblesTable td:last-child {
+#playsTable td:last-child {
     width: 100px;
 }
 

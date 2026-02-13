@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <!-- This fragment provides reusable unmatched scrobbles modal functionality -->
+    <!-- This fragment provides reusable unmatched plays modal functionality -->
 </head>
 <body>
-    <!-- Unmatched Scrobbles Modal Styles -->
+    <!-- Unmatched Plays Modal Styles -->
     <th:block th:fragment="modal-styles">
         <style>
             /* Modal base styles */
@@ -35,10 +35,10 @@
             .unmatched-table .actions { text-align: center; white-space: nowrap; }
             .unmatched-table .actions .btn { padding: 4px 10px; font-size: 11px; margin: 0 2px; }
             
-            /* Scrobble info display */
-            .scrobble-info { background: #222; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
-            .scrobble-info p { margin: 4px 0; color: #ccc; font-size: 14px; }
-            .scrobble-info strong { color: #fff; }
+            /* Play info display */
+            .play-info { background: #222; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+            .play-info p { margin: 4px 0; color: #ccc; font-size: 14px; }
+            .play-info strong { color: #fff; }
             
             /* Form sections */
             .wizard-section { display: none; }
@@ -153,16 +153,16 @@
         </style>
     </th:block>
 
-    <!-- Unmatched Scrobbles List Modal -->
+    <!-- Unmatched Plays List Modal -->
     <div th:fragment="unmatched-list-modal" id="unmatchedListModal" class="unmatched-modal">
         <div class="unmatched-modal-content" style="max-width: 1000px;">
             <div class="unmatched-modal-header">
-                <h2>Unmatched Scrobbles</h2>
+                <h2>Unmatched Plays</h2>
                 <span class="unmatched-modal-close" onclick="closeUnmatchedListModal()">&times;</span>
             </div>
             <div class="unmatched-modal-body">
                 <p style="color: #888; font-size: 14px; margin-bottom: 16px;">
-                    These scrobbles could not be matched to existing songs. Use <strong>Create</strong> to add new artist/album/song, or <strong>Match</strong> to link to an existing song.
+                    These plays could not be matched to existing songs. Use <strong>Create</strong> to add new artist/album/song, or <strong>Match</strong> to link to an existing song.
                 </p>
                 <div id="unmatchedListContainer">
                     <table class="unmatched-table">
@@ -196,7 +196,7 @@
                 <div class="wizard-loading-text" id="wizardLoadingText">Loading...</div>
             </div>
             <div class="unmatched-modal-header">
-                <h2>Create Song for Scrobbles</h2>
+                <h2>Create Song for Plays</h2>
                 <span class="unmatched-modal-close" onclick="closeCreateWizard()">&times;</span>
             </div>
             <div class="unmatched-modal-body">
@@ -216,12 +216,12 @@
                     </div>
                 </div>
 
-                <!-- Scrobble being processed -->
-                <div class="scrobble-info" id="wizardScrobbleInfo">
+                <!-- Play being processed -->
+                <div class="play-info" id="wizardPlayInfo">
                     <p><strong>Artist:</strong> <span id="wizardArtistName"></span></p>
                     <p><strong>Album:</strong> <span id="wizardAlbumName"></span></p>
                     <p><strong>Song:</strong> <span id="wizardSongName"></span></p>
-                    <p><strong>Count:</strong> <span id="wizardScrobbleCount"></span> scrobbles</p>
+                    <p><strong>Count:</strong> <span id="wizardPlayCount"></span> plays</p>
                 </div>
 
                 <!-- Step 1: Artist Selection/Creation -->
@@ -415,7 +415,7 @@
                     </div>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(3)">← Back</button>
-                        <button type="button" class="btn btn-action" onclick="createAndAssignSong()" id="wizardCreateBtn">Create & Assign Scrobbles</button>
+                        <button type="button" class="btn btn-action" onclick="createAndAssignSong()" id="wizardCreateBtn">Create & Assign Plays</button>
                     </div>
                 </div>
             </div>
@@ -430,7 +430,7 @@
                 <span class="unmatched-modal-close" onclick="closeMatchModal()">&times;</span>
             </div>
             <div class="unmatched-modal-body">
-                <div class="scrobble-info" id="matchScrobbleInfo">
+                <div class="play-info" id="matchPlayInfo">
                     <p><strong>Artist:</strong> <span id="matchArtistName"></span></p>
                     <p><strong>Album:</strong> <span id="matchAlbumName"></span></p>
                     <p><strong>Song:</strong> <span id="matchSongName"></span></p>
@@ -462,11 +462,11 @@
         </div>
     </div>
 
-    <!-- JavaScript for unmatched scrobbles modals -->
+    <!-- JavaScript for unmatched plays modals -->
     <script th:fragment="modal-scripts">
         // State for wizard
         let wizardState = {
-            scrobbleData: null,
+            playData: null,
             selectedArtistId: null,
             selectedArtistName: null,
             isNewArtist: false,
@@ -477,7 +477,7 @@
         
         // State for match modal
         let matchState = {
-            scrobbleData: null,
+            playData: null,
             selectedSongId: null
         };
         
@@ -518,7 +518,7 @@
         function renderUnmatchedList() {
             const tbody = document.getElementById('unmatchedListBody');
             if (!unmatchedList || unmatchedList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No unmatched scrobbles</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No unmatched plays</td></tr>';
                 return;
             }
             
@@ -540,7 +540,7 @@
         function openCreateWizard(index) {
             const row = unmatchedList[index];
             wizardState = {
-                scrobbleData: row,
+                playData: row,
                 selectedArtistId: null,
                 selectedArtistName: null,
                 isNewArtist: false,
@@ -549,11 +549,11 @@
                 isNewAlbum: false
             };
             
-            // Populate scrobble info
+            // Populate play info
             document.getElementById('wizardArtistName').textContent = row.artist || '(none)';
             document.getElementById('wizardAlbumName').textContent = row.album || '(none)';
             document.getElementById('wizardSongName').textContent = row.song || '(none)';
-            document.getElementById('wizardScrobbleCount').textContent = row.cnt || row.count || 0;
+            document.getElementById('wizardPlayCount').textContent = row.cnt || row.count || 0;
             
             // Reset to step 1
             showWizardStep(1);
@@ -602,9 +602,9 @@
             // Reset the button state
             const createBtn = document.getElementById('wizardCreateBtn');
             createBtn.disabled = false;
-            createBtn.textContent = 'Create & Assign Scrobbles';
+            createBtn.textContent = 'Create & Assign Plays';
             // Reset state and forms
-            wizardState = { scrobbleData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false, newAlbumImageUrl: null, newSongImageUrl: null, newAlbumReleaseDate: null };
+            wizardState = { playData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false, newAlbumImageUrl: null, newSongImageUrl: null, newAlbumReleaseDate: null };
             resetWizardForms();
         }
         
@@ -975,7 +975,7 @@
                 document.getElementById('createNewAlbumOption').classList.remove('selected');
                 
                 // Clear album form fields
-                document.getElementById('newAlbumName').value = wizardState.scrobbleData.album || '';
+                document.getElementById('newAlbumName').value = wizardState.playData.album || '';
                 document.getElementById('newAlbumReleaseDate').value = '';
                 
                 // Load albums if existing artist (show loading while doing so)
@@ -1055,8 +1055,8 @@
                     });
                     
                     // Try to auto-select matching album
-                    if (wizardState.scrobbleData && wizardState.scrobbleData.album) {
-                        const match = data.find(a => a.name.toLowerCase() === wizardState.scrobbleData.album.toLowerCase());
+                    if (wizardState.playData && wizardState.playData.album) {
+                        const match = data.find(a => a.name.toLowerCase() === wizardState.playData.album.toLowerCase());
                         if (match) {
                             select.value = match.id;
                         }
@@ -1080,8 +1080,8 @@
                     });
                     
                     // Try to auto-select matching album
-                    if (wizardState.scrobbleData && wizardState.scrobbleData.album) {
-                        const match = data.find(a => a.name.toLowerCase() === wizardState.scrobbleData.album.toLowerCase());
+                    if (wizardState.playData && wizardState.playData.album) {
+                        const match = data.find(a => a.name.toLowerCase() === wizardState.playData.album.toLowerCase());
                         if (match) {
                             select.value = match.id;
                         }
@@ -1142,10 +1142,10 @@
             const lengthSeconds = minutes * 60 + seconds;
             
             const payload = {
-                scrobbleArtist: wizardState.scrobbleData.artist,
-                scrobbleAlbum: wizardState.scrobbleData.album,
-                scrobbleSong: wizardState.scrobbleData.song,
-                scrobbleAccount: wizardState.scrobbleData.account,
+                playArtist: wizardState.playData.artist,
+                playAlbum: wizardState.playData.album,
+                playSong: wizardState.playData.song,
+                playAccount: wizardState.playData.account,
                 
                 artistId: wizardState.isNewArtist ? null : wizardState.selectedArtistId,
                 newArtistName: wizardState.isNewArtist ? wizardState.selectedArtistName : null,
@@ -1176,7 +1176,7 @@
             createBtn.disabled = true;
             createBtn.textContent = 'Creating...';
             
-            fetch('/scrobbles/api/create-and-assign', {
+            fetch('/plays/api/create-and-assign', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -1184,13 +1184,13 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    const importCount = wizardState.scrobbleData.cnt || wizardState.scrobbleData.count || 0;
-                    let msg = `Success! Created song and assigned ${data.updatedCount} scrobble(s).`;
+                    const importCount = wizardState.playData.cnt || wizardState.playData.count || 0;
+                    let msg = `Success! Created song and assigned ${data.updatedCount} play(s).`;
                     if (data.updatedCount > importCount) {
                         msg += ` (${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
                     }
                     showSuccessToast(msg);
-                    // Refresh list BEFORE closing (so scrobbleData is still available)
+                    // Refresh list BEFORE closing (so playData is still available)
                     refreshUnmatchedList();
                     closeCreateWizard();
                 } else {
@@ -1211,7 +1211,7 @@
         function openMatchModal(index) {
             const row = unmatchedList[index];
             matchState = {
-                scrobbleData: row,
+                playData: row,
                 selectedSongId: null
             };
             
@@ -1233,7 +1233,7 @@
         
         function closeMatchModal() {
             document.getElementById('matchSongModal').classList.remove('active');
-            matchState = { scrobbleData: null, selectedSongId: null };
+            matchState = { playData: null, selectedSongId: null };
         }
         
         function handleMatchSearchKeyup(event) {
@@ -1302,27 +1302,27 @@
             assignBtn.disabled = true;
             assignBtn.textContent = 'Matching...';
             
-            fetch('/scrobbles/api/assign', {
+            fetch('/plays/api/assign', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    account: matchState.scrobbleData.account || '',
-                    artist: matchState.scrobbleData.artist || '',
-                    album: matchState.scrobbleData.album || '',
-                    song: matchState.scrobbleData.song || '',
+                    account: matchState.playData.account || '',
+                    artist: matchState.playData.artist || '',
+                    album: matchState.playData.album || '',
+                    song: matchState.playData.song || '',
                     songId: matchState.selectedSongId
                 })
             })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    const importCount = matchState.scrobbleData.cnt || matchState.scrobbleData.count || 0;
-                    let msg = `Success! Matched ${data.updatedCount} scrobble(s) to this song.`;
+                    const importCount = matchState.playData.cnt || matchState.playData.count || 0;
+                    let msg = `Success! Matched ${data.updatedCount} play(s) to this song.`;
                     if (data.updatedCount > importCount) {
                         msg += ` (${importCount} from this import + ${data.updatedCount - importCount} previously unmatched)`;
                     }
                     showSuccessToast(msg);
-                    // Refresh list BEFORE closing (so scrobbleData is still available)
+                    // Refresh list BEFORE closing (so playData is still available)
                     refreshUnmatchedList();
                     closeMatchModal();
                 } else {
@@ -1341,20 +1341,20 @@
         
         function refreshUnmatchedList() {
             // Remove the assigned row from local list and re-render
-            if (matchState.scrobbleData) {
+            if (matchState.playData) {
                 unmatchedList = unmatchedList.filter(r => 
-                    !(r.artist === matchState.scrobbleData.artist && 
-                      r.album === matchState.scrobbleData.album && 
-                      r.song === matchState.scrobbleData.song &&
-                      r.account === matchState.scrobbleData.account)
+                    !(r.artist === matchState.playData.artist && 
+                      r.album === matchState.playData.album && 
+                      r.song === matchState.playData.song &&
+                      r.account === matchState.playData.account)
                 );
             }
-            if (wizardState.scrobbleData) {
+            if (wizardState.playData) {
                 unmatchedList = unmatchedList.filter(r => 
-                    !(r.artist === wizardState.scrobbleData.artist && 
-                      r.album === wizardState.scrobbleData.album && 
-                      r.song === wizardState.scrobbleData.song &&
-                      r.account === wizardState.scrobbleData.account)
+                    !(r.artist === wizardState.playData.artist && 
+                      r.album === wizardState.playData.album && 
+                      r.song === wizardState.playData.song &&
+                      r.account === wizardState.playData.account)
                 );
             }
             renderUnmatchedList();
@@ -2300,3 +2300,4 @@
     </script>
 </body>
 </html>
+

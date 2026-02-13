@@ -208,15 +208,15 @@ public class ChartService {
         chart = chartRepository.save(chart);
         
         // Query top 20 songs for this period
-        // Tie-breaker: if same play count, the song that reached it first (earlier last scrobble) wins
+        // Tie-breaker: if same play count, the song that reached it first (earlier last play) wins
         String sql = """
-            SELECT s.id as song_id, COUNT(*) as play_count, MAX(scr.scrobble_date) as last_scrobble
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE DATE(scr.scrobble_date) >= ? AND DATE(scr.scrobble_date) <= ?
-              AND scr.song_id IS NOT NULL
+            SELECT s.id as song_id, COUNT(*) as play_count, MAX(p.play_date) as last_play
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
+              AND p.song_id IS NOT NULL
             GROUP BY s.id
-            ORDER BY play_count DESC, last_scrobble ASC
+            ORDER BY play_count DESC, last_play ASC
             LIMIT ?
             """;
         
@@ -255,16 +255,16 @@ public class ChartService {
         chart = chartRepository.save(chart);
         
         // Query top 10 albums for this period
-        // Tie-breaker: if same play count, the album that reached it first (earlier last scrobble) wins
+        // Tie-breaker: if same play count, the album that reached it first (earlier last play) wins
         String sql = """
-            SELECT s.album_id as album_id, COUNT(*) as play_count, MAX(scr.scrobble_date) as last_scrobble
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
-            WHERE DATE(scr.scrobble_date) >= ? AND DATE(scr.scrobble_date) <= ?
-              AND scr.song_id IS NOT NULL
+            SELECT s.album_id as album_id, COUNT(*) as play_count, MAX(p.play_date) as last_play
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
+              AND p.song_id IS NOT NULL
               AND s.album_id IS NOT NULL
             GROUP BY s.album_id
-            ORDER BY play_count DESC, last_scrobble ASC
+            ORDER BY play_count DESC, last_play ASC
             LIMIT ?
             """;
         
@@ -444,7 +444,7 @@ public class ChartService {
 
     /**
      * Get a PREVIEW of the weekly song chart for an in-progress week (chart not yet generated).
-     * This shows what the chart would look like based on scrobbles so far.
+     * This shows what the chart would look like based on plays so far.
      * Only shows basic info: artist, album, song, plays - no chart history stats.
      */
     public List<ChartEntryDTO> getWeeklySongChartPreview(String periodKey) {
@@ -465,15 +465,15 @@ public class ChartService {
                 COUNT(*) as play_count,
                 MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                 MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album al ON s.album_id = al.id
             LEFT JOIN Gender g ON ar.gender_id = g.id
-            WHERE DATE(scr.scrobble_date) >= ? AND DATE(scr.scrobble_date) <= ?
-              AND scr.song_id IS NOT NULL
+            WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
+              AND p.song_id IS NOT NULL
             GROUP BY s.id
-            ORDER BY play_count DESC, MAX(scr.scrobble_date) ASC
+            ORDER BY play_count DESC, MAX(p.play_date) ASC
             LIMIT ?
             """;
 
@@ -501,7 +501,7 @@ public class ChartService {
 
     /**
      * Get a PREVIEW of the weekly album chart for an in-progress week (chart not yet generated).
-     * This shows what the chart would look like based on scrobbles so far.
+     * This shows what the chart would look like based on plays so far.
      * Only shows basic info: artist, album, plays - no chart history stats.
      */
     public List<ChartEntryDTO> getWeeklyAlbumChartPreview(String periodKey) {
@@ -519,16 +519,16 @@ public class ChartService {
                 g.id as gender_id,
                 COUNT(*) as play_count,
                 MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as has_image
-            FROM Scrobble scr
-            INNER JOIN Song s ON scr.song_id = s.id
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Album al ON s.album_id = al.id
             INNER JOIN Artist ar ON al.artist_id = ar.id
             LEFT JOIN Gender g ON ar.gender_id = g.id
-            WHERE DATE(scr.scrobble_date) >= ? AND DATE(scr.scrobble_date) <= ?
-              AND scr.song_id IS NOT NULL
+            WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
+              AND p.song_id IS NOT NULL
               AND s.album_id IS NOT NULL
             GROUP BY al.id
-            ORDER BY play_count DESC, MAX(scr.scrobble_date) ASC
+            ORDER BY play_count DESC, MAX(p.play_date) ASC
             LIMIT ?
             """;
 
@@ -760,17 +760,17 @@ public class ChartService {
     }
     
     /**
-     * Get all weeks that have scrobbles but no chart generated yet.
+     * Get all weeks that have plays but no chart generated yet.
      * Only returns weeks that have completely passed (not the current ongoing week).
      * Excludes W00 (days before first Monday of year) since those are covered by the last week of the previous year.
      */
     public List<String> getWeeksWithoutCharts() {
         String sql = """
-            SELECT DISTINCT strftime('%Y-W%W', scr.scrobble_date) as period_key
-            FROM Scrobble scr
-            WHERE scr.scrobble_date IS NOT NULL
-              AND scr.song_id IS NOT NULL
-              AND strftime('%Y-W%W', scr.scrobble_date) NOT IN (
+            SELECT DISTINCT strftime('%Y-W%W', p.play_date) as period_key
+            FROM Play p
+            WHERE p.play_date IS NOT NULL
+              AND p.song_id IS NOT NULL
+              AND strftime('%Y-W%W', p.play_date) NOT IN (
                   SELECT period_key FROM Chart WHERE chart_type = 'song'
               )
             ORDER BY period_key ASC
@@ -902,16 +902,16 @@ public class ChartService {
     }
 
     /**
-     * Get all weeks that have scrobble data (for regeneration).
+     * Get all weeks that have play data (for regeneration).
      * Excludes W00 (days before first Monday are covered by the last week of previous year).
      * Only includes weeks that have completely passed.
      */
-    public List<String> getAllWeeksWithScrobbleData() {
+    public List<String> getAllWeeksWithPlayData() {
         String sql = """
-            SELECT DISTINCT strftime('%Y-W%W', scr.scrobble_date) as period_key
-            FROM Scrobble scr
-            WHERE scr.scrobble_date IS NOT NULL
-              AND scr.song_id IS NOT NULL
+            SELECT DISTINCT strftime('%Y-W%W', p.play_date) as period_key
+            FROM Play p
+            WHERE p.play_date IS NOT NULL
+              AND p.song_id IS NOT NULL
             ORDER BY period_key ASC
             """;
         List<String> allWeeks = jdbcTemplate.queryForList(sql, String.class);
@@ -927,15 +927,15 @@ public class ChartService {
 
     /**
      * Regenerate all weekly charts asynchronously.
-     * Deletes ALL existing weekly charts first, then regenerates from scratch using scrobble data.
+     * Deletes ALL existing weekly charts first, then regenerates from scratch using play data.
      * This ensures any buggy charts (like W00) are cleaned up.
      * Returns a session ID for tracking progress.
      */
     public String startBulkRegeneration() {
         String sessionId = UUID.randomUUID().toString();
         
-        // Get all weeks from scrobble data (properly filtered, excluding W00)
-        List<String> weeksToGenerate = getAllWeeksWithScrobbleData();
+        // Get all weeks from play data (properly filtered, excluding W00)
+        List<String> weeksToGenerate = getAllWeeksWithPlayData();
 
         ChartGenerationProgressDTO progress = new ChartGenerationProgressDTO(
             weeksToGenerate.size(), 0, "Deleting existing charts...", false
@@ -948,7 +948,7 @@ public class ChartService {
                 // First, delete ALL weekly charts (including any buggy ones like W00)
                 deleteAllWeeklyCharts();
                 
-                // Now generate fresh charts from scrobble data
+                // Now generate fresh charts from play data
                 for (int i = 0; i < weeksToGenerate.size(); i++) {
                     String week = weeksToGenerate.get(i);
                     progress.setCurrentWeek(week);
@@ -2224,8 +2224,8 @@ public class ChartService {
 
         // Subquery to count plays within the period date range
         String playCountSubquery = "song".equals(chartType)
-            ? "(SELECT COUNT(*) FROM Scrobble sc WHERE sc.song_id = item.id AND DATE(sc.scrobble_date) >= c.period_start_date AND DATE(sc.scrobble_date) <= c.period_end_date)"
-            : "(SELECT COUNT(*) FROM Scrobble sc INNER JOIN Song s ON sc.song_id = s.id WHERE s.album_id = item.id AND DATE(sc.scrobble_date) >= c.period_start_date AND DATE(sc.scrobble_date) <= c.period_end_date)";
+            ? "(SELECT COUNT(*) FROM Play sc WHERE sc.song_id = item.id AND DATE(sc.play_date) >= c.period_start_date AND DATE(sc.play_date) <= c.period_end_date)"
+            : "(SELECT COUNT(*) FROM Play sc INNER JOIN Song s ON sc.song_id = s.id WHERE s.album_id = item.id AND DATE(sc.play_date) >= c.period_start_date AND DATE(sc.play_date) <= c.period_end_date)";
         
         String sql = String.format("""
             SELECT ce.position, ce.%s as item_id, 
@@ -2512,13 +2512,13 @@ public class ChartService {
     }
     
     /**
-     * Check if a season has scrobble data.
+     * Check if a season has play data.
      */
     public boolean hasSeasonData(String periodKey) {
         LocalDate[] dateRange = parseSeasonPeriodKeyToDateRange(periodKey);
         if (dateRange == null) return false;
         
-        String sql = "SELECT COUNT(*) FROM Scrobble WHERE scrobble_date >= ? AND scrobble_date <= ?";
+        String sql = "SELECT COUNT(*) FROM Play WHERE play_date >= ? AND play_date <= ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, 
             dateRange[0].toString(), dateRange[1].toString());
         return count != null && count > 0;
@@ -2551,47 +2551,47 @@ public class ChartService {
     }
     
     /**
-     * Check if a year has scrobble data.
+     * Check if a year has play data.
      */
     public boolean hasYearData(String periodKey) {
         if (periodKey == null) return false;
-        String sql = "SELECT COUNT(*) FROM Scrobble WHERE strftime('%Y', scrobble_date) = ?";
+        String sql = "SELECT COUNT(*) FROM Play WHERE strftime('%Y', play_date) = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, periodKey);
         return count != null && count > 0;
     }
     
     /**
-     * Get all seasons that have scrobble data (for chart list page).
+     * Get all seasons that have play data (for chart list page).
      */
     public List<Map<String, Object>> getAllSeasonsWithData() {
         String sql = """
             SELECT DISTINCT
                 CASE 
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) = 12 
-                        THEN (CAST(strftime('%Y', scrobble_date) AS INTEGER) + 1) || '-Winter'
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (1, 2) 
-                        THEN strftime('%Y', scrobble_date) || '-Winter'
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (3, 4, 5) 
-                        THEN strftime('%Y', scrobble_date) || '-Spring'
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (6, 7, 8) 
-                        THEN strftime('%Y', scrobble_date) || '-Summer'
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (9, 10, 11) 
-                        THEN strftime('%Y', scrobble_date) || '-Fall'
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) = 12 
+                        THEN (CAST(strftime('%Y', play_date) AS INTEGER) + 1) || '-Winter'
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (1, 2) 
+                        THEN strftime('%Y', play_date) || '-Winter'
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (3, 4, 5) 
+                        THEN strftime('%Y', play_date) || '-Spring'
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (6, 7, 8) 
+                        THEN strftime('%Y', play_date) || '-Summer'
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (9, 10, 11) 
+                        THEN strftime('%Y', play_date) || '-Fall'
                 END as period_key,
                 CASE 
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) = 12 
-                        THEN (CAST(strftime('%Y', scrobble_date) AS INTEGER) + 1) * 10 + 1
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (1, 2) 
-                        THEN CAST(strftime('%Y', scrobble_date) AS INTEGER) * 10 + 1
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (3, 4, 5) 
-                        THEN CAST(strftime('%Y', scrobble_date) AS INTEGER) * 10 + 2
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (6, 7, 8) 
-                        THEN CAST(strftime('%Y', scrobble_date) AS INTEGER) * 10 + 3
-                    WHEN CAST(strftime('%m', scrobble_date) AS INTEGER) IN (9, 10, 11) 
-                        THEN CAST(strftime('%Y', scrobble_date) AS INTEGER) * 10 + 4
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) = 12 
+                        THEN (CAST(strftime('%Y', play_date) AS INTEGER) + 1) * 10 + 1
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (1, 2) 
+                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 1
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (3, 4, 5) 
+                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 2
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (6, 7, 8) 
+                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 3
+                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (9, 10, 11) 
+                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 4
                 END as sort_order
-            FROM Scrobble
-            WHERE scrobble_date IS NOT NULL
+            FROM Play
+            WHERE play_date IS NOT NULL
             ORDER BY sort_order DESC
             """;
         
@@ -2606,13 +2606,13 @@ public class ChartService {
     }
     
     /**
-     * Get all years that have scrobble data (for chart list page).
+     * Get all years that have play data (for chart list page).
      */
     public List<Map<String, Object>> getAllYearsWithData() {
         String sql = """
-            SELECT DISTINCT strftime('%Y', scrobble_date) as period_key
-            FROM Scrobble
-            WHERE scrobble_date IS NOT NULL
+            SELECT DISTINCT strftime('%Y', play_date) as period_key
+            FROM Play
+            WHERE play_date IS NOT NULL
             ORDER BY period_key DESC
             """;
         

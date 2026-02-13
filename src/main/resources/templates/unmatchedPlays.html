@@ -6,7 +6,7 @@
     <title>Unmatched Plays</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-styles}"></th:block>
     <style>
         .content-card { max-width: 1200px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
         .hint { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
@@ -31,9 +31,9 @@
         .delete-modal { background: var(--surface); border: 2px solid #dc3545; border-radius: var(--radius); padding: 24px; max-width: 500px; width: 90%; }
         .delete-modal h3 { color: #dc3545; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; }
         .delete-modal .warning-icon { font-size: 24px; }
-        .delete-modal .scrobble-info { background: rgba(220,53,69,0.1); border: 1px solid rgba(220,53,69,0.3); border-radius: 4px; padding: 12px; margin: 12px 0; font-size: 13px; }
-        .delete-modal .scrobble-info p { margin: 4px 0; }
-        .delete-modal .scrobble-info strong { color: var(--text-muted); }
+        .delete-modal .play-info { background: rgba(220,53,69,0.1); border: 1px solid rgba(220,53,69,0.3); border-radius: 4px; padding: 12px; margin: 12px 0; font-size: 13px; }
+        .delete-modal .play-info p { margin: 4px 0; }
+        .delete-modal .play-info strong { color: var(--text-muted); }
         .delete-modal .warning-text { color: #dc3545; font-weight: 600; margin: 16px 0; }
         .delete-modal .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
         .delete-modal .btn-cancel { background: var(--surface-raised); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 8px 16px; border-radius: 4px; cursor: pointer; }
@@ -54,13 +54,13 @@
             <div>
                 <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Plays</h1>
                 <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 14px;">
-                    <span th:text="${totalUnmatchedCount}">0</span> total scrobbles in 
+                    <span th:text="${totalUnmatchedCount}">0</span> total plays in 
                     <span th:text="${unmatchedGroupCount}">0</span> groups
                 </p>
             </div>
             
             <!-- Filter form: choose account -> submit GET to same endpoint -->
-            <form method="get" th:action="@{/scrobbles/unmatched}" style="display: flex; gap: 8px; align-items: center;">
+            <form method="get" th:action="@{/plays/unmatched}" style="display: flex; gap: 8px; align-items: center;">
                 <label for="accountSelect" style="color: var(--text-muted); font-size: 13px;">Account:</label>
                 <select id="accountSelect" name="account" th:onchange="this.form.submit()">
                     <option value="" th:selected="${selectedAccount == ''}">All accounts</option>
@@ -76,10 +76,10 @@
         </div>
         
         <div class="content-card">
-            <p class="hint">List of scrobbles (account / artist / album / song) that do not have a matched song_id, ordered by frequency. Use <strong>Create</strong> to add new artist/album/song, or <strong>Match</strong> to link to an existing song.</p>
+            <p class="hint">List of plays (account / artist / album / song) that do not have a matched song_id, ordered by frequency. Use <strong>Create</strong> to add new artist/album/song, or <strong>Match</strong> to link to an existing song.</p>
 
             <div th:if="${unmatched == null or #lists.isEmpty(unmatched)}">
-                <p>No unmatched scrobbles found.</p>
+                <p>No unmatched plays found.</p>
             </div>
 
             <div th:if="${unmatched != null and !#lists.isEmpty(unmatched)}">
@@ -151,32 +151,32 @@
     </main>
     
     <!-- Include shared modal fragments -->
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: create-wizard-modal}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: match-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: create-wizard-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: match-modal}"></th:block>
     <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     <th:block th:replace="~{fragments/artist-fetch-modal :: artist-fetch-modal}"></th:block>
     
     <!-- Include shared modal scripts -->
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-scripts}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-scripts}"></th:block>
     
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="delete-modal-overlay">
         <div class="delete-modal">
-            <h3><span class="warning-icon">⚠️</span> Delete Scrobbles</h3>
-            <p>You are about to permanently delete the following scrobbles:</p>
-            <div class="scrobble-info">
+            <h3><span class="warning-icon">⚠️</span> Delete Plays</h3>
+            <p>You are about to permanently delete the following plays:</p>
+            <div class="play-info">
                 <p><strong>Account:</strong> <span id="deleteAccount">-</span></p>
                 <p><strong>Artist:</strong> <span id="deleteArtist">-</span></p>
                 <p><strong>Album:</strong> <span id="deleteAlbum">-</span></p>
                 <p><strong>Song:</strong> <span id="deleteSong">-</span></p>
-                <p><strong>Count:</strong> <span id="deleteCount">0</span> scrobbles</p>
+                <p><strong>Count:</strong> <span id="deleteCount">0</span> plays</p>
             </div>
-            <p class="warning-text">⚠️ This action cannot be undone! These scrobbles will be permanently deleted from the database.</p>
+            <p class="warning-text">⚠️ This action cannot be undone! These plays will be permanently deleted from the database.</p>
             
             <div class="final-confirm">
                 <div class="checkbox-row">
                     <input type="checkbox" autocomplete="off" id="confirmDeleteCheckbox" onchange="updateDeleteButtonState()">
-                    <label for="confirmDeleteCheckbox">I understand this is permanent and want to delete these scrobbles</label>
+                    <label for="confirmDeleteCheckbox">I understand this is permanent and want to delete these plays</label>
                 </div>
             </div>
             
@@ -190,14 +190,14 @@
     <!-- Bulk Delete Confirmation Modal -->
     <div id="bulkDeleteModal" class="delete-modal-overlay">
         <div class="delete-modal">
-            <h3><span class="warning-icon">⚠️</span> Delete Selected Scrobbles</h3>
-            <p>You are about to permanently delete the following selected scrobble groups:</p>
-            <div class="scrobble-info" id="bulkScrobbleList" style="max-height:220px; overflow:auto;"></div>
-            <p class="warning-text">⚠️ This action cannot be undone! These scrobbles will be permanently deleted from the database.</p>
+            <h3><span class="warning-icon">⚠️</span> Delete Selected Plays</h3>
+            <p>You are about to permanently delete the following selected play groups:</p>
+            <div class="play-info" id="bulkPlayList" style="max-height:220px; overflow:auto;"></div>
+            <p class="warning-text">⚠️ This action cannot be undone! These plays will be permanently deleted from the database.</p>
             <div class="final-confirm">
                 <div class="checkbox-row">
                     <input type="checkbox" autocomplete="off" id="confirmBulkDeleteCheckbox" onchange="updateBulkDeleteButtonState()">
-                    <label for="confirmBulkDeleteCheckbox">I understand this is permanent and want to delete these scrobbles</label>
+                    <label for="confirmBulkDeleteCheckbox">I understand this is permanent and want to delete these plays</label>
                 </div>
             </div>
             <div class="btn-row">
@@ -264,7 +264,7 @@
             btn.textContent = 'Deleting...';
             
             try {
-                const response = await fetch('/scrobbles/api/unmatched', {
+                const response = await fetch('/plays/api/unmatched', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -281,12 +281,12 @@
                     closeDeleteModal();
                     location.reload();
                 } else {
-                    showErrorToast('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
+                    showErrorToast('Error deleting plays: ' + (result.error || 'Unknown error'));
                     btn.disabled = false;
                     btn.textContent = 'Delete Permanently';
                 }
             } catch (err) {
-                showErrorToast('Error deleting scrobbles: ' + err.message);
+                showErrorToast('Error deleting plays: ' + err.message);
                 btn.disabled = false;
                 btn.textContent = 'Delete Permanently';
             }
@@ -320,7 +320,7 @@
 
         function openBulkDeleteConfirmation() {
             if (selectedIndices.size === 0) return;
-            const listEl = document.getElementById('bulkScrobbleList');
+            const listEl = document.getElementById('bulkPlayList');
             listEl.innerHTML = '';
             const items = Array.from(selectedIndices).sort();
             let totalCount = 0;
@@ -351,7 +351,7 @@
             btn.disabled = true; btn.textContent = 'Deleting...';
             try {
                 const items = Array.from(selectedIndices).map(i => unmatchedList[i]).map(r => ({ account: r.account, artist: r.artist, album: r.album, song: r.song }));
-                const response = await fetch('/scrobbles/api/unmatched/delete-selected', {
+                const response = await fetch('/plays/api/unmatched/delete-selected', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ items })
                 });
@@ -360,11 +360,11 @@
                     closeBulkDeleteModal();
                     location.reload();
                 } else {
-                    showErrorToast('Error deleting scrobbles: ' + (result.error || 'Unknown error'));
+                    showErrorToast('Error deleting plays: ' + (result.error || 'Unknown error'));
                     btn.disabled = false; btn.textContent = 'Delete Permanently';
                 }
             } catch (err) {
-                showErrorToast('Error deleting scrobbles: ' + err.message);
+                showErrorToast('Error deleting plays: ' + err.message);
                 btn.disabled = false; btn.textContent = 'Delete Permanently';
             }
         }
@@ -386,3 +386,4 @@
     </script>
 </body>
 </html>
+

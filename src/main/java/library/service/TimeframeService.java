@@ -91,10 +91,10 @@ public class TimeframeService {
                     SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
                     SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
                     SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
-                WHERE scr.scrobble_date IS NOT NULL
+                WHERE p.play_date IS NOT NULL
                 GROUP BY period_key
                 HAVING period_key IS NOT NULL
             ),
@@ -183,12 +183,12 @@ public class TimeframeService {
                     gn.name as gender_name,
                     COUNT(*) as cnt,
                     ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE scr.scrobble_date IS NOT NULL AND gn.id IS NOT NULL
+                WHERE p.play_date IS NOT NULL AND gn.id IS NOT NULL
                 GROUP BY period_key, gn.id, gn.name
             ),
             winning_genre AS (
@@ -198,13 +198,13 @@ public class TimeframeService {
                     gr.name as genre_name,
                     COUNT(*) as cnt,
                     ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE scr.scrobble_date IS NOT NULL AND gr.id IS NOT NULL
+                WHERE p.play_date IS NOT NULL AND gr.id IS NOT NULL
                 GROUP BY period_key, gr.id, gr.name
             ),
             winning_ethnicity AS (
@@ -214,12 +214,12 @@ public class TimeframeService {
                     eth.name as ethnicity_name,
                     COUNT(*) as cnt,
                     ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE scr.scrobble_date IS NOT NULL AND eth.id IS NOT NULL
+                WHERE p.play_date IS NOT NULL AND eth.id IS NOT NULL
                 GROUP BY period_key, eth.id, eth.name
             ),
             winning_language AS (
@@ -229,13 +229,13 @@ public class TimeframeService {
                     lang.name as language_name,
                     COUNT(*) as cnt,
                     ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE scr.scrobble_date IS NOT NULL AND lang.id IS NOT NULL
+                WHERE p.play_date IS NOT NULL AND lang.id IS NOT NULL
                 GROUP BY period_key, lang.id, lang.name
             ),
             winning_country AS (
@@ -244,11 +244,11 @@ public class TimeframeService {
                     ar.country as country,
                     COUNT(*) as cnt,
                     ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE scr.scrobble_date IS NOT NULL AND ar.country IS NOT NULL
+                WHERE p.play_date IS NOT NULL AND ar.country IS NOT NULL
                 GROUP BY period_key, ar.country
             )
             SELECT 
@@ -401,10 +401,10 @@ public class TimeframeService {
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        MAX(scr.scrobble_date) as max_scrobble_date, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(scr.scrobble_date) ASC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "        MAX(p.play_date) as max_play_date, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(p.play_date) ASC) as rn " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
             "    GROUP BY " + periodKeyExpr + ", ar.id, ar.name, ar.gender_id " +
@@ -427,10 +427,10 @@ public class TimeframeService {
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        MAX(scr.scrobble_date) as max_scrobble_date, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(scr.scrobble_date) ASC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "        MAX(p.play_date) as max_play_date, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(p.play_date) ASC) as rn " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " +
@@ -454,10 +454,10 @@ public class TimeframeService {
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        MAX(scr.scrobble_date) as max_scrobble_date, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(scr.scrobble_date) ASC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "        MAX(p.play_date) as max_play_date, " +
+            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(p.play_date) ASC) as rn " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
             "    GROUP BY " + periodKeyExpr + ", s.id, s.name, ar.name, ar.gender_id " +
@@ -595,10 +595,10 @@ public class TimeframeService {
                     SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
                     SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
                     SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
-                FROM Scrobble scr
-                INNER JOIN Song s ON scr.song_id = s.id
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
-                WHERE scr.scrobble_date IS NOT NULL
+                WHERE p.play_date IS NOT NULL
                 GROUP BY period_key
                 HAVING period_key IS NOT NULL
             ),
@@ -675,12 +675,12 @@ public class TimeframeService {
                         %s as period_key,
                         gn.id as gender_id,
                         ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                    FROM Play p
+                    INNER JOIN Song s ON p.song_id = s.id
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
                     INNER JOIN filtered_periods fp ON %s = fp.period_key
-                    WHERE scr.scrobble_date IS NOT NULL AND gn.id IS NOT NULL
+                    WHERE p.play_date IS NOT NULL AND gn.id IS NOT NULL
                     GROUP BY period_key, gn.id
                 )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
         }
@@ -692,13 +692,13 @@ public class TimeframeService {
                         %s as period_key,
                         gr.id as genre_id,
                         ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                    FROM Play p
+                    INNER JOIN Song s ON p.song_id = s.id
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Album al ON s.album_id = al.id
                     LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
                     INNER JOIN filtered_periods fp ON %s = fp.period_key
-                    WHERE scr.scrobble_date IS NOT NULL AND gr.id IS NOT NULL
+                    WHERE p.play_date IS NOT NULL AND gr.id IS NOT NULL
                     GROUP BY period_key, gr.id
                 )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
         }
@@ -710,12 +710,12 @@ public class TimeframeService {
                         %s as period_key,
                         eth.id as ethnicity_id,
                         ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                    FROM Play p
+                    INNER JOIN Song s ON p.song_id = s.id
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
                     INNER JOIN filtered_periods fp ON %s = fp.period_key
-                    WHERE scr.scrobble_date IS NOT NULL AND eth.id IS NOT NULL
+                    WHERE p.play_date IS NOT NULL AND eth.id IS NOT NULL
                     GROUP BY period_key, eth.id
                 )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
         }
@@ -727,13 +727,13 @@ public class TimeframeService {
                         %s as period_key,
                         lang.id as language_id,
                         ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                    FROM Play p
+                    INNER JOIN Song s ON p.song_id = s.id
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     LEFT JOIN Album al ON s.album_id = al.id
                     LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
                     INNER JOIN filtered_periods fp ON %s = fp.period_key
-                    WHERE scr.scrobble_date IS NOT NULL AND lang.id IS NOT NULL
+                    WHERE p.play_date IS NOT NULL AND lang.id IS NOT NULL
                     GROUP BY period_key, lang.id
                 )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
         }
@@ -745,11 +745,11 @@ public class TimeframeService {
                         %s as period_key,
                         ar.country as country,
                         ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                    FROM Scrobble scr
-                    INNER JOIN Song s ON scr.song_id = s.id
+                    FROM Play p
+                    INNER JOIN Song s ON p.song_id = s.id
                     INNER JOIN Artist ar ON s.artist_id = ar.id
                     INNER JOIN filtered_periods fp ON %s = fp.period_key
-                    WHERE scr.scrobble_date IS NOT NULL AND ar.country IS NOT NULL
+                    WHERE p.play_date IS NOT NULL AND ar.country IS NOT NULL
                     GROUP BY period_key, ar.country
                 )""".formatted(periodKeyExpr, periodKeyExpr, periodKeyExpr));
         }
@@ -862,19 +862,19 @@ public class TimeframeService {
     }
     
     /**
-     * Get the earliest scrobble date from the database
+     * Get the earliest play date from the database
      */
-    private LocalDate getEarliestScrobbleDate() {
-        String sql = "SELECT MIN(DATE(scrobble_date)) FROM Scrobble WHERE scrobble_date IS NOT NULL";
+    private LocalDate getEarliestPlayDate() {
+        String sql = "SELECT MIN(DATE(play_date)) FROM Play WHERE play_date IS NOT NULL";
         String dateStr = jdbcTemplate.queryForObject(sql, String.class);
         return dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
     }
     
     /**
-     * Generate all possible season period keys from earliest scrobble to current season
+     * Generate all possible season period keys from earliest play to current season
      */
     private List<String> generateAllSeasonKeys() {
-        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate earliest = getEarliestPlayDate();
         LocalDate now = LocalDate.now();
         
         List<String> seasons = new ArrayList<>();
@@ -930,10 +930,10 @@ public class TimeframeService {
     }
     
     /**
-     * Generate all possible year period keys from earliest scrobble to current year
+     * Generate all possible year period keys from earliest play to current year
      */
     private List<String> generateAllYearKeys() {
-        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate earliest = getEarliestPlayDate();
         LocalDate now = LocalDate.now();
         
         List<String> years = new ArrayList<>();
@@ -945,11 +945,11 @@ public class TimeframeService {
     }
     
     /**
-     * Generate all possible week period keys from earliest scrobble to current week.
+     * Generate all possible week period keys from earliest play to current week.
      * Uses SQLite's %W week numbering convention.
      */
     private List<String> generateAllWeekKeys() {
-        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate earliest = getEarliestPlayDate();
         LocalDate now = LocalDate.now();
         
         List<String> weeks = new ArrayList<>();
@@ -1103,10 +1103,10 @@ public class TimeframeService {
     }
 
     /**
-     * Generate all possible day period keys from earliest scrobble to today
+     * Generate all possible day period keys from earliest play to today
      */
     private List<String> generateAllDayKeys() {
-        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate earliest = getEarliestPlayDate();
         LocalDate now = LocalDate.now();
         
         List<String> days = new ArrayList<>();
@@ -1121,10 +1121,10 @@ public class TimeframeService {
     }
     
     /**
-     * Generate all possible month period keys from earliest scrobble to current month
+     * Generate all possible month period keys from earliest play to current month
      */
     private List<String> generateAllMonthKeys() {
-        LocalDate earliest = getEarliestScrobbleDate();
+        LocalDate earliest = getEarliestPlayDate();
         LocalDate now = LocalDate.now();
         
         List<String> months = new ArrayList<>();
@@ -1140,7 +1140,7 @@ public class TimeframeService {
     }
     
     /**
-     * Create an empty TimeframeCardDTO for a period with no scrobbles
+     * Create an empty TimeframeCardDTO for a period with no plays
      */
     private TimeframeCardDTO createEmptyTimeframeCard(String periodType, String periodKey) {
         TimeframeCardDTO dto = new TimeframeCardDTO();
@@ -1387,26 +1387,26 @@ public class TimeframeService {
      */
     private String getPeriodKeyExpression(String periodType) {
         return switch (periodType) {
-            case "days" -> "DATE(scr.scrobble_date)";
-            case "weeks" -> "strftime('%Y-W%W', scr.scrobble_date)";
-            case "months" -> "strftime('%Y-%m', scr.scrobble_date)";
+            case "days" -> "DATE(p.play_date)";
+            case "weeks" -> "strftime('%Y-W%W', p.play_date)";
+            case "months" -> "strftime('%Y-%m', p.play_date)";
             case "seasons" -> """
                 CASE 
-                    WHEN CAST(strftime('%m', scr.scrobble_date) AS INTEGER) = 12 
-                        THEN (CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) + 1) || '-Winter'
-                    WHEN CAST(strftime('%m', scr.scrobble_date) AS INTEGER) IN (1, 2) 
-                        THEN strftime('%Y', scr.scrobble_date) || '-Winter'
-                    WHEN CAST(strftime('%m', scr.scrobble_date) AS INTEGER) IN (3, 4, 5) 
-                        THEN strftime('%Y', scr.scrobble_date) || '-Spring'
-                    WHEN CAST(strftime('%m', scr.scrobble_date) AS INTEGER) IN (6, 7, 8) 
-                        THEN strftime('%Y', scr.scrobble_date) || '-Summer'
-                    WHEN CAST(strftime('%m', scr.scrobble_date) AS INTEGER) IN (9, 10, 11) 
-                        THEN strftime('%Y', scr.scrobble_date) || '-Fall'
+                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) = 12 
+                        THEN (CAST(strftime('%Y', p.play_date) AS INTEGER) + 1) || '-Winter'
+                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (1, 2) 
+                        THEN strftime('%Y', p.play_date) || '-Winter'
+                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (3, 4, 5) 
+                        THEN strftime('%Y', p.play_date) || '-Spring'
+                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (6, 7, 8) 
+                        THEN strftime('%Y', p.play_date) || '-Summer'
+                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (9, 10, 11) 
+                        THEN strftime('%Y', p.play_date) || '-Fall'
                 END
                 """;
-            case "years" -> "strftime('%Y', scr.scrobble_date)";
-            case "decades" -> "CAST((CAST(strftime('%Y', scr.scrobble_date) AS INTEGER) / 10) * 10 AS TEXT) || 's'";
-            default -> "strftime('%Y', scr.scrobble_date)";
+            case "years" -> "strftime('%Y', p.play_date)";
+            case "decades" -> "CAST((CAST(strftime('%Y', p.play_date) AS INTEGER) / 10) * 10 AS TEXT) || 's'";
+            default -> "strftime('%Y', p.play_date)";
         };
     }
     

@@ -6,7 +6,7 @@
     <title>Import Result</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-styles}"></th:block>
     <style>
         /* Page-specific tweaks to align with site look */
         .result-card { max-width: 880px; margin: 24px 0; padding: 28px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -28,7 +28,7 @@
 
             <div th:if="${error}">
                 <p class="error" th:text="${error}"></p>
-                <p class="actions"><a th:href="@{/scrobbles/upload}" class="btn btn-primary">Back to upload</a></p>
+                <p class="actions"><a th:href="@{/plays/upload}" class="btn btn-primary">Back to upload</a></p>
             </div>
 
             <div th:if="${stats}">
@@ -39,20 +39,20 @@
                 <p class="stat">Matched: <strong th:text="${stats.totalMatched}"></strong></p>
                 <p class="stat">Unmatched: <strong id="unmatchedCount" th:text="${stats.totalUnmatched}"></strong></p>
 
-                <!-- Unmatched scrobbles alert -->
+                <!-- Unmatched plays alert -->
                 <div th:if="${unmatchedList != null and !unmatchedList.isEmpty()}" class="unmatched-alert">
-                    <div class="unmatched-alert-title">⚠️ Unmatched Scrobbles Detected</div>
+                    <div class="unmatched-alert-title">⚠️ Unmatched Plays Detected</div>
                     <div class="unmatched-alert-text">
                         <span th:text="${#lists.size(unmatchedList)}">0</span> unique song(s) could not be matched to existing songs in your library.
                         You can create new songs or match them to existing ones.
                     </div>
                     <button type="button" class="btn btn-action" onclick="showUnmatchedFromImport()">
-                        View & Fix Unmatched Scrobbles
+                        View & Fix Unmatched Plays
                     </button>
                 </div>
 
                 <div class="actions">
-                    <a th:href="@{/scrobbles/upload}" class="btn btn-action">Import another file</a>
+                    <a th:href="@{/plays/upload}" class="btn btn-action">Import another file</a>
                     <a th:href="@{/}" class="btn btn-secondary">Home</a>
                 </div>
 
@@ -62,14 +62,14 @@
     </main>
 
     <!-- Include modal fragments -->
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: unmatched-list-modal}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: create-wizard-modal}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: match-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: unmatched-list-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: create-wizard-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: match-modal}"></th:block>
     <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     <th:block th:replace="~{fragments/artist-fetch-modal :: artist-fetch-modal}"></th:block>
     
     <!-- Include modal scripts -->
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-scripts}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-scripts}"></th:block>
     
     <script th:inline="javascript">
         // Pass unmatched list from server to JavaScript

@@ -40,7 +40,7 @@ public final class StringNormalizer {
     
     /**
      * Normalizes a string for import: lowercase + strip accents + trim.
-     * Use this for exact matching during scrobble import - does NOT remove parentheses or featured artists.
+     * Use this for exact matching during play import - does NOT remove parentheses or featured artists.
      * This is more strict than normalizeForSearch() to avoid false matches.
      * 
      * @param input The input string

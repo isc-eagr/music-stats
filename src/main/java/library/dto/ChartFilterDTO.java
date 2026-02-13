@@ -63,7 +63,7 @@ public class ChartFilterDTO {
     private String lastListenedDateMode;
     private String lastListenedDateEntity; // "artist", "album", "song"
     
-    // Listened Date Range (for timeframe filtering - applies to scrobbles)
+    // Listened Date Range (for timeframe filtering - applies to plays)
     private String listenedDateFrom;
     private String listenedDateTo;
     
@@ -106,7 +106,7 @@ public class ChartFilterDTO {
     // Limit for top charts
     private Integer topLimit;
 
-    // For General tab: which entity the topLimit applies to when calculating scrobble-based metrics
+    // For General tab: which entity the topLimit applies to when calculating play-based metrics
     // Valid values: "artist", "album", "song" (default)
     private String limitEntity;
     

@@ -4,9 +4,9 @@
 The timeframe pages (/days, /weeks, /months, /seasons, /years, /decades) were experiencing severe performance degradation because:
 
 1. **All period_stats were computed upfront** - Even when viewing page 1 of 50 results, the query computed stats for ALL periods in the database (e.g., all 2000+ days)
-2. **Winning attributes computed via 5 separate CTEs** - The winning CTEs (gender, genre, ethnicity, language, country) each did full scans of the Scrobble table
+2. **Winning attributes computed via 5 separate CTEs** - The winning CTEs (gender, genre, ethnicity, language, country) each did full scans of the Play table
 3. **Top items fetched via 3 separate queries** - Each timeframe page made 3 additional queries to get top artist/album/song
-4. **Double Scrobble scan** - getTimeframeCards() and countTimeframes() called separately, doubling the work
+4. **Double Play scan** - getTimeframeCards() and countTimeframes() called separately, doubling the work
 5. **N+1 chart queries** - Each visible timeframe made 4 chart queries (4 × 50 = 200 queries per page!)
 6. **Week key generator was O(days)** - generateAllWeekKeys() iterated day-by-day through ~7600 days instead of week-by-week
 
@@ -22,7 +22,7 @@ Created a `filtered_periods` CTE that:
 - Result: Only 50 periods are passed to subsequent CTEs instead of 2000+
 
 ### 2. Single-Pass Winning Attributes (January 2026)
-**Before**: 5 separate CTEs, each scanning Scrobble table separately
+**Before**: 5 separate CTEs, each scanning Play table separately
 ```sql
 winning_gender AS (SELECT ... GROUP BY period_key, gender_id),
 winning_genre AS (SELECT ... GROUP BY period_key, genre_id),
@@ -35,7 +35,7 @@ winning_country AS (SELECT ... GROUP BY period_key, country)
 ```sql
 period_attr_counts AS (
     SELECT period_key, gender_id, genre_id, ethnicity_id, language_id, country, COUNT(*) as cnt
-    FROM Scrobble scr
+    FROM Play scr
     INNER JOIN Song s ON scr.song_id = s.id
     INNER JOIN Artist ar ON s.artist_id = ar.id
     LEFT JOIN Album al ON s.album_id = al.id
@@ -67,14 +67,14 @@ jdbcTemplate.query(topSongSql, ...);
 
 **After**: Single combined query using CTE + UNION ALL
 ```sql
-WITH base_scrobbles AS (
+WITH base_plays AS (
     SELECT period_key, song_id, song_name, artist_id, artist_name, gender_id, album_id, album_name
-    FROM Scrobble scr JOIN Song s JOIN Artist ar LEFT JOIN Album al
+    FROM Play scr JOIN Song s JOIN Artist ar LEFT JOIN Album al
     WHERE period_key IN (...)
 ),
-top_artists AS (SELECT ... ROW_NUMBER() ... FROM base_scrobbles GROUP BY artist_id),
-top_albums AS (SELECT ... ROW_NUMBER() ... FROM base_scrobbles GROUP BY album_id),
-top_songs AS (SELECT ... ROW_NUMBER() ... FROM base_scrobbles GROUP BY song_id)
+top_artists AS (SELECT ... ROW_NUMBER() ... FROM base_plays GROUP BY artist_id),
+top_albums AS (SELECT ... ROW_NUMBER() ... FROM base_plays GROUP BY album_id),
+top_songs AS (SELECT ... ROW_NUMBER() ... FROM base_plays GROUP BY song_id)
 SELECT 'artist', ... FROM top_artists WHERE rn = 1
 UNION ALL
 SELECT 'album', ... FROM top_albums WHERE rn = 1
@@ -90,9 +90,9 @@ SELECT 'song', ... FROM top_songs WHERE rn = 1
 Added covering indexes to make the base scan as fast as possible:
 
 ```sql
--- Main index: Scrobble date + song_id for GROUP BY period scans
-CREATE INDEX idx_scrobble_date_song_id ON Scrobble(scrobble_date, song_id)
-WHERE scrobble_date IS NOT NULL;
+-- Main index: Play date + song_id for GROUP BY period scans
+CREATE INDEX idx_play_date_song_id ON Play(play_date, song_id)
+WHERE play_date IS NOT NULL;
 
 -- Song covering index for joins
 CREATE INDEX idx_song_timeframe_cover ON Song(
@@ -112,7 +112,7 @@ CREATE INDEX idx_album_overrides ON Album(id, override_genre_id, override_langua
 ### 5. TimeframeResultDTO Combined Result (January 2026)
 **Files: `TimeframeResultDTO.java`, `TimeframeService.java`, `TimeframeController.java`**
 
-**Problem**: Controller called both `getTimeframeCards()` and `countTimeframes()` separately - each doing a heavy Scrobble scan.
+**Problem**: Controller called both `getTimeframeCards()` and `countTimeframes()` separately - each doing a heavy Play scan.
 
 **Solution**: Created `TimeframeResultDTO` wrapper that returns both data and count from a single query:
 ```java
@@ -130,7 +130,7 @@ The main method now:
 1. First query: Gets filtered count (for pagination)
 2. Second query: Gets paginated data (uses same filter logic)
 
-**Impact**: Eliminated redundant COUNT query - was doubling the Scrobble table scans.
+**Impact**: Eliminated redundant COUNT query - was doubling the Play table scans.
 
 ### 6. Batch Chart Queries (January 2026)
 **Files: `ChartService.java`, `ChartTopEntryDTO.java`, `TimeframeController.java`**
@@ -167,7 +167,7 @@ Map<String, ChartTopEntryDTO> finalizedCharts = chartService.getFinalizedChartTo
 ### 7. Week Key Generator Optimization (January 2026)
 **File: `TimeframeService.java` - `generateAllWeekKeys()` method**
 
-**Problem**: Method iterated day-by-day through ~7600 days (20+ years of scrobbles)
+**Problem**: Method iterated day-by-day through ~7600 days (20+ years of plays)
 ```java
 // BEFORE - O(days)
 while (!current.isAfter(now)) {
@@ -231,6 +231,6 @@ Navigate to any timeframe page and verify performance:
 - `db_timeframe_performance_indexes.sql` - Performance indexes
 
 Look for:
-- "USING INDEX idx_scrobble_covering_timeframe"
+- "USING INDEX idx_play_covering_timeframe"
 - "USING INDEX idx_song_covering_joins"
 - The filtered_periods CTE should have a LIMIT clause

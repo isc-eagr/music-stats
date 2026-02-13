@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Import Scrobbles</title>
+    <title>Import Plays</title>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-styles}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-styles}"></th:block>
     <style>
         /* Minor page-specific adjustments to match site look */
         .form-card { max-width: 880px; margin: 24px 0; padding: 28px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -37,7 +37,7 @@
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
-        <h1 style="margin: 24px 0 16px; font-size: 28px; font-weight: 650;">Import Scrobbles</h1>
+        <h1 style="margin: 24px 0 16px; font-size: 28px; font-weight: 650;">Import Plays</h1>
         
         <!-- Max Last.fm ID per account -->
         <div th:if="${maxLastfmIds != null and !maxLastfmIds.isEmpty()}" class="form-card" style="margin-bottom: 16px; padding: 16px;">
@@ -53,7 +53,7 @@
         <!-- Automated Last.fm Fetch -->
         <div class="form-card">
             <p class="section-title">🚀 Automated Last.fm Fetch</p>
-            <p class="hint">Fetch recent scrobbles directly from Last.fm API. Uses the latest last.fm ID + 1 as the starting point.</p>
+            <p class="hint">Fetch recent plays directly from Last.fm API. Uses the latest last.fm ID + 1 as the starting point.</p>
             
             <div id="fetchError" class="error" style="display: none;"></div>
             <div id="fetchSuccess" class="success" style="display: none;"></div>
@@ -100,8 +100,8 @@
                             <span class="value" id="lastfmPlaycount">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="label">Local Scrobbles:</span>
-                            <span class="value" id="localScrobbleCount">0</span>
+                            <span class="label">Local Plays:</span>
+                            <span class="value" id="localPlayCount">0</span>
                         </div>
                         <div class="stat-item" id="differenceItem" style="display: none;">
                             <span class="label">Difference:</span>
@@ -111,24 +111,24 @@
                     <p id="validationMessage" style="margin: 8px 0 0; font-weight: 600;"></p>
                 </div>
                 
-                <!-- Unmatched scrobbles alert -->
+                <!-- Unmatched plays alert -->
                 <div id="unmatchedAlert" class="unmatched-alert" style="display: none; background: #3a2a1a; border: 1px solid #8a6a3a; border-radius: 8px; padding: 16px; margin-top: 16px;">
-                    <div style="color: #ffa; font-weight: 600; margin-bottom: 8px;">⚠️ Unmatched Scrobbles Detected</div>
+                    <div style="color: #ffa; font-weight: 600; margin-bottom: 8px;">⚠️ Unmatched Plays Detected</div>
                     <div style="color: #cca; font-size: 14px; margin-bottom: 12px;">
                         <span id="unmatchedUniqueCount">0</span> unique song(s) could not be matched to existing songs in your library.
                         You can create new songs or match them to existing ones.
                     </div>
                     <button type="button" class="btn btn-action" onclick="showUnmatchedFromFetch()">
-                        View & Fix Unmatched Scrobbles
+                        View & Fix Unmatched Plays
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- Delete Recent Scrobbles -->
+        <!-- Delete Recent Plays -->
         <div class="form-card">
-            <p class="section-title">🗑️ Delete Recent Scrobbles</p>
-            <p class="hint">Delete scrobbles from the last N days. Useful for re-importing or cleaning up data.</p>
+            <p class="section-title">🗑️ Delete Recent Plays</p>
+            <p class="hint">Delete plays from the last N days. Useful for re-importing or cleaning up data.</p>
             
             <div id="deleteError" class="error" style="display: none;"></div>
             <div id="deleteSuccess" class="success" style="display: none;"></div>
@@ -149,7 +149,7 @@
                         <span class="value" style="color: #ff6b6b;" id="deleteCount">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="label">scrobbles from the last</span>
+                        <span class="label">plays from the last</span>
                         <span class="value" id="deleteDays">0</span>
                         <span class="label">days</span>
                     </div>
@@ -160,13 +160,13 @@
         <!-- CSV Upload -->
         <div class="form-card">
             <p class="section-title">📄 CSV File Upload</p>
-            <p class="hint">Upload a CSV file containing scrobbles. The server will stream and save in batches to avoid high memory usage.</p>
+            <p class="hint">Upload a CSV file containing plays. The server will stream and save in batches to avoid high memory usage.</p>
 
             <div th:if="${error}">
                 <p class="error" th:text="${error}"></p>
             </div>
 
-            <form th:action="@{/scrobbles/upload}" method="post" enctype="multipart/form-data">
+            <form th:action="@{/plays/upload}" method="post" enctype="multipart/form-data">
                 <label for="file">CSV file</label>
                 <input type="file" autocomplete="off" id="file" name="file" accept="text/csv" required />
 
@@ -191,7 +191,7 @@
     </main>
     
     <script>
-        // Store unmatched scrobbles from fetch
+        // Store unmatched plays from fetch
         let unmatchedFromFetch = [];
         
         async function fetchFromLastfm() {
@@ -213,7 +213,7 @@
             btn.textContent = 'Fetching...';
             
             try {
-                const response = await fetch('/scrobbles/api/fetch-lastfm', {
+                const response = await fetch('/plays/api/fetch-lastfm', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ account, apiKey })
@@ -230,10 +230,10 @@
                     resultEl.classList.add('show');
                     
                     if (data.stats.totalProcessed > 0) {
-                        successEl.textContent = `Successfully imported ${data.stats.totalProcessed} scrobbles!`;
+                        successEl.textContent = `Successfully imported ${data.stats.totalProcessed} plays!`;
                         successEl.style.display = 'block';
                     } else {
-                        successEl.textContent = 'No new scrobbles found.';
+                        successEl.textContent = 'No new plays found.';
                         successEl.style.display = 'block';
                     }
                     
@@ -241,7 +241,7 @@
                     const validationEl = document.getElementById('validationResult');
                     if (data.validation) {
                         document.getElementById('lastfmPlaycount').textContent = data.validation.lastfmPlaycount.toLocaleString();
-                        document.getElementById('localScrobbleCount').textContent = data.validation.localScrobbleCount.toLocaleString();
+                        document.getElementById('localPlayCount').textContent = data.validation.localPlayCount.toLocaleString();
                         
                         const messageEl = document.getElementById('validationMessage');
                         const differenceItem = document.getElementById('differenceItem');
@@ -250,7 +250,7 @@
                             validationEl.style.background = 'rgba(105, 219, 124, 0.15)';
                             validationEl.style.border = '1px solid rgba(105, 219, 124, 0.3)';
                             messageEl.style.color = '#69db7c';
-                            messageEl.textContent = '✓ Scrobble counts match! All synced up.';
+                            messageEl.textContent = '✓ Play counts match! All synced up.';
                             differenceItem.style.display = 'none';
                         } else {
                             validationEl.style.background = 'rgba(255, 169, 77, 0.15)';
@@ -260,9 +260,9 @@
                             document.getElementById('validationDifference').textContent = (diff > 0 ? '+' : '') + diff.toLocaleString();
                             differenceItem.style.display = 'flex';
                             if (diff > 0) {
-                                messageEl.textContent = `⚠ Warning: Last.fm has ${diff.toLocaleString()} more scrobbles than local database.`;
+                                messageEl.textContent = `⚠ Warning: Last.fm has ${diff.toLocaleString()} more plays than local database.`;
                             } else {
-                                messageEl.textContent = `⚠ Warning: Local database has ${Math.abs(diff).toLocaleString()} more scrobbles than Last.fm.`;
+                                messageEl.textContent = `⚠ Warning: Local database has ${Math.abs(diff).toLocaleString()} more plays than Last.fm.`;
                             }
                         }
                         validationEl.style.display = 'block';
@@ -270,7 +270,7 @@
                         validationEl.style.display = 'none';
                     }
                     
-                    // Display unmatched scrobbles alert
+                    // Display unmatched plays alert
                     const unmatchedAlertEl = document.getElementById('unmatchedAlert');
                     if (data.unmatchedList && data.unmatchedList.length > 0) {
                         unmatchedFromFetch = data.unmatchedList;
@@ -294,7 +294,7 @@
         }
         
         async function deleteRecent(days) {
-            if (!confirm(`Are you sure you want to delete all scrobbles from the last ${days} days? This cannot be undone.`)) {
+            if (!confirm(`Are you sure you want to delete all plays from the last ${days} days? This cannot be undone.`)) {
                 return;
             }
             
@@ -308,7 +308,7 @@
             resultEl.classList.remove('show');
             
             try {
-                const response = await fetch('/scrobbles/api/delete-recent', {
+                const response = await fetch('/plays/api/delete-recent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ days })
@@ -320,7 +320,7 @@
                     document.getElementById('deleteCount').textContent = data.deletedCount || 0;
                     document.getElementById('deleteDays').textContent = data.days || 0;
                     resultEl.classList.add('show');
-                    successEl.textContent = `Deleted ${data.deletedCount} scrobbles from the last ${data.days} days.`;
+                    successEl.textContent = `Deleted ${data.deletedCount} plays from the last ${data.days} days.`;
                     successEl.style.display = 'block';
                 } else {
                     errorEl.textContent = data.error || 'Unknown error';
@@ -338,13 +338,13 @@
     </script>
     
     <!-- Include modal fragments -->
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: unmatched-list-modal}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: create-wizard-modal}"></th:block>
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: match-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: unmatched-list-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: create-wizard-modal}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: match-modal}"></th:block>
     <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     <th:block th:replace="~{fragments/artist-fetch-modal :: artist-fetch-modal}"></th:block>
     
     <!-- Include modal scripts -->
-    <th:block th:replace="~{fragments/unmatched-scrobbles-modal :: modal-scripts}"></th:block>
+    <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-scripts}"></th:block>
 </body>
 </html>

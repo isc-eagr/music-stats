@@ -44,7 +44,7 @@ public class AlbumRepository {
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account IN (");
+            accountFilterClause.append(" AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -52,7 +52,7 @@ public class AlbumRepository {
             }
             accountFilterClause.append(")");
         } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account NOT IN (");
+            accountFilterClause.append(" AND p.account NOT IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -65,11 +65,11 @@ public class AlbumRepository {
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
         if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) >= DATE(?)");
             listenedDateParams.add(listenedDateFrom);
         }
         if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
         
@@ -123,13 +123,13 @@ public class AlbumRepository {
                 SELECT 
                     song.album_id,
                     COUNT(*) as play_count,
-                    SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
-                    SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
+                    SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                    SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
                     SUM(song.length_seconds) as time_listened,
-                    MIN(scr.scrobble_date) as first_listened,
-                    MAX(scr.scrobble_date) as last_listened
-                FROM Scrobble scr
-                JOIN Song song ON scr.song_id = song.id
+                    MIN(p.play_date) as first_listened,
+                    MAX(p.play_date) as last_listened
+                FROM Play p
+                JOIN Song song ON p.song_id = song.id
                 WHERE song.album_id IS NOT NULL """);
         sql.append(accountFilterClause);
         sql.append(listenedDateFilterClause);
@@ -310,7 +310,7 @@ public class AlbumRepository {
         
         // First Listened Date filter
         if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            String subquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
             switch (firstListenedDateMode) {
                 case "exact":
                     if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
@@ -345,7 +345,7 @@ public class AlbumRepository {
         
         // Last Listened Date filter
         if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            String subquery = "(SELECT MAX(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
             switch (lastListenedDateMode) {
                 case "exact":
                     if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
@@ -704,16 +704,16 @@ public class AlbumRepository {
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
         if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) >= DATE(?)");
             listenedDateParams.add(listenedDateFrom);
         }
         if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
         boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account IN (");
+            accountFilterClause.append(" AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -721,7 +721,7 @@ public class AlbumRepository {
             }
             accountFilterClause.append(")");
         } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account NOT IN (");
+            accountFilterClause.append(" AND p.account NOT IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -744,8 +744,8 @@ public class AlbumRepository {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
-                        FROM Scrobble scr
-                        JOIN Song s ON scr.song_id = s.id
+                        FROM Play p
+                        JOIN Song s ON p.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
@@ -756,8 +756,8 @@ public class AlbumRepository {
             }
             
             sql.append("INNER JOIN Song s ON s.album_id = a.id " +
-                "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
-                "WHERE scr.account IN (");
+                "INNER JOIN Play p ON p.song_id = s.id " +
+                "WHERE p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
@@ -774,8 +774,8 @@ public class AlbumRepository {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
-                        FROM Scrobble scr
-                        JOIN Song s ON scr.song_id = s.id
+                        FROM Play p
+                        JOIN Song s ON p.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
@@ -786,9 +786,9 @@ public class AlbumRepository {
             }
             
             sql.append("WHERE NOT EXISTS ( " +
-                "    SELECT 1 FROM Scrobble scr " +
-                "    JOIN Song song ON scr.song_id = song.id " +
-                "    WHERE song.album_id = a.id AND scr.account IN (");
+                "    SELECT 1 FROM Play p " +
+                "    JOIN Song song ON p.song_id = song.id " +
+                "    WHERE song.album_id = a.id AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
@@ -810,8 +810,8 @@ public class AlbumRepository {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
-                        FROM Scrobble scr
-                        JOIN Song s ON scr.song_id = s.id
+                        FROM Play p
+                        JOIN Song s ON p.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
@@ -999,7 +999,7 @@ public class AlbumRepository {
         
         // First Listened Date filter
         if (firstListenedDateMode != null && !firstListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            String subquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
             switch (firstListenedDateMode) {
                 case "exact":
                     if (firstListenedDate != null && !firstListenedDate.isEmpty()) {
@@ -1034,7 +1034,7 @@ public class AlbumRepository {
         
         // Last Listened Date filter
         if (lastListenedDateMode != null && !lastListenedDateMode.isEmpty()) {
-            String subquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+            String subquery = "(SELECT MAX(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
             switch (lastListenedDateMode) {
                 case "exact":
                     if (lastListenedDate != null && !lastListenedDate.isEmpty()) {
@@ -1352,16 +1352,16 @@ public class AlbumRepository {
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
         if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) >= DATE(?)");
             listenedDateParams.add(listenedDateFrom);
         }
         if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
         boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account IN (");
+            accountFilterClause.append(" AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -1369,7 +1369,7 @@ public class AlbumRepository {
             }
             accountFilterClause.append(")");
         } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account NOT IN (");
+            accountFilterClause.append(" AND p.account NOT IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -1391,8 +1391,8 @@ public class AlbumRepository {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
-                        FROM Scrobble scr
-                        JOIN Song s ON scr.song_id = s.id
+                        FROM Play p
+                        JOIN Song s ON p.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
@@ -1403,8 +1403,8 @@ public class AlbumRepository {
             }
             
             sql.append("INNER JOIN Song s ON s.album_id = a.id " +
-                "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
-                "WHERE scr.account IN (");
+                "INNER JOIN Play p ON p.song_id = s.id " +
+                "WHERE p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
@@ -1420,8 +1420,8 @@ public class AlbumRepository {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
-                        FROM Scrobble scr
-                        JOIN Song s ON scr.song_id = s.id
+                        FROM Play p
+                        JOIN Song s ON p.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
@@ -1432,9 +1432,9 @@ public class AlbumRepository {
             }
             
             sql.append("WHERE NOT EXISTS ( " +
-                "    SELECT 1 FROM Scrobble scr " +
-                "    JOIN Song song ON scr.song_id = song.id " +
-                "    WHERE song.album_id = a.id AND scr.account IN (");
+                "    SELECT 1 FROM Play p " +
+                "    JOIN Song song ON p.song_id = song.id " +
+                "    WHERE song.album_id = a.id AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
@@ -1454,8 +1454,8 @@ public class AlbumRepository {
                 sql.append("""
                     LEFT JOIN (
                         SELECT s.album_id, COUNT(*) as play_count
-                        FROM Scrobble scr
-                        JOIN Song s ON scr.song_id = s.id
+                        FROM Play p
+                        JOIN Song s ON p.song_id = s.id
                         WHERE 1=1 """);
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
@@ -1518,11 +1518,11 @@ public class AlbumRepository {
         library.util.SqlFilterHelper.appendDateFilter(sql, params, "a.release_date", releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
         
         // First listened date filter
-        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+        String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
         library.util.SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
         
         // Last listened date filter
-        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
+        String lastListenedSubquery = "(SELECT MAX(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE album_id = a.id))";
         library.util.SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
         
         // Birth date filter

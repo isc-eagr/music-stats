@@ -317,7 +317,7 @@ public class AlbumController {
         model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
         
-        // Listened date filter attributes (filters by actual scrobble date)
+        // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
         model.addAttribute("listenedDateTo", listenedDateTo);
         model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
@@ -479,11 +479,11 @@ public class AlbumController {
         
         // Always load plays data (eager loading for all tabs)
         int pageSize = 100;
-        model.addAttribute("scrobbles", albumService.getScrobblesForAlbum(id, playsPage, pageSize));
-        model.addAttribute("scrobblesTotalCount", albumService.countScrobblesForAlbum(id));
-        model.addAttribute("scrobblesPage", playsPage);
-        model.addAttribute("scrobblesPageSize", pageSize);
-        model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) albumService.countScrobblesForAlbum(id) / pageSize));
+        model.addAttribute("plays", albumService.getPlaysForAlbum(id, playsPage, pageSize));
+        model.addAttribute("playsTotalCount", albumService.countPlaysForAlbum(id));
+        model.addAttribute("playsPage", playsPage);
+        model.addAttribute("playsPageSize", pageSize);
+        model.addAttribute("playsTotalPages", (int) Math.ceil((double) albumService.countPlaysForAlbum(id) / pageSize));
         model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
         model.addAttribute("playsByMonth", albumService.getPlaysByMonthForAlbum(id));
         

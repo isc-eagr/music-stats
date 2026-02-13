@@ -123,17 +123,17 @@ public class GenreService {
             LEFT JOIN (
                 SELECT 
                     COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as effective_genre_id,
-                    COUNT(DISTINCT scr.id) as play_count,
-                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
-                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
+                    COUNT(DISTINCT p.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
                     COUNT(DISTINCT s.id) as song_count,
                     SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_song_count,
                     SUM(CASE WHEN gn.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_song_count,
                     SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as other_song_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count,
                     SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
                     SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
                     SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened
@@ -141,7 +141,7 @@ public class GenreService {
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IS NOT NULL
                 GROUP BY effective_genre_id
             ) stats ON g.id = stats.effective_genre_id
@@ -264,8 +264,8 @@ public class GenreService {
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IN (" + placeholders + ") " +
@@ -289,8 +289,8 @@ public class GenreService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IN (" + placeholders + ") " +
@@ -313,8 +313,8 @@ public class GenreService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) IN (" + placeholders + ") " +
@@ -419,9 +419,9 @@ public class GenreService {
             LEFT JOIN (
                 SELECT 
                     s.artist_id,
-                    COUNT(scr.id) as play_count
+                    COUNT(p.id) as play_count
                 FROM Song s
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 GROUP BY s.artist_id
             ) play_stats ON ar.id = play_stats.artist_id
             WHERE ar.genre_id = ?
@@ -453,9 +453,9 @@ public class GenreService {
             LEFT JOIN (
                 SELECT 
                     s.album_id,
-                    COUNT(scr.id) as play_count
+                    COUNT(p.id) as play_count
                 FROM Song s
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 WHERE s.album_id IS NOT NULL
                 GROUP BY s.album_id
             ) play_stats ON al.id = play_stats.album_id
@@ -483,11 +483,11 @@ public class GenreService {
                 s.name,
                 ar.name as artist_name,
                 al.name as album_name,
-                COUNT(scr.id) as play_count
+                COUNT(p.id) as play_count
             FROM Song s
             JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Play p ON s.id = p.song_id
             WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
             GROUP BY s.id, s.name, ar.name, al.name
             ORDER BY play_count DESC
@@ -519,15 +519,15 @@ public class GenreService {
             FROM (SELECT 1 as dummy) base
             LEFT JOIN (
                 SELECT 
-                    COUNT(DISTINCT scr.id) as play_count,
+                    COUNT(DISTINCT p.id) as play_count,
                     SUM(s.length_seconds) as total_length,
                     COUNT(DISTINCT s.id) as song_count,
-                    MIN(scr.scrobble_date) as first_listened,
-                    MAX(scr.scrobble_date) as last_listened
+                    MIN(p.play_date) as first_listened,
+                    MAX(p.play_date) as last_listened
                 FROM Song s
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
             ) song_stats ON 1=1
             LEFT JOIN (

@@ -1,8 +1,8 @@
 package library.dto;
 
-public class ScrobbleDTO {
+public class PlayDTO {
     private Integer id;
-    private String scrobbleDate;
+    private String playDate;
     private String songName;
     private Integer songId;
     private String albumName;
@@ -22,12 +22,12 @@ public class ScrobbleDTO {
         this.id = id;
     }
 
-    public String getScrobbleDate() {
-        return scrobbleDate;
+    public String getPlayDate() {
+        return playDate;
     }
 
-    public void setScrobbleDate(String scrobbleDate) {
-        this.scrobbleDate = scrobbleDate;
+    public void setPlayDate(String playDate) {
+        this.playDate = playDate;
     }
 
     public String getSongName() {

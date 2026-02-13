@@ -1,7 +1,7 @@
 package library.service;
 
-import library.entity.Scrobble;
-import library.repository.ScrobbleRepository;
+import library.entity.Play;
+import library.repository.PlayRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -30,14 +30,14 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class ScrobbleService {
+public class PlayService {
     
-    private final ScrobbleRepository scrobbleRepository;
+    private final PlayRepository playRepository;
     private final JdbcTemplate jdbcTemplate;
     private final TransactionTemplate transactionTemplate;
     
-    public ScrobbleService(ScrobbleRepository scrobbleRepository, JdbcTemplate jdbcTemplate, PlatformTransactionManager txManager) {
-        this.scrobbleRepository = scrobbleRepository;
+    public PlayService(PlayRepository playRepository, JdbcTemplate jdbcTemplate, PlatformTransactionManager txManager) {
+        this.playRepository = playRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.transactionTemplate = new TransactionTemplate(txManager);
     }
@@ -56,13 +56,13 @@ public class ScrobbleService {
     }
     
     /**
-     * Stream-import scrobbles from a multipart file. Processes rows using a streaming iterator
+     * Stream-import plays from a multipart file. Processes rows using a streaming iterator
      * and saves in chunks of `batchSize`. If dryRun is true, it will not write to the DB and
      * will return statistics only.
      * 
      * This avoids loading the whole CSV into memory.
      */
-    public Map<String, Integer> importScrobblesStream(MultipartFile file, String account, int batchSize, boolean dryRun) throws Exception {
+    public Map<String, Integer> importPlaysStream(MultipartFile file, String account, int batchSize, boolean dryRun) throws Exception {
         // Build song lookup map once (artist||album||song -> id)
         Map<String, Integer> songLookup = new HashMap<>();
         String sql = "SELECT s.id as id, a.name as artist, COALESCE(al.name,'') as album, s.name as song FROM song s "
@@ -85,21 +85,21 @@ public class ScrobbleService {
         int totalUnmatched = 0;
         int totalErrors = 0;
 
-        List<Scrobble> batch = new ArrayList<>(batchSize);
+        List<Play> batch = new ArrayList<>(batchSize);
 
         try (Reader reader = new InputStreamReader(file.getInputStream())) {
-            CsvToBean<Scrobble> csvToBean = new CsvToBeanBuilder<Scrobble>(reader)
-                    .withType(Scrobble.class)
+            CsvToBean<Play> csvToBean = new CsvToBeanBuilder<Play>(reader)
+                    .withType(Play.class)
                     .withSkipLines(1)
                     .withIgnoreQuotations(false)
                     .build();
-            Iterator<Scrobble> it = csvToBean.iterator();
+            Iterator<Play> it = csvToBean.iterator();
 
             while (true) {
-                Scrobble sc = null;
+                Play pl = null;
                 try {
                     if (!it.hasNext()) break;
-                    sc = it.next();
+                    pl = it.next();
                 } catch (Exception e) {
                     // Row-level parsing or introspection error: record and continue
                     totalErrors++;
@@ -109,29 +109,29 @@ public class ScrobbleService {
                 }
 
                 try {
-                    sc.setAccount(account);
-                    String key = createLookupKey(sc.getArtist(), sc.getAlbum(), sc.getSong());
+                    pl.setAccount(account);
+                    String key = createLookupKey(pl.getArtist(), pl.getAlbum(), pl.getSong());
                     Integer songId = songLookup.get(key);
                     if (songId != null) {
-                        sc.setSongId(songId);
+                        pl.setSongId(songId);
                         totalMatched++;
                     } else {
-                        sc.setSongId(null);
+                        pl.setSongId(null);
                         totalUnmatched++;
                     }
-                    batch.add(sc);
+                    batch.add(pl);
                     totalProcessed++;
                 } catch (Exception e) {
                     totalErrors++;
-                    System.err.println("Skipping scrobble due to processing error: " + e.getMessage());
+                    System.err.println("Skipping play due to processing error: " + e.getMessage());
                     continue;
                 }
 
                 if (batch.size() >= batchSize) {
-                    final List<Scrobble> toSave = new ArrayList<>(batch);
+                    final List<Play> toSave = new ArrayList<>(batch);
                     if (!dryRun) {
                         transactionTemplate.execute(status -> {
-                            scrobbleRepository.saveAll(toSave);
+                            playRepository.saveAll(toSave);
                             return null;
                         });
                     }
@@ -141,10 +141,10 @@ public class ScrobbleService {
 
             // Save remaining
             if (!batch.isEmpty()) {
-                final List<Scrobble> toSave = new ArrayList<>(batch);
+                final List<Play> toSave = new ArrayList<>(batch);
                 if (!dryRun) {
                     transactionTemplate.execute(status -> {
-                        scrobbleRepository.saveAll(toSave);
+                        playRepository.saveAll(toSave);
                         return null;
                     });
                 }
@@ -161,13 +161,13 @@ public class ScrobbleService {
     }
 
     /**
-     * Returns unmatched scrobbles grouped by account/artist/album/song with counts, ordered by count desc.
+     * Returns unmatched plays grouped by account/artist/album/song with counts, ordered by count desc.
      * If account is null or blank, returns across all accounts; otherwise filters by given account.
      * Each map contains keys: account, artist, album, song, cnt
      */
-    public java.util.List<java.util.Map<String, Object>> getUnmatchedScrobbles(String account) {
+    public java.util.List<java.util.Map<String, Object>> getUnmatchedPlays(String account) {
         String baseSql = "SELECT COALESCE(account,'') as account, COALESCE(artist,'') as artist, COALESCE(album,'') as album, COALESCE(song,'') as song, COUNT(*) as cnt "
-                + "FROM scrobble WHERE song_id IS NULL ";
+                + "FROM play WHERE song_id IS NULL ";
         java.util.List<java.util.Map<String, Object>> rows;
         if (account == null) {
             String sql = baseSql + "GROUP BY account, artist, album, song ORDER BY cnt DESC";
@@ -184,10 +184,10 @@ public class ScrobbleService {
     }
 
     /**
-     * Returns a list of distinct accounts present in scrobble table (including empty string for nulls).
+     * Returns a list of distinct accounts present in play table (including empty string for nulls).
      */
     public java.util.List<String> getDistinctAccounts() {
-        String sql = "SELECT DISTINCT COALESCE(account,'') as account FROM scrobble ORDER BY account";
+        String sql = "SELECT DISTINCT COALESCE(account,'') as account FROM play ORDER BY account";
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
         java.util.List<String> accounts = new java.util.ArrayList<>();
         for (java.util.Map<String, Object> r : rows) {
@@ -198,19 +198,19 @@ public class ScrobbleService {
     }
     
     /**
-     * Assigns all matching unmatched scrobbles to a song.
+     * Assigns all matching unmatched plays to a song.
      * Matches by artist, album, and song name (case-insensitive) across ALL accounts.
-     * Only updates scrobbles that don't already have a song_id.
-     * Also updates the scrobble's artist, album, and song fields to match the canonical song data.
+     * Only updates plays that don't already have a song_id.
+     * Also updates the play's artist, album, and song fields to match the canonical song data.
      * 
      * @param account The account name (ignored - matches all accounts)
-     * @param artist The artist name from the scrobble
-     * @param album The album name from the scrobble
-     * @param song The song name from the scrobble
+     * @param artist The artist name from the play
+     * @param album The album name from the play
+     * @param song The song name from the play
      * @param songId The song ID to assign
-     * @return The number of scrobbles updated
+     * @return The number of plays updated
      */
-    public int assignScrobblesToSong(String account, String artist, String album, String song, Integer songId) {
+    public int assignPlaysToSong(String account, String artist, String album, String song, Integer songId) {
         // First, fetch the canonical names from the song
         String lookupSql = "SELECT s.name as song_name, ar.name as artist_name, COALESCE(al.name, '') as album_name " +
                            "FROM song s " +
@@ -230,8 +230,8 @@ public class ScrobbleService {
         String canonicalAlbum = (String) songData.get("album_name");
         String canonicalSong = (String) songData.get("song_name");
         
-        // Update scrobbles with song_id AND canonical names
-        String sql = "UPDATE scrobble SET song_id = ?, artist = ?, album = ?, song = ? " +
+        // Update plays with song_id AND canonical names
+        String sql = "UPDATE play SET song_id = ?, artist = ?, album = ?, song = ? " +
                      "WHERE song_id IS NULL " +
                      "AND COALESCE(LOWER(artist),'') = LOWER(?) " +
                      "AND COALESCE(LOWER(album),'') = LOWER(?) " +
@@ -253,7 +253,7 @@ public class ScrobbleService {
      * @return Map of account name to max lastfm_id
      */
     public Map<String, Integer> getMaxLastfmIdByAccount() {
-        String sql = "SELECT COALESCE(account,'') as account, MAX(lastfm_id) as max_id FROM scrobble GROUP BY account ORDER BY account";
+        String sql = "SELECT COALESCE(account,'') as account, MAX(lastfm_id) as max_id FROM play GROUP BY account ORDER BY account";
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
         Map<String, Integer> result = new HashMap<>();
         for (Map<String, Object> row : rows) {
@@ -265,7 +265,7 @@ public class ScrobbleService {
     }
     
     /**
-     * Import result containing stats and grouped unmatched scrobbles.
+     * Import result containing stats and grouped unmatched plays.
      */
     public static class ImportResult {
         public Map<String, Integer> stats;
@@ -285,27 +285,27 @@ public class ScrobbleService {
     }
     
     /**
-     * Validation result comparing Last.fm playcount to local scrobble count.
+     * Validation result comparing Last.fm playcount to local play count.
      */
     public static class ValidationResult {
         public int lastfmPlaycount;
-        public int localScrobbleCount;
+        public int localPlayCount;
         public boolean matches;
         public int difference;
         
-        public ValidationResult(int lastfmPlaycount, int localScrobbleCount) {
+        public ValidationResult(int lastfmPlaycount, int localPlayCount) {
             this.lastfmPlaycount = lastfmPlaycount;
-            this.localScrobbleCount = localScrobbleCount;
-            this.matches = lastfmPlaycount == localScrobbleCount;
-            this.difference = lastfmPlaycount - localScrobbleCount;
+            this.localPlayCount = localPlayCount;
+            this.matches = lastfmPlaycount == localPlayCount;
+            this.difference = lastfmPlaycount - localPlayCount;
         }
     }
     
     /**
-     * Gets the total count of scrobbles for a specific account.
+     * Gets the total count of plays for a specific account.
      */
-    public int getScrobbleCountByAccount(String account) {
-        String sql = "SELECT COUNT(*) FROM scrobble WHERE account = ?";
+    public int getPlayCountByAccount(String account) {
+        String sql = "SELECT COUNT(*) FROM play WHERE account = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, account);
         return count != null ? count : 0;
     }
@@ -338,18 +338,18 @@ public class ScrobbleService {
     }
     
     /**
-     * Validates that local scrobble count matches Last.fm playcount.
+     * Validates that local play count matches Last.fm playcount.
      */
-    public ValidationResult validateScrobbleCount(String account, String apiKey) throws Exception {
+    public ValidationResult validatePlayCount(String account, String apiKey) throws Exception {
         int lastfmPlaycount = getLastfmPlaycount(account, apiKey);
-        int localCount = getScrobbleCountByAccount(account);
+        int localCount = getPlayCountByAccount(account);
         return new ValidationResult(lastfmPlaycount, localCount);
     }
     
     /**
-     * Stream-import scrobbles with full result including unmatched list.
+     * Stream-import plays with full result including unmatched list.
      */
-    public ImportResult importScrobblesWithUnmatched(MultipartFile file, String account, int batchSize, boolean dryRun) throws Exception {
+    public ImportResult importPlaysWithUnmatched(MultipartFile file, String account, int batchSize, boolean dryRun) throws Exception {
         // Build song lookup map once (artist||album||song -> id)
         Map<String, Integer> songLookup = new HashMap<>();
         String sql = "SELECT s.id as id, a.name as artist, COALESCE(al.name,'') as album, s.name as song FROM song s "
@@ -372,24 +372,24 @@ public class ScrobbleService {
         int totalUnmatched = 0;
         int totalErrors = 0;
         
-        // Track unmatched scrobbles grouped by artist/album/song
+        // Track unmatched plays grouped by artist/album/song
         Map<String, int[]> unmatchedCounts = new HashMap<>(); // key -> [count]
 
-        List<Scrobble> batch = new ArrayList<>(batchSize);
+        List<Play> batch = new ArrayList<>(batchSize);
 
         try (Reader reader = new InputStreamReader(file.getInputStream())) {
-            CsvToBean<Scrobble> csvToBean = new CsvToBeanBuilder<Scrobble>(reader)
-                    .withType(Scrobble.class)
+            CsvToBean<Play> csvToBean = new CsvToBeanBuilder<Play>(reader)
+                    .withType(Play.class)
                     .withSkipLines(1)
                     .withIgnoreQuotations(false)
                     .build();
-            Iterator<Scrobble> it = csvToBean.iterator();
+            Iterator<Play> it = csvToBean.iterator();
 
             while (true) {
-                Scrobble sc = null;
+                Play pl = null;
                 try {
                     if (!it.hasNext()) break;
-                    sc = it.next();
+                    pl = it.next();
                 } catch (Exception e) {
                     totalErrors++;
                     System.err.println("Skipping CSV row due to parse error: " + e.getMessage());
@@ -397,35 +397,35 @@ public class ScrobbleService {
                 }
 
                 try {
-                    sc.setAccount(account);
-                    String key = createLookupKey(sc.getArtist(), sc.getAlbum(), sc.getSong());
+                    pl.setAccount(account);
+                    String key = createLookupKey(pl.getArtist(), pl.getAlbum(), pl.getSong());
                     Integer songId = songLookup.get(key);
                     if (songId != null) {
-                        sc.setSongId(songId);
+                        pl.setSongId(songId);
                         totalMatched++;
                     } else {
-                        sc.setSongId(null);
+                        pl.setSongId(null);
                         totalUnmatched++;
                         
                         // Track for unmatched grouping
-                        String unmatchedKey = (sc.getArtist() != null ? sc.getArtist() : "") + "||" +
-                                              (sc.getAlbum() != null ? sc.getAlbum() : "") + "||" +
-                                              (sc.getSong() != null ? sc.getSong() : "");
+                        String unmatchedKey = (pl.getArtist() != null ? pl.getArtist() : "") + "||" +
+                                              (pl.getAlbum() != null ? pl.getAlbum() : "") + "||" +
+                                              (pl.getSong() != null ? pl.getSong() : "");
                         unmatchedCounts.computeIfAbsent(unmatchedKey, k -> new int[]{0})[0]++;
                     }
-                    batch.add(sc);
+                    batch.add(pl);
                     totalProcessed++;
                 } catch (Exception e) {
                     totalErrors++;
-                    System.err.println("Skipping scrobble due to processing error: " + e.getMessage());
+                    System.err.println("Skipping play due to processing error: " + e.getMessage());
                     continue;
                 }
 
                 if (batch.size() >= batchSize) {
-                    final List<Scrobble> toSave = new ArrayList<>(batch);
+                    final List<Play> toSave = new ArrayList<>(batch);
                     if (!dryRun) {
                         transactionTemplate.execute(status -> {
-                            scrobbleRepository.saveAll(toSave);
+                            playRepository.saveAll(toSave);
                             return null;
                         });
                     }
@@ -435,10 +435,10 @@ public class ScrobbleService {
 
             // Save remaining
             if (!batch.isEmpty()) {
-                final List<Scrobble> toSave = new ArrayList<>(batch);
+                final List<Play> toSave = new ArrayList<>(batch);
                 if (!dryRun) {
                     transactionTemplate.execute(status -> {
-                        scrobbleRepository.saveAll(toSave);
+                        playRepository.saveAll(toSave);
                         return null;
                     });
                 }
@@ -470,17 +470,17 @@ public class ScrobbleService {
     }
     
     /**
-     * Deletes unmatched scrobbles that match the given account/artist/album/song.
-     * Only deletes scrobbles that don't have a song_id (unmatched).
+     * Deletes unmatched plays that match the given account/artist/album/song.
+     * Only deletes plays that don't have a song_id (unmatched).
      * 
-     * @param account The account name from the scrobble
-     * @param artist The artist name from the scrobble
-     * @param album The album name from the scrobble
-     * @param song The song name from the scrobble
-     * @return The number of scrobbles deleted
+     * @param account The account name from the play
+     * @param artist The artist name from the play
+     * @param album The album name from the play
+     * @param song The song name from the play
+     * @return The number of plays deleted
      */
-    public int deleteUnmatchedScrobbles(String account, String artist, String album, String song) {
-        String sql = "DELETE FROM scrobble " +
+    public int deleteUnmatchedPlays(String account, String artist, String album, String song) {
+        String sql = "DELETE FROM play " +
                      "WHERE song_id IS NULL " +
                      "AND COALESCE(account,'') = ? " +
                      "AND COALESCE(artist,'') = ? " +
@@ -496,24 +496,24 @@ public class ScrobbleService {
     }
     
     /**
-     * Assigns scrobbles to a song and updates the scrobble text fields to canonical names.
+     * Assigns plays to a song and updates the play text fields to canonical names.
      * Matches by artist, album, and song name (case-insensitive) across ALL accounts.
-     * Only updates scrobbles that don't already have a song_id.
+     * Only updates plays that don't already have a song_id.
      * 
-     * @param scrobbleAccount The account name from the scrobble (ignored - matches all accounts)
-     * @param scrobbleArtist The artist name from the scrobble
-     * @param scrobbleAlbum The album name from the scrobble
-     * @param scrobbleSong The song name from the scrobble
+     * @param playAccount The account name from the play (ignored - matches all accounts)
+     * @param playArtist The artist name from the play
+     * @param playAlbum The album name from the play
+     * @param playSong The song name from the play
      * @param songId The song ID to assign
      * @param canonicalArtist The canonical artist name
      * @param canonicalAlbum The canonical album name (can be null)
      * @param canonicalSong The canonical song name
-     * @return The number of scrobbles updated
+     * @return The number of plays updated
      */
-    public int assignScrobblesToSongWithCanonicalNames(String scrobbleAccount, String scrobbleArtist, 
-            String scrobbleAlbum, String scrobbleSong, Integer songId,
+    public int assignPlaysToSongWithCanonicalNames(String playAccount, String playArtist, 
+            String playAlbum, String playSong, Integer songId,
             String canonicalArtist, String canonicalAlbum, String canonicalSong) {
-        String sql = "UPDATE scrobble SET song_id = ?, artist = ?, album = ?, song = ? " +
+        String sql = "UPDATE play SET song_id = ?, artist = ?, album = ?, song = ? " +
                      "WHERE song_id IS NULL " +
                      "AND COALESCE(LOWER(artist),'') = LOWER(?) " +
                      "AND COALESCE(LOWER(album),'') = LOWER(?) " +
@@ -524,14 +524,14 @@ public class ScrobbleService {
             canonicalArtist,
             canonicalAlbum != null ? canonicalAlbum : "",
             canonicalSong,
-            scrobbleArtist != null ? scrobbleArtist : "",
-            scrobbleAlbum != null ? scrobbleAlbum : "",
-            scrobbleSong != null ? scrobbleSong : ""
+            playArtist != null ? playArtist : "",
+            playAlbum != null ? playAlbum : "",
+            playSong != null ? playSong : ""
         );
     }
     
     /**
-     * Fetches recent scrobbles from Last.fm API and imports them.
+     * Fetches recent plays from Last.fm API and imports them.
      * Uses the Last.fm API endpoint with the 'from' parameter set to maxLastfmId + 1.
      * Handles pagination by iterating through all pages.
      * 
@@ -539,7 +539,7 @@ public class ScrobbleService {
      * @param apiKey The Last.fm API key
      * @return ImportResult with stats and unmatched list
      */
-    public ImportResult fetchAndImportFromLastfm(String account, String apiKey) throws Exception {
+    public ImportResult fetchAndImportPlaysFromLastfm(String account, String apiKey) throws Exception {
         // Get the max lastfm_id for this account
         Map<String, Integer> maxIds = getMaxLastfmIdByAccount();
         int maxLastfmId = maxIds.getOrDefault(account, 0);
@@ -570,7 +570,7 @@ public class ScrobbleService {
         int totalUnmatched = 0;
         int totalErrors = 0;
         Map<String, int[]> unmatchedCounts = new HashMap<>();
-        List<Scrobble> allScrobbles = new ArrayList<>();
+        List<Play> allPlays = new ArrayList<>();
         
         int currentPage = 1;
         int totalPages = 1;
@@ -637,36 +637,36 @@ public class ScrobbleService {
                     ZonedDateTime mexicoDate = utcDate.withZoneSameInstant(ZoneId.of("America/Mexico_City"));
                     String formattedDate = mexicoDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                     
-                    Scrobble sc = new Scrobble();
-                    sc.setLastfmId((int) uts); // Use the UTS timestamp as the lastfm_id
-                    sc.setArtist(artistName);
-                    sc.setAlbum(albumName);
-                    sc.setSong(songName);
-                    sc.setAccount(account);
-                    // Set scrobbleDate directly without parsing (already formatted)
+                    Play pl = new Play();
+                    pl.setLastfmId((int) uts); // Use the UTS timestamp as the lastfm_id
+                    pl.setArtist(artistName);
+                    pl.setAlbum(albumName);
+                    pl.setSong(songName);
+                    pl.setAccount(account);
+                    // Set playDate directly without parsing (already formatted)
                     try {
-                        java.lang.reflect.Field field = Scrobble.class.getDeclaredField("scrobbleDate");
+                        java.lang.reflect.Field field = Play.class.getDeclaredField("playDate");
                         field.setAccessible(true);
-                        field.set(sc, formattedDate);
+                        field.set(pl, formattedDate);
                     } catch (Exception e) {
-                        sc.setScrobbleDate(formattedDate);
+                        pl.setPlayDate(formattedDate);
                     }
                     
                     // Match to song
                     String key = createLookupKey(artistName, albumName, songName);
                     Integer songId = songLookup.get(key);
                     if (songId != null) {
-                        sc.setSongId(songId);
+                        pl.setSongId(songId);
                         totalMatched++;
                     } else {
-                        sc.setSongId(null);
+                        pl.setSongId(null);
                         totalUnmatched++;
                         
                         String unmatchedKey = artistName + "||" + albumName + "||" + songName;
                         unmatchedCounts.computeIfAbsent(unmatchedKey, k -> new int[]{0})[0]++;
                     }
                     
-                    allScrobbles.add(sc);
+                    allPlays.add(pl);
                     totalProcessed++;
                     
                 } catch (Exception e) {
@@ -679,11 +679,11 @@ public class ScrobbleService {
             
         } while (currentPage <= totalPages);
         
-        // Save all scrobbles
-        if (!allScrobbles.isEmpty()) {
-            final List<Scrobble> toSave = new ArrayList<>(allScrobbles);
+        // Save all plays
+        if (!allPlays.isEmpty()) {
+            final List<Play> toSave = new ArrayList<>(allPlays);
             transactionTemplate.execute(status -> {
-                scrobbleRepository.saveAll(toSave);
+                playRepository.saveAll(toSave);
                 return null;
             });
         }
@@ -709,45 +709,45 @@ public class ScrobbleService {
         }
         unmatchedGrouped.sort((a, b) -> ((Integer) b.get("cnt")).compareTo((Integer) a.get("cnt")));
         
-        // Validate scrobble count against Last.fm
+        // Validate play count against Last.fm
         ValidationResult validation = null;
         try {
-            validation = validateScrobbleCount(account, apiKey);
+            validation = validatePlayCount(account, apiKey);
         } catch (Exception e) {
-            System.err.println("Failed to validate scrobble count: " + e.getMessage());
+            System.err.println("Failed to validate play count: " + e.getMessage());
         }
         
         return new ImportResult(stats, unmatchedGrouped, validation);
     }
     
     /**
-     * Deletes all scrobbles from the last N days.
+     * Deletes all plays from the last N days.
      * 
      * @param days Number of days to delete (e.g., 5, 10, 20, 30, 60, 90)
-     * @return The number of scrobbles deleted
+     * @return The number of plays deleted
      */
-    public int deleteRecentScrobbles(int days) {
-        String sql = "DELETE FROM scrobble WHERE scrobble_date > date('now', '-' || ? || ' days')";
+    public int deleteRecentPlays(int days) {
+        String sql = "DELETE FROM play WHERE play_date > date('now', '-' || ? || ' days')";
         return jdbcTemplate.update(sql, days);
     }
     
     /**
-     * Deletes all scrobbles for a specific song.
+     * Deletes all plays for a specific song.
      * This is a dangerous operation that removes all listening history for the song.
      * 
-     * @param songId The ID of the song whose scrobbles should be deleted
-     * @return The number of scrobbles deleted
+     * @param songId The ID of the song whose plays should be deleted
+     * @return The number of plays deleted
      */
-    public int deleteScrobblesForSong(Long songId) {
-        String sql = "DELETE FROM scrobble WHERE song_id = ?";
+    public int deletePlaysForSong(Long songId) {
+        String sql = "DELETE FROM play WHERE song_id = ?";
         return jdbcTemplate.update(sql, songId);
     }
     
     /**
-     * Get the total number of unique days since the first scrobble in the database.
+     * Get the total number of unique days since the first play in the database.
      */
-    public int getTotalDaysSinceFirstScrobble() {
-        String sql = "SELECT CAST(julianday('now') - julianday(MIN(DATE(scrobble_date))) AS INTEGER) + 1 FROM Scrobble WHERE scrobble_date IS NOT NULL";
+    public int getTotalDaysSinceFirstPlay() {
+        String sql = "SELECT CAST(julianday('now') - julianday(MIN(DATE(play_date))) AS INTEGER) + 1 FROM Play WHERE play_date IS NOT NULL";
         try {
             Integer days = jdbcTemplate.queryForObject(sql, Integer.class);
             return days != null && days > 0 ? days : 1;
@@ -757,14 +757,14 @@ public class ScrobbleService {
     }
     
     /**
-     * Get the total number of unique weeks since the first scrobble in the database.
+     * Get the total number of unique weeks since the first play in the database.
      */
-    public int getTotalWeeksSinceFirstScrobble() {
+    public int getTotalWeeksSinceFirstPlay() {
         try {
-            // Calculate weeks between first scrobble and now
+            // Calculate weeks between first play and now
             String sql = """
-                SELECT CAST((julianday('now') - julianday(MIN(DATE(scrobble_date)))) / 7 AS INTEGER) + 1 
-                FROM Scrobble WHERE scrobble_date IS NOT NULL
+                SELECT CAST((julianday('now') - julianday(MIN(DATE(play_date)))) / 7 AS INTEGER) + 1 
+                FROM Play WHERE play_date IS NOT NULL
                 """;
             Integer weeks = jdbcTemplate.queryForObject(sql, Integer.class);
             return weeks != null && weeks > 0 ? weeks : 1;
@@ -774,14 +774,14 @@ public class ScrobbleService {
     }
     
     /**
-     * Get the total number of unique months since the first scrobble in the database.
+     * Get the total number of unique months since the first play in the database.
      */
-    public int getTotalMonthsSinceFirstScrobble() {
+    public int getTotalMonthsSinceFirstPlay() {
         String sql = """
             SELECT 
-                (CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', MIN(scrobble_date)) AS INTEGER)) * 12 +
-                (CAST(strftime('%m', 'now') AS INTEGER) - CAST(strftime('%m', MIN(scrobble_date)) AS INTEGER)) + 1
-            FROM Scrobble WHERE scrobble_date IS NOT NULL
+                (CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', MIN(play_date)) AS INTEGER)) * 12 +
+                (CAST(strftime('%m', 'now') AS INTEGER) - CAST(strftime('%m', MIN(play_date)) AS INTEGER)) + 1
+            FROM Play WHERE play_date IS NOT NULL
             """;
         try {
             Integer months = jdbcTemplate.queryForObject(sql, Integer.class);
@@ -792,13 +792,13 @@ public class ScrobbleService {
     }
     
     /**
-     * Get the total number of unique years since the first scrobble in the database.
+     * Get the total number of unique years since the first play in the database.
      */
-    public int getTotalYearsSinceFirstScrobble() {
+    public int getTotalYearsSinceFirstPlay() {
         String sql = """
             SELECT 
-                CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', MIN(scrobble_date)) AS INTEGER) + 1
-            FROM Scrobble WHERE scrobble_date IS NOT NULL
+                CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', MIN(play_date)) AS INTEGER) + 1
+            FROM Play WHERE play_date IS NOT NULL
             """;
         try {
             Integer years = jdbcTemplate.queryForObject(sql, Integer.class);

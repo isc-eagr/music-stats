@@ -330,7 +330,7 @@ public class SongController {
         model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
         
-        // Listened date filter attributes (filters by actual scrobble date)
+        // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
         model.addAttribute("listenedDateTo", listenedDateTo);
         model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
@@ -492,13 +492,13 @@ public class SongController {
         // Add featured artist cards (always pre-loaded for Featured Artists tab)
         model.addAttribute("featuredArtistCards", songService.getFeaturedArtistCardsForSong(id));
         
-        // Always load plays/scrobbles data (eager loading for all tabs)
+        // Always load plays data (eager loading for all tabs)
         int pageSize = 100;
-        model.addAttribute("scrobbles", songService.getScrobblesForSong(id, playsPage, pageSize));
-        model.addAttribute("scrobblesTotalCount", songService.countScrobblesForSong(id));
-        model.addAttribute("scrobblesPage", playsPage);
-        model.addAttribute("scrobblesPageSize", pageSize);
-        model.addAttribute("scrobblesTotalPages", (int) Math.ceil((double) songService.countScrobblesForSong(id) / pageSize));
+        model.addAttribute("plays", songService.getPlaysForSong(id, playsPage, pageSize));
+        model.addAttribute("playsTotalCount", songService.countPlaysForSong(id));
+        model.addAttribute("playsPage", playsPage);
+        model.addAttribute("playsPageSize", pageSize);
+        model.addAttribute("playsTotalPages", (int) Math.ceil((double) songService.countPlaysForSong(id) / pageSize));
         model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
         model.addAttribute("playsByMonth", songService.getPlaysByMonthForSong(id));
         
@@ -1002,7 +1002,7 @@ public class SongController {
 
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
-        // For General tab, the limit should apply to the selected entity for scrobble-derived metrics
+        // For General tab, the limit should apply to the selected entity for play-derived metrics
         filter.setLimitEntity(limitEntity);
 
         return songService.getGeneralChartData(filter);
@@ -1966,7 +1966,7 @@ public class SongController {
     }
     
     /**
-     * Search songs by name for the unmatched scrobbles assignment
+     * Search songs by name for the unmatched plays assignment
      */
     @GetMapping("/api/search")
     @ResponseBody

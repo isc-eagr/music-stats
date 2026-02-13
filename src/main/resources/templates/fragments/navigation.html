@@ -242,16 +242,16 @@
                  <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">📊 Graphs</a></li>
                  <!-- Mobile-only: utilities links -->
                  <li class="app-nav-utilities-mobile" style="display: none;">
-                     <a href="/scrobbles/upload" class="app-nav-link">Import</a>
-                     <a href="/scrobbles/unmatched" class="app-nav-link">Unmatched Plays</a>
+                     <a href="/plays/upload" class="app-nav-link">Import</a>
+                     <a href="/plays/unmatched" class="app-nav-link">Unmatched Plays</a>
                      <a href="/itunes/unmatched" class="app-nav-link">iTunes Only</a>
                      <a href="/itunes/changes" class="app-nav-link">iTunes Changes</a>
                  </li>
              </ul>
          </div>
          <div class="app-nav-utilities">
-             <a href="/scrobbles/upload" class="app-nav-link-discreet">Import</a>
-             <a href="/scrobbles/unmatched" class="app-nav-link-discreet">Unmatched Plays</a>
+             <a href="/plays/upload" class="app-nav-link-discreet">Import</a>
+             <a href="/plays/unmatched" class="app-nav-link-discreet">Unmatched Plays</a>
              <a href="/itunes/unmatched" class="app-nav-link-discreet">iTunes Only</a>
              <a href="/itunes/changes" class="app-nav-link-discreet" th:classappend="${currentSection == 'itunes-changes'} ? 'active' : ''">iTunes Changes</a>
          </div>

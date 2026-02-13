@@ -13,8 +13,8 @@ The artist detail page was making **multiple separate database queries** for:
 - Vatito play count  
 - Robertlover play count
 - Play counts by account
-- Songs list with scrobble data
-- Albums list with scrobble data
+- Songs list with play data
+- Albums list with play data
 - Total listening time
 
 ### Solution Applied
@@ -23,13 +23,13 @@ The artist detail page was making **multiple separate database queries** for:
 **Before**: 3 separate queries for play counts
 ```sql
 -- Query 1: Total plays
-SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ?
+SELECT COUNT(scr.id) FROM Play scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ?
 
 -- Query 2: Vatito plays  
-SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'vatito'
+SELECT COUNT(scr.id) FROM Play scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'vatito'
 
 -- Query 3: Robertlover plays
-SELECT COUNT(scr.id) FROM Scrobble scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'robertlover'
+SELECT COUNT(scr.id) FROM Play scr JOIN Song s ON scr.song_id = s.id WHERE s.artist_id = ? AND scr.account = 'robertlover'
 ```
 
 **After**: 1 consolidated query
@@ -38,12 +38,12 @@ SELECT
     COUNT(*) as total_plays,
     SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
     SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays
-FROM Scrobble scr 
+FROM Play scr 
 INNER JOIN Song s ON scr.song_id = s.id 
 WHERE s.artist_id = ?
 ```
 
-**Impact**: Reduced 3 round-trips to 1, eliminating redundant scrobble table scans
+**Impact**: Reduced 3 round-trips to 1, eliminating redundant play table scans
 
 #### B. Optimized Total Listening Time Query
 **Before**: Using correlated subquery to count plays per song
@@ -52,32 +52,32 @@ SELECT SUM(s.length_seconds * COALESCE(play_count, 0)) as total_seconds
 FROM Song s
 LEFT JOIN (
     SELECT song_id, COUNT(*) as play_count
-    FROM Scrobble
+    FROM Play
     GROUP BY song_id
 ) scr ON s.id = scr.song_id
 WHERE s.artist_id = ?
 ```
 
-**After**: Direct aggregation on Scrobble join
+**After**: Direct aggregation on Play join
 ```sql
 SELECT SUM(s.length_seconds) as total_seconds
-FROM Scrobble scr
+FROM Play scr
 INNER JOIN Song s ON scr.song_id = s.id
 WHERE s.artist_id = ?
 ```
 
-**Impact**: Eliminates subquery and GROUP BY on Scrobble table, uses more efficient direct aggregation
+**Impact**: Eliminates subquery and GROUP BY on Play table, uses more efficient direct aggregation
 
 #### C. Pre-Aggregated Songs List
-**Before**: Scrobble data aggregated per row via GROUP BY with 14+ columns
+**Before**: Play data aggregated per row via GROUP BY with 14+ columns
 ```sql
 ...
-LEFT JOIN Scrobble scr ON s.id = scr.song_id
+LEFT JOIN Play scr ON s.id = scr.song_id
 ...
 GROUP BY s.id, s.name, s.length_seconds, ... (14+ columns)
 ```
 
-**After**: Pre-aggregated scrobble stats in subquery
+**After**: Pre-aggregated play stats in subquery
 ```sql
 LEFT JOIN (
     SELECT 
@@ -85,9 +85,9 @@ LEFT JOIN (
         SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
         SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays,
         COUNT(*) as total_plays,
-        MIN(scrobble_date) as first_listen,
-        MAX(scrobble_date) as last_listen
-    FROM Scrobble
+        MIN(play_date) as first_listen,
+        MAX(play_date) as last_listen
+    FROM Play
     GROUP BY song_id
 ) play_stats ON s.id = play_stats.song_id
 ```
@@ -108,13 +108,13 @@ Account filtering on Artist and Album list pages was using **slow correlated EXI
 ```sql
 -- For each artist, check if it has plays from account
 WHERE EXISTS (
-    SELECT 1 FROM Scrobble scr 
+    SELECT 1 FROM Play scr 
     JOIN Song song ON scr.song_id = song.id 
     WHERE song.artist_id = a.id AND scr.account IN (?)
 )
 ```
 
-This requires a full table scan of Scrobble → Song → Artist for **every artist row** being counted.
+This requires a full table scan of Play → Song → Artist for **every artist row** being counted.
 
 ### Solution Applied
 
@@ -124,7 +124,7 @@ This requires a full table scan of Scrobble → Song → Artist for **every arti
 SELECT COUNT(DISTINCT a.id)
 FROM Artist a
 WHERE EXISTS (
-    SELECT 1 FROM Scrobble scr 
+    SELECT 1 FROM Play scr 
     JOIN Song song ON scr.song_id = song.id 
     WHERE song.artist_id = a.id AND scr.account IN (?)
 )
@@ -135,7 +135,7 @@ WHERE EXISTS (
 SELECT COUNT(DISTINCT a.id)
 FROM Artist a
 INNER JOIN Song s ON s.artist_id = a.id
-INNER JOIN Scrobble scr ON scr.song_id = s.id
+INNER JOIN Play scr ON scr.song_id = s.id
 WHERE scr.account IN (?)
 ```
 
@@ -168,7 +168,7 @@ INNER JOIN Artist ar ON s.artist_id = ar.id
 **Added fast-path for no-filter scenario**:
 
 ```java
-if (filterClause.trim().isEmpty() && !needsScrobbleJoin) {
+if (filterClause.trim().isEmpty() && !needsPlayJoin) {
     // Direct count from Artist table
     SELECT COUNT(*) as artist_count
     FROM Artist ar
@@ -198,7 +198,7 @@ Applied to:
 #### Account Filtering Optimization
 ```sql
 -- Composite index for account-based filtering
-CREATE INDEX idx_scrobble_account_songid ON Scrobble(account, song_id);
+CREATE INDEX idx_play_account_songid ON Play(account, song_id);
 
 -- Optimize Song to Artist/Album joins
 CREATE INDEX idx_song_artistid_albumid ON Song(artist_id, album_id);
@@ -224,8 +224,8 @@ CREATE INDEX idx_artist_ethnicity_country ON Artist(ethnicity_id, country);
 
 #### Covering Indexes (Reduce Table Lookups)
 ```sql
--- Cover scrobble aggregation queries
-CREATE INDEX idx_scrobble_cover_plays ON Scrobble(song_id, account, scrobble_date);
+-- Cover play aggregation queries
+CREATE INDEX idx_play_cover_plays ON Play(song_id, account, play_date);
 
 -- Cover song joins
 CREATE INDEX idx_song_cover_joins ON Song(id, artist_id, album_id, length_seconds);

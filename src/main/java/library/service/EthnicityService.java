@@ -123,9 +123,9 @@ public class EthnicityService {
             LEFT JOIN (
                 SELECT 
                     COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as effective_ethnicity_id,
-                    COUNT(DISTINCT scr.id) as play_count,
-                    COUNT(DISTINCT CASE WHEN scr.account = 'vatito' THEN scr.id END) as vatito_play_count,
-                    COUNT(DISTINCT CASE WHEN scr.account = 'robertlover' THEN scr.id END) as robertlover_play_count,
+                    COUNT(DISTINCT p.id) as play_count,
+                    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
+                    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
                     SUM(s.length_seconds) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
@@ -139,9 +139,9 @@ public class EthnicityService {
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as male_play_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN scr.id END) as female_play_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN scr.id END) as other_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count,
+                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count,
                     SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
                     SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
                     SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened
@@ -149,7 +149,7 @@ public class EthnicityService {
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-                LEFT JOIN Scrobble scr ON s.id = scr.song_id
+                LEFT JOIN Play p ON s.id = p.song_id
                 WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IS NOT NULL
                 GROUP BY effective_ethnicity_id
             ) stats ON e.id = stats.effective_ethnicity_id
@@ -245,8 +245,8 @@ public class EthnicityService {
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_ethnicity_id, ar.ethnicity_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IN (" + placeholders + ") " +
             "    GROUP BY ethnicity_id, ar.id, ar.name, ar.gender_id " +
@@ -269,8 +269,8 @@ public class EthnicityService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_ethnicity_id, ar.ethnicity_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IN (" + placeholders + ") " +
@@ -293,8 +293,8 @@ public class EthnicityService {
             "        ar.name as artist_name, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_ethnicity_id, ar.ethnicity_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Scrobble scr " +
-            "    JOIN Song s ON scr.song_id = s.id " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) IN (" + placeholders + ") " +
             "    GROUP BY ethnicity_id, s.id, s.name, ar.name " +
@@ -392,11 +392,11 @@ public class EthnicityService {
             SELECT 
                 ar.id,
                 ar.name,
-                COUNT(scr.id) as play_count,
+                COUNT(p.id) as play_count,
                 CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
             FROM Artist ar
             JOIN Song s ON ar.id = s.artist_id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Play p ON s.id = p.song_id
             WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = ?
             GROUP BY ar.id, ar.name
             ORDER BY play_count DESC
@@ -420,12 +420,12 @@ public class EthnicityService {
                 al.id,
                 al.name,
                 ar.name as artist_name,
-                COUNT(scr.id) as play_count,
+                COUNT(p.id) as play_count,
                 CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
             FROM Album al
             JOIN Artist ar ON al.artist_id = ar.id
             JOIN Song s ON al.id = s.album_id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Play p ON s.id = p.song_id
             WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = ?
             GROUP BY al.id, al.name, ar.name
             ORDER BY play_count DESC
@@ -451,11 +451,11 @@ public class EthnicityService {
                 s.name,
                 ar.name as artist_name,
                 al.name as album_name,
-                COUNT(scr.id) as play_count
+                COUNT(p.id) as play_count
             FROM Song s
             JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Play p ON s.id = p.song_id
             WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = ?
             GROUP BY s.id, s.name, ar.name, al.name
             ORDER BY play_count DESC
@@ -476,17 +476,17 @@ public class EthnicityService {
     public Map<String, Object> getEthnicityStats(Integer ethnicityId) {
         String sql = """
             SELECT 
-                COUNT(DISTINCT scr.id) as play_count,
+                COUNT(DISTINCT p.id) as play_count,
                 COALESCE(SUM(s.length_seconds), 0) as total_length,
                 COUNT(DISTINCT ar.id) as artist_count,
                 COUNT(DISTINCT al.id) as album_count,
                 COUNT(DISTINCT s.id) as song_count,
-                MIN(scr.scrobble_date) as first_listened,
-                MAX(scr.scrobble_date) as last_listened
+                MIN(p.play_date) as first_listened,
+                MAX(p.play_date) as last_listened
             FROM Song s
             JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Scrobble scr ON s.id = scr.song_id
+            LEFT JOIN Play p ON s.id = p.song_id
             WHERE ar.ethnicity_id = ?
             """;
         

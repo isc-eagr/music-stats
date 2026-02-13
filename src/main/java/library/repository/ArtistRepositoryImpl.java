@@ -76,7 +76,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account IN (");
+            accountFilterClause.append(" AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -84,7 +84,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             }
             accountFilterClause.append(")");
         } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            accountFilterClause.append(" AND scr.account NOT IN (");
+            accountFilterClause.append(" AND p.account NOT IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) accountFilterClause.append(",");
                 accountFilterClause.append("?");
@@ -97,11 +97,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
         if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) >= DATE(?)");
             listenedDateParams.add(listenedDateFrom);
         }
         if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
         
@@ -153,13 +153,13 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    SELECT ");
         sql.append("        song.artist_id, ");
         sql.append("        COUNT(*) as play_count, ");
-        sql.append("        SUM(CASE WHEN scr.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
-        sql.append("        SUM(CASE WHEN scr.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
+        sql.append("        SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
+        sql.append("        SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
         sql.append("        SUM(song.length_seconds) as time_listened, ");
-        sql.append("        MIN(scr.scrobble_date) as first_listened, ");
-        sql.append("        MAX(scr.scrobble_date) as last_listened ");
-        sql.append("    FROM Scrobble scr ");
-        sql.append("    JOIN Song song ON scr.song_id = song.id ");
+        sql.append("        MIN(p.play_date) as first_listened, ");
+        sql.append("        MAX(p.play_date) as last_listened ");
+        sql.append("    FROM Play p ");
+        sql.append("    JOIN Song song ON p.song_id = song.id ");
         sql.append("    WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause).append(" ");
         sql.append("    GROUP BY song.artist_id ");
         sql.append(") play_stats ON play_stats.artist_id = a.id ");
@@ -196,11 +196,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
         
         // First Listened Date filter
-        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
         
         // Last Listened Date filter
-        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        String lastListenedSubquery = "(SELECT MAX(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
         
         // Birth Date filter
@@ -399,11 +399,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
         if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) >= DATE(?)");
             listenedDateParams.add(listenedDateFrom);
         }
         if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
         
@@ -418,10 +418,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 "SELECT COUNT(DISTINCT a.id) " +
                 "FROM Artist a " +
                 "INNER JOIN Song s ON s.artist_id = a.id " +
-                "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
+                "INNER JOIN Play p ON p.song_id = s.id " +
                 "WHERE 1=1 ");
             if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-                sql.append("AND scr.account IN (");
+                sql.append("AND p.account IN (");
                 for (int i = 0; i < accounts.size(); i++) {
                     if (i > 0) sql.append(",");
                     sql.append("?");
@@ -434,9 +434,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 "SELECT COUNT(DISTINCT a.id) " +
                 "FROM Artist a " +
                 "WHERE NOT EXISTS ( " +
-                "    SELECT 1 FROM Scrobble scr " +
-                "    JOIN Song song ON scr.song_id = song.id " +
-                "    WHERE song.artist_id = a.id AND scr.account IN (");
+                "    SELECT 1 FROM Play p " +
+                "    JOIN Song song ON p.song_id = song.id " +
+                "    WHERE song.artist_id = a.id AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
@@ -489,11 +489,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
         
         // First Listened Date filter
-        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
         
         // Last Listened Date filter
-        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        String lastListenedSubquery = "(SELECT MAX(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
         
         // Birth Date filter
@@ -546,11 +546,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Play count filter (uses subquery since count query doesn't have play_stats join)
         if (playCountMin != null) {
-            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Scrobble scr JOIN Song song ON scr.song_id = song.id WHERE song.artist_id = a.id), 0) >= ? ");
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id), 0) >= ? ");
             params.add(playCountMin);
         }
         if (playCountMax != null) {
-            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Scrobble scr JOIN Song song ON scr.song_id = song.id WHERE song.artist_id = a.id), 0) <= ? ");
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id), 0) <= ? ");
             params.add(playCountMax);
         }
         
@@ -632,11 +632,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
         if (listenedDateFrom != null && !listenedDateFrom.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) >= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) >= DATE(?)");
             listenedDateParams.add(listenedDateFrom);
         }
         if (listenedDateTo != null && !listenedDateTo.isEmpty()) {
-            listenedDateFilterClause.append(" AND DATE(scr.scrobble_date) <= DATE(?)");
+            listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
         
@@ -651,10 +651,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 "SELECT a.gender_id, COUNT(DISTINCT a.id) as cnt " +
                 "FROM Artist a " +
                 "INNER JOIN Song s ON s.artist_id = a.id " +
-                "INNER JOIN Scrobble scr ON scr.song_id = s.id " +
+                "INNER JOIN Play p ON p.song_id = s.id " +
                 "WHERE 1=1 ");
             if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-                sql.append("AND scr.account IN (");
+                sql.append("AND p.account IN (");
                 for (int i = 0; i < accounts.size(); i++) {
                     if (i > 0) sql.append(",");
                     sql.append("?");
@@ -667,9 +667,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 "SELECT a.gender_id, COUNT(DISTINCT a.id) as cnt " +
                 "FROM Artist a " +
                 "WHERE NOT EXISTS ( " +
-                "    SELECT 1 FROM Scrobble scr " +
-                "    JOIN Song song ON scr.song_id = song.id " +
-                "    WHERE song.artist_id = a.id AND scr.account IN (");
+                "    SELECT 1 FROM Play p " +
+                "    JOIN Song song ON p.song_id = song.id " +
+                "    WHERE song.artist_id = a.id AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
@@ -722,11 +722,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
         
         // First Listened Date filter
-        String firstListenedSubquery = "(SELECT MIN(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, firstListenedSubquery, firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode);
         
         // Last Listened Date filter
-        String lastListenedSubquery = "(SELECT MAX(scr.scrobble_date) FROM Scrobble scr WHERE scr.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
+        String lastListenedSubquery = "(SELECT MAX(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
         SqlFilterHelper.appendDateFilter(sql, params, lastListenedSubquery, lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode);
         
         // Birth Date filter
@@ -787,11 +787,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Play count filter
         if (playCountMin != null) {
-            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Scrobble scr JOIN Song song ON scr.song_id = song.id WHERE song.artist_id = a.id), 0) >= ? ");
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id), 0) >= ? ");
             params.add(playCountMin);
         }
         if (playCountMax != null) {
-            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Scrobble scr JOIN Song song ON scr.song_id = song.id WHERE song.artist_id = a.id), 0) <= ? ");
+            sql.append(" AND COALESCE((SELECT COUNT(*) FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id), 0) <= ? ");
             params.add(playCountMax);
         }
         

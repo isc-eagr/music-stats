@@ -33,16 +33,16 @@ public class SongRepositoryImpl {
 		return count != null ? count : 0;
 	}
 
-	// Get total number of scrobbles (plays)
-	public long getTotalScrobblesCount() {
-		String sql = "SELECT COUNT(*) FROM Scrobble";
+	// Get total number of plays (plays)
+	public long getTotalPlaysCount() {
+		String sql = "SELECT COUNT(*) FROM Play";
 		Long count = template.queryForObject(sql, Long.class);
 		return count != null ? count : 0;
 	}
 	
 	// Get play counts by account (vatito = primary, robertlover = legacy)
 	public java.util.Map<String, Long> getPlayCountsByAccount() {
-		String sql = "SELECT COALESCE(account, '') as account, COUNT(*) as cnt FROM Scrobble GROUP BY account";
+		String sql = "SELECT COALESCE(account, '') as account, COUNT(*) as cnt FROM Play GROUP BY account";
 		java.util.Map<String, Long> result = new java.util.HashMap<>();
 		result.put("primary", 0L);   // vatito
 		result.put("legacy", 0L);    // robertlover
@@ -62,12 +62,12 @@ public class SongRepositoryImpl {
 		return result;
 	}
 	
-	// Get total listening time across all scrobbles
+	// Get total listening time across all plays
 	public String getTotalListeningTime() {
 		String sql = """
 			SELECT SUM(s.length_seconds) as total_seconds
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			WHERE s.length_seconds IS NOT NULL
 			""";
 		
@@ -109,8 +109,8 @@ public class SongRepositoryImpl {
 					ELSE 'other'
 				END as gender,
 				COUNT(*) as play_count
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			INNER JOIN Artist a ON s.artist_id = a.id
 			LEFT JOIN Gender g ON a.gender_id = g.id
 			GROUP BY 
@@ -145,8 +145,8 @@ public class SongRepositoryImpl {
 					ELSE 'other'
 				END as gender,
 				SUM(COALESCE(s.length_seconds, 0)) as total_seconds
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			INNER JOIN Artist a ON s.artist_id = a.id
 			LEFT JOIN Gender g ON a.gender_id = g.id
 			GROUP BY 
@@ -282,8 +282,8 @@ public class SongRepositoryImpl {
 				COALESCE(gr.name, 'Unknown') as genre_name,
 				SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
 				SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			INNER JOIN Artist a ON s.artist_id = a.id
 			LEFT JOIN Gender g ON a.gender_id = g.id
 			LEFT JOIN Genre gr ON COALESCE(s.genre_id_override, a.genre_id) = gr.id
@@ -309,8 +309,8 @@ public class SongRepositoryImpl {
 				COALESCE(e.name, 'Unknown') as ethnicity_name,
 				SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
 				SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			INNER JOIN Artist a ON s.artist_id = a.id
 			LEFT JOIN Gender g ON a.gender_id = g.id
 			LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
@@ -336,8 +336,8 @@ public class SongRepositoryImpl {
 				COALESCE(l.name, 'Unknown') as language_name,
 				SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
 				SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			INNER JOIN Artist a ON s.artist_id = a.id
 			LEFT JOIN Gender g ON a.gender_id = g.id
 			LEFT JOIN Language l ON COALESCE(s.language_id_override, a.language_id) = l.id
@@ -360,15 +360,15 @@ public class SongRepositoryImpl {
 	public java.util.List<java.util.Map<String, Object>> getPlayCountsByYearAndGender() {
 		String sql = """
 			SELECT 
-				strftime('%Y', scr.scrobble_date) as year,
+				strftime('%Y', p.play_date) as year,
 				SUM(CASE WHEN g.name LIKE '%Male%' AND g.name NOT LIKE '%Female%' THEN 1 ELSE 0 END) as male_count,
 				SUM(CASE WHEN g.name LIKE '%Female%' THEN 1 ELSE 0 END) as female_count
-			FROM Scrobble scr
-			INNER JOIN Song s ON scr.song_id = s.id
+			FROM Play p
+			INNER JOIN Song s ON p.song_id = s.id
 			INNER JOIN Artist a ON s.artist_id = a.id
 			LEFT JOIN Gender g ON a.gender_id = g.id
-			WHERE scr.scrobble_date IS NOT NULL
-			GROUP BY strftime('%Y', scr.scrobble_date)
+			WHERE p.play_date IS NOT NULL
+			GROUP BY strftime('%Y', p.play_date)
 			HAVING (male_count + female_count) > 0
 			ORDER BY year DESC
 			LIMIT 10
