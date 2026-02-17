@@ -5,7 +5,7 @@
 </head>
 <body>
     <!-- Unified External Fetch Modal Fragment -->
-    <!-- Used for fetching images and/or metadata from iTunes Store, Spotify, and Deezer -->
+    <!-- Used for fetching images and/or metadata from iTunes Store, Deezer, and MusicBrainz -->
     <!-- 
         Usage modes:
         - 'image': Only fetch and save images (Place A - image overlay buttons)
@@ -25,9 +25,6 @@
                     <div class="ef-service-tabs">
                         <button type="button" class="ef-service-tab active" data-service="itunes" onclick="switchService('itunes')">
                             iTunes Store
-                        </button>
-                        <button type="button" class="ef-service-tab" data-service="spotify" onclick="switchService('spotify')">
-                            Spotify
                         </button>
                         <button type="button" class="ef-service-tab" data-service="deezer" onclick="switchService('deezer')">
                             Deezer
@@ -193,11 +190,6 @@
             .ef-service-tab.active[data-service="itunes"] {
                 background: rgba(251, 91, 137, 0.2);
                 border-color: #fb5b89;
-            }
-            
-            .ef-service-tab.active[data-service="spotify"] {
-                background: rgba(30, 215, 96, 0.2);
-                border-color: #1ed760;
             }
             
             .ef-service-tab.active[data-service="deezer"] {
@@ -703,7 +695,7 @@
             let efEntityId = null;
             let efEntityType = null;   // 'album' or 'song'
             let efHasExistingImage = false;
-            let efCurrentService = 'itunes';  // 'itunes', 'spotify', or 'deezer'
+            let efCurrentService = 'itunes';  // 'itunes', 'deezer', or 'musicbrainz'
             let efFetchMode = 'image';  // 'image', 'metadata', or 'both'
             let efOnMetadataSelect = null;  // Callback for metadata selection in 'metadata' mode
 
@@ -847,10 +839,6 @@
                     searchUrl = `/api/apple-music/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
                     const itunesEntity = entity === 'song' ? 'song' : 'album';
                     externalUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=${itunesEntity}&limit=50`;
-                } else if (efCurrentService === 'spotify') {
-                    searchUrl = `/api/spotify/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
-                    const spotifyType = entity === 'song' ? 'track' : 'album';
-                    externalUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=${spotifyType}&limit=50`;
                 } else if (efCurrentService === 'deezer') {
                     searchUrl = `/api/deezer/search?term=${encodeURIComponent(searchTerm)}&entity=${entity}`;
                     const deezerType = entity === 'song' ? 'track' : 'album';
@@ -991,10 +979,6 @@
                         // iTunes: https://itunes.apple.com/search?term=XXX&entity=song&limit=50
                         const term = url.searchParams.get('term') || searchValue;
                         proxyUrl = `/api/apple-music/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}`;
-                    } else if (customUrl.includes('api.spotify.com')) {
-                        // Spotify: https://api.spotify.com/v1/search?q=XXX&type=track&limit=50
-                        const term = url.searchParams.get('q') || searchValue;
-                        proxyUrl = `/api/spotify/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}`;
                     } else if (customUrl.includes('api.deezer.com')) {
                         // Deezer: https://api.deezer.com/search/track?q=XXX&limit=50
                         const term = url.searchParams.get('q') || searchValue;
@@ -1009,7 +993,7 @@
                 }
                 
                 if (!proxyUrl) {
-                    error.textContent = '❌ Could not parse URL. Please use a valid iTunes, Spotify, Deezer, or MusicBrainz search URL.';
+                    error.textContent = '❌ Could not parse URL. Please use a valid iTunes, Deezer, or MusicBrainz search URL.';
                     error.style.display = 'block';
                     status.style.display = 'none';
                     return;
@@ -1021,7 +1005,6 @@
             function getServiceDisplayName(service) {
                 switch(service) {
                     case 'itunes': return 'iTunes Store';
-                    case 'spotify': return 'Spotify';
                     case 'deezer': return 'Deezer';
                     case 'musicbrainz': return 'MusicBrainz';
                     default: return service;
@@ -1213,8 +1196,6 @@
                 let saveUrl;
                 if (efCurrentService === 'itunes') {
                     saveUrl = '/api/apple-music/save-images';
-                } else if (efCurrentService === 'spotify') {
-                    saveUrl = '/api/spotify/save-images';
                 } else if (efCurrentService === 'deezer') {
                     saveUrl = '/api/deezer/save-images';
                 } else if (efCurrentService === 'musicbrainz') {

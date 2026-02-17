@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Controller for Spotify API integration.
@@ -53,6 +54,7 @@ public class SpotifyController {
     private static final String TOKEN_URL = "https://accounts.spotify.com/api/token";
     private static final String SEARCH_URL = "https://api.spotify.com/v1/search";
     private static final String USER_AGENT = "MusicStatsApp/1.0";
+    private static final Pattern MARKET_PATTERN = Pattern.compile("^[A-Z]{2}$");
     
     private final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -94,7 +96,10 @@ public class SpotifyController {
      */
     @GetMapping("/search")
     public List<Map<String, String>> searchImages(
-            @RequestParam String term,
+            @RequestParam(required = false) String term,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String market,
             @RequestParam(defaultValue = "") String entity,
             @RequestParam(defaultValue = "50") int limit) {
         
@@ -103,8 +108,13 @@ public class SpotifyController {
         
         try {
             String token = getAccessToken();
-            
-            String encodedTerm = URLEncoder.encode(term, StandardCharsets.UTF_8);
+
+            String normalizedMarket = normalizeMarket(market);
+            String searchTerm = buildSearchTerm(term, artist, title);
+            String encodedTerm = URLEncoder.encode(searchTerm, StandardCharsets.UTF_8);
+
+            // Spotify search max limit is 50
+            int safeLimit = Math.max(1, Math.min(limit, 50));
             
             // Determine which types to search based on entity parameter
             // Note: Spotify uses "track" for songs
@@ -113,10 +123,10 @@ public class SpotifyController {
             
             // Search requested types
             if (searchAlbums) {
-                searchSpotify(encodedTerm, "album", token, limit, results, seenUrls);
+                searchSpotify(encodedTerm, "album", token, safeLimit, normalizedMarket, results, seenUrls);
             }
             if (searchTracks) {
-                searchSpotify(encodedTerm, "track", token, limit, results, seenUrls);
+                searchSpotify(encodedTerm, "track", token, safeLimit, normalizedMarket, results, seenUrls);
             }
             
         } catch (Exception e) {
@@ -125,6 +135,39 @@ public class SpotifyController {
         }
         
         return results;
+    }
+
+    private String buildSearchTerm(String term, String artist, String title) {
+        if (term != null && !term.trim().isEmpty()) {
+            return term.trim();
+        }
+
+        String a = artist != null ? artist.trim() : "";
+        String t = title != null ? title.trim() : "";
+
+        if (!a.isEmpty() && !t.isEmpty()) {
+            return a + " - " + t;
+        }
+        if (!a.isEmpty()) {
+            return a;
+        }
+        if (!t.isEmpty()) {
+            return t;
+        }
+
+        throw new IllegalArgumentException("Missing search parameters. Provide term or artist/title.");
+    }
+
+    private String normalizeMarket(String market) {
+        if (market == null || market.trim().isEmpty()) {
+            return "US";
+        }
+        String normalized = market.trim().toUpperCase(Locale.ROOT);
+        if (!MARKET_PATTERN.matcher(normalized).matches()) {
+            // If invalid, omit market entirely rather than erroring at Spotify
+            return "";
+        }
+        return normalized;
     }
 
     /**
@@ -185,10 +228,13 @@ public class SpotifyController {
         }
     }
 
-    private void searchSpotify(String encodedTerm, String type, String token, int limit,
+    private void searchSpotify(String encodedTerm, String type, String token, int limit, String market,
                                List<Map<String, String>> results, Set<String> seenUrls) throws Exception {
         try {
-            String url = SEARCH_URL + "?q=" + encodedTerm + "&type=" + type + "&market=US&limit=" + limit;
+            String url = SEARCH_URL + "?q=" + encodedTerm + "&type=" + type + "&limit=" + limit;
+            if (market != null && !market.isEmpty()) {
+                url += "&market=" + market;
+            }
             String response = makeAuthenticatedRequest(url, token);
             JsonNode root = objectMapper.readTree(response);
             
@@ -343,6 +389,15 @@ public class SpotifyController {
             throw new RuntimeException("Rate limited by Spotify API. Retry after: " + retryAfter + " seconds");
         }
         if (responseCode != 200) {
+            String errorBody = "";
+            try (InputStream es = connection.getErrorStream()) {
+                if (es != null) {
+                    errorBody = new String(es.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+            if (errorBody != null && !errorBody.isBlank()) {
+                throw new RuntimeException("HTTP error: " + responseCode + " - " + errorBody);
+            }
             throw new RuntimeException("HTTP error: " + responseCode);
         }
 
