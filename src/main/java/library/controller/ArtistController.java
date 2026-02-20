@@ -9,6 +9,7 @@ import library.repository.LookupRepository;
 import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.ItunesService;
+import library.service.ThemeService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,12 +31,14 @@ public class ArtistController {
     private final ChartService chartService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
+    private final ThemeService themeService;
 
-    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository, ItunesService itunesService) {
+    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository, ItunesService itunesService, ThemeService themeService) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
+        this.themeService = themeService;
     }
     
     @InitBinder
@@ -128,6 +131,8 @@ public class ArtistController {
             @RequestParam(required = false) String organized,
             @RequestParam(required = false) Integer imageCountMin,
             @RequestParam(required = false) Integer imageCountMax,
+            @RequestParam(required = false) Integer imageTheme,
+            @RequestParam(required = false) String imageThemeMode,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) String firstListenedDate,
@@ -181,7 +186,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, imageCountMin, imageCountMax, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
@@ -198,7 +203,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, imageCountMin, imageCountMax, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
@@ -214,7 +219,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, imageCountMin, imageCountMax, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
@@ -250,6 +255,8 @@ public class ArtistController {
         model.addAttribute("selectedOrganized", organized);
         model.addAttribute("imageCountMin", imageCountMin);
         model.addAttribute("imageCountMax", imageCountMax);
+        model.addAttribute("selectedImageTheme", imageTheme);
+        model.addAttribute("imageThemeMode", imageThemeMode != null ? imageThemeMode : "has");
         model.addAttribute("selectedIsBand", isBand);
         model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("playCountMin", playCountMin);
@@ -316,6 +323,7 @@ public class ArtistController {
         model.addAttribute("subgenres", artistService.getSubGenres());
         model.addAttribute("languages", artistService.getLanguages());
         model.addAttribute("countries", artistService.getCountries());
+        model.addAttribute("themes", themeService.getAllThemes());
         
         return "artists/list";
     }
@@ -338,8 +346,8 @@ public class ArtistController {
         List<Integer> groupIds = artistService.getGroupIdsForArtist(id);
         boolean hasGroups = !groupIds.isEmpty();
         
-        // Check if artist has an image
-        byte[] image = artistService.getArtistImage(id);
+        // Check if artist has an image (always use raw image on detail page, bypassing theme)
+        byte[] image = artistService.getRawArtistImage(id);
         boolean hasImage = (image != null && image.length > 0);
         
         model.addAttribute("currentSection", "artists");
@@ -835,8 +843,9 @@ public class ArtistController {
     
     @GetMapping("/{id}/image")
     @ResponseBody
-    public byte[] getArtistImage(@PathVariable Integer id) {
-        return artistService.getArtistImage(id);
+    public byte[] getArtistImage(@PathVariable Integer id,
+                                 @RequestParam(required = false, defaultValue = "false") boolean raw) {
+        return raw ? artistService.getRawArtistImage(id) : artistService.getArtistImage(id);
     }
     
     @PostMapping("/{id}/image")
@@ -995,6 +1004,63 @@ public class ArtistController {
         return artistService.getGroupIdsForArtist(id);
     }
     
+    // -----------------------------------------------------------------------
+    // Theme assignment endpoints (called from artist detail page)
+    // -----------------------------------------------------------------------
+
+    /**
+     * GET /artists/{id}/theme-assignments
+     * Returns all theme assignments for this artist.
+     */
+    @GetMapping("/{id}/theme-assignments")
+    @ResponseBody
+    public List<Map<String, Object>> getThemeAssignments(@PathVariable Integer id) {
+        return themeService.getAssignmentsForArtist(id);
+    }
+
+    /**
+     * POST /artists/{id}/theme-assignments
+     * Body: { themeId, artistImageId (null or -1 => default image) }
+     * Returns: { wasReplaced, previousImageId }
+     */
+    @PostMapping("/{id}/theme-assignments")
+    @ResponseBody
+    public Map<String, Object> assignImageToTheme(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Integer themeId = (Integer) body.get("themeId");
+            Object imgObj = body.get("artistImageId");
+            Integer artistImageId = (imgObj == null || Integer.valueOf(-1).equals(imgObj) || "-1".equals(imgObj.toString()))
+                    ? null
+                    : (imgObj instanceof Integer ? (Integer) imgObj : Integer.parseInt(imgObj.toString()));
+            Map<String, Object> result = themeService.assignImageToTheme(themeId, id, artistImageId);
+            result = new java.util.HashMap<>(result);
+            result.put("success", true);
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("success", false, "message", e.getMessage());
+        }
+    }
+
+    /**
+     * DELETE /artists/{id}/theme-assignments/{themeId}
+     */
+    @DeleteMapping("/{id}/theme-assignments/{themeId}")
+    @ResponseBody
+    public Map<String, Object> removeThemeAssignment(
+            @PathVariable Integer id,
+            @PathVariable Integer themeId) {
+        try {
+            themeService.removeAssignment(themeId, id);
+            return Map.of("success", true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("success", false, "message", e.getMessage());
+        }
+    }
+
     // Helper method to format date strings for display (yyyy-MM-dd -> dd-MMM-yyyy)
     private String formatDateForDisplay(String dateStr) {
         if (dateStr == null || dateStr.trim().isEmpty()) {

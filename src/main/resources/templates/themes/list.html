@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Themes - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .themes-container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .themes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .themes-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        /* Create form */
+        .create-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .create-form input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background: #1e1e1e;
+            color: #fff;
+            font-size: 14px;
+        }
+        .create-form input[type="text"]:focus {
+            outline: none;
+            border-color: #888;
+        }
+        .btn-create {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #4a90e2;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-create:hover { background: #357abd; }
+
+        /* Active theme banner */
+        .active-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(74,144,226,0.18), rgba(74,144,226,0.06));
+            border: 1px solid rgba(74,144,226,0.35);
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #aad4ff;
+        }
+        .active-banner .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #4a90e2;
+            box-shadow: 0 0 6px #4a90e2;
+            flex-shrink: 0;
+        }
+        .active-banner .label { font-weight: 600; margin-right: 4px; color: #fff; }
+        .btn-deactivate-banner {
+            margin-left: auto;
+            padding: 5px 14px;
+            border: 1px solid rgba(74,144,226,0.5);
+            border-radius: 6px;
+            background: transparent;
+            color: #aad4ff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-deactivate-banner:hover { background: rgba(74,144,226,0.2); }
+
+        /* Theme list */
+        .theme-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .theme-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border-radius: 10px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            transition: border-color 0.2s;
+        }
+        .theme-card.active {
+            border-color: #4a90e2;
+            background: linear-gradient(135deg, rgba(74,144,226,0.1), #1a1a1a);
+        }
+        .theme-name {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        .theme-active-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: #4a90e2;
+            color: #fff;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .theme-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-activate {
+            padding: 6px 14px;
+            border: 1px solid #4a90e2;
+            border-radius: 6px;
+            background: transparent;
+            color: #4a90e2;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-activate:hover { background: rgba(74,144,226,0.15); }
+        .btn-delete {
+            padding: 6px 12px;
+            border: 1px solid #cc3333;
+            border-radius: 6px;
+            background: transparent;
+            color: #cc3333;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-delete:hover { background: rgba(204,51,51,0.15); }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 15px;
+        }
+        .empty-state span { font-size: 2rem; display: block; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <div class="themes-container">
+        <div class="themes-header">
+            <h1>Image Themes</h1>
+        </div>
+
+        <!-- Active theme banner -->
+        <div class="active-banner" id="activeBanner"
+             th:style="${activeTheme != null} ? 'display:flex' : 'display:none'"
+             th:attr="data-id=${activeTheme != null ? activeTheme.id : ''}">
+            <div class="dot"></div>
+            <span class="label">Active theme:</span>
+            <span id="activeBannerName" th:text="${activeTheme != null ? activeTheme.name : ''}"></span>
+            <button class="btn-deactivate-banner" onclick="deactivateAll()">Deactivate</button>
+        </div>
+        <div class="active-banner" id="noActiveBanner"
+             th:style="${activeTheme == null} ? 'display:flex' : 'display:none'">
+            <div class="dot" style="background:#666; box-shadow:none;"></div>
+            <span style="color:#888;">No active theme — default artist images are shown everywhere.</span>
+        </div>
+
+        <!-- Create new theme -->
+        <div class="create-form">
+            <input type="text" id="newThemeName" placeholder="New theme name…" maxlength="100"
+                   onkeydown="if(event.key==='Enter') createTheme()">
+            <button class="btn-create" onclick="createTheme()">Create Theme</button>
+        </div>
+
+        <!-- Theme list -->
+        <div class="theme-list" id="themeList">
+            <div th:each="theme : ${themes}" class="theme-card"
+                 th:classappend="${theme.isActive} ? ' active' : ''"
+                 th:attr="data-id=${theme.id}, data-name=${theme.name}, data-active=${theme.isActive}">
+                <span class="theme-name" th:text="${theme.name}"></span>
+                <span class="theme-active-badge" th:if="${theme.isActive}">Active</span>
+                <div class="theme-actions">
+                    <button class="btn-activate" th:unless="${theme.isActive}"
+                            th:onclick="'activateTheme(' + ${theme.id} + ')'">Set Active</button>
+                    <button class="btn-delete"
+                            th:onclick="'deleteTheme(' + ${theme.id} + ', this)'">Delete</button>
+                </div>
+            </div>
+            <div class="empty-state" id="emptyState"
+                 th:if="${themes == null or themes.isEmpty()}">
+                <span>🎨</span>
+                No themes yet. Create one above!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================================================================
+        // Helpers
+        // ==================================================================
+        function getActiveBannerId() {
+            const b = document.getElementById('activeBanner');
+            return b && b.style.display !== 'none' ? parseInt(b.dataset.id) : null;
+        }
+
+        function showActiveBanner(id, name) {
+            const b = document.getElementById('activeBanner');
+            const nb = document.getElementById('noActiveBanner');
+            b.dataset.id = id;
+            document.getElementById('activeBannerName').textContent = name;
+            b.style.display = 'flex';
+            nb.style.display = 'none';
+        }
+
+        function hideActiveBanner() {
+            document.getElementById('activeBanner').style.display = 'none';
+            document.getElementById('noActiveBanner').style.display = 'flex';
+        }
+
+        function refreshCardAppearance(activeId) {
+            document.querySelectorAll('.theme-card').forEach(card => {
+                const id = parseInt(card.dataset.id);
+                const isActive = id === activeId;
+                card.classList.toggle('active', isActive);
+                // Badge
+                let badge = card.querySelector('.theme-active-badge');
+                if (isActive) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'theme-active-badge';
+                        badge.textContent = 'Active';
+                        card.querySelector('.theme-name').after(badge);
+                    }
+                } else if (badge) {
+                    badge.remove();
+                }
+                // Activate button
+                const activateBtn = card.querySelector('.btn-activate');
+                if (isActive) {
+                    if (activateBtn) activateBtn.remove();
+                } else {
+                    if (!activateBtn) {
+                        const actions = card.querySelector('.theme-actions');
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'btn-activate';
+                        newBtn.textContent = 'Set Active';
+                        newBtn.onclick = () => activateTheme(id);
+                        actions.insertBefore(newBtn, actions.firstChild);
+                    }
+                }
+            });
+        }
+
+        // ==================================================================
+        // Create
+        // ==================================================================
+        function createTheme() {
+            const input = document.getElementById('newThemeName');
+            const name = input.value.trim();
+            if (!name) { showWarningToast('Please enter a theme name'); return; }
+
+            fetch('/themes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) { showErrorToast(data.message || 'Failed to create theme'); return; }
+
+                input.value = '';
+                const list = document.getElementById('themeList');
+                const empty = document.getElementById('emptyState');
+                if (empty) empty.remove();
+
+                const card = document.createElement('div');
+                card.className = 'theme-card';
+                card.dataset.id = data.id;
+                card.dataset.name = data.name;
+                card.dataset.active = 'false';
+                card.innerHTML = `
+                    <span class="theme-name">${data.name}</span>
+                    <div class="theme-actions">
+                        <button class="btn-activate" onclick="activateTheme(${data.id})">Set Active</button>
+                        <button class="btn-delete" onclick="deleteTheme(${data.id}, this)">Delete</button>
+                    </div>`;
+                list.appendChild(card);
+                showSuccessToast('Theme "' + data.name + '" created!');
+            })
+            .catch(() => showErrorToast('Network error'));
+        }
+
+        // ==================================================================
+        // Activate / Deactivate
+        // ==================================================================
+        function activateTheme(id) {
+            fetch(`/themes/${id}/activate`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) { showErrorToast(data.message || 'Failed'); return; }
+                const card = document.querySelector(`.theme-card[data-id="${id}"]`);
+                const name = card ? card.dataset.name : '';
+                showActiveBanner(id, name);
+                refreshCardAppearance(id);
+                showSuccessToast('Theme "' + name + '" is now active!');
+            })
+            .catch(() => showErrorToast('Network error'));
+        }
+
+        function deactivateAll() {
+            fetch('/themes/deactivate', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) { showErrorToast(data.message || 'Failed'); return; }
+                hideActiveBanner();
+                refreshCardAppearance(null);
+                showSuccessToast('Theme deactivated. Default images are shown.');
+            })
+            .catch(() => showErrorToast('Network error'));
+        }
+
+        // ==================================================================
+        // Delete
+        // ==================================================================
+        function deleteTheme(id, btn) {
+            const card = document.querySelector(`.theme-card[data-id="${id}"]`);
+            const name = card ? card.dataset.name : 'this theme';
+            if (!confirm(`Delete theme "${name}"? All artist image assignments for this theme will be removed.`)) return;
+
+            fetch(`/themes/${id}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) { showErrorToast(data.message || 'Failed to delete'); return; }
+                if (card) card.remove();
+                // If deleted theme was active, hide banner
+                const activeBannerId = getActiveBannerId();
+                if (activeBannerId === id) hideActiveBanner();
+
+                if (!document.querySelector('.theme-card')) {
+                    const list = document.getElementById('themeList');
+                    const div = document.createElement('div');
+                    div.className = 'empty-state';
+                    div.id = 'emptyState';
+                    div.innerHTML = '<span>🎨</span>No themes yet. Create one above!';
+                    list.appendChild(div);
+                }
+                showSuccessToast('Theme deleted.');
+            })
+            .catch(() => showErrorToast('Network error'));
+        }
+    </script>
+</body>
+</html>

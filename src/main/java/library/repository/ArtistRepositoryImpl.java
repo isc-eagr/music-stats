@@ -56,6 +56,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String organized,
             Integer imageCountMin,
             Integer imageCountMax,
+            Integer imageTheme,
+            String imageThemeMode,
             String isBand,
             Integer playCountMin,
             Integer playCountMax,
@@ -242,6 +244,17 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(imageCountMax);
         }
         
+        // Image Theme filter
+        if (imageTheme != null) {
+            if ("has".equalsIgnoreCase(imageThemeMode)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = a.id AND theme_id = ?) ");
+                params.add(imageTheme);
+            } else if ("doesntHave".equalsIgnoreCase(imageThemeMode)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = a.id AND theme_id = ?) ");
+                params.add(imageTheme);
+            }
+        }
+        
         // Is Band filter
         if (isBand != null && !isBand.isEmpty()) {
             if ("true".equalsIgnoreCase(isBand)) {
@@ -383,6 +396,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String organized,
             Integer imageCountMin,
             Integer imageCountMax,
+            Integer imageTheme,
+            String imageThemeMode,
             String isBand,
             Integer playCountMin,
             Integer playCountMax,
@@ -535,6 +550,17 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(imageCountMax);
         }
         
+        // Image Theme filter
+        if (imageTheme != null) {
+            if ("has".equalsIgnoreCase(imageThemeMode)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = a.id AND theme_id = ?) ");
+                params.add(imageTheme);
+            } else if ("doesntHave".equalsIgnoreCase(imageThemeMode)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = a.id AND theme_id = ?) ");
+                params.add(imageTheme);
+            }
+        }
+        
         // Is Band filter
         if (isBand != null && !isBand.isEmpty()) {
             if ("true".equalsIgnoreCase(isBand)) {
@@ -615,6 +641,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String organized,
             Integer imageCountMin,
             Integer imageCountMax,
+            Integer imageTheme,
+            String imageThemeMode,
             String isBand,
             String inItunes,
             Integer playCountMin,
@@ -765,6 +793,17 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         if (imageCountMax != null) {
             sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id)) <= ? ");
             params.add(imageCountMax);
+        }
+        
+        // Image Theme filter
+        if (imageTheme != null) {
+            if ("has".equalsIgnoreCase(imageThemeMode)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = a.id AND theme_id = ?) ");
+                params.add(imageTheme);
+            } else if ("doesntHave".equalsIgnoreCase(imageThemeMode)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = a.id AND theme_id = ?) ");
+                params.add(imageTheme);
+            }
         }
         
         // Is Band filter

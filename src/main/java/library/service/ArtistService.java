@@ -36,13 +36,19 @@ public class ArtistService {
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ItunesService itunesService;
-    
+    private ThemeService themeService; // set via setter to avoid circular-dependency risk
+
     public ArtistService(ArtistRepository artistRepository, ArtistImageRepository artistImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService) {
         this.artistRepository = artistRepository;
         this.artistImageRepository = artistImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.itunesService = itunesService;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setThemeService(ThemeService themeService) {
+        this.themeService = themeService;
     }
     
     public List<ArtistCardDTO> getArtists(String name, List<Integer> genderIds, String genderMode,
@@ -57,7 +63,7 @@ public class ArtistService {
                                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                                           String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                           String listenedDateFrom, String listenedDateTo,
-                                          String organized, Integer imageCountMin, Integer imageCountMax, String isBand, String inItunes,
+                                          String organized, Integer imageCountMin, Integer imageCountMax, Integer imageTheme, String imageThemeMode, String isBand, String inItunes,
                                           Integer playCountMin, Integer playCountMax,
                                           Integer albumCountMin, Integer albumCountMax,
                                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -85,7 +91,7 @@ public class ArtistService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, imageCountMin, imageCountMax, isBand,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
@@ -172,7 +178,7 @@ public class ArtistService {
                             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                             String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                             String listenedDateFrom, String listenedDateTo,
-                            String organized, Integer imageCountMin, Integer imageCountMax, String isBand, String inItunes,
+                            String organized, Integer imageCountMin, Integer imageCountMax, Integer imageTheme, String imageThemeMode, String isBand, String inItunes,
                             Integer playCountMin, Integer playCountMax,
                             Integer albumCountMin, Integer albumCountMax,
                             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -196,7 +202,7 @@ public class ArtistService {
                     firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                     lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                     listenedDateFrom, listenedDateTo,
-                    organized, imageCountMin, imageCountMax, isBand, inItunes,
+                    organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
                     playCountMin, playCountMax, albumCountMin, albumCountMax,
                     birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
                     "plays", "desc", 0, Integer.MAX_VALUE);
@@ -210,7 +216,7 @@ public class ArtistService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, imageCountMin, imageCountMax, isBand,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax);
@@ -233,7 +239,7 @@ public class ArtistService {
                             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
                             String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                             String listenedDateFrom, String listenedDateTo,
-                            String organized, Integer imageCountMin, Integer imageCountMax, String isBand, String inItunes,
+                            String organized, Integer imageCountMin, Integer imageCountMax, Integer imageTheme, String imageThemeMode, String isBand, String inItunes,
                             Integer playCountMin, Integer playCountMax,
                             Integer albumCountMin, Integer albumCountMax,
                             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -256,7 +262,7 @@ public class ArtistService {
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
-                organized, imageCountMin, imageCountMax, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
                 playCountMin, playCountMax, albumCountMin, albumCountMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax);
         
@@ -418,6 +424,21 @@ public class ArtistService {
     }
     
     public byte[] getArtistImage(Integer id) {
+        // Check if an active theme has a specific image for this artist.
+        if (themeService != null) {
+            byte[] themeImage = themeService.getActiveThemeImageForArtist(id);
+            if (themeImage != null && themeImage.length > 0) {
+                return themeImage;
+            }
+        }
+        return getRawArtistImage(id);
+    }
+
+    /**
+     * Returns the artist's stored image directly, bypassing any active theme override.
+     * Use this on pages where the real stored image should always be shown (e.g. artist detail).
+     */
+    public byte[] getRawArtistImage(Integer id) {
         String sql = "SELECT image FROM Artist WHERE id = ?";
         try {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("image"), id);
@@ -493,8 +514,8 @@ public class ArtistService {
 
     @Transactional
     public void swapToDefault(Integer artistId, Integer imageId) {
-        // Get the current default image from the main Artist table
-        byte[] currentDefault = getArtistImage(artistId);
+        // Get the current default image from the main Artist table (raw = bypass theme override)
+        byte[] currentDefault = getRawArtistImage(artistId);
 
         // Get the secondary image to promote
         ArtistImage secondaryImage = artistImageRepository.findById(imageId)
