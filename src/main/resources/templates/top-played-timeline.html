@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${timelineTitle} + ' Timeline - Music Stats'">Top Played Timeline - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
+        .timeline-page {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .timeline-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #fff;
+        }
+
+        .timeline-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .timeline-tab {
+            padding: 8px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .timeline-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .timeline-tab.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #fff;
+        }
+
+        .timeline-summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px 24px;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .summary-card .label {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .summary-card .value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Timeline vertical layout */
+        .timeline-container {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.4), rgba(236, 72, 153, 0.4), rgba(59, 130, 246, 0.4));
+            border-radius: 2px;
+        }
+
+        .timeline-entry {
+            position: relative;
+            margin-bottom: 6px;
+            animation: fadeInUp 0.3s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-entry::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #1a1a2e;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            z-index: 1;
+        }
+
+        .timeline-entry.gender-male::before {
+            border-color: rgba(59, 130, 246, 0.8);
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .timeline-entry.gender-female::before {
+            border-color: rgba(236, 72, 153, 0.8);
+            background: rgba(236, 72, 153, 0.2);
+            box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
+        }
+
+        .timeline-entry.current-reign::before {
+            width: 14px;
+            height: 14px;
+            left: -30px;
+            top: 19px;
+            animation: pulse 2s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 8px rgba(74, 222, 128, 0.3); }
+            50% { box-shadow: 0 0 16px rgba(74, 222, 128, 0.6); }
+        }
+
+        .timeline-entry.current-reign::before {
+            border-color: rgba(74, 222, 128, 0.8);
+            background: rgba(74, 222, 128, 0.3);
+        }
+
+        .timeline-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 18px 22px;
+            transition: all 0.2s ease;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .timeline-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateX(4px);
+        }
+
+        .timeline-entry.gender-male .timeline-card {
+            border-left: 3px solid rgba(59, 130, 246, 0.5);
+        }
+
+        .timeline-entry.gender-female .timeline-card {
+            border-left: 3px solid rgba(236, 72, 153, 0.5);
+        }
+
+        .timeline-entry.current-reign .timeline-card {
+            border-color: rgba(74, 222, 128, 0.2);
+            background: rgba(74, 222, 128, 0.04);
+        }
+
+        .timeline-main {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .timeline-rank {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.35);
+            font-weight: 500;
+        }
+
+        .timeline-name {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .timeline-name a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .timeline-name a:hover {
+            color: rgba(59, 130, 246, 0.9);
+        }
+
+        .timeline-entry.gender-male .timeline-name a:hover {
+            color: rgba(96, 165, 250, 1);
+        }
+
+        .timeline-entry.gender-female .timeline-name a:hover {
+            color: rgba(244, 114, 182, 1);
+        }
+
+        .timeline-artist {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .timeline-dates {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timeline-dates .arrow {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .timeline-reign-info {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.45);
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        .timeline-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .timeline-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+        }
+
+        .timeline-stat .stat-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .timeline-stat .stat-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .timeline-stat .stat-total-days {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 2px;
+            display: block;
+        }
+
+        .current-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(74, 222, 128, 0.15);
+            color: rgba(74, 222, 128, 0.9);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            margin-left: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .empty-state h2 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .timeline-page { padding: 12px; }
+            .timeline-header { flex-direction: column; align-items: flex-start; }
+            .timeline-card { grid-template-columns: 1fr; }
+            .timeline-stats { justify-content: flex-start; }
+            .timeline-container { padding-left: 30px; }
+            .timeline-container::before { left: 10px; }
+            .timeline-entry::before { left: -24px; }
+            .timeline-entry.current-reign::before { left: -25px; }
+            .summary-card { min-width: 140px; }
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <div class="timeline-page">
+        <!-- Header -->
+        <div class="timeline-header">
+            <h1 th:text="${timelineTitle} + ' Reigns'">Top Played Reigns</h1>
+            <div class="timeline-tabs">
+                <a href="/top-played-timeline/artists" class="timeline-tab"
+                   th:classappend="${timelineType == 'artist'} ? 'active' : ''">Artist</a>
+                <a href="/top-played-timeline/songs" class="timeline-tab"
+                   th:classappend="${timelineType == 'song'} ? 'active' : ''">Song</a>
+                <a href="/top-played-timeline/genres" class="timeline-tab"
+                   th:classappend="${timelineType == 'genre'} ? 'active' : ''">Genre</a>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="timeline-summary" th:if="${!timeline.isEmpty()}">
+            <div class="summary-card">
+                <div class="label">Total Reigns</div>
+                <div class="value" th:text="${#lists.size(timeline)}">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Current #1</div>
+                <div class="value" th:text="${timeline.get(#lists.size(timeline) - 1).itemName}">-</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Current #1 Plays</div>
+                <div class="value" th:text="${#numbers.formatInteger(timeline.get(#lists.size(timeline) - 1).playsAtEnd, 1, 'COMMA')}">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Longest Reign</div>
+                <div class="value"><span id="longestReignDisplay">-</span></div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-container" th:if="${!timeline.isEmpty()}">
+            <div th:each="entry, stat : ${timeline}" 
+                 class="timeline-entry"
+                 th:classappend="${(timelineType != 'genre' and entry.genderId == 2) ? 'gender-male' : ''} + ' ' + ${(timelineType != 'genre' and entry.genderId == 1) ? 'gender-female' : ''} + ' ' + ${entry.current ? 'current-reign' : ''}"
+                 th:style="'animation-delay: ' + ${stat.index * 30} + 'ms'">
+                <div class="timeline-card">
+                    <div class="timeline-main">
+                        <span class="timeline-rank" th:text="'#' + ${entry.rank}"></span>
+                        <div class="timeline-name">
+                            <!-- Artist timeline: link to artist detail -->
+                            <th:block th:if="${timelineType == 'artist'}">
+                                <a th:href="@{/artists/{id}(id=${entry.itemId})}" th:text="${entry.itemName}">Artist Name</a>
+                            </th:block>
+                            <!-- Song timeline: link to song detail -->
+                            <th:block th:if="${timelineType == 'song'}">
+                                <a th:href="@{/songs/{id}(id=${entry.itemId})}" th:text="${entry.itemName}">Song Name</a>
+                            </th:block>
+                            <!-- Genre timeline: link to genre list -->
+                            <th:block th:if="${timelineType == 'genre'}">
+                                <a th:href="@{/genres}" th:text="${entry.itemName}">Genre Name</a>
+                            </th:block>
+                            <span class="current-badge" th:if="${entry.current}">Current</span>
+                        </div>
+                        <!-- Song timeline: show artist name -->
+                        <div class="timeline-artist" th:if="${timelineType == 'song' and entry.secondaryName != null}" th:text="${entry.secondaryName}">Artist</div>
+                        <div class="timeline-dates">
+                            <span th:text="${entry.startDate}">01/01/2010</span>
+                            <span class="arrow">→</span>
+                            <span th:text="${entry.endDate}">01/07/2017</span>
+                        </div>
+                        <!-- Multi-reign indicator -->
+                        <div class="timeline-reign-info" th:if="${entry.totalReignCount > 1}">
+                            <span th:text="'Reign ' + ${entry.reignSequence} + ' of ' + ${entry.totalReignCount}"></span>
+                        </div>
+                    </div>
+                    <div class="timeline-stats">
+                        <div class="timeline-stat">
+                            <span class="stat-value" th:text="${#numbers.formatInteger(entry.playsAtStart, 1, 'COMMA')}">0</span>
+                            <span class="stat-label">Plays at Start</span>
+                        </div>
+                        <div class="timeline-stat">
+                            <span class="stat-value" th:text="${#numbers.formatInteger(entry.playsAtEnd, 1, 'COMMA')}">0</span>
+                            <span class="stat-label" th:text="${entry.current ? 'Current Plays' : 'Plays at End'}">Plays at End</span>
+                        </div>
+                        <div class="timeline-stat">
+                            <span class="stat-value" th:text="${entry.daysAtNumberOne}">0</span>
+                            <span class="stat-label">Days</span>
+                            <span class="stat-total-days" th:if="${entry.totalReignCount > 1}" 
+                                  th:text="'(Total: ' + ${entry.totalDaysAllReigns} + 'd)'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" th:if="${timeline.isEmpty()}">
+            <h2>No timeline data available</h2>
+            <p>Play data is needed to generate the top played timeline.</p>
+        </div>
+    </div>
+
+    <script>
+        // Compute longest reign from the timeline entries
+        (function() {
+            const entries = document.querySelectorAll('.timeline-entry');
+            let maxDays = 0;
+            let maxName = '-';
+            entries.forEach(function(el) {
+                const statsEls = el.querySelectorAll('.timeline-stat .stat-value');
+                if (statsEls.length >= 3) {
+                    const days = parseInt(statsEls[2].textContent.replace(/,/g, ''), 10);
+                    if (days > maxDays) {
+                        maxDays = days;
+                        const nameEl = el.querySelector('.timeline-name a');
+                        maxName = nameEl ? nameEl.textContent : '-';
+                    }
+                }
+            });
+            const display = document.getElementById('longestReignDisplay');
+            if (display) {
+                display.textContent = maxDays > 0 ? (maxDays + 'd - ' + maxName) : '-';
+            }
+        })();
+    </script>
+</body>
+</html>
