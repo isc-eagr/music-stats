@@ -122,16 +122,34 @@
                 <div class="catalog-info">
                     <h3 class="catalog-name" th:text="${genre.name}">Genre Name</h3>
                     
+                    <!-- Sort metric display (only for non-visible metrics) -->
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
+                        <span class="sort-metric-label" th:switch="${sortBy}">
+                            <th:block th:case="'maleartistpct'">Male Artist %:</th:block>
+                            <th:block th:case="'malealbumpct'">Male Album %:</th:block>
+                            <th:block th:case="'malesongpct'">Male Song %:</th:block>
+                            <th:block th:case="'maleplaypct'">Male Play %:</th:block>
+                            <th:block th:case="'maletimepct'">Male Time %:</th:block>
+                        </span>
+                        <span class="sort-metric-value" th:switch="${sortBy}">
+                            <th:block th:case="'maleartistpct'" th:text="${genre.artistCount > 0 ? #numbers.formatDecimal(genre.maleArtistCount * 100.0 / genre.artistCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malealbumpct'" th:text="${genre.albumCount > 0 ? #numbers.formatDecimal(genre.maleAlbumCount * 100.0 / genre.albumCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malesongpct'" th:text="${genre.songCount > 0 ? #numbers.formatDecimal(genre.maleSongCount * 100.0 / genre.songCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maleplaypct'" th:text="${genre.playCount > 0 ? #numbers.formatDecimal(genre.malePlayCount * 100.0 / genre.playCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maletimepct'" th:text="${genre.timeListened > 0 ? #numbers.formatDecimal(genre.maleTimeListened * 100.0 / genre.timeListened, 1, 1) + '%' : 'N/A'}"></th:block>
+                        </span>
+                    </div>
+                    
                     <div class="catalog-stats">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'artists' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎤</span>
                             <span class="stat-value" th:text="${genre.artistCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">💿</span>
                             <span class="stat-value" th:text="${genre.albumCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎵</span>
                             <span class="stat-value" th:text="${genre.songCount}">0</span>
                         </div>
@@ -145,13 +163,13 @@
                             <span class="stat-icon legacy-plays">⏵</span>
                             <span class="stat-value" th:text="${genre.robertloverPlayCount}">0</span>
                         </div>
-                        <div class="stat" title="Total plays">
+                        <div class="stat" title="Total plays" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
                             <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${genre.playCount}">0</span>
                         </div>
                     </div>
                     <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${genre.timeListenedFormatted}">0m</span>
                         </div>

@@ -29,6 +29,7 @@ public class ArtistCardDTO {
     private Boolean inItunes; // Whether artist exists in iTunes library
     private java.time.LocalDate birthDate;
     private java.time.LocalDate deathDate;
+    private Integer imageCount; // Count of gallery images
 
     // Getters and Setters
     public Integer getId() {
@@ -257,5 +258,20 @@ public class ArtistCardDTO {
 
     public void setDeathDate(java.time.LocalDate deathDate) {
         this.deathDate = deathDate;
+    }
+
+    public Integer getImageCount() {
+        return imageCount;
+    }
+
+    public void setImageCount(Integer imageCount) {
+        this.imageCount = imageCount;
+    }
+
+    public String getAgeDisplay() {
+        if (birthDate == null) return null;
+        java.time.LocalDate endDate = deathDate != null ? deathDate : java.time.LocalDate.now();
+        long years = java.time.temporal.ChronoUnit.YEARS.between(birthDate, endDate);
+        return years + " years" + (deathDate != null ? " (†)" : "");
     }
 }

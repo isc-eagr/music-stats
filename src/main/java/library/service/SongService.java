@@ -142,6 +142,22 @@ public class SongService {
             // Set isSingle (index 28)
             dto.setIsSingle(row[28] != null && ((Number) row[28]).intValue() == 1);
             
+            // Set birth date (index 29) and death date (index 30)
+            dto.setBirthDate(row[29] != null ? formatDate((String) row[29]) : null);
+            dto.setDeathDate(row[30] != null ? formatDate((String) row[30]) : null);
+            
+            // Set image count (index 31)
+            dto.setImageCount(row[31] != null ? ((Number) row[31]).intValue() : 0);
+            
+            // Set chart stats (indices 32-35)
+            dto.setSeasonalChartPeak(row[32] != null ? ((Number) row[32]).intValue() : null);
+            dto.setWeeklyChartPeak(row[33] != null ? ((Number) row[33]).intValue() : null);
+            dto.setWeeklyChartWeeks(row[34] != null ? ((Number) row[34]).intValue() : 0);
+            dto.setYearlyChartPeak(row[35] != null ? ((Number) row[35]).intValue() : null);
+            dto.setWeeklyChartPeakStartDate(row[36] != null ? formatDate((String) row[36]) : null);
+            dto.setSeasonalChartPeakPeriod((String) row[37]);
+            dto.setYearlyChartPeakPeriod((String) row[38]);
+            
             // Format length
             if (dto.getLengthSeconds() != null) {
                 int minutes = dto.getLengthSeconds() / 60;

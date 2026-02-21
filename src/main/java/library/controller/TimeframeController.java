@@ -69,6 +69,12 @@ public class TimeframeController {
             @RequestParam(required = false) Double maleTimePctMax,
             // Perfect male filter (100% male across all metrics)
             @RequestParam(required = false) Boolean perfectMale,
+            // Date range filter
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            // Male days range filter
+            @RequestParam(required = false) Integer maleDaysMin,
+            @RequestParam(required = false) Integer maleDaysMax,
             // Sorting and pagination
             @RequestParam(defaultValue = "period") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
@@ -115,6 +121,8 @@ public class TimeframeController {
             effectiveMaleSongPctMin, maleSongPctMax,
             effectiveMalePlayPctMin, malePlayPctMax,
             effectiveMaleTimePctMin, maleTimePctMax,
+            dateFrom, dateTo,
+            maleDaysMin, maleDaysMax,
             sortby, sortdir, page, perpage
         );
         
@@ -135,7 +143,9 @@ public class TimeframeController {
             effectiveMaleAlbumPctMin, maleAlbumPctMax,
             effectiveMaleSongPctMin, maleSongPctMax,
             effectiveMalePlayPctMin, malePlayPctMax,
-            effectiveMaleTimePctMin, maleTimePctMax
+            effectiveMaleTimePctMin, maleTimePctMax,
+            dateFrom, dateTo,
+            maleDaysMin, maleDaysMax
         );
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
@@ -213,6 +223,7 @@ public class TimeframeController {
         // Sorting
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "period");
         
         // Lookup data for filters
         model.addAttribute("genders", lookupRepository.getAllGenders());
@@ -253,6 +264,10 @@ public class TimeframeController {
         model.addAttribute("maleTimePctMin", maleTimePctMin);
         model.addAttribute("maleTimePctMax", maleTimePctMax);
         model.addAttribute("perfectMale", perfectMale);
+        model.addAttribute("dateFrom", dateFrom);
+        model.addAttribute("dateTo", dateTo);
+        model.addAttribute("maleDaysMin", maleDaysMin);
+        model.addAttribute("maleDaysMax", maleDaysMax);
         
         // Query string for pagination links (without page param)
         String queryString = request.getQueryString();

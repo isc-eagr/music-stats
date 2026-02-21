@@ -46,6 +46,7 @@
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
                             <option value="featured" th:selected="${sortBy == 'featured'}">Featured Songs</option>
                             <option value="first_listened" th:selected="${sortBy == 'first_listened'}">First Listened</option>
+                            <option value="image_count" th:selected="${sortBy == 'image_count'}">Image Count</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
@@ -1161,13 +1162,33 @@
                            th:href="@{/graphs(filterType='subgenre',filterId=${artist.subgenreId},filterName=${artist.subgenreName})}"
                            class="winning-chip subgenre" th:text="${artist.subgenreName}" title="Subgenre"></a>
                     </div>
+
+                    <!-- Sort metric display (only for non-visible metrics) -->
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'songs' and sortBy != 'albums' and sortBy != 'time' and sortBy != 'featured'}">
+                        <span class="sort-metric-label" th:switch="${sortBy}">
+                            <th:block th:case="'age'">Age:</th:block>
+                            <th:block th:case="'birth_date'">Born:</th:block>
+                            <th:block th:case="'death_date'">Died:</th:block>
+                            <th:block th:case="'first_listened'">First Listened:</th:block>
+                            <th:block th:case="'image_count'">Images:</th:block>
+                            <th:block th:case="'last_listened'">Last Listened:</th:block>
+                        </span>
+                        <span class="sort-metric-value" th:switch="${sortBy}">
+                            <th:block th:case="'age'" th:text="${artist.ageDisplay != null ? artist.ageDisplay : 'N/A'}"></th:block>
+                            <th:block th:case="'birth_date'" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd MMM yyyy') : 'N/A'}"></th:block>
+                            <th:block th:case="'death_date'" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd MMM yyyy') : 'N/A'}"></th:block>
+                            <th:block th:case="'first_listened'" th:text="${artist.firstListenedDate != null ? artist.firstListenedDate : 'N/A'}"></th:block>
+                            <th:block th:case="'image_count'" th:text="${artist.imageCount}"></th:block>
+                            <th:block th:case="'last_listened'" th:text="${artist.lastListenedDate != null ? artist.lastListenedDate : 'N/A'}"></th:block>
+                        </span>
+                    </div>
                     
                     <div class="artist-stats">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎵</span>
                             <span class="stat-value" th:text="${artist.songCount}">0</span>
                         </div>
-                        <div class="stat" th:if="${artist.featuredSongCount != null and artist.featuredSongCount > 0}" title="Featured songs">
+                        <div class="stat" th:if="${artist.featuredSongCount != null and artist.featuredSongCount > 0}" title="Featured songs" th:classappend="${sortBy == 'featured' ? 'sort-highlight' : ''}">
                             <span class="stat-icon featured">
                                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
                                     <path fill="currentColor" d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
@@ -1175,7 +1196,7 @@
                             </span>
                             <span class="stat-value" th:text="${artist.featuredSongCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">💿</span>
                             <span class="stat-value" th:text="${artist.albumCount}">0</span>
                         </div>
@@ -1195,7 +1216,7 @@
                         </div>
                     </div>
                     <div class="artist-stats artist-stats-row2">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${artist.timeListenedFormatted}">0m</span>
                         </div>
@@ -1203,18 +1224,7 @@
                             <span class="stat-icon" th:text="${artist.organized != null and artist.organized ? '📦' : '📬'}">📬</span>
                         </div>
                     </div>
-                    
-                    <!-- Date information section -->
-                    <div class="artist-dates" th:if="${artist.firstListenedDate != null or artist.lastListenedDate != null}">
-                        <div class="date-item" th:if="${artist.firstListenedDate != null}">
-                            <span class="date-label">First Listened:</span>
-                            <span class="date-value" th:text="${artist.firstListenedDate}"></span>
-                        </div>
-                        <div class="date-item" th:if="${artist.lastListenedDate != null}">
-                            <span class="date-label">Last Listened:</span>
-                            <span class="date-value" th:text="${artist.lastListenedDate}"></span>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>

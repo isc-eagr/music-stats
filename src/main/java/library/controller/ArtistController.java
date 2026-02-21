@@ -315,6 +315,7 @@ public class ArtistController {
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "plays");
         
         // Add filter options
         model.addAttribute("genders", artistService.getGenders());

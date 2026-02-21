@@ -794,6 +794,44 @@ select:focus {
     color: #999;
 }
 
+/* Sort metric display for cards */
+.sort-metric {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding: 4px 10px;
+    margin-bottom: 6px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 28px;
+}
+
+.sort-metric-label {
+    color: #888;
+    white-space: nowrap;
+    font-weight: 500;
+    padding-top: 1px;
+}
+
+.sort-metric-value {
+    color: #22c55e;
+    font-weight: 700;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Highlight for already-visible metrics when sorting */
+.sort-highlight {
+    background: rgba(34, 197, 94, 0.12);
+    border-radius: 4px;
+    padding: 1px 5px;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
+}
+
 /* Shared grid styles for item grids */
 .album-grid,
 .song-grid,

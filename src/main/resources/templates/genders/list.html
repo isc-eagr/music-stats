@@ -114,15 +114,15 @@
                     <h3 class="catalog-name" th:text="${gender.name}">Gender Name</h3>
                     
                     <div class="catalog-stats">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'artists' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎤</span>
                             <span class="stat-value" th:text="${gender.artistCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">💿</span>
                             <span class="stat-value" th:text="${gender.albumCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎵</span>
                             <span class="stat-value" th:text="${gender.songCount}">0</span>
                         </div>
@@ -136,13 +136,13 @@
                             <span class="stat-icon legacy-plays">⏵</span>
                             <span class="stat-value" th:text="${gender.robertloverPlayCount}">0</span>
                         </div>
-                        <div class="stat" title="Total plays">
+                        <div class="stat" title="Total plays" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
                             <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${gender.playCount}">0</span>
                         </div>
                     </div>
                     <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${gender.timeListenedFormatted}">0m</span>
                         </div>

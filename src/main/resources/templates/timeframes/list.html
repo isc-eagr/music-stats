@@ -8,6 +8,9 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <script th:src="@{/js/list-utils.js}"></script>
+    <!-- Flatpickr Date Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         /* Chart status badges - pill style */
         .chart-generate-btn-container {
@@ -127,6 +130,21 @@
             padding-top: 10px;
             border-top: 1px solid #2a2a2a;
         }
+        .male-days-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .male-days-value {
+            font-weight: 700;
+            color: #3b82f6;
+        }
         .number-one-item {
             display: flex;
             align-items: center;
@@ -175,6 +193,7 @@
                             <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
                             <option value="malealbumpct" th:selected="${sortBy == 'malealbumpct'}">Male Album %</option>
                             <option value="maleartistpct" th:selected="${sortBy == 'maleartistpct'}">Male Artist %</option>
+                            <option th:if="${periodType != 'days'}" value="maledays" th:selected="${sortBy == 'maledays'}">Male Days</option>
                             <option value="maleplaypct" th:selected="${sortBy == 'maleplaypct'}">Male Play %</option>
                             <option value="malesongpct" th:selected="${sortBy == 'malesongpct'}">Male Song %</option>
                             <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
@@ -262,6 +281,26 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Date Range Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Date Range
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>From</span>
+                                                <input type="text" autocomplete="off" name="dateFrom" id="dateFromInput" th:value="${dateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+                                            </label>
+                                            <label class="field"><span>To</span>
+                                                <input type="text" autocomplete="off" name="dateTo" id="dateToInput" th:value="${dateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <!-- Listened Time Range Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -277,6 +316,26 @@
                                             </label>
                                             <label class="field"><span>Max</span>
                                                 <input type="number" autocomplete="off" name="timeMax" th:value="${timeMax}" placeholder="∞" min="0">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Male Days Range Filter (not for days) -->
+                                <div th:if="${periodType != 'days'}" class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Male Days
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="range-inputs">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" autocomplete="off" name="maleDaysMin" th:value="${maleDaysMin}" placeholder="0" min="0">
+                                            </label>
+                                            <label class="field"><span>Max</span>
+                                                <input type="number" autocomplete="off" name="maleDaysMax" th:value="${maleDaysMax}" placeholder="∞" min="0">
                                             </label>
                                         </div>
                                     </div>
@@ -728,8 +787,20 @@
                 <button class="filter-chip-remove" onclick="removeFilter('maleTimePctMin', 'maleTimePctMax')" type="button">×</button>
             </div>
             
+            <div class="filter-chip" th:if="${dateFrom != null or dateTo != null}">
+                <span class="filter-chip-label">Date Range</span>
+                <span class="filter-chip-value" th:text="${(dateFrom != null ? dateFrom : '...') + ' – ' + (dateTo != null ? dateTo : '...')}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('dateFrom', 'dateTo')" type="button">×</button>
+            </div>
+            
+            <div class="filter-chip" th:if="${maleDaysMin != null or maleDaysMax != null}">
+                <span class="filter-chip-label">Male Days</span>
+                <span class="filter-chip-value" th:text="${(maleDaysMin != null ? maleDaysMin : '0') + ' - ' + (maleDaysMax != null ? maleDaysMax : '∞')}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('maleDaysMin', 'maleDaysMax')" type="button">×</button>
+            </div>
+            
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
-                    th:if="${(winningGenre != null and !winningGenre.isEmpty()) or (winningEthnicity != null and !winningEthnicity.isEmpty()) or (winningLanguage != null and !winningLanguage.isEmpty()) or (winningCountry != null and !winningCountry.isEmpty()) or artistCountMin != null or artistCountMax != null or albumCountMin != null or albumCountMax != null or songCountMin != null or songCountMax != null or playsMin != null or playsMax != null or timeMin != null or timeMax != null or maleArtistPctMin != null or maleArtistPctMax != null or maleAlbumPctMin != null or maleAlbumPctMax != null or maleSongPctMin != null or maleSongPctMax != null or malePlayPctMin != null or malePlayPctMax != null or maleTimePctMin != null or maleTimePctMax != null}">
+                    th:if="${(winningGenre != null and !winningGenre.isEmpty()) or (winningEthnicity != null and !winningEthnicity.isEmpty()) or (winningLanguage != null and !winningLanguage.isEmpty()) or (winningCountry != null and !winningCountry.isEmpty()) or artistCountMin != null or artistCountMax != null or albumCountMin != null or albumCountMax != null or songCountMin != null or songCountMax != null or playsMin != null or playsMax != null or timeMin != null or timeMax != null or maleArtistPctMin != null or maleArtistPctMax != null or maleAlbumPctMin != null or maleAlbumPctMax != null or maleSongPctMin != null or maleSongPctMax != null or malePlayPctMin != null or malePlayPctMax != null or maleTimePctMin != null or maleTimePctMax != null or dateFrom != null or dateTo != null or maleDaysMin != null or maleDaysMax != null}">
                 Clear All
             </button>
         </div>
@@ -893,27 +964,47 @@
                         <span class="winning-chip language" th:if="${tf.winningLanguageName != null}" th:text="${tf.winningLanguageName}" title="Winning Language"></span>
                         <span class="winning-chip country" th:if="${tf.winningCountry != null}" th:text="${tf.winningCountry}" title="Winning Country"></span>
                     </div>
+
+                    <!-- Sort metric display (only for non-visible metrics) -->
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
+                        <span class="sort-metric-label" th:switch="${sortBy}">
+                            <th:block th:case="'maleartistpct'">Male Artist %:</th:block>
+                            <th:block th:case="'malealbumpct'">Male Album %:</th:block>
+                            <th:block th:case="'malesongpct'">Male Song %:</th:block>
+                            <th:block th:case="'maleplaypct'">Male Play %:</th:block>
+                            <th:block th:case="'maletimepct'">Male Time %:</th:block>
+                            <th:block th:case="'maledays'">Male Days:</th:block>
+                        </span>
+                        <span class="sort-metric-value" th:switch="${sortBy}">
+                            <th:block th:case="'maleartistpct'" th:text="${tf.artistCount > 0 ? #numbers.formatDecimal(tf.maleArtistCount * 100.0 / tf.artistCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malealbumpct'" th:text="${tf.albumCount > 0 ? #numbers.formatDecimal(tf.maleAlbumCount * 100.0 / tf.albumCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malesongpct'" th:text="${tf.songCount > 0 ? #numbers.formatDecimal(tf.maleSongCount * 100.0 / tf.songCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maleplaypct'" th:text="${tf.playCount > 0 ? #numbers.formatDecimal(tf.malePlayCount * 100.0 / tf.playCount, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maletimepct'" th:text="${tf.timeListened > 0 ? #numbers.formatDecimal(tf.maleTimeListened * 100.0 / tf.timeListened, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maledays'" th:text="${tf.totalDays != null ? tf.maleDays + '/' + tf.totalDays + ' days' : 'N/A'}"></th:block>
+                        </span>
+                    </div>
                     
                     <div class="catalog-stats">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'artists' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎤</span>
                             <span class="stat-value" th:text="${tf.artistCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">💿</span>
                             <span class="stat-value" th:text="${tf.albumCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🎵</span>
                             <span class="stat-value" th:text="${tf.songCount}">0</span>
                         </div>
                     </div>
                     <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
                             <span class="stat-icon total-plays">⏵</span>
                             <span class="stat-value" th:text="${tf.playCount}">0</span>
                         </div>
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${tf.timeListenedFormatted}">0m</span>
                         </div>
@@ -1001,6 +1092,13 @@
                                      th:title="'Other: ' + ${#numbers.formatDecimal((tf.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Male Days indicator (for all period types except days) -->
+                    <div th:if="${periodType != 'days' and tf.playCount > 0 and tf.totalDays != null}" class="male-days-stat">
+                        <span class="male-days-value"
+                              th:text="${tf.maleDays + '/' + tf.totalDays + ' days (' + (tf.totalDays > 0 ? #numbers.formatDecimal(tf.maleDays * 100.0 / tf.totalDays, 1, 0) : 0) + '%)'}"
+                              th:title="'Days where male plays were dominant: ' + ${tf.maleDays} + ' of ' + ${tf.totalDays}">0/0 days (0%)</span>
                     </div>
                     
                     <!-- Top artist/album/song by plays -->
@@ -1336,6 +1434,13 @@
                     }
                 });
             });
+
+            // Initialize Flatpickr on date range inputs
+            const dateConfig = { dateFormat: 'd/m/Y', allowInput: true };
+            const dateFromInput = document.getElementById('dateFromInput');
+            if (dateFromInput) flatpickr(dateFromInput, dateConfig);
+            const dateToInput = document.getElementById('dateToInput');
+            if (dateToInput) flatpickr(dateToInput, dateConfig);
         });
     </script>
 </body>

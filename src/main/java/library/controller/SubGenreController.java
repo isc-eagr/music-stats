@@ -54,6 +54,7 @@ public class SubGenreController {
         model.addAttribute("selectedParentGenre", parentGenre);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "name");
         
         // Add filter options
         model.addAttribute("genres", subGenreService.getGenres());

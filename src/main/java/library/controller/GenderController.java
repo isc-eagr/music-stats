@@ -49,6 +49,7 @@ public class GenderController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "name");
         
         return "genders/list";
     }

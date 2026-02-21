@@ -139,6 +139,22 @@ public class AlbumService {
             // Set organized (index 25)
             dto.setOrganized(row[25] != null && ((Number) row[25]).intValue() == 1);
             
+            // Set birth date (index 26) and death date (index 27)
+            dto.setBirthDate(row[26] != null ? formatDate((String) row[26]) : null);
+            dto.setDeathDate(row[27] != null ? formatDate((String) row[27]) : null);
+            
+            // Set image count (index 28)
+            dto.setImageCount(row[28] != null ? ((Number) row[28]).intValue() : 0);
+            
+            // Set chart stats (indices 29-32)
+            dto.setSeasonalChartPeak(row[29] != null ? ((Number) row[29]).intValue() : null);
+            dto.setWeeklyChartPeak(row[30] != null ? ((Number) row[30]).intValue() : null);
+            dto.setWeeklyChartWeeks(row[31] != null ? ((Number) row[31]).intValue() : 0);
+            dto.setYearlyChartPeak(row[32] != null ? ((Number) row[32]).intValue() : null);
+            dto.setWeeklyChartPeakStartDate(row[33] != null ? formatDate((String) row[33]) : null);
+            dto.setSeasonalChartPeakPeriod((String) row[34]);
+            dto.setYearlyChartPeakPeriod((String) row[35]);
+            
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
             

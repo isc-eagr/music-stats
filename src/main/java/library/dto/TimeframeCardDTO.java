@@ -54,6 +54,10 @@ public class TimeframeCardDTO {
     private String winningLanguageName;
     private String winningCountry;
     
+    // Male days: count of days in this period where male plays > female plays
+    private Integer maleDays;
+    private Integer totalDays;
+
     // Top/winning artist, album, song for this timeframe
     private Integer topArtistId;
     private String topArtistName;
@@ -586,5 +590,21 @@ public class TimeframeCardDTO {
 
     public void setNumberOneAlbumGenderId(Integer numberOneAlbumGenderId) {
         this.numberOneAlbumGenderId = numberOneAlbumGenderId;
+    }
+
+    public Integer getMaleDays() {
+        return maleDays;
+    }
+
+    public void setMaleDays(Integer maleDays) {
+        this.maleDays = maleDays;
+    }
+
+    public Integer getTotalDays() {
+        return totalDays;
+    }
+
+    public void setTotalDays(Integer totalDays) {
+        this.totalDays = totalDays;
     }
 }

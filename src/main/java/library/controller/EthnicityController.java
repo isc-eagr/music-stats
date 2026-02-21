@@ -52,6 +52,7 @@ public class EthnicityController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "name");
         
         return "ethnicities/list";
     }

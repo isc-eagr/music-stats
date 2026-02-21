@@ -36,6 +36,7 @@ public class YearController {
         model.addAttribute("currentSection", "listen-years");
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "year");
         model.addAttribute("currentPage", page);
         model.addAttribute("perPage", perpage);
         model.addAttribute("totalPages", totalPages);
@@ -64,6 +65,7 @@ public class YearController {
         model.addAttribute("currentSection", "release-years");
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "year");
         model.addAttribute("currentPage", page);
         model.addAttribute("perPage", perpage);
         model.addAttribute("totalPages", totalPages);

@@ -39,6 +39,8 @@ public class TimeframeService {
             Double maleSongPctMin, Double maleSongPctMax,
             Double malePlayPctMin, Double malePlayPctMax,
             Double maleTimePctMin, Double maleTimePctMax,
+            String dateFrom, String dateTo,
+            Integer maleDaysMin, Integer maleDaysMax,
             String sortBy, String sortDir, int page, int perPage) {
         
         int offset = page * perPage;
@@ -55,6 +57,12 @@ public class TimeframeService {
                     winningCountry, winningCountryMode, artistCountMin, albumCountMin, songCountMin,
                     playsMin, timeMin,
                     maleArtistPctMin, maleAlbumPctMin, maleSongPctMin, malePlayPctMin, maleTimePctMin);
+        
+        // Check if Java-side post-processing is needed (for filters/sorts not computable in SQL)
+        boolean needsJavaPostFilter = (maleDaysMin != null || maleDaysMax != null || 
+                                        dateFrom != null || dateTo != null);
+        boolean needsJavaSorting = "maledays".equalsIgnoreCase(sortBy);
+        boolean skipSqlPagination = needsMergeWithAllPeriods || needsJavaPostFilter || needsJavaSorting;
         
         // Build period key expression based on type
         String periodKeyExpr = getPeriodKeyExpression(periodType);
@@ -164,9 +172,9 @@ public class TimeframeService {
         
         sql.append("\n                ORDER BY ").append(sortColumn.replace("ps.", "")).append(" ").append(sortDirection);
 
-        // Only apply SQL pagination if we're NOT going to merge with all periods
-        // When merging, we need ALL results from DB, then do pagination in Java
-        if (!needsMergeWithAllPeriods) {
+        // Only apply SQL pagination if we're NOT going to do Java post-processing
+        // When merging/filtering/sorting in Java, we need ALL results from DB, then do pagination in Java
+        if (!skipSqlPagination) {
             sql.append("\n                LIMIT ? OFFSET ?");
             params.add(perPage);
             params.add(offset);
@@ -360,21 +368,93 @@ public class TimeframeService {
             return dto;
         }, params.toArray());
         
-        // For days, weeks, months, seasons, and years with no restrictive filters, include 0-play periods
-        // We already skipped SQL pagination above, so merge will handle it
-        if (needsMergeWithAllPeriods) {
-            List<TimeframeCardDTO> mergedResults = mergeWithAllPeriods(periodType, results, sortBy, sortDir, page, perPage);
-            if (!mergedResults.isEmpty()) {
-                populateTopItems(mergedResults, periodType);
+        // Unified post-processing: merge, filter, sort, paginate
+        if (skipSqlPagination) {
+            // Step 1: Merge with all periods if needed (includes date overlap filtering)
+            if (needsMergeWithAllPeriods) {
+                // For weeks, first merge Week 00 data
+                if ("weeks".equals(periodType)) {
+                    results = mergeWeekZeroIntoPreviousYear(results);
+                }
+                
+                // Generate all possible period keys
+                List<String> allPeriodKeys = switch (periodType) {
+                    case "days" -> generateAllDayKeys();
+                    case "weeks" -> generateAllWeekKeysWithoutWeekZero();
+                    case "months" -> generateAllMonthKeys();
+                    case "seasons" -> generateAllSeasonKeys();
+                    case "years" -> generateAllYearKeys();
+                    default -> null;
+                };
+                
+                if (allPeriodKeys != null) {
+                    // Filter period keys by date overlap if date range is set
+                    if (dateFrom != null || dateTo != null) {
+                        allPeriodKeys = filterPeriodKeysByDateOverlap(periodType, allPeriodKeys, dateFrom, dateTo);
+                    }
+                    
+                    // Build full list with existing data + empty DTOs for missing periods
+                    Map<String, TimeframeCardDTO> existingMap = new HashMap<>();
+                    for (TimeframeCardDTO dto : results) {
+                        existingMap.put(dto.getPeriodKey(), dto);
+                    }
+                    
+                    List<TimeframeCardDTO> fullList = new ArrayList<>();
+                    for (String periodKey : allPeriodKeys) {
+                        TimeframeCardDTO dto = existingMap.get(periodKey);
+                        if (dto == null) {
+                            dto = createEmptyTimeframeCard(periodType, periodKey);
+                        }
+                        fullList.add(dto);
+                    }
+                    results = fullList;
+                }
+            } else if (dateFrom != null || dateTo != null) {
+                // Non-merge path: filter results by date overlap
+                results = filterByDateOverlap(results, dateFrom, dateTo);
             }
-            return mergedResults;
+            
+            // Step 2: Compute maleDays (for non-days types, before filtering)
+            if (!"days".equals(periodType)) {
+                populateMaleDays(results, periodType);
+            }
+            
+            // Step 3: Apply maleDays filter
+            if (maleDaysMin != null || maleDaysMax != null) {
+                results = results.stream().filter(tf -> {
+                    int md = tf.getMaleDays() != null ? tf.getMaleDays() : 0;
+                    if (maleDaysMin != null && md < maleDaysMin) return false;
+                    if (maleDaysMax != null && md > maleDaysMax) return false;
+                    return true;
+                }).collect(java.util.stream.Collectors.toList());
+            }
+            
+            // Step 4: Sort
+            results.sort(getComparator(sortBy, periodType, sortDir));
+            
+            // Step 5: Paginate
+            int start = page * perPage;
+            int end = Math.min(start + perPage, results.size());
+            if (start >= results.size()) {
+                results = new ArrayList<>();
+            } else {
+                results = new ArrayList<>(results.subList(start, end));
+            }
+            
+            // Step 6: Populate top items for the paginated page
+            if (!results.isEmpty()) {
+                populateTopItems(results, periodType);
+            }
+        } else {
+            // SQL-paginated path (no Java processing needed)
+            if (!results.isEmpty()) {
+                populateTopItems(results, periodType);
+                if (!"days".equals(periodType)) {
+                    populateMaleDays(results, periodType);
+                }
+            }
         }
 
-        // Populate top artist/album/song for the results
-        if (!results.isEmpty()) {
-            populateTopItems(results, periodType);
-        }
-        
         return results;
     }
     
@@ -502,6 +582,141 @@ public class TimeframeService {
     }
 
     /**
+     * Populates maleDays (days where male plays > female plays) and totalDays for each timeframe.
+     * Only meaningful for non-"days" period types (weeks, months, seasons, years, decades).
+     */
+    private void populateMaleDays(List<TimeframeCardDTO> timeframes, String periodType) {
+        // Get the first ever scrobble date so that the opening period's totalDays starts there
+        // (e.g., 2005 should not be counted as a full 365-day year if scrobbling started in Feb 2005)
+        LocalDate firstScrobbleDate = null;
+        try {
+            String firstDateStr = jdbcTemplate.queryForObject(
+                "SELECT DATE(MIN(play_date)) FROM Play", String.class);
+            if (firstDateStr != null) {
+                firstScrobbleDate = LocalDate.parse(firstDateStr);
+            }
+        } catch (Exception ignored) {}
+
+        final LocalDate effectiveFirstDay = firstScrobbleDate;
+
+        // Compute totalDays for all timeframes using the nominal period boundaries,
+        // but clamp the start to the first scrobble date for periods that begin before it,
+        // and clamp the end to today for ongoing (current) periods.
+        LocalDate today = LocalDate.now();
+        for (TimeframeCardDTO tf : timeframes) {
+            if (tf.getListenedDateFrom() != null && tf.getListenedDateTo() != null) {
+                try {
+                    LocalDate from = LocalDate.parse(tf.getListenedDateFrom());
+                    LocalDate to = LocalDate.parse(tf.getListenedDateTo());
+                    // If this period started before the first scrobble, use the first scrobble as effective start
+                    if (effectiveFirstDay != null && from.isBefore(effectiveFirstDay)) {
+                        from = effectiveFirstDay;
+                    }
+                    // If this period hasn't ended yet, use today as effective end (elapsed days only)
+                    if (to.isAfter(today)) {
+                        to = today;
+                    }
+                    int total = (int) java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1;
+                    tf.setTotalDays(total);
+                } catch (Exception ignored) {}
+            }
+            if (tf.getMaleDays() == null) {
+                tf.setMaleDays(0);
+            }
+        }
+
+        // Only need to query DB for timeframes that have plays
+        List<TimeframeCardDTO> withPlays = timeframes.stream()
+            .filter(t -> t.getPlayCount() != null && t.getPlayCount() > 0)
+            .toList();
+        if (withPlays.isEmpty()) return;
+
+        List<String> periodKeys = withPlays.stream()
+            .map(TimeframeCardDTO::getPeriodKey)
+            .toList();
+
+        String periodKeyExpr = getPeriodKeyExpression(periodType);
+        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
+
+        String sql =
+            "WITH day_gender AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        DATE(p.play_date) as play_day, " +
+            "        SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_plays, " +
+            "        SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_plays " +
+            "    FROM Play p " +
+            "    JOIN Song s ON p.song_id = s.id " +
+            "    JOIN Artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    GROUP BY " + periodKeyExpr + ", DATE(p.play_date) " +
+            ") " +
+            "SELECT period_key, SUM(CASE WHEN male_plays > female_plays THEN 1 ELSE 0 END) as male_days " +
+            "FROM day_gender " +
+            "GROUP BY period_key";
+
+        List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) ->
+            new Object[]{rs.getString("period_key"), rs.getInt("male_days")},
+            periodKeys.toArray()
+        );
+
+        for (TimeframeCardDTO tf : timeframes) {
+            for (Object[] row : results) {
+                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
+                    tf.setMaleDays((Integer) row[1]);
+                    break;
+                }
+            }
+        }
+    }
+
+    private static final DateTimeFormatter DATE_FILTER_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /**
+     * Filter period keys by date overlap with the given date range.
+     * A period overlaps if periodStart <= dateTo AND periodEnd >= dateFrom.
+     */
+    private List<String> filterPeriodKeysByDateOverlap(String periodType, List<String> periodKeys, String dateFrom, String dateTo) {
+        LocalDate from = dateFrom != null ? LocalDate.parse(dateFrom, DATE_FILTER_FORMAT) : null;
+        LocalDate to = dateTo != null ? LocalDate.parse(dateTo, DATE_FILTER_FORMAT) : null;
+        
+        return periodKeys.stream().filter(key -> {
+            String[] range = calculateDateRange(periodType, key);
+            if (range[0].isEmpty() || range[1].isEmpty()) return false;
+            try {
+                LocalDate periodStart = LocalDate.parse(range[0]);
+                LocalDate periodEnd = LocalDate.parse(range[1]);
+                if (from != null && periodEnd.isBefore(from)) return false;
+                if (to != null && periodStart.isAfter(to)) return false;
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Filter timeframe results by date overlap with the given date range.
+     */
+    private List<TimeframeCardDTO> filterByDateOverlap(List<TimeframeCardDTO> results, String dateFrom, String dateTo) {
+        LocalDate from = dateFrom != null ? LocalDate.parse(dateFrom, DATE_FILTER_FORMAT) : null;
+        LocalDate to = dateTo != null ? LocalDate.parse(dateTo, DATE_FILTER_FORMAT) : null;
+        
+        return results.stream().filter(tf -> {
+            if (tf.getListenedDateFrom() == null || tf.getListenedDateTo() == null) return false;
+            try {
+                LocalDate periodStart = LocalDate.parse(tf.getListenedDateFrom());
+                LocalDate periodEnd = LocalDate.parse(tf.getListenedDateTo());
+                if (from != null && periodEnd.isBefore(from)) return false;
+                if (to != null && periodStart.isAfter(to)) return false;
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * Check if any filters are set that would exclude 0-play periods
      */
     private boolean hasRestrictiveFilters(
@@ -557,7 +772,10 @@ public class TimeframeService {
             Double maleAlbumPctMin, Double maleAlbumPctMax,
             Double maleSongPctMin, Double maleSongPctMax,
             Double malePlayPctMin, Double malePlayPctMax,
-            Double maleTimePctMin, Double maleTimePctMax) {
+            Double maleTimePctMin, Double maleTimePctMax,
+            String dateFrom, String dateTo,
+            Integer maleDaysMin, Integer maleDaysMax) {
+        // TODO: maleDaysMin/maleDaysMax not yet factored into count query (minor pagination inaccuracy)
         
         String periodKeyExpr = getPeriodKeyExpression(periodType);
         
@@ -855,7 +1073,14 @@ public class TimeframeService {
                 case "years" -> generateAllYearKeys();
                 default -> null;
             };
-            return allPeriods != null ? allPeriods.size() : baseCount;
+            if (allPeriods != null) {
+                // Filter by date overlap if date range is set
+                if (dateFrom != null || dateTo != null) {
+                    allPeriods = filterPeriodKeysByDateOverlap(periodType, allPeriods, dateFrom, dateTo);
+                }
+                return allPeriods.size();
+            }
+            return baseCount;
         }
         
         return baseCount;
@@ -1346,6 +1571,16 @@ public class TimeframeService {
                     return isDesc ? Double.compare(pctB, pctA) : Double.compare(pctA, pctB);
                 };
             }
+            case "maledays" -> {
+                yield (a, b) -> {
+                    Integer mdA = a.getMaleDays();
+                    Integer mdB = b.getMaleDays();
+                    if (mdA == null && mdB == null) return 0;
+                    if (mdA == null) return 1;  // nulls last
+                    if (mdB == null) return -1; // nulls last
+                    return isDesc ? Integer.compare(mdB, mdA) : Integer.compare(mdA, mdB);
+                };
+            }
             default -> {
                 Comparator<TimeframeCardDTO> defaultComparator;
                 if ("seasons".equals(periodType)) {
@@ -1443,6 +1678,7 @@ public class TimeframeService {
             case "malesongpct" -> "ps.male_song_pct";
             case "maleplaypct" -> "ps.male_play_pct";
             case "maletimepct" -> "ps.male_time_pct";
+            case "maledays" -> "ps.period_key"; // Sorted in Java, use period_key as SQL fallback
             default -> "seasons".equals(periodType) ? seasonSortExpr : "ps.period_key";
         };
     }

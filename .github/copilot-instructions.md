@@ -83,7 +83,11 @@ Filters are always displayed in alphabetical order for consistency.
 
 ### Date/Timezone Handling
 Play dates from Last.fm are converted from UTC to Mexico City timezone. See `Play.setPlayDate()` for pattern parsing logic.
-dd/MM/yyyy format is used throughout the application. For displaying dates, they're displayed as dd MMM yyyy in most places so those should be preferred. mm/dd/yyyy should be avoided everywhere.
+dd/MM/yyyy format is used throughout the application. mm/dd/yyyy should be avoided everywhere.
+Flatpickr is used for date inputs in the UI, always use it when adding date input fields.
+
+### Emoji policy
+Please do not add emojis to the codebase. They cause encoding issues in some environments and can be distracting in code reviews.
 
 ### Lookup Tables
 `LookupRepository` provides maps (id→name) for: Gender, Ethnicity, Genre, SubGenre, Language. These populate dropdowns and resolve FK display names.

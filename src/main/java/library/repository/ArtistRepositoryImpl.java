@@ -134,7 +134,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    a.organized, ");
         sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count, ");
         sql.append("    a.birth_date, ");
-        sql.append("    a.death_date ");
+        sql.append("    a.death_date, ");
+        sql.append("    (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) as image_count ");
         sql.append("FROM Artist a ");
         sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
         sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
@@ -319,6 +320,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             sql.append(" last_listened " + direction + " NULLS LAST, a.name ASC");
         } else if ("name".equals(sortBy)) {
             sql.append(" a.name " + direction);
+        } else if ("image_count".equals(sortBy)) {
+            sql.append(" image_count " + direction + ", a.name ASC");
         } else {
             sql.append(" a.name " + direction);
         }
@@ -354,7 +357,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getObject("organized"),
                 rs.getInt("featured_song_count"),
                 rs.getString("birth_date"),
-                rs.getString("death_date")
+                rs.getString("death_date"),
+                rs.getInt("image_count")
             };
         }, params.toArray());
     }

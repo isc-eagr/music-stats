@@ -325,6 +325,7 @@ public class AlbumController {
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("defaultSortBy", "plays");
         
         // Add filter options
         model.addAttribute("genres", albumService.getGenres());

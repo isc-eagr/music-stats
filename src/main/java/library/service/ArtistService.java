@@ -140,6 +140,9 @@ public class ArtistService {
             dto.setBirthDate(parseDateSafely(row[24]));
             dto.setDeathDate(parseDateSafely(row[25]));
             
+            // Set image count (index 26)
+            dto.setImageCount(row[26] != null ? ((Number) row[26]).intValue() : 0);
+            
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
             

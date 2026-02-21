@@ -44,13 +44,20 @@
                             <option value="age_at_release" th:selected="${sortBy == 'age_at_release'}">Age at Release</option>
                             <option value="album" th:selected="${sortBy == 'album'}">Album</option>
                             <option value="artist" th:selected="${sortBy == 'artist'}">Artist</option>
+                            <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
+                            <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
                             <option value="first_listened" th:selected="${sortBy == 'first_listened'}">First Listened</option>
+                            <option value="image_count" th:selected="${sortBy == 'image_count'}">Image Count</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
                             <option value="length" th:selected="${sortBy == 'length'}">Length</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
                             <option value="release_date" th:selected="${sortBy == 'release_date'}">Release Date</option>
+                            <option value="seasonal_chart_peak" th:selected="${sortBy == 'seasonal_chart_peak'}">Seasonal Chart Peak</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="weekly_chart_peak" th:selected="${sortBy == 'weekly_chart_peak'}">Weekly Chart Peak</option>
+                            <option value="weekly_chart_weeks" th:selected="${sortBy == 'weekly_chart_weeks'}">Weekly Chart Total Weeks</option>
+                            <option value="yearly_chart_peak" th:selected="${sortBy == 'yearly_chart_peak'}">Yearly Chart Peak</option>
                         </select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
                                 th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
@@ -1430,6 +1437,38 @@
                            th:href="@{/graphs(filterType='subgenre',filterId=${song.subgenreId},filterName=${song.subgenreName})}"
                            class="winning-chip subgenre" th:text="${song.subgenreName}" title="Subgenre"></a>
                     </div>
+
+                    <!-- Sort metric display (only for non-visible metrics) -->
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'artist' and sortBy != 'album' and sortBy != 'time'}">
+                        <span class="sort-metric-label" th:switch="${sortBy}">
+                            <th:block th:case="'length'">Length:</th:block>
+                            <th:block th:case="'release_date'">Released:</th:block>
+                            <th:block th:case="'first_listened'">First Listened:</th:block>
+                            <th:block th:case="'last_listened'">Last Listened:</th:block>
+                            <th:block th:case="'age_at_release'">Age at Release:</th:block>
+                            <th:block th:case="'birth_date'">Born:</th:block>
+                            <th:block th:case="'death_date'">Died:</th:block>
+                            <th:block th:case="'image_count'">Images:</th:block>
+                            <th:block th:case="'seasonal_chart_peak'">Seasonal Peak:</th:block>
+                            <th:block th:case="'weekly_chart_peak'">Weekly Peak:</th:block>
+                            <th:block th:case="'weekly_chart_weeks'">Weekly Weeks:</th:block>
+                            <th:block th:case="'yearly_chart_peak'">Yearly Peak:</th:block>
+                        </span>
+                        <span class="sort-metric-value" th:switch="${sortBy}">
+                            <th:block th:case="'length'" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}"></th:block>
+                            <th:block th:case="'release_date'" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}"></th:block>
+                            <th:block th:case="'first_listened'" th:text="${song.firstListenedDate != null ? song.firstListenedDate : 'N/A'}"></th:block>
+                            <th:block th:case="'last_listened'" th:text="${song.lastListenedDate != null ? song.lastListenedDate : 'N/A'}"></th:block>
+                            <th:block th:case="'age_at_release'" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}"></th:block>
+                            <th:block th:case="'birth_date'" th:text="${song.birthDate != null ? song.birthDate : 'N/A'}"></th:block>
+                            <th:block th:case="'death_date'" th:text="${song.deathDate != null ? song.deathDate : 'N/A'}"></th:block>
+                            <th:block th:case="'image_count'" th:text="${song.imageCount}"></th:block>
+                            <th:block th:case="'seasonal_chart_peak'" th:text="${song.seasonalChartPeak != null ? '#' + song.seasonalChartPeak + (song.seasonalChartPeakPeriod != null ? ' (' + song.seasonalChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'weekly_chart_peak'" th:text="${song.weeklyChartPeak != null ? '#' + song.weeklyChartPeak + (song.weeklyChartPeakStartDate != null ? ' (' + song.weeklyChartPeakStartDate + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'weekly_chart_weeks'" th:text="${song.weeklyChartWeeks}"></th:block>
+                            <th:block th:case="'yearly_chart_peak'" th:text="${song.yearlyChartPeak != null ? '#' + song.yearlyChartPeak + (song.yearlyChartPeakPeriod != null ? ' (' + song.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
+                        </span>
+                    </div>
                     
                     <div class="song-stats song-stats-plays">
                         <div class="stat" title="Primary plays">
@@ -1446,7 +1485,7 @@
                         </div>
                     </div>
                     <div class="song-stats song-stats-row2">
-                        <div class="stat">
+                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
                             <span class="stat-value" th:text="${song.timeListenedFormatted}">0m</span>
                         </div>
@@ -1454,22 +1493,7 @@
                             <span class="stat-icon" th:text="${song.organized != null and song.organized ? '📦' : '📬'}">📬</span>
                         </div>
                     </div>
-                    
-                    <!-- Date information section -->
-                    <div class="song-dates" th:if="${(song.releaseDate != null and !#strings.isEmpty(song.releaseDate)) or (song.firstListenedDate != null and !#strings.isEmpty(song.firstListenedDate)) or (song.lastListenedDate != null and !#strings.isEmpty(song.lastListenedDate))}">
-                        <div class="date-item" th:if="${song.releaseDate != null and !#strings.isEmpty(song.releaseDate)}">
-                            <span class="date-label">Released:</span>
-                            <span class="date-value" th:text="${song.releaseDate}"></span>
-                        </div>
-                        <div class="date-item" th:if="${song.firstListenedDate != null and !#strings.isEmpty(song.firstListenedDate)}">
-                            <span class="date-label">First Listened:</span>
-                            <span class="date-value" th:text="${song.firstListenedDate}"></span>
-                        </div>
-                        <div class="date-item" th:if="${song.lastListenedDate != null and !#strings.isEmpty(song.lastListenedDate)}">
-                            <span class="date-label">Last Listened:</span>
-                            <span class="date-value" th:text="${song.lastListenedDate}"></span>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>

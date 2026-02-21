@@ -106,7 +106,18 @@ public class SongRepository {
                 ar.country as country,
                 s.organized,
                 CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
-                s.is_single
+                s.is_single,
+                ar.birth_date,
+                ar.death_date,
+                ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) as image_count,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal') as seasonal_chart_peak,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_peak,
+                (SELECT COUNT(DISTINCT c.id) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_weeks,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly') as yearly_chart_peak,
+                (SELECT c.period_start_date FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'weekly') ORDER BY c.period_start_date ASC LIMIT 1) as weekly_chart_peak_start_date,
+                (SELECT c.period_start_date FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal') ORDER BY c.period_start_date ASC LIMIT 1) as seasonal_chart_peak_start_date,
+                (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal') ORDER BY c.period_start_date ASC LIMIT 1) as seasonal_chart_peak_period,
+                (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'yearly') ORDER BY c.period_start_date ASC LIMIT 1) as yearly_chart_peak_period
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -639,6 +650,13 @@ public class SongRepository {
             case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "age_at_release" -> sql.append(" ORDER BY CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "birth_date" -> sql.append(" ORDER BY ar.birth_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "death_date" -> sql.append(" ORDER BY ar.death_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "image_count" -> sql.append(" ORDER BY image_count ").append(dir).append(", s.name");
+            case "seasonal_chart_peak" -> sql.append(" ORDER BY seasonal_chart_peak ").append(dir).append(" NULLS LAST, seasonal_chart_peak_start_date DESC NULLS LAST, s.name");
+            case "weekly_chart_peak" -> sql.append(" ORDER BY weekly_chart_peak ").append(dir).append(" NULLS LAST, weekly_chart_peak_start_date DESC NULLS LAST, s.name");
+            case "weekly_chart_weeks" -> sql.append(" ORDER BY weekly_chart_weeks ").append(dir).append(", s.name");
+            case "yearly_chart_peak" -> sql.append(" ORDER BY yearly_chart_peak ").append(dir).append(" NULLS LAST, yearly_chart_peak_period DESC NULLS LAST, s.name");
             default -> sql.append(" ORDER BY s.name ").append(dir);
         }
         
@@ -647,7 +665,7 @@ public class SongRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[29];
+            Object[] row = new Object[39];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -677,6 +695,16 @@ public class SongRepository {
             row[26] = rs.getObject("organized");
             row[27] = rs.getInt("album_has_image");
             row[28] = rs.getInt("is_single");
+            row[29] = rs.getString("birth_date");
+            row[30] = rs.getString("death_date");
+            row[31] = rs.getInt("image_count");
+            row[32] = rs.getObject("seasonal_chart_peak");
+            row[33] = rs.getObject("weekly_chart_peak");
+            row[34] = rs.getObject("weekly_chart_weeks");
+            row[35] = rs.getObject("yearly_chart_peak");
+            row[36] = rs.getString("weekly_chart_peak_start_date");
+            row[37] = rs.getString("seasonal_chart_peak_period");
+            row[38] = rs.getString("yearly_chart_peak_period");
             return row;
         }, params.toArray());
     }
