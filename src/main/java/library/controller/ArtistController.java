@@ -832,6 +832,10 @@ public class ArtistController {
             model.addAttribute("ranksByYear", yearRanks);
         }
 
+        // Extended stats for detail page
+        model.addAttribute("soloSongCount", artistService.getSoloSongCountForArtist(id));
+        model.addAttribute("songsWithFeatCount", artistService.getSongsWithFeatCountForArtist(id));
+
         return "artists/detail";
     }
     

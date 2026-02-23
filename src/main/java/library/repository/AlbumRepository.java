@@ -112,7 +112,14 @@ public class AlbumRepository {
                 (SELECT c.period_start_date FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'weekly') ORDER BY c.period_start_date ASC LIMIT 1) as weekly_chart_peak_start_date,
                 (SELECT c.period_start_date FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'seasonal') ORDER BY c.period_start_date ASC LIMIT 1) as seasonal_chart_peak_start_date,
                 (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'seasonal') ORDER BY c.period_start_date ASC LIMIT 1) as seasonal_chart_peak_period,
-                (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'yearly') ORDER BY c.period_start_date ASC LIMIT 1) as yearly_chart_peak_period
+                (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'yearly') ORDER BY c.period_start_date ASC LIMIT 1) as yearly_chart_peak_period,
+                (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'weekly')) as weekly_chart_peak_weeks,
+                (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'seasonal')) as seasonal_chart_peak_seasons,
+                (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.album_id = a.id AND c2.chart_type = 'album' AND c2.period_type = 'yearly')) as yearly_chart_peak_years,
+                COALESCE(album_fac.featured_artist_count, 0) as featured_artist_count,
+                COALESCE(album_solo.solo_song_count, 0) as solo_song_count,
+                COALESCE(album_feat.featured_song_count, 0) as songs_with_feat_count,
+                CASE WHEN ar.birth_date IS NOT NULL AND a.release_date IS NOT NULL THEN CAST((julianday(a.release_date) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release
             FROM Album a
             LEFT JOIN Artist ar ON a.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -124,6 +131,9 @@ public class AlbumRepository {
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity e ON ar.ethnicity_id = e.id
             LEFT JOIN (SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as album_length FROM Song GROUP BY album_id) song_stats ON song_stats.album_id = a.id
+            LEFT JOIN (SELECT s.album_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id WHERE s.album_id IS NOT NULL GROUP BY s.album_id) album_fac ON album_fac.album_id = a.id
+            LEFT JOIN (SELECT s.album_id, COUNT(*) as solo_song_count FROM Song s WHERE s.album_id IS NOT NULL AND s.id NOT IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa) GROUP BY s.album_id) album_solo ON album_solo.album_id = a.id
+            LEFT JOIN (SELECT s.album_id, COUNT(*) as featured_song_count FROM Song s WHERE s.album_id IS NOT NULL AND s.id IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa) GROUP BY s.album_id) album_feat ON album_feat.album_id = a.id
             """);
         
         // Use INNER JOIN when account filter is includes mode OR when listened date filter is active (for better performance)
@@ -638,8 +648,20 @@ public class AlbumRepository {
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         switch (sortBy != null ? sortBy : "name") {
             case "artist" -> sql.append(" ORDER BY ar.name " + direction + ", a.name");
+            case "avg_length" -> sql.append(" ORDER BY CAST(COALESCE(song_stats.album_length, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name");
+            case "avg_plays" -> sql.append(" ORDER BY CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name");
+            case "country" -> sql.append(" ORDER BY ar.country " + direction + " NULLS LAST, a.name");
+            case "ethnicity" -> sql.append(" ORDER BY e.name " + direction + " NULLS LAST, a.name");
+            case "featured_artist_count" -> sql.append(" ORDER BY COALESCE(album_fac.featured_artist_count, 0) " + direction + ", a.name");
+            case "genre" -> sql.append(" ORDER BY COALESCE(g_override.name, g_artist.name) " + direction + " NULLS LAST, a.name");
+            case "language" -> sql.append(" ORDER BY COALESCE(l_override.name, l_artist.name) " + direction + " NULLS LAST, a.name");
+            case "legacy_plays" -> sql.append(" ORDER BY COALESCE(play_stats.robertlover_play_count, 0) " + direction + ", a.name");
+            case "primary_plays" -> sql.append(" ORDER BY COALESCE(play_stats.vatito_play_count, 0) " + direction + ", a.name");
             case "release_date" -> sql.append(" ORDER BY a.release_date " + direction + " NULLS LAST, a.name");
+            case "solo_songs" -> sql.append(" ORDER BY COALESCE(album_solo.solo_song_count, 0) " + direction + ", a.name");
             case "song_count" -> sql.append(" ORDER BY song_count " + direction + ", a.name");
+            case "songs_with_features" -> sql.append(" ORDER BY COALESCE(album_feat.featured_song_count, 0) " + direction + ", a.name");
+            case "subgenre" -> sql.append(" ORDER BY COALESCE(sg_override.name, sg_artist.name) " + direction + " NULLS LAST, a.name");
             case "album_length" -> sql.append(" ORDER BY album_length " + direction + ", a.name");
             case "plays" -> sql.append(" ORDER BY play_count " + direction + ", a.name");
             case "time" -> sql.append(" ORDER BY time_listened " + direction + ", a.name");
@@ -661,7 +683,7 @@ public class AlbumRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[36];
+            Object[] row = new Object[44];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -698,6 +720,14 @@ public class AlbumRepository {
             row[33] = rs.getString("weekly_chart_peak_start_date");
             row[34] = rs.getString("seasonal_chart_peak_period");
             row[35] = rs.getString("yearly_chart_peak_period");
+            row[36] = rs.getString("seasonal_chart_peak_start_date");
+            row[37] = rs.getInt("featured_artist_count");
+            row[38] = rs.getInt("solo_song_count");
+            row[39] = rs.getInt("songs_with_feat_count");
+            row[40] = rs.getObject("age_at_release");
+            row[41] = rs.getObject("weekly_chart_peak_weeks");
+            row[42] = rs.getObject("seasonal_chart_peak_seasons");
+            row[43] = rs.getObject("yearly_chart_peak_years");
             return row;
         }, params.toArray());
     }

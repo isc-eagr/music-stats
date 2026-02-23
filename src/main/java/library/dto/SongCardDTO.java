@@ -43,6 +43,9 @@ public class SongCardDTO {
     private String weeklyChartPeakStartDate; // Start date of the week when weekly peak was first reached
     private String seasonalChartPeakPeriod; // Period key when seasonal peak was first reached
     private String yearlyChartPeakPeriod; // Period key when yearly peak was first reached
+    private Integer weeklyChartPeakWeeks; // Number of weeks spent at the peak position
+    private Integer seasonalChartPeakSeasons; // Number of seasons spent at the peak position
+    private Integer yearlyChartPeakYears; // Number of years spent at the peak position
 
     // Getters and Setters
     public Integer getId() {
@@ -387,5 +390,48 @@ public class SongCardDTO {
 
     public void setYearlyChartPeakPeriod(String yearlyChartPeakPeriod) {
         this.yearlyChartPeakPeriod = yearlyChartPeakPeriod;
+    }
+
+    private Integer ageAtRelease;
+    private Integer featuredArtistCount;
+
+    public Integer getAgeAtRelease() {
+        return ageAtRelease;
+    }
+
+    public void setAgeAtRelease(Integer ageAtRelease) {
+        this.ageAtRelease = ageAtRelease;
+    }
+
+    public Integer getFeaturedArtistCount() {
+        return featuredArtistCount;
+    }
+
+    public void setFeaturedArtistCount(Integer featuredArtistCount) {
+        this.featuredArtistCount = featuredArtistCount;
+    }
+
+    public Integer getWeeklyChartPeakWeeks() {
+        return weeklyChartPeakWeeks;
+    }
+
+    public void setWeeklyChartPeakWeeks(Integer weeklyChartPeakWeeks) {
+        this.weeklyChartPeakWeeks = weeklyChartPeakWeeks;
+    }
+
+    public Integer getSeasonalChartPeakSeasons() {
+        return seasonalChartPeakSeasons;
+    }
+
+    public void setSeasonalChartPeakSeasons(Integer seasonalChartPeakSeasons) {
+        this.seasonalChartPeakSeasons = seasonalChartPeakSeasons;
+    }
+
+    public Integer getYearlyChartPeakYears() {
+        return yearlyChartPeakYears;
+    }
+
+    public void setYearlyChartPeakYears(Integer yearlyChartPeakYears) {
+        this.yearlyChartPeakYears = yearlyChartPeakYears;
     }
 }

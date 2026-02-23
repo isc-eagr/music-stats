@@ -535,6 +535,20 @@ public class SongController {
         model.addAttribute("rankByArtist", songService.getSongRankByArtist(id));
         model.addAttribute("rankByAlbum", songService.getSongRankByAlbum(id));
 
+        // Extended stats for detail page - age at release
+        if (artist != null && artist.getBirthDate() != null) {
+            java.time.LocalDate effectiveReleaseDate = null;
+            if (song.get().getReleaseDate() != null) {
+                effectiveReleaseDate = song.get().getReleaseDate().toLocalDate();
+            } else if (album != null && album.getReleaseDate() != null) {
+                effectiveReleaseDate = album.getReleaseDate().toLocalDate();
+            }
+            if (effectiveReleaseDate != null) {
+                long ageAtRelease = java.time.temporal.ChronoUnit.YEARS.between(artist.getBirthDate(), effectiveReleaseDate);
+                model.addAttribute("ageAtRelease", ageAtRelease);
+            }
+        }
+
         return "songs/detail";
     }
     

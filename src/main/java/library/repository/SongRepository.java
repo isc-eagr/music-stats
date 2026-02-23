@@ -117,7 +117,12 @@ public class SongRepository {
                 (SELECT c.period_start_date FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'weekly') ORDER BY c.period_start_date ASC LIMIT 1) as weekly_chart_peak_start_date,
                 (SELECT c.period_start_date FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal') ORDER BY c.period_start_date ASC LIMIT 1) as seasonal_chart_peak_start_date,
                 (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal') ORDER BY c.period_start_date ASC LIMIT 1) as seasonal_chart_peak_period,
-                (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'yearly') ORDER BY c.period_start_date ASC LIMIT 1) as yearly_chart_peak_period
+                (SELECT c.period_key FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'yearly') ORDER BY c.period_start_date ASC LIMIT 1) as yearly_chart_peak_period,
+                (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'weekly')) as weekly_chart_peak_weeks,
+                (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal')) as seasonal_chart_peak_seasons,
+                (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'yearly')) as yearly_chart_peak_years,
+                COALESCE(fac.featured_artist_count, 0) as featured_artist_count,
+                CASE WHEN ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL THEN CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -132,6 +137,7 @@ public class SongRepository {
             LEFT JOIN Language l_album ON alb.override_language_id = l_album.id
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity e ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = e.id
+            LEFT JOIN (SELECT song_id, COUNT(*) as featured_artist_count FROM SongFeaturedArtist GROUP BY song_id) fac ON fac.song_id = s.id
             """);
         
         // Use INNER JOIN when account filter is includes mode or when listened date filter is applied
@@ -643,9 +649,17 @@ public class SongRepository {
         switch (sortBy != null ? sortBy : "name") {
             case "artist" -> sql.append(" ORDER BY ar.name ").append(dir).append(", s.name");
             case "album" -> sql.append(" ORDER BY alb.name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "country" -> sql.append(" ORDER BY ar.country ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "ethnicity" -> sql.append(" ORDER BY e.name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "featured_artist_count" -> sql.append(" ORDER BY featured_artist_count ").append(dir).append(", s.name");
             case "release_date" -> sql.append(" ORDER BY COALESCE(s.release_date, alb.release_date) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "genre" -> sql.append(" ORDER BY genre_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "language" -> sql.append(" ORDER BY language_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "legacy_plays" -> sql.append(" ORDER BY robertlover_play_count ").append(dir).append(", s.name");
             case "length" -> sql.append(" ORDER BY s.length_seconds ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "plays" -> sql.append(" ORDER BY play_count ").append(dir).append(", s.name");
+            case "primary_plays" -> sql.append(" ORDER BY vatito_play_count ").append(dir).append(", s.name");
+            case "subgenre" -> sql.append(" ORDER BY subgenre_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(", s.name");
             case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
@@ -665,7 +679,7 @@ public class SongRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[39];
+            Object[] row = new Object[45];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -705,6 +719,12 @@ public class SongRepository {
             row[36] = rs.getString("weekly_chart_peak_start_date");
             row[37] = rs.getString("seasonal_chart_peak_period");
             row[38] = rs.getString("yearly_chart_peak_period");
+            row[39] = rs.getString("seasonal_chart_peak_start_date");
+            row[40] = rs.getInt("featured_artist_count");
+            row[41] = rs.getObject("age_at_release");
+            row[42] = rs.getObject("weekly_chart_peak_weeks");
+            row[43] = rs.getObject("seasonal_chart_peak_seasons");
+            row[44] = rs.getObject("yearly_chart_peak_years");
             return row;
         }, params.toArray());
     }
@@ -6187,6 +6207,16 @@ public class SongRepository {
                     ar.language_id,
                     lang.name as language,
                     ar.country,
+                    ar.birth_date,
+                    ar.death_date,
+                    CASE WHEN ar.birth_date IS NOT NULL THEN CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age,
+                    COALESCE(ac.album_count, 0) as album_count,
+                    COALESCE(sc.song_count, 0) as all_song_count,
+                    CASE WHEN COALESCE(sc.song_count, 0) > 0 THEN CAST(COALESCE(sc.total_length, 0) AS REAL) / sc.song_count ELSE NULL END as avg_length,
+                    COALESCE(foc.featured_on_count, 0) as featured_on_count,
+                    COALESCE(fac.featured_artist_count, 0) as featured_artist_count,
+                    COALESCE(ssc.solo_song_count, 0) as solo_song_count,
+                    COALESCE(swfc.songs_with_feat_count, 0) as songs_with_feat_count,
                     COALESCE(agg.plays, 0) as plays,
                     COALESCE(agg.primary_plays, 0) as primary_plays,
                     COALESCE(agg.legacy_plays, 0) as legacy_plays,
@@ -6198,6 +6228,12 @@ public class SongRepository {
                 LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
                 LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
                 LEFT JOIN Language lang ON ar.language_id = lang.id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) ac ON ar.id = ac.artist_id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as song_count, SUM(length_seconds) as total_length FROM Song GROUP BY artist_id) sc ON ar.id = sc.artist_id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as featured_on_count FROM SongFeaturedArtist GROUP BY artist_id) foc ON ar.id = foc.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count FROM Song s2 INNER JOIN SongFeaturedArtist sfa ON s2.id = sfa.song_id GROUP BY s2.artist_id) fac ON ar.id = fac.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(*) as solo_song_count FROM Song s2 WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s2.id) GROUP BY s2.artist_id) ssc ON ar.id = ssc.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(*) as songs_with_feat_count FROM Song s2 WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s2.id) GROUP BY s2.artist_id) swfc ON ar.id = swfc.artist_id
                 INNER JOIN (
                     SELECT 
                         s.artist_id,
@@ -6251,6 +6287,16 @@ public class SongRepository {
                     ar.language_id,
                     lang.name as language,
                     ar.country,
+                    ar.birth_date,
+                    ar.death_date,
+                    CASE WHEN ar.birth_date IS NOT NULL THEN CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age,
+                    COALESCE(ac.album_count, 0) as album_count,
+                    COALESCE(sc.song_count, 0) as all_song_count,
+                    CASE WHEN COALESCE(sc.song_count, 0) > 0 THEN CAST(COALESCE(sc.total_length, 0) AS REAL) / sc.song_count ELSE NULL END as avg_length,
+                    COALESCE(foc.featured_on_count, 0) as featured_on_count,
+                    COALESCE(fac.featured_artist_count, 0) as featured_artist_count,
+                    COALESCE(ssc.solo_song_count, 0) as solo_song_count,
+                    COALESCE(swfc.songs_with_feat_count, 0) as songs_with_feat_count,
                     COALESCE(agg.plays, 0) as plays,
                     COALESCE(agg.primary_plays, 0) as primary_plays,
                     COALESCE(agg.legacy_plays, 0) as legacy_plays,
@@ -6262,6 +6308,12 @@ public class SongRepository {
                 LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
                 LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
                 LEFT JOIN Language lang ON ar.language_id = lang.id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) ac ON ar.id = ac.artist_id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as song_count, SUM(length_seconds) as total_length FROM Song GROUP BY artist_id) sc ON ar.id = sc.artist_id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as featured_on_count FROM SongFeaturedArtist GROUP BY artist_id) foc ON ar.id = foc.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count FROM Song s2 INNER JOIN SongFeaturedArtist sfa ON s2.id = sfa.song_id GROUP BY s2.artist_id) fac ON ar.id = fac.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(*) as solo_song_count FROM Song s2 WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s2.id) GROUP BY s2.artist_id) ssc ON ar.id = ssc.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(*) as songs_with_feat_count FROM Song s2 WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s2.id) GROUP BY s2.artist_id) swfc ON ar.id = swfc.artist_id
                 INNER JOIN (
                     SELECT 
                         s.artist_id,
@@ -6380,6 +6432,16 @@ public class SongRepository {
                     ar.language_id,
                     lang.name as language,
                     ar.country,
+                    ar.birth_date,
+                    ar.death_date,
+                    CASE WHEN ar.birth_date IS NOT NULL THEN CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age,
+                    COALESCE(ac.album_count, 0) as album_count,
+                    COALESCE(sc.song_count, 0) as all_song_count,
+                    CASE WHEN COALESCE(sc.song_count, 0) > 0 THEN CAST(COALESCE(sc.total_length, 0) AS REAL) / sc.song_count ELSE NULL END as avg_length,
+                    COALESCE(foc.featured_on_count, 0) as featured_on_count,
+                    COALESCE(fac.featured_artist_count, 0) as featured_artist_count,
+                    COALESCE(ssc.solo_song_count, 0) as solo_song_count,
+                    COALESCE(swfc.songs_with_feat_count, 0) as songs_with_feat_count,
                     agg.plays,
                     agg.primary_plays,
                     agg.legacy_plays,
@@ -6391,6 +6453,12 @@ public class SongRepository {
                 LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
                 LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
                 LEFT JOIN Language lang ON ar.language_id = lang.id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) ac ON ar.id = ac.artist_id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as song_count, SUM(length_seconds) as total_length FROM Song GROUP BY artist_id) sc ON ar.id = sc.artist_id
+                LEFT JOIN (SELECT artist_id, COUNT(*) as featured_on_count FROM SongFeaturedArtist GROUP BY artist_id) foc ON ar.id = foc.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count FROM Song s2 INNER JOIN SongFeaturedArtist sfa ON s2.id = sfa.song_id GROUP BY s2.artist_id) fac ON ar.id = fac.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(*) as solo_song_count FROM Song s2 WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s2.id) GROUP BY s2.artist_id) ssc ON ar.id = ssc.artist_id
+                LEFT JOIN (SELECT s2.artist_id, COUNT(*) as songs_with_feat_count FROM Song s2 WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s2.id) GROUP BY s2.artist_id) swfc ON ar.id = swfc.artist_id
                 INNER JOIN (
                     SELECT 
                         attributed_artist_id,
@@ -6426,6 +6494,28 @@ public class SongRepository {
             row.put("languageId", rs.getObject("language_id"));
             row.put("language", rs.getString("language"));
             row.put("country", rs.getString("country"));
+            row.put("birthDate", formatDate(rs.getString("birth_date")));
+            row.put("deathDate", formatDate(rs.getString("death_date")));
+            int age = rs.getInt("age");
+            row.put("age", rs.wasNull() ? null : age);
+            row.put("albumCount", rs.getInt("album_count"));
+            int songCount = rs.getInt("all_song_count");
+            row.put("songCount", songCount);
+            double avgLength = rs.getDouble("avg_length");
+            row.put("avgLength", rs.wasNull() ? null : avgLength);
+            if (!rs.wasNull() && avgLength > 0) {
+                int avgMins = (int) avgLength / 60;
+                int avgSecs = (int) avgLength % 60;
+                row.put("avgLengthFormatted", String.format("%d:%02d", avgMins, avgSecs));
+            } else {
+                row.put("avgLengthFormatted", null);
+            }
+            long plays2 = rs.getLong("plays");
+            row.put("avgPlays", songCount > 0 ? Math.round((double) plays2 / songCount * 100.0) / 100.0 : null);
+            row.put("featuredOnCount", rs.getInt("featured_on_count"));
+            row.put("featuredArtistCount", rs.getInt("featured_artist_count"));
+            row.put("soloSongCount", rs.getInt("solo_song_count"));
+            row.put("songsWithFeatCount", rs.getInt("songs_with_feat_count"));
             row.put("plays", rs.getLong("plays"));
             row.put("primaryPlays", rs.getLong("primary_plays"));
             row.put("legacyPlays", rs.getLong("legacy_plays"));
@@ -6485,6 +6575,16 @@ public class SongRepository {
                 lang.name as language,
                 ar.country,
                 album_len.album_length,
+                CASE WHEN ar.birth_date IS NOT NULL AND alb.release_date IS NOT NULL THEN CAST((julianday(alb.release_date) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release,
+                COALESCE(album_sc.song_count, 0) as song_count,
+                CASE WHEN COALESCE(album_sc.song_count, 0) > 0 THEN CAST(COALESCE(album_len.album_length, 0) AS REAL) / album_sc.song_count ELSE NULL END as avg_length,
+                COALESCE(album_fac.featured_artist_count, 0) as featured_artist_count,
+                COALESCE(album_ssc.solo_song_count, 0) as solo_song_count,
+                COALESCE(album_swfc.songs_with_feat_count, 0) as songs_with_feat_count,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'seasonal') as seasonal_chart_peak,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'weekly') as weekly_chart_peak,
+                (SELECT COUNT(DISTINCT c.id) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'weekly') as weekly_chart_weeks,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'yearly') as yearly_chart_peak,
                 COALESCE(agg.plays, 0) as plays,
                 COALESCE(agg.primary_plays, 0) as primary_plays,
                 COALESCE(agg.legacy_plays, 0) as legacy_plays,
@@ -6503,6 +6603,10 @@ public class SongRepository {
                 WHERE album_id IS NOT NULL
                 GROUP BY album_id
             ) album_len ON alb.id = album_len.album_id
+            LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_sc ON alb.id = album_sc.album_id
+            LEFT JOIN (SELECT s3.album_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count FROM Song s3 INNER JOIN SongFeaturedArtist sfa ON s3.id = sfa.song_id WHERE s3.album_id IS NOT NULL GROUP BY s3.album_id) album_fac ON alb.id = album_fac.album_id
+            LEFT JOIN (SELECT s3.album_id, COUNT(*) as solo_song_count FROM Song s3 WHERE s3.album_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s3.id) GROUP BY s3.album_id) album_ssc ON alb.id = album_ssc.album_id
+            LEFT JOIN (SELECT s3.album_id, COUNT(*) as songs_with_feat_count FROM Song s3 WHERE s3.album_id IS NOT NULL AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s3.id) GROUP BY s3.album_id) album_swfc ON alb.id = album_swfc.album_id
             LEFT JOIN (
                 SELECT 
                     s.album_id,
@@ -6554,6 +6658,30 @@ public class SongRepository {
             row.put("languageId", rs.getObject("effective_language_id"));
             row.put("language", rs.getString("language"));
             row.put("country", rs.getString("country"));
+            // Add new stats columns
+            int ageAtRelease = rs.getInt("age_at_release");
+            row.put("ageAtRelease", rs.wasNull() ? null : ageAtRelease);
+            int songCount = rs.getInt("song_count");
+            row.put("songCount", songCount);
+            double avgLengthVal = rs.getDouble("avg_length");
+            row.put("avgLength", rs.wasNull() ? null : avgLengthVal);
+            if (!rs.wasNull() && avgLengthVal > 0) {
+                int avgMins = (int) avgLengthVal / 60;
+                int avgSecs = (int) avgLengthVal % 60;
+                row.put("avgLengthFormatted", String.format("%d:%02d", avgMins, avgSecs));
+            } else {
+                row.put("avgLengthFormatted", null);
+            }
+            row.put("featuredArtistCount", rs.getInt("featured_artist_count"));
+            row.put("soloSongCount", rs.getInt("solo_song_count"));
+            row.put("songsWithFeatCount", rs.getInt("songs_with_feat_count"));
+            int seasonalPeak = rs.getInt("seasonal_chart_peak");
+            row.put("seasonalChartPeak", rs.wasNull() ? null : seasonalPeak);
+            int weeklyPeak = rs.getInt("weekly_chart_peak");
+            row.put("weeklyChartPeak", rs.wasNull() ? null : weeklyPeak);
+            row.put("weeklyChartWeeks", rs.getInt("weekly_chart_weeks"));
+            int yearlyPeak = rs.getInt("yearly_chart_peak");
+            row.put("yearlyChartPeak", rs.wasNull() ? null : yearlyPeak);
             // Add album length
             int albumLength = rs.getInt("album_length");
             if (!rs.wasNull() && albumLength > 0) {
@@ -6570,7 +6698,9 @@ public class SongRepository {
                 row.put("length", null);
                 row.put("lengthFormatted", null);
             }
-            row.put("plays", rs.getLong("plays"));
+            long albumPlays = rs.getLong("plays");
+            row.put("plays", albumPlays);
+            row.put("avgPlays", songCount > 0 ? Math.round((double) albumPlays / songCount * 100.0) / 100.0 : null);
             row.put("primaryPlays", rs.getLong("primary_plays"));
             row.put("legacyPlays", rs.getLong("legacy_plays"));
             long timeListened = rs.getLong("time_listened");
@@ -6664,6 +6794,12 @@ public class SongRepository {
                 s.is_single,
                 CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END as has_image,
                 CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
+                CASE WHEN ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL THEN CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release,
+                (SELECT COUNT(*) FROM SongFeaturedArtist sfa3 WHERE sfa3.song_id = s.id) as featured_artist_count,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal') as seasonal_chart_peak,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_peak,
+                (SELECT COUNT(DISTINCT c.id) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_weeks,
+                (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly') as yearly_chart_peak,
                 COALESCE(play_stats.plays, 0) as plays,
                 COALESCE(play_stats.primary_plays, 0) as primary_plays,
                 COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
@@ -6747,6 +6883,16 @@ public class SongRepository {
             row.put("isSingle", rs.getInt("is_single") == 1);
             row.put("hasImage", rs.getInt("has_image") == 1);
             row.put("albumHasImage", rs.getInt("album_has_image") == 1);
+            int songAgeAtRelease = rs.getInt("age_at_release");
+            row.put("ageAtRelease", rs.wasNull() ? null : songAgeAtRelease);
+            row.put("featuredArtistCount", rs.getInt("featured_artist_count"));
+            int songSeasonalPeak = rs.getInt("seasonal_chart_peak");
+            row.put("seasonalChartPeak", rs.wasNull() ? null : songSeasonalPeak);
+            int songWeeklyPeak = rs.getInt("weekly_chart_peak");
+            row.put("weeklyChartPeak", rs.wasNull() ? null : songWeeklyPeak);
+            row.put("weeklyChartWeeks", rs.getInt("weekly_chart_weeks"));
+            int songYearlyPeak = rs.getInt("yearly_chart_peak");
+            row.put("yearlyChartPeak", rs.wasNull() ? null : songYearlyPeak);
             row.put("plays", rs.getLong("plays"));
             row.put("primaryPlays", rs.getLong("primary_plays"));
             row.put("legacyPlays", rs.getLong("legacy_plays"));

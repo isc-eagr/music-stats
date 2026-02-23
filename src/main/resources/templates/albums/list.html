@@ -40,19 +40,31 @@
                         <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
                         <select id="sortBySelect" onchange="changeSortBy(this.value)">
                             <option value="age_at_release" th:selected="${sortBy == 'age_at_release'}">Age at Release</option>
-                            <option value="album_length" th:selected="${sortBy == 'album_length'}">Album Length</option>
                             <option value="artist" th:selected="${sortBy == 'artist'}">Artist</option>
+                            <option value="avg_length" th:selected="${sortBy == 'avg_length'}">Average Length</option>
+                            <option value="avg_plays" th:selected="${sortBy == 'avg_plays'}">Average Plays</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
+                            <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
+                            <option value="ethnicity" th:selected="${sortBy == 'ethnicity'}">Ethnicity</option>
+                            <option value="featured_artist_count" th:selected="${sortBy == 'featured_artist_count'}">Featured Artist Count</option>
                             <option value="first_listened" th:selected="${sortBy == 'first_listened'}">First Listened</option>
+                            <option value="genre" th:selected="${sortBy == 'genre'}">Genre</option>
                             <option value="image_count" th:selected="${sortBy == 'image_count'}">Image Count</option>
+                            <option value="language" th:selected="${sortBy == 'language'}">Language</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
+                            <option value="legacy_plays" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
+                            <option value="album_length" th:selected="${sortBy == 'album_length'}">Length</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
-                            <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="primary_plays" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
                             <option value="release_date" th:selected="${sortBy == 'release_date'}">Release Date</option>
                             <option value="seasonal_chart_peak" th:selected="${sortBy == 'seasonal_chart_peak'}">Seasonal Chart Peak</option>
+                            <option value="solo_songs" th:selected="${sortBy == 'solo_songs'}">Solo Songs</option>
                             <option value="song_count" th:selected="${sortBy == 'song_count'}">Song Count</option>
+                            <option value="songs_with_features" th:selected="${sortBy == 'songs_with_features'}">Songs with Features</option>
+                            <option value="subgenre" th:selected="${sortBy == 'subgenre'}">Subgenre</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="plays" th:selected="${sortBy == 'plays'}">Total Plays</option>
                             <option value="weekly_chart_peak" th:selected="${sortBy == 'weekly_chart_peak'}">Weekly Chart Peak</option>
                             <option value="weekly_chart_weeks" th:selected="${sortBy == 'weekly_chart_weeks'}">Weekly Chart Total Weeks</option>
                             <option value="yearly_chart_peak" th:selected="${sortBy == 'yearly_chart_peak'}">Yearly Chart Peak</option>
@@ -616,12 +628,14 @@
                                                     th:classappend="${lengthMode == 'nonzero'} ? 'active' : ''">Non-Zero</button>
                                         </div>
                                         <input type="hidden" autocomplete="off" name="lengthMode" id="lengthModeInput" th:value="${lengthMode}" />
+                                        <input type="hidden" name="lengthMin" id="lengthMinHidden" th:value="${lengthMin}" />
+                                        <input type="hidden" name="lengthMax" id="lengthMaxHidden" th:value="${lengthMax}" />
                                         <div class="filter-group" id="lengthInputs">
-                                            <label class="field"><span>Min (seconds)</span>
-                                                <input type="number" autocomplete="off" name="lengthMin" th:value="${lengthMin}" placeholder="0" min="0" style="width: 100%;" />
+                                            <label class="field"><span>Min (h:mm:ss)</span>
+                                                <input type="text" autocomplete="off" id="lengthMinDisplay" placeholder="0:00" style="width: 100%;" />
                                             </label>
-                                            <label class="field" style="margin-top: 8px;"><span>Max (seconds)</span>
-                                                <input type="number" autocomplete="off" name="lengthMax" th:value="${lengthMax}" placeholder="∞" min="0" style="width: 100%;" />
+                                            <label class="field" style="margin-top: 8px;"><span>Max (h:mm:ss)</span>
+                                                <input type="text" autocomplete="off" id="lengthMaxDisplay" placeholder="∞" style="width: 100%;" />
                                             </label>
                                         </div>
                                     </div>
@@ -1179,7 +1193,7 @@
                     <span th:if="${playCountMax != null}" th:text="${playCountMax}"></span>
                     <span th:if="${playCountMax == null}">∞</span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('playCountMin'); removeFilter('playCountMax');" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('playCountMin', 'playCountMax')" type="button">×</button>
             </div>
             
             <!-- Song count filter chip -->
@@ -1192,26 +1206,26 @@
                     <span th:if="${songCountMax != null}" th:text="${songCountMax}"></span>
                     <span th:if="${songCountMax == null}">∞</span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('songCountMin'); removeFilter('songCountMax');" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('songCountMin', 'songCountMax')" type="button">×</button>
             </div>
             
             <!-- Length filter chip -->
             <div class="filter-chip" th:if="${lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero'))}">
                 <span class="filter-chip-label">
-                    ⏱️ Length:
+                    Length:
                     <span th:if="${lengthMode == 'zero'}">Zero/Null</span>
                     <span th:if="${lengthMode == 'nonzero'}">Non-Zero</span>
-                    <span th:if="${lengthMode == 'lt' and lengthMax != null}" th:text="'&lt; ' + ${lengthMax} + 's'"></span>
-                    <span th:if="${lengthMode == 'gt' and lengthMin != null}" th:text="'&gt; ' + ${lengthMin} + 's'"></span>
+                    <span th:if="${lengthMode == 'lt' and lengthMax != null}">&lt; <span class="length-chip-value" th:data-seconds="${lengthMax}"></span></span>
+                    <span th:if="${lengthMode == 'gt' and lengthMin != null}">&gt; <span class="length-chip-value" th:data-seconds="${lengthMin}"></span></span>
                     <span th:if="${lengthMode != 'zero' and lengthMode != 'nonzero' and lengthMode != 'lt' and lengthMode != 'gt'}">
-                        <span th:if="${lengthMin != null}" th:text="${lengthMin} + 's'"></span>
-                        <span th:if="${lengthMin == null}">0s</span>
+                        <span th:if="${lengthMin != null}" class="length-chip-value" th:data-seconds="${lengthMin}"></span>
+                        <span th:if="${lengthMin == null}">0:00</span>
                         -
-                        <span th:if="${lengthMax != null}" th:text="${lengthMax} + 's'"></span>
+                        <span th:if="${lengthMax != null}" class="length-chip-value" th:data-seconds="${lengthMax}"></span>
                         <span th:if="${lengthMax == null}">∞</span>
                     </span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('lengthMin'); removeFilter('lengthMax'); removeFilter('lengthMode');" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('lengthMin', 'lengthMax', 'lengthMode')" type="button">×</button>
             </div>
             
             <!-- Weekly Chart filter chip -->
@@ -1222,7 +1236,7 @@
                     <span th:if="${weeklyChartPeak != null and weeklyChartWeeks != null}">, </span>
                     <span th:if="${weeklyChartWeeks != null}">Weeks ≥ <span th:text="${weeklyChartWeeks}"></span></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak'); removeFilter('weeklyChartWeeks');" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartWeeks')" type="button">×</button>
             </div>
             
             <!-- Seasonal Chart filter chip -->
@@ -1233,7 +1247,7 @@
                     <span th:if="${seasonalChartPeak != null and seasonalChartSeasons != null}">, </span>
                     <span th:if="${seasonalChartSeasons != null}">Seasons ≥ <span th:text="${seasonalChartSeasons}"></span></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('seasonalChartPeak'); removeFilter('seasonalChartSeasons');" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('seasonalChartPeak', 'seasonalChartSeasons')" type="button">×</button>
             </div>
             
             <!-- Yearly Chart filter chip -->
@@ -1244,7 +1258,7 @@
                     <span th:if="${yearlyChartPeak != null and yearlyChartYears != null}">, </span>
                     <span th:if="${yearlyChartYears != null}">Years ≥ <span th:text="${yearlyChartYears}"></span></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('yearlyChartPeak'); removeFilter('yearlyChartYears');" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('yearlyChartPeak', 'yearlyChartYears')" type="button">×</button>
             </div>
             
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
@@ -1369,6 +1383,8 @@
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'artist' and sortBy != 'song_count' and sortBy != 'time'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
                             <th:block th:case="'release_date'">Released:</th:block>
+                            <th:block th:case="'avg_length'">Avg Length:</th:block>
+                            <th:block th:case="'avg_plays'">Avg Plays:</th:block>
                             <th:block th:case="'first_listened'">First Listened:</th:block>
                             <th:block th:case="'last_listened'">Last Listened:</th:block>
                             <th:block th:case="'age_at_release'">Age at Release:</th:block>
@@ -1383,6 +1399,8 @@
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'release_date'" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}"></th:block>
+                            <th:block th:case="'avg_length'" th:text="${album.avgLengthFormatted != null ? album.avgLengthFormatted : 'N/A'}"></th:block>
+                            <th:block th:case="'avg_plays'" th:text="${album.avgPlays != null ? #numbers.formatDecimal(album.avgPlays, 1, 1) : 'N/A'}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${album.firstListenedDate != null ? album.firstListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'last_listened'" th:text="${album.lastListenedDate != null ? album.lastListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'age_at_release'" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}"></th:block>
@@ -1390,10 +1408,10 @@
                             <th:block th:case="'birth_date'" th:text="${album.birthDate != null ? album.birthDate : 'N/A'}"></th:block>
                             <th:block th:case="'death_date'" th:text="${album.deathDate != null ? album.deathDate : 'N/A'}"></th:block>
                             <th:block th:case="'image_count'" th:text="${album.imageCount}"></th:block>
-                            <th:block th:case="'seasonal_chart_peak'" th:text="${album.seasonalChartPeak != null ? '#' + album.seasonalChartPeak + (album.seasonalChartPeakPeriod != null ? ' (' + album.seasonalChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
-                            <th:block th:case="'weekly_chart_peak'" th:text="${album.weeklyChartPeak != null ? '#' + album.weeklyChartPeak + (album.weeklyChartPeakStartDate != null ? ' (' + album.weeklyChartPeakStartDate + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'seasonal_chart_peak'" th:text="${album.seasonalChartPeak != null ? '#' + album.seasonalChartPeak + ' for ' + album.seasonalChartPeakSeasons + (album.seasonalChartPeakSeasons == 1 ? ' season' : ' seasons') + (album.seasonalChartPeakPeriod != null ? ' (' + album.seasonalChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'weekly_chart_peak'" th:text="${album.weeklyChartPeak != null ? '#' + album.weeklyChartPeak + ' for ' + album.weeklyChartPeakWeeks + (album.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') + (album.weeklyChartPeakStartDate != null ? ' (' + album.weeklyChartPeakStartDate + ')' : '') : 'N/A'}"></th:block>
                             <th:block th:case="'weekly_chart_weeks'" th:text="${album.weeklyChartWeeks}"></th:block>
-                            <th:block th:case="'yearly_chart_peak'" th:text="${album.yearlyChartPeak != null ? '#' + album.yearlyChartPeak + (album.yearlyChartPeakPeriod != null ? ' (' + album.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'yearly_chart_peak'" th:text="${album.yearlyChartPeak != null ? '#' + album.yearlyChartPeak + ' for ' + album.yearlyChartPeakYears + (album.yearlyChartPeakYears == 1 ? ' year' : ' years') + (album.yearlyChartPeakPeriod != null ? ' (' + album.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
                         </span>
                     </div>
                     
@@ -1404,6 +1422,10 @@
                         </div>
                     </div>
                     <div class="album-stats album-stats-plays">
+                        <div class="stat" title="Total plays">
+                            <span class="stat-icon total-plays">⏵</span>
+                            <span class="stat-value" th:text="${album.playCount}">0</span>
+                        </div>
                         <div class="stat" title="Primary plays">
                             <span class="stat-icon primary-plays">⏵</span>
                             <span class="stat-value" th:text="${album.vatitoPlayCount}">0</span>
@@ -1411,10 +1433,6 @@
                         <div class="stat" title="Legacy plays">
                             <span class="stat-icon legacy-plays">⏵</span>
                             <span class="stat-value" th:text="${album.robertloverPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${album.playCount}">0</span>
                         </div>
                     </div>
                     <div class="album-stats album-stats-row2">
@@ -1424,6 +1442,106 @@
                         </div>
                         <div class="stat" th:title="${album.organized != null and album.organized ? 'Organized' : 'Not Organized'}">
                             <span class="stat-icon" th:text="${album.organized != null and album.organized ? '📦' : '📬'}">📬</span>
+                        </div>
+                    </div>
+
+                    <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
+                    <div class="card-modal-text-stats">
+                        <div class="card-modal-text-stat">
+                            <span class="card-modal-text-stat-label">Songs</span>
+                            <span class="card-modal-text-stat-value" th:text="${album.songCount}">0</span>
+                        </div>
+                        <div class="card-modal-text-stat">
+                            <span class="card-modal-text-stat-label">Total Plays</span>
+                            <span class="card-modal-text-stat-value" th:text="${album.playCount}">0</span>
+                        </div>
+                        <div class="card-modal-text-stat">
+                            <span class="card-modal-text-stat-label">Primary Plays</span>
+                            <span class="card-modal-text-stat-value" th:text="${album.vatitoPlayCount}">0</span>
+                        </div>
+                        <div class="card-modal-text-stat">
+                            <span class="card-modal-text-stat-label">Legacy Plays</span>
+                            <span class="card-modal-text-stat-value" th:text="${album.robertloverPlayCount}">0</span>
+                        </div>
+                        <div class="card-modal-text-stat">
+                            <span class="card-modal-text-stat-label">Time Listened</span>
+                            <span class="card-modal-text-stat-value" th:text="${album.timeListenedFormatted}">0m</span>
+                        </div>
+                    </div>
+
+                    <!-- Card modal toggle -->
+                    <div class="card-expand-toggle" onclick="openCardModal(this)">
+                        <span class="expand-arrow">+</span>
+                        <span class="expand-label">More</span>
+                    </div>
+
+                    <!-- Expanded stats -->
+                    <div class="card-expanded-stats">
+                        <div class="expanded-stats-grid">
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">First Listened</span>
+                                <span class="expanded-stat-value" th:classappend="${album.firstListenedDate == null ? 'null-value' : ''}" th:text="${album.firstListenedDate != null ? album.firstListenedDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Last Listened</span>
+                                <span class="expanded-stat-value" th:classappend="${album.lastListenedDate == null ? 'null-value' : ''}" th:text="${album.lastListenedDate != null ? album.lastListenedDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Release Date</span>
+                                <span class="expanded-stat-value" th:classappend="${album.releaseDate == null ? 'null-value' : ''}" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Album Length</span>
+                                <span class="expanded-stat-value" th:classappend="${album.albumLengthFormatted == null ? 'null-value' : ''}" th:text="${album.albumLengthFormatted != null ? album.albumLengthFormatted : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Birth Date</span>
+                                <span class="expanded-stat-value" th:classappend="${album.birthDate == null ? 'null-value' : ''}" th:text="${album.birthDate != null ? album.birthDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Death Date</span>
+                                <span class="expanded-stat-value" th:classappend="${album.deathDate == null ? 'null-value' : ''}" th:text="${album.deathDate != null ? album.deathDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Age at Release</span>
+                                <span class="expanded-stat-value" th:classappend="${album.ageAtRelease == null ? 'null-value' : ''}" th:text="${album.ageAtRelease != null ? album.ageAtRelease : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Avg Length</span>
+                                <span class="expanded-stat-value" th:classappend="${album.avgLengthFormatted == null ? 'null-value' : ''}" th:text="${album.avgLengthFormatted != null ? album.avgLengthFormatted : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Avg Plays</span>
+                                <span class="expanded-stat-value" th:classappend="${album.avgPlays == null ? 'null-value' : ''}" th:text="${album.avgPlays != null ? #numbers.formatDecimal(album.avgPlays, 1, 1) : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Feat. Artists</span>
+                                <span class="expanded-stat-value" th:text="${album.featuredArtistCount != null ? album.featuredArtistCount : 0}">0</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Solo Songs</span>
+                                <span class="expanded-stat-value" th:text="${album.soloSongCount != null ? album.soloSongCount : 0}">0</span>
+                            </div>
+                            <div class="expanded-stat">
+                                <span class="expanded-stat-label">Songs w/ Feat</span>
+                                <span class="expanded-stat-value" th:text="${album.songsWithFeatCount != null ? album.songsWithFeatCount : 0}">0</span>
+                            </div>
+                            <div class="expanded-stat" th:if="${album.seasonalChartPeak != null}">
+                                <span class="expanded-stat-label">Seasonal Peak</span>
+                                <span class="expanded-stat-value" th:text="'#' + ${album.seasonalChartPeak} + ' for ' + ${album.seasonalChartPeakSeasons} + (${album.seasonalChartPeakSeasons == 1 ? ' season' : ' seasons'}) + (${album.seasonalChartPeakPeriod != null} ? ' (' + ${album.seasonalChartPeakPeriod} + ')' : '')">N/A</span>
+                            </div>
+                            <div class="expanded-stat" th:if="${album.weeklyChartPeak != null}">
+                                <span class="expanded-stat-label">Weekly Peak</span>
+                                <span class="expanded-stat-value" th:text="'#' + ${album.weeklyChartPeak} + ' for ' + ${album.weeklyChartPeakWeeks} + (${album.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks'}) + (${album.weeklyChartPeakStartDate != null} ? ' (' + ${album.weeklyChartPeakStartDate} + ')' : '')">N/A</span>
+                            </div>
+                            <div class="expanded-stat" th:if="${album.weeklyChartWeeks != null and album.weeklyChartWeeks > 0}">
+                                <span class="expanded-stat-label">Weekly Weeks</span>
+                                <span class="expanded-stat-value" th:text="${album.weeklyChartWeeks}">0</span>
+                            </div>
+                            <div class="expanded-stat" th:if="${album.yearlyChartPeak != null}">
+                                <span class="expanded-stat-label">Yearly Peak</span>
+                                <span class="expanded-stat-value" th:text="'#' + ${album.yearlyChartPeak} + ' for ' + ${album.yearlyChartPeakYears} + (${album.yearlyChartPeakYears == 1 ? ' year' : ' years'}) + (${album.yearlyChartPeakPeriod != null} ? ' (' + ${album.yearlyChartPeakPeriod} + ')' : '')">N/A</span>
+                            </div>
                         </div>
                     </div>
 
@@ -1720,7 +1838,7 @@
         }
         
         function applyFilters() {
-            document.getElementById('filterForm').submit();
+            document.getElementById('filterForm').requestSubmit();
         }
         
         function changeSortBy(sortValue) {
@@ -1781,6 +1899,13 @@
         
         // Handle filter modifier buttons
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize length filter display formatting
+            initLengthFilter('filterForm');
+            // Format length chip values from seconds to h:mm:ss
+            document.querySelectorAll('.length-chip-value').forEach(function(el) {
+                var seconds = parseInt(el.getAttribute('data-seconds'), 10);
+                if (!isNaN(seconds)) el.textContent = formatLengthFilter(seconds);
+            });
             // Hide already-selected options in dropdowns
             hideSelectedDropdownOptions();
             
@@ -2327,5 +2452,13 @@
             }
         });
     </script>
+
+    <!-- Card Detail Modal -->
+    <div id="cardDetailModal" class="card-detail-modal" onclick="if(event.target===this) closeCardModal()">
+        <div class="card-detail-modal-content">
+            <span class="card-detail-modal-close" onclick="closeCardModal()">&times;</span>
+            <div class="card-detail-modal-body"></div>
+        </div>
+    </div>
 </body>
 </html>

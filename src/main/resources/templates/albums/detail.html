@@ -13,6 +13,7 @@
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script th:src="@{/js/list-utils.js}"></script>
     <script th:src="@{/js/top-table-sort.js}" defer></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
@@ -118,6 +119,12 @@
                         <span class="stat-icon">🎵</span>
                         <span class="stat-value" th:text="${songCount}">0</span>
                     </div>
+                </div>
+                <div class="item-stats">
+                    <div class="stat" title="Total plays">
+                        <span class="stat-icon total-plays">⏵</span>
+                        <span class="stat-value" th:text="${albumPlayCount != null ? albumPlayCount : 0}">0</span>
+                    </div>
                     <div class="stat" title="Primary plays">
                         <span class="stat-icon primary-plays">⏵</span>
                         <span class="stat-value" th:text="${albumVatitoPlayCount != null ? albumVatitoPlayCount : 0}">0</span>
@@ -125,10 +132,6 @@
                     <div class="stat" title="Legacy plays">
                         <span class="stat-icon legacy-plays">⏵</span>
                         <span class="stat-value" th:text="${albumRobertloverPlayCount != null ? albumRobertloverPlayCount : 0}">0</span>
-                    </div>
-                    <div class="stat" title="Total plays">
-                        <span class="stat-icon total-plays">⏵</span>
-                        <span class="stat-value" th:text="${albumPlayCount != null ? albumPlayCount : 0}">0</span>
                     </div>
                 </div>
                 
@@ -462,6 +465,38 @@
                         <div class="stat-mini">
                             <span class="stat-label">Years</span>
                             <span class="stat-value" th:text="${uniqueYearsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalYearsSinceFirstPlay}"></span>
+                        </div>
+                    </div>
+
+                    <!-- Extended Stats -->
+                    <div class="card-expanded-stats always-visible">
+                        <div class="stats-extra">
+                            <div class="stat-mini">
+                                <span class="stat-label">Album Length</span>
+                                <span class="stat-value" th:text="${albumLengthFormatted != null ? albumLengthFormatted : '-'}">-</span>
+                            </div>
+                            <div class="stat-mini">
+                                <span class="stat-label">Avg Song Length</span>
+                                <span class="stat-value" th:text="${averageSongLength != null ? averageSongLength : '-'}">-</span>
+                            </div>
+                            <div class="stat-mini">
+                                <span class="stat-label">Age at Release</span>
+                                <span class="stat-value" th:text="${ageAtRelease != null ? ageAtRelease : '-'}">-</span>
+                            </div>
+                        </div>
+                        <div class="stats-extra">
+                            <div class="stat-mini">
+                                <span class="stat-label">Feat. Artists</span>
+                                <span class="stat-value" th:text="${featuredArtistCards != null ? featuredArtistCards.size() : 0}">0</span>
+                            </div>
+                            <div class="stat-mini">
+                                <span class="stat-label">Solo Songs</span>
+                                <span class="stat-value" th:text="${soloSongCount != null ? soloSongCount : 0}">0</span>
+                            </div>
+                            <div class="stat-mini">
+                                <span class="stat-label">Songs w/ Feat</span>
+                                <span class="stat-value" th:text="${songsWithFeatCount != null ? songsWithFeatCount : 0}">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>

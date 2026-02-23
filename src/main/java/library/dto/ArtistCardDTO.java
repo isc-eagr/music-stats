@@ -268,6 +268,53 @@ public class ArtistCardDTO {
         this.imageCount = imageCount;
     }
 
+    private Double avgPlays;
+    private String avgLengthFormatted;
+
+    public Double getAvgPlays() {
+        return avgPlays;
+    }
+
+    public void setAvgPlays(Double avgPlays) {
+        this.avgPlays = avgPlays;
+    }
+
+    public String getAvgLengthFormatted() {
+        return avgLengthFormatted;
+    }
+
+    public void setAvgLengthFormatted(String avgLengthFormatted) {
+        this.avgLengthFormatted = avgLengthFormatted;
+    }
+
+    private Integer featuredArtistCount;
+    private Integer soloSongCount;
+    private Integer songsWithFeatCount;
+
+    public Integer getFeaturedArtistCount() {
+        return featuredArtistCount;
+    }
+
+    public void setFeaturedArtistCount(Integer featuredArtistCount) {
+        this.featuredArtistCount = featuredArtistCount;
+    }
+
+    public Integer getSoloSongCount() {
+        return soloSongCount;
+    }
+
+    public void setSoloSongCount(Integer soloSongCount) {
+        this.soloSongCount = soloSongCount;
+    }
+
+    public Integer getSongsWithFeatCount() {
+        return songsWithFeatCount;
+    }
+
+    public void setSongsWithFeatCount(Integer songsWithFeatCount) {
+        this.songsWithFeatCount = songsWithFeatCount;
+    }
+
     public String getAgeDisplay() {
         if (birthDate == null) return null;
         java.time.LocalDate endDate = deathDate != null ? deathDate : java.time.LocalDate.now();

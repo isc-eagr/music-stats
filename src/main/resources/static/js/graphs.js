@@ -39,6 +39,14 @@ let topInfiniteScrollState = {
     songs: { displayedRows: 100, batchSize: 50 }
 };
 
+// Cached sorted data - updated every time a render function runs so that
+// infinite scroll append pulls rows in the correct sort order
+let topSortedData = {
+    artists: [],
+    albums: [],
+    songs: []
+};
+
 // Whether infinite scroll is enabled
 let infiniteScrollEnabled = true;
 
@@ -47,6 +55,89 @@ let topSortState = {
     artists: { column: 'plays', direction: 'desc' },
     albums: { column: 'plays', direction: 'desc' },
     songs: { column: 'plays', direction: 'desc' }
+};
+
+// Column visibility configuration for top tables
+// Each column: { key: data field name, label: display name, defaultVisible: boolean, align: 'left'|'right' }
+const topColumnConfig = {
+    artists: [
+        { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
+        { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
+        { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
+        { key: 'timeListened', label: 'Time Listened', defaultVisible: true, align: 'right' },
+        { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
+        { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'age', label: 'Age', defaultVisible: false, align: 'right' },
+        { key: 'albumCount', label: 'Album Count', defaultVisible: false, align: 'right' },
+        { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
+        { key: 'avgPlays', label: 'Avg Plays', defaultVisible: false, align: 'right' },
+        { key: 'birthDate', label: 'Birth Date', defaultVisible: false, align: 'left' },
+        { key: 'deathDate', label: 'Death Date', defaultVisible: false, align: 'left' },
+        { key: 'songCount', label: 'Song Count', defaultVisible: false, align: 'right' },
+        { key: 'featuredOnCount', label: 'Featured Song Count', defaultVisible: false, align: 'right' },
+        { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
+        { key: 'soloSongCount', label: 'Solo Songs', defaultVisible: false, align: 'right' },
+        { key: 'songsWithFeatCount', label: 'Songs w/ Features', defaultVisible: false, align: 'right' },
+        { key: 'genre', label: 'Genre', defaultVisible: false, align: 'left' },
+        { key: 'subgenre', label: 'Subgenre', defaultVisible: false, align: 'left' },
+        { key: 'ethnicity', label: 'Ethnicity', defaultVisible: false, align: 'left' },
+        { key: 'country', label: 'Country', defaultVisible: false, align: 'left' },
+        { key: 'language', label: 'Language', defaultVisible: false, align: 'left' }
+    ],
+    albums: [
+        { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
+        { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
+        { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
+        { key: 'length', label: 'Length', defaultVisible: true, align: 'right' },
+        { key: 'timeListened', label: 'Time Listened', defaultVisible: true, align: 'right' },
+        { key: 'releaseDate', label: 'Release Date', defaultVisible: true, align: 'left' },
+        { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
+        { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
+        { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
+        { key: 'avgPlays', label: 'Avg Plays', defaultVisible: false, align: 'right' },
+        { key: 'seasonalChartPeak', label: 'Seasonal Peak', defaultVisible: false, align: 'right' },
+        { key: 'songCount', label: 'Song Count', defaultVisible: false, align: 'right' },
+        { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
+        { key: 'soloSongCount', label: 'Solo Songs', defaultVisible: false, align: 'right' },
+        { key: 'songsWithFeatCount', label: 'Songs w/ Features', defaultVisible: false, align: 'right' },
+        { key: 'weeklyChartPeak', label: 'Weekly Peak', defaultVisible: false, align: 'right' },
+        { key: 'weeklyChartWeeks', label: 'Weekly Weeks', defaultVisible: false, align: 'right' },
+        { key: 'yearlyChartPeak', label: 'Yearly Peak', defaultVisible: false, align: 'right' },
+        { key: 'genre', label: 'Genre', defaultVisible: false, align: 'left' },
+        { key: 'subgenre', label: 'Subgenre', defaultVisible: false, align: 'left' },
+        { key: 'ethnicity', label: 'Ethnicity', defaultVisible: false, align: 'left' },
+        { key: 'country', label: 'Country', defaultVisible: false, align: 'left' },
+        { key: 'language', label: 'Language', defaultVisible: false, align: 'left' }
+    ],
+    songs: [
+        { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
+        { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
+        { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
+        { key: 'length', label: 'Length', defaultVisible: true, align: 'right' },
+        { key: 'timeListened', label: 'Time Listened', defaultVisible: true, align: 'right' },
+        { key: 'releaseDate', label: 'Release Date', defaultVisible: true, align: 'left' },
+        { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
+        { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
+        { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
+        { key: 'seasonalChartPeak', label: 'Seasonal Peak', defaultVisible: false, align: 'right' },
+        { key: 'weeklyChartPeak', label: 'Weekly Peak', defaultVisible: false, align: 'right' },
+        { key: 'weeklyChartWeeks', label: 'Weekly Weeks', defaultVisible: false, align: 'right' },
+        { key: 'yearlyChartPeak', label: 'Yearly Peak', defaultVisible: false, align: 'right' },
+        { key: 'genre', label: 'Genre', defaultVisible: false, align: 'left' },
+        { key: 'subgenre', label: 'Subgenre', defaultVisible: false, align: 'left' },
+        { key: 'ethnicity', label: 'Ethnicity', defaultVisible: false, align: 'left' },
+        { key: 'country', label: 'Country', defaultVisible: false, align: 'left' },
+        { key: 'language', label: 'Language', defaultVisible: false, align: 'left' }
+    ]
+};
+
+// Track current column visibility state
+let topColumnVisibility = {
+    artists: {},
+    albums: {},
+    songs: {}
 };
 
 // Current sort state for chart groups (genre, subgenre, etc.)
@@ -1636,6 +1727,9 @@ function renderTopTables(data) {
     topTabData.albums = data.topAlbums || [];
     topTabData.songs = data.topSongs || [];
     
+    // Initialize column toggles
+    initColumnToggles();
+    
     // Render each table
     renderTopArtistsTable();
     renderTopAlbumsTable();
@@ -1646,6 +1740,112 @@ function renderTopTables(data) {
     
     // Setup sorting handlers
     setupTopTableSorting();
+}
+
+/**
+ * Initialize column toggle checkboxes for all top sub-tabs
+ */
+function initColumnToggles() {
+    ['artists', 'albums', 'songs'].forEach(type => {
+        const singularType = type === 'artists' ? 'artist' : type === 'albums' ? 'album' : 'song';
+        const container = document.getElementById(singularType + 'ColumnToggles');
+        if (!container) return;
+        
+        const config = topColumnConfig[type];
+        // Initialize visibility state from defaults
+        topColumnVisibility[type] = {};
+        config.forEach(col => {
+            topColumnVisibility[type][col.key] = col.defaultVisible;
+        });
+        
+        // Sort checkboxes alphabetically by label
+        const sortedConfig = [...config].sort((a, b) => a.label.localeCompare(b.label));
+
+        // Build checkboxes preceded by a select-all / deselect-all row
+        container.innerHTML = `<div class="column-toggle-all-row">
+                <a href="#" onclick="selectAllColumns('${type}', true); return false;">Select All</a>
+                &nbsp;/&nbsp;
+                <a href="#" onclick="selectAllColumns('${type}', false); return false;">Deselect All</a>
+            </div>` +
+            sortedConfig.map(col => `
+            <label>
+                <input type="checkbox" data-type="${type}" data-col="${col.key}" 
+                       ${col.defaultVisible ? 'checked' : ''} 
+                       onchange="onColumnToggle('${type}', '${col.key}', this.checked)">
+                <span>${col.label}</span>
+            </label>
+        `).join('');
+    });
+}
+
+/**
+ * Select or deselect all column toggles for a given type
+ */
+function selectAllColumns(type, visible) {
+    const singularType = type === 'artists' ? 'artist' : type === 'albums' ? 'album' : 'song';
+    const container = document.getElementById(singularType + 'ColumnToggles');
+    if (container) {
+        container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = visible;
+        });
+    }
+    topColumnConfig[type].forEach(col => {
+        topColumnVisibility[type][col.key] = visible;
+        onColumnToggle(type, col.key, visible);
+    });
+}
+
+/**
+ * Toggle the column panel expand/collapse
+ */
+function toggleColumnPanel(type) {
+    const arrow = document.getElementById(type + 'ToggleArrow');
+    const grid = document.getElementById(type + 'ColumnToggles');
+    if (!arrow || !grid) return;
+    
+    const isExpanded = grid.classList.contains('expanded');
+    if (isExpanded) {
+        grid.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+    } else {
+        grid.classList.add('expanded');
+        arrow.classList.add('expanded');
+    }
+}
+
+/**
+ * Handle column visibility toggle
+ */
+function onColumnToggle(type, colKey, visible) {
+    topColumnVisibility[type][colKey] = visible;
+    
+    // Update header visibility
+    const tableId = type === 'artists' ? 'topArtistsTable' : type === 'albums' ? 'topAlbumsTable' : 'topSongsTable';
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    
+    // Find the column index by data-col attribute
+    const th = table.querySelector(`th[data-col="${colKey}"]`);
+    if (!th) return;
+    
+    const colIndex = Array.from(th.parentElement.children).indexOf(th);
+    
+    // Show/hide the th
+    th.style.display = visible ? '' : 'none';
+    
+    // Show/hide all td cells in that column
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const td = row.children[colIndex];
+        if (td) td.style.display = visible ? '' : 'none';
+    });
+}
+
+/**
+ * Get the display style for a column based on visibility
+ */
+function getColDisplay(type, colKey) {
+    return topColumnVisibility[type] && topColumnVisibility[type][colKey] ? '' : 'none';
 }
 
 /**
@@ -1735,6 +1935,56 @@ function renderSongsPodium(data) {
 }
 
 /**
+ * Generates HTML for a cell value, handling nulls
+ */
+function cellVal(val, fallback) {
+    if (val == null || val === '') return fallback || '-';
+    if (typeof val === 'number') return val.toLocaleString();
+    return val;
+}
+
+/**
+ * Builds a single artist row for the top table
+ */
+function buildArtistRow(artist, rank) {
+    const d = (col) => `style="${col === 'right' ? 'text-align:right;' : ''}${getColDisplay('artists', '') === 'none' ? '' : ''}"`;
+    const vis = (col) => getColDisplay('artists', col);
+    return `
+        <tr style="${getGenderRowStyle(artist.genderId)}">
+            <td class="rank-col">${rank}</td>
+            <td class="cover-col artist-cover">
+                <div style="cursor:pointer;">
+                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openArtistImageModalFromGraphs(${artist.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
+                    <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">&#127908;</div>
+                </div>
+            </td>
+            <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
+            <td style="text-align:right;display:${vis('plays')};"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${(artist.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};">${(artist.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('timeListened')};">${artist.timeListenedFormatted || '-'}</td>
+            <td style="display:${vis('firstListened')};">${artist.firstListened || '-'}</td>
+            <td style="display:${vis('lastListened')};">${artist.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('age')};">${cellVal(artist.age)}</td>
+            <td style="text-align:right;display:${vis('albumCount')};">${cellVal(artist.albumCount)}</td>
+            <td style="text-align:right;display:${vis('avgLength')};">${artist.avgLengthFormatted || '-'}</td>
+            <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(artist.avgPlays)}</td>
+            <td style="display:${vis('birthDate')};">${artist.birthDate || '-'}</td>
+            <td style="display:${vis('deathDate')};">${artist.deathDate || '-'}</td>
+            <td style="text-align:right;display:${vis('songCount')};">${cellVal(artist.songCount)}</td>
+            <td style="text-align:right;display:${vis('featuredOnCount')};">${cellVal(artist.featuredOnCount)}</td>
+            <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(artist.featuredArtistCount)}</td>
+            <td style="text-align:right;display:${vis('soloSongCount')};">${cellVal(artist.soloSongCount)}</td>
+            <td style="text-align:right;display:${vis('songsWithFeatCount')};">${cellVal(artist.songsWithFeatCount)}</td>
+            <td style="display:${vis('genre')};">${artist.genre || '-'}</td>
+            <td style="display:${vis('subgenre')};">${artist.subgenre || '-'}</td>
+            <td style="display:${vis('ethnicity')};">${artist.ethnicity || '-'}</td>
+            <td style="display:${vis('country')};">${artist.country || '-'}</td>
+            <td style="display:${vis('language')};">${artist.language || '-'}</td>
+        </tr>`;
+}
+
+/**
  * Renders the Top Artists table
  */
 function renderTopArtistsTable() {
@@ -1742,12 +1992,14 @@ function renderTopArtistsTable() {
     if (!tbody) return;
     
     const data = sortTopData(topTabData.artists, topSortState.artists);
+    topSortedData.artists = data;
     
     // Render podium with sorted data
     renderArtistsPodium(data);
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666; padding: 20px;">No artist data available</td></tr>';
+        const colCount = document.querySelectorAll('#topArtistsTable thead th').length;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: #666; padding: 20px;">No artist data available</td></tr>`;
         return;
     }
     
@@ -1757,26 +2009,7 @@ function renderTopArtistsTable() {
         data.slice(0, topInfiniteScrollState.artists.displayedRows) : 
         data.slice(0, getTopLimit());
     
-    tbody.innerHTML = rowsToRender.map((artist, index) => {
-        const rank = index + 1;
-        return `
-        <tr style="${getGenderRowStyle(artist.genderId)}">
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col artist-cover">
-                <div style="cursor:pointer;">
-                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openArtistImageModalFromGraphs(${artist.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
-                    <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎤</div>
-                </div>
-            </td>
-            <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
-            <td style="text-align:right;"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(artist.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(artist.legacyPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${artist.timeListenedFormatted || '-'}</td>
-            <td>${artist.firstListened || '-'}</td>
-            <td>${artist.lastListened || '-'}</td>
-        </tr>
-    `}).join('');
+    tbody.innerHTML = rowsToRender.map((artist, index) => buildArtistRow(artist, index + 1)).join('');
 
     updateSortIndicators('topArtistsTable', topSortState.artists);
 }
@@ -1784,17 +2017,62 @@ function renderTopArtistsTable() {
 /**
  * Renders the Top Albums table
  */
+/**
+ * Builds a single album row for the top table
+ */
+function buildAlbumRow(album, rank) {
+    const vis = (col) => getColDisplay('albums', col);
+    return `
+        <tr style="${getGenderRowStyle(album.genderId)}">
+            <td class="rank-col">${rank}</td>
+            <td class="cover-col">
+                <div style="cursor:pointer;">
+                    <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openAlbumImageModalFromGraphs(${album.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                    <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">&#128191;</div>
+                </div>
+            </td>
+            <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
+            <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
+            <td style="text-align:right;display:${vis('plays')};"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${(album.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};">${(album.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('length')};">${album.lengthFormatted || '-'}</td>
+            <td style="text-align:right;display:${vis('timeListened')};">${album.timeListenedFormatted || '-'}</td>
+            <td style="display:${vis('releaseDate')};">${album.releaseDate || '-'}</td>
+            <td style="display:${vis('firstListened')};">${album.firstListened || '-'}</td>
+            <td style="display:${vis('lastListened')};">${album.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(album.ageAtRelease)}</td>
+            <td style="text-align:right;display:${vis('avgLength')};">${album.avgLengthFormatted || '-'}</td>
+            <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(album.avgPlays)}</td>
+            <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(album.seasonalChartPeak)}</td>
+            <td style="text-align:right;display:${vis('songCount')};">${cellVal(album.songCount)}</td>
+            <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(album.featuredArtistCount)}</td>
+            <td style="text-align:right;display:${vis('soloSongCount')};">${cellVal(album.soloSongCount)}</td>
+            <td style="text-align:right;display:${vis('songsWithFeatCount')};">${cellVal(album.songsWithFeatCount)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(album.weeklyChartPeak)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(album.weeklyChartWeeks)}</td>
+            <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(album.yearlyChartPeak)}</td>
+            <td style="display:${vis('genre')};">${album.genre || '-'}</td>
+            <td style="display:${vis('subgenre')};">${album.subgenre || '-'}</td>
+            <td style="display:${vis('ethnicity')};">${album.ethnicity || '-'}</td>
+            <td style="display:${vis('country')};">${album.country || '-'}</td>
+            <td style="display:${vis('language')};">${album.language || '-'}</td>
+        </tr>`;
+}
+
 function renderTopAlbumsTable() {
     const tbody = document.querySelector('#topAlbumsTable tbody');
     if (!tbody) return;
     
     const data = sortTopData(topTabData.albums, topSortState.albums);
+    topSortedData.albums = data;
     
     // Render podium with sorted data
     renderAlbumsPodium(data);
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>';
+        const colCount = document.querySelectorAll('#topAlbumsTable thead th').length;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: #666; padding: 20px;">No album data available</td></tr>`;
         return;
     }
     
@@ -1804,29 +2082,7 @@ function renderTopAlbumsTable() {
         data.slice(0, topInfiniteScrollState.albums.displayedRows) : 
         data.slice(0, getTopLimit());
     
-    tbody.innerHTML = rowsToRender.map((album, index) => {
-        const rank = index + 1;
-        return `
-        <tr style="${getGenderRowStyle(album.genderId)}">
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col">
-                <div style="cursor:pointer;">
-                    <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openAlbumImageModalFromGraphs(${album.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                    <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
-                </div>
-            </td>
-            <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
-            <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
-            <td style="text-align:right;"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(album.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(album.legacyPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${album.lengthFormatted || '-'}</td>
-            <td style="text-align:right;">${album.timeListenedFormatted || '-'}</td>
-            <td>${album.releaseDate || '-'}</td>
-            <td>${album.firstListened || '-'}</td>
-            <td>${album.lastListened || '-'}</td>
-        </tr>
-    `}).join('');
+    tbody.innerHTML = rowsToRender.map((album, index) => buildAlbumRow(album, index + 1)).join('');
 
     updateSortIndicators('topAlbumsTable', topSortState.albums);
 }
@@ -1834,17 +2090,81 @@ function renderTopAlbumsTable() {
 /**
  * Renders the Top Songs table
  */
+/**
+ * Builds a single song row for the top table
+ */
+function buildSongRow(song, rank) {
+    const vis = (col) => getColDisplay('songs', col);
+    let coverHtml;
+    if (song.hasImage && song.albumHasImage && song.albumId) {
+        coverHtml = `<div class="hover-image-container" style="display:block;position:relative;width:50px;height:50px;cursor:pointer;">
+            <img src="/albums/${song.albumId}/image" alt="" class="album-image-default clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:1;transition:opacity 0.2s;z-index:2;">
+            <img src="/songs/${song.id}/image" alt="" class="song-image-hover clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0;transition:opacity 0.2s;z-index:1;">
+        </div>`;
+    } else if (song.hasImage) {
+        coverHtml = `<div style="cursor:pointer;">
+            <img src="/songs/${song.id}/image" alt="" class="clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+        </div>`;
+    } else if (song.albumId) {
+        coverHtml = `<div style="cursor:pointer;">
+               <img src="/albums/${song.albumId}/image" alt="" class="inherited-cover clickable-image" onclick="openAlbumImageModalFromGraphs(${song.albumId})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+               <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">&#128191;</div>
+           </div>`;
+    } else {
+        coverHtml = `<div style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">&#127925;</div>`;
+    }
+    const rowClasses = [];
+    if (song.featuredOn) rowClasses.push('featured-song-row');
+    if (song.fromGroup) rowClasses.push('group-item-row');
+    const rowClassAttr = rowClasses.length > 0 ? ` class="${rowClasses.join(' ')}"` : '';
+    let songLabel = '';
+    if (song.featuredOn && song.primaryArtistName) {
+        songLabel = ` <span class="featured-artist-label">(feat. on <a href="/artists/${song.primaryArtistId}">${escapeHtml(song.primaryArtistName)}</a>)</span>`;
+    } else if (song.fromGroup && song.sourceArtistName) {
+        songLabel = ` <span class="group-artist-label">(by <a href="/artists/${song.sourceArtistId}">${escapeHtml(song.sourceArtistName)}</a>)</span>`;
+    }
+    return `
+        <tr${rowClassAttr} style="${getGenderRowStyle(song.genderId)}">
+            <td class="rank-col">${rank}</td>
+            <td class="cover-col">${coverHtml}</td>
+            <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
+            <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
+            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">&#128313;</span>' : ''}${songLabel}</td>
+            <td style="text-align:right;display:${vis('plays')};"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${(song.primaryPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};">${(song.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('length')};">${song.lengthFormatted || '-'}</td>
+            <td style="text-align:right;display:${vis('timeListened')};">${song.timeListenedFormatted || '-'}</td>
+            <td style="display:${vis('releaseDate')};">${song.releaseDate || '-'}</td>
+            <td style="display:${vis('firstListened')};">${song.firstListened || '-'}</td>
+            <td style="display:${vis('lastListened')};">${song.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(song.ageAtRelease)}</td>
+            <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(song.featuredArtistCount)}</td>
+            <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(song.seasonalChartPeak)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(song.weeklyChartPeak)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(song.weeklyChartWeeks)}</td>
+            <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(song.yearlyChartPeak)}</td>
+            <td style="display:${vis('genre')};">${song.genre || '-'}</td>
+            <td style="display:${vis('subgenre')};">${song.subgenre || '-'}</td>
+            <td style="display:${vis('ethnicity')};">${song.ethnicity || '-'}</td>
+            <td style="display:${vis('country')};">${song.country || '-'}</td>
+            <td style="display:${vis('language')};">${song.language || '-'}</td>
+        </tr>`;
+}
+
 function renderTopSongsTable() {
     const tbody = document.querySelector('#topSongsTable tbody');
     if (!tbody) return;
     
     const data = sortTopData(topTabData.songs, topSortState.songs);
+    topSortedData.songs = data;
     
     // Render podium with sorted data
     renderSongsPodium(data);
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>';
+        const colCount = document.querySelectorAll('#topSongsTable thead th').length;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>`;
         return;
     }
     
@@ -1854,61 +2174,7 @@ function renderTopSongsTable() {
         data.slice(0, topInfiniteScrollState.songs.displayedRows) : 
         data.slice(0, getTopLimit());
     
-    tbody.innerHTML = rowsToRender.map((song, index) => {
-        const rank = index + 1;
-        let coverHtml;
-        if (song.hasImage && song.albumHasImage && song.albumId) {
-            // Case 1: Song has image AND album has image - show album by default, song on hover
-            coverHtml = `<div class="hover-image-container" style="display:block;position:relative;width:50px;height:50px;cursor:pointer;">
-                <img src="/albums/${song.albumId}/image" alt="" class="album-image-default clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:1;transition:opacity 0.2s;z-index:2;">
-                <img src="/songs/${song.id}/image" alt="" class="song-image-hover clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="position:absolute;top:0;left:0;width:50px;height:50px;object-fit:cover;border-radius:4px;opacity:0;transition:opacity 0.2s;z-index:1;">
-            </div>`;
-        } else if (song.hasImage) {
-            // Case 2: Song has image but album doesn't - just show song image
-            coverHtml = `<div style="cursor:pointer;">
-                <img src="/songs/${song.id}/image" alt="" class="clickable-image" onclick="openSongImageModalFromGraphs(${song.id})" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-            </div>`;
-        } else if (song.albumId) {
-            // Case 3: Song doesn't have image but album does - show album image
-            coverHtml = `<div style="cursor:pointer;">
-                   <img src="/albums/${song.albumId}/image" alt="" class="inherited-cover clickable-image" onclick="openAlbumImageModalFromGraphs(${song.albumId})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                   <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
-               </div>`;
-        } else {
-            // Case 4: No image available
-            coverHtml = `<div style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>`;
-        }
-        // Build row classes for featured/group styling
-        const rowClasses = [];
-        if (song.featuredOn) rowClasses.push('featured-song-row');
-        if (song.fromGroup) rowClasses.push('group-item-row');
-        const rowClassAttr = rowClasses.length > 0 ? ` class="${rowClasses.join(' ')}"` : '';
-        
-        // Build featured/group labels
-        let songLabel = '';
-        if (song.featuredOn && song.primaryArtistName) {
-            songLabel = ` <span class="featured-artist-label">(feat. on <a href="/artists/${song.primaryArtistId}">${escapeHtml(song.primaryArtistName)}</a>)</span>`;
-        } else if (song.fromGroup && song.sourceArtistName) {
-            songLabel = ` <span class="group-artist-label">(by <a href="/artists/${song.sourceArtistId}">${escapeHtml(song.sourceArtistName)}</a>)</span>`;
-        }
-        
-        return `
-        <tr${rowClassAttr} style="${getGenderRowStyle(song.genderId)}">
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col">${coverHtml}</td>
-            <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
-            <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
-            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">🔹</span>' : ''}${songLabel}</td>
-            <td style="text-align:right;"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(song.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(song.legacyPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${song.lengthFormatted || '-'}</td>
-            <td style="text-align:right;">${song.timeListenedFormatted || '-'}</td>
-            <td>${song.releaseDate || '-'}</td>
-            <td>${song.firstListened || '-'}</td>
-            <td>${song.lastListened || '-'}</td>
-        </tr>
-    `}).join('');
+    tbody.innerHTML = rowsToRender.map((song, index) => buildSongRow(song, index + 1)).join('');
     
     // Add hover event listeners for image swap
     tbody.querySelectorAll('.hover-image-container').forEach(container => {
@@ -1932,6 +2198,23 @@ function renderTopSongsTable() {
 /**
  * Sorts top data array by the specified column and direction
  */
+const numericSortColumns = new Set([
+    'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
+    'age', 'albumCount', 'songCount', 'avgPlays', 'avgLength',
+    'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
+    'ageAtRelease', 'seasonalChartPeak', 'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
+]);
+
+const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'birthDate', 'deathDate']);
+
+// Columns where lower numeric value is "better" (chart peaks)
+const descDefaultColumns = new Set([
+    'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
+    'albumCount', 'songCount', 'avgPlays', 'avgLength', 'age',
+    'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
+    'ageAtRelease', 'weeklyChartWeeks'
+]);
+
 function sortTopData(data, sortState) {
     if (!data || data.length === 0) return [];
     
@@ -1942,21 +2225,21 @@ function sortTopData(data, sortState) {
         let aVal = a[column];
         let bVal = b[column];
         
-        // Handle null/undefined values
-        if (aVal == null) aVal = '';
-        if (bVal == null) bVal = '';
+        // Handle null/undefined values - push nulls to the bottom
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
         
         // Numeric columns
-        if (column === 'plays' || column === 'primaryPlays' || column === 'legacyPlays' || column === 'timeListened') {
+        if (numericSortColumns.has(column)) {
             aVal = Number(aVal) || 0;
             bVal = Number(bVal) || 0;
-        } else if (column === 'releaseDate' || column === 'firstListened' || column === 'lastListened') {
-            // Parse date strings like "1 Feb 2012" or "15 Sep 2006"
+        } else if (dateSortColumns.has(column)) {
             aVal = parseDisplayDate(aVal);
             bVal = parseDisplayDate(bVal);
         } else if (typeof aVal === 'string') {
             aVal = aVal.toLowerCase();
-            bVal = bVal.toLowerCase();
+            bVal = (bVal || '').toString().toLowerCase();
         }
         
         let result = 0;
@@ -2016,47 +2299,23 @@ function updateSortIndicators(tableId, sortState) {
  * Sets up click handlers for table header sorting
  */
 function setupTopTableSorting() {
-    // Artists table
-    document.querySelectorAll('#topArtistsTable th[data-sort]').forEach(th => {
-        th.onclick = () => {
-            const column = th.dataset.sort;
-            if (topSortState.artists.column === column) {
-                topSortState.artists.direction = topSortState.artists.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                topSortState.artists.column = column;
-                topSortState.artists.direction = column === 'plays' || column === 'timeListened' ? 'desc' : 'asc';
-            }
-            renderTopArtistsTable();
-        };
-    });
-    
-    // Albums table
-    document.querySelectorAll('#topAlbumsTable th[data-sort]').forEach(th => {
-        th.onclick = () => {
-            const column = th.dataset.sort;
-            if (topSortState.albums.column === column) {
-                topSortState.albums.direction = topSortState.albums.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                topSortState.albums.column = column;
-                topSortState.albums.direction = column === 'plays' || column === 'timeListened' ? 'desc' : 'asc';
-            }
-            renderTopAlbumsTable();
-        };
-    });
-    
-    // Songs table
-    document.querySelectorAll('#topSongsTable th[data-sort]').forEach(th => {
-        th.onclick = () => {
-            const column = th.dataset.sort;
-            if (topSortState.songs.column === column) {
-                topSortState.songs.direction = topSortState.songs.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                topSortState.songs.column = column;
-                topSortState.songs.direction = column === 'plays' || column === 'timeListened' ? 'desc' : 'asc';
-            }
-            renderTopSongsTable();
-        };
-    });
+    function bindTableSort(tableId, stateKey, renderFn) {
+        document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
+            th.onclick = () => {
+                const column = th.dataset.sort;
+                if (topSortState[stateKey].column === column) {
+                    topSortState[stateKey].direction = topSortState[stateKey].direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    topSortState[stateKey].column = column;
+                    topSortState[stateKey].direction = descDefaultColumns.has(column) ? 'desc' : 'asc';
+                }
+                renderFn();
+            };
+        });
+    }
+    bindTableSort('topArtistsTable', 'artists', renderTopArtistsTable);
+    bindTableSort('topAlbumsTable', 'albums', renderTopAlbumsTable);
+    bindTableSort('topSongsTable', 'songs', renderTopSongsTable);
 }
 
 /**
@@ -2266,7 +2525,8 @@ function toggleInfiniteScroll() {
  */
 function loadMoreTopData(type) {
     const state = topInfiniteScrollState[type];
-    const allData = topTabData[type];
+    // Use cached sorted data so appended rows continue in the same sort order
+    const allData = topSortedData[type].length > 0 ? topSortedData[type] : topTabData[type];
     
     // Check if there's more data to show
     if (state.displayedRows >= allData.length) {
@@ -2296,28 +2556,8 @@ function loadMoreTopData(type) {
 function appendTopArtistsRows(data, startRank) {
     const tbody = document.querySelector('#topArtistsTable tbody');
     if (!tbody) return;
-    
     data.forEach((artist, index) => {
-        const rank = startRank + index + 1;
-        const row = document.createElement('tr');
-        row.style.cssText = getGenderRowStyle(artist.genderId);
-        row.innerHTML = `
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col artist-cover">
-                <div style="cursor:pointer;">
-                    <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openArtistImageModalFromGraphs(${artist.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
-                    <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎤</div>
-                </div>
-            </td>
-            <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
-            <td style="text-align:right;"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(artist.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(artist.legacyPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${artist.timeListenedFormatted || '-'}</td>
-            <td>${artist.firstListened || '-'}</td>
-            <td>${artist.lastListened || '-'}</td>
-        `;
-        tbody.appendChild(row);
+        tbody.insertAdjacentHTML('beforeend', buildArtistRow(artist, startRank + index + 1));
     });
 }
 
@@ -2327,31 +2567,8 @@ function appendTopArtistsRows(data, startRank) {
 function appendTopAlbumsRows(data, startRank) {
     const tbody = document.querySelector('#topAlbumsTable tbody');
     if (!tbody) return;
-    
     data.forEach((album, index) => {
-        const rank = startRank + index + 1;
-        const row = document.createElement('tr');
-        row.style.cssText = getGenderRowStyle(album.genderId);
-        row.innerHTML = `
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col">
-                <div>
-                    <img src="/albums/${album.id}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                    <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">💿</div>
-                </div>
-            </td>
-            <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
-            <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
-            <td style="text-align:right;"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(album.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(album.legacyPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${album.lengthFormatted || '-'}</td>
-            <td style="text-align:right;">${album.timeListenedFormatted || '-'}</td>
-            <td>${album.releaseDate || '-'}</td>
-            <td>${album.firstListened || '-'}</td>
-            <td>${album.lastListened || '-'}</td>
-        `;
-        tbody.appendChild(row);
+        tbody.insertAdjacentHTML('beforeend', buildAlbumRow(album, startRank + index + 1));
     });
 }
 
@@ -2361,41 +2578,26 @@ function appendTopAlbumsRows(data, startRank) {
 function appendTopSongsRows(data, startRank) {
     const tbody = document.querySelector('#topSongsTable tbody');
     if (!tbody) return;
-    
     data.forEach((song, index) => {
-        const rank = startRank + index + 1;
-        const row = document.createElement('tr');
-        row.style.cssText = getGenderRowStyle(song.genderId);
-        if (song.isFeatured) {
-            row.classList.add('featured-song-row');
+        tbody.insertAdjacentHTML('beforeend', buildSongRow(song, startRank + index + 1));
+    });
+    // Re-bind hover listeners for image swap on newly appended rows
+    tbody.querySelectorAll('.hover-image-container').forEach(container => {
+        if (!container.dataset.hoverBound) {
+            container.dataset.hoverBound = 'true';
+            container.addEventListener('mouseenter', function() {
+                const albumImg = this.querySelector('.album-image-default');
+                const songImg = this.querySelector('.song-image-hover');
+                if (albumImg) albumImg.style.opacity = '0';
+                if (songImg) songImg.style.opacity = '1';
+            });
+            container.addEventListener('mouseleave', function() {
+                const albumImg = this.querySelector('.album-image-default');
+                const songImg = this.querySelector('.song-image-hover');
+                if (albumImg) albumImg.style.opacity = '1';
+                if (songImg) songImg.style.opacity = '0';
+            });
         }
-        row.innerHTML = `
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col">
-                <div>
-                    ${song.hasImage ? 
-                        `<img src="/songs/${song.id}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                         <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>` :
-                        song.albumId ?
-                        `<img src="/albums/${song.albumId}/image" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                         <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>` :
-                        `<div style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;">🎵</div>`
-                    }
-                </div>
-            </td>
-            <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
-            <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName || '-')}</a>` : '-'}</td>
-            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isFeatured ? '<span class="featured-artist-label">(feat.)</span>' : ''}</td>
-            <td style="text-align:right;"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(song.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(song.legacyPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${song.lengthFormatted || '-'}</td>
-            <td style="text-align:right;">${song.timeListenedFormatted || '-'}</td>
-            <td>${song.releaseDate || '-'}</td>
-            <td>${song.firstListened || '-'}</td>
-            <td>${song.lastListened || '-'}</td>
-        `;
-        tbody.appendChild(row);
     });
 }
 

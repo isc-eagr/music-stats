@@ -142,7 +142,18 @@ public class ArtistService {
             
             // Set image count (index 26)
             dto.setImageCount(row[26] != null ? ((Number) row[26]).intValue() : 0);
-            
+
+            // Compute average plays and average length (index 27 = total_song_length)
+            long totalSongLength = row[27] != null ? ((Number) row[27]).longValue() : 0L;
+            int sc = dto.getSongCount();
+            dto.setAvgPlays(sc > 0 ? (double) dto.getPlayCount() / sc : null);
+            dto.setAvgLengthFormatted(sc > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / sc) : null);
+
+            // Set featured artist count (index 28), solo song count (index 29), songs with feat count (index 30)
+            dto.setFeaturedArtistCount(row[28] != null ? ((Number) row[28]).intValue() : 0);
+            dto.setSoloSongCount(row[29] != null ? ((Number) row[29]).intValue() : 0);
+            dto.setSongsWithFeatCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
+
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
             
@@ -3085,5 +3096,15 @@ public class ArtistService {
         params.add(artistId);
         
         jdbcTemplate.update(sql.toString(), params.toArray());
+    }
+
+    public int getSoloSongCountForArtist(Integer artistId) {
+        String sql = "SELECT COUNT(*) FROM Song s WHERE s.artist_id = ? AND s.id NOT IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa)";
+        return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+    }
+
+    public int getSongsWithFeatCountForArtist(Integer artistId) {
+        String sql = "SELECT COUNT(DISTINCT s.id) FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id WHERE s.artist_id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
     }
 }

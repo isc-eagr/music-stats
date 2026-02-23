@@ -154,7 +154,23 @@ public class AlbumService {
             dto.setWeeklyChartPeakStartDate(row[33] != null ? formatDate((String) row[33]) : null);
             dto.setSeasonalChartPeakPeriod((String) row[34]);
             dto.setYearlyChartPeakPeriod((String) row[35]);
+
+            // Compute average plays and average length
+            int sc = dto.getSongCount();
+            dto.setAvgPlays(sc > 0 ? (double) dto.getPlayCount() / sc : null);
+            dto.setAvgLengthFormatted(sc > 0 ? TimeFormatUtils.formatTimeHMS(dto.getAlbumLength() / sc) : null);
+
+            // Set featured artist count (index 37), solo song count (index 38), songs with feat count (index 39), age at release (index 40)
+            dto.setFeaturedArtistCount(row[37] != null ? ((Number) row[37]).intValue() : 0);
+            dto.setSoloSongCount(row[38] != null ? ((Number) row[38]).intValue() : 0);
+            dto.setSongsWithFeatCount(row[39] != null ? ((Number) row[39]).intValue() : 0);
+            dto.setAgeAtRelease(row[40] != null ? ((Number) row[40]).intValue() : null);
             
+            // Set peak durations (indices 41-43)
+            dto.setWeeklyChartPeakWeeks(row[41] != null ? ((Number) row[41]).intValue() : null);
+            dto.setSeasonalChartPeakSeasons(row[42] != null ? ((Number) row[42]).intValue() : null);
+            dto.setYearlyChartPeakYears(row[43] != null ? ((Number) row[43]).intValue() : null);
+
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
             
@@ -1817,5 +1833,15 @@ public class AlbumService {
             album.put("name", rs.getString("name"));
             return album;
         }, ids.toArray());
+    }
+
+    public int getSoloSongCountForAlbum(Integer albumId) {
+        String sql = "SELECT COUNT(*) FROM Song s WHERE s.album_id = ? AND s.id NOT IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa)";
+        return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+    }
+
+    public int getSongsWithFeatCountForAlbum(Integer albumId) {
+        String sql = "SELECT COUNT(DISTINCT s.id) FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id WHERE s.album_id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
     }
 }

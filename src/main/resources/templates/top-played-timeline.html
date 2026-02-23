@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${timelineTitle} + ' Timeline - Music Stats'">Top Played Timeline - Music Stats</title>
+    <title th:text="${timelineTitle} + ' Reigns - Music Stats'">Reigns - Music Stats</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <style>
@@ -14,10 +14,30 @@
 
         .timeline-page {
             padding: 20px;
-            max-width: 1200px;
+            max-width: 1700px;
             margin: 0 auto;
         }
 
+        .timeline-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .timeline-main-column {
+            min-width: 0;
+        }
+
+        .timeline-side-column {
+            position: sticky;
+            top: 84px;
+            max-height: calc(100vh - 96px);
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        /* Header */
         .timeline-header {
             display: flex;
             justify-content: space-between;
@@ -61,6 +81,7 @@
             color: #fff;
         }
 
+        /* Summary Cards */
         .timeline-summary {
             display: flex;
             gap: 15px;
@@ -91,151 +112,62 @@
             color: #fff;
         }
 
-        /* Timeline vertical layout */
+        /* Snapshot list */
         .timeline-container {
-            position: relative;
-            padding-left: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .timeline-container::before {
-            content: '';
-            position: absolute;
-            left: 15px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.4), rgba(236, 72, 153, 0.4), rgba(59, 130, 246, 0.4));
-            border-radius: 2px;
-        }
-
-        .timeline-entry {
-            position: relative;
-            margin-bottom: 6px;
+        /* Snapshot card */
+        .snapshot-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            overflow: hidden;
             animation: fadeInUp 0.3s ease forwards;
             opacity: 0;
+            transition: border-color 0.2s ease;
+        }
+
+        .snapshot-card:hover {
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        .snapshot-card.snapshot-current {
+            border-color: rgba(74, 222, 128, 0.25);
+            background: rgba(74, 222, 128, 0.03);
         }
 
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        .timeline-entry::before {
-            content: '';
-            position: absolute;
-            left: -29px;
-            top: 20px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #1a1a2e;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            z-index: 1;
-        }
-
-        .timeline-entry.gender-male::before {
-            border-color: rgba(59, 130, 246, 0.8);
-            background: rgba(59, 130, 246, 0.2);
-            box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .timeline-entry.gender-female::before {
-            border-color: rgba(236, 72, 153, 0.8);
-            background: rgba(236, 72, 153, 0.2);
-            box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
-        }
-
-        .timeline-entry.current-reign::before {
-            width: 14px;
-            height: 14px;
-            left: -30px;
-            top: 19px;
-            animation: pulse 2s ease infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 8px rgba(74, 222, 128, 0.3); }
-            50% { box-shadow: 0 0 16px rgba(74, 222, 128, 0.6); }
-        }
-
-        .timeline-entry.current-reign::before {
-            border-color: rgba(74, 222, 128, 0.8);
-            background: rgba(74, 222, 128, 0.3);
-        }
-
-        .timeline-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            padding: 18px 22px;
-            transition: all 0.2s ease;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .timeline-card:hover {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(255, 255, 255, 0.15);
-            transform: translateX(4px);
-        }
-
-        .timeline-entry.gender-male .timeline-card {
-            border-left: 3px solid rgba(59, 130, 246, 0.5);
-        }
-
-        .timeline-entry.gender-female .timeline-card {
-            border-left: 3px solid rgba(236, 72, 153, 0.5);
-        }
-
-        .timeline-entry.current-reign .timeline-card {
-            border-color: rgba(74, 222, 128, 0.2);
-            background: rgba(74, 222, 128, 0.04);
-        }
-
-        .timeline-main {
+        /* Snapshot header bar */
+        .snapshot-header {
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-wrap: wrap;
         }
 
-        .timeline-rank {
+        .snapshot-card.snapshot-current .snapshot-header {
+            background: rgba(74, 222, 128, 0.05);
+            border-bottom-color: rgba(74, 222, 128, 0.12);
+        }
+
+        .snapshot-rank {
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.35);
-            font-weight: 500;
-        }
-
-        .timeline-name {
-            font-size: 1.15rem;
+            color: rgba(255, 255, 255, 0.3);
             font-weight: 600;
-            color: #fff;
+            min-width: 32px;
         }
 
-        .timeline-name a {
-            color: inherit;
-            text-decoration: none;
-            transition: color 0.15s ease;
-        }
-
-        .timeline-name a:hover {
-            color: rgba(59, 130, 246, 0.9);
-        }
-
-        .timeline-entry.gender-male .timeline-name a:hover {
-            color: rgba(96, 165, 250, 1);
-        }
-
-        .timeline-entry.gender-female .timeline-name a:hover {
-            color: rgba(244, 114, 182, 1);
-        }
-
-        .timeline-artist {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .timeline-dates {
+        .snapshot-dates {
             font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.6);
             display: flex;
@@ -243,48 +175,16 @@
             gap: 6px;
         }
 
-        .timeline-dates .arrow {
-            color: rgba(255, 255, 255, 0.3);
+        .snapshot-dates .arrow {
+            color: rgba(255, 255, 255, 0.25);
         }
 
-        .timeline-reign-info {
+        .snapshot-duration {
             font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.45);
-            font-style: italic;
-            margin-top: 2px;
-        }
-
-        .timeline-stats {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .timeline-stat {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 70px;
-        }
-
-        .timeline-stat .stat-value {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .timeline-stat .stat-label {
-            font-size: 0.7rem;
             color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .timeline-stat .stat-total-days {
-            font-size: 0.65rem;
-            color: rgba(255, 255, 255, 0.3);
-            margin-top: 2px;
-            display: block;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            padding: 2px 8px;
         }
 
         .current-badge {
@@ -298,9 +198,195 @@
             background: rgba(74, 222, 128, 0.15);
             color: rgba(74, 222, 128, 0.9);
             border: 1px solid rgba(74, 222, 128, 0.3);
-            margin-left: 8px;
         }
 
+        /* Position slots grid */
+        .snapshot-positions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .position-slot {
+            padding: 14px 18px;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .position-slot:last-child {
+            border-right: none;
+        }
+
+        /* Gender color on left border of each slot */
+        .position-slot.gender-male {
+            border-left: 3px solid rgba(59, 130, 246, 0.5);
+        }
+
+        .position-slot.gender-female {
+            border-left: 3px solid rgba(236, 72, 153, 0.5);
+        }
+
+        /* Movement indicator override (replaces gender border for slots with movement) */
+        .position-slot.movement-new {
+            border-left: 3px solid rgba(168, 85, 247, 0.75);
+            background: rgba(168, 85, 247, 0.04);
+        }
+
+        .position-slot.movement-climbed {
+            border-left: 3px solid rgba(34, 197, 94, 0.75);
+            background: rgba(34, 197, 94, 0.04);
+        }
+
+        .position-slot.movement-dropped {
+            border-left: 3px solid rgba(239, 68, 68, 0.75);
+            background: rgba(239, 68, 68, 0.04);
+        }
+
+        /* Movement badge shown next to position badge */
+        .movement-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.2px;
+        }
+
+        .movement-badge.badge-new {
+            background: rgba(168, 85, 247, 0.2);
+            color: rgba(192, 132, 252, 0.95);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+        }
+
+        .movement-badge.badge-climbed {
+            background: rgba(34, 197, 94, 0.15);
+            color: rgba(74, 222, 128, 0.95);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+        }
+
+        .movement-badge.badge-dropped {
+            background: rgba(239, 68, 68, 0.15);
+            color: rgba(252, 165, 165, 0.95);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        /* Position badge */
+        .position-top-row {
+            margin-bottom: 7px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .position-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .position-badge.pos-1 {
+            background: rgba(234, 179, 8, 0.2);
+            color: rgba(234, 179, 8, 0.95);
+            border: 1px solid rgba(234, 179, 8, 0.35);
+        }
+
+        .position-badge.pos-2 {
+            background: rgba(156, 163, 175, 0.15);
+            color: rgba(209, 213, 219, 0.9);
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .position-badge.pos-3 {
+            background: rgba(180, 120, 60, 0.15);
+            color: rgba(217, 160, 100, 0.9);
+            border: 1px solid rgba(180, 120, 60, 0.3);
+        }
+
+        /* Item name and link */
+        .position-item-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.3;
+        }
+
+        .position-item-name a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .position-slot.gender-male .position-item-name a:hover {
+            color: rgba(96, 165, 250, 1);
+        }
+
+        .position-slot.gender-female .position-item-name a:hover {
+            color: rgba(244, 114, 182, 1);
+        }
+
+        /* Secondary name (artist for songs) */
+        .position-secondary {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 2px;
+        }
+
+        /* Stats at bottom of each slot */
+        .position-stats {
+            margin-top: 10px;
+        }
+
+        .position-plays {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .position-plays-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .position-entry-play {
+            margin-top: 2px;
+            font-size: 0.68rem;
+            color: rgba(255, 255, 255, 0.38);
+        }
+
+        /* Cumulative days at each position */
+        .position-days-breakdown {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .days-at-pos {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .days-at-pos .pos-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .days-at-pos.pos-1 .pos-label { color: rgba(234, 179, 8, 0.7); }
+        .days-at-pos.pos-2 .pos-label { color: rgba(156, 163, 175, 0.7); }
+        .days-at-pos.pos-3 .pos-label { color: rgba(180, 120, 60, 0.7); }
+
+        .days-at-pos .pos-val {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+
+        /* Empty state */
         .empty-state {
             text-align: center;
             padding: 80px 20px;
@@ -313,16 +399,103 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        /* Right side history cards */
+        .history-panel {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .history-panel-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 10px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .history-card.gender-male {
+            border-left: 3px solid rgba(59, 130, 246, 0.5);
+        }
+
+        .history-card.gender-female {
+            border-left: 3px solid rgba(236, 72, 153, 0.5);
+        }
+
+        .history-meta {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 4px;
+        }
+
+        .history-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.25;
+        }
+
+        .history-name a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .history-sub {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 1px;
+        }
+
+        .history-days {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
+            .timeline-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .timeline-side-column {
+                position: static;
+                max-height: none;
+                overflow: visible;
+            }
+
+            .snapshot-positions {
+                grid-template-columns: 1fr;
+            }
+            .position-slot {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            }
+            .position-slot:last-child {
+                border-bottom: none;
+            }
+        }
+
+        @media (max-width: 600px) {
             .timeline-page { padding: 12px; }
             .timeline-header { flex-direction: column; align-items: flex-start; }
-            .timeline-card { grid-template-columns: 1fr; }
-            .timeline-stats { justify-content: flex-start; }
-            .timeline-container { padding-left: 30px; }
-            .timeline-container::before { left: 10px; }
-            .timeline-entry::before { left: -24px; }
-            .timeline-entry.current-reign::before { left: -25px; }
             .summary-card { min-width: 140px; }
         }
     </style>
@@ -331,122 +504,183 @@
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <div class="timeline-page">
+
         <!-- Header -->
         <div class="timeline-header">
-            <h1 th:text="${timelineTitle} + ' Reigns'">Top Played Reigns</h1>
+            <h1 th:text="${timelineTitle} + ' Reigns'">Artist Reigns</h1>
             <div class="timeline-tabs">
-                <a href="/top-played-timeline/artists" class="timeline-tab"
+                <a href="/reign/artists" class="timeline-tab"
                    th:classappend="${timelineType == 'artist'} ? 'active' : ''">Artist</a>
-                <a href="/top-played-timeline/songs" class="timeline-tab"
+                <a href="/reign/songs" class="timeline-tab"
                    th:classappend="${timelineType == 'song'} ? 'active' : ''">Song</a>
-                <a href="/top-played-timeline/genres" class="timeline-tab"
+                <a href="/reign/genres" class="timeline-tab"
                    th:classappend="${timelineType == 'genre'} ? 'active' : ''">Genre</a>
             </div>
         </div>
 
         <!-- Summary Cards -->
-        <div class="timeline-summary" th:if="${!timeline.isEmpty()}">
+        <div class="timeline-summary" th:if="${timeline != null and !timeline.isEmpty()}">
             <div class="summary-card">
-                <div class="label">Total Reigns</div>
+                <div class="label">Total Snapshots</div>
                 <div class="value" th:text="${#lists.size(timeline)}">0</div>
             </div>
+            <th:block th:if="${!timeline.isEmpty() and !timeline.get(#lists.size(timeline)-1).items.isEmpty()}">
+                <div class="summary-card">
+                    <div class="label">Current #1</div>
+                    <div class="value" th:text="${timeline.get(#lists.size(timeline)-1).items.get(0).itemName}">-</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Current #1 Plays</div>
+                    <div class="value"
+                         th:text="${#numbers.formatInteger(timeline.get(#lists.size(timeline)-1).items.get(0).playsCount, 1, 'COMMA')}">0</div>
+                </div>
+            </th:block>
             <div class="summary-card">
-                <div class="label">Current #1</div>
-                <div class="value" th:text="${timeline.get(#lists.size(timeline) - 1).itemName}">-</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">Current #1 Plays</div>
-                <div class="value" th:text="${#numbers.formatInteger(timeline.get(#lists.size(timeline) - 1).playsAtEnd, 1, 'COMMA')}">0</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">Longest Reign</div>
-                <div class="value"><span id="longestReignDisplay">-</span></div>
+                <div class="label">Longest Snapshot</div>
+                <div class="value"><span id="longestSnapshotDisplay">-</span></div>
             </div>
         </div>
 
-        <!-- Timeline -->
-        <div class="timeline-container" th:if="${!timeline.isEmpty()}">
-            <div th:each="entry, stat : ${timeline}" 
-                 class="timeline-entry"
-                 th:classappend="${(timelineType != 'genre' and entry.genderId == 2) ? 'gender-male' : ''} + ' ' + ${(timelineType != 'genre' and entry.genderId == 1) ? 'gender-female' : ''} + ' ' + ${entry.current ? 'current-reign' : ''}"
-                 th:style="'animation-delay: ' + ${stat.index * 30} + 'ms'">
-                <div class="timeline-card">
-                    <div class="timeline-main">
-                        <span class="timeline-rank" th:text="'#' + ${entry.rank}"></span>
-                        <div class="timeline-name">
-                            <!-- Artist timeline: link to artist detail -->
-                            <th:block th:if="${timelineType == 'artist'}">
-                                <a th:href="@{/artists/{id}(id=${entry.itemId})}" th:text="${entry.itemName}">Artist Name</a>
-                            </th:block>
-                            <!-- Song timeline: link to song detail -->
-                            <th:block th:if="${timelineType == 'song'}">
-                                <a th:href="@{/songs/{id}(id=${entry.itemId})}" th:text="${entry.itemName}">Song Name</a>
-                            </th:block>
-                            <!-- Genre timeline: link to genre list -->
-                            <th:block th:if="${timelineType == 'genre'}">
-                                <a th:href="@{/genres}" th:text="${entry.itemName}">Genre Name</a>
-                            </th:block>
-                            <span class="current-badge" th:if="${entry.current}">Current</span>
+        <div class="timeline-layout" th:if="${timeline != null and !timeline.isEmpty()}">
+            <div class="timeline-main-column">
+                <div class="timeline-container">
+                    <div th:each="snapshot, stat : ${timeline}"
+                         class="snapshot-card"
+                         th:classappend="${snapshot.current} ? 'snapshot-current' : ''"
+                         th:attr="data-days=${snapshot.daysInConfig}"
+                         th:style="'animation-delay: ' + ${stat.index * 20} + 'ms'">
+
+                        <div class="snapshot-header">
+                            <span class="snapshot-rank" th:text="'#' + ${snapshot.rank}"></span>
+                            <span class="snapshot-dates">
+                                <span th:text="${snapshot.startDate}">01/01/2020</span>
+                                <span class="arrow">&#8594;</span>
+                                <span th:text="${snapshot.endDate}">01/01/2021</span>
+                            </span>
+                            <span class="snapshot-duration" th:text="${snapshot.daysInConfig} + 'd'">0d</span>
+                            <span class="current-badge" th:if="${snapshot.current}">Current</span>
                         </div>
-                        <!-- Song timeline: show artist name -->
-                        <div class="timeline-artist" th:if="${timelineType == 'song' and entry.secondaryName != null}" th:text="${entry.secondaryName}">Artist</div>
-                        <div class="timeline-dates">
-                            <span th:text="${entry.startDate}">01/01/2010</span>
-                            <span class="arrow">→</span>
-                            <span th:text="${entry.endDate}">01/07/2017</span>
-                        </div>
-                        <!-- Multi-reign indicator -->
-                        <div class="timeline-reign-info" th:if="${entry.totalReignCount > 1}">
-                            <span th:text="'Reign ' + ${entry.reignSequence} + ' of ' + ${entry.totalReignCount}"></span>
-                        </div>
-                    </div>
-                    <div class="timeline-stats">
-                        <div class="timeline-stat">
-                            <span class="stat-value" th:text="${#numbers.formatInteger(entry.playsAtStart, 1, 'COMMA')}">0</span>
-                            <span class="stat-label">Plays at Start</span>
-                        </div>
-                        <div class="timeline-stat">
-                            <span class="stat-value" th:text="${#numbers.formatInteger(entry.playsAtEnd, 1, 'COMMA')}">0</span>
-                            <span class="stat-label" th:text="${entry.current ? 'Current Plays' : 'Plays at End'}">Plays at End</span>
-                        </div>
-                        <div class="timeline-stat">
-                            <span class="stat-value" th:text="${entry.daysAtNumberOne}">0</span>
-                            <span class="stat-label">Days</span>
-                            <span class="stat-total-days" th:if="${entry.totalReignCount > 1}" 
-                                  th:text="'(Total: ' + ${entry.totalDaysAllReigns} + 'd)'"></span>
+
+                        <div class="snapshot-positions">
+                            <div th:each="item : ${snapshot.items}"
+                                 class="position-slot"
+                                 th:classappend="
+                                     ${item.movement == 'NEW'} ? 'movement-new' :
+                                     (${item.movement == 'CLIMBED'} ? 'movement-climbed' :
+                                     (${item.movement == 'DROPPED'} ? 'movement-dropped' :
+                                     ((timelineType != 'genre' and item.genderId == 2) ? 'gender-male' :
+                                     (timelineType != 'genre' and item.genderId == 1 ? 'gender-female' : ''))))">
+
+                                <div class="position-top-row">
+                                    <span class="position-badge"
+                                          th:classappend="'pos-' + ${item.position}"
+                                          th:text="'#' + ${item.position}"></span>
+                                    <span th:if="${item.movement == 'NEW'}" class="movement-badge badge-new">NEW</span>
+                                    <span th:if="${item.movement == 'CLIMBED'}" class="movement-badge badge-climbed">&#9650;</span>
+                                    <span th:if="${item.movement == 'DROPPED'}" class="movement-badge badge-dropped">&#9660;</span>
+                                </div>
+
+                                <div class="position-item-name">
+                                    <a th:if="${timelineType == 'artist'}"
+                                       th:href="@{/artists/{id}(id=${item.itemId})}"
+                                       th:text="${item.itemName}">Artist</a>
+                                    <a th:if="${timelineType == 'song'}"
+                                       th:href="@{/songs/{id}(id=${item.itemId})}"
+                                       th:text="${item.itemName}">Song</a>
+                                    <span th:if="${timelineType == 'genre'}"
+                                          th:text="${item.itemName}">Genre</span>
+                                </div>
+
+                                <div class="position-secondary"
+                                     th:if="${item.secondaryName != null and !item.secondaryName.isEmpty()}"
+                                     th:text="${item.secondaryName}"></div>
+
+                                <div class="position-stats">
+                                    <div class="position-plays"
+                                         th:text="${#numbers.formatInteger(item.playsCount, 1, 'COMMA')}">0</div>
+                                    <div class="position-plays-label">plays</div>
+                                     <div class="position-entry-play"
+                                         th:if="${item.movement != null and item.playsWhenEntered > 0}"
+                                         th:text="'at move: ' + ${#numbers.formatInteger(item.playsWhenEntered, 1, 'COMMA')}">at move: 0</div>
+
+                                    <div class="position-days-breakdown">
+                                        <span class="days-at-pos pos-1" th:if="${item.daysAtPos1 > 0}">
+                                            <span class="pos-label">#1:</span>
+                                            <span class="pos-val" th:text="${item.daysAtPos1} + 'd'">0d</span>
+                                        </span>
+                                        <span class="days-at-pos pos-2" th:if="${item.daysAtPos2 > 0}">
+                                            <span class="pos-label">#2:</span>
+                                            <span class="pos-val" th:text="${item.daysAtPos2} + 'd'">0d</span>
+                                        </span>
+                                        <span class="days-at-pos pos-3" th:if="${item.daysAtPos3 > 0}">
+                                            <span class="pos-label">#3:</span>
+                                            <span class="pos-val" th:text="${item.daysAtPos3} + 'd'">0d</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <aside class="timeline-side-column">
+                <div class="history-panel" th:if="${top3History != null and !top3History.isEmpty()}">
+                    <div class="history-panel-title">Top 3 History</div>
+                    <div class="history-list">
+                        <div th:each="card : ${top3History}" class="history-card"
+                             th:classappend="${(timelineType != 'genre' and card.genderId == 2) ? 'gender-male' : ''} + ' ' + ${(timelineType != 'genre' and card.genderId == 1) ? 'gender-female' : ''}">
+                            <div class="history-meta" th:text="'First seen: #' + ${card.firstAppearanceRank}">First seen: #1</div>
+
+                            <div class="history-name">
+                                <a th:if="${timelineType == 'artist'}"
+                                   th:href="@{/artists/{id}(id=${card.itemId})}"
+                                   th:text="${card.itemName}">Artist</a>
+                                <a th:if="${timelineType == 'song'}"
+                                   th:href="@{/songs/{id}(id=${card.itemId})}"
+                                   th:text="${card.itemName}">Song</a>
+                                <span th:if="${timelineType == 'genre'}" th:text="${card.itemName}">Genre</span>
+                            </div>
+
+                            <div class="history-sub"
+                                 th:if="${card.secondaryName != null and !card.secondaryName.isEmpty()}"
+                                 th:text="${card.secondaryName}">Secondary</div>
+
+                            <div class="history-days">
+                                <span>#3: <span th:text="${card.daysAtPos3} + 'd'">0d</span></span>
+                                <span>#2: <span th:text="${card.daysAtPos2} + 'd'">0d</span></span>
+                                <span>#1: <span th:text="${card.daysAtPos1} + 'd'">0d</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </div>
 
-        <!-- Empty state -->
-        <div class="empty-state" th:if="${timeline.isEmpty()}">
-            <h2>No timeline data available</h2>
-            <p>Play data is needed to generate the top played timeline.</p>
+        <!-- Empty State -->
+        <div class="empty-state" th:if="${timeline == null or timeline.isEmpty()}">
+            <h2>No data available</h2>
+            <p>Play data is needed to generate the reigns timeline.</p>
         </div>
     </div>
 
     <script>
-        // Compute longest reign from the timeline entries
+        // Show the longest snapshot duration in the summary card
         (function() {
-            const entries = document.querySelectorAll('.timeline-entry');
+            const cards = document.querySelectorAll('.snapshot-card[data-days]');
             let maxDays = 0;
             let maxName = '-';
-            entries.forEach(function(el) {
-                const statsEls = el.querySelectorAll('.timeline-stat .stat-value');
-                if (statsEls.length >= 3) {
-                    const days = parseInt(statsEls[2].textContent.replace(/,/g, ''), 10);
-                    if (days > maxDays) {
-                        maxDays = days;
-                        const nameEl = el.querySelector('.timeline-name a');
-                        maxName = nameEl ? nameEl.textContent : '-';
-                    }
+            cards.forEach(function(card) {
+                const days = parseInt(card.getAttribute('data-days'), 10);
+                if (days > maxDays) {
+                    maxDays = days;
+                    const nameEl = card.querySelector('.position-slot .position-item-name a, .position-slot .position-item-name span');
+                    maxName = nameEl ? nameEl.textContent.trim() : '-';
                 }
             });
-            const display = document.getElementById('longestReignDisplay');
-            if (display) {
-                display.textContent = maxDays > 0 ? (maxDays + 'd - ' + maxName) : '-';
+            const el = document.getElementById('longestSnapshotDisplay');
+            if (el) {
+                el.textContent = maxDays > 0 ? (maxDays + 'd - ' + maxName) : '-';
             }
         })();
     </script>

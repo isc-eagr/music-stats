@@ -424,12 +424,14 @@
             background: #1a1a1a;
             border-radius: 8px;
             border: 1px solid #2a2a2a;
+            position: relative;
         }
         
         .top-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
+            min-width: max-content;
         }
         
         .top-table th {
@@ -487,6 +489,99 @@
         
         .top-table th.rank-col {
             cursor: default;
+        }
+        
+        .top-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        
+        /* Column Toggle Panel */
+        .column-toggle-panel {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+        }
+        
+        .column-toggle-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 12px;
+            user-select: none;
+            padding: 2px 0;
+        }
+        
+        .column-toggle-header:hover {
+            color: #e5e7eb;
+        }
+        
+        .column-toggle-header .toggle-arrow {
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+        
+        .column-toggle-header .toggle-arrow.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .column-toggle-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 4px 12px;
+            padding: 8px 0 4px 0;
+        }
+        
+        .column-toggle-grid.expanded {
+            display: grid;
+        }
+        
+        .column-toggle-grid label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #9ca3af;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 2px 0;
+            white-space: nowrap;
+        }
+        
+        .column-toggle-grid label:hover {
+            color: #e5e7eb;
+        }
+        
+        .column-toggle-grid input[type="checkbox"] {
+            accent-color: #3b82f6;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+        
+        .column-toggle-grid input[type="checkbox"]:checked + span {
+            color: #e5e7eb;
+        }
+
+        .column-toggle-all-row {
+            grid-column: 1 / -1;
+            font-size: 12px;
+            padding: 2px 0 6px 0;
+            border-bottom: 1px solid #2a2a2a;
+            margin-bottom: 4px;
+        }
+
+        .column-toggle-all-row a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .column-toggle-all-row a:hover {
+            text-decoration: underline;
         }
         
         /* Filter panel specific overrides for charts page */
@@ -2628,19 +2723,43 @@
                         <div class="top-section top-subtab-content" id="top-subtab-artists" style="display: block;">
                             <!-- Podium section -->
                             <div class="podium-section" id="artistsPodium"></div>
+                            <div class="column-toggle-panel" id="artistColumnTogglePanel">
+                                <div class="column-toggle-header" onclick="toggleColumnPanel('artist')">
+                                    <span class="toggle-arrow" id="artistToggleArrow">&#9654;</span>
+                                    <span>Show/Hide Columns</span>
+                                </div>
+                                <div class="column-toggle-grid" id="artistColumnToggles">
+                                </div>
+                            </div>
                             <div class="top-table-container" id="topArtistsTableContainer">
                                 <table class="top-table" id="topArtistsTable">
                                     <thead>
                                         <tr>
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
-                                            <th data-sort="name">Artist Name</th>
-                                            <th data-sort="plays" style="text-align:right;">Total</th>
-                                            <th data-sort="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
-                                            <th data-sort="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
-                                            <th data-sort="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
-                                            <th data-sort="firstListened" class="hide-mobile">First Listened</th>
-                                            <th data-sort="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="name" data-col="name">Artist Name</th>
+                                            <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
+                                            <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                            <th data-sort="legacyPlays" data-col="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                            <th data-sort="timeListened" data-col="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                                            <th data-sort="firstListened" data-col="firstListened" class="hide-mobile">First Listened</th>
+                                            <th data-sort="lastListened" data-col="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="age" data-col="age" style="text-align:right;display:none;">Age</th>
+                                            <th data-sort="albumCount" data-col="albumCount" style="text-align:right;display:none;">Album Count</th>
+                                            <th data-sort="avgLength" data-col="avgLength" style="text-align:right;display:none;">Avg Length</th>
+                                            <th data-sort="avgPlays" data-col="avgPlays" style="text-align:right;display:none;">Avg Plays</th>
+                                            <th data-sort="birthDate" data-col="birthDate" style="display:none;">Birth Date</th>
+                                            <th data-sort="deathDate" data-col="deathDate" style="display:none;">Death Date</th>
+                                            <th data-sort="songCount" data-col="songCount" style="text-align:right;display:none;">Song Count</th>
+                                            <th data-sort="featuredOnCount" data-col="featuredOnCount" style="text-align:right;display:none;">Featured Song Count</th>
+                                            <th data-sort="featuredArtistCount" data-col="featuredArtistCount" style="text-align:right;display:none;">Featured Artist Count</th>
+                                            <th data-sort="soloSongCount" data-col="soloSongCount" style="text-align:right;display:none;">Solo Songs</th>
+                                            <th data-sort="songsWithFeatCount" data-col="songsWithFeatCount" style="text-align:right;display:none;">Songs w/ Features</th>
+                                            <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
+                                            <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>
+                                            <th data-sort="ethnicity" data-col="ethnicity" style="display:none;">Ethnicity</th>
+                                            <th data-sort="country" data-col="country" style="display:none;">Country</th>
+                                            <th data-sort="language" data-col="language" style="display:none;">Language</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -2652,22 +2771,46 @@
                         <div class="top-section top-subtab-content" id="top-subtab-albums" style="display: none;">
                             <!-- Podium section -->
                             <div class="podium-section" id="albumsPodium"></div>
+                            <div class="column-toggle-panel" id="albumColumnTogglePanel">
+                                <div class="column-toggle-header" onclick="toggleColumnPanel('album')">
+                                    <span class="toggle-arrow" id="albumToggleArrow">&#9654;</span>
+                                    <span>Show/Hide Columns</span>
+                                </div>
+                                <div class="column-toggle-grid" id="albumColumnToggles">
+                                </div>
+                            </div>
                             <div class="top-table-container" id="topAlbumsTableContainer">
                                 <table class="top-table" id="topAlbumsTable">
                                     <thead>
                                         <tr>
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
-                                            <th data-sort="artistName" class="hide-mobile">Artist Name</th>
-                                            <th data-sort="name">Album Name</th>
-                                            <th data-sort="plays" style="text-align:right;">Total</th>
-                                            <th data-sort="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
-                                            <th data-sort="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
-                                            <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
-                                            <th data-sort="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
-                                            <th data-sort="releaseDate" class="hide-mobile">Release Date</th>
-                                            <th data-sort="firstListened" class="hide-mobile">First Listened</th>
-                                            <th data-sort="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="artistName" data-col="artistName" class="hide-mobile">Artist Name</th>
+                                            <th data-sort="name" data-col="name">Album Name</th>
+                                            <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
+                                            <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                            <th data-sort="legacyPlays" data-col="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                            <th data-sort="length" data-col="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                            <th data-sort="timeListened" data-col="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                                            <th data-sort="releaseDate" data-col="releaseDate" class="hide-mobile">Release Date</th>
+                                            <th data-sort="firstListened" data-col="firstListened" class="hide-mobile">First Listened</th>
+                                            <th data-sort="lastListened" data-col="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="ageAtRelease" data-col="ageAtRelease" style="text-align:right;display:none;">Age at Release</th>
+                                            <th data-sort="avgLength" data-col="avgLength" style="text-align:right;display:none;">Avg Length</th>
+                                            <th data-sort="avgPlays" data-col="avgPlays" style="text-align:right;display:none;">Avg Plays</th>
+                                            <th data-sort="seasonalChartPeak" data-col="seasonalChartPeak" style="text-align:right;display:none;">Seasonal Peak</th>
+                                            <th data-sort="songCount" data-col="songCount" style="text-align:right;display:none;">Song Count</th>
+                                            <th data-sort="featuredArtistCount" data-col="featuredArtistCount" style="text-align:right;display:none;">Featured Artist Count</th>
+                                            <th data-sort="soloSongCount" data-col="soloSongCount" style="text-align:right;display:none;">Solo Songs</th>
+                                            <th data-sort="songsWithFeatCount" data-col="songsWithFeatCount" style="text-align:right;display:none;">Songs w/ Features</th>
+                                            <th data-sort="weeklyChartPeak" data-col="weeklyChartPeak" style="text-align:right;display:none;">Weekly Peak</th>
+                                            <th data-sort="weeklyChartWeeks" data-col="weeklyChartWeeks" style="text-align:right;display:none;">Weekly Weeks</th>
+                                            <th data-sort="yearlyChartPeak" data-col="yearlyChartPeak" style="text-align:right;display:none;">Yearly Peak</th>
+                                            <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
+                                            <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>
+                                            <th data-sort="ethnicity" data-col="ethnicity" style="display:none;">Ethnicity</th>
+                                            <th data-sort="country" data-col="country" style="display:none;">Country</th>
+                                            <th data-sort="language" data-col="language" style="display:none;">Language</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -2679,23 +2822,42 @@
                         <div class="top-section top-subtab-content" id="top-subtab-songs" style="display: none;">
                             <!-- Podium section -->
                             <div class="podium-section" id="songsPodium"></div>
+                            <div class="column-toggle-panel" id="songColumnTogglePanel">
+                                <div class="column-toggle-header" onclick="toggleColumnPanel('song')">
+                                    <span class="toggle-arrow" id="songToggleArrow">&#9654;</span>
+                                    <span>Show/Hide Columns</span>
+                                </div>
+                                <div class="column-toggle-grid" id="songColumnToggles">
+                                </div>
+                            </div>
                             <div class="top-table-container" id="topSongsTableContainer">
                                 <table class="top-table" id="topSongsTable">
                                     <thead>
                                         <tr>
                                             <th class="rank-col">#</th>
                                             <th class="cover-col"></th>
-                                            <th data-sort="artistName" class="hide-mobile">Artist Name</th>
-                                            <th data-sort="albumName" class="hide-mobile">Album Name</th>
-                                            <th data-sort="name">Song Name</th>
-                                            <th data-sort="plays" style="text-align:right;">Total</th>
-                                            <th data-sort="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
-                                            <th data-sort="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
-                                            <th data-sort="length" style="text-align:right;" class="hide-mobile">Length</th>
-                                            <th data-sort="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
-                                            <th data-sort="releaseDate" class="hide-mobile">Release Date</th>
-                                            <th data-sort="firstListened" class="hide-mobile">First Listened</th>
-                                            <th data-sort="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="artistName" data-col="artistName" class="hide-mobile">Artist Name</th>
+                                            <th data-sort="albumName" data-col="albumName" class="hide-mobile">Album Name</th>
+                                            <th data-sort="name" data-col="name">Song Name</th>
+                                            <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
+                                            <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                                            <th data-sort="legacyPlays" data-col="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                                            <th data-sort="length" data-col="length" style="text-align:right;" class="hide-mobile">Length</th>
+                                            <th data-sort="timeListened" data-col="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                                            <th data-sort="releaseDate" data-col="releaseDate" class="hide-mobile">Release Date</th>
+                                            <th data-sort="firstListened" data-col="firstListened" class="hide-mobile">First Listened</th>
+                                            <th data-sort="lastListened" data-col="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="ageAtRelease" data-col="ageAtRelease" style="text-align:right;display:none;">Age at Release</th>
+                                            <th data-sort="featuredArtistCount" data-col="featuredArtistCount" style="text-align:right;display:none;">Featured Artist Count</th>
+                                            <th data-sort="seasonalChartPeak" data-col="seasonalChartPeak" style="text-align:right;display:none;">Seasonal Peak</th>
+                                            <th data-sort="weeklyChartPeak" data-col="weeklyChartPeak" style="text-align:right;display:none;">Weekly Peak</th>
+                                            <th data-sort="weeklyChartWeeks" data-col="weeklyChartWeeks" style="text-align:right;display:none;">Weekly Weeks</th>
+                                            <th data-sort="yearlyChartPeak" data-col="yearlyChartPeak" style="text-align:right;display:none;">Yearly Peak</th>
+                                            <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
+                                            <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>
+                                            <th data-sort="ethnicity" data-col="ethnicity" style="display:none;">Ethnicity</th>
+                                            <th data-sort="country" data-col="country" style="display:none;">Country</th>
+                                            <th data-sort="language" data-col="language" style="display:none;">Language</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>

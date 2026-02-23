@@ -242,12 +242,12 @@
                  <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">📊 Graphs</a></li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'top-played-timeline'} ? 'active' : ''"
+                        th:classappend="${currentSection == 'reign'} ? 'active' : ''"
                         onclick="toggleDropdown(event, this)">Reigns ▾</a>
                      <ul class="app-nav-dropdown-menu">
-                         <li><a href="/top-played-timeline/artists" class="app-nav-dropdown-link">Artist</a></li>
-                         <li><a href="/top-played-timeline/songs" class="app-nav-dropdown-link">Song</a></li>
-                         <li><a href="/top-played-timeline/genres" class="app-nav-dropdown-link">Genre</a></li>
+                         <li><a href="/reign/artists" class="app-nav-dropdown-link">Artist</a></li>
+                         <li><a href="/reign/songs" class="app-nav-dropdown-link">Song</a></li>
+                         <li><a href="/reign/genres" class="app-nav-dropdown-link">Genre</a></li>
                      </ul>
                  </li>
                  <!-- Mobile-only: utilities links -->

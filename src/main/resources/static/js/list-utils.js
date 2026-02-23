@@ -144,6 +144,92 @@ function formatSongLength(seconds) {
 }
 
 /**
+ * Format seconds to a human-readable time string (hh:mm:ss with optional leading parts).
+ * Examples: 4 -> "4", 107 -> "1:47", 3661 -> "1:01:01"
+ * @param {number} totalSeconds - Total duration in seconds
+ * @returns {string} Formatted time string
+ */
+function formatLengthFilter(totalSeconds) {
+    if (totalSeconds == null || totalSeconds < 0) return '';
+    totalSeconds = Math.floor(totalSeconds);
+    if (totalSeconds === 0) return '0';
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+        return hours + ':' + (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+    } else if (minutes > 0) {
+        return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+    } else {
+        return '' + seconds;
+    }
+}
+
+/**
+ * Parse a time string (hh:mm:ss, mm:ss, or ss) to total seconds.
+ * Accepts formats: "4" (4 sec), "1:47" (1 min 47 sec), "1:01:01" (1 hr 1 min 1 sec).
+ * Non-significant zeros are optional (e.g., "1:47" instead of "01:47").
+ * @param {string} str - The time string to parse
+ * @returns {number|null} Total seconds, or null if invalid
+ */
+function parseLengthFilter(str) {
+    if (!str || str.trim() === '') return null;
+    str = str.trim();
+    const parts = str.split(':');
+    if (parts.length > 3) return null;
+    for (let i = 0; i < parts.length; i++) {
+        if (!/^\d+$/.test(parts[i])) return null;
+    }
+    if (parts.length === 1) {
+        return parseInt(parts[0], 10);
+    } else if (parts.length === 2) {
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    } else {
+        return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+    }
+}
+
+/**
+ * Initialize length filter inputs with display formatting.
+ * Converts hidden second values to hh:mm:ss display in text inputs,
+ * and converts back to seconds on form submit.
+ * @param {string} formId - The form element ID
+ */
+function initLengthFilter(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const minHidden = form.querySelector('input[name="lengthMin"]');
+    const maxHidden = form.querySelector('input[name="lengthMax"]');
+    const minDisplay = document.getElementById('lengthMinDisplay');
+    const maxDisplay = document.getElementById('lengthMaxDisplay');
+    if (!minDisplay || !maxDisplay) return;
+
+    // On page load, format seconds to display
+    if (minHidden && minHidden.value) {
+        minDisplay.value = formatLengthFilter(parseInt(minHidden.value, 10));
+    }
+    if (maxHidden && maxHidden.value) {
+        maxDisplay.value = formatLengthFilter(parseInt(maxHidden.value, 10));
+    }
+
+    // On form submit, convert display to seconds
+    form.addEventListener('submit', function() {
+        if (minDisplay.value.trim()) {
+            const parsed = parseLengthFilter(minDisplay.value);
+            if (parsed !== null && minHidden) minHidden.value = parsed;
+        } else {
+            if (minHidden) minHidden.value = '';
+        }
+        if (maxDisplay.value.trim()) {
+            const parsed = parseLengthFilter(maxDisplay.value);
+            if (parsed !== null && maxHidden) maxHidden.value = parsed;
+        } else {
+            if (maxHidden) maxHidden.value = '';
+        }
+    });
+}
+
+/**
  * Debounce a function to limit how often it can be called.
  * @param {Function} func - The function to debounce
  * @param {number} wait - The wait time in milliseconds
@@ -172,6 +258,76 @@ function navigateToGraph(element, filterType) {
     const name = encodeURIComponent(element.dataset.name);
     window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + id + '&filterName=' + name;
 }
+
+/**
+ * Toggle the expanded stats section of a card (used on detail pages).
+ * @param {HTMLElement} btn - The toggle button element
+ */
+function toggleCardExpand(btn) {
+    btn.classList.toggle('expanded');
+    const stats = btn.nextElementSibling;
+    if (stats) {
+        stats.classList.toggle('visible');
+    }
+}
+
+/**
+ * Open a modal showing the full card with all stats.
+ * Used on list pages as a replacement for inline expand.
+ * @param {HTMLElement} btn - The "More" toggle button element inside the card
+ */
+function openCardModal(btn) {
+    const card = btn.closest('.artist-card, .album-card, .song-card');
+    if (!card) return;
+
+    if (window.innerWidth <= 768) {
+        card.classList.toggle('mobile-expanded');
+        return;
+    }
+
+    let modal = document.getElementById('cardDetailModal');
+    if (!modal) return;
+
+    const clone = card.cloneNode(true);
+    // Remove IDs from clone to prevent conflicts
+    clone.querySelectorAll('[id]').forEach(function(el) { el.removeAttribute('id'); });
+
+    const body = modal.querySelector('.card-detail-modal-body');
+    body.innerHTML = '';
+    body.appendChild(clone);
+
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+// Add click listener for mobile cards to expand inline
+document.addEventListener('click', function(e) {
+    if (window.innerWidth <= 768) {
+        const card = e.target.closest('.artist-card, .album-card, .song-card');
+        // Only expand if clicking the card itself, not a link or the expand toggle
+        if (card && !e.target.closest('a') && !e.target.closest('.card-expand-toggle') && !e.target.closest('.clickable-image')) {
+            card.classList.toggle('mobile-expanded');
+        }
+    }
+});
+
+/**
+ * Close the card detail modal.
+ */
+function closeCardModal() {
+    var modal = document.getElementById('cardDetailModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+// Close card modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeCardModal();
+    }
+});
 
 /**
  * Initialize search form to preserve filters when searching.

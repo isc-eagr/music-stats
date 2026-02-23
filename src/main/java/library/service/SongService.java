@@ -158,6 +158,15 @@ public class SongService {
             dto.setSeasonalChartPeakPeriod((String) row[37]);
             dto.setYearlyChartPeakPeriod((String) row[38]);
             
+            // Set featured artist count (index 40) and age at release (index 41)
+            dto.setFeaturedArtistCount(row[40] != null ? ((Number) row[40]).intValue() : 0);
+            dto.setAgeAtRelease(row[41] != null ? ((Number) row[41]).intValue() : null);
+            
+            // Set peak durations (indices 42-44)
+            dto.setWeeklyChartPeakWeeks(row[42] != null ? ((Number) row[42]).intValue() : null);
+            dto.setSeasonalChartPeakSeasons(row[43] != null ? ((Number) row[43]).intValue() : null);
+            dto.setYearlyChartPeakYears(row[44] != null ? ((Number) row[44]).intValue() : null);
+
             // Format length
             if (dto.getLengthSeconds() != null) {
                 int minutes = dto.getLengthSeconds() / 60;
