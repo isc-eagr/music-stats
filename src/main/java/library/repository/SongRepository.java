@@ -6512,6 +6512,8 @@ public class SongRepository {
             }
             long plays2 = rs.getLong("plays");
             row.put("avgPlays", songCount > 0 ? Math.round((double) plays2 / songCount * 100.0) / 100.0 : null);
+            int albumCount = rs.getInt("album_count");
+            row.put("avgPlaysAlbum", albumCount > 0 ? Math.round((double) plays2 / albumCount * 100.0) / 100.0 : null);
             row.put("featuredOnCount", rs.getInt("featured_on_count"));
             row.put("featuredArtistCount", rs.getInt("featured_artist_count"));
             row.put("soloSongCount", rs.getInt("solo_song_count"));

@@ -43,7 +43,8 @@
                             <option value="age" th:selected="${sortBy == 'age'}">Age</option>
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="avg_length" th:selected="${sortBy == 'avg_length'}">Average Length</option>
-                            <option value="avg_plays" th:selected="${sortBy == 'avg_plays'}">Average Plays</option>
+                            <option value="avg_plays" th:selected="${sortBy == 'avg_plays'}">Average Plays / Song</option>
+                            <option value="avg_plays_album" th:selected="${sortBy == 'avg_plays_album'}">Average Plays / Album</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
@@ -1173,6 +1174,12 @@
                         <a th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}" 
                            th:href="@{/graphs(filterType='subgenre',filterId=${artist.subgenreId},filterName=${artist.subgenreName})}"
                            class="winning-chip subgenre" th:text="${artist.subgenreName}" title="Subgenre"></a>
+                        <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}" 
+                           th:href="@{/graphs(filterType='ethnicity',filterId=${artist.ethnicityId},filterName=${artist.ethnicityName})}"
+                           class="winning-chip ethnicity" th:text="${artist.ethnicityName}" title="Ethnicity"></a>
+                        <a th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}" 
+                           th:href="@{/graphs(filterType='language',filterId=${artist.languageId},filterName=${artist.languageName})}"
+                           class="winning-chip language" th:text="${artist.languageName}" title="Language"></a>
                     </div>
 
                     <!-- Sort metric display (only for non-visible metrics) -->
@@ -1180,7 +1187,8 @@
                         <span class="sort-metric-label" th:switch="${sortBy}">
                             <th:block th:case="'age'">Age:</th:block>
                             <th:block th:case="'avg_length'">Avg Length:</th:block>
-                            <th:block th:case="'avg_plays'">Avg Plays:</th:block>
+                            <th:block th:case="'avg_plays'">Avg Plays / Song:</th:block>
+                            <th:block th:case="'avg_plays_album'">Avg Plays / Album:</th:block>
                             <th:block th:case="'birth_date'">Born:</th:block>
                             <th:block th:case="'death_date'">Died:</th:block>
                             <th:block th:case="'first_listened'">First Listened:</th:block>
@@ -1191,6 +1199,7 @@
                             <th:block th:case="'age'" th:text="${artist.ageDisplay != null ? artist.ageDisplay : 'N/A'}"></th:block>
                             <th:block th:case="'avg_length'" th:text="${artist.avgLengthFormatted != null ? artist.avgLengthFormatted : 'N/A'}"></th:block>
                             <th:block th:case="'avg_plays'" th:text="${artist.avgPlays != null ? #numbers.formatDecimal(artist.avgPlays, 1, 1) : 'N/A'}"></th:block>
+                            <th:block th:case="'avg_plays_album'" th:text="${artist.avgPlaysPerAlbum != null ? #numbers.formatDecimal(artist.avgPlaysPerAlbum, 1, 1) : 'N/A'}"></th:block>
                             <th:block th:case="'birth_date'" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd MMM yyyy') : 'N/A'}"></th:block>
                             <th:block th:case="'death_date'" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd MMM yyyy') : 'N/A'}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${artist.firstListenedDate != null ? artist.firstListenedDate : 'N/A'}"></th:block>
@@ -1243,33 +1252,148 @@
 
                     <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
                     <div class="card-modal-text-stats">
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Songs</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.songCount}">0</span>
+                        <!-- Header for modal (Name & Chips) -->
+                        <div class="modal-header">
+                            <h3 class="modal-title">
+                                <span th:if="${artist.inItunes != null}" 
+                                      th:classappend="${artist.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                      class="itunes-badge"
+                                      th:title="${artist.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                      th:text="${artist.inItunes ? '✓' : '✗'}"></span><span th:text="${artist.name}">Artist Name</span>
+                            </h3>
+                            <div class="modal-chips">
+                                <span th:if="${artist.genreName != null}" class="modal-chip genre" th:text="${artist.genreName}">Genre</span>
+                                <span th:if="${artist.subgenreName != null}" class="modal-chip subgenre" th:text="${artist.subgenreName}">Subgenre</span>
+                                <span th:if="${artist.ethnicityName != null}" class="modal-chip ethnicity" th:text="${artist.ethnicityName}">Ethnicity</span>
+                                <span th:if="${artist.languageName != null}" class="modal-chip language" th:text="${artist.languageName}">Language</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat" th:if="${artist.featuredSongCount != null and artist.featuredSongCount > 0}">
-                            <span class="card-modal-text-stat-label">Featured Songs</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.featuredSongCount}">0</span>
+
+                        <!-- Section 1: Plays -->
+                        <div class="modal-section section-plays">
+                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Plays</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Play Count</span>
+                                <span class="modal-stat-value" th:text="${artist.playCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Primary Plays</span>
+                                <span class="modal-stat-value" th:text="${artist.vatitoPlayCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Legacy Plays</span>
+                                <span class="modal-stat-value" th:text="${artist.robertloverPlayCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Time Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.timeListenedFormatted}">0m</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Avg Plays / Song</span>
+                                <span class="modal-stat-value" th:text="${artist.avgPlays != null ? #numbers.formatDecimal(artist.avgPlays, 1, 1) : 'N/A'}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Avg Plays / Album</span>
+                                <span class="modal-stat-value" th:text="${artist.avgPlaysPerAlbum != null ? #numbers.formatDecimal(artist.avgPlaysPerAlbum, 1, 1) : 'N/A'}">0</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Albums</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.albumCount}">0</span>
+
+                        <div class="modal-separator" th:classappend="${artist.genderName == 'Male' ? 'gender-sep-male' : (artist.genderName == 'Female' ? 'gender-sep-female' : '')}"></div>
+
+                        <!-- Section 2: Catalog -->
+                        <div class="modal-section section-catalog">
+                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Catalog</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Album Count</span>
+                                <span class="modal-stat-value" th:text="${artist.albumCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Song Count</span>
+                                <span class="modal-stat-value" th:text="${artist.songCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Song Count w/ Features</span>
+                                <span class="modal-stat-value" th:text="${artist.songCount + artist.featuredSongCount}">0</span>
+                            </div>
+
+                            <div style="margin-top:14px;"></div>
+
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Solo Songs</span>
+                                <span class="modal-stat-value" th:text="${artist.soloSongCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Songs w/ Features</span>
+                                <span class="modal-stat-value" th:text="${artist.songsWithFeatCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Featured Songs</span>
+                                <span class="modal-stat-value" th:text="${artist.featuredSongCount}">0</span>
+                            </div>
+
+                            <div style="margin-top:14px;"></div>
+
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Songs on Album</span>
+                                <span class="modal-stat-value" th:text="${artist.songCount - artist.standaloneSongCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Standalone Songs</span>
+                                <span class="modal-stat-value" th:text="${artist.standaloneSongCount}">0</span>
+                            </div>
+
+                            <div style="margin-top:14px;"></div>
+
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Avg Song Length</span>
+                                <span class="modal-stat-value" th:text="${artist.avgLengthFormatted != null ? artist.avgLengthFormatted : 'N/A'}">0:00</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Avg Album Length</span>
+                                <span class="modal-stat-value" th:text="${artist.avgAlbumLengthFormatted != null ? artist.avgAlbumLengthFormatted : 'N/A'}">0:00</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Total Plays</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.playCount}">0</span>
+
+                        <div class="modal-separator" th:classappend="${artist.genderName == 'Male' ? 'gender-sep-male' : (artist.genderName == 'Female' ? 'gender-sep-female' : '')}"></div>
+
+                        <!-- Section 3: Details -->
+                        <div class="modal-section section-details">
+                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Details</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Images</span>
+                                <span class="modal-stat-value" th:text="${artist.imageCount}">0</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Primary Plays</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.vatitoPlayCount}">0</span>
-                        </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Legacy Plays</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.robertloverPlayCount}">0</span>
-                        </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Time Listened</span>
-                            <span class="card-modal-text-stat-value" th:text="${artist.timeListenedFormatted}">0m</span>
+
+                        <div class="modal-separator" th:classappend="${artist.genderName == 'Male' ? 'gender-sep-male' : (artist.genderName == 'Female' ? 'gender-sep-female' : '')}"></div>
+
+                        <!-- Section 4: Dates -->
+                        <div class="modal-section section-dates">
+                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Dates</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">First Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.firstListenedDate != null ? artist.firstListenedDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Last Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.lastListenedDate != null ? artist.lastListenedDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row" th:if="${artist.birthDate != null}">
+                                <span class="modal-stat-label">Birth Date</span>
+                                <span class="modal-stat-value" th:text="${#temporals.format(artist.birthDate, 'dd/MM/yyyy')}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row" th:if="${artist.deathDate != null}">
+                                <span class="modal-stat-label">Death Date</span>
+                                <span class="modal-stat-value" th:text="${#temporals.format(artist.deathDate, 'dd/MM/yyyy')}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row" th:if="${artist.deathDate != null}">
+                                <span class="modal-stat-label">Age at Death</span>
+                                <span class="modal-stat-value" th:text="${artist.ageDisplay}">N/A</span>
+                            </div>
+                             <div class="modal-stat-row" th:if="${artist.deathDate == null and artist.birthDate != null}">
+                                <span class="modal-stat-label">Age</span>
+                                <span class="modal-stat-value" th:text="${artist.ageDisplay}">N/A</span>
+                            </div>
                         </div>
                     </div>
 
@@ -1279,51 +1403,7 @@
                         <span class="expand-label">More</span>
                     </div>
 
-                    <!-- Expanded stats -->
-                    <div class="card-expanded-stats">
-                        <div class="expanded-stats-grid">
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">First Listened</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.firstListenedDate == null ? 'null-value' : ''}" th:text="${artist.firstListenedDate != null ? artist.firstListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Last Listened</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.lastListenedDate == null ? 'null-value' : ''}" th:text="${artist.lastListenedDate != null ? artist.lastListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Birth Date</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.birthDate == null ? 'null-value' : ''}" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Death Date</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.deathDate == null ? 'null-value' : ''}" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Age</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.ageDisplay == null ? 'null-value' : ''}" th:text="${artist.ageDisplay != null ? artist.ageDisplay : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Avg Length</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.avgLengthFormatted == null ? 'null-value' : ''}" th:text="${artist.avgLengthFormatted != null ? artist.avgLengthFormatted : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Avg Plays</span>
-                                <span class="expanded-stat-value" th:classappend="${artist.avgPlays == null ? 'null-value' : ''}" th:text="${artist.avgPlays != null ? #numbers.formatDecimal(artist.avgPlays, 1, 1) : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Feat. Artists</span>
-                                <span class="expanded-stat-value" th:text="${artist.featuredArtistCount != null ? artist.featuredArtistCount : 0}">0</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Solo Songs</span>
-                                <span class="expanded-stat-value" th:text="${artist.soloSongCount != null ? artist.soloSongCount : 0}">0</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Songs w/ Feat</span>
-                                <span class="expanded-stat-value" th:text="${artist.songsWithFeatCount != null ? artist.songsWithFeatCount : 0}">0</span>
-                            </div>
-                        </div>
-                    </div>
+
 
                 </div>
             </div>

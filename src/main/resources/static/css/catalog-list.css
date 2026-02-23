@@ -1,4 +1,109 @@
-/* Catalog List Page Styles (Genres, Subgenres, Ethnicities, Languages, Countries, Genders, Timeframes) */
+/* Existing styles */
+/* ... */
+
+/* Modal Content Styles */
+.card-detail-modal-body .modal-header {
+    margin-bottom: 12px;
+}
+
+.card-detail-modal-body .modal-title {
+    margin: 0 0 6px 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+}
+
+.card-detail-modal-body .modal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.card-detail-modal-body .modal-chip {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    background-color: #333;
+}
+
+.card-detail-modal-body .modal-chip.genre {
+    background-color: rgba(139, 92, 246, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+.card-detail-modal-body .modal-chip.subgenre {
+    background-color: rgba(167, 139, 250, 0.3);
+    border: 1px solid rgba(167, 139, 250, 0.5);
+}
+
+.card-detail-modal-body .modal-chip.ethnicity {
+    background-color: rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.card-detail-modal-body .modal-chip.language {
+    background-color: rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+}
+
+.card-detail-modal-body .modal-section {
+    margin-bottom: 8px;
+}
+
+.card-detail-modal-body .modal-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #aaa; /* Default color */
+}
+
+/* Gender text colors */
+.gender-text-male {
+    color: #60a5fa !important; /* Blue-400 */
+}
+
+.gender-text-female {
+    color: #f472b6 !important; /* Pink-400 */
+}
+
+.card-detail-modal-body .modal-stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    font-size: 0.85rem;
+}
+
+.card-detail-modal-body .modal-stat-label {
+    color: #9ca3af; /* Gray-400 */
+}
+
+.card-detail-modal-body .modal-stat-value {
+    color: #e5e7eb; /* Gray-200 */
+    font-weight: 600;
+    text-align: right;
+}
+
+.card-detail-modal-body .modal-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1); /* Default separator */
+    margin: 10px 0;
+    width: 60%; /* Subtle width */
+}
+
+/* Gender separator colors */
+.gender-sep-male {
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.5), transparent);
+}
+
+.gender-sep-female {
+    background: linear-gradient(90deg, rgba(244, 114, 182, 0.5), transparent);
+}
+
 /* Base styles for container, header, controls, pagination, etc. are in global.css */
 
 /* iTunes Presence Badges */

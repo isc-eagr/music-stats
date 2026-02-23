@@ -229,7 +229,7 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'weekly-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-charts' or currentSection == 'most-weeks-charts' or currentSection == 'most-hits-charts'} ? 'active' : ''"
+                        th:classappend="${currentSection == 'weekly-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-charts' or currentSection == 'most-weeks-charts' or currentSection == 'most-hits-charts' or currentSection == 'number-ones-charts'} ? 'active' : ''"
                         onclick="toggleDropdown(event, this)">📈 Charts ▾</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/charts/weekly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-charts'} ? 'active' : ''">Weekly</a></li>
@@ -237,6 +237,7 @@
                          <li><a href="/charts/yearly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'yearly-charts'} ? 'active' : ''">Yearly</a></li>
                          <li><a href="/charts/most-weeks" class="app-nav-dropdown-link" th:classappend="${currentSection == 'most-weeks-charts'} ? 'active' : ''">Most Weeks at Position</a></li>
                          <li><a href="/charts/most-hits" class="app-nav-dropdown-link" th:classappend="${currentSection == 'most-hits-charts'} ? 'active' : ''">Most Hits</a></li>
+                         <li><a href="/charts/number-ones" class="app-nav-dropdown-link" th:classappend="${currentSection == 'number-ones-charts'} ? 'active' : ''">Weekly Number Ones</a></li>
                      </ul>
                  </li>
                  <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">📊 Graphs</a></li>

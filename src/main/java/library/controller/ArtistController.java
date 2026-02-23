@@ -475,6 +475,7 @@ public class ArtistController {
         // Add average song length and average plays per song statistics
         model.addAttribute("averageSongLength", artistService.getAverageSongLengthFormatted(id));
         model.addAttribute("averagePlaysPerSong", artistService.getAveragePlaysPerSong(id));
+        model.addAttribute("averagePlaysPerAlbum", artistService.getAveragePlaysPerAlbum(id));
         
         // Add unique period stats for the artist (main artist only for now)
         model.addAttribute("uniqueDaysPlayed", artistService.getUniqueDaysPlayedForArtist(id));

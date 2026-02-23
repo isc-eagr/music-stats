@@ -734,6 +734,23 @@ public class ChartsController {
         return "charts/most-hits";
     }
     
+    /**
+     * Weekly Number Ones page - shows all #1 runs on the weekly chart for songs and albums.
+     */
+    @GetMapping("/number-ones")
+    public String weeklyNumberOnes(
+            @RequestParam(defaultValue = "song") String type,
+            Model model) {
+        
+        List<library.dto.NumberOneRunDTO> runs = chartService.getNumberOneRuns(type);
+        
+        model.addAttribute("currentSection", "number-ones-charts");
+        model.addAttribute("runs", runs);
+        model.addAttribute("selectedType", type);
+        
+        return "charts/number-ones";
+    }
+    
     // ========== HELPER METHODS ==========
     
     private ResponseEntity<Map<String, Object>> createErrorResponse(String errorMessage) {

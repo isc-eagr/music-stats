@@ -135,25 +135,25 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count, ");
         sql.append("    a.birth_date, ");
         sql.append("    a.death_date, ");
-        sql.append("    (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) as image_count, ");
+        sql.append("    (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) + CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as image_count, ");
         sql.append("    COALESCE(song_stats.total_length, 0) as total_song_length, ");
         sql.append("    COALESCE(fac_stats.featured_artist_count_stat, 0) as featured_artist_count_stat, ");
         sql.append("    COALESCE(solo_stats.solo_song_count, 0) as solo_song_count, ");
-        sql.append("    COALESCE(swf_stats.songs_with_feat_count, 0) as songs_with_feat_count ");
-        sql.append("FROM Artist a ");
-        sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
-        sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
-        sql.append("LEFT JOIN Genre gen ON a.genre_id = gen.id ");
-        sql.append("LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id ");
-        sql.append("LEFT JOIN Language l ON a.language_id = l.id ");
-        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as song_count, SUM(length_seconds) as total_length FROM Song GROUP BY artist_id) song_stats ON song_stats.artist_id = a.id ");
-        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) album_stats ON album_stats.artist_id = a.id ");
-        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as featured_song_count FROM SongFeaturedArtist GROUP BY artist_id) featured_stats ON featured_stats.artist_id = a.id ");
-        sql.append("LEFT JOIN (SELECT s.artist_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count_stat FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id GROUP BY s.artist_id) fac_stats ON fac_stats.artist_id = a.id ");
-        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as solo_song_count FROM Song s WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) GROUP BY artist_id) solo_stats ON solo_stats.artist_id = a.id ");
-        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as songs_with_feat_count FROM Song s WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) GROUP BY artist_id) swf_stats ON swf_stats.artist_id = a.id ");
-        
-        // Use INNER JOIN when account filter is includes mode or when listened date filter is applied
+    sql.append("    COALESCE(swf_stats.songs_with_feat_count, 0) as songs_with_feat_count, ");
+    sql.append("    COALESCE(standalone_stats.standalone_song_count, 0) as standalone_song_count ");
+    sql.append("FROM Artist a ");
+    sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
+    sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
+    sql.append("LEFT JOIN Genre gen ON a.genre_id = gen.id ");
+    sql.append("LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id ");
+    sql.append("LEFT JOIN Language l ON a.language_id = l.id ");
+    sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as song_count, SUM(length_seconds) as total_length FROM Song GROUP BY artist_id) song_stats ON song_stats.artist_id = a.id ");
+    sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as album_count FROM Album GROUP BY artist_id) album_stats ON album_stats.artist_id = a.id ");
+    sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as featured_song_count FROM SongFeaturedArtist GROUP BY artist_id) featured_stats ON featured_stats.artist_id = a.id ");
+    sql.append("LEFT JOIN (SELECT s.artist_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count_stat FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id GROUP BY s.artist_id) fac_stats ON fac_stats.artist_id = a.id ");
+    sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as solo_song_count FROM Song s WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) GROUP BY artist_id) solo_stats ON solo_stats.artist_id = a.id ");
+    sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as songs_with_feat_count FROM Song s WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) GROUP BY artist_id) swf_stats ON swf_stats.artist_id = a.id ");
+    sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as standalone_song_count FROM Song WHERE album_id IS NULL GROUP BY artist_id) standalone_stats ON standalone_stats.artist_id = a.id ");
         boolean hasListenedDateFilter = (listenedDateFrom != null && !listenedDateFrom.isEmpty()) || 
                                         (listenedDateTo != null && !listenedDateTo.isEmpty());
         String playStatsJoinType = ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) ? "INNER JOIN" : "LEFT JOIN";
@@ -244,11 +244,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Image Count filter
         if (imageCountMin != null) {
-            sql.append(" AND (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) >= ? ");
+            sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id)) >= ? ");
             params.add(imageCountMin);
         }
         if (imageCountMax != null) {
-            sql.append(" AND (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) <= ? ");
+            sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id)) <= ? ");
             params.add(imageCountMax);
         }
         
@@ -311,6 +311,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             sql.append(" CAST(COALESCE(song_stats.total_length, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
         } else if ("avg_plays".equals(sortBy)) {
             sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
+        } else if ("avg_plays_album".equals(sortBy)) {
+            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(album_stats.album_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
         } else if ("birth_date".equals(sortBy)) {
             sql.append(" a.birth_date " + direction + " NULLS LAST, a.name ASC");
         } else if ("death_date".equals(sortBy)) {
@@ -393,7 +395,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getLong("total_song_length"),
                 rs.getInt("featured_artist_count_stat"),
                 rs.getInt("solo_song_count"),
-                rs.getInt("songs_with_feat_count")
+                rs.getInt("songs_with_feat_count"),
+                rs.getInt("standalone_song_count")
             };
         }, params.toArray());
     }

@@ -70,7 +70,8 @@ const topColumnConfig = {
         { key: 'age', label: 'Age', defaultVisible: false, align: 'right' },
         { key: 'albumCount', label: 'Album Count', defaultVisible: false, align: 'right' },
         { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
-        { key: 'avgPlays', label: 'Avg Plays', defaultVisible: false, align: 'right' },
+        { key: 'avgPlays', label: 'Avg Plays / Song', defaultVisible: false, align: 'right' },
+        { key: 'avgPlaysAlbum', label: 'Avg Plays / Album', defaultVisible: false, align: 'right' },
         { key: 'birthDate', label: 'Birth Date', defaultVisible: false, align: 'left' },
         { key: 'deathDate', label: 'Death Date', defaultVisible: false, align: 'left' },
         { key: 'songCount', label: 'Song Count', defaultVisible: false, align: 'right' },
@@ -1969,6 +1970,7 @@ function buildArtistRow(artist, rank) {
             <td style="text-align:right;display:${vis('albumCount')};">${cellVal(artist.albumCount)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${artist.avgLengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(artist.avgPlays)}</td>
+            <td style="text-align:right;display:${vis('avgPlaysAlbum')};">${cellVal(artist.avgPlaysAlbum)}</td>
             <td style="display:${vis('birthDate')};">${artist.birthDate || '-'}</td>
             <td style="display:${vis('deathDate')};">${artist.deathDate || '-'}</td>
             <td style="text-align:right;display:${vis('songCount')};">${cellVal(artist.songCount)}</td>
@@ -2200,7 +2202,7 @@ function renderTopSongsTable() {
  */
 const numericSortColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
-    'age', 'albumCount', 'songCount', 'avgPlays', 'avgLength',
+    'age', 'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'seasonalChartPeak', 'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
 ]);
@@ -2210,7 +2212,7 @@ const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened',
 // Columns where lower numeric value is "better" (chart peaks)
 const descDefaultColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
-    'albumCount', 'songCount', 'avgPlays', 'avgLength', 'age',
+    'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength', 'age',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'weeklyChartWeeks'
 ]);

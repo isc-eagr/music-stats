@@ -1446,6 +1446,12 @@
                         <a th:if="${song.subgenreName != null and !#strings.isEmpty(song.subgenreName)}" 
                            th:href="@{/graphs(filterType='subgenre',filterId=${song.subgenreId},filterName=${song.subgenreName})}"
                            class="winning-chip subgenre" th:text="${song.subgenreName}" title="Subgenre"></a>
+                        <a th:if="${song.ethnicityName != null and !#strings.isEmpty(song.ethnicityName)}" 
+                           th:href="@{/graphs(filterType='ethnicity',filterId=${song.ethnicityId},filterName=${song.ethnicityName})}"
+                           class="winning-chip ethnicity" th:text="${song.ethnicityName}" title="Ethnicity"></a>
+                        <a th:if="${song.languageName != null and !#strings.isEmpty(song.languageName)}" 
+                           th:href="@{/graphs(filterType='language',filterId=${song.languageId},filterName=${song.languageName})}"
+                           class="winning-chip language" th:text="${song.languageName}" title="Language"></a>
                     </div>
 
                     <!-- Sort metric display (only for non-visible metrics) -->
@@ -1506,82 +1512,121 @@
 
                     <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
                     <div class="card-modal-text-stats">
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Total Plays</span>
-                            <span class="card-modal-text-stat-value" th:text="${song.playCount}">0</span>
+                        <!-- Header for modal (Name & Chips) -->
+                        <div class="modal-header">
+                            <h3 class="modal-title">
+                                <span th:if="${song.inItunes != null}" 
+                                      th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                      class="itunes-badge"
+                                      th:title="${song.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                      th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}">Song Name</span>
+                                <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
+                            </h3>
+                            <div class="modal-chips">
+                                <span th:if="${song.genreName != null}" class="modal-chip genre" th:text="${song.genreName}">Genre</span>
+                                <span th:if="${song.subgenreName != null}" class="modal-chip subgenre" th:text="${song.subgenreName}">Subgenre</span>
+                                <span th:if="${song.ethnicityName != null}" class="modal-chip ethnicity" th:text="${song.ethnicityName}">Ethnicity</span>
+                                <span th:if="${song.languageName != null}" class="modal-chip language" th:text="${song.languageName}">Language</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Primary Plays</span>
-                            <span class="card-modal-text-stat-value" th:text="${song.vatitoPlayCount}">0</span>
+
+                        <!-- Section 1: Plays -->
+                        <div class="modal-section section-plays">
+                            <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Plays</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Play Count</span>
+                                <span class="modal-stat-value" th:text="${song.playCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Primary Plays</span>
+                                <span class="modal-stat-value" th:text="${song.vatitoPlayCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Legacy Plays</span>
+                                <span class="modal-stat-value" th:text="${song.robertloverPlayCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Time Listened</span>
+                                <span class="modal-stat-value" th:text="${song.timeListenedFormatted}">0m</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Legacy Plays</span>
-                            <span class="card-modal-text-stat-value" th:text="${song.robertloverPlayCount}">0</span>
+
+                        <div class="modal-separator" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('female') ? 'gender-sep-female' : 'gender-sep-male'}"></div>
+
+                        <!-- Section 2: Details -->
+                        <div class="modal-section section-details">
+                            <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Details</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Length</span>
+                                <span class="modal-stat-value" th:classappend="${song.lengthFormatted == null ? 'null-value' : ''}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Organized</span>
+                                <span class="modal-stat-value" th:text="${song.organized != null and song.organized ? 'Yes' : 'No'}">No</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Feat. Artists</span>
+                                <span class="modal-stat-value" th:text="${song.featuredArtistCount != null ? song.featuredArtistCount : 0}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Images</span>
+                                <span class="modal-stat-value" th:text="${song.imageCount}">0</span>
+                            </div>
                         </div>
-                        <div class="card-modal-text-stat">
-                            <span class="card-modal-text-stat-label">Time Listened</span>
-                            <span class="card-modal-text-stat-value" th:text="${song.timeListenedFormatted}">0m</span>
+
+                        <div class="modal-separator" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('female') ? 'gender-sep-female' : 'gender-sep-male'}"></div>
+
+                        <!-- Section 3: Dates -->
+                        <div class="modal-section section-dates">
+                            <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Dates</h4>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Age at Release</span>
+                                <span class="modal-stat-value" th:classappend="${song.ageAtRelease == null ? 'null-value' : ''}" th:text="${song.ageAtRelease != null ? song.ageAtRelease : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Release Date</span>
+                                <span class="modal-stat-value" th:classappend="${song.releaseDate == null ? 'null-value' : ''}" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">First Listened</span>
+                                <span class="modal-stat-value" th:classappend="${song.firstListenedDate == null ? 'null-value' : ''}" th:text="${song.firstListenedDate != null ? song.firstListenedDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Last Listened</span>
+                                <span class="modal-stat-value" th:classappend="${song.lastListenedDate == null ? 'null-value' : ''}" th:text="${song.lastListenedDate != null ? song.lastListenedDate : 'N/A'}">N/A</span>
+                            </div>
                         </div>
+
+                        <!-- Section 4: Charts (Conditional) -->
+                        <th:block th:if="${song.seasonalChartPeak != null or song.weeklyChartPeak != null or (song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0) or song.yearlyChartPeak != null}">
+                           <div class="modal-separator" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('female') ? 'gender-sep-female' : 'gender-sep-male'}"></div>
+                           
+                           <div class="modal-section section-charts">
+                               <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Charts</h4>
+                               <div class="modal-stat-row" th:if="${song.weeklyChartPeak != null}">
+                                   <span class="modal-stat-label">Weekly Peak</span>
+                                   <span class="modal-stat-value" th:text="'#' + ${song.weeklyChartPeak} + ' (' + ${song.weeklyChartPeakWeeks} + (${song.weeklyChartPeakWeeks == 1 ? ' wk' : ' wks'}) + ')'">N/A</span>
+                               </div>
+                               <div class="modal-stat-row" th:if="${song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0}">
+                                   <span class="modal-stat-label">Weekly Weeks</span>
+                                   <span class="modal-stat-value" th:text="${song.weeklyChartWeeks}">0</span>
+                               </div>
+                               <div class="modal-stat-row" th:if="${song.seasonalChartPeak != null}">
+                                   <span class="modal-stat-label">Seasonal Peak</span>
+                                   <span class="modal-stat-value" th:text="'#' + ${song.seasonalChartPeak} + ' (' + ${song.seasonalChartPeakSeasons} + (${song.seasonalChartPeakSeasons == 1 ? ' sn' : ' sns'}) + ')'">N/A</span>
+                               </div>
+                               <div class="modal-stat-row" th:if="${song.yearlyChartPeak != null}">
+                                   <span class="modal-stat-label">Yearly Peak</span>
+                                   <span class="modal-stat-value" th:text="'#' + ${song.yearlyChartPeak} + ' (' + ${song.yearlyChartPeakYears} + (${song.yearlyChartPeakYears == 1 ? ' yr' : ' yrs'}) + ')'">N/A</span>
+                               </div>
+                           </div>
+                        </th:block>
                     </div>
 
                     <!-- Card modal toggle -->
                     <div class="card-expand-toggle" onclick="openCardModal(this)">
                         <span class="expand-arrow">+</span>
                         <span class="expand-label">More</span>
-                    </div>
-
-                    <!-- Expanded stats -->
-                    <div class="card-expanded-stats">
-                        <div class="expanded-stats-grid">
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">First Listened</span>
-                                <span class="expanded-stat-value" th:classappend="${song.firstListenedDate == null ? 'null-value' : ''}" th:text="${song.firstListenedDate != null ? song.firstListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Last Listened</span>
-                                <span class="expanded-stat-value" th:classappend="${song.lastListenedDate == null ? 'null-value' : ''}" th:text="${song.lastListenedDate != null ? song.lastListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Release Date</span>
-                                <span class="expanded-stat-value" th:classappend="${song.releaseDate == null ? 'null-value' : ''}" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Length</span>
-                                <span class="expanded-stat-value" th:classappend="${song.lengthFormatted == null ? 'null-value' : ''}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Birth Date</span>
-                                <span class="expanded-stat-value" th:classappend="${song.birthDate == null ? 'null-value' : ''}" th:text="${song.birthDate != null ? song.birthDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Death Date</span>
-                                <span class="expanded-stat-value" th:classappend="${song.deathDate == null ? 'null-value' : ''}" th:text="${song.deathDate != null ? song.deathDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Age at Release</span>
-                                <span class="expanded-stat-value" th:classappend="${song.ageAtRelease == null ? 'null-value' : ''}" th:text="${song.ageAtRelease != null ? song.ageAtRelease : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="expanded-stat">
-                                <span class="expanded-stat-label">Feat. Artists</span>
-                                <span class="expanded-stat-value" th:text="${song.featuredArtistCount != null ? song.featuredArtistCount : 0}">0</span>
-                            </div>
-                            <div class="expanded-stat" th:if="${song.seasonalChartPeak != null}">
-                                <span class="expanded-stat-label">Seasonal Peak</span>
-                                <span class="expanded-stat-value" th:text="'#' + ${song.seasonalChartPeak} + ' for ' + ${song.seasonalChartPeakSeasons} + (${song.seasonalChartPeakSeasons == 1 ? ' season' : ' seasons'}) + (${song.seasonalChartPeakPeriod != null} ? ' (' + ${song.seasonalChartPeakPeriod} + ')' : '')">N/A</span>
-                            </div>
-                            <div class="expanded-stat" th:if="${song.weeklyChartPeak != null}">
-                                <span class="expanded-stat-label">Weekly Peak</span>
-                                <span class="expanded-stat-value" th:text="'#' + ${song.weeklyChartPeak} + ' for ' + ${song.weeklyChartPeakWeeks} + (${song.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks'}) + (${song.weeklyChartPeakStartDate != null} ? ' (' + ${song.weeklyChartPeakStartDate} + ')' : '')">N/A</span>
-                            </div>
-                            <div class="expanded-stat" th:if="${song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0}">
-                                <span class="expanded-stat-label">Weekly Weeks</span>
-                                <span class="expanded-stat-value" th:text="${song.weeklyChartWeeks}">0</span>
-                            </div>
-                            <div class="expanded-stat" th:if="${song.yearlyChartPeak != null}">
-                                <span class="expanded-stat-label">Yearly Peak</span>
-                                <span class="expanded-stat-value" th:text="'#' + ${song.yearlyChartPeak} + ' for ' + ${song.yearlyChartPeakYears} + (${song.yearlyChartPeakYears == 1 ? ' year' : ' years'}) + (${song.yearlyChartPeakPeriod != null} ? ' (' + ${song.yearlyChartPeakPeriod} + ')' : '')">N/A</span>
-                            </div>
-                        </div>
                     </div>
 
                 </div>
@@ -2419,6 +2464,10 @@
     </div>
     
     <style>
+        .card-detail-modal-content {
+            max-width: 1100px;
+            max-height: 125vh;
+        }
         /* Gender counters below filter chips */
         .gender-counters-container {
             display: flex;

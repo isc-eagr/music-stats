@@ -147,12 +147,16 @@ public class ArtistService {
             long totalSongLength = row[27] != null ? ((Number) row[27]).longValue() : 0L;
             int sc = dto.getSongCount();
             dto.setAvgPlays(sc > 0 ? (double) dto.getPlayCount() / sc : null);
+            int ac = dto.getAlbumCount();
+            dto.setAvgPlaysPerAlbum(ac > 0 ? (double) dto.getPlayCount() / ac : null);
             dto.setAvgLengthFormatted(sc > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / sc) : null);
+            dto.setAvgAlbumLengthFormatted(ac > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / ac) : null);
 
             // Set featured artist count (index 28), solo song count (index 29), songs with feat count (index 30)
             dto.setFeaturedArtistCount(row[28] != null ? ((Number) row[28]).intValue() : 0);
             dto.setSoloSongCount(row[29] != null ? ((Number) row[29]).intValue() : 0);
             dto.setSongsWithFeatCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
+            dto.setStandaloneSongCount(row[31] != null ? ((Number) row[31]).intValue() : 0);
 
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
@@ -849,6 +853,36 @@ public class ArtistService {
                 return "-";
             }
             // Format with one decimal place if not a whole number
+            if (avgPlays == Math.floor(avgPlays)) {
+                return String.format("%.0f", avgPlays);
+            } else {
+                return String.format("%.1f", avgPlays);
+            }
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+
+    public String getAveragePlaysPerAlbum(int artistId) {
+        String sql = """
+            SELECT CASE WHEN COUNT(DISTINCT al.id) > 0 
+                        THEN CAST(COALESCE(SUM(play_count), 0) AS REAL) / COUNT(DISTINCT al.id)
+                        ELSE 0 END
+            FROM Album al
+            LEFT JOIN (
+                SELECT s.album_id, COUNT(p.id) as play_count
+                FROM Song s
+                LEFT JOIN Play p ON s.id = p.song_id
+                WHERE s.artist_id = ?
+                GROUP BY s.album_id
+            ) sp ON al.id = sp.album_id
+            WHERE al.artist_id = ?
+            """;
+        try {
+            Double avgPlays = jdbcTemplate.queryForObject(sql, Double.class, artistId, artistId);
+            if (avgPlays == null || avgPlays == 0) {
+                return "-";
+            }
             if (avgPlays == Math.floor(avgPlays)) {
                 return String.format("%.0f", avgPlays);
             } else {

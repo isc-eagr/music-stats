@@ -632,6 +632,72 @@ select:focus {
     box-shadow: -12px 0 20px rgba(236, 72, 153, 0.15);
 }
 
+/* ── Gender coloring for detail pages ──────────────────────────────────── */
+
+/* Title name tint */
+.container-wide.gender-male .item-name-top,
+.container.gender-male .item-name-top {
+    color: #bfdbfe;
+}
+.container-wide.gender-female .item-name-top,
+.container.gender-female .item-name-top {
+    color: #fbcfe8;
+}
+
+/* Panel card & section backgrounds */
+.container-wide.gender-male .detail-content-card,
+.container.gender-male .detail-content-card,
+.container-wide.gender-male .detail-content-section,
+.container.gender-male .detail-content-section {
+    background: #0c1828;
+    border-color: rgba(59, 130, 246, 0.25);
+    border-left: 3px solid rgba(59, 130, 246, 0.55);
+}
+.container-wide.gender-female .detail-content-card,
+.container.gender-female .detail-content-card,
+.container-wide.gender-female .detail-content-section,
+.container.gender-female .detail-content-section {
+    background: #1a0915;
+    border-color: rgba(236, 72, 153, 0.25);
+    border-left: 3px solid rgba(236, 72, 153, 0.55);
+}
+
+/* Section header strip inside each card */
+.container-wide.gender-male .section-header,
+.container.gender-male .section-header,
+.container-wide.gender-male .detail-content-section > .section-title,
+.container.gender-male .detail-content-section > .section-title {
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+.container-wide.gender-female .section-header,
+.container.gender-female .section-header,
+.container-wide.gender-female .detail-content-section > .section-title,
+.container.gender-female .detail-content-section > .section-title {
+    background: rgba(236, 72, 153, 0.1);
+    border-bottom-color: rgba(236, 72, 153, 0.2);
+}
+
+/* Section title label color */
+.container-wide.gender-male .section-header .section-title,
+.container.gender-male .section-header .section-title,
+.container-wide.gender-male .detail-content-card > .section-title,
+.container.gender-male .detail-content-card > .section-title,
+.container-wide.gender-male .detail-content-section .section-title,
+.container.gender-male .detail-content-section .section-title {
+    color: #93c5fd;
+}
+.container-wide.gender-female .section-header .section-title,
+.container.gender-female .section-header .section-title,
+.container-wide.gender-female .detail-content-card > .section-title,
+.container.gender-female .detail-content-card > .section-title,
+.container-wide.gender-female .detail-content-section .section-title,
+.container.gender-female .detail-content-section .section-title {
+    color: #f9a8d4;
+}
+
+/* ── End gender coloring ────────────────────────────────────────────────── */
+
 /* Gender aura effects for list page cards - subtle and only on hover */
 /* Base card styles for album, song, artist cards */
 .album-card,
@@ -1010,7 +1076,7 @@ select:focus {
 .card-detail-modal-body .song-image {
     width: 45%;
     min-width: 200px;
-    max-width: 350px;
+    max-width: 550px;
     flex-shrink: 0;
     border-radius: 8px 0 0 8px;
     align-self: flex-start;
@@ -1245,6 +1311,53 @@ select:focus {
 
 .stats-extra-2col .stat-mini:last-child {
     border-right: none;
+}
+
+/* ── Detail page statistics panel (modal-style label/value rows) ── */
+.detail-stats-panel {
+    padding: 14px 16px;
+}
+
+.detail-stats-panel .ds-section {
+    margin-bottom: 6px;
+}
+
+.detail-stats-panel .ds-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #aaa;
+    margin: 0 0 6px 0;
+}
+
+.detail-stats-panel .ds-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    font-size: 0.875rem;
+}
+
+.detail-stats-panel .ds-label {
+    color: #9ca3af;
+}
+
+.detail-stats-panel .ds-value {
+    color: #e5e7eb;
+    font-weight: 600;
+    text-align: right;
+}
+
+.detail-stats-panel .ds-separator {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 10px 0;
+    width: 100%;
+}
+
+.detail-stats-panel .ds-total {
+    color: #6b7280;
+    font-weight: 400;
 }
 
 /* Shared grid styles for item grids */
@@ -1738,6 +1851,11 @@ select:focus {
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 12px;
     overflow: hidden;
+    margin-top: 24px;
+}
+
+.detail-right-section .detail-content-card:first-child {
+    margin-top: 0;
 }
 
 /* Card header with title and actions */
@@ -2339,6 +2457,11 @@ select:focus {
     grid-row: auto;
     overflow: hidden;
     margin: 0;
+}
+
+/* First detail-content-section after detail-right-section gets top margin for spacing */
+.detail-right-section ~ .detail-content-section {
+    margin-top: 24px;
 }
 
 /* Add vertical spacing between consecutive content sections (e.g., Albums then Songs) */

@@ -66,6 +66,12 @@
             gap: 12px;
         }
         
+        .date-picker-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        
         .date-picker-input {
             background: #1a1a1a;
             border: 1px solid #333;
@@ -78,6 +84,51 @@
         
         .date-picker-input:hover {
             border-color: #444;
+        }
+        
+        .date-picker-label {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .date-picker-wrapper {
+                position: relative;
+            }
+            
+            .date-picker-label {
+                display: block;
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #aaa;
+                font-size: 0.8rem;
+                gap: 6px;
+                letter-spacing: 0.3px;
+            }
+            
+            .date-picker-label svg {
+                width: 14px;
+                height: 14px;
+                stroke: #aaa;
+            }
+            
+            .date-picker-input {
+                width: 140px;
+                text-align: center;
+                border-color: #444;
+                color-scheme: dark;
+            }
+            
+            .date-picker-input:focus ~ .date-picker-label,
+            .date-picker-input.active ~ .date-picker-label {
+                display: none;
+            }
         }
         
         .nav-btn {
@@ -724,11 +775,13 @@
                 <span th:if="${prevPeriodKey == null}" class="nav-btn disabled">← Previous</span>
                 
                 <div class="charts-nav-center">
-                    <input type="text" autocomplete="off"
-                           id="chartDatePicker" 
-                           class="date-picker-input"
-                           placeholder="dd/mm/yyyy"
-                           title="Jump to a specific week">
+                    <div class="date-picker-wrapper">
+                        <input type="text" autocomplete="off"
+                               id="chartDatePicker" 
+                               class="date-picker-input"
+                               placeholder="dd/mm/yyyy"
+                               title="Jump to a specific week">
+                    </div>
                 </div>
                 
                 <a th:if="${nextPeriodKey != null and !nextIsPreview}" 
@@ -1348,41 +1401,47 @@
             document.getElementById('progressCurrentWeek').textContent = progress.currentWeek || 'Finishing...';
         }
         
-        // Initialize Flatpickr date picker
+        // Initialize date picker
         document.addEventListener('DOMContentLoaded', function() {
             const picker = document.getElementById('chartDatePicker');
-            if (picker) {
-                const fp = flatpickr(picker, {
-                    dateFormat: 'd/m/Y',
-                    allowInput: true,
-                    theme: 'dark',
-                    onChange: function(selectedDates, dateStr, instance) {
-                        if (selectedDates.length > 0) {
-                            // Convert to yyyy-mm-dd for the API
-                            const d = selectedDates[0];
-                            const year = d.getFullYear();
-                            const month = String(d.getMonth() + 1).padStart(2, '0');
-                            const day = String(d.getDate()).padStart(2, '0');
-                            navigateToDate(`${year}-${month}-${day}`);
-                        }
+            if (!picker) return;
+            
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            
+            // Use flatpickr for both desktop and mobile, but force its custom UI on mobile
+            // (disableMobile: true) so it doesn't use the native OS date picker.
+            // The native picker on some OSes fires 'change' events prematurely when scrolling
+            // through months/years, causing unwanted immediate navigation.
+            // Flatpickr's custom UI only fires onChange when a specific day is clicked.
+            const fp = flatpickr(picker, {
+                dateFormat: 'd/m/Y',
+                allowInput: !isMobile,
+                disableMobile: true,
+                theme: 'dark',
+                onChange: function(selectedDates) {
+                    if (selectedDates.length > 0) {
+                        const d = selectedDates[0];
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        navigateToDate(`${year}-${month}-${day}`);
                     }
-                });
-                
-                // Handle Enter key when user types a date manually
-                picker.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        // Parse the typed date (dd/mm/yyyy format)
-                        const parts = picker.value.split('/');
-                        if (parts.length === 3) {
-                            const day = parts[0].padStart(2, '0');
-                            const month = parts[1].padStart(2, '0');
-                            const year = parts[2];
-                            navigateToDate(`${year}-${month}-${day}`);
-                        }
+                }
+            });
+            
+            // Handle Enter key when user types a date manually
+            picker.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const parts = picker.value.split('/');
+                    if (parts.length === 3) {
+                        const day = parts[0].padStart(2, '0');
+                        const month = parts[1].padStart(2, '0');
+                        const year = parts[2];
+                        navigateToDate(`${year}-${month}-${day}`);
                     }
-                });
-            }
+                }
+            });
         });
         
         /**

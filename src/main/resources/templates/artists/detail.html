@@ -471,68 +471,68 @@
                     </form>
                 </div>
                 
-                <!-- Statistics Section (Redesigned) -->
+                <!-- Statistics Section -->
                 <div class="detail-content-card">
                     <div class="section-header">
                         <h2 class="section-title">Statistics</h2>
                     </div>
-                    
-                    <!-- Hero Stats -->
-                    <div class="stats-hero">
-                        <div class="stat-hero-item">
-                            <span class="stat-label">Total Listening Time</span>
-                            <span class="stat-value" th:text="${totalListeningTime}">0:00</span>
-                        </div>
-                        <div class="stat-hero-item">
-                            <span class="stat-label">Avg Plays / Song</span>
-                            <span class="stat-value" th:text="${averagePlaysPerSong}">-</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Consistency Metrics -->
-                    <div class="stats-consistency">
-                        <div class="stat-mini">
-                            <span class="stat-label">Days</span>
-                            <span class="stat-value" th:text="${uniqueDaysPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalDaysSinceFirstPlay}"></span>
-                        </div>
-                        <div class="stat-mini">
-                            <span class="stat-label">Weeks</span>
-                            <span class="stat-value" th:text="${uniqueWeeksPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalWeeksSinceFirstPlay}"></span>
-                        </div>
-                        <div class="stat-mini">
-                            <span class="stat-label">Months</span>
-                            <span class="stat-value" th:text="${uniqueMonthsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalMonthsSinceFirstPlay}"></span>
-                        </div>
-                        <div class="stat-mini">
-                            <span class="stat-label">Years</span>
-                            <span class="stat-value" th:text="${uniqueYearsPlayed}">0</span><span class="stat-value stat-total" th:text="' / ' + ${totalYearsSinceFirstPlay}"></span>
-                        </div>
-                    </div>
-
-                    <!-- Extended Stats -->
-                    <div class="card-expanded-stats always-visible">
-                        <div class="stats-extra">
-                            <div class="stat-mini">
-                                <span class="stat-label">Avg Song Length</span>
-                                <span class="stat-value" th:text="${averageSongLength != null ? averageSongLength : '-'}">-</span>
+                    <div class="detail-stats-panel">
+                        <!-- Plays -->
+                        <div class="ds-section">
+                            <div class="ds-section-title">Plays</div>
+                            <div class="ds-row">
+                                <span class="ds-label">Total Listening Time</span>
+                                <span class="ds-value" th:text="${totalListeningTime}">0:00</span>
                             </div>
-                            <div class="stat-mini">
-                                <span class="stat-label">Solo Songs</span>
-                                <span class="stat-value" th:text="${soloSongCount != null ? soloSongCount : 0}">0</span>
+                            <div class="ds-row">
+                                <span class="ds-label">Avg Plays / Song</span>
+                                <span class="ds-value" th:text="${averagePlaysPerSong}">-</span>
                             </div>
-                            <div class="stat-mini">
-                                <span class="stat-label">Songs w/ Feat</span>
-                                <span class="stat-value" th:text="${songsWithFeatCount != null ? songsWithFeatCount : 0}">0</span>
+                            <div class="ds-row">
+                                <span class="ds-label">Avg Plays / Album</span>
+                                <span class="ds-value" th:text="${averagePlaysPerAlbum}">-</span>
                             </div>
                         </div>
-                        <div class="stats-extra-2col">
-                            <div class="stat-mini">
-                                <span class="stat-label">Feat. Artists</span>
-                                <span class="stat-value" th:text="${collaboratedArtistCards != null ? collaboratedArtistCards.size() : 0}">0</span>
+                        <div class="ds-separator"></div>
+                        <!-- Consistency -->
+                        <div class="ds-section">
+                            <div class="ds-section-title">Consistency</div>
+                            <div class="ds-row">
+                                <span class="ds-label">Days</span>
+                                <span class="ds-value"><span th:text="${uniqueDaysPlayed}">0</span><span class="ds-total" th:text="' / ' + ${totalDaysSinceFirstPlay}"></span></span>
                             </div>
-                            <div class="stat-mini">
-                                <span class="stat-label">Avg Plays / Song</span>
-                                <span class="stat-value" th:text="${averagePlaysPerSong != null ? averagePlaysPerSong : '-'}">-</span>
+                            <div class="ds-row">
+                                <span class="ds-label">Weeks</span>
+                                <span class="ds-value"><span th:text="${uniqueWeeksPlayed}">0</span><span class="ds-total" th:text="' / ' + ${totalWeeksSinceFirstPlay}"></span></span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Months</span>
+                                <span class="ds-value"><span th:text="${uniqueMonthsPlayed}">0</span><span class="ds-total" th:text="' / ' + ${totalMonthsSinceFirstPlay}"></span></span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Years</span>
+                                <span class="ds-value"><span th:text="${uniqueYearsPlayed}">0</span><span class="ds-total" th:text="' / ' + ${totalYearsSinceFirstPlay}"></span></span>
+                            </div>
+                        </div>
+                        <div class="ds-separator"></div>
+                        <!-- Catalog -->
+                        <div class="ds-section">
+                            <div class="ds-section-title">Catalog</div>
+                            <div class="ds-row">
+                                <span class="ds-label">Avg Song Length</span>
+                                <span class="ds-value" th:text="${averageSongLength != null ? averageSongLength : '-'}">-</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Solo Songs</span>
+                                <span class="ds-value" th:text="${soloSongCount != null ? soloSongCount : 0}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Songs w/ Feat</span>
+                                <span class="ds-value" th:text="${songsWithFeatCount != null ? songsWithFeatCount : 0}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Feat. Artists</span>
+                                <span class="ds-value" th:text="${collaboratedArtistCards != null ? collaboratedArtistCards.size() : 0}">0</span>
                             </div>
                         </div>
                     </div>

@@ -269,7 +269,9 @@ public class ArtistCardDTO {
     }
 
     private Double avgPlays;
+    private Double avgPlaysPerAlbum;
     private String avgLengthFormatted;
+    private String avgAlbumLengthFormatted;
 
     public Double getAvgPlays() {
         return avgPlays;
@@ -277,6 +279,14 @@ public class ArtistCardDTO {
 
     public void setAvgPlays(Double avgPlays) {
         this.avgPlays = avgPlays;
+    }
+
+    public Double getAvgPlaysPerAlbum() {
+        return avgPlaysPerAlbum;
+    }
+
+    public void setAvgPlaysPerAlbum(Double avgPlaysPerAlbum) {
+        this.avgPlaysPerAlbum = avgPlaysPerAlbum;
     }
 
     public String getAvgLengthFormatted() {
@@ -287,8 +297,17 @@ public class ArtistCardDTO {
         this.avgLengthFormatted = avgLengthFormatted;
     }
 
+    public String getAvgAlbumLengthFormatted() {
+        return avgAlbumLengthFormatted;
+    }
+
+    public void setAvgAlbumLengthFormatted(String avgAlbumLengthFormatted) {
+        this.avgAlbumLengthFormatted = avgAlbumLengthFormatted;
+    }
+
     private Integer featuredArtistCount;
     private Integer soloSongCount;
+    private Integer standaloneSongCount;
     private Integer songsWithFeatCount;
 
     public Integer getFeaturedArtistCount() {
@@ -305,6 +324,14 @@ public class ArtistCardDTO {
 
     public void setSoloSongCount(Integer soloSongCount) {
         this.soloSongCount = soloSongCount;
+    }
+
+    public Integer getStandaloneSongCount() {
+        return standaloneSongCount;
+    }
+
+    public void setStandaloneSongCount(Integer standaloneSongCount) {
+        this.standaloneSongCount = standaloneSongCount;
     }
 
     public Integer getSongsWithFeatCount() {
