@@ -133,6 +133,9 @@ public final class StringNormalizer {
         for (String[] replacement : replacements) {
             expr = "REPLACE(" + expr + ", '" + replacement[0] + "', '" + replacement[1] + "')";
         }
+        // Strip apostrophes so that DB values like "Can't" match search queries like "cant"
+        // (normalizeForSearch() also strips apostrophes from the query side)
+        expr = "REPLACE(" + expr + ", '''', '')";
         // Apply LOWER at the end for case-insensitive comparison
         return "LOWER(" + expr + ")";
     }

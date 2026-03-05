@@ -3141,4 +3141,32 @@ public class ArtistService {
         String sql = "SELECT COUNT(DISTINCT s.id) FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id WHERE s.artist_id = ?";
         return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
     }
+
+    public int getStandaloneSongCountForArtist(Integer artistId) {
+        String sql = "SELECT COUNT(*) FROM Song WHERE artist_id = ? AND album_id IS NULL";
+        return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+    }
+
+    public String getAverageAlbumLengthFormatted(int artistId) {
+        String sql = """
+            SELECT AVG(album_total_length) FROM (
+                SELECT al.id, COALESCE(SUM(s.length_seconds), 0) AS album_total_length
+                FROM Album al
+                LEFT JOIN Song s ON s.album_id = al.id AND s.length_seconds IS NOT NULL
+                WHERE al.artist_id = ?
+                GROUP BY al.id
+            )
+            """;
+        try {
+            Double avgSeconds = jdbcTemplate.queryForObject(sql, Double.class, artistId);
+            if (avgSeconds == null || avgSeconds == 0) return "-";
+            int totalSeconds = (int) Math.round(avgSeconds);
+            int h = totalSeconds / 3600;
+            int m = (totalSeconds % 3600) / 60;
+            int s = totalSeconds % 60;
+            return h > 0 ? String.format("%d:%02d:%02d", h, m, s) : String.format("%d:%02d", m, s);
+        } catch (Exception e) {
+            return "-";
+        }
+    }
 }

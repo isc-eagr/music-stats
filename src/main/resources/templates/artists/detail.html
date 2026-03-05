@@ -45,7 +45,7 @@
                     </button>
 
                     <img th:if="${hasImage}"
-                         th:src="@{'/artists/' + ${artist.id} + '/image?raw=true'}"
+                         th:src="@{'/artists/' + ${artist.id} + '/image?raw=true&thumbnail=true'}"
                          th:alt="${artist.name}"
                          id="artistImage"
                          class="item-image-large clickable-image"
@@ -118,7 +118,7 @@
                 
                 <!-- Ranking Chips -->
                 <div class="ranking-chips-section" style="margin-top: 15px; text-align: center;">
-                    <div class="winning-chips chips-expandable">
+                    <div class="winning-chips ">
                         <!-- GROUP 1: Overall & Artist Rankings -->
                         <!-- Overall Position -->
                         <a th:if="${overallPosition != null}"
@@ -224,9 +224,7 @@
                            th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 
                            th:title="'Rank #' + ${yearEntry.value} + ' most listened artist in year ' + ${yearEntry.key}"></a>
                     </div>
-                    <button type="button" class="chips-expand-btn" onclick="toggleChipsExpand(this)">
-                        Show more <span class="expand-icon">▼</span>
-                    </button>
+                    
                 </div>
             </div>
             
@@ -324,7 +322,7 @@
                                 </div>
                                 
                                 <!-- Column 2: First Listened, Last Listened, Birth Date, Death Date -->
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>First Listened Date</label>
                                     <span class="attribute-text" th:text="${firstListenedDate}">-</span>
                                 </div>
@@ -340,7 +338,7 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>Last Listened Date</label>
                                     <span class="attribute-text" th:text="${lastListenedDate}">-</span>
                                 </div>
@@ -481,6 +479,18 @@
                         <div class="ds-section">
                             <div class="ds-section-title">Plays</div>
                             <div class="ds-row">
+                                <span class="ds-label">Play Count</span>
+                                <span class="ds-value" th:text="${artistPlayCount}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Primary Plays</span>
+                                <span class="ds-value" th:text="${artistVatitoPlayCount}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Legacy Plays</span>
+                                <span class="ds-value" th:text="${artistRobertloverPlayCount}">0</span>
+                            </div>
+                            <div class="ds-row">
                                 <span class="ds-label">Total Listening Time</span>
                                 <span class="ds-value" th:text="${totalListeningTime}">0:00</span>
                             </div>
@@ -533,6 +543,18 @@
                             <div class="ds-row">
                                 <span class="ds-label">Feat. Artists</span>
                                 <span class="ds-value" th:text="${collaboratedArtistCards != null ? collaboratedArtistCards.size() : 0}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Featured Songs</span>
+                                <span class="ds-value" th:text="${featuredSongCount != null ? featuredSongCount : 0}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Standalone Songs</span>
+                                <span class="ds-value" th:text="${standaloneSongCount != null ? standaloneSongCount : 0}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Avg Album Length</span>
+                                <span class="ds-value" th:text="${avgAlbumLengthFormatted != null ? avgAlbumLengthFormatted : '-'}">-</span>
                             </div>
                         </div>
                     </div>
@@ -957,6 +979,59 @@
             <!-- Chart History Tab Content -->
             <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
                  th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
+                 
+                <!-- Toggles for Weekly, Seasonal, Yearly -->
+                <div class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
+                    <style>
+                        .ch-toggle-btn {
+                            background-color: transparent;
+                            color: #9ca3af;
+                            border: 1px solid #374151;
+                            padding: 6px 16px;
+                            border-radius: 20px;
+                            font-size: 14px;
+                            font-weight: 500;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        }
+                        .ch-toggle-btn:hover {
+                            background-color: rgba(255, 255, 255, 0.05);
+                            color: #fff;
+                        }
+                        .ch-toggle-btn.active {
+                            background-color: #374151;
+                            color: #fff;
+                            border-color: #4b5563;
+                        }
+                        .gender-female .ch-toggle-btn.active {
+                            background-color: rgba(236, 72, 153, 0.15);
+                            color: #fbcfe8;
+                            border-color: #ec4899;
+                        }
+                        .gender-male .ch-toggle-btn.active {
+                            background-color: rgba(59, 130, 246, 0.15);
+                            color: #bfdbfe;
+                            border-color: #3b82f6;
+                        }
+                        .ch-section {
+                            display: none;
+                            animation: fadeIn 0.3s ease-in-out;
+                        }
+                        .ch-section.active {
+                            display: block;
+                        }
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                    </style>
+                    <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
+                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
+                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
+                </div>
+
+                <!-- WEEKLY SECTION -->
+                <div id="ch-weekly-section" class="ch-section active">
                     <!-- Albums Chart History -->
                     <div class="detail-content-card">
                         <h2 class="section-title">💿 Albums 
@@ -1114,10 +1189,13 @@
                             </table>
                         </div>
                     </div>
-                    
-                    <!-- Album Seasonal/Yearly Charts -->
-                    <div th:if="${(seasonalAlbumChartHistory != null and !seasonalAlbumChartHistory.isEmpty()) or (yearlyAlbumChartHistory != null and !yearlyAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
-                        <h2 class="section-title">💿 Albums Seasonal/Yearly Charts</h2>
+                </div> <!-- End of ch-weekly-section -->
+
+                <!-- SEASONAL SECTION -->
+                <div id="ch-seasonal-section" class="ch-section">
+                    <!-- Album Seasonal Charts -->
+                    <div th:if="${(seasonalAlbumChartHistory != null and !seasonalAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">💿 Albums Seasonal Charts</h2>
                         <div class="table-wrapper">
                             <table class="table">
                                 <thead>
@@ -1128,27 +1206,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Yearly entries first -->
-                                    <tr th:each="entry : ${yearlyAlbumChartHistory}"
-                                        th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
-                                        <td>
-                                            <a th:href="@{/albums/{id}(id=${entry['albumId']})}" th:text="${entry['albumName']}">Album Name</a>
-                                            <span th:if="${includeGroups and entry['fromGroup'] == true and entry['sourceArtistName'] != null}"
-                                                  class="group-artist-label">
-                                                (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
-                                            </span>
-                                        </td>
-                                        <td style="text-align:right;">
-                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
-                                                  th:text="'#' + ${entry['position']}">#1</span>
-                                        </td>
-                                        <td>
-                                            <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
-                                                📅 <span th:text="${entry['displayName']}">2024</span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <!-- Seasonal entries second -->
+                                    <!-- Seasonal entries -->
                                     <tr th:each="entry : ${seasonalAlbumChartHistory}"
                                         th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
                                         <td>
@@ -1177,9 +1235,9 @@
                         </div>
                     </div>
                     
-                    <!-- Songs Seasonal/Yearly Charts -->
-                    <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty()) or (yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
-                        <h2 class="section-title">🎵 Songs Seasonal/Yearly Charts</h2>
+                    <!-- Songs Seasonal Charts -->
+                    <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">🎵 Songs Seasonal Charts</h2>
                         <div class="table-wrapper">
                             <table class="table">
                                 <thead>
@@ -1190,31 +1248,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Yearly entries first -->
-                                    <tr th:each="entry : ${yearlySongChartHistory}"
-                                        th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
-                                        <td>
-                                            <a th:href="@{/songs/{id}(id=${entry['songId']})}" th:text="${entry['songName']}">Song Name</a>
-                                            <span th:if="${includeFeatured and entry['featuredOn'] == true and entry['sourceArtistName'] != null}"
-                                                  class="featured-artist-label">
-                                                (feat. on <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Artist</a>)
-                                            </span>
-                                            <span th:if="${includeGroups and entry['fromGroup'] == true and entry['sourceArtistName'] != null}"
-                                                  class="group-artist-label">
-                                                (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
-                                            </span>
-                                        </td>
-                                        <td style="text-align:right;">
-                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
-                                                  th:text="'#' + ${entry['position']}">#1</span>
-                                        </td>
-                                        <td>
-                                            <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
-                                                📅 <span th:text="${entry['displayName']}">2024</span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <!-- Seasonal entries second -->
+                                    <!-- Seasonal entries -->
                                     <tr th:each="entry : ${seasonalSongChartHistory}"
                                         th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
                                         <td>
@@ -1246,9 +1280,108 @@
                             </table>
                         </div>
                     </div>
+                </div> <!-- End of ch-seasonal-section -->
+
+                <!-- YEARLY SECTION -->
+                <div id="ch-yearly-section" class="ch-section">
+                    <!-- Album Yearly Charts -->
+                    <div th:if="${(yearlyAlbumChartHistory != null and !yearlyAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">💿 Albums Yearly Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Album</th>
+                                        <th style="text-align:right;">Position</th>
+                                        <th>Period</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${yearlyAlbumChartHistory}"
+                                        th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
+                                        <td>
+                                            <a th:href="@{/albums/{id}(id=${entry['albumId']})}" th:text="${entry['albumName']}">Album Name</a>
+                                            <span th:if="${includeGroups and entry['fromGroup'] == true and entry['sourceArtistName'] != null}"
+                                                  class="group-artist-label">
+                                                (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
+                                            </span>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
+                                                📅 <span th:text="${entry['displayName']}">2024</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Songs Yearly Charts -->
+                    <div th:if="${(yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">🎵 Songs Yearly Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Song</th>
+                                        <th style="text-align:right;">Position</th>
+                                        <th>Period</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${yearlySongChartHistory}"
+                                        th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
+                                        <td>
+                                            <a th:href="@{/songs/{id}(id=${entry['songId']})}" th:text="${entry['songName']}">Song Name</a>
+                                            <span th:if="${includeFeatured and entry['featuredOn'] == true and entry['sourceArtistName'] != null}"
+                                                  class="featured-artist-label">
+                                                (feat. on <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Artist</a>)
+                                            </span>
+                                            <span th:if="${includeGroups and entry['fromGroup'] == true and entry['sourceArtistName'] != null}"
+                                                  class="group-artist-label">
+                                                (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
+                                            </span>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
+                                                📅 <span th:text="${entry['displayName']}">2024</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div> <!-- End of Yearly Section -->
             </div>
         </div>
     </div>
+    
+    <script>
+        // Switch between Chart History types
+        function switchChartHistoryType(type, btnElement) {
+            // Update buttons
+            document.querySelectorAll('.ch-toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+            
+            // Update sections
+            document.querySelectorAll('.ch-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById('ch-' + type + '-section').classList.add('active');
+        }
+    </script>
     
     <script th:inline="javascript">
         // Initialize plays by month chart (grouped by year)
@@ -1659,6 +1792,9 @@
                 editBtn.style.display = 'none';
                 deleteBtn.style.display = 'none';
                 formActions.style.display = 'flex';
+                
+                // Hide view-only fields (like First/Last Listened dates)
+                document.querySelectorAll('.view-only-field').forEach(el => el.style.display = 'none');
                 
                 // Show name field group
                 const nameFieldGroup = document.getElementById('nameFieldGroup');
@@ -2083,7 +2219,7 @@
             if (currentImageId === 0) {
                 // Show default image
                 if (img) {
-                    img.src = `/artists/${artistId}/image?raw=true&t=${Date.now()}`;
+                    img.src = `/artists/${artistId}/image?raw=true&thumbnail=true&t=${Date.now()}`;
                     img.style.display = 'block';
                 }
                 if (placeholder) placeholder.style.display = 'none';
@@ -2098,9 +2234,6 @@
         }
 
         function openArtistImageModal() {
-            const img = document.getElementById('artistImage');
-            if (!img) return;
-            
             // Build gallery context if there are multiple images
             if (galleryImages.length > 1) {
                 const galleryContext = {
@@ -2109,9 +2242,9 @@
                     entityId: artistId,
                     currentIndex: currentGalleryIndex
                 };
-                openImageModal(img.src, galleryContext);
+                openImageModal(`/artists/${artistId}/image?raw=true`, galleryContext);
             } else {
-                openImageModal(img.src);
+                openImageModal(`/artists/${artistId}/image?raw=true`);
             }
         }
 
@@ -2913,77 +3046,6 @@
                 }
             });
         }
-        
-        // Chips expandable modal functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const chipsContainer = document.querySelector('.chips-expandable');
-            if (!chipsContainer) return;
-            
-            // Check if content is overflowing
-            function checkOverflow() {
-                if (chipsContainer.scrollHeight > chipsContainer.clientHeight) {
-                    chipsContainer.classList.add('has-overflow');
-                    chipsContainer.style.cursor = 'pointer';
-                } else {
-                    chipsContainer.classList.remove('has-overflow');
-                    chipsContainer.style.cursor = 'default';
-                }
-            }
-            
-            checkOverflow();
-            window.addEventListener('resize', checkOverflow);
-            
-            // Click to show modal
-            chipsContainer.addEventListener('click', function(e) {
-                if (!chipsContainer.classList.contains('has-overflow')) return;
-                
-                // Create modal
-                const modal = document.createElement('div');
-                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
-                
-                const modalContent = document.createElement('div');
-                modalContent.style.cssText = 'background:#1a1a1a;border-radius:12px;padding:32px;max-width:800px;max-height:80vh;overflow-y:auto;position:relative;border:1px solid #333;';
-                
-                const closeBtn = document.createElement('button');
-                closeBtn.innerHTML = '×';
-                closeBtn.style.cssText = 'position:absolute;top:12px;right:16px;background:none;border:none;color:#999;font-size:32px;cursor:pointer;padding:0;width:32px;height:32px;line-height:32px;';
-                closeBtn.onmouseover = () => closeBtn.style.color = '#fff';
-                closeBtn.onmouseout = () => closeBtn.style.color = '#999';
-                closeBtn.onclick = () => document.body.removeChild(modal);
-                
-                const title = document.createElement('h3');
-                title.textContent = 'All Rankings';
-                title.style.cssText = 'margin:0 0 24px 0;color:#fff;font-size:20px;';
-                
-                const chipsClone = chipsContainer.cloneNode(true);
-                chipsClone.classList.remove('chips-expandable', 'has-overflow');
-                chipsClone.style.cssText = 'max-height:none;overflow:visible;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
-                chipsClone.style.cursor = 'default';
-                
-                modalContent.appendChild(closeBtn);
-                modalContent.appendChild(title);
-                modalContent.appendChild(chipsClone);
-                modal.appendChild(modalContent);
-                
-                // Close on background click
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) {
-                        document.body.removeChild(modal);
-                    }
-                });
-                
-                // Close on ESC key
-                const escHandler = (e) => {
-                    if (e.key === 'Escape') {
-                        document.body.removeChild(modal);
-                        document.removeEventListener('keydown', escHandler);
-                    }
-                };
-                document.addEventListener('keydown', escHandler);
-                
-                document.body.appendChild(modal);
-            });
-        });
     </script>
     
     <!-- Script to wire up the Fetch External button -->
@@ -3132,13 +3194,7 @@
             }
         });
         
-        // Mobile: Toggle ranking chips expand/collapse
-        function toggleChipsExpand(btn) {
-            const chipsContainer = btn.previousElementSibling;
-            if (chipsContainer && chipsContainer.classList.contains('winning-chips')) {
-                const isExpanded = chipsContainer.classList.toggle('expanded');
-                btn.innerHTML = isExpanded ? 'Show less <span class="expand-icon">▲</span>' : 'Show more <span class="expand-icon">▼</span>';
-            }
+        
         }
         
         function switchTab(event, tabName) {
@@ -3305,7 +3361,7 @@
 
     function _thumbUrl(artistImageId) {
         if (artistImageId === -1 || artistImageId === null) {
-            return `/artists/${_atArtistId}/image?raw=true&t=${Date.now()}`;
+            return `/artists/${_atArtistId}/image?raw=true&thumbnail=true&t=${Date.now()}`;
         }
         return `/artists/${_atArtistId}/images/${artistImageId}?t=${Date.now()}`;
     }
@@ -3460,3 +3516,5 @@
     </script>
 </body>
 </html>
+
+

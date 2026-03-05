@@ -752,7 +752,22 @@ public class ChartsController {
     }
     
     // ========== HELPER METHODS ==========
-    
+
+    /**
+     * API: Get past chart appearances for a song or album in a given period type.
+     * Used by the chart editor to show prior chart history on each item.
+     */
+    @GetMapping("/api/history/{periodType}/{chartType}/{itemId}")
+    @ResponseBody
+    public ResponseEntity<List<Map<String, Object>>> getItemChartHistory(
+            @PathVariable String periodType,
+            @PathVariable String chartType,
+            @PathVariable Integer itemId,
+            @RequestParam(required = false, defaultValue = "") String excludePeriodKey) {
+        List<Map<String, Object>> history = chartService.getPastChartAppearancesForItem(itemId, chartType, periodType, excludePeriodKey);
+        return ResponseEntity.ok(history);
+    }
+
     private ResponseEntity<Map<String, Object>> createErrorResponse(String errorMessage) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);

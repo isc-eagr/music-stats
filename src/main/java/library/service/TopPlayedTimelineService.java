@@ -97,6 +97,7 @@ public class TopPlayedTimelineService {
             Map<Integer, String> genderNameCache = new HashMap<>();
             Map<Integer, int[]> positionDays = new HashMap<>();
             Map<Integer, int[]> positionEntryPlays = new HashMap<>();
+            Map<Integer, Integer> snapshotStartPlayCounts = new HashMap<>();
 
             List<Integer> currentTop3 = Collections.emptyList();
 
@@ -159,7 +160,7 @@ public class TopPlayedTimelineService {
                                 snapshots.size() + 1,
                                 formatDate(snapshotStartDate), formatDate(playDate), days,
                                 currentTop3, currentSnapshotMovement,
-                                playCountsBeforeChange, positionDays, positionEntryPlays,
+                                playCountsBeforeChange, snapshotStartPlayCounts, positionDays, positionEntryPlays,
                                 nameCache, secondaryNameCache, genderIdCache, genderNameCache,
                                 false
                         ));
@@ -190,6 +191,11 @@ public class TopPlayedTimelineService {
                     snapshotStartDate = playDate;
                     currentTop3 = newTop3;
                     currentSnapshotMovement = newMovement;
+
+                    snapshotStartPlayCounts = new HashMap<>();
+                    for (int ssId : currentTop3) {
+                        snapshotStartPlayCounts.put(ssId, playCounts.getOrDefault(ssId, 0));
+                    }
                 }
             }
 
@@ -203,7 +209,7 @@ public class TopPlayedTimelineService {
                         snapshots.size() + 1,
                         formatDate(snapshotStartDate), "Present", days,
                         currentTop3, currentSnapshotMovement,
-                        playCounts, positionDays, positionEntryPlays,
+                        playCounts, snapshotStartPlayCounts, positionDays, positionEntryPlays,
                         nameCache, secondaryNameCache, genderIdCache, genderNameCache,
                         true
                 ));
@@ -216,7 +222,7 @@ public class TopPlayedTimelineService {
     private TopPlayedSnapshotDTO buildSnapshotDTO(
             int rank, String startDate, String endDate, int configDays,
             List<Integer> top3Ids, Map<Integer, String> movementMap,
-            Map<Integer, Integer> playCounts,
+            Map<Integer, Integer> playCounts, Map<Integer, Integer> snapshotStartPlayCounts,
             Map<Integer, int[]> positionDays, Map<Integer, int[]> positionEntryPlays,
             Map<Integer, String> nameCache, Map<Integer, String> secondaryNameCache,
             Map<Integer, Integer> genderIdCache, Map<Integer, String> genderNameCache,
@@ -237,6 +243,7 @@ public class TopPlayedTimelineService {
             item.setPosition(i + 1);
             item.setPlaysCount(playCounts.get(id));
             item.setPlaysWhenEntered(pe[i]);
+            item.setPlaysAtSnapshotStart(snapshotStartPlayCounts.getOrDefault(id, 0));
             item.setDaysAtPos1(pd[0]);
             item.setDaysAtPos2(pd[1]);
             item.setDaysAtPos3(pd[2]);

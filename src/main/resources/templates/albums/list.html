@@ -1333,7 +1333,7 @@
                  th:classappend="${album.genderName != null and album.genderName.toLowerCase().contains('male') and !album.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${album.genderName != null and album.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="album-image item-image-container" style="cursor: pointer;">
                     <img th:if="${album.hasImage}"
-                         th:src="@{'/albums/' + ${album.id} + '/image'}"
+                         th:src="@{'/albums/' + ${album.id} + '/image?thumbnail=true'}"
                          th:alt="${album.name}"
                          th:onclick="|openAlbumImageModalFromList(${album.id})|"
                          class="clickable-image">
@@ -1453,7 +1453,7 @@
 
                     <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
                     <div class="card-modal-text-stats">
-                        <!-- Header for modal (Name & Chips) -->
+                        <!-- Header for modal (Name & Chips) - hidden on mobile -->
                         <div class="modal-header">
                             <h3 class="modal-title">
                                 <span th:if="${album.inItunes != null}" 

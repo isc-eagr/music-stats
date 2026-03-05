@@ -258,6 +258,16 @@
             padding: 12px 20px;
             border-bottom: 1px solid #222;
         }
+
+        .chart-entry[data-gender="1"] {
+            background: rgba(236, 72, 153, 0.12);
+            border-left: 3px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .chart-entry[data-gender="2"] {
+            background: rgba(59, 130, 246, 0.12);
+            border-left: 3px solid rgba(59, 130, 246, 0.3);
+        }
         
         .chart-entry:last-child {
             border-bottom: none;
@@ -489,13 +499,44 @@
         }
 
         /* removed ::before overlay; shimmer applied directly to text via background-clip */
+
+        /* Past chart history sub-line under each item in the chart list (edit mode only) */
+        .chart-history-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 3px;
+        }
+
+        .chart-history-tag {
+            display: inline-block;
+            background: #181818;
+            border: 1px solid #2e2e2e;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-size: 0.7rem;
+            color: #777;
+            white-space: nowrap;
+        }
+
+        .chart-history-tag[data-gender="1"] {
+            background: rgba(236, 72, 153, 0.25);
+            border-color: rgba(236, 72, 153, 0.5);
+            color: rgba(236, 72, 153, 1);
+        }
+
+        .chart-history-tag[data-gender="2"] {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: rgba(59, 130, 246, 0.5);
+            color: rgba(59, 130, 246, 1);
+        }
     </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: nav}"></th:block>
     
     <div class="chart-editor">
-        <h1 class="page-title" th:text="'Yearly Chart: ' + ${displayName}">Yearly Chart: 2025</h1>
+        <h1 class="page-title" th:text="'Yearly Chart: ' + ${displayName}" th:data-display-name="${displayName}">Yearly Chart: 2025</h1>
         
         <div class="chart-header">
             <div class="chart-header-left">
@@ -804,6 +845,9 @@
                 </div>
             `;
             list.insertAdjacentHTML('beforeend', entryHtml);
+            const newEntry = list.lastElementChild;
+            fetchAndRenderHistory(id, 'song', newEntry);
+            fetchAndApplyGender('song', id, newEntry);
             
             updateCount('song');
             markAsChanged();
@@ -850,6 +894,9 @@
                 </div>
             `;
             list.insertAdjacentHTML('beforeend', entryHtml);
+            const newEntry = list.lastElementChild;
+            fetchAndRenderHistory(id, 'album', newEntry);
+            fetchAndApplyGender('album', id, newEntry);
             
             updateCount('album');
             markAsChanged();
@@ -1106,9 +1153,10 @@
             // So playlist will be in countdown order matching the visual display
             songs.reverse();
             
-            // Generate default name based on the period
+            // Generate default name based on the period (e.g., "2025")
             const pageTitle = document.querySelector('.page-title');
-            const defaultName = pageTitle ? pageTitle.textContent.trim().replace('Yearly Chart: ', 'Best of ') : 'Yearly Chart';
+            const displayName = pageTitle ? pageTitle.getAttribute('data-display-name') : '';
+            const defaultName = displayName ? displayName : 'Yearly Chart';
             
             // Open the playlist generator modal
             openPlaylistGeneratorModal(songs, defaultName);
@@ -1139,9 +1187,60 @@
             }
         }
 
+        /**
+         * Fetch and apply gender color to a chart entry.
+         */
+        async function fetchAndApplyGender(chartType, id, entryElement) {
+            try {
+                const endpoint = chartType === 'song' ? `/songs/${id}/gender` : `/albums/${id}/gender`;
+                const resp = await fetch(endpoint);
+                const data = await resp.json();
+                if (data.genderId) {
+                    entryElement.setAttribute('data-gender', data.genderId);
+                }
+            } catch (e) {
+                // silently ignore
+            }
+        }
+
+        /**
+         * Fetch past chart appearances for an item and render a subtle history sub-line.
+         * Only used in edit mode; entryElement is a .chart-entry DOM element.
+         */
+        async function fetchAndRenderHistory(id, chartType, entryElement) {
+            try {
+                const resp = await fetch(`/charts/api/history/${periodType}/${chartType}/${id}?excludePeriodKey=${encodeURIComponent(periodKey)}`);
+                const data = await resp.json();
+                if (!data || data.length === 0) return;
+                const infoEl = entryElement.querySelector('.entry-info');
+                if (!infoEl) return;
+                const historyLine = document.createElement('div');
+                historyLine.className = 'chart-history-line';
+                historyLine.innerHTML = data.map(d => {
+                    const genderId = d.genderId ? ` data-gender="${d.genderId}"` : '';
+                    return `<span class="chart-history-tag"${genderId}>#${d.position} &ndash; ${escapeHtml(d.displayName)}</span>`;
+                }).join('');
+                infoEl.appendChild(historyLine);
+            } catch (e) {
+                // silently ignore
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             computeMalePctForYearly('#songList', 'yearlySongsGenderPct');
             computeMalePctForYearly('#albumList', 'yearlyAlbumsGenderPct');
+
+            // Load past chart history sub-lines for all items already in the list (edit mode only)
+            if (!isFinalized) {
+                document.querySelectorAll('#songList .chart-entry').forEach(entry => {
+                    const id = entry.dataset.id;
+                    if (id) fetchAndRenderHistory(id, 'song', entry);
+                });
+                document.querySelectorAll('#albumList .chart-entry').forEach(entry => {
+                    const id = entry.dataset.id;
+                    if (id) fetchAndRenderHistory(id, 'album', entry);
+                });
+            }
         });
         /*]]>*/
     </script>

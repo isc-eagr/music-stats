@@ -11,8 +11,9 @@ public class TopPlayedSnapshotItemDTO {
     private Integer genderId;
     private String genderName;
     private int position;           // 1, 2, or 3
-    private int playsCount;         // cumulative plays at this snapshot
-    private int playsWhenEntered;   // cumulative plays when they moved to this specific position
+    private int playsCount;              // cumulative plays at this snapshot (end)
+    private int playsWhenEntered;        // cumulative plays when they moved to this specific position
+    private int playsAtSnapshotStart;    // cumulative plays for each item when this snapshot configuration began
 
     // Cumulative days spent at each position across ALL snapshots
     private int daysAtPos1;
@@ -51,6 +52,9 @@ public class TopPlayedSnapshotItemDTO {
 
     public int getPlaysWhenEntered() { return playsWhenEntered; }
     public void setPlaysWhenEntered(int playsWhenEntered) { this.playsWhenEntered = playsWhenEntered; }
+
+    public int getPlaysAtSnapshotStart() { return playsAtSnapshotStart; }
+    public void setPlaysAtSnapshotStart(int playsAtSnapshotStart) { this.playsAtSnapshotStart = playsAtSnapshotStart; }
 
     public int getDaysAtPos1() { return daysAtPos1; }
     public void setDaysAtPos1(int daysAtPos1) { this.daysAtPos1 = daysAtPos1; }

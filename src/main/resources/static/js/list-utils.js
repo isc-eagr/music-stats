@@ -383,3 +383,42 @@ function performSearchWithFilters(searchQuery) {
     // Navigate with all preserved parameters
     window.location.href = currentUrl.toString();
 }
+
+/**
+ * Handle sticky sidebar logic for detail pages.
+ * Makes the sidebar stick to the bottom if it's taller than the viewport.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.querySelector('.detail-sidebar');
+    if (!sidebar) return;
+
+    function updateSidebarSticky() {
+        const viewportHeight = window.innerHeight;
+        const sidebarHeight = sidebar.offsetHeight;
+        
+        if (sidebarHeight + 40 > viewportHeight) {
+            sidebar.style.top = (viewportHeight - sidebarHeight - 20) + 'px';
+        } else {
+            sidebar.style.top = '20px';
+        }
+    }
+
+    window.addEventListener('resize', updateSidebarSticky);
+    
+    // Use ResizeObserver if available
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateSidebarSticky);
+        observer.observe(sidebar);
+    }
+    
+    // Also update if images load
+    const images = sidebar.querySelectorAll('img');
+    images.forEach(img => {
+        if (!img.complete) {
+            img.addEventListener('load', updateSidebarSticky);
+        }
+    });
+
+    updateSidebarSticky();
+});
+

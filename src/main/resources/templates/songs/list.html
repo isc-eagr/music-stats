@@ -1366,11 +1366,11 @@
                 <div class="song-image item-image-container" style="cursor: pointer;">
                     <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
                     <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container">
-                        <img th:src="@{'/albums/' + ${song.albumId} + '/image'}"
+                        <img th:src="@{'/albums/' + ${song.albumId} + '/image?thumbnail=true'}"
                              th:alt="${song.name}"
                              th:onclick="|openSongImageModalFromList(${song.id})|"
                              class="album-image-default clickable-image">
-                        <img th:src="@{'/songs/' + ${song.id} + '/image'}"
+                        <img th:src="@{'/songs/' + ${song.id} + '/image?thumbnail=true'}"
                              th:alt="${song.name}"
                              th:onclick="|openSongImageModalFromList(${song.id})|"
                              class="song-image-hover clickable-image">
@@ -1381,14 +1381,14 @@
                     
                     <!-- Case 2: Song has image but album doesn't - just show song image -->
                     <img th:if="${song.hasImage and !song.albumHasImage}"
-                         th:src="@{'/songs/' + ${song.id} + '/image'}"
+                         th:src="@{'/songs/' + ${song.id} + '/image?thumbnail=true'}"
                          th:alt="${song.name}"
                          th:onclick="|openSongImageModalFromList(${song.id})|"
                          class="clickable-image">
                     
                     <!-- Case 3: Song doesn't have image but album does - show album image -->
                     <img th:if="${!song.hasImage and song.albumId != null}"
-                         th:src="@{'/albums/' + ${song.albumId} + '/image'}"
+                         th:src="@{'/albums/' + ${song.albumId} + '/image?thumbnail=true'}"
                          th:alt="${song.name}"
                          th:onclick="|openAlbumImageModalFromSongList(${song.albumId})|"
                          class="inherited-image clickable-image"
@@ -1512,7 +1512,7 @@
 
                     <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
                     <div class="card-modal-text-stats">
-                        <!-- Header for modal (Name & Chips) -->
+                        <!-- Header for modal (Name & Chips) - hidden on mobile -->
                         <div class="modal-header">
                             <h3 class="modal-title">
                                 <span th:if="${song.inItunes != null}" 

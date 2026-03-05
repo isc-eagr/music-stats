@@ -19,11 +19,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 
 @Controller
@@ -561,8 +563,10 @@ public class SongController {
     
     @GetMapping("/{id}/image")
     @ResponseBody
-    public byte[] getSongImage(@PathVariable Integer id) {
-        return songService.getSongImage(id);
+    public byte[] getSongImage(@PathVariable Integer id,
+                               @RequestParam(required = false, defaultValue = "false") boolean thumbnail) {
+        byte[] image = songService.getSongImage(id);
+        return thumbnail ? library.util.ImageUtil.resizeThumbnail(image, 600) : image;
     }
     
     @PostMapping("/{id}/image")
@@ -2088,5 +2092,32 @@ public class SongController {
             return map;
         }).toList();
     }
+
+    /**
+     * API: Get gender ID for a song (for UI coloring in chart editors).
+     */
+    @GetMapping("/{songId}/gender")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSongGender(@PathVariable Integer songId) {
+        Optional<Song> songOpt = songService.getSongById(songId);
+        if (songOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Song song = songOpt.get();
+        Integer genderId = null;
+        
+        if (song.getArtistId() != null) {
+            Optional<Artist> artistOpt = artistService.getArtistById(song.getArtistId());
+            if (artistOpt.isPresent()) {
+                genderId = artistOpt.get().getGenderId();
+            }
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("genderId", genderId);
+        return ResponseEntity.ok(response);
+    }
 }
+
 

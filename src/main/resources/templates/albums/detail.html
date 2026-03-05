@@ -67,7 +67,7 @@
                     </button>
 
                     <img th:if="${hasImage}"
-                         th:src="@{'/albums/' + ${album.id} + '/image'}"
+                         th:src="@{'/albums/' + ${album.id} + '/image?thumbnail=true'}"
                          th:alt="${album.name}"
                          id="albumImage"
                          class="item-image-large clickable-image"
@@ -263,9 +263,7 @@
                        class="winning-chip chart-chip yearly-chart"
                        th:text="${entry.displayName}"></a>
                 </div>
-                <button type="button" class="chips-expand-btn" onclick="toggleChipsExpand(this)">
-                    Show more <span class="expand-icon">▼</span>
-                </button>
+                
             </div>
             
             <!-- Tab Navigation -->
@@ -348,7 +346,7 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>First Listened Date</label>
                                     <span class="attribute-text" th:text="${firstListenedDate}">-</span>
                                 </div>
@@ -370,7 +368,7 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>Last Listened Date</label>
                                     <span class="attribute-text" th:text="${lastListenedDate}">-</span>
                                 </div>
@@ -392,7 +390,7 @@
                                     </select>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>Length</label>
                                     <span class="attribute-text" th:text="${albumLengthFormatted != null ? albumLengthFormatted : '-'}">-</span>
                                 </div>
@@ -413,7 +411,7 @@
                                     </label>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group view-only-field">
                                     <label>Ethnicity</label>
                                     <span class="attribute-text attribute-inherited" th:text="${artistEthnicityName != null ? artistEthnicityName : '-'}">-</span>
                                 </div>
@@ -439,6 +437,18 @@
                         <!-- Plays -->
                         <div class="ds-section">
                             <div class="ds-section-title">Plays</div>
+                            <div class="ds-row">
+                                <span class="ds-label">Play Count</span>
+                                <span class="ds-value" th:text="${albumPlayCount}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Primary Plays</span>
+                                <span class="ds-value" th:text="${albumVatitoPlayCount}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Legacy Plays</span>
+                                <span class="ds-value" th:text="${albumRobertloverPlayCount}">0</span>
+                            </div>
                             <div class="ds-row">
                                 <span class="ds-label">Total Listening Time</span>
                                 <span class="ds-value" th:text="${totalListeningTime}">0:00</span>
@@ -473,6 +483,10 @@
                         <!-- Songs -->
                         <div class="ds-section">
                             <div class="ds-section-title">Songs</div>
+                            <div class="ds-row">
+                                <span class="ds-label">Song Count</span>
+                                <span class="ds-value" th:text="${songCount != null ? songCount : 0}">0</span>
+                            </div>
                             <div class="ds-row">
                                 <span class="ds-label">Album Length</span>
                                 <span class="ds-value" th:text="${albumLengthFormatted != null ? albumLengthFormatted : '-'}">-</span>
@@ -640,7 +654,7 @@
                              th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                             <a th:href="@{'/artists/' + ${artist.id}}" class="featured-artist-image item-image-container">
                                 <img th:if="${artist.hasImage}"
-                                     th:src="@{'/artists/' + ${artist.id} + '/image'}"
+                                     th:src="@{'/artists/' + ${artist.id} + '/image?thumbnail=true'}"
                                      th:alt="${artist.name}">
                                 <div th:unless="${artist.hasImage}" class="no-image">
                                     <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
@@ -685,6 +699,49 @@
             <!-- Chart History Tab Content -->
             <div class="featured-tab-content" id="chartHistoryTabContent"
                  th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
+
+                <!-- Weekly/Seasonal/Yearly Toggles -->
+                <div class="ch-toggle-container" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                    <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
+                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
+                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
+                </div>
+
+                <style>
+                    .ch-toggle-btn {
+                        background: none;
+                        border: none;
+                        padding: 8px 16px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        color: #666;
+                        cursor: pointer;
+                        border-radius: 20px;
+                        transition: all 0.2s ease;
+                    }
+                    .ch-toggle-btn:hover {
+                        background-color: #f0f0f0;
+                    }
+                    .ch-toggle-btn.active {
+                        background-color: var(--primary-color, #4a90e2);
+                        color: white;
+                    }
+                    .ch-section {
+                        display: none;
+                    }
+                    .ch-section.active {
+                        display: block;
+                        animation: fadeIn 0.3s ease-in-out;
+                    }
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(5px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                </style>
+
+                <!-- WEEKLY SECTION -->
+                <div id="ch-weekly-section" class="ch-section active">
+                
                 <!-- Album Chart History -->
                 <div class="detail-content-card">
                     <h2 class="section-title">💿 Album 
@@ -795,75 +852,120 @@
                         </table>
                     </div>
                 </div>
+                </div> <!-- End of ch-weekly-section -->
                 
-                <!-- Album Seasonal/Yearly Charts Section -->
-                <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
-                    <h2 class="section-title">📊 Album Seasonal/Yearly Charts</h2>
-                    <div class="winning-chips" style="justify-content: flex-start;">
-                        <!-- Yearly entries first -->
-                        <a th:each="entry : ${yearlyChartHistory}" 
-                           th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                           class="winning-chip chart-chip yearly-chart"
-                           th:text="${entry.displayName}">
-                            #1 in 2024
-                        </a>
-                        <!-- Seasonal entries second -->
-                        <a th:each="entry : ${seasonalChartHistory}" 
-                           th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
-                           class="winning-chip chart-chip seasonal-chart">
-                            <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
-                            <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
-                            <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
-                            <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
-                            <span th:text="${entry.displayName}">#1 in Winter 2024</span>
-                        </a>
+                <!-- SEASONAL SECTION -->
+                <div id="ch-seasonal-section" class="ch-section">
+                    <!-- Album Seasonal Charts Section -->
+                    <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">📊 Album Seasonal Charts</h2>
+                        <div class="winning-chips" style="justify-content: flex-start;">
+                            <a th:each="entry : ${seasonalChartHistory}" 
+                               th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
+                               class="winning-chip chart-chip seasonal-chart">
+                                <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
+                                <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
+                                <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
+                                <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
+                                <span th:text="${entry.displayName}">#1 in Winter 2024</span>
+                            </a>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Songs Seasonal/Yearly Charts Section -->
-                <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty()) or (yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
-                    <h2 class="section-title">🎵 Songs Seasonal/Yearly Charts</h2>
-                    <div class="table-wrapper">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Song</th>
-                                    <th style="text-align:right;">Position</th>
-                                    <th>Period</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Yearly entries first -->
-                                <tr th:each="entry : ${yearlySongChartHistory}">
-                                    <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
-                                    <td style="text-align:right;" th:text="'#' + ${entry.position}">#1</td>
-                                    <td>
-                                        <a th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
-                                            📅 <span th:text="${entry.displayName}">2024</span>
-                                        </a>
-                                    </td>
-                                </tr>
-                                <!-- Seasonal entries second -->
-                                <tr th:each="entry : ${seasonalSongChartHistory}">
-                                    <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
-                                    <td style="text-align:right;" th:text="'#' + ${entry.position}">#1</td>
-                                    <td>
-                                        <a th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
-                                            <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
-                                            <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
-                                            <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
-                                            <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
-                                            <span th:text="${entry.displayName}">Winter 2024</span>
-                                        </a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    
+                    <!-- Songs Seasonal Charts Section -->
+                    <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">🎵 Songs Seasonal Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Song</th>
+                                        <th style="text-align:right;">Position</th>
+                                        <th>Period</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${seasonalSongChartHistory}">
+                                        <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                        <td style="text-align:right;" th:text="'#' + ${entry.position}">#1</td>
+                                        <td>
+                                            <a th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
+                                                <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
+                                                <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
+                                                <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
+                                                <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
+                                                <span th:text="${entry.displayName}">Winter 2024</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                </div> <!-- End of ch-seasonal-section -->
+
+                <!-- YEARLY SECTION -->
+                <div id="ch-yearly-section" class="ch-section">
+                     <!-- Album Yearly Charts Section -->
+                     <div th:if="${(yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">📊 Album Yearly Charts</h2>
+                        <div class="winning-chips" style="justify-content: flex-start;">
+                            <a th:each="entry : ${yearlyChartHistory}" 
+                               th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
+                               class="winning-chip chart-chip yearly-chart"
+                               th:text="${entry.displayName}">
+                                #1 in 2024
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Songs Yearly Charts Section -->
+                    <div th:if="${(yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                        <h2 class="section-title">🎵 Songs Yearly Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Song</th>
+                                        <th style="text-align:right;">Position</th>
+                                        <th>Period</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${yearlySongChartHistory}">
+                                        <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                        <td style="text-align:right;" th:text="'#' + ${entry.position}">#1</td>
+                                        <td>
+                                            <a th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
+                                                📅 <span th:text="${entry.displayName}">2024</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div> <!-- End of ch-yearly-section -->
             </div>
         </div>
     </div>
+    
+    <script>
+        // Switch between Chart History types
+        function switchChartHistoryType(type, btnElement) {
+            // Update buttons
+            document.querySelectorAll('.ch-toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+            
+            // Update sections
+            document.querySelectorAll('.ch-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById('ch-' + type + '-section').classList.add('active');
+        }
+    </script>
     
     <script th:inline="javascript">
         // Initialize plays by month chart (grouped by year)
@@ -1524,7 +1626,7 @@
                 if (hasDefaultImage) {
                     // Show the album's default image
                     if (img) {
-                        img.src = `/albums/${albumId}/image?t=${Date.now()}`;
+                        img.src = `/albums/${albumId}/image?thumbnail=true&t=${Date.now()}`;
                         img.style.display = 'block';
                     }
                     if (placeholder) placeholder.style.display = 'none';
@@ -1544,9 +1646,6 @@
         }
 
         function openAlbumImageModal() {
-            const img = document.getElementById('albumImage');
-            if (!img) return;
-            
             // Build gallery context if there are multiple images
             if (galleryImages.length > 1) {
                 const galleryContext = {
@@ -1555,9 +1654,9 @@
                     entityId: albumId,
                     currentIndex: currentGalleryIndex
                 };
-                openImageModal(img.src, galleryContext);
+                openImageModal(`/albums/${albumId}/image`, galleryContext);
             } else {
-                openImageModal(img.src);
+                openImageModal(`/albums/${albumId}/image`);
             }
         }
 
@@ -2265,13 +2364,7 @@
         
         // (Spotify metadata search removed)
         
-        // Mobile: Toggle ranking chips expand/collapse
-        function toggleChipsExpand(btn) {
-            const chipsContainer = btn.previousElementSibling;
-            if (chipsContainer && chipsContainer.classList.contains('winning-chips')) {
-                const isExpanded = chipsContainer.classList.toggle('expanded');
-                btn.innerHTML = isExpanded ? 'Show less <span class="expand-icon">▲</span>' : 'Show more <span class="expand-icon">▼</span>';
-            }
+        
         }
         
         function switchTab(event, tabName) {
@@ -2314,3 +2407,4 @@
     </script>
 </body>
 </html>
+

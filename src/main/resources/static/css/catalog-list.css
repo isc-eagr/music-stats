@@ -54,7 +54,7 @@
 }
 
 .card-detail-modal-body .modal-section-title {
-    font-size: 0.9rem;
+    font-size: 1.0rem;
     font-weight: 700;
     margin: 0 0 6px 0;
     text-transform: uppercase;
@@ -80,12 +80,24 @@
 
 .card-detail-modal-body .modal-stat-label {
     color: #9ca3af; /* Gray-400 */
+    font-weight: 400;
+    font-size: 0.8rem;
 }
 
 .card-detail-modal-body .modal-stat-value {
-    color: #e5e7eb; /* Gray-200 */
-    font-weight: 600;
+    color: #f3f4f6; /* Gray-100 - brighter */
+    font-weight: 700;
+    font-size: 0.85rem;
     text-align: right;
+}
+
+/* Gender-colored values */
+.card-detail-modal-body .modal-section:has(.gender-text-male) .modal-stat-value {
+    color: #60a5fa; /* Blue for male */
+}
+
+.card-detail-modal-body .modal-section:has(.gender-text-female) .modal-stat-value {
+    color: #f472b6; /* Pink for female */
 }
 
 .card-detail-modal-body .modal-separator {
@@ -557,213 +569,6 @@ a.winning-chip:hover {
     color: #fed7aa;
 }
 
-/* Expandable chips - show indicator when content is cut off */
-.chips-expandable {
-    max-height: 200px;
-    overflow: hidden;
-    position: relative;
-    padding: 8px;
-    border-radius: 8px;
-}
-
-/* Show visual indicator when chips are cut off - only on hover */
-.chips-expandable.has-overflow:hover::after {
-    content: '+ View All';
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: rgba(100, 100, 100, 0.9);
-    color: #fff;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    pointer-events: none;
-}
-
-/* Mobile-specific: Expand/collapse button for ranking chips */
-.chips-expand-btn {
-    display: none;
-    width: 100%;
-    padding: 6px 12px;
-    margin-top: 4px;
-    background: rgba(100, 100, 100, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    color: #9ca3af;
-    font-size: 11px;
-    font-weight: 500;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.chips-expand-btn:hover {
-    background: rgba(100, 100, 100, 0.5);
-    color: #fff;
-}
-
-.chips-expand-btn .expand-icon {
-    margin-left: 4px;
-    transition: transform 0.2s;
-}
-
-.winning-chips.expanded + .chips-expand-btn .expand-icon {
-    transform: rotate(180deg);
-}
-
-@media (max-width: 480px) {
-    /* Show expand button on mobile when chips overflow */
-    .ranking-chips-section .chips-expand-btn {
-        display: block;
-    }
-    
-    /* Collapsed state (default on mobile) */
-    .ranking-chips-section .winning-chips {
-        max-height: 64px;
-        overflow: hidden;
-        position: relative;
-        transition: max-height 0.3s ease;
-    }
-    
-    /* Expanded state */
-    .ranking-chips-section .winning-chips.expanded {
-        max-height: 500px;
-    }
-    
-    /* Gradient fade when collapsed */
-    .ranking-chips-section .winning-chips:not(.expanded)::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 24px;
-        background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.9));
-        pointer-events: none;
-    }
-}
-
-/* Range inputs in filter panel */
-.range-inputs {
-    display: flex;
-    gap: 10px;
-}
-
-.range-inputs .field {
-    flex: 1;
-}
-
-.range-inputs input {
-    width: 100%;
-}
-
-/* Winning/Top Artist/Album/Song Section */
-.number-one-info {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #2a2a2a;
-}
-
-.number-one-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.75rem;
-    color: #ccc;
-    margin-bottom: 3px;
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-a.number-one-item:hover {
-    color: #4a9eff;
-}
-
-.number-one-item .label {
-    color: #888;
-    min-width: 20px;
-}
-
-.number-one-item .name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Year link styles */
-.year-link {
-    color: inherit;
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.year-link:hover {
-    color: #4a9eff;
-}
-
-/* Mobile responsive for catalog lists */
-@media (max-width: 768px) {
-    .catalog-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .catalog-card {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-    }
-    
-    .catalog-image {
-        width: 100px;
-        height: 100px;
-        flex-shrink: 0;
-    }
-    
-    .catalog-info {
-        padding: 12px;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .catalog-name {
-        font-size: 14px;
-    }
-    
-    .catalog-stats {
-        gap: 8px;
-    }
-    
-    .catalog-stats .stat {
-        font-size: 11px;
-    }
-    
-    .catalog-stats .stat-value {
-        font-size: 12px;
-    }
-    
-    /* Hide gender bars on very small cards */
-    .gender-bars-container {
-        margin-top: 8px;
-    }
-    
-    .gender-bar {
-        height: 14px;
-    }
-    
-    .gender-male-bar-text {
-        font-size: 9px;
-    }
-    
-    /* Winning chips - smaller on mobile */
-    .winning-chip {
-        font-size: 9px;
-        padding: 2px 6px;
-    }
-}
-
 @media (max-width: 480px) {
     .catalog-grid {
         grid-template-columns: 1fr;
@@ -937,3 +742,4 @@ a.number-one-item:hover {
         font-size: 11px;
     }
 }
+

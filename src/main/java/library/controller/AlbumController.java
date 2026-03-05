@@ -14,11 +14,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 
 @Controller
@@ -540,8 +542,10 @@ public class AlbumController {
     
     @GetMapping("/{id}/image")
     @ResponseBody
-    public byte[] getAlbumImage(@PathVariable Integer id) {
-        return albumService.getAlbumImage(id);
+    public byte[] getAlbumImage(@PathVariable Integer id,
+                                @RequestParam(required = false, defaultValue = "false") boolean thumbnail) {
+        byte[] image = albumService.getAlbumImage(id);
+        return thumbnail ? library.util.ImageUtil.resizeThumbnail(image, 600) : image;
     }
     
     @PostMapping("/{id}/image")
@@ -721,5 +725,30 @@ public class AlbumController {
         }
         return dateStr;
     }
-    
+
+    /**
+     * API: Get gender ID for an album (for UI coloring in chart editors).
+     */
+    @GetMapping("/{albumId}/gender")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getAlbumGender(@PathVariable Integer albumId) {
+        Optional<Album> albumOpt = albumService.getAlbumById(albumId);
+        if (albumOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Album album = albumOpt.get();
+        Integer genderId = null;
+        
+        if (album.getArtistId() != null) {
+            Optional<Artist> artistOpt = artistService.getArtistById(album.getArtistId());
+            if (artistOpt.isPresent()) {
+                genderId = artistOpt.get().getGenderId();
+            }
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("genderId", genderId);
+        return ResponseEntity.ok(response);
+    }
 }

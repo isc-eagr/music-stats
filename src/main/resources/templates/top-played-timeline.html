@@ -597,11 +597,11 @@
 
                                 <div class="position-stats">
                                     <div class="position-plays"
-                                         th:text="${#numbers.formatInteger(item.playsCount, 1, 'COMMA')}">0</div>
-                                    <div class="position-plays-label">plays</div>
-                                     <div class="position-entry-play"
-                                         th:if="${item.movement != null and item.playsWhenEntered > 0}"
-                                         th:text="'at move: ' + ${#numbers.formatInteger(item.playsWhenEntered, 1, 'COMMA')}">at move: 0</div>
+                                         th:text="${#numbers.formatInteger(item.playsAtSnapshotStart, 1, 'COMMA')}">0</div>
+                                    <div class="position-plays-label">plays at start</div>
+                                    <div class="position-entry-play"
+                                         th:if="${snapshot.current}"
+                                         th:text="'now: ' + ${#numbers.formatInteger(item.playsCount, 1, 'COMMA')}">now: 0</div>
 
                                     <div class="position-days-breakdown">
                                         <span class="days-at-pos pos-1" th:if="${item.daysAtPos1 > 0}">

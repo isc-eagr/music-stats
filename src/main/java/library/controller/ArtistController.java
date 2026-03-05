@@ -836,6 +836,9 @@ public class ArtistController {
         // Extended stats for detail page
         model.addAttribute("soloSongCount", artistService.getSoloSongCountForArtist(id));
         model.addAttribute("songsWithFeatCount", artistService.getSongsWithFeatCountForArtist(id));
+        model.addAttribute("featuredSongCount", artistService.getFeaturedSongCount(id));
+        model.addAttribute("standaloneSongCount", artistService.getStandaloneSongCountForArtist(id));
+        model.addAttribute("avgAlbumLengthFormatted", artistService.getAverageAlbumLengthFormatted(id));
 
         return "artists/detail";
     }
@@ -850,8 +853,10 @@ public class ArtistController {
     @GetMapping("/{id}/image")
     @ResponseBody
     public byte[] getArtistImage(@PathVariable Integer id,
-                                 @RequestParam(required = false, defaultValue = "false") boolean raw) {
-        return raw ? artistService.getRawArtistImage(id) : artistService.getArtistImage(id);
+                                 @RequestParam(required = false, defaultValue = "false") boolean raw,
+                                 @RequestParam(required = false, defaultValue = "false") boolean thumbnail) {
+        byte[] image = raw ? artistService.getRawArtistImage(id) : artistService.getArtistImage(id);
+        return thumbnail ? library.util.ImageUtil.resizeThumbnail(image, 600) : image;
     }
     
     @PostMapping("/{id}/image")

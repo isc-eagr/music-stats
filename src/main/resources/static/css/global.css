@@ -721,6 +721,13 @@ select:focus {
     border-color: rgba(255,255,255,0.12);
 }
 
+/* Pre-promote cards to compositor layer for consistent high-quality image downscaling */
+.album-card,
+.song-card,
+.artist-card {
+    will-change: transform;
+}
+
 /* Shared image styles for card images */
 .album-image,
 .song-image,
@@ -1482,6 +1489,7 @@ select:focus {
     margin-bottom: 4px;
     border: 1px solid #2a2a2a;
     position: relative;
+    will-change: transform;
 }
 
 /* Artist images are 2:3 portrait ratio */
@@ -2431,6 +2439,52 @@ select:focus {
         display: flex;
     }
 
+    /* Hide modal header in mobile expanded view */
+    .artist-card.mobile-expanded .card-modal-text-stats .modal-header,
+    .album-card.mobile-expanded .card-modal-text-stats .modal-header,
+    .song-card.mobile-expanded .card-modal-text-stats .modal-header {
+        display: none;
+    }
+
+    /* Style modal stats in mobile expanded view */
+    .artist-card.mobile-expanded .modal-stat-row,
+    .album-card.mobile-expanded .modal-stat-row,
+    .song-card.mobile-expanded .modal-stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+    }
+
+    .artist-card.mobile-expanded .modal-stat-label,
+    .album-card.mobile-expanded .modal-stat-label,
+    .song-card.mobile-expanded .modal-stat-label {
+        color: #9ca3af;
+        font-weight: 400;
+        font-size: 0.8rem;
+    }
+
+    .artist-card.mobile-expanded .modal-stat-value,
+    .album-card.mobile-expanded .modal-stat-value,
+    .song-card.mobile-expanded .modal-stat-value {
+        color: #f3f4f6;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-align: right;
+    }
+
+    /* Gender-colored values in mobile expanded view */
+    .artist-card.mobile-expanded .modal-section:has(.gender-text-male) .modal-stat-value,
+    .album-card.mobile-expanded .modal-section:has(.gender-text-male) .modal-stat-value,
+    .song-card.mobile-expanded .modal-section:has(.gender-text-male) .modal-stat-value {
+        color: #60a5fa; /* Blue for male */
+    }
+
+    .artist-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value,
+    .album-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value,
+    .song-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value {
+        color: #f472b6; /* Pink for female */
+    }
+
     .artist-card.mobile-expanded .card-expanded-stats,
     .album-card.mobile-expanded .card-expanded-stats,
     .song-card.mobile-expanded .card-expanded-stats {
@@ -2461,6 +2515,11 @@ select:focus {
 
 /* First detail-content-section after detail-right-section gets top margin for spacing */
 .detail-right-section ~ .detail-content-section {
+    margin-top: 24px;
+}
+
+/* Play History section in plays tab gets same gap as General tab sections */
+.plays-tab-content .detail-content-section {
     margin-top: 24px;
 }
 
@@ -4412,40 +4471,13 @@ input.flatpickr-input:focus {
         margin-bottom: 0;
         text-align: left;
     }
-    
-    .detail-sidebar .winning-chips {
-        max-height: 80px;
-        overflow: hidden;
-        position: relative;
-        margin-bottom: 0;
-        padding: 0;
-        justify-content: flex-start;
-    }
-    
-    .detail-sidebar .winning-chips.expanded {
-        max-height: none;
-    }
+
     
     .detail-sidebar .winning-chip {
         font-size: 10px;
         padding: 2px 6px;
     }
     
-    /* Show expand button on 768px screens */
-    .ranking-chips-section .chips-expand-btn {
-        display: block;
-    }
-    
-    /* Gradient fade when collapsed */
-    .ranking-chips-section .winning-chips:not(.expanded)::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 28px;
-        background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.95));
-        pointer-events: none;
     }
     
     /* Image upload overlay - compact on mobile */
@@ -4684,18 +4716,7 @@ input.flatpickr-input:focus {
         margin-top: 2px;
         margin-bottom: 0;
     }
-    
-    .detail-sidebar .winning-chips {
-        max-height: 56px;
-        overflow: hidden;
-        position: relative;
-        margin-bottom: 0;
-        padding: 0;
-    }
-    
-    .detail-sidebar .winning-chips.expanded {
-        max-height: none;
-    }
+
     
     .detail-sidebar .winning-chip {
         font-size: 9px;
@@ -4862,3 +4883,6 @@ input.flatpickr-input:focus {
         display: block;
     }
 }
+
+
+

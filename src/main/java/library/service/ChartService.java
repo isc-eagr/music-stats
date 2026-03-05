@@ -2347,7 +2347,50 @@ public class ChartService {
             return entry;
         }, itemId, periodType, chartType);
     }
-    
+
+    /**
+     * Get past finalized chart appearances for a specific song or album, excluding the given period key.
+     * Used in the chart editor to show whether an item has previously charted.
+     * Includes gender_id for color coding in the UI.
+     *
+     * @param itemId          Song or album ID
+     * @param chartType       "song" or "album"
+     * @param periodType      "seasonal" or "yearly"
+     * @param excludePeriodKey The current period being edited (excluded from results)
+     */
+    public List<Map<String, Object>> getPastChartAppearancesForItem(Integer itemId, String chartType, String periodType, String excludePeriodKey) {
+        String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
+        String itemTable = "song".equals(chartType) ? "Song" : "Album";
+        String genderJoin = "song".equals(chartType) 
+            ? "LEFT JOIN Artist a ON s.artist_id = a.id"
+            : "LEFT JOIN Artist a ON al.artist_id = a.id";
+        String itemAlias = "song".equals(chartType) ? "s" : "al";
+        
+        String sql = String.format("""
+            SELECT ce.position, c.period_key, a.gender_id
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN %s %s ON ce.%s = %s.id
+            %s
+            WHERE ce.%s = ? AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
+              AND ce.position <= %d
+              AND c.period_key != ?
+            ORDER BY c.period_start_date DESC
+            """, itemTable, itemAlias, idColumn, itemAlias, genderJoin, idColumn, SEASONAL_YEARLY_SONGS_COUNT);
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> entry = new HashMap<>();
+            int position = rs.getInt("position");
+            String pk = rs.getString("period_key");
+            Integer genderId = rs.getObject("gender_id", Integer.class);
+            entry.put("position", position);
+            entry.put("periodKey", pk);
+            entry.put("genderId", genderId);
+            entry.put("displayName", "seasonal".equals(periodType) ? formatSeasonPeriodKey(pk) : pk);
+            return entry;
+        }, itemId, periodType, chartType, excludePeriodKey != null ? excludePeriodKey : "");
+    }
+
     /**
      * Get chart history for all songs/albums by an artist on a specific period type.
      * Returns list of maps with item info (song/album ID and name) and chart position.

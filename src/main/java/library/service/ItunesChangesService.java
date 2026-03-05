@@ -102,7 +102,7 @@ public class ItunesChangesService {
                 boolean albumArtistChanged = !nullSafeEquals(snapshot.getAlbumArtist(), current.getAlbumArtist());
                 boolean albumChanged = !nullSafeEquals(snapshot.getAlbum(), current.getAlbum());
                 boolean nameChanged = !nullSafeEquals(snapshot.getName(), current.getName());
-                boolean lengthChanged = !nullSafeEquals(snapshot.getTotalTime(), current.getTotalTime());
+                boolean lengthChanged = !lengthApproxEquals(snapshot.getTotalTime(), current.getTotalTime());
                 boolean genreChanged = !nullSafeEquals(snapshot.getGenre(), current.getGenre());
 
                 if (artistChanged || albumArtistChanged || albumChanged || nameChanged || lengthChanged || genreChanged) {
@@ -260,6 +260,17 @@ public class ItunesChangesService {
         if (a == null && b == null) return true;
         if (a == null || b == null) return false;
         return a.equals(b);
+    }
+
+    /**
+     * Compare two totalTime values (in milliseconds) with a 1-second tolerance.
+     * iTunes can produce minor rounding differences (e.g. 311072 vs 311000) between
+     * reads of the same file, which should not be treated as a real length change.
+     */
+    private boolean lengthApproxEquals(Integer a, Integer b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return Math.abs(a - b) < 1000;
     }
 
     private String createSongLookupKey(String artist, String album, String song) {
