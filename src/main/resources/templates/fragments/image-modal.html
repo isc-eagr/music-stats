@@ -191,14 +191,18 @@
                     // Show navigation arrows
                     if (prevBtn) prevBtn.style.display = 'block';
                     if (nextBtn) nextBtn.style.display = 'block';
+                    
+                    // Update the image URL to match the current index
+                    updateModalImage();
                 } else {
                     // No gallery context, hide arrows
                     modalGalleryImages = [];
                     if (prevBtn) prevBtn.style.display = 'none';
                     if (nextBtn) nextBtn.style.display = 'none';
+                    
+                    modalImg.src = imgSrc;
                 }
                 
-                modalImg.src = imgSrc;
                 modal.classList.add('show');
                 modal.classList.remove('zoomed');
                 document.body.style.overflow = 'hidden';

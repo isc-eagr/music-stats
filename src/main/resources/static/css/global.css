@@ -1355,6 +1355,19 @@ select:focus {
     text-align: right;
 }
 
+/* Gender-colored values in Statistics panel */
+.artist-detail.gender-male .detail-stats-panel .ds-value,
+.album-detail.gender-male .detail-stats-panel .ds-value,
+.song-detail.gender-male .detail-stats-panel .ds-value {
+    color: #60a5fa; /* Blue for male */
+}
+
+.artist-detail.gender-female .detail-stats-panel .ds-value,
+.album-detail.gender-female .detail-stats-panel .ds-value,
+.song-detail.gender-female .detail-stats-panel .ds-value {
+    color: #f472b6; /* Pink for female */
+}
+
 .detail-stats-panel .ds-separator {
     height: 1px;
     background: rgba(255,255,255,0.08);

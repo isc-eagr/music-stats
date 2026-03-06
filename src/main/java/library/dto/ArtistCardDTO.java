@@ -24,6 +24,7 @@ public class ArtistCardDTO {
     private Long timeListened; // in seconds
     private String timeListenedFormatted;
     private boolean hasImage;
+    private boolean hasThemeImage;
     private Boolean organized;
     private Integer featuredSongCount; // Count of songs where this artist is featured
     private Boolean inItunes; // Whether artist exists in iTunes library
@@ -218,6 +219,18 @@ public class ArtistCardDTO {
 
     public void setHasImage(boolean hasImage) {
         this.hasImage = hasImage;
+    }
+
+    public boolean isHasThemeImage() {
+        return hasThemeImage;
+    }
+
+    public boolean getHasThemeImage() {
+        return hasThemeImage;
+    }
+
+    public void setHasThemeImage(boolean hasThemeImage) {
+        this.hasThemeImage = hasThemeImage;
     }
 
     public Boolean getOrganized() {

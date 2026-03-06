@@ -303,7 +303,7 @@
             
             <!-- Right side: Stacked cards layout for General and Statistics -->
             <div class="detail-right-section" id="generalSectionContent"
-                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
+                 style="display: block !important;">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -640,7 +640,7 @@
             
             <!-- Plays Tab Content -->
             <div class="plays-tab-content" id="playsTabContent"
-                 th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
+                 style="display: none !important;">
                 <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
                     <h2 class="section-title">Plays by Year</h2>
@@ -761,47 +761,58 @@
             </div>
             
             <!-- Chart History Tab Content -->
-            <div class="featured-tab-content" id="chartHistoryTabContent"
-                 th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
+            <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
+                 style="display: none !important;">
 
-                <!-- Weekly/Seasonal/Yearly Toggles -->
-                <div class="ch-toggle-container" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                <!-- Toggles for Weekly, Seasonal, Yearly -->
+                <div class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
+                    <style>
+                        .ch-toggle-btn {
+                            background-color: transparent;
+                            color: #9ca3af;
+                            border: 1px solid #374151;
+                            padding: 6px 16px;
+                            border-radius: 20px;
+                            font-size: 14px;
+                            font-weight: 500;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        }
+                        .ch-toggle-btn:hover {
+                            background-color: rgba(255, 255, 255, 0.05);
+                            color: #fff;
+                        }
+                        .ch-toggle-btn.active {
+                            background-color: #374151;
+                            color: #fff;
+                            border-color: #4b5563;
+                        }
+                        .gender-female .ch-toggle-btn.active {
+                            background-color: rgba(236, 72, 153, 0.15);
+                            color: #fbcfe8;
+                            border-color: #ec4899;
+                        }
+                        .gender-male .ch-toggle-btn.active {
+                            background-color: rgba(59, 130, 246, 0.15);
+                            color: #bfdbfe;
+                            border-color: #3b82f6;
+                        }
+                        .ch-section {
+                            display: none;
+                            animation: fadeIn 0.3s ease-in-out;
+                        }
+                        .ch-section.active {
+                            display: block;
+                        }
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                    </style>
                     <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
                 </div>
-
-                <style>
-                    .ch-toggle-btn {
-                        background: none;
-                        border: none;
-                        padding: 8px 16px;
-                        font-size: 16px;
-                        font-weight: bold;
-                        color: #666;
-                        cursor: pointer;
-                        border-radius: 20px;
-                        transition: all 0.2s ease;
-                    }
-                    .ch-toggle-btn:hover {
-                        background-color: #f0f0f0;
-                    }
-                    .ch-toggle-btn.active {
-                        background-color: var(--primary-color, #4a90e2);
-                        color: white;
-                    }
-                    .ch-section {
-                        display: none;
-                    }
-                    .ch-section.active {
-                        display: block;
-                        animation: fadeIn 0.3s ease-in-out;
-                    }
-                    @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(5px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                </style>
 
                 <!-- WEEKLY SECTION -->
                 <div id="ch-weekly-section" class="ch-section active">
@@ -865,17 +876,35 @@
                 <!-- SEASONAL SECTION -->
                 <div id="ch-seasonal-section" class="ch-section">
                     <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
-                        <h2 class="section-title">📊 Seasonal Charts</h2>
-                        <div class="winning-chips" style="justify-content: flex-start;">
-                            <a th:each="entry : ${seasonalChartHistory}" 
-                               th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}"
-                               class="winning-chip chart-chip seasonal-chart">
-                                <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
-                                <span th:if="${#strings.contains(entry.displayName, 'Spring')}">🌸</span>
-                                <span th:if="${#strings.contains(entry.displayName, 'Summer')}">☀️</span>
-                                <span th:if="${#strings.contains(entry.displayName, 'Fall')}">🍂</span>
-                                <span th:text="${entry.displayName}">#1 in Winter 2024</span>
-                            </a>
+                        <h2 class="section-title">Seasonal Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Period</th>
+                                        <th style="text-align:right;">Position</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${seasonalChartHistory}">
+                                        <td>
+                                            <a th:href="@{/charts/seasonal/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
+                                                <th:block th:with="periodName=${#strings.substringAfter(entry['displayName'], ' in ')}">
+                                                    <span th:if="${#strings.contains(periodName, 'Winter')}">❄️</span>
+                                                    <span th:if="${#strings.contains(periodName, 'Spring')}">🌸</span>
+                                                    <span th:if="${#strings.contains(periodName, 'Summer')}">☀️</span>
+                                                    <span th:if="${#strings.contains(periodName, 'Fall')}">🍂</span>
+                                                    <span th:text="${periodName}">Winter 2024</span>
+                                                </th:block>
+                                            </a>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div> <!-- End of ch-seasonal-section -->
@@ -883,14 +912,31 @@
                 <!-- YEARLY SECTION -->
                 <div id="ch-yearly-section" class="ch-section">
                     <div th:if="${(yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
-                        <h2 class="section-title">📊 Yearly Charts</h2>
-                        <div class="winning-chips" style="justify-content: flex-start;">
-                            <a th:each="entry : ${yearlyChartHistory}" 
-                               th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}"
-                               class="winning-chip chart-chip yearly-chart"
-                               th:text="${entry.displayName}">
-                                #1 in 2024
-                            </a>
+                        <h2 class="section-title">Yearly Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Period</th>
+                                        <th style="text-align:right;">Position</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${yearlyChartHistory}">
+                                        <td>
+                                            <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
+                                                <th:block th:with="periodName=${#strings.substringAfter(entry['displayName'], ' in ')}">
+                                                    📅 <span th:text="${periodName}">2024</span>
+                                                </th:block>
+                                            </a>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div> <!-- End of ch-yearly-section -->
@@ -1634,11 +1680,6 @@
                 return;
             }
             
-            if (file.size > 5 * 1024 * 1024) {
-                showWarningToast('Image size must be less than 5MB');
-                return;
-            }
-            
             const formData = new FormData();
             formData.append('image', file);
             
@@ -1989,9 +2030,6 @@
         });
         
         // Note: rely on global showTooltip/hideTooltip defined in fragments/navigation.html
-        
-        
-        }
         
         function switchTab(event, tabName) {
             event.preventDefault();

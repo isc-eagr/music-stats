@@ -1134,12 +1134,12 @@
                  class="artist-card" 
                  th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="artist-image item-image-container" style="cursor: pointer;">
-                        <img th:if="${artist.hasImage}"
+                        <img th:if="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}"
                              th:src="@{'/artists/' + ${artist.id} + '/image?thumbnail=true'}"
                              th:alt="${artist.name}"
                              th:onclick="|openArtistImageModalFromList(${artist.id})|"
                              class="clickable-image">
-                        <div th:unless="${artist.hasImage}" class="no-image">
+                        <div th:unless="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}" class="no-image">
                             <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
                         </div>
 

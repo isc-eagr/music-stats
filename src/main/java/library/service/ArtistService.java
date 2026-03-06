@@ -157,6 +157,7 @@ public class ArtistService {
             dto.setSoloSongCount(row[29] != null ? ((Number) row[29]).intValue() : 0);
             dto.setSongsWithFeatCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
             dto.setStandaloneSongCount(row[31] != null ? ((Number) row[31]).intValue() : 0);
+            dto.setHasThemeImage(row[32] != null && ((Number) row[32]).intValue() == 1);
 
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));

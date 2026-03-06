@@ -285,7 +285,7 @@
             
             <!-- Right side: Stacked cards layout for General and Statistics -->
             <div class="detail-right-section" id="generalSectionContent"
-                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
+                 style="display: block !important;">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -562,8 +562,7 @@
             </div>
             
             <!-- Albums List Section - Aligned with right section -->
-            <div class="detail-content-section general-tab-section" th:if="${(activeTab == 'general' or activeTab == null) and albums != null}"
-                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
+            <div class="detail-content-section general-tab-section" style="display: block !important;" th:if="${albums != null}">
                 <h2 class="section-title">Albums</h2>
                 <div class="top-table-container">
                     <table class="top-table" id="albumsTable">
@@ -639,8 +638,7 @@
             </div>
             
             <!-- Songs List Section - Aligned with right section -->
-            <div class="detail-content-section general-tab-section" th:if="${(activeTab == 'general' or activeTab == null) and songs != null and !songs.isEmpty()}"
-                 th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
+            <div class="detail-content-section general-tab-section" style="display: block !important;" th:if="${songs != null and !songs.isEmpty()}">
                 <h2 class="section-title">Songs</h2>
                 <div class="top-table-container">
                     <table class="top-table" id="songsTable">
@@ -735,7 +733,7 @@
             
             <!-- Plays Tab Content -->
             <div class="plays-tab-content" id="playsTabContent"
-                 th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
+                 style="display: none !important;">
                 <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
                     <h2 class="section-title">Plays by Year</h2>
@@ -815,7 +813,7 @@
             
             <!-- Artist Associations Tab Content -->
             <div class="featured-tab-content" id="collaboratedTabContent" 
-                 th:style="${activeTab == 'collaborated'} ? 'display: block !important;' : 'display: none !important;'">
+                 style="display: none !important;">
                 
                 <!-- Is Part Of Section (Groups this artist belongs to) -->
                 <div th:if="${groupArtistCards != null and !groupArtistCards.isEmpty()}" class="detail-content-card">
@@ -978,7 +976,7 @@
             
             <!-- Chart History Tab Content -->
             <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
-                 th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
+                 style="display: none !important;">
                  
                 <!-- Toggles for Weekly, Seasonal, Yearly -->
                 <div class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
@@ -1201,8 +1199,8 @@
                                 <thead>
                                     <tr>
                                         <th>Album</th>
-                                        <th style="text-align:right;">Position</th>
                                         <th>Period</th>
+                                        <th style="text-align:right;">Position</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1216,10 +1214,6 @@
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
                                             </span>
                                         </td>
-                                        <td style="text-align:right;">
-                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
-                                                  th:text="'#' + ${entry['position']}">#1</span>
-                                        </td>
                                         <td>
                                             <a th:href="@{/charts/seasonal/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Winter')}">❄️</span>
@@ -1228,6 +1222,10 @@
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Fall')}">🍂</span>
                                                 <span th:text="${entry['displayName']}">Winter 2024</span>
                                             </a>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1243,8 +1241,8 @@
                                 <thead>
                                     <tr>
                                         <th>Song</th>
-                                        <th style="text-align:right;">Position</th>
                                         <th>Period</th>
+                                        <th style="text-align:right;">Position</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1262,10 +1260,6 @@
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
                                             </span>
                                         </td>
-                                        <td style="text-align:right;">
-                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
-                                                  th:text="'#' + ${entry['position']}">#1</span>
-                                        </td>
                                         <td>
                                             <a th:href="@{/charts/seasonal/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Winter')}">❄️</span>
@@ -1274,6 +1268,10 @@
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Fall')}">🍂</span>
                                                 <span th:text="${entry['displayName']}">Winter 2024</span>
                                             </a>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1292,8 +1290,8 @@
                                 <thead>
                                     <tr>
                                         <th>Album</th>
-                                        <th style="text-align:right;">Position</th>
                                         <th>Period</th>
+                                        <th style="text-align:right;">Position</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1306,14 +1304,14 @@
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
                                             </span>
                                         </td>
-                                        <td style="text-align:right;">
-                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
-                                                  th:text="'#' + ${entry['position']}">#1</span>
-                                        </td>
                                         <td>
                                             <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 📅 <span th:text="${entry['displayName']}">2024</span>
                                             </a>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1329,8 +1327,8 @@
                                 <thead>
                                     <tr>
                                         <th>Song</th>
-                                        <th style="text-align:right;">Position</th>
                                         <th>Period</th>
+                                        <th style="text-align:right;">Position</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1347,14 +1345,14 @@
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
                                             </span>
                                         </td>
-                                        <td style="text-align:right;">
-                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
-                                                  th:text="'#' + ${entry['position']}">#1</span>
-                                        </td>
                                         <td>
                                             <a th:href="@{/charts/yearly/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 📅 <span th:text="${entry['displayName']}">2024</span>
                                             </a>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -2043,11 +2041,6 @@
                 return;
             }
             
-            if (file.size > 5 * 1024 * 1024) {
-                showWarningToast('Image size must be less than 5MB');
-                return;
-            }
-            
             const formData = new FormData();
             formData.append('image', file);
             
@@ -2324,11 +2317,6 @@
 
             if (!file.type.startsWith('image/')) {
                 showWarningToast('Please select an image file');
-                return;
-            }
-
-            if (file.size > 5 * 1024 * 1024) {
-                showWarningToast('Image size must be less than 5MB');
                 return;
             }
 
@@ -3193,9 +3181,6 @@
                 });
             }
         });
-        
-        
-        }
         
         function switchTab(event, tabName) {
             event.preventDefault();

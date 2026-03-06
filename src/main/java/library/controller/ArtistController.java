@@ -325,6 +325,7 @@ public class ArtistController {
         model.addAttribute("languages", artistService.getLanguages());
         model.addAttribute("countries", artistService.getCountries());
         model.addAttribute("themes", themeService.getAllThemes());
+        model.addAttribute("activeTheme", themeService.getActiveTheme().orElse(null));
         
         return "artists/list";
     }

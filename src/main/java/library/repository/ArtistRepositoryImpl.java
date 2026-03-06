@@ -140,7 +140,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    COALESCE(fac_stats.featured_artist_count_stat, 0) as featured_artist_count_stat, ");
         sql.append("    COALESCE(solo_stats.solo_song_count, 0) as solo_song_count, ");
     sql.append("    COALESCE(swf_stats.songs_with_feat_count, 0) as songs_with_feat_count, ");
-    sql.append("    COALESCE(standalone_stats.standalone_song_count, 0) as standalone_song_count ");
+    sql.append("    COALESCE(standalone_stats.standalone_song_count, 0) as standalone_song_count, ");
+    sql.append("    CASE WHEN EXISTS (SELECT 1 FROM ArtistImageTheme ait JOIN ArtistTheme t ON t.id = ait.theme_id WHERE t.is_active = 1 AND ait.artist_id = a.id) THEN 1 ELSE 0 END as has_theme_image ");
     sql.append("FROM Artist a ");
     sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
     sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
@@ -396,7 +397,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getInt("featured_artist_count_stat"),
                 rs.getInt("solo_song_count"),
                 rs.getInt("songs_with_feat_count"),
-                rs.getInt("standalone_song_count")
+                rs.getInt("standalone_song_count"),
+                rs.getInt("has_theme_image")
             };
         }, params.toArray());
     }
