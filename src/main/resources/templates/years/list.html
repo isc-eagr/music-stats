@@ -244,15 +244,21 @@
                     <!-- Top artist/album/song for this year -->
                     <div th:if="${year.topArtistName != null or year.topAlbumName != null or year.topSongName != null}"
                          class="number-one-info">
-                        <a th:if="${year.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${year.topArtistId}}">
+                        <a th:if="${year.topArtistName != null}"
+                           th:class="${'number-one-item' + (year.topArtistGenderId == 2 ? ' gender-male' : (year.topArtistGenderId == 1 ? ' gender-female' : ''))}"
+                           th:href="@{'/artists/' + ${year.topArtistId}}">
                             <span class="label">🎤</span>
                             <span class="name" th:text="${year.topArtistName}" th:title="${year.topArtistName}">Artist Name</span>
                         </a>
-                        <a th:if="${year.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${year.topAlbumId}}">
+                        <a th:if="${year.topAlbumName != null}"
+                           th:class="${'number-one-item' + (year.topAlbumGenderId == 2 ? ' gender-male' : (year.topAlbumGenderId == 1 ? ' gender-female' : ''))}"
+                           th:href="@{'/albums/' + ${year.topAlbumId}}">
                             <span class="label">💿</span>
                             <span class="name" th:text="${year.topAlbumArtistName + ' - ' + year.topAlbumName}" th:title="${year.topAlbumArtistName + ' - ' + year.topAlbumName}">Artist - Album</span>
                         </a>
-                        <a th:if="${year.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${year.topSongId}}">
+                        <a th:if="${year.topSongName != null}"
+                           th:class="${'number-one-item' + (year.topSongGenderId == 2 ? ' gender-male' : (year.topSongGenderId == 1 ? ' gender-female' : ''))}"
+                           th:href="@{'/songs/' + ${year.topSongId}}">
                             <span class="label">🎵</span>
                             <span class="name" th:text="${year.topSongArtistName + ' - ' + year.topSongName}" th:title="${year.topSongArtistName + ' - ' + year.topSongName}">Artist - Song</span>
                         </a>

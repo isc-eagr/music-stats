@@ -266,9 +266,11 @@ public class SubGenreCardDTO {
     private Integer topAlbumId;
     private String topAlbumName;
     private String topAlbumArtistName;
+    private Integer topAlbumGenderId;
     private Integer topSongId;
     private String topSongName;
     private String topSongArtistName;
+    private Integer topSongGenderId;
 
     public Integer getTopArtistId() {
         return topArtistId;
@@ -318,6 +320,14 @@ public class SubGenreCardDTO {
         this.topAlbumArtistName = topAlbumArtistName;
     }
 
+    public Integer getTopAlbumGenderId() {
+        return topAlbumGenderId;
+    }
+
+    public void setTopAlbumGenderId(Integer topAlbumGenderId) {
+        this.topAlbumGenderId = topAlbumGenderId;
+    }
+
     public Integer getTopSongId() {
         return topSongId;
     }
@@ -340,6 +350,14 @@ public class SubGenreCardDTO {
 
     public void setTopSongArtistName(String topSongArtistName) {
         this.topSongArtistName = topSongArtistName;
+    }
+
+    public Integer getTopSongGenderId() {
+        return topSongGenderId;
+    }
+
+    public void setTopSongGenderId(Integer topSongGenderId) {
+        this.topSongGenderId = topSongGenderId;
     }
 
     // Computed male percentages (for sorting and display)

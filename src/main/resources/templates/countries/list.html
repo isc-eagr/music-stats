@@ -255,15 +255,21 @@
                     <!-- Top artist/album/song for this country -->
                     <div th:if="${country.topArtistName != null or country.topAlbumName != null or country.topSongName != null}"
                          class="number-one-info">
-                        <a th:if="${country.topArtistName != null}" class="number-one-item" th:href="@{'/artists/' + ${country.topArtistId}}" onclick="event.stopPropagation();">
+                        <a th:if="${country.topArtistName != null}"
+                           th:class="${'number-one-item' + (country.topArtistGenderId == 2 ? ' gender-male' : (country.topArtistGenderId == 1 ? ' gender-female' : ''))}"
+                           th:href="@{'/artists/' + ${country.topArtistId}}" onclick="event.stopPropagation();">
                             <span class="label">🎤</span>
                             <span class="name" th:text="${country.topArtistName}" th:title="${country.topArtistName}">Artist Name</span>
                         </a>
-                        <a th:if="${country.topAlbumName != null}" class="number-one-item" th:href="@{'/albums/' + ${country.topAlbumId}}" onclick="event.stopPropagation();">
+                        <a th:if="${country.topAlbumName != null}"
+                           th:class="${'number-one-item' + (country.topAlbumGenderId == 2 ? ' gender-male' : (country.topAlbumGenderId == 1 ? ' gender-female' : ''))}"
+                           th:href="@{'/albums/' + ${country.topAlbumId}}" onclick="event.stopPropagation();">
                             <span class="label">💿</span>
                             <span class="name" th:text="${country.topAlbumArtistName + ' - ' + country.topAlbumName}" th:title="${country.topAlbumArtistName + ' - ' + country.topAlbumName}">Artist - Album</span>
                         </a>
-                        <a th:if="${country.topSongName != null}" class="number-one-item" th:href="@{'/songs/' + ${country.topSongId}}" onclick="event.stopPropagation();">
+                        <a th:if="${country.topSongName != null}"
+                           th:class="${'number-one-item' + (country.topSongGenderId == 2 ? ' gender-male' : (country.topSongGenderId == 1 ? ' gender-female' : ''))}"
+                           th:href="@{'/songs/' + ${country.topSongId}}" onclick="event.stopPropagation();">
                             <span class="label">🎵</span>
                             <span class="name" th:text="${country.topSongArtistName + ' - ' + country.topSongName}" th:title="${country.topSongArtistName + ' - ' + country.topSongName}">Artist - Song</span>
                         </a>

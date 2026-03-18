@@ -1,6 +1,40 @@
 /* Existing styles */
 /* ... */
 
+/* Top artist/album/song at the bottom of catalog cards */
+.number-one-info {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #2a2a2a;
+}
+.number-one-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #ccc;
+    margin-bottom: 3px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-left: -6px;
+    text-decoration: none;
+}
+.number-one-item.gender-male {
+    background: rgba(59, 130, 246, 0.6);
+}
+.number-one-item.gender-female {
+    background: rgba(236, 72, 153, 0.6);
+}
+.number-one-item .label {
+    color: #888;
+    min-width: 20px;
+}
+.number-one-item .name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Modal Content Styles */
 .card-detail-modal-body .modal-header {
     margin-bottom: 12px;

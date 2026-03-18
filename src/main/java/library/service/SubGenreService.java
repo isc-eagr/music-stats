@@ -280,6 +280,7 @@ public class SubGenreService {
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -287,12 +288,13 @@ public class SubGenreService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) IN (" + placeholders + ") " +
-            "    GROUP BY subgenre_id, al.id, al.name, ar.name " +
+            "    GROUP BY subgenre_id, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT subgenre_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+            "SELECT subgenre_id, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
 
         List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("subgenre_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("subgenre_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             subGenreIds.toArray()
         );
 
@@ -304,6 +306,7 @@ public class SubGenreService {
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -311,12 +314,13 @@ public class SubGenreService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) IN (" + placeholders + ") " +
-            "    GROUP BY subgenre_id, s.id, s.name, ar.name " +
+            "    GROUP BY subgenre_id, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT subgenre_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+            "SELECT subgenre_id, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
 
         List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("subgenre_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("subgenre_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             subGenreIds.toArray()
         );
 
@@ -335,6 +339,7 @@ public class SubGenreService {
                     sg.setTopAlbumId((Integer) row[1]);
                     sg.setTopAlbumName((String) row[2]);
                     sg.setTopAlbumArtistName((String) row[3]);
+                    sg.setTopAlbumGenderId((Integer) row[4]);
                     break;
                 }
             }
@@ -343,6 +348,7 @@ public class SubGenreService {
                     sg.setTopSongId((Integer) row[1]);
                     sg.setTopSongName((String) row[2]);
                     sg.setTopSongArtistName((String) row[3]);
+                    sg.setTopSongGenderId((Integer) row[4]);
                     break;
                 }
             }

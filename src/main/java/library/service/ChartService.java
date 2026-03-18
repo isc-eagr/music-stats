@@ -2555,16 +2555,22 @@ public class ChartService {
     }
     
     /**
-     * Check if a season has play data.
+     * Check if a season has play data OR an existing chart entry.
+     * Used for prev/next navigation on the seasonal chart editor.
      */
     public boolean hasSeasonData(String periodKey) {
         LocalDate[] dateRange = parseSeasonPeriodKeyToDateRange(periodKey);
         if (dateRange == null) return false;
         
-        String sql = "SELECT COUNT(*) FROM Play WHERE play_date >= ? AND play_date <= ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, 
+        String playSql = "SELECT COUNT(*) FROM Play WHERE play_date >= ? AND play_date <= ?";
+        Integer playCount = jdbcTemplate.queryForObject(playSql, Integer.class, 
             dateRange[0].toString(), dateRange[1].toString());
-        return count != null && count > 0;
+        if (playCount != null && playCount > 0) return true;
+
+        // Also consider seasons that have chart records (so navigation works for pre-play charts)
+        String chartSql = "SELECT COUNT(*) FROM Chart WHERE period_type = 'seasonal' AND period_key = ?";
+        Integer chartCount = jdbcTemplate.queryForObject(chartSql, Integer.class, periodKey);
+        return chartCount != null && chartCount > 0;
     }
     
     /**
@@ -2594,47 +2600,68 @@ public class ChartService {
     }
     
     /**
-     * Check if a year has play data.
+     * Check if a year has play data OR an existing chart entry.
+     * Used for prev/next navigation on the yearly chart editor.
      */
     public boolean hasYearData(String periodKey) {
         if (periodKey == null) return false;
-        String sql = "SELECT COUNT(*) FROM Play WHERE strftime('%Y', play_date) = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, periodKey);
-        return count != null && count > 0;
+        String playSql = "SELECT COUNT(*) FROM Play WHERE strftime('%Y', play_date) = ?";
+        Integer playCount = jdbcTemplate.queryForObject(playSql, Integer.class, periodKey);
+        if (playCount != null && playCount > 0) return true;
+
+        // Also consider years that have chart records (so navigation works for pre-play charts)
+        String chartSql = "SELECT COUNT(*) FROM Chart WHERE period_type = 'yearly' AND period_key = ?";
+        Integer chartCount = jdbcTemplate.queryForObject(chartSql, Integer.class, periodKey);
+        return chartCount != null && chartCount > 0;
     }
     
     /**
-     * Get all seasons that have play data (for chart list page).
+     * Get all seasons that have play data OR chart entries (for chart list page dropdown).
      */
     public List<Map<String, Object>> getAllSeasonsWithData() {
         String sql = """
-            SELECT DISTINCT
-                CASE 
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) = 12 
-                        THEN (CAST(strftime('%Y', play_date) AS INTEGER) + 1) || '-Winter'
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (1, 2) 
-                        THEN strftime('%Y', play_date) || '-Winter'
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (3, 4, 5) 
-                        THEN strftime('%Y', play_date) || '-Spring'
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (6, 7, 8) 
-                        THEN strftime('%Y', play_date) || '-Summer'
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (9, 10, 11) 
-                        THEN strftime('%Y', play_date) || '-Fall'
-                END as period_key,
-                CASE 
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) = 12 
-                        THEN (CAST(strftime('%Y', play_date) AS INTEGER) + 1) * 10 + 1
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (1, 2) 
-                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 1
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (3, 4, 5) 
-                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 2
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (6, 7, 8) 
-                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 3
-                    WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (9, 10, 11) 
-                        THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 4
-                END as sort_order
-            FROM Play
-            WHERE play_date IS NOT NULL
+            SELECT DISTINCT period_key, sort_order FROM (
+                SELECT
+                    CASE
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) = 12
+                            THEN (CAST(strftime('%Y', play_date) AS INTEGER) + 1) || '-Winter'
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (1, 2)
+                            THEN strftime('%Y', play_date) || '-Winter'
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (3, 4, 5)
+                            THEN strftime('%Y', play_date) || '-Spring'
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (6, 7, 8)
+                            THEN strftime('%Y', play_date) || '-Summer'
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (9, 10, 11)
+                            THEN strftime('%Y', play_date) || '-Fall'
+                    END as period_key,
+                    CASE
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) = 12
+                            THEN (CAST(strftime('%Y', play_date) AS INTEGER) + 1) * 10 + 1
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (1, 2)
+                            THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 1
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (3, 4, 5)
+                            THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 2
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (6, 7, 8)
+                            THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 3
+                        WHEN CAST(strftime('%m', play_date) AS INTEGER) IN (9, 10, 11)
+                            THEN CAST(strftime('%Y', play_date) AS INTEGER) * 10 + 4
+                    END as sort_order
+                FROM Play
+                WHERE play_date IS NOT NULL
+                UNION
+                SELECT
+                    c.period_key,
+                    CAST(SUBSTR(c.period_key, 1, 4) AS INTEGER) * 10 +
+                        CASE SUBSTR(c.period_key, 6)
+                            WHEN 'Winter' THEN 1
+                            WHEN 'Spring' THEN 2
+                            WHEN 'Summer' THEN 3
+                            WHEN 'Fall'   THEN 4
+                            ELSE 0
+                        END as sort_order
+                FROM Chart c
+                WHERE c.period_type = 'seasonal'
+            ) combined
             ORDER BY sort_order DESC
             """;
         
@@ -2649,13 +2676,19 @@ public class ChartService {
     }
     
     /**
-     * Get all years that have play data (for chart list page).
+     * Get all years that have play data OR chart entries (for chart list page dropdown).
      */
     public List<Map<String, Object>> getAllYearsWithData() {
         String sql = """
-            SELECT DISTINCT strftime('%Y', play_date) as period_key
-            FROM Play
-            WHERE play_date IS NOT NULL
+            SELECT DISTINCT period_key FROM (
+                SELECT DISTINCT strftime('%Y', play_date) as period_key
+                FROM Play
+                WHERE play_date IS NOT NULL
+                UNION
+                SELECT DISTINCT period_key
+                FROM Chart
+                WHERE period_type = 'yearly'
+            ) combined
             ORDER BY period_key DESC
             """;
         

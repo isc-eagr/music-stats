@@ -225,6 +225,7 @@ public class CountryService {
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -232,12 +233,13 @@ public class CountryService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND ar.country IN (" + placeholders + ") " +
-            "    GROUP BY ar.country, al.id, al.name, ar.name " +
+            "    GROUP BY ar.country, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT country, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+            "SELECT country, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
 
         List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getString("country"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            new Object[]{rs.getString("country"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             countryNames.toArray()
         );
 
@@ -249,18 +251,20 @@ public class CountryService {
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY ar.country ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE ar.country IN (" + placeholders + ") " +
-            "    GROUP BY ar.country, s.id, s.name, ar.name " +
+            "    GROUP BY ar.country, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT country, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+            "SELECT country, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
 
         List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getString("country"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            new Object[]{rs.getString("country"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             countryNames.toArray()
         );
 
@@ -279,6 +283,7 @@ public class CountryService {
                     ctry.setTopAlbumId((Integer) row[1]);
                     ctry.setTopAlbumName((String) row[2]);
                     ctry.setTopAlbumArtistName((String) row[3]);
+                    ctry.setTopAlbumGenderId((Integer) row[4]);
                     break;
                 }
             }
@@ -287,6 +292,7 @@ public class CountryService {
                     ctry.setTopSongId((Integer) row[1]);
                     ctry.setTopSongName((String) row[2]);
                     ctry.setTopSongArtistName((String) row[3]);
+                    ctry.setTopSongGenderId((Integer) row[4]);
                     break;
                 }
             }

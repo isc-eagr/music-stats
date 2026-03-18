@@ -1096,7 +1096,8 @@ public class TimeframeService {
     }
     
     /**
-     * Generate all possible season period keys from earliest play to current season
+     * Generate all possible season period keys from earliest play (or chart) to current season.
+     * Includes seasons that have chart entries even if they precede the earliest play date.
      */
     private List<String> generateAllSeasonKeys() {
         LocalDate earliest = getEarliestPlayDate();
@@ -1150,22 +1151,75 @@ public class TimeframeService {
                 year++;
             }
         }
-        
-        return seasons;
+
+        // Also include chart-only seasons that precede the earliest play season
+        try {
+            int earliestSeasonOrder = startYear * 10 + startSeasonIdx + 1; // +1 because seasonIdx is 0-based but sort is 1-based
+            List<String> chartSeasons = jdbcTemplate.queryForList(
+                "SELECT DISTINCT period_key FROM Chart WHERE period_type = 'seasonal' ORDER BY period_key ASC",
+                String.class);
+            Set<String> existingSet = new HashSet<>(seasons);
+            List<String> preSeasons = new ArrayList<>();
+            for (String sk : chartSeasons) {
+                if (!existingSet.contains(sk) && getSeasonSortOrder(sk) < earliestSeasonOrder) {
+                    preSeasons.add(sk);
+                }
+            }
+            // Sort pre-existing chart seasons chronologically
+            preSeasons.sort(java.util.Comparator.comparingInt(this::getSeasonSortOrder));
+            List<String> allSeasons = new ArrayList<>(preSeasons);
+            allSeasons.addAll(seasons);
+            return allSeasons;
+        } catch (Exception ignored) {
+            return seasons;
+        }
+    }
+
+    /**
+     * Compute a numeric sort order for a season period key (e.g. "2024-Winter").
+     * Returns year * 10 + seasonIndex where Winter=1, Spring=2, Summer=3, Fall=4.
+     */
+    private int getSeasonSortOrder(String seasonKey) {
+        try {
+            String[] parts = seasonKey.split("-");
+            if (parts.length != 2) return 0;
+            int y = Integer.parseInt(parts[0]);
+            int idx = switch (parts[1]) {
+                case "Winter" -> 1;
+                case "Spring" -> 2;
+                case "Summer" -> 3;
+                case "Fall" -> 4;
+                default -> 0;
+            };
+            return y * 10 + idx;
+        } catch (Exception e) {
+            return 0;
+        }
     }
     
     /**
-     * Generate all possible year period keys from earliest play to current year
+     * Generate all possible year period keys from earliest play (or chart) to current year.
+     * Includes years that have chart entries even if they precede the earliest play date.
      */
     private List<String> generateAllYearKeys() {
         LocalDate earliest = getEarliestPlayDate();
         LocalDate now = LocalDate.now();
-        
-        List<String> years = new ArrayList<>();
-        for (int year = earliest.getYear(); year <= now.getYear(); year++) {
+        int earliestPlayYear = earliest.getYear();
+
+        // Find the earliest year that has a chart entry (could be before earliest play year)
+        List<String> chartOnlyYears = new ArrayList<>();
+        try {
+            List<String> chartYears = jdbcTemplate.queryForList(
+                "SELECT DISTINCT period_key FROM Chart WHERE period_type = 'yearly' AND CAST(period_key AS INTEGER) < ? ORDER BY period_key ASC",
+                String.class, earliestPlayYear);
+            chartOnlyYears.addAll(chartYears);
+        } catch (Exception ignored) {}
+
+        List<String> years = new ArrayList<>(chartOnlyYears);
+        for (int year = earliestPlayYear; year <= now.getYear(); year++) {
             years.add(String.valueOf(year));
         }
-        
+
         return years;
     }
     

@@ -159,6 +159,7 @@ public class GenderService {
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as artist_gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -166,12 +167,13 @@ public class GenderService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
-            "    GROUP BY gender_id, al.id, al.name, ar.name " +
+            "    GROUP BY gender_id, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT gender_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+            "SELECT gender_id, album_id, album_name, artist_name, artist_gender_id FROM album_plays WHERE rn = 1";
 
         List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("gender_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("gender_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("artist_gender_id") != null ? rs.getInt("artist_gender_id") : null},
             genderIds.toArray()
         );
 
@@ -183,18 +185,20 @@ public class GenderService {
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as artist_gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
-            "    GROUP BY gender_id, s.id, s.name, ar.name " +
+            "    GROUP BY gender_id, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT gender_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+            "SELECT gender_id, song_id, song_name, artist_name, artist_gender_id FROM song_plays WHERE rn = 1";
 
         List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("gender_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("gender_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("artist_gender_id") != null ? rs.getInt("artist_gender_id") : null},
             genderIds.toArray()
         );
 
@@ -212,6 +216,7 @@ public class GenderService {
                     gnd.setTopAlbumId((Integer) row[1]);
                     gnd.setTopAlbumName((String) row[2]);
                     gnd.setTopAlbumArtistName((String) row[3]);
+                    gnd.setTopAlbumGenderId((Integer) row[4]);
                     break;
                 }
             }
@@ -220,6 +225,7 @@ public class GenderService {
                     gnd.setTopSongId((Integer) row[1]);
                     gnd.setTopSongName((String) row[2]);
                     gnd.setTopSongArtistName((String) row[3]);
+                    gnd.setTopSongGenderId((Integer) row[4]);
                     break;
                 }
             }

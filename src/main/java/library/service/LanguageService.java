@@ -268,6 +268,7 @@ public class LanguageService {
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -275,12 +276,13 @@ public class LanguageService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) IN (" + placeholders + ") " +
-            "    GROUP BY language_id, al.id, al.name, ar.name " +
+            "    GROUP BY language_id, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT language_id, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+            "SELECT language_id, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
 
         List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("language_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("language_id"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             languageIds.toArray()
         );
 
@@ -292,6 +294,7 @@ public class LanguageService {
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -299,12 +302,13 @@ public class LanguageService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) IN (" + placeholders + ") " +
-            "    GROUP BY language_id, s.id, s.name, ar.name " +
+            "    GROUP BY language_id, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT language_id, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+            "SELECT language_id, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
 
         List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("language_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("language_id"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             languageIds.toArray()
         );
 
@@ -323,6 +327,7 @@ public class LanguageService {
                     lang.setTopAlbumId((Integer) row[1]);
                     lang.setTopAlbumName((String) row[2]);
                     lang.setTopAlbumArtistName((String) row[3]);
+                    lang.setTopAlbumGenderId((Integer) row[4]);
                     break;
                 }
             }
@@ -331,6 +336,7 @@ public class LanguageService {
                     lang.setTopSongId((Integer) row[1]);
                     lang.setTopSongName((String) row[2]);
                     lang.setTopSongArtistName((String) row[3]);
+                    lang.setTopSongGenderId((Integer) row[4]);
                     break;
                 }
             }

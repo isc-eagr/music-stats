@@ -418,6 +418,7 @@ public class YearService {
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', p.play_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -425,12 +426,13 @@ public class YearService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND CAST(strftime('%Y', p.play_date) AS INTEGER) IN (" + placeholders + ") " +
-            "    GROUP BY year, al.id, al.name, ar.name " +
+            "    GROUP BY year, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT year, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+            "SELECT year, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
 
         List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("year"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("year"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             yearValues.toArray()
         );
 
@@ -442,18 +444,20 @@ public class YearService {
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', p.play_date) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE CAST(strftime('%Y', p.play_date) AS INTEGER) IN (" + placeholders + ") " +
-            "    GROUP BY year, s.id, s.name, ar.name " +
+            "    GROUP BY year, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT year, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+            "SELECT year, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
 
         List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("year"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("year"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             yearValues.toArray()
         );
 
@@ -499,6 +503,7 @@ public class YearService {
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -506,12 +511,13 @@ public class YearService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE al.id IS NOT NULL AND CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) IN (" + placeholders + ") " +
-            "    GROUP BY year, al.id, al.name, ar.name " +
+            "    GROUP BY year, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT year, album_id, album_name, artist_name FROM album_plays WHERE rn = 1";
+            "SELECT year, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
 
         List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("year"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("year"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             yearValues.toArray()
         );
 
@@ -523,6 +529,7 @@ public class YearService {
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
+            "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
             "        ROW_NUMBER() OVER (PARTITION BY CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
@@ -530,12 +537,13 @@ public class YearService {
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
             "    WHERE CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER) IN (" + placeholders + ") " +
-            "    GROUP BY year, s.id, s.name, ar.name " +
+            "    GROUP BY year, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
-            "SELECT year, song_id, song_name, artist_name FROM song_plays WHERE rn = 1";
+            "SELECT year, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
 
         List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getInt("year"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name")},
+            new Object[]{rs.getInt("year"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
+                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
             yearValues.toArray()
         );
 
@@ -558,6 +566,7 @@ public class YearService {
                     yr.setTopAlbumId((Integer) row[1]);
                     yr.setTopAlbumName((String) row[2]);
                     yr.setTopAlbumArtistName((String) row[3]);
+                    yr.setTopAlbumGenderId((Integer) row[4]);
                     break;
                 }
             }
@@ -566,6 +575,7 @@ public class YearService {
                     yr.setTopSongId((Integer) row[1]);
                     yr.setTopSongName((String) row[2]);
                     yr.setTopSongArtistName((String) row[3]);
+                    yr.setTopSongGenderId((Integer) row[4]);
                     break;
                 }
             }

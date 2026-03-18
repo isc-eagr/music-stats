@@ -833,10 +833,10 @@
                                     <th>Song</th>
                                     <th style="text-align:right;">Peak</th>
                                     <th style="text-align:right;">Wks@Peak</th>
+                                    <th style="text-align:right;">Total Weeks</th>
                                     <th>Release</th>
                                     <th>Debut</th>
                                     <th>Peak Date</th>
-                                    <th style="text-align:right;">Total Weeks</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -852,6 +852,7 @@
                                         <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                               th:text="${entry.weeksAtPeak}">1</span>
                                     </td>
+                                    <td style="text-align:right;" th:text="${entry.totalWeeks}">-</td>
                                     <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
                                     <td>
                                         <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
