@@ -430,11 +430,14 @@ public class ChartsController {
         }
         
         boolean isComplete = chartService.isSeasonComplete(periodKey);
-        // Can finalize only if exactly the right counts
         int mainSongCount = (int) songEntries.stream().filter(e -> e.getPosition() <= ChartService.SEASONAL_YEARLY_SONGS_COUNT).count();
-        boolean canFinalize = isComplete 
-            && mainSongCount == ChartService.SEASONAL_YEARLY_SONGS_COUNT
-            && albumEntries.size() == ChartService.SEASONAL_ALBUMS_COUNT;
+        boolean songNotFinalized = !Boolean.TRUE.equals(songChart.getIsFinalized());
+        boolean albumNotFinalized = !Boolean.TRUE.equals(albumChart.getIsFinalized());
+        boolean songsNewlyComplete = songNotFinalized && mainSongCount == ChartService.SEASONAL_YEARLY_SONGS_COUNT;
+        boolean albumsNewlyComplete = albumNotFinalized && albumEntries.size() == ChartService.SEASONAL_ALBUMS_COUNT;
+        boolean songsPartial = songNotFinalized && mainSongCount > 0 && mainSongCount < ChartService.SEASONAL_YEARLY_SONGS_COUNT;
+        boolean albumsPartial = albumNotFinalized && albumEntries.size() > 0 && albumEntries.size() < ChartService.SEASONAL_ALBUMS_COUNT;
+        boolean canFinalize = isComplete && (songsNewlyComplete || albumsNewlyComplete) && !songsPartial && !albumsPartial;
         
         // Navigation
         String prevPeriodKey = chartService.getPreviousSeasonPeriodKey(periodKey);
@@ -542,6 +545,26 @@ public class ChartsController {
         }
     }
     
+    /**
+     * API: Save and finalize a single (song or album) seasonal chart independently.
+     */
+    @PostMapping("/seasonal/{periodKey}/finalize-single")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> finalizeSeasonalSingleChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Integer chartId = ((Number) payload.get("chartId")).intValue();
+            chartService.finalizeSingleChart(chartId, "seasonal");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+    
     // ========== YEARLY CHARTS ==========
     
     /**
@@ -587,9 +610,13 @@ public class ChartsController {
         }
         
         boolean isComplete = chartService.isYearComplete(periodKey);
-        boolean canFinalize = isComplete 
-            && songEntries.size() == ChartService.SEASONAL_YEARLY_SONGS_COUNT
-            && albumEntries.size() == ChartService.YEARLY_ALBUMS_COUNT;
+        boolean songNotFinalized = !Boolean.TRUE.equals(songChart.getIsFinalized());
+        boolean albumNotFinalized = !Boolean.TRUE.equals(albumChart.getIsFinalized());
+        boolean songsNewlyComplete = songNotFinalized && songEntries.size() == ChartService.SEASONAL_YEARLY_SONGS_COUNT;
+        boolean albumsNewlyComplete = albumNotFinalized && albumEntries.size() == ChartService.YEARLY_ALBUMS_COUNT;
+        boolean songsPartial = songNotFinalized && songEntries.size() > 0 && songEntries.size() < ChartService.SEASONAL_YEARLY_SONGS_COUNT;
+        boolean albumsPartial = albumNotFinalized && albumEntries.size() > 0 && albumEntries.size() < ChartService.YEARLY_ALBUMS_COUNT;
+        boolean canFinalize = isComplete && (songsNewlyComplete || albumsNewlyComplete) && !songsPartial && !albumsPartial;
         
         // Navigation
         String prevPeriodKey = chartService.getPreviousYearPeriodKey(periodKey);
@@ -673,6 +700,26 @@ public class ChartsController {
             Integer albumChartId = ((Number) payload.get("albumChartId")).intValue();
             
             chartService.finalizeChart(songChartId, albumChartId, "yearly");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+    
+    /**
+     * API: Save and finalize a single (song or album) yearly chart independently.
+     */
+    @PostMapping("/yearly/{periodKey}/finalize-single")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> finalizeYearlySingleChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Integer chartId = ((Number) payload.get("chartId")).intValue();
+            chartService.finalizeSingleChart(chartId, "yearly");
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

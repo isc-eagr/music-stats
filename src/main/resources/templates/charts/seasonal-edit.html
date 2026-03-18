@@ -608,10 +608,10 @@
                 <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-success" 
-                        onclick="finalizeCharts()" 
+                        onclick="onActionBtnClick()" 
                         id="finalizeBtn"
                         th:disabled="${!canFinalize}"
-                        th:title="${!isComplete ? 'Season not yet completed' : (!canFinalize ? 'Fill all positions first' : 'Finalize charts')}">
+                        th:title="${!isComplete ? 'Season not yet completed' : (!canFinalize ? 'Fill all required positions first' : 'Save or finalize charts')}">
                     ✓ Finalize
                 </button>
             </div>
@@ -652,10 +652,13 @@
                         th:attr="data-gender=${entry.genderId}"
                         th:style="${songChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${songChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <div class="entry-position" th:text="${entry.position}">1</div>
-                        <div th:if="${entry.hasImage}" class="entry-image-container">
+                        <div th:if="${entry.albumHasImage}" class="entry-image-container">
+                            <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                        </div>
+                        <div th:if="${!entry.albumHasImage and entry.hasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
                         </div>
-                        <div th:unless="${entry.hasImage}" class="entry-placeholder">🎵</div>
+                        <div th:if="${!entry.albumHasImage and !entry.hasImage}" class="entry-placeholder">🎵</div>
                         <div class="entry-info">
                             <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
                             <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
@@ -697,10 +700,13 @@
                         </div>
                         <div th:each="entry, stat : ${extraSongEntries}" class="chart-entry extra-entry" th:data-id="${entry.songId}" th:data-album="${entry.albumName}">
                             <div class="entry-position extra-position">+</div>
-                            <div th:if="${entry.hasImage}" class="entry-image-container">
+                            <div th:if="${entry.albumHasImage}" class="entry-image-container">
+                                <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                            </div>
+                            <div th:if="${!entry.albumHasImage and entry.hasImage}" class="entry-image-container">
                                 <img class="entry-image" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
                             </div>
-                            <div th:unless="${entry.hasImage}" class="entry-placeholder">🎵</div>
+                            <div th:if="${!entry.albumHasImage and !entry.hasImage}" class="entry-placeholder">🎵</div>
                             <div class="entry-info">
                                 <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
                                 <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
@@ -779,6 +785,8 @@
         const songChartId = [[${songChart.id}]];
         const albumChartId = [[${albumChart.id}]];
         const isFinalized = [[${songChartFinalized}]] && [[${albumChartFinalized}]];
+        const songAlreadyFinalized = [[${songChartFinalized}]];
+        const albumAlreadyFinalized = [[${albumChartFinalized}]];
         const displayName = [[${displayName}]];
         
         // Open graphs page with season date range
@@ -1224,11 +1232,30 @@
         
         // Update finalize button state
         function updateFinalizeButton() {
+            const btn = document.getElementById('finalizeBtn');
+            if (!btn) return;
+
             const songCount = getChartIds('song').length;
             const albumCount = getChartIds('album').length;
-            const btn = document.getElementById('finalizeBtn');
-            // Disable if under OR over the required counts, or if already finalized
-            btn.disabled = songCount !== maxSongs || albumCount !== maxAlbums || isFinalized;
+
+            const songsNewlyComplete = !songAlreadyFinalized && songCount === maxSongs;
+            const albumsNewlyComplete = !albumAlreadyFinalized && albumCount === maxAlbums;
+            const songsPartial = !songAlreadyFinalized && songCount > 0 && songCount < maxSongs;
+            const albumsPartial = !albumAlreadyFinalized && albumCount > 0 && albumCount < maxAlbums;
+            const songsOverLimit = !songAlreadyFinalized && songCount > maxSongs;
+            const albumsOverLimit = !albumAlreadyFinalized && albumCount > maxAlbums;
+
+            if (songsPartial || albumsPartial || songsOverLimit || albumsOverLimit) {
+                btn.disabled = true;
+            } else if (songsNewlyComplete && albumsNewlyComplete) {
+                btn.disabled = false;
+                btn.textContent = '\u2713 Finalize';
+            } else if (songsNewlyComplete || albumsNewlyComplete) {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            } else {
+                btn.disabled = true;
+            }
         }
         
         // Mark as having unsaved changes
@@ -1293,6 +1320,54 @@
             }
         }
         
+        // Dispatch action button click based on which charts are ready
+        function onActionBtnClick() {
+            const songCount = getChartIds('song').length;
+            const albumCount = getChartIds('album').length;
+            const songsNewlyComplete = !songAlreadyFinalized && songCount === maxSongs;
+            const albumsNewlyComplete = !albumAlreadyFinalized && albumCount === maxAlbums;
+
+            if (songsNewlyComplete && albumsNewlyComplete) {
+                finalizeCharts();
+            } else if (songsNewlyComplete) {
+                saveCompletedChart('song');
+            } else if (albumsNewlyComplete) {
+                saveCompletedChart('album');
+            }
+        }
+
+        // Save and finalize a single chart independently
+        async function saveCompletedChart(chartType) {
+            const chartLabel = chartType === 'song' ? 'Songs' : 'Albums';
+            if (!confirm(`Are you sure you want to save the ${chartLabel} chart? This action cannot be undone.`)) {
+                return;
+            }
+
+            showIndicator('saving', 'Saving...');
+
+            try {
+                await saveChart(chartType);
+
+                const chartId = chartType === 'song' ? songChartId : albumChartId;
+                const response = await fetch(`/charts/${periodType}/${periodKey}/finalize-single`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chartId: chartId })
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to save chart');
+                }
+
+                showIndicator('saved', `${chartLabel} chart saved!`);
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (err) {
+                console.error('Error saving chart:', err);
+                showIndicator('error', 'Failed to save: ' + err.message);
+            }
+        }
+
         // Finalize charts
         async function finalizeCharts() {
             if (!confirm('Are you sure you want to finalize these charts? This action cannot be undone.')) {
@@ -1364,6 +1439,9 @@
                 e.returnValue = '';
             }
         });
+        
+        // Set initial button text/state on page load
+        document.addEventListener('DOMContentLoaded', updateFinalizeButton);
         
         // Close search results when clicking outside
         document.addEventListener('click', (e) => {

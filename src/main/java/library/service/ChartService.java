@@ -1564,7 +1564,7 @@ public class ChartService {
     // ==================== Seasonal/Yearly Chart Methods ====================
     
     public static final int SEASONAL_YEARLY_SONGS_COUNT = 30;
-    public static final int SEASONAL_ALBUMS_COUNT = 10;
+    public static final int SEASONAL_ALBUMS_COUNT = 5;
     public static final int YEARLY_ALBUMS_COUNT = 10;
     public static final int SEASONAL_EXTRA_SONGS_COUNT = 5;  // Extra songs for playlist, not in main chart
     
@@ -1853,6 +1853,46 @@ public class ChartService {
         albumChart.setIsFinalized(true);
         chartRepository.save(songChart);
         chartRepository.save(albumChart);
+    }
+    
+    /**
+     * Finalize a single chart (song or album) independently.
+     * Validates that the period has passed and the chart has all required entries.
+     */
+    @Transactional
+    public void finalizeSingleChart(Integer chartId, String periodType) {
+        Chart chart = chartRepository.findById(chartId)
+            .orElseThrow(() -> new IllegalArgumentException("Chart not found"));
+        
+        String periodKey = chart.getPeriodKey();
+        
+        boolean periodComplete = "seasonal".equals(periodType)
+            ? isSeasonComplete(periodKey)
+            : isYearComplete(periodKey);
+        
+        if (!periodComplete) {
+            throw new IllegalArgumentException("Cannot save chart: period has not ended yet");
+        }
+        
+        long entryCount = chartEntryRepository.countByChartId(chartId);
+        
+        if ("song".equals(chart.getChartType())) {
+            if (entryCount < SEASONAL_YEARLY_SONGS_COUNT) {
+                throw new IllegalArgumentException(
+                    "Cannot save: song chart needs " + SEASONAL_YEARLY_SONGS_COUNT +
+                    " entries but only has " + entryCount);
+            }
+        } else {
+            int required = "seasonal".equals(periodType) ? SEASONAL_ALBUMS_COUNT : YEARLY_ALBUMS_COUNT;
+            if (entryCount < required) {
+                throw new IllegalArgumentException(
+                    "Cannot save: album chart needs " + required +
+                    " entries but only has " + entryCount);
+            }
+        }
+        
+        chart.setIsFinalized(true);
+        chartRepository.save(chart);
     }
     
     /**
