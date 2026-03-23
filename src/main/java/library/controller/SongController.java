@@ -95,7 +95,7 @@ public class SongController {
     @GetMapping
     public String listSongs(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) List<Integer> artist,
             @RequestParam(required = false) String album,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
@@ -250,6 +250,9 @@ public class SongController {
         // Add filter values to maintain state
         model.addAttribute("searchQuery", q);
         model.addAttribute("selectedArtist", artist);
+        List<Map<String, Object>> artistDetails = (artist != null && !artist.isEmpty()) ?
+            artistService.getArtistDetailsForIds(artist) : List.of();
+        model.addAttribute("selectedArtistDetails", artistDetails);
         model.addAttribute("selectedAlbum", album);
         model.addAttribute("selectedGenres", genre);
         model.addAttribute("genreMode", genreMode != null ? genreMode : "includes");
@@ -2004,7 +2007,7 @@ public class SongController {
     @ResponseBody
     public List<Map<String, Object>> getFilteredSongsForExport(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) List<Integer> artist,
             @RequestParam(required = false) String album,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,

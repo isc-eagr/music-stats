@@ -157,7 +157,7 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Artist Filter (text) -->
+                                <!-- Artist Filter (chip search) -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
@@ -166,9 +166,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <label class="field"><span>Artist Name</span>
-                                            <input type="text" autocomplete="off" name="artist" th:value="${selectedArtist}" placeholder="Artist name..." />
-                                        </label>
+                                        <div id="artistChipSelect"></div>
                                     </div>
                                 </div>
                                 
@@ -880,9 +878,13 @@
             </div>
             
             <div class="filter-chip" th:if="${selectedArtist != null and !selectedArtist.isEmpty()}">
-                <span class="filter-chip-label">Artist is</span>
-                <span class="filter-chip-value" th:text="${selectedArtist}"></span>
-                <button class="filter-chip-remove" onclick="removeFilter('artist')" type="button">×</button>
+                <span class="filter-chip-label">Artist includes</span>
+                <span class="filter-chip-value">
+                    <th:block th:each="a, iterStat : ${selectedArtistDetails}">
+                        <span th:text="${a['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                    </th:block>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('artist')" type="button">×</button>
             </div>
             
             <div class="filter-chip" th:if="${selectedGenders != null and !selectedGenders.isEmpty()}">
@@ -2508,5 +2510,29 @@
             <div class="card-detail-modal-body"></div>
         </div>
     </div>
+    <script th:src="@{/js/chip-select.js}"></script>
+    <script th:inline="javascript">
+    /*<![CDATA[*/var artistFilterInitialValues = /*[[${selectedArtistDetails}]]*/ [];/*]]>*/
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('artistChipSelect')) {
+            initChipSelect({
+                containerId: 'artistChipSelect',
+                inputName: 'artist',
+                placeholder: 'Search artists...',
+                searchUrl: '/artists/api/search',
+                searchParam: 'q',
+                valueField: 'id',
+                labelField: 'name',
+                genderField: 'genderId',
+                minChars: 2,
+                initialValues: artistFilterInitialValues.map(function(a) {
+                    return {value: a.id, label: a.name, genderId: a.genderId};
+                })
+            });
+        }
+    });
+    </script>
 </body>
 </html>

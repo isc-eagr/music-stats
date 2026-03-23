@@ -17,7 +17,7 @@ public class AlbumRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    public List<Object[]> findAlbumsWithStats(String name, String artistName,
+    public List<Object[]> findAlbumsWithStats(String name, List<Integer> artistName,
                                                List<Integer> genreIds, String genreMode,
                                                List<Integer> subgenreIds, String subgenreMode,
                                                List<Integer> languageIds, String languageMode,
@@ -171,10 +171,11 @@ public class AlbumRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist name filter
-        if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
-            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
+        // Artist filter
+        if (artistName != null && !artistName.isEmpty()) {
+            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
+            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
+            params.addAll(artistName);
         }
         
         if (genreMode != null) {
@@ -732,7 +733,7 @@ public class AlbumRepository {
         }, params.toArray());
     }
     
-    public long countAlbumsWithFilters(String name, String artistName,
+    public long countAlbumsWithFilters(String name, List<Integer> artistName,
                                        List<Integer> genreIds, String genreMode,
                                        List<Integer> subgenreIds, String subgenreMode,
                                        List<Integer> languageIds, String languageMode,
@@ -901,10 +902,11 @@ public class AlbumRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist name filter
-        if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
-            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
+        // Artist filter
+        if (artistName != null && !artistName.isEmpty()) {
+            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
+            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
+            params.addAll(artistName);
         }
         
         if (genreMode != null) {
@@ -1379,7 +1381,7 @@ public class AlbumRepository {
      * Returns a Map with gender_id as key and count as value.
      * More efficient than loading all albums and counting in memory.
      */
-    public Map<Integer, Long> countAlbumsByGenderWithFilters(String name, String artistName,
+    public Map<Integer, Long> countAlbumsByGenderWithFilters(String name, List<Integer> artistName,
                                        List<Integer> genreIds, String genreMode,
                                        List<Integer> subgenreIds, String subgenreMode,
                                        List<Integer> languageIds, String languageMode,
@@ -1545,10 +1547,11 @@ public class AlbumRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist name filter
-        if (artistName != null && !artistName.trim().isEmpty()) {
-            sql.append(" AND ").append(library.util.StringNormalizer.sqlNormalizeColumn("ar.name")).append(" LIKE ?");
-            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artistName) + "%");
+        // Artist filter
+        if (artistName != null && !artistName.isEmpty()) {
+            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
+            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
+            params.addAll(artistName);
         }
         
         // Gender filter (filter on artist gender)

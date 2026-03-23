@@ -90,7 +90,7 @@ public class AlbumController {
             @RequestParam(required = false) String ageMode,
             @RequestParam(required = false) Integer ageAtReleaseMin,
             @RequestParam(required = false) Integer ageAtReleaseMax,
-            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) List<Integer> artist,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -240,6 +240,9 @@ public class AlbumController {
         // Add filter values to maintain state
         model.addAttribute("searchQuery", q);
         model.addAttribute("selectedArtist", artist);
+        List<Map<String, Object>> artistDetails = (artist != null && !artist.isEmpty()) ?
+            artistService.getArtistDetailsForIds(artist) : List.of();
+        model.addAttribute("selectedArtistDetails", artistDetails);
         model.addAttribute("selectedGenres", genre);
         model.addAttribute("genreMode", genreMode != null ? genreMode : "includes");
         model.addAttribute("selectedSubgenres", subgenre);

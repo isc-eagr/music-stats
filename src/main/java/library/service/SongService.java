@@ -44,7 +44,7 @@ public class SongService {
         this.itunesService = itunesService;
     }
     
-    public List<SongCardDTO> getSongs(String name, String artistName, String albumName,
+    public List<SongCardDTO> getSongs(String name, List<Integer> artistName, String albumName,
                                        List<Integer> genreIds, String genreMode,
                                        List<Integer> subgenreIds, String subgenreMode,
                                        List<Integer> languageIds, String languageMode,
@@ -200,7 +200,7 @@ public class SongService {
         return songs;
     }
     
-    public long countSongs(String name, String artistName, String albumName,
+    public long countSongs(String name, List<Integer> artistName, String albumName,
                           List<Integer> genreIds, String genreMode,
                           List<Integer> subgenreIds, String subgenreMode,
                           List<Integer> languageIds, String languageMode,
@@ -270,7 +270,7 @@ public class SongService {
      * Returns a GenderCountDTO with male, female, and other counts.
      * Uses efficient SQL GROUP BY instead of loading all records.
      */
-    public GenderCountDTO countSongsByGender(String name, String artistName, String albumName,
+    public GenderCountDTO countSongsByGender(String name, List<Integer> artistName, String albumName,
                           List<Integer> genreIds, String genreMode,
                           List<Integer> subgenreIds, String subgenreMode,
                           List<Integer> languageIds, String languageMode,
