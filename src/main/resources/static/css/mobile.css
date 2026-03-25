@@ -1,0 +1,869 @@
+/* =============================================
+   MOBILE RESPONSIVE OVERHAUL
+   Music Stats - App-like Mobile Experience
+   
+   This file provides mobile-specific overrides
+   loaded via the nav-styles fragment on all pages.
+   Uses !important where needed to override existing
+   inline styles and page-specific CSS.
+   ============================================= */
+
+
+/* =============================================
+   1. BOTTOM NAVIGATION BAR
+   ============================================= */
+
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background: rgba(10, 10, 10, 0.97);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 9997;
+        justify-content: space-around;
+        align-items: stretch;
+        padding: 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .mobile-bottom-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        color: #555;
+        text-decoration: none;
+        font-size: 10px;
+        font-weight: 500;
+        gap: 3px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: color 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        position: relative;
+        padding: 6px 0 2px;
+    }
+
+    .mobile-bottom-nav-item svg {
+        width: 22px;
+        height: 22px;
+        stroke-width: 1.8;
+        flex-shrink: 0;
+    }
+
+    .mobile-bottom-nav-item span {
+        line-height: 1;
+    }
+
+    .mobile-bottom-nav-item.active {
+        color: #e5e5e5;
+    }
+
+    .mobile-bottom-nav-item.active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 25%;
+        right: 25%;
+        height: 2px;
+        background: #e5e5e5;
+        border-radius: 0 0 2px 2px;
+    }
+
+    .mobile-bottom-nav-item:active {
+        color: #e5e5e5;
+    }
+
+    /* Bottom padding on body so content isn't hidden behind bottom nav */
+    body {
+        padding-bottom: 56px !important;
+    }
+}
+
+
+/* =============================================
+   2. TOP NAVIGATION - SLIM ON MOBILE
+   ============================================= */
+
+@media (max-width: 768px) {
+    .app-nav {
+        margin-bottom: 8px !important;
+    }
+
+    .app-nav-container {
+        padding: 0 12px !important;
+        min-height: 44px;
+    }
+
+    .app-nav-brand {
+        font-size: 15px !important;
+        padding: 10px 0 !important;
+    }
+
+    /* Smaller hamburger */
+    .mobile-menu-toggle {
+        font-size: 20px !important;
+        padding: 6px !important;
+    }
+}
+
+
+/* =============================================
+   3. MOBILE SLIDE-OUT MENU REDESIGN
+   ============================================= */
+
+@media (max-width: 900px) {
+    /* Slide-out menu container - add bottom padding for bottom nav */
+    .app-nav-links {
+        padding: 0 0 80px !important;
+    }
+
+    /* Close button - sticky top bar */
+    .mobile-nav-close-wrapper {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: var(--bg) !important;
+        z-index: 10;
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        list-style: none;
+    }
+
+    .mobile-nav-close-wrapper::before {
+        content: 'Menu';
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .mobile-nav-close {
+        font-size: 28px !important;
+        padding: 4px 8px !important;
+    }
+
+    /* Primary nav items - clean and prominent */
+    .app-nav-links > li > .app-nav-link:not(.app-nav-dropdown-toggle) {
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        padding: 16px 20px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        color: var(--text) !important;
+    }
+
+    .app-nav-links > li > .app-nav-link:not(.app-nav-dropdown-toggle).active {
+        color: #22c55e !important;
+    }
+
+    /* Override: collapse dropdown menus by default */
+    .app-nav-dropdown-menu {
+        display: none !important;
+        position: static !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    /* Show when section is toggled open */
+    .app-nav-dropdown.touch-open .app-nav-dropdown-menu {
+        display: block !important;
+    }
+
+    /* Section header toggles - distinct group headers */
+    .app-nav-dropdown-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+        color: #555 !important;
+        padding: 24px 20px 10px !important;
+        border-bottom: none !important;
+        position: relative;
+    }
+
+    /* Chevron indicator for section toggles */
+    .app-nav-dropdown-toggle::after {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-right: 2px solid #555;
+        border-bottom: 2px solid #555;
+        transform: rotate(-45deg);
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+        margin-right: 4px;
+    }
+
+    .app-nav-dropdown.touch-open .app-nav-dropdown-toggle::after {
+        transform: rotate(45deg);
+    }
+
+    /* Section sub-items */
+    .app-nav-dropdown-link {
+        padding: 14px 20px 14px 32px !important;
+        font-size: 15px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+        color: var(--text-muted) !important;
+        font-weight: 400 !important;
+    }
+
+    .app-nav-dropdown-link:active,
+    .app-nav-dropdown-link.active {
+        color: var(--text) !important;
+        background-color: rgba(255, 255, 255, 0.04) !important;
+    }
+
+    /* Mobile utilities section - "Tools" group */
+    .app-nav-links.mobile-open .app-nav-utilities-mobile {
+        margin-top: 8px !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+    }
+
+    .app-nav-utilities-mobile::before {
+        content: 'TOOLS';
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #555;
+        padding: 24px 20px 10px;
+    }
+
+    .app-nav-utilities-mobile .app-nav-link {
+        font-size: 15px !important;
+        color: var(--text-muted) !important;
+        padding: 14px 20px 14px 32px !important;
+        font-weight: 400 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+    }
+}
+
+
+/* =============================================
+   4. DETAIL PAGES - OVERFLOW FIXES & LAYOUT
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Prevent horizontal overflow on detail pages */
+    .container-wide {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    /* Fix ranking chips overflow - allow wrapping */
+    .ranking-chips-section {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .winning-chips {
+        flex-wrap: wrap !important;
+        overflow: hidden;
+    }
+
+    /* Fix stats panel - use grid layout for readability */
+    .detail-stats-panel .ds-section {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    /* Section title spans full width */
+    .detail-stats-panel .ds-section-title {
+        grid-column: 1 / -1;
+        padding: 10px 12px 6px;
+        background: var(--bg);
+        margin: 0 !important;
+    }
+
+    /* Separator spans full width */
+    .detail-stats-panel .ds-separator {
+        grid-column: 1 / -1;
+        background: var(--bg);
+        margin: 0 !important;
+        height: 1px;
+    }
+
+    .detail-stats-panel .ds-row {
+        flex-direction: column !important;
+        padding: 10px 12px !important;
+        gap: 2px !important;
+        background: var(--bg);
+        justify-content: flex-start !important;
+        min-width: 0;
+    }
+
+    .detail-stats-panel .ds-label {
+        font-size: 10px !important;
+        color: #666 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .detail-stats-panel .ds-value {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        word-break: break-word;
+    }
+
+    /* Related items tables - ensure horizontal scroll */
+    .detail-content-card .table-container,
+    .detail-content-card .top-table-container,
+    .detail-content-card .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .detail-content-card .table td,
+    .detail-content-card .table th {
+        word-break: break-word;
+    }
+
+    /* Attributes grid - ensure single column */
+    .attributes-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Form inputs - prevent iOS zoom */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px !important;
+    }
+}
+
+
+/* =============================================
+   5. DETAIL TABS - PROPER STICKY WITHOUT OVERFLOW
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Fix tabs: remove negative margin hacks that cause horizontal overflow */
+    .detail-tabs {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        gap: 0 !important;
+    }
+
+    /* Toggles container - remove negative margins */
+    .toggles-container {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    /* Chart history grid with table overflow handling */
+    .chart-history-grid > .detail-content-card {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+
+/* =============================================
+   6. FILTER PANEL - BOTTOM SHEET STYLE
+   ============================================= */
+
+/* Filter overlay for mobile bottom sheet - created/removed dynamically by JS */
+.filter-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    /* Transform filter panel into bottom sheet */
+    .filters {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-height: 85vh !important;
+        border-radius: 16px 16px 0 0 !important;
+        border-left: none !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.6) !important;
+        padding-bottom: 0 !important;
+        z-index: 10001 !important;
+        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.3s;
+    }
+
+    /* When shown via JS (display: block), animate in */
+    .filters[style*="display: block"] {
+        transform: translateY(0) !important;
+        visibility: visible !important;
+    }
+
+    /* Drag handle indicator at top of bottom sheet */
+    .filters .filter-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: #444;
+        border-radius: 2px;
+        margin: 0 auto 12px;
+    }
+
+    .filter-header {
+        padding: 16px 20px 12px !important;
+    }
+
+    .filter-header h3 {
+        font-size: 16px !important;
+    }
+
+    .filter-close {
+        font-size: 28px !important;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Filter content - scrollable */
+    .filter-content {
+        padding: 12px 16px !important;
+        overflow-y: auto;
+        max-height: calc(85vh - 80px);
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 80px !important;
+    }
+
+    /* Filter items - more spacious for touch */
+    .filter-item {
+        margin-bottom: 8px !important;
+    }
+
+    .filter-item-header {
+        padding: 14px 16px !important;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+    }
+
+    .filter-item-title {
+        font-size: 15px !important;
+    }
+
+    /* Filter modifiers - pill style, larger touch targets */
+    .filter-modifiers {
+        gap: 6px !important;
+    }
+
+    .filter-modifier {
+        min-height: 40px !important;
+        padding: 8px 14px !important;
+        font-size: 13px !important;
+        border-radius: 20px !important;
+    }
+
+    /* Multi-select options - larger touch targets */
+    .multi-select-option {
+        padding: 12px 16px !important;
+        min-height: 44px;
+    }
+
+    .multi-select-display {
+        min-height: 44px;
+        padding: 10px 12px !important;
+    }
+
+    /* Filter actions - sticky at bottom */
+    .filter-actions {
+        position: sticky !important;
+        bottom: 0;
+        padding: 12px 16px !important;
+        background: #0a0a0a !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .filter-actions button {
+        min-height: 48px !important;
+        font-size: 15px !important;
+        border-radius: 10px !important;
+    }
+
+    /* Date inputs */
+    .filter-item-content input[type="text"],
+    .filter-item-content input[type="number"] {
+        min-height: 44px;
+        font-size: 16px !important;
+    }
+}
+
+
+/* =============================================
+   7. LIST PAGES - CARDS & CONTROLS
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Search bar - prevent iOS zoom */
+    .search-bar input[type="text"] {
+        font-size: 16px !important;
+    }
+
+    /* Keep search row horizontal */
+    .search-bar form {
+        flex-direction: row !important;
+    }
+
+    /* Filter toggle button - full width with count indicator */
+    .filter-toggle {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+    }
+
+    /* Sort section - clean row */
+    .sort-by-section {
+        display: flex !important;
+        gap: 8px;
+        align-items: center;
+        width: 100%;
+    }
+
+    .sort-by-section select {
+        flex: 1;
+        min-width: 0;
+        min-height: 44px;
+        font-size: 14px !important;
+    }
+
+    .sort-dir-btn {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Active filters - horizontal scroll bar */
+    .active-filters {
+        display: flex !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+        padding: 8px 0;
+        scrollbar-width: none;
+        flex-wrap: nowrap !important;
+    }
+
+    .active-filters::-webkit-scrollbar {
+        display: none;
+    }
+
+    .active-filters .active-filter-chip,
+    .active-filters .chip {
+        flex-shrink: 0;
+    }
+
+    /* Pagination - larger touch targets */
+    .pagination {
+        justify-content: center !important;
+    }
+
+    .pagination .page-btn {
+        min-height: 44px !important;
+        min-width: 44px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px !important;
+    }
+
+    /* Gender counters - compact for mobile */
+    .pagination-and-counters-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+
+    .gender-counters-container {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .per-page-container {
+        justify-content: center;
+    }
+}
+
+
+/* =============================================
+   8. GRAPHS PAGE
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Graphs tabs - scrollable pill row with fade indicator */
+    .charts-tabs {
+        display: flex !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px !important;
+        padding: 8px 12px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .charts-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .charts-tabs .charts-tab {
+        flex-shrink: 0 !important;
+        white-space: nowrap;
+        border-radius: 20px !important;
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+    }
+
+    /* Controls row - stack vertically */
+    .charts-controls-row {
+        flex-direction: column !important;
+        gap: 10px !important;
+        align-items: stretch !important;
+    }
+
+    /* Sort metric buttons - horizontal scroll */
+    .charts-controls-row .sort-buttons,
+    .charts-controls-row .metric-buttons {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
+    .charts-controls-row .sort-buttons::-webkit-scrollbar,
+    .charts-controls-row .metric-buttons::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Chart containers - better sizing */
+    .chart-container canvas {
+        max-height: 250px !important;
+    }
+
+    /* Chart scroll container - fade indicator */
+    .chart-scroll-container {
+        position: relative;
+    }
+
+    .chart-scroll-container::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 24px;
+        background: linear-gradient(90deg, transparent, rgba(10, 10, 10, 0.9));
+        pointer-events: none;
+    }
+
+    /* Top tables - sticky first columns */
+    .top-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .top-table th:first-child,
+    .top-table td:first-child,
+    .top-table th:nth-child(2),
+    .top-table td:nth-child(2) {
+        position: sticky;
+        z-index: 2;
+        background: inherit;
+    }
+
+    .top-table th:first-child,
+    .top-table td:first-child {
+        left: 0;
+    }
+
+    /* Column toggle - 2 columns for mobile */
+    .column-toggle-panel .toggle-grid,
+    .column-toggle-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 4px !important;
+    }
+
+    /* Podium cards - compact */
+    .podium-section {
+        flex-direction: column !important;
+    }
+
+    .podium-card {
+        padding: 12px !important;
+    }
+
+    .podium-card img,
+    .podium-card .podium-image {
+        width: 48px !important;
+        height: 48px !important;
+    }
+
+    /* Stats tables container */
+    .stats-tables-row {
+        flex-direction: column !important;
+    }
+
+    /* Charts filter display - horizontal scroll */
+    .charts-filters-display {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap !important;
+    }
+
+    .charts-filters-display::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+
+/* =============================================
+   9. GLOBAL TOUCH & ACTIVE STATES
+   ============================================= */
+
+/* Disable hover lift/shadow effects on touch devices */
+@media (hover: none) {
+    .catalog-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .catalog-image:hover img {
+        transform: none !important;
+    }
+
+    /* Meaningful active states for touch feedback */
+    .catalog-card:active {
+        transform: scale(0.98) !important;
+        transition: transform 0.1s !important;
+    }
+
+    .btn:active,
+    .btn-action:active,
+    .btn-negative:active {
+        opacity: 0.8;
+        transition: opacity 0.1s;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Typography adjustments */
+    h1, .page-title {
+        font-size: 22px !important;
+    }
+
+    h2 {
+        font-size: 18px !important;
+    }
+
+    .section-title {
+        font-size: 14px !important;
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Prevent overscroll showing white bg */
+    html, body {
+        overscroll-behavior-y: contain;
+    }
+
+    /* Prevent iOS zoom on input focus (critical) */
+    input[type="text"],
+    input[type="number"],
+    input[type="search"],
+    input[type="email"],
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* Ensure all interactive elements have adequate touch targets */
+    .btn,
+    .btn-action,
+    .btn-negative,
+    .btn-search,
+    button {
+        min-height: 40px;
+    }
+
+    /* Toast container - above bottom nav */
+    .toast-container {
+        bottom: 70px !important;
+        top: auto !important;
+        right: 12px !important;
+        left: 12px !important;
+    }
+
+    .toast {
+        min-width: auto !important;
+        max-width: none !important;
+    }
+}
+
+/* =============================================
+   10. SECONDARY CATALOG CARDS - 2-COL GRID
+   ============================================= */
+
+@media (min-width: 481px) and (max-width: 768px) {
+    /* Secondary catalogs can be 2 columns - they have simpler cards */
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .catalog-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+}

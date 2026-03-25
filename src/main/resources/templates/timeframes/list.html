@@ -1248,10 +1248,24 @@
         
         function toggleFilters() {
             const panel = document.getElementById('filterPanel');
+            const isMobile = window.innerWidth <= 768;
             if (panel.style.display === 'block') {
                 panel.style.display = 'none';
+                if (isMobile) {
+                    document.body.style.overflow = '';
+                    const overlay = document.querySelector('.filter-sheet-overlay');
+                    if (overlay) overlay.remove();
+                }
             } else {
                 panel.style.display = 'block';
+                if (isMobile) {
+                    document.body.style.overflow = 'hidden';
+                    const overlay = document.createElement('div');
+                    overlay.className = 'filter-sheet-overlay';
+                    overlay.addEventListener('click', function() { toggleFilters(); });
+                    document.body.appendChild(overlay);
+                    requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+                }
             }
         }
         

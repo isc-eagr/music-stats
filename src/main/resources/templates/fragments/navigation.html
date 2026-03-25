@@ -184,6 +184,8 @@
                 window.showInfoToast = function(message, duration) { return showToast(message, 'info', duration || 5000); };
             })();
           </script>
+         <!-- Mobile overhaul stylesheet - loaded on all pages via this fragment -->
+         <link rel="stylesheet" th:href="@{/css/mobile.css}">
      </th:block>
 </head>
 <body>
@@ -271,6 +273,31 @@
         </div>
         <!-- Mobile nav overlay -->
         <div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="toggleMobileNav()"></div>
+
+        <!-- Bottom Navigation Bar (Mobile Only) -->
+        <div class="mobile-bottom-nav" id="mobileBottomNav">
+            <a th:href="@{/artists}" class="mobile-bottom-nav-item" th:classappend="${currentSection == 'artists'} ? 'active' : ''">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Artists</span>
+            </a>
+            <a th:href="@{/albums}" class="mobile-bottom-nav-item" th:classappend="${currentSection == 'albums'} ? 'active' : ''">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Albums</span>
+            </a>
+            <a th:href="@{/songs}" class="mobile-bottom-nav-item" th:classappend="${currentSection == 'songs'} ? 'active' : ''">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span>Songs</span>
+            </a>
+            <a th:href="@{/graphs}" class="mobile-bottom-nav-item" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>Graphs</span>
+            </a>
+            <button class="mobile-bottom-nav-item" onclick="toggleMobileNav()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <span>More</span>
+            </button>
+        </div>
+
         <script>
             function toggleMobileNav() {
                 const navLinks = document.getElementById('mobileNavLinks');
@@ -289,7 +316,7 @@
             }
             
             function toggleDropdown(event, element) {
-                // On mobile/touch, toggle dropdown visibility
+                // On mobile/touch, toggle dropdown visibility with collapsible sections
                 if (window.matchMedia('(max-width: 900px)').matches || window.matchMedia('(pointer: coarse)').matches) {
                     event.preventDefault();
                     const dropdown = element.closest('.app-nav-dropdown');

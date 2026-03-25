@@ -3571,8 +3571,25 @@
         
         function toggleFilters() {
             const filterPanel = document.getElementById('filterPanel');
-            if (filterPanel) {
-                filterPanel.style.display = filterPanel.style.display === 'none' ? 'block' : 'none';
+            if (!filterPanel) return;
+            const isMobile = window.innerWidth <= 768;
+            if (filterPanel.style.display === 'block') {
+                filterPanel.style.display = 'none';
+                if (isMobile) {
+                    document.body.style.overflow = '';
+                    const overlay = document.querySelector('.filter-sheet-overlay');
+                    if (overlay) overlay.remove();
+                }
+            } else {
+                filterPanel.style.display = 'block';
+                if (isMobile) {
+                    document.body.style.overflow = 'hidden';
+                    const overlay = document.createElement('div');
+                    overlay.className = 'filter-sheet-overlay';
+                    overlay.addEventListener('click', function() { toggleFilters(); });
+                    document.body.appendChild(overlay);
+                    requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+                }
             }
         }
         
