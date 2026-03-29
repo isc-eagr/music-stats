@@ -219,7 +219,7 @@
                     
                     <!-- Position by Release Year -->
                     <a th:if="${rankByReleaseYear != null and releaseYear != null}"
-                       th:href="@{/graphs(releaseDateEntity=album,releaseDateMode=between,releaseDateFrom=${releaseYear + '-01-01'},releaseDateTo=${releaseYear + '-12-31'})}"
+                       th:href="@{/graphs(releaseDateMode=between,releaseDateFrom=${releaseYear + '-01-01'},releaseDateTo=${releaseYear + '-12-31'})}"
                        target="_blank"
                        class="winning-chip rank-chip release-year"
                        th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"

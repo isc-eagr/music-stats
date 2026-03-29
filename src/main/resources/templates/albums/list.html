@@ -2250,9 +2250,6 @@
                 if (currentUrl.searchParams.has('playCountMin') || currentUrl.searchParams.has('playCountMax')) {
                     chartsUrl.searchParams.set('playCountEntity', 'album');
                 }
-                if (currentUrl.searchParams.has('releaseDate') || currentUrl.searchParams.has('releaseDateFrom')) {
-                    chartsUrl.searchParams.set('releaseDateEntity', 'album');
-                }
                 if (currentUrl.searchParams.has('lengthMin') || currentUrl.searchParams.has('lengthMax') || currentUrl.searchParams.has('lengthMode')) {
                     chartsUrl.searchParams.set('lengthEntity', 'album');
                 }

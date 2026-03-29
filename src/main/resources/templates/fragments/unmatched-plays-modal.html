@@ -1533,6 +1533,19 @@
                     wizardState.newAlbumImageUrl = selectedItem.url; // Store in state for payload
                     parts.push('Image selected');
                 }
+
+                // Populate album name if provided by external source
+                if (selectedItem.title) {
+                    const newAlbumInput = document.getElementById('newAlbumName');
+                    if (newAlbumInput) {
+                        newAlbumInput.value = selectedItem.title;
+                        highlightWizardField('newAlbumName');
+                    }
+                    // Update wizard state and display
+                    wizardState.selectedAlbumName = selectedItem.title;
+                    const selAlbumDisplay = document.getElementById('selectedAlbumDisplay');
+                    if (selAlbumDisplay) selAlbumDisplay.textContent = selectedItem.title;
+                }
                 
                 // Update status
                 if (statusEl) {

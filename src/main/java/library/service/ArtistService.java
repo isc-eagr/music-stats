@@ -272,6 +272,42 @@ public class ArtistService {
         if (countries != null && countries.isEmpty()) countries = null;
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
+        // If inItunes filter is active, count manually since iTunes presence is computed outside the DB
+        if (inItunes != null && !inItunes.isEmpty()) {
+            List<ArtistCardDTO> allArtists = getArtists(name, genderIds, genderMode, ethnicityIds, ethnicityMode,
+                    genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
+                    countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    accounts, accountMode, ageMin, ageMax, ageMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
+                    playCountMin, playCountMax,
+                    albumCountMin, albumCountMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    songCountMin, songCountMax,
+                    "plays", "desc", 0, Integer.MAX_VALUE);
+
+            boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
+            long maleCount = 0L;
+            long femaleCount = 0L;
+            long otherCount = 0L;
+            for (ArtistCardDTO a : allArtists) {
+                if (a.getInItunes() == null || a.getInItunes() != wantInItunes) continue;
+                Integer gid = a.getGenderId();
+                if (gid == null) {
+                    otherCount++;
+                } else if (gid == 1) {
+                    femaleCount++;
+                } else if (gid == 2) {
+                    maleCount++;
+                } else {
+                    otherCount++;
+                }
+            }
+            return new GenderCountDTO(maleCount, femaleCount, otherCount);
+        }
+
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = artistRepository.countArtistsByGenderWithFilters(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode,

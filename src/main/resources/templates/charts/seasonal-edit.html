@@ -82,6 +82,15 @@
             background: #16a34a;
         }
         
+        .btn-warning {
+            background: #854d0e;
+            color: #fff;
+        }
+        
+        .btn-warning:hover:not(:disabled) {
+            background: #a16207;
+        }
+        
         .btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
@@ -323,30 +332,36 @@
         }
         
         .entry-name a {
-            color: #fff;
             text-decoration: none;
         }
-        
-        .entry-name a:hover {
-            color: #22c55e;
+
+        .chart-entry[data-gender="1"] .entry-name a,
+        .chart-entry[data-gender="1"] .entry-artist a {
+            color: #ec4899;
+        }
+        .chart-entry[data-gender="1"] .entry-name a:hover,
+        .chart-entry[data-gender="1"] .entry-artist a:hover {
+            color: #f472b6;
             text-decoration: underline;
         }
-        
-        .entry-artist {
-            font-size: 0.85rem;
-            color: #888;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+
+        .chart-entry[data-gender="2"] .entry-name a,
+        .chart-entry[data-gender="2"] .entry-artist a {
+            color: #3b82f6;
         }
-        
-        .entry-artist a {
-            color: #888;
-            text-decoration: none;
+        .chart-entry[data-gender="2"] .entry-name a:hover,
+        .chart-entry[data-gender="2"] .entry-artist a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
         }
-        
-        .entry-artist a:hover {
-            color: #22c55e;
+
+        .chart-entry:not([data-gender="1"]):not([data-gender="2"]) .entry-name a,
+        .chart-entry:not([data-gender="1"]):not([data-gender="2"]) .entry-artist a {
+            color: #888;
+        }
+        .chart-entry:not([data-gender="1"]):not([data-gender="2"]) .entry-name a:hover,
+        .chart-entry:not([data-gender="1"]):not([data-gender="2"]) .entry-artist a:hover {
+            color: #aaa;
             text-decoration: underline;
         }
         
@@ -606,6 +621,7 @@
             </div>
             <div class="chart-actions">
                 <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
+                <button th:if="${songChartFinalized and albumChartFinalized}" class="btn btn-warning" onclick="unfinalizeAll()">Edit Charts</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-success" 
                         onclick="onActionBtnClick()" 
@@ -883,6 +899,7 @@
                                      data-id="${s.id}" 
                                      data-name="${escapeHtml(s.name)}"
                                      data-artist="${escapeHtml(s.artistName || '')}"
+                                     data-artist-id="${s.artistId || ''}"
                                      data-has-image="${s.hasImage || false}"
                                      ${isInChart ? '' : 'onclick="addSong(this)"'}>
                                     <div class="result-name">${escapeHtml(s.name)}${isInChart ? ' ✓' : ''}</div>
@@ -923,12 +940,13 @@
                         resultsContainer.innerHTML = data.map(a => {
                             const isInChart = existingIds.includes(a.id);
                             return `
-                                <div class="search-result-item ${isInChart ? 'disabled' : ''}" 
-                                     data-id="${a.id}" 
-                                     data-name="${escapeHtml(a.name)}"
-                                     data-artist="${escapeHtml(a.artistName || '')}"
-                                     data-has-image="${a.hasImage || false}"
-                                     ${isInChart ? '' : 'onclick="addAlbum(this)"'}>
+                                  <div class="search-result-item ${isInChart ? 'disabled' : ''}" 
+                                      data-id="${a.id}" 
+                                      data-name="${escapeHtml(a.name)}"
+                                      data-artist="${escapeHtml(a.artistName || '')}"
+                                      data-artist-id="${a.artistId || ''}"
+                                      data-has-image="${a.hasImage || false}"
+                                      ${isInChart ? '' : 'onclick="addAlbum(this)"'}>
                                     <div class="result-name">${escapeHtml(a.name)}${isInChart ? ' ✓' : ''}</div>
                                     <div class="result-meta">${escapeHtml(a.artistName || '')}</div>
                                 </div>
@@ -961,6 +979,11 @@
             const emptyState = list.querySelector('.empty-chart');
             if (emptyState) emptyState.remove();
             
+            const nameEsc = escapeHtml(name);
+            const artistEsc = escapeHtml(artist || '');
+            const artistId = element.dataset.artistId || '';
+            const artistHtml = artistId ? `<a href="/artists/${artistId}">${artistEsc}</a>` : artistEsc;
+
             const entryHtml = `
                 <div class="chart-entry" data-id="${id}">
                     <div class="entry-position">${position}</div>
@@ -968,8 +991,8 @@
                         ? `<img class="entry-image" src="/songs/${id}/image" alt="">` 
                         : '<div class="entry-placeholder">🎵</div>'}
                     <div class="entry-info">
-                        <div class="entry-name">${name}</div>
-                        <div class="entry-artist">${artist}</div>
+                        <div class="entry-name"><a href="/songs/${id}">${nameEsc}</a></div>
+                        <div class="entry-artist">${artistHtml}</div>
                     </div>
                     <div class="entry-actions">
                         <button class="entry-btn" onclick="moveUp('song', this)">↑</button>
@@ -1010,6 +1033,11 @@
             const emptyState = list.querySelector('.empty-chart');
             if (emptyState) emptyState.remove();
             
+            const nameEsc = escapeHtml(name);
+            const artistEsc = escapeHtml(artist || '');
+            const artistId = element.dataset.artistId || '';
+            const artistHtml = artistId ? `<a href="/artists/${artistId}">${artistEsc}</a>` : artistEsc;
+
             const entryHtml = `
                 <div class="chart-entry" data-id="${id}">
                     <div class="entry-position">${position}</div>
@@ -1017,8 +1045,8 @@
                         ? `<img class="entry-image" src="/albums/${id}/image" alt="">` 
                         : '<div class="entry-placeholder">💿</div>'}
                     <div class="entry-info">
-                        <div class="entry-name">${name}</div>
-                        <div class="entry-artist">${artist}</div>
+                        <div class="entry-name"><a href="/albums/${id}">${nameEsc}</a></div>
+                        <div class="entry-artist">${artistHtml}</div>
                     </div>
                     <div class="entry-actions">
                         <button class="entry-btn" onclick="moveUp('album', this)">↑</button>
@@ -1069,6 +1097,7 @@
                                      data-id="${s.id}" 
                                      data-name="${escapeHtml(s.name)}"
                                      data-artist="${escapeHtml(s.artistName || '')}"
+                                     data-artist-id="${s.artistId || ''}"
                                      data-has-image="${s.hasImage || false}"
                                      ${isInChart ? '' : 'onclick="addExtraSong(this)"'}>
                                     <div class="result-name">${escapeHtml(s.name)}${isInChart ? ' ✓' : ''}</div>
@@ -1102,6 +1131,11 @@
             const emptyState = list.querySelector('.extras-empty');
             if (emptyState) emptyState.remove();
             
+            const nameEsc = escapeHtml(name);
+            const artistEsc = escapeHtml(artist || '');
+            const artistId = element.dataset.artistId || '';
+            const artistHtml = artistId ? `<a href="/artists/${artistId}">${artistEsc}</a>` : artistEsc;
+
             const entryHtml = `
                 <div class="chart-entry extra-entry" data-id="${id}">
                     <div class="entry-position extra-position">+</div>
@@ -1109,8 +1143,8 @@
                         ? `<img class="entry-image" src="/songs/${id}/image" alt="">` 
                         : '<div class="entry-placeholder">🎵</div>'}
                     <div class="entry-info">
-                        <div class="entry-name">${name}</div>
-                        <div class="entry-artist">${artist}</div>
+                        <div class="entry-name"><a href="/songs/${id}">${nameEsc}</a></div>
+                        <div class="entry-artist">${artistHtml}</div>
                     </div>
                     <div class="entry-actions">
                         <button class="entry-btn remove" onclick="removeExtraEntry(this)">×</button>
@@ -1430,6 +1464,35 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        // Unlock both charts for editing (sequential to avoid SQLite database locked)
+        async function unfinalizeAll() {
+            if (!confirm('Unlock both charts for editing? They will return to draft status.')) return;
+            try {
+                showIndicator('saving', 'Unlocking...');
+                const r1 = await fetch(`/charts/${periodType}/${periodKey}/unfinalize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chartId: songChartId })
+                });
+                const res1 = await r1.json();
+                if (!res1.success) throw new Error(res1.error || 'Failed to unlock songs chart');
+                
+                const r2 = await fetch(`/charts/${periodType}/${periodKey}/unfinalize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chartId: albumChartId })
+                });
+                const res2 = await r2.json();
+                if (!res2.success) throw new Error(res2.error || 'Failed to unlock albums chart');
+                
+                showIndicator('saved', 'Charts unlocked!');
+                setTimeout(() => window.location.reload(), 800);
+            } catch (err) {
+                console.error('Error unlocking charts:', err);
+                showIndicator('error', 'Failed to unlock: ' + err.message);
+            }
         }
         
         // Warn before leaving with unsaved changes

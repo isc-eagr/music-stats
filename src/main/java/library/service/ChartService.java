@@ -1894,6 +1894,17 @@ public class ChartService {
         chart.setIsFinalized(true);
         chartRepository.save(chart);
     }
+
+    /**
+     * Revert a chart to draft status, allowing entries to be edited again.
+     */
+    @Transactional
+    public void unfinalizeChart(Integer chartId) {
+        Chart chart = chartRepository.findById(chartId)
+            .orElseThrow(() -> new IllegalArgumentException("Chart not found"));
+        chart.setIsFinalized(false);
+        chartRepository.save(chart);
+    }
     
     /**
      * Get the #1 song name with artist for a finalized seasonal or yearly chart.

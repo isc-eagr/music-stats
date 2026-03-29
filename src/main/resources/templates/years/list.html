@@ -98,7 +98,7 @@
                            class="year-link"
                            title="View graphs for this listen year">2024</a>
                         <a th:if="${yearType == 'release'}"
-                           th:href="@{/graphs(releaseDateMode='between', releaseDateFrom=${'01/01/' + year.year}, releaseDateTo=${'31/12/' + year.year}, releaseDateEntity='song')}"
+                           th:href="@{/graphs(releaseDateMode='between', releaseDateFrom=${'01/01/' + year.year}, releaseDateTo=${'31/12/' + year.year})}"
                            th:text="${year.year}"
                            class="year-link"
                            title="View graphs for this release year">2024</a>

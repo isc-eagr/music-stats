@@ -42,12 +42,11 @@ public class ChartFilterDTO {
     private List<String> countries;
     private String countryMode;
     
-    // Release Date filter (entity-aware: artist, album, song)
+    // Release Date filter
     private String releaseDate;
     private String releaseDateFrom;
     private String releaseDateTo;
     private String releaseDateMode;
-    private String releaseDateEntity; // "artist", "album", "song"
     
     // First Listened Date filter (entity-aware: artist, album, song)
     private String firstListenedDate;
@@ -197,9 +196,6 @@ public class ChartFilterDTO {
     
     public String getReleaseDateMode() { return releaseDateMode; }
     public ChartFilterDTO setReleaseDateMode(String releaseDateMode) { this.releaseDateMode = releaseDateMode; return this; }
-    
-    public String getReleaseDateEntity() { return releaseDateEntity; }
-    public ChartFilterDTO setReleaseDateEntity(String releaseDateEntity) { this.releaseDateEntity = releaseDateEntity; return this; }
     
     public String getFirstListenedDate() { return firstListenedDate; }
     public ChartFilterDTO setFirstListenedDate(String firstListenedDate) { this.firstListenedDate = firstListenedDate; return this; }

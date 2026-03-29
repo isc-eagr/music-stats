@@ -1503,7 +1503,7 @@ public class SongRepository {
         library.util.SqlFilterHelper.appendStringFilter(sql, params, "ar.country", countries, countryMode);
         
         // Release date filter
-        library.util.SqlFilterHelper.appendDateFilter(sql, params, "s.release_date", releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
+        library.util.SqlFilterHelper.appendDateFilter(sql, params, "COALESCE(s.release_date, al.release_date)", releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);
         
         // First listened date filter
         String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id = s.id)";
@@ -1546,6 +1546,51 @@ public class SongRepository {
             }
         }
         
+        // Image count filter
+        if (imageCountMin != null) {
+            sql.append(" AND ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) >= ?");
+            params.add(imageCountMin);
+        }
+        if (imageCountMax != null) {
+            sql.append(" AND ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) <= ?");
+            params.add(imageCountMax);
+        }
+        
+        // Has Featured Artists filter
+        if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
+            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id)");
+            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id)");
+            }
+        }
+        
+        // Age filter (artist's current age, or age at death if deceased)
+        if (ageMin != null || ageMax != null) {
+            String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" >= ?");
+                params.add(ageMin);
+            }
+            if (ageMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(ageExpr).append(" <= ?");
+                params.add(ageMax);
+            }
+        }
+        
+        // Age at Release filter (artist's age when song was released)
+        if (ageAtReleaseMin != null || ageAtReleaseMax != null) {
+            String ageAtReleaseExpr = "CAST((julianday(COALESCE(s.release_date, al.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            if (ageAtReleaseMin != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, al.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ?");
+                params.add(ageAtReleaseMin);
+            }
+            if (ageAtReleaseMax != null) {
+                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, al.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ?");
+                params.add(ageAtReleaseMax);
+            }
+        }
+        
         // In iTunes filter - NOT implemented in SQL
         // iTunes status is determined by checking against an in-memory map from iTunes XML
         // This filter must be applied in the service layer after fetching data
@@ -1560,14 +1605,85 @@ public class SongRepository {
             params.add(playCountMax);
         }
         
-        // Length filter
-        if (lengthMin != null) {
-            sql.append(" AND s.length_seconds >= ?");
-            params.add(lengthMin);
+        // Length filter (song length_seconds)
+        if (lengthMode != null && !lengthMode.isEmpty()) {
+            if ("null".equalsIgnoreCase(lengthMode) || "zero".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND (s.length_seconds IS NULL OR s.length_seconds = 0)");
+            } else if ("notnull".equalsIgnoreCase(lengthMode) || "nonzero".equalsIgnoreCase(lengthMode)) {
+                sql.append(" AND (s.length_seconds IS NOT NULL AND s.length_seconds > 0)");
+            } else if ("lt".equalsIgnoreCase(lengthMode) && lengthMax != null) {
+                sql.append(" AND s.length_seconds < ?");
+                params.add(lengthMax);
+            } else if ("gt".equalsIgnoreCase(lengthMode) && lengthMin != null) {
+                sql.append(" AND s.length_seconds > ?");
+                params.add(lengthMin);
+            } else {
+                if (lengthMin != null) {
+                    sql.append(" AND s.length_seconds >= ?");
+                    params.add(lengthMin);
+                }
+                if (lengthMax != null) {
+                    sql.append(" AND s.length_seconds <= ?");
+                    params.add(lengthMax);
+                }
+            }
         }
-        if (lengthMax != null) {
-            sql.append(" AND s.length_seconds <= ?");
-            params.add(lengthMax);
+        
+        // Weekly chart filter
+        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (weeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(weeklyChartPeak);
+            }
+            if (weeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(weeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Seasonal chart filter
+        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (seasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(seasonalChartPeak);
+            }
+            if (seasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(seasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Yearly chart filter
+        if (yearlyChartPeak != null || yearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (yearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(yearlyChartPeak);
+            }
+            if (yearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(yearlyChartYears);
+            }
+            sql.append(")");
         }
         
         // Add GROUP BY
@@ -2140,13 +2256,11 @@ public class SongRepository {
             }
         }
         
-        // Release Date filter with entity awareness
-        String releaseDateEntity = filter.getReleaseDateEntity();
-        if (releaseDateEntity == null || releaseDateEntity.isEmpty()) releaseDateEntity = "song";
+        // Release Date filter (song release date, falling back to album release date)
         String releaseDateMode = filter.getReleaseDateMode();
         
         if (releaseDateMode != null) {
-            String dateExpr = buildEntityReleaseDateExpr(releaseDateEntity);
+            String dateExpr = "COALESCE(s.release_date, alb.release_date)";
             
             String releaseDate = filter.getReleaseDate();
             if (releaseDate != null && !releaseDate.trim().isEmpty()) {
@@ -2466,19 +2580,6 @@ public class SongRepository {
                             "JOIN Song s2 ON p2.song_id = s2.id " +
                             "WHERE s2.album_id = alb.id)";
             default -> "(SELECT COUNT(*) FROM Play p2 WHERE p2.song_id = s.id)"; // song level
-        };
-    }
-    
-    /**
-     * Builds a date expression for release_date based on entity type.
-     */
-    private String buildEntityReleaseDateExpr(String entity) {
-        return switch (entity) {
-            case "artist" -> "(SELECT MIN(COALESCE(s2.release_date, alb2.release_date)) FROM Song s2 " +
-                             "LEFT JOIN Album alb2 ON s2.album_id = alb2.id " +
-                             "WHERE s2.artist_id = ar.id)";
-            case "album" -> "alb.release_date";
-            default -> "COALESCE(s.release_date, alb.release_date)"; // song level
         };
     }
     

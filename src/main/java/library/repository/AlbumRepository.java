@@ -1629,20 +1629,20 @@ public class AlbumRepository {
         
         // Image count filter
         if (imageCountMin != null) {
-            sql.append(" AND ((CASE WHEN a.cover_image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = a.id)) >= ?");
+            sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = a.id)) >= ?");
             params.add(imageCountMin);
         }
         if (imageCountMax != null) {
-            sql.append(" AND ((CASE WHEN a.cover_image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = a.id)) <= ?");
+            sql.append(" AND ((CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = a.id)) <= ?");
             params.add(imageCountMax);
         }
         
         // Has featured artists filter
         if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
             if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
-                sql.append(" AND EXISTS (SELECT 1 FROM FeaturedArtist fa JOIN Song fs ON fa.song_id = fs.id WHERE fs.album_id = a.id)");
+                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song s ON sfa.song_id = s.id WHERE s.album_id = a.id)");
             } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
-                sql.append(" AND NOT EXISTS (SELECT 1 FROM FeaturedArtist fa JOIN Song fs ON fa.song_id = fs.id WHERE fs.album_id = a.id)");
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song s ON sfa.song_id = s.id WHERE s.album_id = a.id)");
             }
         }
         
@@ -1655,14 +1655,9 @@ public class AlbumRepository {
             }
         }
         
-        // In iTunes filter
-        if (inItunes != null && !inItunes.isEmpty()) {
-            if ("true".equalsIgnoreCase(inItunes)) {
-                sql.append(" AND EXISTS (SELECT 1 FROM Song s2 WHERE s2.album_id = a.id AND s2.in_itunes = 1)");
-            } else if ("false".equalsIgnoreCase(inItunes)) {
-                sql.append(" AND NOT EXISTS (SELECT 1 FROM Song s2 WHERE s2.album_id = a.id AND s2.in_itunes = 1)");
-            }
-        }
+        // In iTunes filter - NOT implemented in SQL
+        // iTunes status is determined by checking against an in-memory map from iTunes XML
+        // This filter must be applied in the service layer after fetching data
         
         // Play count filter
         if (playCountMin != null) {
@@ -1701,6 +1696,63 @@ public class AlbumRepository {
                     params.add(lengthMax);
                 }
             }
+        }
+        
+        // Weekly chart filter
+        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (weeklyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(weeklyChartPeak);
+            }
+            if (weeklyChartWeeks != null) {
+                sql.append(" AND chart_stats.weeks >= ?");
+                params.add(weeklyChartWeeks);
+            }
+            sql.append(")");
+        }
+        
+        // Seasonal chart filter
+        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (seasonalChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(seasonalChartPeak);
+            }
+            if (seasonalChartSeasons != null) {
+                sql.append(" AND chart_stats.seasons >= ?");
+                params.add(seasonalChartSeasons);
+            }
+            sql.append(")");
+        }
+        
+        // Yearly chart filter
+        if (yearlyChartPeak != null || yearlyChartYears != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
+            sql.append(") chart_stats WHERE 1=1");
+            if (yearlyChartPeak != null) {
+                sql.append(" AND chart_stats.peak <= ?");
+                params.add(yearlyChartPeak);
+            }
+            if (yearlyChartYears != null) {
+                sql.append(" AND chart_stats.years >= ?");
+                params.add(yearlyChartYears);
+            }
+            sql.append(")");
         }
         
         // Add GROUP BY

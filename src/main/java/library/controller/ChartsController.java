@@ -418,9 +418,14 @@ public class ChartsController {
             songEntries = chartService.getSeasonalYearlyChartEntries("seasonal", "song", periodKey);
             extraSongEntries = chartService.getSeasonalExtraSongEntries(periodKey);
         } else {
-            // Get all entries for draft editing (no position limit)
-            songEntries = chartService.getAllChartEntriesForEdit("seasonal", "song", periodKey);
-            extraSongEntries = java.util.Collections.emptyList();
+            // Get all entries for draft editing (no position limit), then split main vs extras
+            List<ChartEntryDTO> allSongEntries = chartService.getAllChartEntriesForEdit("seasonal", "song", periodKey);
+            songEntries = allSongEntries.stream()
+                .filter(e -> e.getPosition() <= ChartService.SEASONAL_YEARLY_SONGS_COUNT)
+                .collect(java.util.stream.Collectors.toList());
+            extraSongEntries = allSongEntries.stream()
+                .filter(e -> e.getPosition() > ChartService.SEASONAL_YEARLY_SONGS_COUNT)
+                .collect(java.util.stream.Collectors.toList());
         }
         
         if (Boolean.TRUE.equals(albumChart.getIsFinalized())) {
@@ -565,6 +570,25 @@ public class ChartsController {
         }
     }
     
+    /**
+     * API: Unlock a seasonal chart for editing (revert to draft).
+     */
+    @PostMapping("/seasonal/{periodKey}/unfinalize")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> unfinalizeSeasonalChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Integer chartId = ((Number) payload.get("chartId")).intValue();
+            chartService.unfinalizeChart(chartId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+
     // ========== YEARLY CHARTS ==========
     
     /**
@@ -729,6 +753,25 @@ public class ChartsController {
         }
     }
     
+    /**
+     * API: Unlock a yearly chart for editing (revert to draft).
+     */
+    @PostMapping("/yearly/{periodKey}/unfinalize")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> unfinalizeYearlyChart(
+            @PathVariable String periodKey,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Integer chartId = ((Number) payload.get("chartId")).intValue();
+            chartService.unfinalizeChart(chartId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return createErrorResponse(e.getMessage());
+        }
+    }
+
     /**
      * Most Weeks at Position page - shows songs/albums with most weeks at #1, top 5, etc.
      */

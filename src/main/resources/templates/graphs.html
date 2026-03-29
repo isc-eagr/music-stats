@@ -2172,11 +2172,6 @@
                             </span>
                         </div>
                         <div class="filter-item-content">
-                            <div class="entity-selector" style="margin-bottom: 10px;">
-                                <label style="margin-right: 12px;"><input type="radio" autocomplete="off" name="releaseDateEntity" value="artist" th:checked="${releaseDateEntity == 'artist'}"> Artist</label>
-                                <label style="margin-right: 12px;"><input type="radio" autocomplete="off" name="releaseDateEntity" value="album" th:checked="${releaseDateEntity == null || releaseDateEntity == 'album'}"> Album</label>
-                                <label><input type="radio" autocomplete="off" name="releaseDateEntity" value="song" th:checked="${releaseDateEntity == 'song'}"> Song</label>
-                            </div>
                             <div class="filter-modifiers">
                                 <button type="button" class="filter-modifier" data-filter="releaseDate" data-mode="exact"
                                         th:classappend="${releaseDateMode == 'exact'} ? 'active' : ''">Exact</button>
@@ -2617,7 +2612,7 @@
                         
                         <!-- Release Date filter chip -->
                         <span class="filter-chip" th:if="${releaseDate != null and !releaseDate.isEmpty()}">
-                            <span class="filter-chip-label" th:text="'Release Date (' + (releaseDateEntity != null ? releaseDateEntity : 'album') + ')'">Release Date</span>
+                            <span class="filter-chip-label">Release Date</span>
                             <span class="filter-chip-value" th:text="${releaseDate}"></span>
                         </span>
                         

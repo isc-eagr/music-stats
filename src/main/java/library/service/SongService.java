@@ -296,6 +296,53 @@ public class SongService {
         // Normalize empty lists to null
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
+        // If inItunes filter is active, count manually since iTunes presence is computed outside the DB
+        if (inItunes != null && !inItunes.isEmpty()) {
+            List<SongCardDTO> allSongs = getSongs(name, artistName, albumName, genreIds, genreMode,
+                    subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
+                    ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    inItunes,
+                    playCountMin, playCountMax,
+                    lengthMin, lengthMax, lengthMode,
+                    weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                    "plays", "desc", 0, Integer.MAX_VALUE);
+
+            boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
+            Map<Integer, String> gendersMap = lookupRepository.getAllGenders();
+            Map<String, Integer> nameToId = new java.util.HashMap<>();
+            for (Map.Entry<Integer, String> e : gendersMap.entrySet()) {
+                if (e.getValue() != null) nameToId.put(e.getValue().toLowerCase(), e.getKey());
+            }
+
+            long maleCount = 0L;
+            long femaleCount = 0L;
+            long otherCount = 0L;
+            for (SongCardDTO s : allSongs) {
+                if (s.getInItunes() == null || s.getInItunes() != wantInItunes) continue;
+                String gname = s.getGenderName();
+                Integer gid = gname != null ? nameToId.get(gname.toLowerCase()) : null;
+                if (gid == null) {
+                    otherCount++;
+                } else if (gid == 1) {
+                    femaleCount++;
+                } else if (gid == 2) {
+                    maleCount++;
+                } else {
+                    otherCount++;
+                }
+            }
+            return new GenderCountDTO(maleCount, femaleCount, otherCount);
+        }
+
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = songRepository.countSongsByGenderWithFilters(
                 name, artistName, albumName, genreIds, genreMode,
@@ -1422,7 +1469,7 @@ public class SongService {
     // Search songs by artist and song name for API
     public List<Map<String, Object>> searchSongs(String artistQuery, String songQuery, int limit) {
         StringBuilder sql = new StringBuilder(
-            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
+            "SELECT s.id, s.name, a.id as artist_id, a.name as artist_name, al.name as album_name, " +
             "CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image " +
             "FROM Song s " +
             "JOIN Artist a ON s.artist_id = a.id " +
@@ -1468,6 +1515,7 @@ public class SongService {
             Map<String, Object> song = new java.util.HashMap<>();
             song.put("id", rs.getInt("id"));
             song.put("name", rs.getString("name"));
+            song.put("artistId", rs.getInt("artist_id"));
             song.put("artistName", rs.getString("artist_name"));
             song.put("albumName", rs.getString("album_name"));
             song.put("hasImage", rs.getInt("has_image") == 1);

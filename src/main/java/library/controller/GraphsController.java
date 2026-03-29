@@ -118,7 +118,6 @@ public class GraphsController {
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
             @RequestParam(required = false) String releaseDateMode,
-            @RequestParam(required = false) String releaseDateEntity,
             // Songs chart filters
             @RequestParam(required = false) Integer songsSeasonalChartPeak,
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
@@ -297,7 +296,6 @@ public class GraphsController {
         model.addAttribute("releaseDateFrom", releaseDateFrom);
         model.addAttribute("releaseDateTo", releaseDateTo);
         model.addAttribute("releaseDateMode", releaseDateMode != null ? releaseDateMode : "exact");
-        model.addAttribute("releaseDateEntity", releaseDateEntity != null ? releaseDateEntity : "album");
         
         // Subgenre filter
         model.addAttribute("selectedSubgenres", subgenre);
