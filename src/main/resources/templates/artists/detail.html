@@ -1195,7 +1195,7 @@
                     <div th:if="${(seasonalAlbumChartHistory != null and !seasonalAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">💿 Albums Seasonal Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Album</th>
@@ -1214,7 +1214,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
                                             </span>
                                         </td>
-                                        <td>
+                                        <td th:with="pk=${entry['periodKey']}, sr=${#strings.contains(pk,'Winter') ? '0' : (#strings.contains(pk,'Spring') ? '1' : (#strings.contains(pk,'Summer') ? '2' : '3'))}" th:attr="data-value=${#strings.substring(pk,0,4) + '-' + sr}">
                                             <a th:href="@{/charts/seasonal/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Winter')}">❄️</span>
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Spring')}">🌸</span>
@@ -1223,7 +1223,7 @@
                                                 <span th:text="${entry['displayName']}">Winter 2024</span>
                                             </a>
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td style="text-align:right;" th:attr="data-value=${entry['position']}">
                                             <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
@@ -1232,12 +1232,12 @@
                             </table>
                         </div>
                     </div>
-                    
+
                     <!-- Songs Seasonal Charts -->
                     <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">🎵 Songs Seasonal Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Song</th>
@@ -1260,7 +1260,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
                                             </span>
                                         </td>
-                                        <td>
+                                        <td th:with="pk=${entry['periodKey']}, sr=${#strings.contains(pk,'Winter') ? '0' : (#strings.contains(pk,'Spring') ? '1' : (#strings.contains(pk,'Summer') ? '2' : '3'))}" th:attr="data-value=${#strings.substring(pk,0,4) + '-' + sr}">
                                             <a th:href="@{/charts/seasonal/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Winter')}">❄️</span>
                                                 <span th:if="${#strings.contains(entry['displayName'], 'Spring')}">🌸</span>
@@ -1269,7 +1269,7 @@
                                                 <span th:text="${entry['displayName']}">Winter 2024</span>
                                             </a>
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td style="text-align:right;" th:attr="data-value=${entry['position']}">
                                             <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
@@ -1286,7 +1286,7 @@
                     <div th:if="${(yearlyAlbumChartHistory != null and !yearlyAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">💿 Albums Yearly Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Album</th>
@@ -1309,7 +1309,7 @@
                                                 📅 <span th:text="${entry['displayName']}">2024</span>
                                             </a>
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td style="text-align:right;" th:attr="data-value=${entry['position']}">
                                             <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
@@ -1323,7 +1323,7 @@
                     <div th:if="${(yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">🎵 Songs Yearly Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Song</th>
@@ -1350,7 +1350,7 @@
                                                 📅 <span th:text="${entry['displayName']}">2024</span>
                                             </a>
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td style="text-align:right;" th:attr="data-value=${entry['position']}">
                                             <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry['position']}">#1</span>
                                         </td>

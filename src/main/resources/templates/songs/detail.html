@@ -37,7 +37,7 @@
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
-    <div class="container-wide" th:classappend="${artistGender != null and artistGender.toLowerCase().contains('male') and !artistGender.toLowerCase().contains('female')} ? 'gender-male' : (${artistGender != null and artistGender.toLowerCase().contains('female')} ? 'gender-female' : '')">
+    <div class="container-wide" th:classappend="${effectiveGenderName != null and effectiveGenderName.toLowerCase().contains('male') and !effectiveGenderName.toLowerCase().contains('female')} ? 'gender-male' : (${effectiveGenderName != null and effectiveGenderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
         <div class="detail-grid">
             <!-- Left column: Image with name overlay -->
             <div class="detail-sidebar">
@@ -879,7 +879,7 @@
                     <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">Seasonal Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Period</th>
@@ -888,7 +888,7 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${seasonalChartHistory}">
-                                        <td>
+                                        <td th:with="pk=${entry['periodKey']}, sr=${#strings.contains(pk,'Winter') ? '0' : (#strings.contains(pk,'Spring') ? '1' : (#strings.contains(pk,'Summer') ? '2' : '3'))}" th:attr="data-value=${#strings.substring(pk,0,4) + '-' + sr}">
                                             <a th:href="@{/charts/seasonal/{pk}(pk=${entry['periodKey']})}" style="text-decoration: none; color: inherit;">
                                                 <th:block th:with="periodName=${#strings.substringAfter(entry['displayName'], ' in ')}">
                                                     <span th:if="${#strings.contains(periodName, 'Winter')}">❄️</span>
@@ -899,7 +899,7 @@
                                                 </th:block>
                                             </a>
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td style="text-align:right;" th:attr="data-value=${entry['position']}">
                                             <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry['position']}">#1</span>
                                         </td>
@@ -915,7 +915,7 @@
                     <div th:if="${(yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">Yearly Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Period</th>
@@ -931,7 +931,7 @@
                                                 </th:block>
                                             </a>
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td style="text-align:right;" th:attr="data-value=${entry['position']}">
                                             <span th:classappend="${entry['position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="'#' + ${entry['position']}">#1</span>
                                         </td>

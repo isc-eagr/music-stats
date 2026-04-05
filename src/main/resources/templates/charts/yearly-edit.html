@@ -1110,6 +1110,7 @@
                 }
 
                 showIndicator('saved', `${chartLabel} chart saved!`);
+                hasChanges = false;
                 setTimeout(() => window.location.reload(), 1000);
             } catch (err) {
                 console.error('Error saving chart:', err);
@@ -1146,6 +1147,7 @@
                 }
                 
                 showIndicator('saved', 'Charts finalized!');
+                hasChanges = false;
                 setTimeout(() => window.location.reload(), 1000);
             } catch (err) {
                 console.error('Error finalizing:', err);
@@ -1203,6 +1205,7 @@
                 if (!res2.success) throw new Error(res2.error || 'Failed to unlock albums chart');
                 
                 showIndicator('saved', 'Charts unlocked!');
+                hasChanges = false;
                 setTimeout(() => window.location.reload(), 800);
             } catch (err) {
                 console.error('Error unlocking charts:', err);

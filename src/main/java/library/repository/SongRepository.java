@@ -125,7 +125,7 @@ public class SongRepository {
                 CASE WHEN ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL THEN CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Gender gender ON ar.gender_id = gender.id
+            LEFT JOIN Gender gender ON COALESCE(s.override_gender_id, ar.gender_id) = gender.id
             LEFT JOIN Album alb ON s.album_id = alb.id
             LEFT JOIN Genre g_override ON s.override_genre_id = g_override.id
             LEFT JOIN Genre g_album ON alb.override_genre_id = g_album.id
