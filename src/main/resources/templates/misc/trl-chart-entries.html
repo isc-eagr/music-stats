@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRL Chart Entries - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .ce-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Summary bar */
+        .ce-summary {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .ce-stat {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px 22px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .ce-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .ce-stat-label {
+            font-size: 0.78rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+        }
+
+        /* Toolbar */
+        .ce-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .ce-search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 9px 14px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #ddd;
+            font-size: 0.88rem;
+            box-sizing: border-box;
+        }
+        .ce-search-input:focus { outline: none; border-color: #4a90e2; }
+
+        .ce-merge-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 20px;
+            border-radius: 8px;
+            border: 1px solid #555;
+            background: #1e1e1e;
+            color: #888;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: not-allowed;
+            transition: all 0.15s;
+            opacity: 0.5;
+        }
+        .ce-merge-btn.ready {
+            cursor: pointer;
+            opacity: 1;
+            border-color: #4a90e2;
+            color: #4a90e2;
+            background: rgba(74,144,226,0.08);
+        }
+        .ce-merge-btn.ready:hover {
+            background: rgba(74,144,226,0.18);
+        }
+
+        .ce-clear-btn {
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #888;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+        .ce-clear-btn:hover { border-color: #666; color: #ccc; }
+
+        /* Selection info bar */
+        .ce-selection-bar {
+            display: none;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .ce-selection-bar.visible { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+        .ce-sel-label { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; }
+        .ce-sel-source { color: #4caf50; }
+        .ce-sel-target { color: #ff7043; }
+        .ce-sel-value { color: #ddd; margin-left: 6px; }
+
+        /* Table */
+        .ce-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        }
+        .ce-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #141414;
+        }
+        .ce-table thead tr {
+            background: #1e1e1e;
+            border-bottom: 2px solid #333;
+        }
+        .ce-table th {
+            padding: 11px 14px;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .ce-table th:hover { color: #ccc; }
+        .ce-table th.center,
+        .ce-table td.center { text-align: center; }
+
+        .ce-table tbody tr {
+            border-bottom: 1px solid #1f1f1f;
+            transition: background 0.12s;
+            cursor: pointer;
+        }
+        .ce-table tbody tr:hover { background: #1c1c1c; }
+
+        .ce-table td {
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: #d0d0d0;
+            vertical-align: middle;
+        }
+
+        /* Selection states */
+        .ce-table tbody tr.ce-source {
+            background: rgba(76,175,80,0.12) !important;
+            border-left: 3px solid #4caf50;
+        }
+        .ce-table tbody tr.ce-target {
+            background: rgba(255,112,67,0.12) !important;
+            border-left: 3px solid #ff7043;
+        }
+
+        /* Row action labels */
+        .ce-row-label {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .ce-row-label.source { background: rgba(76,175,80,0.2); color: #4caf50; }
+        .ce-row-label.target { background: rgba(255,112,67,0.2); color: #ff7043; }
+
+        /* Hidden rows */
+        .ce-table tbody tr.ce-hidden { display: none; }
+
+        /* Count badge */
+        .ce-count { color: #888; font-size: 0.82rem; }
+
+        /* Floating merge button */
+        .ce-float-merge-btn {
+            display: none;
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            align-items: center;
+            gap: 8px;
+            padding: 13px 26px;
+            border-radius: 12px;
+            border: 1px solid #4a90e2;
+            background: rgba(16,24,40,0.92);
+            color: #4a90e2;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+            z-index: 1000;
+            transition: background 0.15s, box-shadow 0.15s;
+            backdrop-filter: blur(6px);
+        }
+        .ce-float-merge-btn:hover {
+            background: rgba(74,144,226,0.22);
+            box-shadow: 0 6px 32px rgba(0,0,0,0.7);
+        }
+
+        @media (max-width: 600px) {
+            .ce-toolbar { flex-direction: column; }
+            .ce-search-input { min-width: auto; }
+            .ce-float-merge-btn { bottom: 16px; right: 16px; padding: 11px 18px; font-size: 0.82rem; }
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <header class="topbar">
+        <div class="container">
+            <nav class="breadcrumbs">
+                <a href="/">Home</a>
+                <span class="breadcrumb-sep">/</span>
+                <span>Miscellaneous</span>
+                <span class="breadcrumb-sep">/</span>
+                <a href="/misc/trl">TRL</a>
+                <span class="breadcrumb-sep">/</span>
+                <span>Chart Entries</span>
+            </nav>
+            <h1 class="page-title">TRL Chart Entries</h1>
+            <p class="page-subtitle">All distinct artist/song combos from chart data. Select a Source and Target to merge.</p>
+        </div>
+    </header>
+
+    <main class="container ce-container">
+
+        <!-- Summary -->
+        <div class="ce-summary">
+            <div class="ce-stat">
+                <div class="ce-stat-value" th:text="${#lists.size(entries)}">0</div>
+                <div class="ce-stat-label">Distinct Combos</div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="ce-toolbar">
+            <input type="text" id="searchInput" class="ce-search-input"
+                   placeholder="Filter by artist or song..." oninput="filterTable()" autocomplete="off">
+            <button class="ce-clear-btn" onclick="clearSelection()">Clear Selection</button>
+        </div>
+
+        <!-- Selection info -->
+        <div class="ce-selection-bar" id="selectionBar">
+            <div>
+                <span class="ce-sel-label ce-sel-source">Source:</span>
+                <span class="ce-sel-value" id="selSourceLabel">-</span>
+            </div>
+            <div>
+                <span class="ce-sel-label ce-sel-target">Targets:</span>
+                <span class="ce-sel-value" id="selTargetsLabel">-</span>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="ce-table-wrap">
+            <table class="ce-table" id="ceTable">
+                <thead>
+                    <tr>
+                        <th>Artist</th>
+                        <th>Song</th>
+                        <th class="center">Appearances</th>
+                        <th class="center" style="width: 90px;">Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="e : ${entries}"
+                        th:data-artist="${e.artistName}"
+                        th:data-song="${e.songTitle}"
+                        onclick="toggleRow(this)">
+                        <td th:text="${e.artistName}">Artist</td>
+                        <td th:text="${e.songTitle}">Song</td>
+                        <td class="center ce-count" th:text="${e.appearances}">0</td>
+                        <td class="center"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(entries)}">
+                        <td colspan="4" style="text-align:center; color:#666; padding:40px;">
+                            No chart entry data found. Run the crawler first.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        var _sourceRow = null;
+        var _targetRows = [];
+
+        function toggleRow(row) {
+            if (!row.dataset.artist) return;
+
+            // Deselect source
+            if (row === _sourceRow) {
+                row.classList.remove('ce-source');
+                row.cells[3].innerHTML = '';
+                _sourceRow = null;
+                // Promote first target to source if any
+                if (_targetRows.length > 0) {
+                    _sourceRow = _targetRows.shift();
+                    _sourceRow.classList.remove('ce-target');
+                    _sourceRow.classList.add('ce-source');
+                    _sourceRow.cells[3].innerHTML = '<span class="ce-row-label source">Source</span>';
+                }
+                updateUI();
+                return;
+            }
+
+            // Deselect a target
+            var tgtIdx = _targetRows.indexOf(row);
+            if (tgtIdx !== -1) {
+                row.classList.remove('ce-target');
+                row.cells[3].innerHTML = '';
+                _targetRows.splice(tgtIdx, 1);
+                updateUI();
+                return;
+            }
+
+            // Select: first click = source, rest = targets
+            if (!_sourceRow) {
+                _sourceRow = row;
+                row.classList.add('ce-source');
+                row.cells[3].innerHTML = '<span class="ce-row-label source">Source</span>';
+            } else {
+                _targetRows.push(row);
+                row.classList.add('ce-target');
+                row.cells[3].innerHTML = '<span class="ce-row-label target">Target</span>';
+            }
+            updateUI();
+        }
+
+        function clearSelection() {
+            if (_sourceRow) {
+                _sourceRow.classList.remove('ce-source');
+                _sourceRow.cells[3].innerHTML = '';
+                _sourceRow = null;
+            }
+            _targetRows.forEach(function(row) {
+                row.classList.remove('ce-target');
+                row.cells[3].innerHTML = '';
+            });
+            _targetRows = [];
+            updateUI();
+        }
+
+        function updateUI() {
+            var bar = document.getElementById('selectionBar');
+            var btn = document.getElementById('mergeBtn');
+            var hasAny = !!_sourceRow || _targetRows.length > 0;
+            bar.classList.toggle('visible', hasAny);
+
+            document.getElementById('selSourceLabel').textContent =
+                _sourceRow ? (_sourceRow.dataset.artist + ' - ' + _sourceRow.dataset.song) : '-';
+            document.getElementById('selTargetsLabel').textContent =
+                _targetRows.length > 0 ? _targetRows.length + ' selected' : '-';
+
+            var ready = !!_sourceRow && _targetRows.length > 0;
+            btn.style.display = ready ? 'flex' : 'none';
+            btn.textContent = ready
+                ? 'Merge ' + _targetRows.length + ' Target' + (_targetRows.length > 1 ? 's' : '') + ' into Source'
+                : 'Merge';
+        }
+
+        function filterTable() {
+            var q = document.getElementById('searchInput').value.toLowerCase().trim();
+            document.querySelectorAll('#ceTable tbody tr[data-artist]').forEach(function(row) {
+                var artist = (row.dataset.artist || '').toLowerCase();
+                var song = (row.dataset.song || '').toLowerCase();
+                var match = !q || artist.indexOf(q) !== -1 || song.indexOf(q) !== -1;
+                row.classList.toggle('ce-hidden', !match);
+            });
+        }
+
+        function doMerge() {
+            if (!_sourceRow || _targetRows.length === 0) return;
+
+            var sourceArtist = _sourceRow.dataset.artist;
+            var sourceSong   = _sourceRow.dataset.song;
+            var targets = _targetRows.slice();
+
+            var targetList = targets.map(function(r) {
+                return '  ' + r.dataset.artist + ' - ' + r.dataset.song;
+            }).join('\n');
+            var msg = 'Merge ' + targets.length + ' target(s) into Source:\n\n'
+                    + '  Source: ' + sourceArtist + ' - ' + sourceSong + '\n\n'
+                    + 'Targets:\n' + targetList + '\n\n'
+                    + 'All Target chart entries will be updated to match the Source. Continue?';
+
+            if (!confirm(msg)) return;
+
+            var btn = document.getElementById('mergeBtn');
+            btn.style.pointerEvents = 'none';
+            btn.textContent = 'Merging...';
+
+            // Merge each target sequentially
+            var chain = Promise.resolve();
+            targets.forEach(function(targetRow) {
+                chain = chain.then(function() {
+                    var params = new URLSearchParams();
+                    params.append('sourceArtist', sourceArtist);
+                    params.append('sourceSong', sourceSong);
+                    params.append('targetArtist', targetRow.dataset.artist);
+                    params.append('targetSong', targetRow.dataset.song);
+                    return fetch('/misc/trl/chart-entries/merge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.ok) {
+                            // Accumulate count onto source row
+                            var srcCount = parseInt(_sourceRow.cells[2].textContent) || 0;
+                            var tgtCount = parseInt(targetRow.cells[2].textContent) || 0;
+                            _sourceRow.cells[2].textContent = srcCount + tgtCount;
+                            // Remove merged row from DOM and targets array
+                            var idx = _targetRows.indexOf(targetRow);
+                            if (idx !== -1) _targetRows.splice(idx, 1);
+                            targetRow.remove();
+                        }
+                    });
+                });
+            });
+
+            chain.then(function() {
+                // Clear source selection
+                if (_sourceRow) {
+                    _sourceRow.classList.remove('ce-source');
+                    _sourceRow.cells[3].innerHTML = '';
+                    _sourceRow = null;
+                }
+                _targetRows.forEach(function(row) {
+                    row.classList.remove('ce-target');
+                    row.cells[3].innerHTML = '';
+                });
+                _targetRows = [];
+                btn.style.pointerEvents = '';
+                updateUI();
+                // Update distinct combos stat
+                var count = document.querySelectorAll('#ceTable tbody tr[data-artist]').length;
+                document.querySelector('.ce-stat-value').textContent = count;
+            })
+            .catch(function() {
+                btn.style.pointerEvents = '';
+                updateUI();
+                alert('Merge failed. Please try again.');
+            });
+        }
+    </script>
+
+    <button id="mergeBtn" class="ce-float-merge-btn" onclick="doMerge()">Merge</button>
+</body>
+</html>

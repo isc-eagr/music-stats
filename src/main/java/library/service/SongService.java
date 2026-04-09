@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 @Service
 public class SongService {
@@ -42,6 +43,24 @@ public class SongService {
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.itunesService = itunesService;
+    }
+
+    public String getItunesSongIdsJson(String inItunes) {
+        if (inItunes == null || inItunes.isEmpty()) return null;
+        List<Integer> ids = new ArrayList<>();
+        jdbcTemplate.query(
+                "SELECT s.id, ar.name, COALESCE(alb.name, ''), s.name FROM Song s " +
+                "JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album alb ON s.album_id = alb.id", rs -> {
+            int id = rs.getInt(1);
+            String artistN = rs.getString(2);
+            String albumN = rs.getString(3);
+            String songN = rs.getString(4);
+            if (itunesService.songExistsInItunes(artistN, albumN, songN)) {
+                ids.add(id);
+            }
+        });
+        if (ids.isEmpty()) return "[]";
+        return "[" + ids.stream().map(String::valueOf).collect(Collectors.joining(",")) + "]";
     }
     
     public List<SongCardDTO> getSongs(String name, List<Integer> artistName, String albumName,
@@ -61,7 +80,7 @@ public class SongService {
                                        Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                        String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                        String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                                       String inItunes,
+                                       String itunesIdsJson, String inItunes,
                                        Integer playCountMin, Integer playCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -70,11 +89,6 @@ public class SongService {
                                        String sortBy, String sortDirection, int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
-        
-        // If inItunes filter is active, we need to get all results first, then filter in memory
-        boolean filterByItunes = inItunes != null && !inItunes.isEmpty();
-        int actualLimit = filterByItunes ? Integer.MAX_VALUE : perPage;
-        int actualOffset = filterByItunes ? 0 : page * perPage;
         
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
@@ -85,6 +99,7 @@ public class SongService {
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
                 organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                itunesIdsJson, inItunes,
                 ageMin, ageMax, ageMode,
                 ageAtReleaseMin, ageAtReleaseMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode,
@@ -92,7 +107,7 @@ public class SongService {
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortBy, sortDirection, actualLimit, actualOffset
+                sortBy, sortDirection, perPage, page * perPage
         );
         
         List<SongCardDTO> songs = new ArrayList<>();
@@ -180,23 +195,6 @@ public class SongService {
             songs.add(dto);
         }
         
-        // Apply iTunes filter if needed
-        if (filterByItunes) {
-            boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
-            songs = songs.stream()
-                    .filter(s -> s.getInItunes() != null && s.getInItunes() == wantInItunes)
-                    .toList();
-            
-            // Apply pagination manually
-            int offset = page * perPage;
-            int end = Math.min(offset + perPage, songs.size());
-            if (offset >= songs.size()) {
-                songs = new ArrayList<>();
-            } else {
-                songs = new ArrayList<>(songs.subList(offset, end));
-            }
-        }
-        
         return songs;
     }
     
@@ -217,7 +215,7 @@ public class SongService {
                           Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                           String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                          String inItunes,
+                          String itunesIdsJson, String inItunes,
                           Integer playCountMin, Integer playCountMax,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -225,28 +223,6 @@ public class SongService {
                           Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
-        
-        // If inItunes filter is active, we need to count manually
-        if (inItunes != null && !inItunes.isEmpty()) {
-            List<SongCardDTO> allSongs = getSongs(name, artistName, albumName, genreIds, genreMode,
-                    subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                    ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
-                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
-                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                    listenedDateFrom, listenedDateTo,
-                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
-                    ageMin, ageMax, ageMode,
-                    ageAtReleaseMin, ageAtReleaseMax,
-                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
-                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
-                    inItunes,
-                    playCountMin, playCountMax,
-                    lengthMin, lengthMax, lengthMode,
-                    weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                    "plays", "desc", 0, Integer.MAX_VALUE);
-            return allSongs.size();
-        }
         
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
@@ -256,6 +232,7 @@ public class SongService {
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
                 listenedDateFrom, listenedDateTo,
                 organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                itunesIdsJson, inItunes,
                 ageMin, ageMax, ageMode,
                 ageAtReleaseMin, ageAtReleaseMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode,
@@ -287,7 +264,7 @@ public class SongService {
                           Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                           String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                          String inItunes,
+                          String itunesIdsJson, String inItunes,
                           Integer playCountMin, Integer playCountMax,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -295,53 +272,6 @@ public class SongService {
                           Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Normalize empty lists to null
         if (accounts != null && accounts.isEmpty()) accounts = null;
-        
-        // If inItunes filter is active, count manually since iTunes presence is computed outside the DB
-        if (inItunes != null && !inItunes.isEmpty()) {
-            List<SongCardDTO> allSongs = getSongs(name, artistName, albumName, genreIds, genreMode,
-                    subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                    ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
-                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
-                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                    listenedDateFrom, listenedDateTo,
-                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
-                    ageMin, ageMax, ageMode,
-                    ageAtReleaseMin, ageAtReleaseMax,
-                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
-                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
-                    inItunes,
-                    playCountMin, playCountMax,
-                    lengthMin, lengthMax, lengthMode,
-                    weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                    "plays", "desc", 0, Integer.MAX_VALUE);
-
-            boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
-            Map<Integer, String> gendersMap = lookupRepository.getAllGenders();
-            Map<String, Integer> nameToId = new java.util.HashMap<>();
-            for (Map.Entry<Integer, String> e : gendersMap.entrySet()) {
-                if (e.getValue() != null) nameToId.put(e.getValue().toLowerCase(), e.getKey());
-            }
-
-            long maleCount = 0L;
-            long femaleCount = 0L;
-            long otherCount = 0L;
-            for (SongCardDTO s : allSongs) {
-                if (s.getInItunes() == null || s.getInItunes() != wantInItunes) continue;
-                String gname = s.getGenderName();
-                Integer gid = gname != null ? nameToId.get(gname.toLowerCase()) : null;
-                if (gid == null) {
-                    otherCount++;
-                } else if (gid == 1) {
-                    femaleCount++;
-                } else if (gid == 2) {
-                    maleCount++;
-                } else {
-                    otherCount++;
-                }
-            }
-            return new GenderCountDTO(maleCount, femaleCount, otherCount);
-        }
 
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = songRepository.countSongsByGenderWithFilters(
@@ -357,7 +287,7 @@ public class SongService {
                 ageAtReleaseMin, ageAtReleaseMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 deathDate, deathDateFrom, deathDateTo, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -381,7 +311,7 @@ public class SongService {
     public Optional<Song> getSongById(Integer id) {
         String sql = """
             SELECT s.id, s.artist_id, s.album_id, s.name, s.length_seconds, s.is_single,
-                   s.override_genre_id, s.override_subgenre_id, s.override_language_id,
+                   s.track_number, s.override_genre_id, s.override_subgenre_id, s.override_language_id,
                    s.override_gender_id, s.override_ethnicity_id, s.release_date, s.organized,
                    s.creation_date, s.update_date,
                    al.override_genre_id as album_genre_id,
@@ -412,6 +342,9 @@ public class SongService {
             song.setLengthSeconds(rs.wasNull() ? null : length);
             
             song.setIsSingle(rs.getInt("is_single") == 1);
+            
+            int trackNum = rs.getInt("track_number");
+            song.setTrackNumber(rs.wasNull() ? null : trackNum);
             
             int genreId = rs.getInt("override_genre_id");
             song.setOverrideGenreId(rs.wasNull() ? null : genreId);

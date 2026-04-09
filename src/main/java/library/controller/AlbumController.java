@@ -171,6 +171,9 @@ public class AlbumController {
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         
+        // Pre-compute iTunes album IDs once for all 3 queries
+        String itunesIdsJson = albumService.getItunesAlbumIdsJson(inItunes);
+        
         // Get filtered and sorted albums
         List<AlbumCardDTO> albums = albumService.getAlbums(
                 q, artist, genre, genreMode, subgenre, subgenreMode,
@@ -184,7 +187,7 @@ public class AlbumController {
                 ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -203,7 +206,7 @@ public class AlbumController {
                 ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -221,7 +224,7 @@ public class AlbumController {
                 ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -697,6 +700,12 @@ public class AlbumController {
         return response;
     }
     
+    @GetMapping("/api/all-albums")
+    @ResponseBody
+    public List<Map<String, Object>> getAllAlbums() {
+        return albumService.getAllAlbumsForApi();
+    }
+
     /**
      * Search albums by name or artist name for the seasonal/yearly chart editor.
      */

@@ -1,6 +1,8 @@
 package library.controller;
 
 import library.dto.TimeframeCardDTO;
+import library.dto.ChartTopEntryDTO;
+import library.dto.TimeframeResultDTO;
 import library.repository.LookupRepository;
 import library.service.ChartService;
 import library.service.TimeframeService;
@@ -13,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 public class TimeframeController {
@@ -103,8 +106,8 @@ public class TimeframeController {
             effectiveMaleTimePctMin = 100.0;
         }
         
-        // Get timeframe cards
-        List<TimeframeCardDTO> timeframes = timeframeService.getTimeframeCards(
+        // Get timeframe cards with count in a single pass
+        TimeframeResultDTO result = timeframeService.getTimeframeCardsWithCount(
             periodType,
             winningGender, winningGenderMode,
             winningGenre, winningGenreMode,
@@ -126,27 +129,8 @@ public class TimeframeController {
             sortby, sortdir, page, perpage
         );
         
-        // Get total count for pagination
-        long totalCount = timeframeService.countTimeframes(
-            periodType,
-            winningGender, winningGenderMode,
-            winningGenre, winningGenreMode,
-            winningEthnicity, winningEthnicityMode,
-            winningLanguage, winningLanguageMode,
-            winningCountry, winningCountryMode,
-            artistCountMin, artistCountMax,
-            albumCountMin, albumCountMax,
-            songCountMin, songCountMax,
-            playsMin, playsMax,
-            timeMin, timeMax,
-            effectiveMaleArtistPctMin, maleArtistPctMax,
-            effectiveMaleAlbumPctMin, maleAlbumPctMax,
-            effectiveMaleSongPctMin, maleSongPctMax,
-            effectiveMalePlayPctMin, malePlayPctMax,
-            effectiveMaleTimePctMin, maleTimePctMax,
-            dateFrom, dateTo,
-            maleDaysMin, maleDaysMax
-        );
+        List<TimeframeCardDTO> timeframes = result.getTimeframes();
+        long totalCount = result.getTotalCount();
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add core data to model
@@ -158,18 +142,28 @@ public class TimeframeController {
         // For weeks, populate hasChart status and weekComplete status
         if ("weeks".equals(periodType)) {
             Set<String> weeksWithCharts = chartService.getExistingChartPeriodKeys("song");
+            Set<String> periodKeysWithCharts = timeframes.stream()
+                .map(TimeframeCardDTO::getPeriodKey)
+                .filter(weeksWithCharts::contains)
+                .collect(Collectors.toSet());
+            
+            // Batch fetch all chart top entries in one query
+            Map<String, ChartTopEntryDTO> chartEntries = periodKeysWithCharts.isEmpty() 
+                ? Map.of() 
+                : chartService.getWeeklyChartTopEntriesBatch(periodKeysWithCharts);
+            
             for (TimeframeCardDTO tf : timeframes) {
-                tf.setHasChart(weeksWithCharts.contains(tf.getPeriodKey()));
+                boolean hasChart = weeksWithCharts.contains(tf.getPeriodKey());
+                tf.setHasChart(hasChart);
                 tf.setWeekComplete(chartService.isWeekComplete(tf.getPeriodKey()));
-                // Get #1 song/album if chart exists
-                if (Boolean.TRUE.equals(tf.getHasChart())) {
-                    Map<String, String> topEntries = chartService.getWeeklyChartTopEntries(tf.getPeriodKey());
-                    tf.setNumberOneSongName(topEntries.get("song"));
-                    tf.setNumberOneAlbumName(topEntries.get("album"));
-                    // Get gender IDs for the #1 entries
-                    Map<String, Integer> topGenderIds = chartService.getWeeklyChartTopGenderIds(tf.getPeriodKey());
-                    tf.setNumberOneSongGenderId(topGenderIds.get("song"));
-                    tf.setNumberOneAlbumGenderId(topGenderIds.get("album"));
+                if (hasChart) {
+                    ChartTopEntryDTO entry = chartEntries.get(tf.getPeriodKey());
+                    if (entry != null) {
+                        tf.setNumberOneSongName(entry.getNumberOneSongName());
+                        tf.setNumberOneAlbumName(entry.getNumberOneAlbumName());
+                        tf.setNumberOneSongGenderId(entry.getNumberOneSongGenderId());
+                        tf.setNumberOneAlbumGenderId(entry.getNumberOneAlbumGenderId());
+                    }
                 }
             }
         }
@@ -178,17 +172,29 @@ public class TimeframeController {
         if ("seasons".equals(periodType)) {
             Set<String> seasonsWithFinalizedCharts = chartService.getFinalizedChartPeriodKeys("seasonal");
             Set<String> seasonsWithAnyCharts = chartService.getAllChartPeriodKeys("seasonal");
+            
+            // Batch fetch finalized chart top entries
+            Set<String> finalizedOnPage = timeframes.stream()
+                .map(TimeframeCardDTO::getPeriodKey)
+                .filter(seasonsWithFinalizedCharts::contains)
+                .collect(Collectors.toSet());
+            Map<String, ChartTopEntryDTO> chartEntries = finalizedOnPage.isEmpty()
+                ? Map.of()
+                : chartService.getFinalizedChartTopEntriesBatch("seasonal", finalizedOnPage);
+            
             for (TimeframeCardDTO tf : timeframes) {
                 boolean hasChart = seasonsWithAnyCharts.contains(tf.getPeriodKey());
                 boolean finalized = seasonsWithFinalizedCharts.contains(tf.getPeriodKey());
                 tf.setHasSeasonalChart(hasChart);
                 tf.setSeasonalChartFinalized(finalized);
-                // Get #1 song/album if chart is finalized
                 if (finalized) {
-                    tf.setNumberOneSongName(chartService.getNumberOneSongName("seasonal", tf.getPeriodKey()));
-                    tf.setNumberOneAlbumName(chartService.getNumberOneAlbumName("seasonal", tf.getPeriodKey()));
-                    tf.setNumberOneSongGenderId(chartService.getNumberOneSongGenderId("seasonal", tf.getPeriodKey()));
-                    tf.setNumberOneAlbumGenderId(chartService.getNumberOneAlbumGenderId("seasonal", tf.getPeriodKey()));
+                    ChartTopEntryDTO entry = chartEntries.get(tf.getPeriodKey());
+                    if (entry != null) {
+                        tf.setNumberOneSongName(entry.getNumberOneSongName());
+                        tf.setNumberOneAlbumName(entry.getNumberOneAlbumName());
+                        tf.setNumberOneSongGenderId(entry.getNumberOneSongGenderId());
+                        tf.setNumberOneAlbumGenderId(entry.getNumberOneAlbumGenderId());
+                    }
                 }
             }
         }
@@ -197,17 +203,29 @@ public class TimeframeController {
         if ("years".equals(periodType)) {
             Set<String> yearsWithFinalizedCharts = chartService.getFinalizedChartPeriodKeys("yearly");
             Set<String> yearsWithAnyCharts = chartService.getAllChartPeriodKeys("yearly");
+            
+            // Batch fetch finalized chart top entries
+            Set<String> finalizedOnPage = timeframes.stream()
+                .map(TimeframeCardDTO::getPeriodKey)
+                .filter(yearsWithFinalizedCharts::contains)
+                .collect(Collectors.toSet());
+            Map<String, ChartTopEntryDTO> chartEntries = finalizedOnPage.isEmpty()
+                ? Map.of()
+                : chartService.getFinalizedChartTopEntriesBatch("yearly", finalizedOnPage);
+            
             for (TimeframeCardDTO tf : timeframes) {
                 boolean hasChart = yearsWithAnyCharts.contains(tf.getPeriodKey());
                 boolean finalized = yearsWithFinalizedCharts.contains(tf.getPeriodKey());
                 tf.setHasYearlyChart(hasChart);
                 tf.setYearlyChartFinalized(finalized);
-                // Get #1 song/album if chart is finalized
                 if (finalized) {
-                    tf.setNumberOneSongName(chartService.getNumberOneSongName("yearly", tf.getPeriodKey()));
-                    tf.setNumberOneAlbumName(chartService.getNumberOneAlbumName("yearly", tf.getPeriodKey()));
-                    tf.setNumberOneSongGenderId(chartService.getNumberOneSongGenderId("yearly", tf.getPeriodKey()));
-                    tf.setNumberOneAlbumGenderId(chartService.getNumberOneAlbumGenderId("yearly", tf.getPeriodKey()));
+                    ChartTopEntryDTO entry = chartEntries.get(tf.getPeriodKey());
+                    if (entry != null) {
+                        tf.setNumberOneSongName(entry.getNumberOneSongName());
+                        tf.setNumberOneAlbumName(entry.getNumberOneAlbumName());
+                        tf.setNumberOneSongGenderId(entry.getNumberOneSongGenderId());
+                        tf.setNumberOneAlbumGenderId(entry.getNumberOneAlbumGenderId());
+                    }
                 }
             }
         }

@@ -49,6 +49,9 @@ public class Song {
     @Column(name = "organized")
     private Boolean organized;
     
+    @Column(name = "track_number")
+    private Integer trackNumber;
+    
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "single_cover")
@@ -339,6 +342,14 @@ public class Song {
 
     public void setOrganized(Boolean organized) {
         this.organized = organized;
+    }
+    
+    public Integer getTrackNumber() {
+        return trackNumber;
+    }
+
+    public void setTrackNumber(Integer trackNumber) {
+        this.trackNumber = trackNumber;
     }
     
     public Boolean getInItunes() {

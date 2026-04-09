@@ -59,6 +59,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             Integer imageTheme,
             String imageThemeMode,
             String isBand,
+            String itunesIdsJson,
+            String inItunes,
             Integer playCountMin,
             Integer playCountMax,
             Integer albumCountMin,
@@ -159,20 +161,31 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                                         (listenedDateTo != null && !listenedDateTo.isEmpty());
         String playStatsJoinType = ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) ? "INNER JOIN" : "LEFT JOIN";
         
-        // Build play_stats subquery - standard query with direct plays only
+        // Build play_stats subquery - two-level aggregation: inner by song_id (covering index scan),
+        // outer by artist_id. This avoids a Play->Song join per row, letting SQLite use the
+        // idx_play_cover_plays(song_id, account, play_date) index as a pure covering scan.
         sql.append(playStatsJoinType).append(" ( ");
         sql.append("    SELECT ");
-        sql.append("        song.artist_id, ");
-        sql.append("        COUNT(*) as play_count, ");
-        sql.append("        SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
-        sql.append("        SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
-        sql.append("        SUM(song.length_seconds) as time_listened, ");
-        sql.append("        MIN(p.play_date) as first_listened, ");
-        sql.append("        MAX(p.play_date) as last_listened ");
-        sql.append("    FROM Play p ");
-        sql.append("    JOIN Song song ON p.song_id = song.id ");
-        sql.append("    WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause).append(" ");
-        sql.append("    GROUP BY song.artist_id ");
+        sql.append("        s.artist_id, ");
+        sql.append("        SUM(ps.play_count) as play_count, ");
+        sql.append("        SUM(ps.vatito_play_count) as vatito_play_count, ");
+        sql.append("        SUM(ps.robertlover_play_count) as robertlover_play_count, ");
+        sql.append("        SUM(CAST(s.length_seconds AS INTEGER) * ps.play_count) as time_listened, ");
+        sql.append("        MIN(ps.first_listened) as first_listened, ");
+        sql.append("        MAX(ps.last_listened) as last_listened ");
+        sql.append("    FROM Song s ");
+        sql.append("    JOIN ( ");
+        sql.append("        SELECT p.song_id, ");
+        sql.append("               COUNT(*) as play_count, ");
+        sql.append("               SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count, ");
+        sql.append("               SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count, ");
+        sql.append("               MIN(p.play_date) as first_listened, ");
+        sql.append("               MAX(p.play_date) as last_listened ");
+        sql.append("        FROM Play p ");
+        sql.append("        WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause).append(" ");
+        sql.append("        GROUP BY p.song_id ");
+        sql.append("    ) ps ON ps.song_id = s.id ");
+        sql.append("    GROUP BY s.artist_id ");
         sql.append(") play_stats ON play_stats.artist_id = a.id ");
         
         sql.append("WHERE 1=1 ");
@@ -272,6 +285,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 sql.append(" AND a.is_band = 0 ");
             }
         }
+        
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "a.id", itunesIdsJson, inItunes);
         
         // Play count filter
         if (playCountMin != null) {
@@ -443,6 +459,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             Integer imageTheme,
             String imageThemeMode,
             String isBand,
+            String itunesIdsJson,
+            String inItunes,
             Integer playCountMin,
             Integer playCountMax,
             Integer albumCountMin,
@@ -614,6 +632,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             }
         }
         
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "a.id", itunesIdsJson, inItunes);
+        
         // Play count filter (uses subquery since count query doesn't have play_stats join)
         if (playCountMin != null) {
             sql.append(" AND COALESCE((SELECT COUNT(*) FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id), 0) >= ? ");
@@ -688,6 +709,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             Integer imageTheme,
             String imageThemeMode,
             String isBand,
+            String itunesIdsJson,
             String inItunes,
             Integer playCountMin,
             Integer playCountMax,
@@ -859,14 +881,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             }
         }
         
-        // In iTunes filter
-        if (inItunes != null && !inItunes.isEmpty()) {
-            if ("true".equalsIgnoreCase(inItunes)) {
-                sql.append(" AND EXISTS (SELECT 1 FROM Song s2 WHERE s2.artist_id = a.id AND s2.in_itunes = 1) ");
-            } else if ("false".equalsIgnoreCase(inItunes)) {
-                sql.append(" AND NOT EXISTS (SELECT 1 FROM Song s2 WHERE s2.artist_id = a.id AND s2.in_itunes = 1) ");
-            }
-        }
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "a.id", itunesIdsJson, inItunes);
         
         // Play count filter
         if (playCountMin != null) {

@@ -524,6 +524,7 @@
                         <thead>
                             <tr>
                                 <th class="row-num-col" data-no-sort>#</th>
+                                <th data-sort="tracknumber" style="text-align:right;" class="hide-mobile">Track #</th>
                                 <th data-sort="name">Song Name</th>
                                 <th data-sort="totalplays" style="text-align:right;">Total</th>
                                 <th data-sort="primaryplays" style="text-align:right;" class="hide-mobile">Primary</th>
@@ -538,6 +539,7 @@
                         <tbody id="songsTableBody">
                             <tr th:each="song, iter : ${songs}"
                                 th:attr="data-name=${song.name},
+                                        data-tracknumber=${song.trackNumber != null ? song.trackNumber : 99999},
                                         data-length=${song.length != null ? song.length : 0},
                                         data-releasedate=${song.releaseDate},
                                         data-firstlistened=${song.firstListenedDate},
@@ -547,9 +549,17 @@
                                         data-totalplays=${song.totalPlays},
                                         data-timelistened=${song.totalListeningTimeSeconds}">
                                 <td class="row-num-col" th:text="${iter.count}">1</td>
+                                <td class="hide-mobile" style="text-align:right; color: #888;" th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</td>
                                 <td>
                                     <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
+                                    <span th:if="${song.artistId != null and album.artistId != null and song.artistId != album.artistId}">
+                                        <br/>
+                                        <a th:href="@{'/artists/' + ${song.artistId}}"
+                                           th:text="${song.artistName}"
+                                           th:style="${song.artistGenderName == 'Male' ? 'color:#3b82f6; font-size:11px; text-decoration:none;' : (song.artistGenderName == 'Female' ? 'color:#ec4899; font-size:11px; text-decoration:none;' : 'color:#a0aec0; font-size:11px; text-decoration:none;')}">
+                                        </a>
+                                    </span>
                                 </td>
                                 <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
                                 <td style="text-align:right;" class="hide-mobile" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
@@ -1742,8 +1752,8 @@
             // Songs table sorting
             if (document.getElementById('songsTable')) {
                 initTopTableSort('songsTable', {
-                    defaultColumn: 'totalplays',
-                    defaultDirection: 'desc'
+                    defaultColumn: 'tracknumber',
+                    defaultDirection: 'asc'
                 });
             }
         });

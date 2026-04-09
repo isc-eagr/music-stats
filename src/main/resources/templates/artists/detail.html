@@ -583,7 +583,7 @@
                         </thead>
                         <tbody id="albumsTableBody">
                             <tr th:each="album, iter : ${albums}"
-                                th:classappend="${includeGroups and album.fromGroup} ? 'group-item-row' : ''"
+                                th:classappend="${(includeGroups and album.fromGroup) ? 'group-item-row' : ''} + ${album.fromCrossArtist ? ' cross-artist-row' : ''}"
                                 th:attr="data-name=${album.name},
                                         data-length=${album.totalLengthSeconds != null ? album.totalLengthSeconds : 0},
                                         data-releasedate=${album.releaseDate},
@@ -605,6 +605,10 @@
                                     <span th:if="${includeGroups and album.fromGroup and album.sourceArtistName != null}" 
                                           class="group-artist-label">
                                         (by <a th:href="@{'/artists/' + ${album.sourceArtistId}}" th:text="${album.sourceArtistName}">Group</a>)
+                                    </span>
+                                    <span th:if="${album.fromCrossArtist and album.sourceArtistName != null}" 
+                                          class="cross-artist-label">
+                                        (on <a th:href="@{'/artists/' + ${album.sourceArtistId}}" th:text="${album.sourceArtistName}">Owner</a>'s album)
                                     </span>
                                 </td>
                                 <td style="text-align:right;" th:classappend="${album.totalPlays != null and album.totalPlays >= 500} ? 'golden-plays' : ''" th:text="${album.totalPlays != null ? album.totalPlays : 0}">0</td>
@@ -2735,6 +2739,22 @@
         .group-artist-label {
             font-size: 11px;
             color: #5d9ca5;
+            font-style: italic;
+            margin-left: 6px;
+        }
+        
+        /* Cross-artist album row highlighting - subtle purple/magenta shade */
+        .cross-artist-row {
+            background: rgba(140, 80, 160, 0.12) !important;
+        }
+        
+        .cross-artist-row:hover {
+            background: rgba(140, 80, 160, 0.20) !important;
+        }
+        
+        .cross-artist-label {
+            font-size: 11px;
+            color: #a070b8;
             font-style: italic;
             margin-left: 6px;
         }

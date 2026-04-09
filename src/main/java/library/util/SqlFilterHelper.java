@@ -241,6 +241,28 @@ public final class SqlFilterHelper {
     }
     
     /**
+     * Appends an iTunes entity-ID filter using json_each() for efficient parameterized IN-list.
+     * The caller pre-computes a JSON array of matching entity IDs (e.g. "[1,2,3]")
+     * and passes the desired mode ("true" = include only matching, "false" = exclude matching).
+     *
+     * @param sql            The StringBuilder to append to
+     * @param params         The parameter list to add values to
+     * @param idColumn       The SQL column holding the entity PK (e.g. "a.id")
+     * @param itunesIdsJson  JSON array string of entity IDs present in iTunes, or null if no filter
+     * @param inItunesMode   "true" to include only those IDs, "false" to exclude them; null = no-op
+     */
+    public static void appendItunesIdFilter(StringBuilder sql, List<Object> params,
+                                            String idColumn, String itunesIdsJson, String inItunesMode) {
+        if (itunesIdsJson == null || inItunesMode == null || inItunesMode.isEmpty()) return;
+        if ("true".equalsIgnoreCase(inItunesMode)) {
+            sql.append(" AND ").append(idColumn).append(" IN (SELECT value FROM json_each(?)) ");
+        } else {
+            sql.append(" AND ").append(idColumn).append(" NOT IN (SELECT value FROM json_each(?)) ");
+        }
+        params.add(itunesIdsJson);
+    }
+
+    /**
      * Helper to append comma-separated placeholders.
      */
     private static void appendPlaceholders(StringBuilder sql, int count) {

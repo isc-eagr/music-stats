@@ -66,7 +66,7 @@ function initTopTableSort(tableId, options = {}) {
     const defaults = {
         defaultColumn: 'totalplays',
         defaultDirection: 'desc',
-        numericColumns: ['primaryplays', 'legacyplays', 'totalplays', 'timelistened', 'length'],
+        numericColumns: ['primaryplays', 'legacyplays', 'totalplays', 'timelistened', 'length', 'tracknumber'],
         dateColumns: ['releasedate', 'firstlistened', 'lastlistened'],
         summaryRowId: null
     };

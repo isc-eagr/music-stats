@@ -177,6 +177,9 @@ public class ArtistController {
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         
+        // Pre-compute iTunes artist IDs once for all 3 queries
+        String itunesIdsJson = artistService.getItunesArtistIdsJson(inItunes);
+        
         // Get filtered and sorted artists
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
@@ -186,7 +189,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
@@ -203,7 +206,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
@@ -219,7 +222,7 @@ public class ArtistController {
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
-                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, inItunes,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
@@ -519,19 +522,25 @@ public class ArtistController {
         }
         
         // Add albums list for the artist
+        List<library.dto.ArtistAlbumDTO> albumsList;
         if (includeMain && effectiveGroupIds != null) {
             // Main + Groups
-            model.addAttribute("albums", artistService.getAggregatedAlbumsForArtist(id, effectiveGroupIds));
+            albumsList = new java.util.ArrayList<>(artistService.getAggregatedAlbumsForArtist(id, effectiveGroupIds));
         } else if (includeMain && effectiveGroupIds == null) {
             // Main only
-            model.addAttribute("albums", artistService.getAlbumsForArtist(id));
+            albumsList = new java.util.ArrayList<>(artistService.getAlbumsForArtist(id));
         } else if (!includeMain && effectiveGroupIds != null) {
             // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
-            model.addAttribute("albums", artistService.getAggregatedAlbumsForArtist(0, effectiveGroupIds));
+            albumsList = new java.util.ArrayList<>(artistService.getAggregatedAlbumsForArtist(0, effectiveGroupIds));
         } else {
             // No main, no groups - no albums to show
-            model.addAttribute("albums", java.util.Collections.emptyList());
+            albumsList = new java.util.ArrayList<>();
         }
+        // Append cross-artist albums (albums owned by other artists but containing songs by this artist)
+        if (includeMain) {
+            albumsList.addAll(artistService.getCrossArtistAlbumsForArtist(id));
+        }
+        model.addAttribute("albums", albumsList);
         
         // Add songs list for the artist
         List<ArtistSongDTO> songs;

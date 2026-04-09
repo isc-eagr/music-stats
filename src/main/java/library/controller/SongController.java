@@ -13,6 +13,7 @@ import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.SongService;
 import library.service.ItunesService;
+import library.service.TrlService;
 import library.util.DateFormatUtils;
 import library.service.iTunesLibraryService;
 import org.springframework.stereotype.Controller;
@@ -39,9 +40,11 @@ public class SongController {
     private final iTunesLibraryService iTunesLibraryService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
+    private final TrlService trlService;
 
-    public SongController(SongService songService, ChartService chartService, ArtistService artistService, 
-                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository, ItunesService itunesService) {
+    public SongController(SongService songService, ChartService chartService, ArtistService artistService,
+                         AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
+                         ItunesService itunesService, TrlService trlService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -49,6 +52,7 @@ public class SongController {
         this.iTunesLibraryService = iTunesLibraryService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
+        this.trlService = trlService;
     }
     
     @InitBinder
@@ -181,6 +185,9 @@ public class SongController {
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         
+        // Pre-compute iTunes song IDs once for all 3 queries (getSongs, countSongs, countSongsByGender)
+        String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
+        
         // Get filtered and sorted songs
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
@@ -194,7 +201,7 @@ public class SongController {
                 ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
@@ -213,7 +220,7 @@ public class SongController {
                 ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -231,7 +238,7 @@ public class SongController {
                 ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
-                inItunes,
+                itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
@@ -539,6 +546,10 @@ public class SongController {
         model.addAttribute("releaseYear", songService.getSongReleaseYear(id));
         model.addAttribute("rankByArtist", songService.getSongRankByArtist(id));
         model.addAttribute("rankByAlbum", songService.getSongRankByAlbum(id));
+
+        // TRL chip
+        model.addAttribute("trlDays", trlService.getDaysOnTrlBySongId(id));
+        model.addAttribute("trlStats", trlService.getTrlStatsBySongId(id));
 
         // Extended stats for detail page - age at release
         if (artist != null && artist.getBirthDate() != null) {
@@ -2065,7 +2076,7 @@ public class SongController {
                 null, null,                 // ageAtReleaseMin, ageAtReleaseMax (not used in export)
                 null, null, null, null,     // birthDate, birthDateFrom, birthDateTo, birthDateMode (not used in export)
                 null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode (not used in export)
-                null,                       // inItunes (not used in export)
+                null, null,                 // itunesIdsJson, inItunes (not used in export)
                 playCountMin, playCountMax,
                 null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)

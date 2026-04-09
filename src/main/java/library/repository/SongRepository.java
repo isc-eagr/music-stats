@@ -2,6 +2,7 @@ package library.repository;
 
 import library.dto.ChartFilterDTO;
 import library.util.TimeFormatUtils;
+import library.util.SqlFilterHelper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -32,6 +33,7 @@ public class SongRepository {
                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                               String listenedDateFrom, String listenedDateTo,
                                               String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                              String itunesIdsJson, String inItunes,
                                               Integer ageMin, Integer ageMax, String ageMode,
                                               Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                               String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -445,6 +447,9 @@ public class SongRepository {
             }
         }
         
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "s.id", itunesIdsJson, inItunes);
+        
         // Is Single filter
         if (isSingle != null && !isSingle.isEmpty()) {
             if ("true".equalsIgnoreCase(isSingle)) {
@@ -743,6 +748,7 @@ public class SongRepository {
                                       String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                       String listenedDateFrom, String listenedDateTo,
                                       String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                      String itunesIdsJson, String inItunes,
                                       Integer ageMin, Integer ageMax, String ageMode,
                                       Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                       String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -1112,6 +1118,9 @@ public class SongRepository {
             }
         }
         
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "s.id", itunesIdsJson, inItunes);
+        
         // Is Single filter
         if (isSingle != null && !isSingle.isEmpty()) {
             if ("true".equalsIgnoreCase(isSingle)) {
@@ -1346,7 +1355,7 @@ public class SongRepository {
                                               Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                               String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                               String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                                              String inItunes,
+                                              String itunesIdsJson, String inItunes,
                                               Integer playCountMin, Integer playCountMax,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -1591,9 +1600,8 @@ public class SongRepository {
             }
         }
         
-        // In iTunes filter - NOT implemented in SQL
-        // iTunes status is determined by checking against an in-memory map from iTunes XML
-        // This filter must be applied in the service layer after fetching data
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "s.id", itunesIdsJson, inItunes);
         
         // Play count filter
         if (playCountMin != null) {

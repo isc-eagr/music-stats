@@ -253,6 +253,15 @@
                          <li><a href="/reign/genres" class="app-nav-dropdown-link">Genre</a></li>
                      </ul>
                  </li>
+                 <li class="app-nav-dropdown">
+                     <a href="#" class="app-nav-link app-nav-dropdown-toggle"
+                        th:classappend="${currentSection == 'trl' or currentSection == 'trl-recaps'} ? 'active' : ''"
+                        onclick="toggleDropdown(event, this)">Misc &#9662;</a>
+                     <ul class="app-nav-dropdown-menu">
+                         <li><a href="/misc/trl" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl'} ? 'active' : ''">TRL Overview</a></li>
+                         <li><a href="/misc/trl/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl-recaps'} ? 'active' : ''">TRL Recaps</a></li>
+                     </ul>
+                 </li>
                  <!-- Mobile-only: utilities links -->
                  <li class="app-nav-utilities-mobile" style="display: none;">
                      <a href="/plays/upload" class="app-nav-link">Import</a>

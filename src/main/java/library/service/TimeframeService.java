@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.TimeframeCardDTO;
+import library.dto.TimeframeResultDTO;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,10 @@ public class TimeframeService {
     }
     
     /**
-     * Get timeframe cards with aggregated stats
+     * Get timeframe cards with aggregated stats, returning both the page of results
+     * and the total count in a single pass (eliminating the separate countTimeframes query).
      */
-    public List<TimeframeCardDTO> getTimeframeCards(String periodType, 
+    public TimeframeResultDTO getTimeframeCardsWithCount(String periodType, 
             List<Integer> winningGender, String winningGenderMode,
             List<Integer> winningGenre, String winningGenreMode,
             List<Integer> winningEthnicity, String winningEthnicityMode,
@@ -64,6 +66,21 @@ public class TimeframeService {
         boolean needsJavaSorting = "maledays".equalsIgnoreCase(sortBy);
         boolean skipSqlPagination = needsMergeWithAllPeriods || needsJavaPostFilter || needsJavaSorting;
         
+        // Determine if we can defer winning attribute computation to after pagination
+        // This is safe only when no winning attribute filters are active (including excludes)
+        boolean hasAnyWinningFilters = 
+            (winningGender != null && !winningGender.isEmpty() && winningGenderMode != null) ||
+            (winningGenre != null && !winningGenre.isEmpty() && winningGenreMode != null) ||
+            (winningEthnicity != null && !winningEthnicity.isEmpty() && winningEthnicityMode != null) ||
+            (winningLanguage != null && !winningLanguage.isEmpty() && winningLanguageMode != null) ||
+            (winningCountry != null && !winningCountry.isEmpty() && winningCountryMode != null);
+        boolean deferWinningAttributes = skipSqlPagination && !hasAnyWinningFilters;
+        
+        // Determine if maleDays can be deferred to after pagination
+        boolean needsMaleDaysPrePagination = (maleDaysMin != null || maleDaysMax != null || "maledays".equalsIgnoreCase(sortBy));
+        
+        long t0 = System.currentTimeMillis();
+        
         // Build period key expression based on type
         String periodKeyExpr = getPeriodKeyExpression(periodType);
         
@@ -71,7 +88,6 @@ public class TimeframeService {
         String sortColumn = getSortColumn(sortBy, periodType);
         
         // Build the main query
-        // OPTIMIZATION: Reduce work by filtering/sorting period_stats FIRST, then only compute winning attrs for visible rows
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
         
@@ -79,6 +95,8 @@ public class TimeframeService {
             WITH period_summary AS (
                 SELECT 
                     %s as period_key,
+                    MIN(p.play_date) as bound_min,
+                    MAX(p.play_date) as bound_max,
                     COUNT(*) as play_count,
                     COALESCE(SUM(s.length_seconds), 0) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
@@ -108,7 +126,7 @@ public class TimeframeService {
             ),
             filtered_periods AS (
                 SELECT 
-                    period_key,
+                    period_key, bound_min, bound_max,
                     play_count,
                     time_listened,
                     artist_count,
@@ -179,85 +197,113 @@ public class TimeframeService {
             params.add(perPage);
             params.add(offset);
         }
-        sql.append("\n            ),");
-        
-        // Now compute winning attributes ONLY for the filtered/paginated periods
-        sql.append("""
+        // When deferring winning attributes, skip the expensive CTEs in SQL
+        // and compute them only for the paginated page later
+        if (deferWinningAttributes) {
+            sql.append("\n            )");
+            sql.append(String.format("""
             
-            winning_gender AS (
+            SELECT 
+                period_key,
+                play_count,
+                time_listened,
+                artist_count,
+                album_count,
+                song_count,
+                male_song_count,
+                female_song_count,
+                other_song_count,
+                male_artist_count,
+                female_artist_count,
+                other_artist_count,
+                male_album_count,
+                female_album_count,
+                other_album_count,
+                male_play_count,
+                female_play_count,
+                other_play_count,
+                male_time_listened,
+                female_time_listened,
+                other_time_listened,
+                NULL as winning_gender_id,
+                NULL as winning_gender_name,
+                NULL as winning_genre_id,
+                NULL as winning_genre_name,
+                NULL as winning_ethnicity_id,
+                NULL as winning_ethnicity_name,
+                NULL as winning_language_id,
+                NULL as winning_language_name,
+                NULL as winning_country,
+                male_artist_pct,
+                male_album_pct,
+                male_song_pct,
+                male_play_pct,
+                male_time_pct
+            FROM filtered_periods
+            ORDER BY %s %s
+            """, sortColumn.replace("ps.", ""), sortDirection));
+        } else {
+            sql.append("\n            ),");
+            
+            // Now compute winning attributes ONLY for the filtered/paginated periods
+            // Single-pass: scan Play table ONCE into period_attr_counts, then derive each winner
+            sql.append(String.format("""
+            
+            period_attr_counts AS (
                 SELECT 
                     %s as period_key,
-                    gn.id as gender_id,
-                    gn.name as gender_name,
-                    COUNT(*) as cnt,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
+                    COALESCE(s.override_gender_id, ar.gender_id) as eff_gender_id,
+                    COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as eff_genre_id,
+                    COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as eff_ethnicity_id,
+                    COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as eff_language_id,
+                    ar.country as eff_country,
+                    COUNT(*) as cnt
                 FROM Play p
                 INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
+                LEFT JOIN Album al ON s.album_id = al.id
                 INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE p.play_date IS NOT NULL AND gn.id IS NOT NULL
-                GROUP BY period_key, gn.id, gn.name
+                WHERE p.play_date IS NOT NULL
+                GROUP BY period_key, eff_gender_id, eff_genre_id, eff_ethnicity_id, eff_language_id, eff_country
+            ),
+            winning_gender AS (
+                SELECT pac.period_key, pac.eff_gender_id as gender_id, gn.name as gender_name,
+                    ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn
+                FROM period_attr_counts pac
+                LEFT JOIN Gender gn ON pac.eff_gender_id = gn.id
+                WHERE pac.eff_gender_id IS NOT NULL
+                GROUP BY pac.period_key, pac.eff_gender_id, gn.name
             ),
             winning_genre AS (
-                SELECT 
-                    %s as period_key,
-                    gr.id as genre_id,
-                    gr.name as genre_name,
-                    COUNT(*) as cnt,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Play p
-                INNER JOIN Song s ON p.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Genre gr ON COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = gr.id
-                INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE p.play_date IS NOT NULL AND gr.id IS NOT NULL
-                GROUP BY period_key, gr.id, gr.name
+                SELECT pac.period_key, pac.eff_genre_id as genre_id, gr.name as genre_name,
+                    ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn
+                FROM period_attr_counts pac
+                LEFT JOIN Genre gr ON pac.eff_genre_id = gr.id
+                WHERE pac.eff_genre_id IS NOT NULL
+                GROUP BY pac.period_key, pac.eff_genre_id, gr.name
             ),
             winning_ethnicity AS (
-                SELECT 
-                    %s as period_key,
-                    eth.id as ethnicity_id,
-                    eth.name as ethnicity_name,
-                    COUNT(*) as cnt,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Play p
-                INNER JOIN Song s ON p.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Ethnicity eth ON COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = eth.id
-                INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE p.play_date IS NOT NULL AND eth.id IS NOT NULL
-                GROUP BY period_key, eth.id, eth.name
+                SELECT pac.period_key, pac.eff_ethnicity_id as ethnicity_id, eth.name as ethnicity_name,
+                    ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn
+                FROM period_attr_counts pac
+                LEFT JOIN Ethnicity eth ON pac.eff_ethnicity_id = eth.id
+                WHERE pac.eff_ethnicity_id IS NOT NULL
+                GROUP BY pac.period_key, pac.eff_ethnicity_id, eth.name
             ),
             winning_language AS (
-                SELECT 
-                    %s as period_key,
-                    lang.id as language_id,
-                    lang.name as language_name,
-                    COUNT(*) as cnt,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Play p
-                INNER JOIN Song s ON p.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Language lang ON COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = lang.id
-                INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE p.play_date IS NOT NULL AND lang.id IS NOT NULL
-                GROUP BY period_key, lang.id, lang.name
+                SELECT pac.period_key, pac.eff_language_id as language_id, lang.name as language_name,
+                    ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn
+                FROM period_attr_counts pac
+                LEFT JOIN Language lang ON pac.eff_language_id = lang.id
+                WHERE pac.eff_language_id IS NOT NULL
+                GROUP BY pac.period_key, pac.eff_language_id, lang.name
             ),
             winning_country AS (
-                SELECT 
-                    %s as period_key,
-                    ar.country as country,
-                    COUNT(*) as cnt,
-                    ROW_NUMBER() OVER (PARTITION BY %s ORDER BY COUNT(*) DESC) as rn
-                FROM Play p
-                INNER JOIN Song s ON p.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE p.play_date IS NOT NULL AND ar.country IS NOT NULL
-                GROUP BY period_key, ar.country
+                SELECT pac.period_key, pac.eff_country as country,
+                    ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn
+                FROM period_attr_counts pac
+                WHERE pac.eff_country IS NOT NULL
+                GROUP BY pac.period_key, pac.eff_country
             )
             SELECT 
                 fp.period_key,
@@ -302,71 +348,75 @@ public class TimeframeService {
             LEFT JOIN winning_language wlang ON fp.period_key = wlang.period_key AND wlang.rn = 1
             LEFT JOIN winning_country wcty ON fp.period_key = wcty.period_key AND wcty.rn = 1
             ORDER BY %s %s
-            """.formatted(
-                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_gender
-                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_genre
-                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_ethnicity
-                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_language
-                periodKeyExpr, periodKeyExpr, periodKeyExpr, // winning_country
+            """, periodKeyExpr, periodKeyExpr,
                 sortColumn.replace("ps.", "fp."), sortDirection
             ));
+        }
         
-        // Apply winning attribute filters (if any)
-        appendWinningFilters(sql, params,
-            winningGender, winningGenderMode,
-            winningGenre, winningGenreMode,
-            winningEthnicity, winningEthnicityMode,
-            winningLanguage, winningLanguageMode,
-            winningCountry, winningCountryMode);
+        // Apply winning attribute filters (if any) - only when winning CTEs are in the SQL
+        if (!deferWinningAttributes) {
+            appendWinningFilters(sql, params,
+                winningGender, winningGenderMode,
+                winningGenre, winningGenreMode,
+                winningEthnicity, winningEthnicityMode,
+                winningLanguage, winningLanguageMode,
+                winningCountry, winningCountryMode);
+        }
+        
+        long t1 = System.currentTimeMillis();
         
         // Execute query and map results
-        List<TimeframeCardDTO> results = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            TimeframeCardDTO dto = new TimeframeCardDTO();
-            String periodKey = rs.getString("period_key");
-            dto.setPeriodKey(periodKey);
-            dto.setPeriodType(periodType);
-            dto.setPeriodDisplayName(formatPeriodDisplayName(periodType, periodKey));
-            
-            // Calculate date range
-            String[] dateRange = calculateDateRange(periodType, periodKey);
-            dto.setListenedDateFrom(dateRange[0]);
-            dto.setListenedDateTo(dateRange[1]);
-            
-            dto.setPlayCount(rs.getInt("play_count"));
-            dto.setTimeListened(rs.getLong("time_listened"));
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(rs.getLong("time_listened")));
-            dto.setArtistCount(rs.getInt("artist_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setMaleCount(rs.getInt("male_song_count"));
-            dto.setFemaleCount(rs.getInt("female_song_count"));
-            dto.setOtherCount(rs.getInt("other_song_count"));
-            dto.setMaleArtistCount(rs.getInt("male_artist_count"));
-            dto.setFemaleArtistCount(rs.getInt("female_artist_count"));
-            dto.setOtherArtistCount(rs.getInt("other_artist_count"));
-            dto.setMaleAlbumCount(rs.getInt("male_album_count"));
-            dto.setFemaleAlbumCount(rs.getInt("female_album_count"));
-            dto.setOtherAlbumCount(rs.getInt("other_album_count"));
-            dto.setMalePlayCount(rs.getInt("male_play_count"));
-            dto.setFemalePlayCount(rs.getInt("female_play_count"));
-            dto.setOtherPlayCount(rs.getInt("other_play_count"));
-            dto.setMaleTimeListened(rs.getLong("male_time_listened"));
-            dto.setFemaleTimeListened(rs.getLong("female_time_listened"));
-            dto.setOtherTimeListened(rs.getLong("other_time_listened"));
-            
-            // Winning attributes
-            dto.setWinningGenderId(rs.getObject("winning_gender_id") != null ? rs.getInt("winning_gender_id") : null);
-            dto.setWinningGenderName(rs.getString("winning_gender_name"));
-            dto.setWinningGenreId(rs.getObject("winning_genre_id") != null ? rs.getInt("winning_genre_id") : null);
-            dto.setWinningGenreName(rs.getString("winning_genre_name"));
-            dto.setWinningEthnicityId(rs.getObject("winning_ethnicity_id") != null ? rs.getInt("winning_ethnicity_id") : null);
-            dto.setWinningEthnicityName(rs.getString("winning_ethnicity_name"));
-            dto.setWinningLanguageId(rs.getObject("winning_language_id") != null ? rs.getInt("winning_language_id") : null);
-            dto.setWinningLanguageName(rs.getString("winning_language_name"));
-            dto.setWinningCountry(rs.getString("winning_country"));
-            
-            return dto;
-        }, params.toArray());
+        List<TimeframeCardDTO> results;
+        results = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+                TimeframeCardDTO dto = new TimeframeCardDTO();
+                String periodKey = rs.getString("period_key");
+                dto.setPeriodKey(periodKey);
+                dto.setPeriodType(periodType);
+                dto.setPeriodDisplayName(formatPeriodDisplayName(periodType, periodKey));
+                
+                // Calculate date range
+                String[] dateRange = calculateDateRange(periodType, periodKey);
+                dto.setListenedDateFrom(dateRange[0]);
+                dto.setListenedDateTo(dateRange[1]);
+                
+                dto.setPlayCount(rs.getInt("play_count"));
+                dto.setTimeListened(rs.getLong("time_listened"));
+                dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(rs.getLong("time_listened")));
+                dto.setArtistCount(rs.getInt("artist_count"));
+                dto.setAlbumCount(rs.getInt("album_count"));
+                dto.setSongCount(rs.getInt("song_count"));
+                dto.setMaleCount(rs.getInt("male_song_count"));
+                dto.setFemaleCount(rs.getInt("female_song_count"));
+                dto.setOtherCount(rs.getInt("other_song_count"));
+                dto.setMaleArtistCount(rs.getInt("male_artist_count"));
+                dto.setFemaleArtistCount(rs.getInt("female_artist_count"));
+                dto.setOtherArtistCount(rs.getInt("other_artist_count"));
+                dto.setMaleAlbumCount(rs.getInt("male_album_count"));
+                dto.setFemaleAlbumCount(rs.getInt("female_album_count"));
+                dto.setOtherAlbumCount(rs.getInt("other_album_count"));
+                dto.setMalePlayCount(rs.getInt("male_play_count"));
+                dto.setFemalePlayCount(rs.getInt("female_play_count"));
+                dto.setOtherPlayCount(rs.getInt("other_play_count"));
+                dto.setMaleTimeListened(rs.getLong("male_time_listened"));
+                dto.setFemaleTimeListened(rs.getLong("female_time_listened"));
+                dto.setOtherTimeListened(rs.getLong("other_time_listened"));
+                
+                // Winning attributes
+                dto.setWinningGenderId(rs.getObject("winning_gender_id") != null ? rs.getInt("winning_gender_id") : null);
+                dto.setWinningGenderName(rs.getString("winning_gender_name"));
+                dto.setWinningGenreId(rs.getObject("winning_genre_id") != null ? rs.getInt("winning_genre_id") : null);
+                dto.setWinningGenreName(rs.getString("winning_genre_name"));
+                dto.setWinningEthnicityId(rs.getObject("winning_ethnicity_id") != null ? rs.getInt("winning_ethnicity_id") : null);
+                dto.setWinningEthnicityName(rs.getString("winning_ethnicity_name"));
+                dto.setWinningLanguageId(rs.getObject("winning_language_id") != null ? rs.getInt("winning_language_id") : null);
+                dto.setWinningLanguageName(rs.getString("winning_language_name"));
+                dto.setWinningCountry(rs.getString("winning_country"));
+                
+                return dto;
+            }, params.toArray());
+        
+        long t2 = System.currentTimeMillis();
+        System.out.println("[PERF] " + periodType + " SQL build+exec: " + (t2-t0) + "ms (build=" + (t1-t0) + "ms, exec=" + (t2-t1) + "ms)");
         
         // Unified post-processing: merge, filter, sort, paginate
         if (skipSqlPagination) {
@@ -414,8 +464,8 @@ public class TimeframeService {
                 results = filterByDateOverlap(results, dateFrom, dateTo);
             }
             
-            // Step 2: Compute maleDays (for non-days types, before filtering)
-            if (!"days".equals(periodType)) {
+            // Step 2: Compute maleDays ONLY if needed for filtering/sorting (expensive for all periods)
+            if (!"days".equals(periodType) && needsMaleDaysPrePagination) {
                 populateMaleDays(results, periodType);
             }
             
@@ -432,6 +482,9 @@ public class TimeframeService {
             // Step 4: Sort
             results.sort(getComparator(sortBy, periodType, sortDir));
             
+            // Capture total count BEFORE pagination
+            long totalCount = results.size();
+            
             // Step 5: Paginate
             int start = page * perPage;
             int end = Math.min(start + perPage, results.size());
@@ -441,21 +494,45 @@ public class TimeframeService {
                 results = new ArrayList<>(results.subList(start, end));
             }
             
-            // Step 6: Populate top items for the paginated page
+            // Step 6: Populate deferred data for the paginated page only
             if (!results.isEmpty()) {
                 populateTopItems(results, periodType);
+                // Compute winning attributes post-pagination if deferred
+                if (deferWinningAttributes) {
+                    populateWinningAttributes(results, periodType);
+                }
+                // Compute maleDays post-pagination if not needed for filtering/sorting
+                if (!"days".equals(periodType) && !needsMaleDaysPrePagination) {
+                    populateMaleDays(results, periodType);
+                }
             }
+            
+            return new TimeframeResultDTO(results, totalCount);
         } else {
-            // SQL-paginated path (no Java processing needed)
+            // SQL-paginated path: compute count with a lightweight SQL COUNT query
+            long totalCount = countTimeframesLightweight(periodType,
+                winningGender, winningGenderMode, winningGenre, winningGenreMode,
+                winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
+                winningCountry, winningCountryMode,
+                artistCountMin, artistCountMax, albumCountMin, albumCountMax,
+                songCountMin, songCountMax, playsMin, playsMax, timeMin, timeMax,
+                maleArtistPctMin, maleArtistPctMax, maleAlbumPctMin, maleAlbumPctMax,
+                maleSongPctMin, maleSongPctMax, malePlayPctMin, malePlayPctMax,
+                maleTimePctMin, maleTimePctMax,
+                dateFrom, dateTo, maleDaysMin, maleDaysMax);
+            
             if (!results.isEmpty()) {
                 populateTopItems(results, periodType);
+                if (deferWinningAttributes) {
+                    populateWinningAttributes(results, periodType);
+                }
                 if (!"days".equals(periodType)) {
                     populateMaleDays(results, periodType);
                 }
             }
+            
+            return new TimeframeResultDTO(results, totalCount);
         }
-
-        return results;
     }
     
     /**
@@ -471,114 +548,355 @@ public class TimeframeService {
         String periodKeyExpr = getPeriodKeyExpression(periodType);
         String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
 
-        // Query for top artist per period
-        // Note: Using periodKeyExpr in GROUP BY instead of alias for SQLite compatibility with complex expressions
-        String topArtistSql =
-            "WITH artist_plays AS ( " +
-            "    SELECT " +
-            "        " + periodKeyExpr + " as period_key, " +
-            "        ar.id as artist_id, " +
-            "        ar.name as artist_name, " +
-            "        ar.gender_id as gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        MAX(p.play_date) as max_play_date, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(p.play_date) ASC) as rn " +
-            "    FROM Play p " +
-            "    JOIN Song s ON p.song_id = s.id " +
-            "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "    GROUP BY " + periodKeyExpr + ", ar.id, ar.name, ar.gender_id " +
-            ") " +
-            "SELECT period_key, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
+        // Compute date bounds for index-assisted scan
+        String[] dateBounds = computeDateBounds(timeframes);
+        StringBuilder dateBoundsClause = new StringBuilder();
+        List<Object> extraParams = new ArrayList<>();
+        if (dateBounds[0] != null) {
+            dateBoundsClause.append(" AND p.play_date >= ?");
+            extraParams.add(dateBounds[0]);
+        }
+        if (dateBounds[1] != null) {
+            dateBoundsClause.append(" AND p.play_date <= ?");
+            extraParams.add(dateBounds[1]);
+        }
 
-        List<Object[]> artistResults = jdbcTemplate.query(topArtistSql, (rs, rowNum) ->
-            new Object[]{rs.getString("period_key"), rs.getInt("artist_id"), rs.getString("artist_name"),
-                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
-            periodKeys.toArray()
-        );
-
-        // Query for top album per period
-        String topAlbumSql =
-            "WITH album_plays AS ( " +
-            "    SELECT " +
-            "        " + periodKeyExpr + " as period_key, " +
-            "        al.id as album_id, " +
-            "        al.name as album_name, " +
-            "        ar.name as artist_name, " +
-            "        ar.gender_id as gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        MAX(p.play_date) as max_play_date, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(p.play_date) ASC) as rn " +
-            "    FROM Play p " +
-            "    JOIN Song s ON p.song_id = s.id " +
-            "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE al.id IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "    GROUP BY " + periodKeyExpr + ", al.id, al.name, ar.name, ar.gender_id " +
-            ") " +
-            "SELECT period_key, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
-
-        List<Object[]> albumResults = jdbcTemplate.query(topAlbumSql, (rs, rowNum) ->
-            new Object[]{rs.getString("period_key"), rs.getInt("album_id"), rs.getString("album_name"), rs.getString("artist_name"),
-                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
-            periodKeys.toArray()
-        );
-
-        // Query for top song per period
-        String topSongSql =
-            "WITH song_plays AS ( " +
+        // Combined query: single base scan of Play table, then derive top artist/album/song via UNION ALL
+        String combinedSql =
+            "WITH base_plays AS ( " +
             "    SELECT " +
             "        " + periodKeyExpr + " as period_key, " +
             "        s.id as song_id, " +
             "        s.name as song_name, " +
+            "        ar.id as artist_id, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        MAX(p.play_date) as max_play_date, " +
-            "        ROW_NUMBER() OVER (PARTITION BY " + periodKeyExpr + " ORDER BY COUNT(*) DESC, MAX(p.play_date) ASC) as rn " +
+            "        al.id as album_id, " +
+            "        al.name as album_name " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
-            "    GROUP BY " + periodKeyExpr + ", s.id, s.name, ar.name, ar.gender_id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "), " +
+            "top_artists AS ( " +
+            "    SELECT period_key, artist_id as item_id, artist_name as item_name, " +
+            "        NULL as secondary_name, gender_id, " +
+            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM base_plays " +
+            "    GROUP BY period_key, artist_id, artist_name, gender_id " +
+            "), " +
+            "top_albums AS ( " +
+            "    SELECT period_key, album_id as item_id, album_name as item_name, " +
+            "        artist_name as secondary_name, gender_id, " +
+            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM base_plays " +
+            "    WHERE album_id IS NOT NULL " +
+            "    GROUP BY period_key, album_id, album_name, artist_name, gender_id " +
+            "), " +
+            "top_songs AS ( " +
+            "    SELECT period_key, song_id as item_id, song_name as item_name, " +
+            "        artist_name as secondary_name, gender_id, " +
+            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
+            "    FROM base_plays " +
+            "    GROUP BY period_key, song_id, song_name, artist_name, gender_id " +
             ") " +
-            "SELECT period_key, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
+            "SELECT 'artist' as item_type, period_key, item_id, item_name, secondary_name, gender_id FROM top_artists WHERE rn = 1 " +
+            "UNION ALL " +
+            "SELECT 'album' as item_type, period_key, item_id, item_name, secondary_name, gender_id FROM top_albums WHERE rn = 1 " +
+            "UNION ALL " +
+            "SELECT 'song' as item_type, period_key, item_id, item_name, secondary_name, gender_id FROM top_songs WHERE rn = 1";
 
-        List<Object[]> songResults = jdbcTemplate.query(topSongSql, (rs, rowNum) ->
-            new Object[]{rs.getString("period_key"), rs.getInt("song_id"), rs.getString("song_name"), rs.getString("artist_name"),
-                        rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null},
-            periodKeys.toArray()
-        );
+        // All 3 parts use the same placeholders (period keys + date bounds)
+        List<Object> allParamsList = new ArrayList<>(periodKeys);
+        allParamsList.addAll(extraParams);
+        Object[] allParams = allParamsList.toArray();
 
-        // Map results to timeframes
+        // Build a lookup map for fast assignment
+        Map<String, TimeframeCardDTO> tfMap = new HashMap<>();
         for (TimeframeCardDTO tf : timeframes) {
-            for (Object[] row : artistResults) {
-                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
-                    tf.setTopArtistId((Integer) row[1]);
-                    tf.setTopArtistName((String) row[2]);
-                    tf.setTopArtistGenderId((Integer) row[3]);
-                    break;
+            if (tf.getPeriodKey() != null) {
+                tfMap.put(tf.getPeriodKey(), tf);
+            }
+        }
+
+        jdbcTemplate.query(combinedSql, (rs) -> {
+            String itemType = rs.getString("item_type");
+            String periodKey = rs.getString("period_key");
+            int itemId = rs.getInt("item_id");
+            String itemName = rs.getString("item_name");
+            String secondaryName = rs.getString("secondary_name");
+            Integer genderId = rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null;
+
+            TimeframeCardDTO tf = tfMap.get(periodKey);
+            if (tf == null) return;
+
+            switch (itemType) {
+                case "artist" -> {
+                    tf.setTopArtistId(itemId);
+                    tf.setTopArtistName(itemName);
+                    tf.setTopArtistGenderId(genderId);
+                }
+                case "album" -> {
+                    tf.setTopAlbumId(itemId);
+                    tf.setTopAlbumName(itemName);
+                    tf.setTopAlbumArtistName(secondaryName);
+                    tf.setTopAlbumGenderId(genderId);
+                }
+                case "song" -> {
+                    tf.setTopSongId(itemId);
+                    tf.setTopSongName(itemName);
+                    tf.setTopSongArtistName(secondaryName);
+                    tf.setTopSongGenderId(genderId);
                 }
             }
-            for (Object[] row : albumResults) {
-                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
-                    tf.setTopAlbumId((Integer) row[1]);
-                    tf.setTopAlbumName((String) row[2]);
-                    tf.setTopAlbumArtistName((String) row[3]);
-                    tf.setTopAlbumGenderId((Integer) row[4]);
-                    break;
+        }, allParams);
+    }
+
+    /**
+     * Populates winning attributes (gender, genre, ethnicity, language, country) for each timeframe.
+     * Called post-pagination to avoid scanning the entire Play table for all periods.
+     */
+    private void populateWinningAttributes(List<TimeframeCardDTO> timeframes, String periodType) {
+        List<String> periodKeys = timeframes.stream()
+            .filter(t -> t.getPlayCount() != null && t.getPlayCount() > 0)
+            .map(TimeframeCardDTO::getPeriodKey)
+            .toList();
+        if (periodKeys.isEmpty()) return;
+
+        String periodKeyExpr = getPeriodKeyExpression(periodType);
+        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
+
+        // Compute date bounds for index-assisted scan
+        String[] dateBounds = computeDateBounds(timeframes);
+        StringBuilder dateBoundsClause = new StringBuilder();
+        List<Object> extraParams = new ArrayList<>();
+        if (dateBounds[0] != null) {
+            dateBoundsClause.append(" AND p.play_date >= ?");
+            extraParams.add(dateBounds[0]);
+        }
+        if (dateBounds[1] != null) {
+            dateBoundsClause.append(" AND p.play_date <= ?");
+            extraParams.add(dateBounds[1]);
+        }
+
+        String sql = 
+            "WITH period_attr_counts AS ( " +
+            "    SELECT " +
+            "        " + periodKeyExpr + " as period_key, " +
+            "        COALESCE(s.override_gender_id, ar.gender_id) as eff_gender_id, " +
+            "        COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as eff_genre_id, " +
+            "        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as eff_ethnicity_id, " +
+            "        COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as eff_language_id, " +
+            "        ar.country as eff_country, " +
+            "        COUNT(*) as cnt " +
+            "    FROM Play p " +
+            "    INNER JOIN Song s ON p.song_id = s.id " +
+            "    INNER JOIN Artist ar ON s.artist_id = ar.id " +
+            "    LEFT JOIN Album al ON s.album_id = al.id " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "    GROUP BY period_key, eff_gender_id, eff_genre_id, eff_ethnicity_id, eff_language_id, eff_country " +
+            "), " +
+            "winning_gender AS ( " +
+            "    SELECT pac.period_key, pac.eff_gender_id as attr_id, gn.name as attr_name, " +
+            "        ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn " +
+            "    FROM period_attr_counts pac " +
+            "    LEFT JOIN Gender gn ON pac.eff_gender_id = gn.id " +
+            "    WHERE pac.eff_gender_id IS NOT NULL " +
+            "    GROUP BY pac.period_key, pac.eff_gender_id, gn.name " +
+            "), " +
+            "winning_genre AS ( " +
+            "    SELECT pac.period_key, pac.eff_genre_id as attr_id, gr.name as attr_name, " +
+            "        ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn " +
+            "    FROM period_attr_counts pac " +
+            "    LEFT JOIN Genre gr ON pac.eff_genre_id = gr.id " +
+            "    WHERE pac.eff_genre_id IS NOT NULL " +
+            "    GROUP BY pac.period_key, pac.eff_genre_id, gr.name " +
+            "), " +
+            "winning_ethnicity AS ( " +
+            "    SELECT pac.period_key, pac.eff_ethnicity_id as attr_id, eth.name as attr_name, " +
+            "        ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn " +
+            "    FROM period_attr_counts pac " +
+            "    LEFT JOIN Ethnicity eth ON pac.eff_ethnicity_id = eth.id " +
+            "    WHERE pac.eff_ethnicity_id IS NOT NULL " +
+            "    GROUP BY pac.period_key, pac.eff_ethnicity_id, eth.name " +
+            "), " +
+            "winning_language AS ( " +
+            "    SELECT pac.period_key, pac.eff_language_id as attr_id, lang.name as attr_name, " +
+            "        ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn " +
+            "    FROM period_attr_counts pac " +
+            "    LEFT JOIN Language lang ON pac.eff_language_id = lang.id " +
+            "    WHERE pac.eff_language_id IS NOT NULL " +
+            "    GROUP BY pac.period_key, pac.eff_language_id, lang.name " +
+            "), " +
+            "winning_country AS ( " +
+            "    SELECT pac.period_key, pac.eff_country as attr_name, " +
+            "        ROW_NUMBER() OVER (PARTITION BY pac.period_key ORDER BY SUM(pac.cnt) DESC) as rn " +
+            "    FROM period_attr_counts pac " +
+            "    WHERE pac.eff_country IS NOT NULL " +
+            "    GROUP BY pac.period_key, pac.eff_country " +
+            ") " +
+            "SELECT 'gender' as attr_type, period_key, attr_id, attr_name FROM winning_gender WHERE rn = 1 " +
+            "UNION ALL " +
+            "SELECT 'genre' as attr_type, period_key, attr_id, attr_name FROM winning_genre WHERE rn = 1 " +
+            "UNION ALL " +
+            "SELECT 'ethnicity' as attr_type, period_key, attr_id, attr_name FROM winning_ethnicity WHERE rn = 1 " +
+            "UNION ALL " +
+            "SELECT 'language' as attr_type, period_key, attr_id, attr_name FROM winning_language WHERE rn = 1 " +
+            "UNION ALL " +
+            "SELECT 'country' as attr_type, period_key, NULL as attr_id, attr_name FROM winning_country WHERE rn = 1";
+
+        List<Object> allParamsList = new ArrayList<>(periodKeys);
+        allParamsList.addAll(extraParams);
+        Object[] allParams = allParamsList.toArray();
+
+        Map<String, TimeframeCardDTO> tfMap = new HashMap<>();
+        for (TimeframeCardDTO tf : timeframes) {
+            if (tf.getPeriodKey() != null) {
+                tfMap.put(tf.getPeriodKey(), tf);
+            }
+        }
+
+        jdbcTemplate.query(sql, (rs) -> {
+            String attrType = rs.getString("attr_type");
+            String periodKey = rs.getString("period_key");
+            Integer attrId = rs.getObject("attr_id") != null ? rs.getInt("attr_id") : null;
+            String attrName = rs.getString("attr_name");
+
+            TimeframeCardDTO tf = tfMap.get(periodKey);
+            if (tf == null) return;
+
+            switch (attrType) {
+                case "gender" -> {
+                    tf.setWinningGenderId(attrId);
+                    tf.setWinningGenderName(attrName);
+                }
+                case "genre" -> {
+                    tf.setWinningGenreId(attrId);
+                    tf.setWinningGenreName(attrName);
+                }
+                case "ethnicity" -> {
+                    tf.setWinningEthnicityId(attrId);
+                    tf.setWinningEthnicityName(attrName);
+                }
+                case "language" -> {
+                    tf.setWinningLanguageId(attrId);
+                    tf.setWinningLanguageName(attrName);
+                }
+                case "country" -> {
+                    tf.setWinningCountry(attrName);
                 }
             }
-            for (Object[] row : songResults) {
-                if (tf.getPeriodKey() != null && tf.getPeriodKey().equals(row[0])) {
-                    tf.setTopSongId((Integer) row[1]);
-                    tf.setTopSongName((String) row[2]);
-                    tf.setTopSongArtistName((String) row[3]);
-                    tf.setTopSongGenderId((Integer) row[4]);
-                    break;
+        }, allParams);
+    }
+
+    /**
+     * Populates gender-split statistics (male/female/other counts for songs, artists, albums, plays, time)
+     * for each timeframe. Called after pagination when useLightweightFirstPass skipped these aggregates.
+     * Uses date bounds from listenedDateFrom/To to narrow the scan.
+     */
+    private void populateDetailedStats(List<TimeframeCardDTO> timeframes, String periodType) {
+        List<String> periodKeys = timeframes.stream()
+            .filter(t -> t.getPlayCount() != null && t.getPlayCount() > 0)
+            .map(TimeframeCardDTO::getPeriodKey)
+            .toList();
+        if (periodKeys.isEmpty()) return;
+
+        String periodKeyExpr = getPeriodKeyExpression(periodType);
+        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
+
+        // Compute date bounds across all DTOs for index-assisted scan
+        String[] dateBounds = computeDateBounds(timeframes);
+
+        StringBuilder sqlBuilder = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+
+        sqlBuilder.append(String.format("""
+            SELECT 
+                %s as period_key,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.id END) as male_song_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.id END) as female_song_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.id END) as other_song_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN ar.id END) as male_artist_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN ar.id END) as female_artist_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN ar.id END) as other_artist_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 AND s.album_id IS NOT NULL THEN s.album_id END) as male_album_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 AND s.album_id IS NOT NULL THEN s.album_id END) as female_album_count,
+                COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL AND s.album_id IS NOT NULL THEN s.album_id END) as other_album_count,
+                SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_play_count,
+                SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_play_count,
+                SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_play_count,
+                SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.length_seconds ELSE 0 END) as male_time_listened,
+                SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.length_seconds ELSE 0 END) as female_time_listened,
+                SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.length_seconds ELSE 0 END) as other_time_listened
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            WHERE %s IN (%s)""", periodKeyExpr, periodKeyExpr, placeholders));
+
+        params.addAll(periodKeys);
+
+        if (dateBounds[0] != null) {
+            sqlBuilder.append(" AND p.play_date >= ?");
+            params.add(dateBounds[0]);
+        }
+        if (dateBounds[1] != null) {
+            sqlBuilder.append(" AND p.play_date <= ?");
+            params.add(dateBounds[1]);
+        }
+
+        sqlBuilder.append(String.format(" GROUP BY %s", periodKeyExpr));
+
+        Map<String, TimeframeCardDTO> tfMap = new HashMap<>();
+        for (TimeframeCardDTO tf : timeframes) {
+            if (tf.getPeriodKey() != null) {
+                tfMap.put(tf.getPeriodKey(), tf);
+            }
+        }
+
+        jdbcTemplate.query(sqlBuilder.toString(), (rs) -> {
+            String periodKey = rs.getString("period_key");
+            TimeframeCardDTO tf = tfMap.get(periodKey);
+            if (tf == null) return;
+
+            tf.setMaleCount(rs.getInt("male_song_count"));
+            tf.setFemaleCount(rs.getInt("female_song_count"));
+            tf.setOtherCount(rs.getInt("other_song_count"));
+            tf.setMaleArtistCount(rs.getInt("male_artist_count"));
+            tf.setFemaleArtistCount(rs.getInt("female_artist_count"));
+            tf.setOtherArtistCount(rs.getInt("other_artist_count"));
+            tf.setMaleAlbumCount(rs.getInt("male_album_count"));
+            tf.setFemaleAlbumCount(rs.getInt("female_album_count"));
+            tf.setOtherAlbumCount(rs.getInt("other_album_count"));
+            tf.setMalePlayCount(rs.getInt("male_play_count"));
+            tf.setFemalePlayCount(rs.getInt("female_play_count"));
+            tf.setOtherPlayCount(rs.getInt("other_play_count"));
+            tf.setMaleTimeListened(rs.getLong("male_time_listened"));
+            tf.setFemaleTimeListened(rs.getLong("female_time_listened"));
+            tf.setOtherTimeListened(rs.getLong("other_time_listened"));
+        }, params.toArray());
+    }
+
+    /**
+     * Compute min/max date bounds from timeframe DTOs' listenedDateFrom/To.
+     * Returns [minDate, maxDate] as ISO strings, either may be null.
+     */
+    private String[] computeDateBounds(List<TimeframeCardDTO> timeframes) {
+        String minDate = null;
+        String maxDate = null;
+        for (TimeframeCardDTO tf : timeframes) {
+            if (tf.getListenedDateFrom() != null && !tf.getListenedDateFrom().isEmpty()) {
+                if (minDate == null || tf.getListenedDateFrom().compareTo(minDate) < 0) {
+                    minDate = tf.getListenedDateFrom();
+                }
+            }
+            if (tf.getListenedDateTo() != null && !tf.getListenedDateTo().isEmpty()) {
+                if (maxDate == null || tf.getListenedDateTo().compareTo(maxDate) > 0) {
+                    maxDate = tf.getListenedDateTo();
                 }
             }
         }
+        return new String[]{minDate, maxDate};
     }
 
     /**
@@ -638,6 +956,19 @@ public class TimeframeService {
         String periodKeyExpr = getPeriodKeyExpression(periodType);
         String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
 
+        // Compute date bounds for index-assisted scan
+        String[] dateBounds = computeDateBounds(timeframes);
+        StringBuilder dateBoundsClause = new StringBuilder();
+        List<Object> extraParams = new ArrayList<>();
+        if (dateBounds[0] != null) {
+            dateBoundsClause.append(" AND p.play_date >= ?");
+            extraParams.add(dateBounds[0]);
+        }
+        if (dateBounds[1] != null) {
+            dateBoundsClause.append(" AND p.play_date <= ?");
+            extraParams.add(dateBounds[1]);
+        }
+
         String sql =
             "WITH day_gender AS ( " +
             "    SELECT " +
@@ -648,16 +979,19 @@ public class TimeframeService {
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " +
+            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "    GROUP BY " + periodKeyExpr + ", DATE(p.play_date) " +
             ") " +
             "SELECT period_key, SUM(CASE WHEN male_plays > female_plays THEN 1 ELSE 0 END) as male_days " +
             "FROM day_gender " +
             "GROUP BY period_key";
 
+        List<Object> allMaleDaysParams = new ArrayList<>(periodKeys);
+        allMaleDaysParams.addAll(extraParams);
+
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) ->
             new Object[]{rs.getString("period_key"), rs.getInt("male_days")},
-            periodKeys.toArray()
+            allMaleDaysParams.toArray()
         );
 
         for (TimeframeCardDTO tf : timeframes) {
@@ -755,9 +1089,10 @@ public class TimeframeService {
     }
     
     /**
-     * Count total timeframes matching filters
+     * Lightweight count query - only used by the SQL-paginated path where
+     * getTimeframeCardsWithCount can't compute the total from Java-side processing.
      */
-    public long countTimeframes(String periodType,
+    private long countTimeframesLightweight(String periodType,
             List<Integer> winningGender, String winningGenderMode,
             List<Integer> winningGenre, String winningGenreMode,
             List<Integer> winningEthnicity, String winningEthnicityMode,
@@ -793,6 +1128,8 @@ public class TimeframeService {
             WITH period_summary AS (
                 SELECT 
                     %s as period_key,
+                    MIN(p.play_date) as bound_min,
+                    MAX(p.play_date) as bound_max,
                     COUNT(*) as play_count,
                     COALESCE(SUM(s.length_seconds), 0) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
@@ -822,7 +1159,7 @@ public class TimeframeService {
             ),
             filtered_periods AS (
                 SELECT 
-                    period_key,
+                    period_key, bound_min, bound_max,
                     play_count,
                     time_listened,
                     artist_count,
@@ -1675,27 +2012,28 @@ public class TimeframeService {
      * Get SQLite expression for period key based on type
      */
     private String getPeriodKeyExpression(String periodType) {
+        // Use SUBSTR instead of strftime for massive performance gain.
+        // play_date is stored as 'yyyy-MM-dd HH:mm' so SUBSTR is reliable.
         return switch (periodType) {
-            case "days" -> "DATE(p.play_date)";
+            case "days" -> "SUBSTR(p.play_date, 1, 10)";
             case "weeks" -> "strftime('%Y-W%W', p.play_date)";
-            case "months" -> "strftime('%Y-%m', p.play_date)";
+            case "months" -> "SUBSTR(p.play_date, 1, 7)";
             case "seasons" -> """
                 CASE 
-                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) = 12 
-                        THEN (CAST(strftime('%Y', p.play_date) AS INTEGER) + 1) || '-Winter'
-                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (1, 2) 
-                        THEN strftime('%Y', p.play_date) || '-Winter'
-                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (3, 4, 5) 
-                        THEN strftime('%Y', p.play_date) || '-Spring'
-                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (6, 7, 8) 
-                        THEN strftime('%Y', p.play_date) || '-Summer'
-                    WHEN CAST(strftime('%m', p.play_date) AS INTEGER) IN (9, 10, 11) 
-                        THEN strftime('%Y', p.play_date) || '-Fall'
+                    WHEN SUBSTR(p.play_date, 6, 2) = '12' 
+                        THEN (SUBSTR(p.play_date, 1, 4) + 1) || '-Winter'
+                    WHEN SUBSTR(p.play_date, 6, 2) <= '02' 
+                        THEN SUBSTR(p.play_date, 1, 4) || '-Winter'
+                    WHEN SUBSTR(p.play_date, 6, 2) <= '05' 
+                        THEN SUBSTR(p.play_date, 1, 4) || '-Spring'
+                    WHEN SUBSTR(p.play_date, 6, 2) <= '08' 
+                        THEN SUBSTR(p.play_date, 1, 4) || '-Summer'
+                    ELSE SUBSTR(p.play_date, 1, 4) || '-Fall'
                 END
                 """;
-            case "years" -> "strftime('%Y', p.play_date)";
-            case "decades" -> "CAST((CAST(strftime('%Y', p.play_date) AS INTEGER) / 10) * 10 AS TEXT) || 's'";
-            default -> "strftime('%Y', p.play_date)";
+            case "years" -> "SUBSTR(p.play_date, 1, 4)";
+            case "decades" -> "(SUBSTR(p.play_date, 1, 4) / 10 * 10) || 's'";
+            default -> "SUBSTR(p.play_date, 1, 4)";
         };
     }
     
@@ -2067,3 +2405,5 @@ public class TimeframeService {
     }
 
 }
+
+

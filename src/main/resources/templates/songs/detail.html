@@ -33,6 +33,15 @@
             box-shadow: 0 0 8px 2px #d94a8a !important;
             border-color: #d94a8a !important;
         }
+        .winning-chip.trl-chip {
+            background: linear-gradient(135deg, rgba(180, 90, 10, 0.25), rgba(120, 60, 5, 0.2));
+            border-color: rgba(220, 130, 40, 0.5);
+            color: #e0a060;
+        }
+        .winning-chip.trl-chip:hover {
+            border-color: rgba(220, 130, 40, 0.85);
+            color: #f0b870;
+        }
     </style>
 </head>
 <body>
@@ -281,6 +290,18 @@
                        target="_blank"
                        class="winning-chip chart-chip yearly-chart"
                        th:text="${entry.displayName}"></a>
+
+                    <!-- GROUP 5: Miscellaneous -->
+                    <div class="chip-group-separator" th:if="${trlDays != null}"></div>
+
+                    <!-- TRL Days chip -->
+                    <a th:if="${trlStats != null}"
+                       th:href="@{/misc/trl}"
+                       target="_blank"
+                       class="winning-chip rank-chip trl-chip"
+                       th:text="${trlStats.daysOnCountdown} + ' Days on TRL'
+                              + (${trlStats.peakPosition != null} ? ' (Peak #' + ${trlStats.peakPosition} + (${trlStats.daysAtPeak != null and trlStats.daysAtPeak > 1} ? ' for ' + ${trlStats.daysAtPeak} + ' days)' : ')') : '')"
+                       th:title="'This video spent ' + ${trlStats.daysOnCountdown} + ' days on MTV Total Request Live'"></a>
                 </div>
                 
             </div>
@@ -339,7 +360,13 @@
                                 
                                 <!-- Album field (editable dropdown, only shown in edit mode) -->
                                 <div class="form-group form-group-full-width album-field-group" id="albumFieldGroup" style="display:none;">
-                                    <label for="albumId">Album</label>
+                                    <label for="albumId">
+                                        Album
+                                        <label class="inline-checkbox-label all-albums-toggle" style="display:none; margin-left: 12px; font-weight: normal; font-size: 12px; cursor: pointer;">
+                                            <input type="checkbox" id="allAlbumsToggle" onchange="toggleAllAlbums()" style="margin-right: 4px;" />
+                                            All artists
+                                        </label>
+                                    </label>
                                     <span class="attribute-text" data-field="albumId" style="display:none;">
                                         <a th:if="${albumName != null}" th:href="@{'/albums/' + ${song.albumId}}" th:text="${albumName}"></a>
                                         <span th:if="${albumName == null}">-</span>
@@ -475,6 +502,20 @@
                                         <input type="checkbox" autocomplete="off" id="isSingle" name="isSingle" th:field="*{isSingle}" />
                                         Is Single
                                     </label>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="trackNumber">Track Number</label>
+                                    <span class="attribute-text" data-field="trackNumber"
+                                          th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</span>
+                                    <input type="number" autocomplete="off"
+                                           id="trackNumber"
+                                           name="trackNumber"
+                                           th:value="${song.trackNumber}"
+                                           min="1"
+                                           placeholder="Track #"
+                                           class="editable-input"
+                                           style="display:none;" />
                                 </div>
                                 
                                 <div class="form-group">
@@ -1486,7 +1527,13 @@
                 });
                 
                 // Load albums for the album dropdown
-                loadAlbumsForArtist();
+                loadAlbumsForArtist(false);
+                
+                // Show the all-artists toggle
+                const allAlbumsToggle = document.querySelector('.all-albums-toggle');
+                if (allAlbumsToggle) {
+                    allAlbumsToggle.style.display = 'inline-flex';
+                }
                 
                 // Show featured artists field and container
                 const featuredArtistsField = document.getElementById('featuredArtistsField');
@@ -1524,14 +1571,18 @@
         }
         
         // Load albums for the current artist to populate the album dropdown
-        function loadAlbumsForArtist() {
+        function loadAlbumsForArtist(allArtists) {
             const artistId = document.getElementById('artistId').value;
             const albumSelect = document.getElementById('albumId');
             const currentAlbumId = /*[[${song.albumId}]]*/ null;
             
-            if (!artistId) return;
+            if (!artistId && !allArtists) return;
             
-            fetch(`/albums/api/albums?artistId=${artistId}`)
+            const url = allArtists 
+                ? '/albums/api/all-albums' 
+                : `/albums/api/albums?artistId=${artistId}`;
+            
+            fetch(url)
                 .then(response => response.json())
                 .then(albums => {
                     // Keep the "No album" option
@@ -1541,7 +1592,9 @@
                     albums.forEach(album => {
                         const option = document.createElement('option');
                         option.value = album.id;
-                        option.textContent = album.name;
+                        option.textContent = allArtists 
+                            ? album.name + ' (' + album.artistName + ')' 
+                            : album.name;
                         if (currentAlbumId && album.id == currentAlbumId) {
                             option.selected = true;
                         }
@@ -1551,6 +1604,11 @@
                 .catch(error => {
                     console.error('Error loading albums:', error);
                 });
+        }
+        
+        function toggleAllAlbums() {
+            const allAlbums = document.getElementById('allAlbumsToggle').checked;
+            loadAlbumsForArtist(allAlbums);
         }
         
         function cancelEdit() {

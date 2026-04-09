@@ -1,5 +1,6 @@
 package library.repository;
 
+import library.util.SqlFilterHelper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -30,6 +31,7 @@ public class AlbumRepository {
                                                String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                                String listenedDateFrom, String listenedDateTo,
                                                String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand,
+                                               String itunesIdsJson, String inItunes,
                                                Integer ageMin, Integer ageMax, String ageMode,
                                                Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                                String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -139,23 +141,35 @@ public class AlbumRepository {
         // Use INNER JOIN when account filter is includes mode OR when listened date filter is active (for better performance)
         boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
         String playStatsJoinType = ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) ? "INNER JOIN" : "LEFT JOIN";
+        // Two-level aggregation: inner by song_id (covering index scan on idx_play_cover_plays),
+        // outer by album_id. Avoids a per-row Play->Song heap lookup.
         sql.append(playStatsJoinType).append(""" 
              (
-                SELECT 
-                    song.album_id,
-                    COUNT(*) as play_count,
-                    SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
-                    SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
-                    SUM(song.length_seconds) as time_listened,
-                    MIN(p.play_date) as first_listened,
-                    MAX(p.play_date) as last_listened
-                FROM Play p
-                JOIN Song song ON p.song_id = song.id
-                WHERE song.album_id IS NOT NULL """);
+                SELECT
+                    s.album_id,
+                    SUM(ps.play_count) as play_count,
+                    SUM(ps.vatito_play_count) as vatito_play_count,
+                    SUM(ps.robertlover_play_count) as robertlover_play_count,
+                    SUM(CAST(s.length_seconds AS INTEGER) * ps.play_count) as time_listened,
+                    MIN(ps.first_listened) as first_listened,
+                    MAX(ps.last_listened) as last_listened
+                FROM Song s
+                JOIN (
+                    SELECT p.song_id,
+                           COUNT(*) as play_count,
+                           SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                           SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
+                           MIN(p.play_date) as first_listened,
+                           MAX(p.play_date) as last_listened
+                    FROM Play p
+                    WHERE 1=1 """);
         sql.append(accountFilterClause);
         sql.append(listenedDateFilterClause);
         sql.append("""
-                GROUP BY song.album_id
+                    GROUP BY p.song_id
+                ) ps ON ps.song_id = s.id
+                WHERE s.album_id IS NOT NULL
+                GROUP BY s.album_id
             ) play_stats ON play_stats.album_id = a.id
             WHERE 1=1
             """);
@@ -437,6 +451,9 @@ public class AlbumRepository {
             }
         }
         
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "a.id", itunesIdsJson, inItunes);
+
         // Age filter (artist's current age, or age at death if deceased)
         if (ageMin != null || ageMax != null) {
             String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
@@ -746,6 +763,7 @@ public class AlbumRepository {
                                        String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
                                        String listenedDateFrom, String listenedDateTo,
                                        String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand,
+                                       String itunesIdsJson, String inItunes,
                                        Integer ageMin, Integer ageMax, String ageMode,
                                        Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                        String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
@@ -1164,6 +1182,9 @@ public class AlbumRepository {
             }
         }
         
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "a.id", itunesIdsJson, inItunes);
+
         // Age filter (artist's current age, or age at death if deceased)
         if (ageMin != null || ageMax != null) {
             String ageExpr = "CAST((julianday(COALESCE(ar.death_date, DATE('now'))) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
@@ -1398,7 +1419,7 @@ public class AlbumRepository {
                                        Integer ageAtReleaseMin, Integer ageAtReleaseMax,
                                        String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                        String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                                       String inItunes,
+                                       String itunesIdsJson, String inItunes,
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
@@ -1655,9 +1676,8 @@ public class AlbumRepository {
             }
         }
         
-        // In iTunes filter - NOT implemented in SQL
-        // iTunes status is determined by checking against an in-memory map from iTunes XML
-        // This filter must be applied in the service layer after fetching data
+        // iTunes filter (pre-computed ID set via json_each)
+        SqlFilterHelper.appendItunesIdFilter(sql, params, "a.id", itunesIdsJson, inItunes);
         
         // Play count filter
         if (playCountMin != null) {

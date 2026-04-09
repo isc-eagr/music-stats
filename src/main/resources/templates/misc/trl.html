@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRL Overview - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <script th:src="@{/js/table-sort.js}" defer></script>
+    <style>
+        .trl-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Summary bar */
+        .trl-summary {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .trl-stat {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px 22px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .trl-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .trl-stat-label {
+            font-size: 0.78rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+        }
+
+        /* Toolbar */
+        .trl-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .trl-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 16px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #aaa;
+            font-size: 0.83rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .trl-toggle-btn:hover { border-color: #666; color: #ddd; }
+        .trl-toggle-btn.active {
+            background: rgba(201,162,39,0.18);
+            border-color: rgba(201,162,39,0.55);
+            color: #c9a227;
+        }
+        .trl-toggle-btn .btn-icon { font-size: 0.9em; }
+
+        /* Table */
+        .trl-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        }
+        .trl-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #141414;
+        }
+        .trl-table thead tr {
+            background: #1e1e1e;
+            border-bottom: 2px solid #333;
+        }
+        .trl-table th {
+            padding: 11px 14px;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .trl-table th:hover { color: #ccc; }
+        .trl-table th.center,
+        .trl-table td.center { text-align: center; }
+
+        .trl-table tbody tr {
+            border-bottom: 1px solid #1f1f1f;
+            transition: background 0.12s;
+        }
+        .trl-table tbody tr:hover { background: #1c1c1c; }
+
+        /* Gender row coloring — full row background */
+        .trl-table tbody tr.gender-male {
+            background: rgba(74, 144, 226, 0.06);
+            border-left: 3px solid rgba(74, 144, 226, 0.5);
+        }
+        .trl-table tbody tr.gender-male:hover {
+            background: rgba(74, 144, 226, 0.11);
+        }
+        .trl-table tbody tr.gender-female {
+            background: rgba(217, 74, 138, 0.06);
+            border-left: 3px solid rgba(217, 74, 138, 0.5);
+        }
+        .trl-table tbody tr.gender-female:hover {
+            background: rgba(217, 74, 138, 0.11);
+        }
+
+        .trl-table td {
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: #d0d0d0;
+            vertical-align: middle;
+        }
+
+        /* Position badge — uniform */
+        .pos-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #2a2a2a;
+            color: #aaa;
+            border: 1px solid #444;
+        }
+
+        /* Days bar */
+        .days-bar-wrap { display: flex; align-items: center; gap: 8px; }
+        .days-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #4a90e2;
+            min-width: 4px;
+        }
+        .days-val { font-size: 0.82rem; color: #aaa; white-space: nowrap; }
+
+        /* Song / artist links */
+        .trl-song-link {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .trl-song-link:hover { color: #4a90e2; text-decoration: underline; }
+
+        .trl-artist-link {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .trl-artist-link:hover { color: #ccc; text-decoration: underline; }
+
+        .trl-no-link-song   { color: #999; font-size: 0.88rem; }
+        .trl-no-link-artist { color: #777; font-size: 0.85rem; }
+
+        /* Date column */
+        .trl-date { color: #888; font-size: 0.83rem; white-space: nowrap; }
+
+        /* Match button */
+        .trl-match-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #888;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.12s;
+            white-space: nowrap;
+        }
+        .trl-match-btn:hover { border-color: #4a90e2; color: #4a90e2; background: rgba(74,144,226,0.08); }
+
+        /* Chart-link button */
+        .trl-chart-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #888;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.12s;
+            white-space: nowrap;
+        }
+        .trl-chart-btn:hover { border-color: #66bb6a; color: #66bb6a; background: rgba(102,187,106,0.08); }
+        .trl-chart-btn.linked {
+            border-color: rgba(76,175,80,0.5);
+            color: #4caf50;
+            background: rgba(76,175,80,0.08);
+        }
+        .trl-chart-btn.linked:hover { background: rgba(76,175,80,0.15); }
+
+        /* Sort indicators */
+        .trl-table th.sorted-asc::after  { content: ' \25B2'; font-size: 0.7em; }
+        .trl-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
+
+        /* Retired / Hall of Fame rows — gold */
+        .trl-table tbody tr.trl-retired td { color: #c9a227; }
+        .trl-table tbody tr.trl-retired .days-val { color: #c9a227; }
+        .trl-table tbody tr.trl-retired .days-bar { background: #c9a227; }
+        .trl-table tbody tr.trl-retired .trl-song-link { color: #e8c547; }
+        .trl-table tbody tr.trl-retired .trl-song-link:hover { color: #ffd700; }
+        .trl-table tbody tr.trl-retired .trl-artist-link { color: #b8881e; }
+        .trl-table tbody tr.trl-retired .trl-artist-link:hover { color: #d4a429; }
+        .trl-table tbody tr.trl-retired .trl-no-link-song  { color: #c9a227; }
+        .trl-table tbody tr.trl-retired .trl-no-link-artist { color: #a8861a; }
+        .trl-table tbody tr.trl-retired .pos-badge {
+            background: rgba(201,162,39,0.2);
+            border-color: rgba(201,162,39,0.5);
+            color: #c9a227;
+        }
+        .trl-table tbody tr.trl-retired.gender-male {
+            background: rgba(74,144,226,0.07);
+            border-left-color: rgba(74,144,226,0.55);
+        }
+        .trl-table tbody tr.trl-retired.gender-female {
+            background: rgba(217,74,138,0.07);
+            border-left-color: rgba(217,74,138,0.55);
+        }
+
+        /* Hidden-by-filter rows */
+        .trl-table tbody tr.trl-hidden { display: none; }
+
+        /* ---- Match Modal ---- */
+        .trl-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .trl-modal-overlay.open { display: flex; }
+        .trl-modal {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 14px;
+            width: 540px;
+            max-width: calc(100vw - 32px);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+        }
+        .trl-modal-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .trl-modal-title { font-size: 1rem; font-weight: 700; color: #eee; }
+        .trl-modal-subtitle { font-size: 0.78rem; color: #888; margin-top: 2px; }
+        .trl-modal-close {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .trl-modal-close:hover { color: #ccc; }
+        .trl-modal-body { padding: 16px 20px; flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+        .trl-search-input {
+            width: 100%;
+            padding: 9px 14px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #ddd;
+            font-size: 0.88rem;
+            box-sizing: border-box;
+        }
+        .trl-search-input:focus { outline: none; border-color: #4a90e2; }
+        .trl-search-results {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            min-height: 180px;
+            max-height: 340px;
+        }
+        .trl-result-item {
+            padding: 9px 14px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .trl-result-item:last-child { border-bottom: none; }
+        .trl-result-item:hover { background: rgba(74,144,226,0.1); }
+        .trl-result-title { font-size: 0.88rem; font-weight: 600; color: #e0e0e0; }
+        .trl-result-artist { font-size: 0.78rem; color: #888; margin-top: 1px; }
+        .trl-result-count { font-size: 0.72rem; color: #666; margin-top: 1px; }
+        .trl-search-empty { padding: 24px; text-align: center; color: #555; font-size: 0.85rem; }
+
+        @media (max-width: 700px) {
+            .trl-table th:nth-child(1),
+            .trl-table td:nth-child(1) { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <header class="topbar">
+        <div class="container">
+            <nav class="breadcrumbs">
+                <a href="/">Home</a>
+                <span class="breadcrumb-sep">/</span>
+                <span>Miscellaneous</span>
+                <span class="breadcrumb-sep">/</span>
+                <span>TRL Overview</span>
+            </nav>
+            <h1 class="page-title">TRL Overview</h1>
+            <p class="page-subtitle">All videos that debuted on MTV's Total Request Live (Sep 1998 &ndash; Oct 2007)</p>
+        </div>
+    </header>
+
+    <main class="container trl-container">
+
+        <!-- Summary stats -->
+        <div class="trl-summary">
+            <div class="trl-stat">
+                <div class="trl-stat-value" th:text="${summary.total}">0</div>
+                <div class="trl-stat-label">Total Videos</div>
+            </div>
+            <div class="trl-stat">
+                <div class="trl-stat-value" th:text="${summary.matched}">0</div>
+                <div class="trl-stat-label">In My Library</div>
+            </div>
+            <div class="trl-stat">
+                <div class="trl-stat-value" th:text="${summary.unmatched}">0</div>
+                <div class="trl-stat-label">Not in Library</div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="trl-toolbar">
+            <button id="btnRetiredOnly" class="trl-toggle-btn" onclick="toggleRetiredFilter(this)">
+                <span class="btn-icon">&#9733;</span> Hall of Fame Only
+            </button>
+            <a href="/misc/trl/chart-entries" class="trl-toggle-btn" style="text-decoration:none;">
+                Chart Entries
+            </a>
+            <button class="trl-toggle-btn" onclick="doAutoLink(this)">
+                Auto-Link Exact Matches
+            </button>
+            <button class="trl-toggle-btn" onclick="doNormalizeLinked(this)">
+                Normalize Linked
+            </button>
+        </div>
+
+        <!-- Data attributes store TRL entry info for each row -->
+        <div class="trl-table-wrap">
+            <table class="trl-table js-sortable" id="trlTable">
+                <thead>
+                    <tr>
+                        <th data-type="number">Days</th>
+                        <th class="center" data-type="number" title="Distinct days found in chart entry data">Actual Days</th>
+                        <th class="center" data-type="date" data-default-sort="asc">Debut Date</th>
+                        <th class="center" data-type="number">Debut Position</th>
+                        <th class="center" data-type="date">Last Appearance</th>
+                        <th data-type="text">Song</th>
+                        <th data-type="text">Artist</th>
+                        <th class="center" data-type="number">Peak</th>
+                        <th class="center" data-type="number">Days At Peak</th>
+                        <th data-no-sort></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="d : ${debuts}"
+                        th:data-trl-id="${d.id}"
+                        th:data-song-title="${d.songTitle}"
+                        th:data-artist-name="${d.artistName}"
+                        th:data-retired="${d.retired}"
+                        th:data-chart-linked="${d.actualDays != null}"
+                        th:classappend="${(d.genderClass != null ? d.genderClass : '') + (d.retired ? ' trl-retired' : '')}">
+                        <!-- Days on countdown -->
+                        <td th:attr="data-value=${d.daysOnCountdown}" th:text="${d.daysOnCountdown}">0</td>
+                        <!-- Actual days from chart data -->
+                        <td class="center" th:attr="data-value=${d.actualDays != null ? d.actualDays : 0}">
+                            <span th:if="${d.actualDays != null}"
+                                  th:text="${d.actualDays}"
+                                  th:style="${d.actualDays != null and d.daysOnCountdown != null and d.actualDays != d.daysOnCountdown} ? 'color:#ff9800' : ''">-</span>
+                            <span th:if="${d.actualDays == null}" style="color:#555">-</span>
+                        </td>
+                        <!-- Debut date -->
+                        <td class="center trl-date"
+                            th:text="${d.debutDate}"
+                            th:attr="data-value=${d.debutDate}">-</td>
+                        <!-- Debut position badge -->
+                        <td class="center" th:attr="data-value=${d.debutPosition}">
+                            <span class="pos-badge" th:text="${d.debutPosition}">-</span>
+                        </td>
+                        <!-- Last appearance date -->
+                        <td class="center trl-date"
+                            th:text="${d.lastAppearanceDate}"
+                            th:attr="data-value=${d.lastAppearanceDate}">-</td>
+                        <!-- Song title -->
+                        <td th:attr="data-value=${d.songTitle}">
+                            <a th:if="${d.songId != null}"
+                               th:href="@{/songs/{id}(id=${d.songId})}"
+                               class="trl-song-link"
+                               th:text="${d.songTitle}">Song</a>
+                            <span th:if="${d.songId == null}"
+                                  class="trl-no-link-song"
+                                  th:text="${d.songTitle}">Song</span>
+                        </td>
+                        <!-- Artist name -->
+                        <td th:attr="data-value=${d.artistName}">
+                            <a th:if="${d.resolvedArtistId != null}"
+                               th:href="@{/artists/{id}(id=${d.resolvedArtistId})}"
+                               class="trl-artist-link"
+                               th:text="${d.artistName}">Artist</a>
+                            <span th:if="${d.resolvedArtistId == null}"
+                                  class="trl-no-link-artist"
+                                  th:text="${d.artistName}">Artist</span>
+                        </td>
+                        <!-- Peak position -->
+                        <td class="center" th:attr="data-value=${d.peakPosition != null ? d.peakPosition : 99}">
+                            <span th:if="${d.peakPosition != null}" class="pos-badge" th:text="${d.peakPosition}">-</span>
+                            <span th:if="${d.peakPosition == null}" style="color:#555">-</span>
+                        </td>
+                        <!-- Days at peak -->
+                        <td class="center" th:attr="data-value=${d.daysAtPeak != null ? d.daysAtPeak : 0}">
+                            <span th:if="${d.daysAtPeak != null}" th:text="${d.daysAtPeak}">-</span>
+                            <span th:if="${d.daysAtPeak == null}" style="color:#555">-</span>
+                        </td>
+                        <!-- Match / actions column -->
+                        <td>
+                            <button th:if="${d.songId == null}"
+                                    class="trl-match-btn"
+                                    onclick="openMatchModal(this)"
+                                    title="Link to a song in your library">
+                                Library
+                            </button>
+                            <button th:if="${d.actualDays != null}"
+                                        class="trl-chart-btn linked"
+                                        onclick="openChartLinkModal(this)"
+                                        title="Chart linked">
+                                Linked
+                            </button>
+                            <button th:if="${d.actualDays == null}"
+                                    class="trl-chart-btn"
+                                    onclick="openChartLinkModal(this)"
+                                    title="Link to chart entry combo">
+                                Chart
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(debuts)}">
+                        <td colspan="9" style="text-align:center; color:#666; padding:40px;">
+                            No TRL data found. Run the import script first.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Match Modal -->
+    <div class="trl-modal-overlay" id="matchModal" onclick="closeMatchModalOnBackdrop(event)">
+        <div class="trl-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
+            <div class="trl-modal-header">
+                <div>
+                    <div class="trl-modal-title" id="matchModalTitle">Link to Song</div>
+                    <div class="trl-modal-subtitle" id="matchModalSubtitle"></div>
+                </div>
+                <button class="trl-modal-close" onclick="closeMatchModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="trl-modal-body">
+                <input type="text" id="matchSearchInput" class="trl-search-input"
+                       placeholder="Search by song title or artist..."
+                       oninput="onMatchSearch(this.value)"
+                       autocomplete="off">
+                <div class="trl-search-results" id="matchSearchResults">
+                    <div class="trl-search-empty">Start typing to search your library</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Link Modal -->
+    <div class="trl-modal-overlay" id="chartLinkModal" onclick="if(event.target===this)closeChartLinkModal()">
+        <div class="trl-modal" role="dialog" aria-modal="true">
+            <div class="trl-modal-header">
+                <div>
+                    <div class="trl-modal-title">Link to Chart Entry</div>
+                    <div class="trl-modal-subtitle" id="chartLinkSubtitle"></div>
+                </div>
+                <button class="trl-modal-close" onclick="closeChartLinkModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="trl-modal-body">
+                <input type="text" id="chartLinkSearchInput" class="trl-search-input"
+                       placeholder="Search chart entries by artist or song..."
+                       oninput="onChartLinkSearch(this.value)"
+                       autocomplete="off">
+                <div class="trl-search-results" id="chartLinkResults">
+                    <div class="trl-search-empty">Start typing to search chart entries</div>
+                </div>
+                <div id="chartLinkUnlinkWrap" style="display:none; margin-top: 6px;">
+                    <button onclick="doUnlinkChart()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ff7043; background:rgba(255,112,67,0.08); color:#ff7043; cursor:pointer; font-size:0.82rem; font-weight:600;">
+                        Remove Chart Link (use auto-matching)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---- Auto-link ----
+        function doAutoLink(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Linking...';
+            fetch('/misc/trl/auto-link', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        btn.textContent = 'Linked ' + data.linked + ' entries';
+                        if (data.linked > 0) {
+                            setTimeout(function() { location.reload(); }, 800);
+                        } else {
+                            setTimeout(function() {
+                                btn.disabled = false;
+                                btn.textContent = 'Auto-Link Exact Matches';
+                            }, 2000);
+                        }
+                    }
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    btn.textContent = 'Auto-Link Exact Matches';
+                    alert('Auto-link failed. Please try again.');
+                });
+        }
+
+        // ---- Normalize Linked ----
+        function doNormalizeLinked(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Normalizing...';
+            fetch('/misc/trl/normalize-linked', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        btn.textContent = 'Normalized ' + data.updated + ' entries';
+                        setTimeout(function() { location.reload(); }, 800);
+                    }
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    btn.textContent = 'Normalize Linked';
+                    alert('Normalize failed. Please try again.');
+                });
+        }
+
+        // ---- Retired-only filter ----
+        function toggleRetiredFilter(btn) {
+            btn.classList.toggle('active');
+            const retiredOnly = btn.classList.contains('active');
+            document.querySelectorAll('#trlTable tbody tr[data-trl-id]').forEach(function(row) {
+                const isRetired = row.dataset.retired === 'true';
+                row.classList.toggle('trl-hidden', retiredOnly && !isRetired);
+            });
+        }
+
+        // ---- Match Modal ----
+        var _modalTrlId = null;
+        var _modalRow = null;
+        var _searchTimer = null;
+
+        function openMatchModal(btn) {
+            var row = btn.closest('tr');
+            _modalTrlId = row.dataset.trlId;
+            _modalRow = row;
+            var title = row.dataset.songTitle || '';
+            var artist = row.dataset.artistName || '';
+            document.getElementById('matchModalSubtitle').textContent = '"' + title + '" by ' + artist;
+            document.getElementById('matchSearchInput').value = title;
+            document.getElementById('matchSearchResults').innerHTML = '<div class="trl-search-empty">Searching...</div>';
+            document.getElementById('matchModal').classList.add('open');
+            document.getElementById('matchSearchInput').focus();
+            doSearch(title);
+        }
+
+        function closeMatchModal() {
+            document.getElementById('matchModal').classList.remove('open');
+            _modalTrlId = null;
+            _modalRow = null;
+        }
+
+        function closeMatchModalOnBackdrop(e) {
+            if (e.target === document.getElementById('matchModal')) closeMatchModal();
+        }
+
+        function onMatchSearch(val) {
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(function() { doSearch(val); }, 220);
+        }
+
+        function doSearch(q) {
+            if (!q || q.trim().length < 1) {
+                document.getElementById('matchSearchResults').innerHTML = '<div class="trl-search-empty">Start typing to search your library</div>';
+                return;
+            }
+            var enc = encodeURIComponent(q.trim());
+            fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=50')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var container = document.getElementById('matchSearchResults');
+                    if (!data.length) {
+                        container.innerHTML = '<div class="trl-search-empty">No songs found</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(function(s) {
+                        return '<div class="trl-result-item" onclick="selectSong(' + s.id + ', \'' + escapeHtml(s.name) + '\', \'' + escapeHtml(s.artistName) + '\')">'
+                             + '<div class="trl-result-title">' + escapeHtml(s.name) + '</div>'
+                             + '<div class="trl-result-artist">' + escapeHtml(s.artistName) + '</div>'
+                             + '</div>';
+                    }).join('');
+                })
+                .catch(function() {
+                    document.getElementById('matchSearchResults').innerHTML = '<div class="trl-search-empty">Error searching. Try again.</div>';
+                });
+        }
+
+        function selectSong(songId, songTitle, artistName) {
+            if (!_modalTrlId) return;
+            fetch('/misc/trl/' + _modalTrlId + '/match?songId=' + songId, { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        closeMatchModal();
+                        location.reload();
+                    }
+                })
+                .catch(function() { alert('Failed to save match. Please try again.'); });
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Close modal on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeMatchModal(); closeChartLinkModal(); }
+        });
+
+        // ---- Chart Link Modal ----
+        var _chartLinkTrlId = null;
+        var _chartLinkRow = null;
+        var _chartSearchTimer = null;
+
+        function openChartLinkModal(btn) {
+            var row = btn.closest('tr');
+            _chartLinkTrlId = row.dataset.trlId;
+            _chartLinkRow = row;
+            var title = row.dataset.songTitle || '';
+            var artist = row.dataset.artistName || '';
+            var hasLink = row.dataset.chartLinked === 'true';
+
+            document.getElementById('chartLinkSubtitle').textContent = '"' + title + '" by ' + artist;
+
+            document.getElementById('chartLinkUnlinkWrap').style.display = hasLink ? 'block' : 'none';
+
+            document.getElementById('chartLinkSearchInput').value = artist;
+            document.getElementById('chartLinkResults').innerHTML = '<div class="trl-search-empty">Searching...</div>';
+            document.getElementById('chartLinkModal').classList.add('open');
+            document.getElementById('chartLinkSearchInput').focus();
+            doChartSearch(artist);
+        }
+
+        function closeChartLinkModal() {
+            document.getElementById('chartLinkModal').classList.remove('open');
+            _chartLinkTrlId = null;
+            _chartLinkRow = null;
+        }
+
+        function onChartLinkSearch(val) {
+            clearTimeout(_chartSearchTimer);
+            _chartSearchTimer = setTimeout(function() { doChartSearch(val); }, 220);
+        }
+
+        function doChartSearch(q) {
+            if (!q || q.trim().length < 1) {
+                document.getElementById('chartLinkResults').innerHTML = '<div class="trl-search-empty">Start typing to search chart entries</div>';
+                return;
+            }
+            fetch('/misc/trl/chart-entries/search?q=' + encodeURIComponent(q.trim()))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var container = document.getElementById('chartLinkResults');
+                    if (!data.length) {
+                        container.innerHTML = '<div class="trl-search-empty">No chart entries found</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(function(e) {
+                        return '<div class="trl-result-item" onclick="selectChartEntry(\'' + escapeAttr(e.artistName) + '\', \'' + escapeAttr(e.songTitle) + '\')">'
+                             + '<div class="trl-result-title">' + escapeHtml(e.songTitle) + '</div>'
+                             + '<div class="trl-result-artist">' + escapeHtml(e.artistName) + '</div>'
+                             + '<div class="trl-result-count">' + e.appearances + ' appearances</div>'
+                             + '</div>';
+                    }).join('');
+                })
+                .catch(function() {
+                    document.getElementById('chartLinkResults').innerHTML = '<div class="trl-search-empty">Error searching. Try again.</div>';
+                });
+        }
+
+        function selectChartEntry(chartArtist, chartSong) {
+            if (!_chartLinkTrlId) return;
+            var params = new URLSearchParams();
+            params.append('chartArtist', chartArtist);
+            params.append('chartSong', chartSong);
+            fetch('/misc/trl/' + _chartLinkTrlId + '/link-chart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    _chartLinkRow.dataset.chartLinked = 'true';
+                    // Update the chart button to show "Linked"
+                    var chartBtn = _chartLinkRow.querySelector('.trl-chart-btn');
+                    if (chartBtn) {
+                        chartBtn.classList.add('linked');
+                        chartBtn.textContent = 'Linked';
+                        chartBtn.title = 'Chart linked';
+                    }
+                    closeChartLinkModal();
+                    location.reload();
+                }
+            })
+            .catch(function() { alert('Failed to link chart entry. Please try again.'); });
+        }
+
+        function doUnlinkChart() {
+            if (!_chartLinkTrlId) return;
+            fetch('/misc/trl/' + _chartLinkTrlId + '/unlink-chart', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        _chartLinkRow.dataset.chartLinked = 'false';
+                        var chartBtn = _chartLinkRow.querySelector('.trl-chart-btn');
+                        if (chartBtn) {
+                            chartBtn.classList.remove('linked');
+                            chartBtn.textContent = 'Chart';
+                            chartBtn.title = 'Link to chart entry combo';
+                        }
+                        closeChartLinkModal();
+                        location.reload();
+                    }
+                })
+                .catch(function() { alert('Failed to unlink. Please try again.'); });
+        }
+
+        function escapeAttr(s) {
+            return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+    </script>
+</body>
+</html>

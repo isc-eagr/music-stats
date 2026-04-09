@@ -108,7 +108,7 @@ public class PlaylistController {
                 null, null,                 // ageAtReleaseMin, ageAtReleaseMax
                 null, null, null, null,     // birthDate, birthDateFrom, birthDateTo, birthDateMode
                 null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode
-                null,                       // inItunes
+                null, null,                 // itunesIdsJson, inItunes
                 null, null,                 // playCountMin, playCountMax
                 null, null, null,           // lengthMin, lengthMax, lengthMode
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks

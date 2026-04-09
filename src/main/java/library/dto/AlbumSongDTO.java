@@ -206,4 +206,32 @@ public class AlbumSongDTO {
     public void setIsSingle(boolean isSingle) {
         this.isSingle = isSingle;
     }
+
+    private Integer artistId;
+    private String artistName;
+    private String artistGenderName;
+
+    public Integer getArtistId() {
+        return artistId;
+    }
+
+    public void setArtistId(Integer artistId) {
+        this.artistId = artistId;
+    }
+
+    public String getArtistName() {
+        return artistName;
+    }
+
+    public void setArtistName(String artistName) {
+        this.artistName = artistName;
+    }
+
+    public String getArtistGenderName() {
+        return artistGenderName;
+    }
+
+    public void setArtistGenderName(String artistGenderName) {
+        this.artistGenderName = artistGenderName;
+    }
 }

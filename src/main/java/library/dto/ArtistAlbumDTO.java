@@ -20,8 +20,9 @@ public class ArtistAlbumDTO {
     private String language;
     private String country;
     private boolean fromGroup; // true if this album is from a group the artist belongs to
-    private Integer sourceArtistId; // the group artist's ID when this is a group album
-    private String sourceArtistName; // the group artist's name when this is a group album
+    private boolean fromCrossArtist; // true if this album belongs to another artist but has songs by this artist
+    private Integer sourceArtistId; // the group/owner artist's ID when this is a group or cross-artist album
+    private String sourceArtistName; // the group/owner artist's name when this is a group or cross-artist album
     
     public ArtistAlbumDTO() {}
     
@@ -210,6 +211,14 @@ public class ArtistAlbumDTO {
     
     public void setFromGroup(boolean fromGroup) {
         this.fromGroup = fromGroup;
+    }
+    
+    public boolean isFromCrossArtist() {
+        return fromCrossArtist;
+    }
+    
+    public void setFromCrossArtist(boolean fromCrossArtist) {
+        this.fromCrossArtist = fromCrossArtist;
     }
     
     public Integer getSourceArtistId() {
