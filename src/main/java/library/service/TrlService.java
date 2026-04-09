@@ -342,23 +342,58 @@ public class TrlService {
     /** Get the countdown entries for a specific chart date. */
     public List<Map<String, Object>> getCountdownForDate(String chartDate) {
         String sql =
+            "WITH prev_date AS ( " +
+            "    SELECT MAX(chart_date) AS pd " +
+            "    FROM trl_chart_entry " +
+            "    WHERE chart_date < ? " +
+            "), " +
+            "song_stats AS ( " +
+            "    SELECT ce.debut_id, " +
+            "           COUNT(*) AS days_on_chart, " +
+            "           MIN(ce.position) AS peak_pos, " +
+            "           MIN(ce.chart_date) AS first_appearance " +
+            "    FROM trl_chart_entry ce " +
+            "    WHERE ce.debut_id IS NOT NULL " +
+            "      AND ce.chart_date <= ? " +
+            "    GROUP BY ce.debut_id " +
+            "), " +
+            "peak_days AS ( " +
+            "    SELECT ce.debut_id, COUNT(*) AS dap " +
+            "    FROM trl_chart_entry ce " +
+            "    JOIN song_stats ss ON ss.debut_id = ce.debut_id AND ce.position = ss.peak_pos " +
+            "    WHERE ce.chart_date <= ? " +
+            "    GROUP BY ce.debut_id " +
+            "), " +
+            "prev_pos AS ( " +
+            "    SELECT ce.debut_id, ce.position AS pp " +
+            "    FROM trl_chart_entry ce " +
+            "    JOIN prev_date pd ON ce.chart_date = pd.pd " +
+            "    WHERE ce.debut_id IS NOT NULL " +
+            ") " +
             "SELECT ce.position, ce.artist_name, ce.song_title, " +
             "       t.id AS debut_id, t.song_id, t.retired, " +
-            "       a.id AS artist_id, LOWER(g.name) AS gender_name " +
+            "       a.id AS artist_id, LOWER(g.name) AS gender_name, " +
+            "       ss.days_on_chart, ss.peak_pos, pd.dap AS days_at_peak, " +
+            "       pp.pp AS prev_position, ss.first_appearance " +
             "FROM trl_chart_entry ce " +
             "LEFT JOIN trl_debut t ON t.id = ce.debut_id " +
             "LEFT JOIN Song s ON s.id = t.song_id " +
             "LEFT JOIN Artist a ON a.id = s.artist_id " +
             "LEFT JOIN Gender g ON g.id = a.gender_id " +
+            "LEFT JOIN song_stats ss ON ss.debut_id = ce.debut_id " +
+            "LEFT JOIN peak_days pd ON pd.debut_id = ce.debut_id " +
+            "LEFT JOIN prev_pos pp ON pp.debut_id = ce.debut_id " +
             "WHERE ce.chart_date = ? " +
-            "ORDER BY ce.position ASC";
+            "ORDER BY ce.position DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("position", rs.getInt("position"));
+            int currentPos = rs.getInt("position");
+            row.put("position", currentPos);
             row.put("artistName", rs.getString("artist_name"));
             row.put("songTitle", rs.getString("song_title"));
             int debutId = rs.getInt("debut_id");
-            if (!rs.wasNull()) row.put("debutId", debutId);
+            boolean hasDebut = !rs.wasNull();
+            if (hasDebut) row.put("debutId", debutId);
             int songId = rs.getInt("song_id");
             if (!rs.wasNull()) row.put("songId", songId);
             row.put("retired", rs.getInt("retired") == 1);
@@ -369,8 +404,39 @@ public class TrlService {
                 if (gn.contains("female")) row.put("genderClass", "gender-female");
                 else if (gn.contains("male")) row.put("genderClass", "gender-male");
             }
+            if (hasDebut) {
+                int daysOnChart = rs.getInt("days_on_chart");
+                if (!rs.wasNull()) row.put("days", daysOnChart);
+                int peakPos = rs.getInt("peak_pos");
+                if (!rs.wasNull()) row.put("peak", peakPos);
+                int dap = rs.getInt("days_at_peak");
+                if (!rs.wasNull()) row.put("daysAtPeak", dap);
+
+                int prevPosition = rs.getInt("prev_position");
+                boolean hasPrev = !rs.wasNull();
+                String firstApp = rs.getString("first_appearance");
+                if (hasPrev) {
+                    int delta = prevPosition - currentPos;
+                    if (delta > 0) {
+                        row.put("movement", "+" + delta);
+                        row.put("movementClass", "mvmt-up");
+                    } else if (delta < 0) {
+                        row.put("movement", String.valueOf(delta));
+                        row.put("movementClass", "mvmt-down");
+                    } else {
+                        row.put("movement", "=");
+                        row.put("movementClass", "mvmt-same");
+                    }
+                } else if (chartDate.equals(firstApp)) {
+                    row.put("movement", "NEW");
+                    row.put("movementClass", "mvmt-new");
+                } else {
+                    row.put("movement", "RE");
+                    row.put("movementClass", "mvmt-re");
+                }
+            }
             return row;
-        }, chartDate);
+        }, chartDate, chartDate, chartDate, chartDate);
     }
 
     /**

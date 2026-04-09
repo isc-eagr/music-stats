@@ -6,9 +6,6 @@
     <title>TRL Recaps - Music Stats</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <!-- Flatpickr Date Picker -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         .recap-container {
             max-width: 800px;
@@ -47,17 +44,21 @@
             color: #aaa;
             font-weight: 600;
         }
-        .recap-date-input {
-            padding: 9px 14px;
+        .recap-date-select {
+            padding: 9px 12px;
             border-radius: 8px;
             border: 1px solid #444;
             background: #1a1a1a;
             color: #e0e0e0;
             font-size: 0.88rem;
-            width: 160px;
             outline: none;
+            cursor: pointer;
         }
-        .recap-date-input:focus { border-color: #4a90e2; }
+        .recap-date-select:focus { border-color: #4a90e2; }
+        .recap-date-select option {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
 
         /* Showing date label */
         .recap-showing {
@@ -191,6 +192,25 @@
             margin-bottom: 12px;
             opacity: 0.4;
         }
+
+        /* Movement badges */
+        .mvmt {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .mvmt-new  { background: rgba(46,160,67,0.18); color: #3fb950; border: 1px solid rgba(46,160,67,0.35); }
+        .mvmt-re   { background: rgba(210,139,0,0.18);  color: #e3a420; border: 1px solid rgba(210,139,0,0.35); }
+        .mvmt-up   { background: rgba(46,160,67,0.12);  color: #3fb950; border: 1px solid rgba(46,160,67,0.25); }
+        .mvmt-down { background: rgba(218,54,54,0.12);  color: #f07070; border: 1px solid rgba(218,54,54,0.25); }
+        .mvmt-same { background: transparent; color: #666; border: 1px solid #333; }
+
+        .recap-table th.right,
+        .recap-table td.right { text-align: right; }
+        .recap-table th.stat-col { min-width: 48px; }
     </style>
 </head>
 <body>
@@ -204,11 +224,13 @@
             <h1>TRL Recaps</h1>
         </div>
 
-        <!-- Date picker + nav arrows -->
+        <!-- Date picker dropdowns + nav arrows -->
         <div class="recap-date-bar">
             <button id="recapPrev" class="recap-nav-btn" title="Previous show" disabled>&#8592;</button>
-            <label for="recapDate">Select date:</label>
-            <input type="text" id="recapDate" class="recap-date-input" placeholder="Pick a date..." readonly>
+            <label>Select date:</label>
+            <select id="recapMonth" class="recap-date-select" title="Month"></select>
+            <select id="recapDay" class="recap-date-select" title="Day"></select>
+            <select id="recapYear" class="recap-date-select" title="Year"></select>
             <button id="recapNext" class="recap-nav-btn" title="Next show" disabled>&#8594;</button>
         </div>
 
@@ -230,6 +252,10 @@
                                 <th class="center" style="width:60px;">#</th>
                                 <th>Song</th>
                                 <th>Artist</th>
+                                <th class="center stat-col" title="Days on countdown up to this date">Days</th>
+                                <th class="center stat-col" title="Peak position">Peak</th>
+                                <th class="center stat-col" title="Days at peak">@ Peak</th>
+                                <th class="center" title="Movement vs previous countdown">Move</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,6 +274,15 @@
                                        th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
                                     <span th:if="${e.artistId == null}" class="recap-no-link-artist" th:text="${e.artistName}"></span>
                                 </td>
+                                <td class="center" th:text="${e.days != null ? e.days : '-'}"></td>
+                                <td class="center" th:text="${e.peak != null ? e.peak : '-'}"></td>
+                                <td class="center" th:text="${e.daysAtPeak != null ? e.daysAtPeak : '-'}"></td>
+                                <td class="center">
+                                    <span th:if="${e.movement != null}"
+                                          th:classappend="'mvmt ' + ${e.movementClass}"
+                                          th:text="${e.movement}"></span>
+                                    <span th:if="${e.movement == null}" style="color:#555;">-</span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -264,18 +299,72 @@
         const availableDates = /*[[${availableDates}]]*/ [];
         const selectedDate = /*[[${selectedDate}]]*/ null;
 
-        const fp = flatpickr('#recapDate', {
-            dateFormat: 'Y-m-d',
-            minDate: '1998-09-14',
-            maxDate: '2007-10-31',
-            allowInput: false,
-            enable: availableDates,
-            defaultDate: selectedDate,
-            onChange: function(selectedDates, dateStr) {
-                if (dateStr) {
+        // Parse selectedDate into components if available
+        let initYear = null, initMonth = null, initDay = null;
+        if (selectedDate) {
+            const parts = selectedDate.split('-');
+            if (parts.length === 3) {
+                initYear = parts[0];
+                initMonth = parts[1];
+                initDay = parts[2];
+            }
+        }
+
+        // Build month dropdown
+        const monthSelect = document.getElementById('recapMonth');
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthOption = document.createElement('option');
+        monthOption.value = '';
+        monthOption.textContent = '-- Month --';
+        monthSelect.appendChild(monthOption);
+        months.forEach((m, i) => {
+            const opt = document.createElement('option');
+            opt.value = String(i + 1).padStart(2, '0');
+            opt.textContent = m;
+            if (initMonth === opt.value) opt.selected = true;
+            monthSelect.appendChild(opt);
+        });
+
+        // Build day dropdown (1-31)
+        const daySelect = document.getElementById('recapDay');
+        const dayOption = document.createElement('option');
+        dayOption.value = '';
+        dayOption.textContent = '-- Day --';
+        daySelect.appendChild(dayOption);
+        for (let i = 1; i <= 31; i++) {
+            const opt = document.createElement('option');
+            opt.value = String(i).padStart(2, '0');
+            opt.textContent = String(i).padStart(2, '0');
+            if (initDay === opt.value) opt.selected = true;
+            daySelect.appendChild(opt);
+        }
+
+        // Build year dropdown (1998-2007)
+        const yearSelect = document.getElementById('recapYear');
+        const yearOption = document.createElement('option');
+        yearOption.value = '';
+        yearOption.textContent = '-- Year --';
+        yearSelect.appendChild(yearOption);
+        for (let y = 1998; y <= 2007; y++) {
+            const opt = document.createElement('option');
+            opt.value = String(y);
+            opt.textContent = String(y);
+            if (initYear === opt.value) opt.selected = true;
+            yearSelect.appendChild(opt);
+        }
+
+        // Handle dropdown changes
+        [monthSelect, daySelect, yearSelect].forEach(sel => {
+            sel.addEventListener('change', function() {
+                const m = monthSelect.value;
+                const d = daySelect.value;
+                const y = yearSelect.value;
+                if (m && d && y) {
+                    const dateStr = y + '-' + m + '-' + d;
                     loadCountdown(dateStr);
                 }
-            }
+            });
         });
 
         document.getElementById('recapPrev').addEventListener('click', function() {
@@ -296,9 +385,14 @@
                         return;
                     }
 
-                    // Update the flatpickr to show the actual effective date
+                    // Update the dropdowns to show the actual effective date
                     if (data.date && data.date !== date) {
-                        fp.setDate(data.date, false);
+                        const parts = data.date.split('-');
+                        if (parts.length === 3) {
+                            yearSelect.value = parts[0];
+                            monthSelect.value = parts[1];
+                            daySelect.value = parts[2];
+                        }
                     }
 
                     const showDiv = document.getElementById('recapShowing');
@@ -325,6 +419,10 @@
 
                     let html = '<div class="recap-table-wrap"><table class="recap-table"><thead><tr>';
                     html += '<th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
+                    html += '<th class="center stat-col" title="Days on countdown up to this date">Days</th>';
+                    html += '<th class="center stat-col" title="Peak position">Peak</th>';
+                    html += '<th class="center stat-col" title="Days at peak">@ Peak</th>';
+                    html += '<th class="center" title="Movement vs previous countdown">Move</th>';
                     html += '</tr></thead><tbody>';
 
                     data.entries.forEach(function(e) {
@@ -345,6 +443,16 @@
                             html += '<td><a class="recap-artist-link" href="/artists/' + e.artistId + '">' + escHtml(e.artistName) + '</a></td>';
                         } else {
                             html += '<td><span class="recap-no-link-artist">' + escHtml(e.artistName) + '</span></td>';
+                        }
+
+                        html += '<td class="center">' + (e.days != null ? e.days : '-') + '</td>';
+                        html += '<td class="center">' + (e.peak != null ? e.peak : '-') + '</td>';
+                        html += '<td class="center">' + (e.daysAtPeak != null ? e.daysAtPeak : '-') + '</td>';
+
+                        if (e.movement != null) {
+                            html += '<td class="center"><span class="mvmt ' + (e.movementClass || '') + '">' + escHtml(e.movement) + '</span></td>';
+                        } else {
+                            html += '<td class="center"><span style="color:#555;">-</span></td>';
                         }
 
                         html += '</tr>';

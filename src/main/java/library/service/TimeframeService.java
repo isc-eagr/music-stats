@@ -416,7 +416,6 @@ public class TimeframeService {
             }, params.toArray());
         
         long t2 = System.currentTimeMillis();
-        System.out.println("[PERF] " + periodType + " SQL build+exec: " + (t2-t0) + "ms (build=" + (t1-t0) + "ms, exec=" + (t2-t1) + "ms)");
         
         // Unified post-processing: merge, filter, sort, paginate
         if (skipSqlPagination) {
