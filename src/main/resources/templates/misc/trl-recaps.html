@@ -374,6 +374,12 @@
             if (this._date) loadCountdown(this._date);
         });
 
+        // Load initial date if coming from a link
+        if (selectedDate) {
+            const dateStr = selectedDate;
+            setTimeout(() => loadCountdown(dateStr), 0);
+        }
+
         function loadCountdown(date) {
             fetch('/misc/trl/recaps/data?date=' + encodeURIComponent(date))
                 .then(r => r.json())

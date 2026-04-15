@@ -1588,6 +1588,7 @@
                     // Keep the "No album" option
                     albumSelect.innerHTML = '<option value="">No album (single)</option>';
                     
+                    let found = false;
                     // Add each album as an option
                     albums.forEach(album => {
                         const option = document.createElement('option');
@@ -1597,9 +1598,18 @@
                             : album.name;
                         if (currentAlbumId && album.id == currentAlbumId) {
                             option.selected = true;
+                            found = true;
                         }
                         albumSelect.appendChild(option);
                     });
+                    
+                    // If the song's album wasn't found in the artist-filtered list,
+                    // automatically switch to all-artists mode so the album can be pre-selected
+                    if (!found && currentAlbumId && !allArtists) {
+                        const toggle = document.getElementById('allAlbumsToggle');
+                        if (toggle) toggle.checked = true;
+                        loadAlbumsForArtist(true);
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading albums:', error);

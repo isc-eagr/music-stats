@@ -1344,6 +1344,9 @@ public class AlbumService {
      * Returns full artist card data with feature count, sorted alphabetically
      */
     public List<FeaturedArtistCardDTO> getFeaturedArtistCardsForAlbum(int albumId) {
+        // Combines two sources, both excluding the album's own artist:
+        // 1) Artists featured via SongFeaturedArtist on songs in the album
+        // 2) Primary artists of "foreign" songs (songs in this album whose artist != the album's artist)
         String sql = """
             SELECT 
                 a.id,
@@ -1364,13 +1367,23 @@ public class AlbumService {
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 COALESCE(pc.play_count, 0) as play_count,
                 COALESCE(pc.time_listened, 0) as time_listened,
-                COUNT(sfa.song_id) as feature_count,
-                GROUP_CONCAT(s.name, '||') as song_names,
+                COUNT(DISTINCT combined.song_id) as feature_count,
+                GROUP_CONCAT(combined.song_name, '||') as song_names,
                 a.birth_date,
                 a.death_date
-            FROM SongFeaturedArtist sfa
-            INNER JOIN Song s ON sfa.song_id = s.id
-            INNER JOIN Artist a ON sfa.artist_id = a.id
+            FROM (
+                SELECT sfa.artist_id, sfa.song_id, si.name as song_name
+                FROM SongFeaturedArtist sfa
+                INNER JOIN Song si ON sfa.song_id = si.id
+                INNER JOIN Album ali ON si.album_id = ali.id
+                WHERE si.album_id = ? AND sfa.artist_id != ali.artist_id
+                UNION
+                SELECT si.artist_id, si.id as song_id, si.name as song_name
+                FROM Song si
+                INNER JOIN Album ali ON si.album_id = ali.id
+                WHERE si.album_id = ? AND si.artist_id != ali.artist_id
+            ) combined
+            INNER JOIN Artist a ON combined.artist_id = a.id
             LEFT JOIN Gender g ON a.gender_id = g.id
             LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
             LEFT JOIN Genre gr ON a.genre_id = gr.id
@@ -1383,9 +1396,9 @@ public class AlbumService {
                 INNER JOIN Song s2 ON p2.song_id = s2.id
                 GROUP BY s2.artist_id
             ) pc ON a.id = pc.artist_id
-            WHERE s.album_id = ?
             GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
-                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country
+                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country,
+                     a.birth_date, a.death_date
             ORDER BY a.name
             """;
         
@@ -1422,7 +1435,7 @@ public class AlbumService {
             String deathDateStr = rs.getString("death_date");
             dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
             return dto;
-        }, albumId);
+        }, albumId, albumId);
     }
     
     // ============= RANKING METHODS =============
@@ -1842,7 +1855,16 @@ public class AlbumService {
     }
 
     public int getSongsWithFeatCountForAlbum(Integer albumId) {
-        String sql = "SELECT COUNT(DISTINCT s.id) FROM Song s INNER JOIN SongFeaturedArtist sfa ON s.id = sfa.song_id WHERE s.album_id = ?";
+        // Count songs that have featured artists OR are "foreign" (primary artist != album artist)
+        String sql = """
+            SELECT COUNT(DISTINCT s.id) FROM Song s
+            LEFT JOIN Album al ON s.album_id = al.id
+            WHERE s.album_id = ?
+            AND (
+                EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id)
+                OR (al.artist_id IS NOT NULL AND s.artist_id != al.artist_id)
+            )
+            """;
         return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
     }
 }

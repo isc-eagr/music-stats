@@ -1132,6 +1132,7 @@
         <div class="artist-grid">
             <div th:each="artist : ${artists}" 
                  class="artist-card" 
+                 th:attr="data-artist-id=${artist.id}, data-has-theme-image=${activeTheme != null and artist.hasThemeImage}"
                  th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="artist-image item-image-container" style="cursor: pointer;">
                         <img th:if="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}"
@@ -2300,8 +2301,32 @@
         
     </style>
     
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var activeThemeIsSet = /*[[${activeTheme != null}]]*/ false;
+        /*]]>*/
+    </script>
+
     <script>
         function openArtistImageModalFromList(artistId) {
+            // When a theme is active, cycle through all displayed artists' theme images
+            if (activeThemeIsSet) {
+                const cards = Array.from(document.querySelectorAll('.artist-card[data-has-theme-image="true"]'));
+                const crossEntityList = cards.map(card => ({
+                    entityType: 'artists',
+                    entityId: parseInt(card.dataset.artistId)
+                }));
+                const currentIndex = crossEntityList.findIndex(e => e.entityId === artistId);
+                if (crossEntityList.length > 0) {
+                    openImageModal(`/artists/${artistId}/image`, {
+                        crossEntityImages: crossEntityList,
+                        currentIndex: currentIndex >= 0 ? currentIndex : 0
+                    });
+                    return;
+                }
+            }
+
+            // No active theme: open this artist's own gallery as before
             fetch(`/artists/${artistId}/images`)
                 .then(response => response.json())
                 .then(data => {

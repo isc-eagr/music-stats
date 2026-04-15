@@ -393,17 +393,32 @@ public class TrlService {
             row.put("songTitle", rs.getString("song_title"));
             int debutId = rs.getInt("debut_id");
             boolean hasDebut = !rs.wasNull();
-            if (hasDebut) row.put("debutId", debutId);
+            row.put("debutId", hasDebut ? debutId : null);
             int songId = rs.getInt("song_id");
-            if (!rs.wasNull()) row.put("songId", songId);
+            if (!rs.wasNull()) {
+                row.put("songId", songId);
+            } else {
+                row.put("songId", null);
+            }
             row.put("retired", rs.getInt("retired") == 1);
             int artistId = rs.getInt("artist_id");
-            if (!rs.wasNull()) row.put("artistId", artistId);
-            String gn = rs.getString("gender_name");
-            if (gn != null) {
-                if (gn.contains("female")) row.put("genderClass", "gender-female");
-                else if (gn.contains("male")) row.put("genderClass", "gender-male");
+            if (!rs.wasNull()) {
+                row.put("artistId", artistId);
+            } else {
+                row.put("artistId", null);
             }
+            String gn = rs.getString("gender_name");
+            String genderClass = null;
+            if (gn != null) {
+                if (gn.contains("female")) genderClass = "gender-female";
+                else if (gn.contains("male")) genderClass = "gender-male";
+            }
+            row.put("genderClass", genderClass);
+            row.put("days", null);
+            row.put("peak", null);
+            row.put("daysAtPeak", null);
+            row.put("movement", null);
+            row.put("movementClass", null);
             if (hasDebut) {
                 int daysOnChart = rs.getInt("days_on_chart");
                 if (!rs.wasNull()) row.put("days", daysOnChart);

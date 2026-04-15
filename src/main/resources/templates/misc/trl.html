@@ -179,6 +179,13 @@
 
         /* Date column */
         .trl-date { color: #888; font-size: 0.83rem; white-space: nowrap; }
+        .trl-date-link {
+            color: #4a90e2;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.12s;
+        }
+        .trl-date-link:hover { color: #5aa3f0; text-decoration: underline; }
 
         /* Match button */
         .trl-match-btn {
@@ -420,16 +427,28 @@
                         </td>
                         <!-- Debut date -->
                         <td class="center trl-date"
-                            th:text="${d.debutDate}"
-                            th:attr="data-value=${d.debutDate}">-</td>
+                            th:attr="data-value=${d.debutDate}">
+                            <a th:if="${d.debutDate != null and d.debutDate != '-'}"
+                               class="trl-date-link"
+                               th:href="@{/misc/trl/recaps(date=${d.debutDate})}"
+                               th:text="${d.debutDate}">-</a>
+                            <span th:if="${d.debutDate == null or d.debutDate == '-'}"
+                                  th:text="${d.debutDate}">-</span>
+                        </td>
                         <!-- Debut position badge -->
                         <td class="center" th:attr="data-value=${d.debutPosition}">
                             <span class="pos-badge" th:text="${d.debutPosition}">-</span>
                         </td>
                         <!-- Last appearance date -->
                         <td class="center trl-date"
-                            th:text="${d.lastAppearanceDate}"
-                            th:attr="data-value=${d.lastAppearanceDate}">-</td>
+                            th:attr="data-value=${d.lastAppearanceDate}">
+                            <a th:if="${d.lastAppearanceDate != null and d.lastAppearanceDate != '-'}"
+                               class="trl-date-link"
+                               th:href="@{/misc/trl/recaps(date=${d.lastAppearanceDate})}"
+                               th:text="${d.lastAppearanceDate}">-</a>
+                            <span th:if="${d.lastAppearanceDate == null or d.lastAppearanceDate == '-'}"
+                                  th:text="${d.lastAppearanceDate}">-</span>
+                        </td>
                         <!-- Song title -->
                         <td th:attr="data-value=${d.songTitle}">
                             <a th:if="${d.songId != null}"
