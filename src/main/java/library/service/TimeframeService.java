@@ -1010,8 +1010,8 @@ public class TimeframeService {
      * A period overlaps if periodStart <= dateTo AND periodEnd >= dateFrom.
      */
     private List<String> filterPeriodKeysByDateOverlap(String periodType, List<String> periodKeys, String dateFrom, String dateTo) {
-        LocalDate from = dateFrom != null ? LocalDate.parse(dateFrom, DATE_FILTER_FORMAT) : null;
-        LocalDate to = dateTo != null ? LocalDate.parse(dateTo, DATE_FILTER_FORMAT) : null;
+        LocalDate from = (dateFrom != null && !dateFrom.isBlank()) ? LocalDate.parse(dateFrom, DATE_FILTER_FORMAT) : null;
+        LocalDate to = (dateTo != null && !dateTo.isBlank()) ? LocalDate.parse(dateTo, DATE_FILTER_FORMAT) : null;
         
         return periodKeys.stream().filter(key -> {
             String[] range = calculateDateRange(periodType, key);
@@ -1032,8 +1032,8 @@ public class TimeframeService {
      * Filter timeframe results by date overlap with the given date range.
      */
     private List<TimeframeCardDTO> filterByDateOverlap(List<TimeframeCardDTO> results, String dateFrom, String dateTo) {
-        LocalDate from = dateFrom != null ? LocalDate.parse(dateFrom, DATE_FILTER_FORMAT) : null;
-        LocalDate to = dateTo != null ? LocalDate.parse(dateTo, DATE_FILTER_FORMAT) : null;
+        LocalDate from = (dateFrom != null && !dateFrom.isBlank()) ? LocalDate.parse(dateFrom, DATE_FILTER_FORMAT) : null;
+        LocalDate to = (dateTo != null && !dateTo.isBlank()) ? LocalDate.parse(dateTo, DATE_FILTER_FORMAT) : null;
         
         return results.stream().filter(tf -> {
             if (tf.getListenedDateFrom() == null || tf.getListenedDateTo() == null) return false;
