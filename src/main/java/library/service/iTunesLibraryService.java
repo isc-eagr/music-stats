@@ -220,11 +220,13 @@ public class iTunesLibraryService {
     public static class iTunesTrackData {
         public final String releaseDate; // YYYY-MM-DD format
         public final Integer lengthSeconds; // song length in seconds
+        public final Integer trackNumber; // track number on album
         public final String matchType; // "exact" or "partial" (without album)
 
-        public iTunesTrackData(String releaseDate, Integer lengthSeconds, String matchType) {
+        public iTunesTrackData(String releaseDate, Integer lengthSeconds, Integer trackNumber, String matchType) {
             this.releaseDate = releaseDate;
             this.lengthSeconds = lengthSeconds;
+            this.trackNumber = trackNumber;
             this.matchType = matchType;
         }
     }
@@ -298,10 +300,11 @@ public class iTunesLibraryService {
                 }
 
                 if (matchType != null) {
-                    // Found a match! Extract release date and length
+                    // Found a match! Extract release date, length, and track number
                     String releaseDateRaw = extractDateValue(trackDict, "Release Date");
                     String yearRaw = extractIntegerValue(trackDict, "Year");
                     String totalTimeMs = extractIntegerValue(trackDict, "Total Time");
+                    String trackNumberRaw = extractIntegerValue(trackDict, "Track Number");
 
                     // Determine release date
                     String releaseDate = null;
@@ -321,7 +324,17 @@ public class iTunesLibraryService {
                         }
                     }
 
-                    return new iTunesTrackData(releaseDate, lengthSeconds, matchType);
+                    // Parse track number
+                    Integer trackNumber = null;
+                    if (trackNumberRaw != null) {
+                        try {
+                            trackNumber = Integer.parseInt(trackNumberRaw);
+                        } catch (NumberFormatException e) {
+                            System.err.println("Failed to parse Track Number: " + trackNumberRaw);
+                        }
+                    }
+
+                    return new iTunesTrackData(releaseDate, lengthSeconds, trackNumber, matchType);
                 }
             }
 

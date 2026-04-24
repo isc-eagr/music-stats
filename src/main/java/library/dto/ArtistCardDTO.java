@@ -355,6 +355,16 @@ public class ArtistCardDTO {
         this.songsWithFeatCount = songsWithFeatCount;
     }
 
+    private Double itunesPresenceRatio;
+
+    public Double getItunesPresenceRatio() {
+        return itunesPresenceRatio;
+    }
+
+    public void setItunesPresenceRatio(Double itunesPresenceRatio) {
+        this.itunesPresenceRatio = itunesPresenceRatio;
+    }
+
     public String getAgeDisplay() {
         if (birthDate == null) return null;
         java.time.LocalDate endDate = deathDate != null ? deathDate : java.time.LocalDate.now();

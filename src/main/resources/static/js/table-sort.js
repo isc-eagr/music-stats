@@ -164,7 +164,11 @@
       const idx = headerCells.indexOf(defaultSortTh);
       const dir = defaultSortTh.getAttribute('data-default-sort') || 'desc';
       defaultSortTh.setAttribute('data-sort-dir', dir === 'desc' ? 'asc' : 'desc'); // will be toggled
+      // Hide tbody to prevent visible re-sort flash on page load
+      const tbody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
+      if(tbody) tbody.style.visibility = 'hidden';
       sortByColumn(table, idx, defaultSortTh, headerCells);
+      if(tbody) requestAnimationFrame(function(){ tbody.style.visibility = 'visible'; });
     }
   }
 

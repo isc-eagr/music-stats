@@ -155,6 +155,8 @@ public class ArtistController {
             @RequestParam(required = false) String birthDateMode,
             @RequestParam(required = false) Integer songCountMin,
             @RequestParam(required = false) Integer songCountMax,
+            @RequestParam(required = false) Integer itunesPresenceMin,
+            @RequestParam(required = false) Integer itunesPresenceMax,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -194,6 +196,7 @@ public class ArtistController {
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
                 songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax,
                 sortby, sortdir, page, perpage
         );
         
@@ -210,7 +213,8 @@ public class ArtistController {
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
-                songCountMin, songCountMax);
+                songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Get gender counts for the filtered dataset
@@ -226,7 +230,8 @@ public class ArtistController {
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax,
                 birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
-                songCountMin, songCountMax);
+                songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax);
         
         // Add data to model
         model.addAttribute("currentSection", "artists");
@@ -268,6 +273,8 @@ public class ArtistController {
         model.addAttribute("albumCountMax", albumCountMax);
         model.addAttribute("songCountMin", songCountMin);
         model.addAttribute("songCountMax", songCountMax);
+        model.addAttribute("itunesPresenceMin", itunesPresenceMin);
+        model.addAttribute("itunesPresenceMax", itunesPresenceMax);
         
         // Age filter attributes
         model.addAttribute("ageMin", ageMin);
@@ -849,6 +856,7 @@ public class ArtistController {
         model.addAttribute("featuredSongCount", artistService.getFeaturedSongCount(id));
         model.addAttribute("standaloneSongCount", artistService.getStandaloneSongCountForArtist(id));
         model.addAttribute("avgAlbumLengthFormatted", artistService.getAverageAlbumLengthFormatted(id));
+        model.addAttribute("itunesPresenceRatio", itunesService.getArtistItunesPresenceRatio(id));
 
         return "artists/detail";
     }

@@ -104,6 +104,11 @@ public class GraphsController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            // Last Full Listen Date filter (album only)
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             // Length filter (with entity type: album, song)
             @RequestParam(required = false) Integer lengthMin,
             @RequestParam(required = false) Integer lengthMax,
@@ -279,7 +284,13 @@ public class GraphsController {
         model.addAttribute("lastListenedDateTo", lastListenedDateTo);
         model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
         model.addAttribute("lastListenedDateEntity", lastListenedDateEntity != null ? lastListenedDateEntity : "song");
-        
+
+        // Last Full Listen Date filter
+        model.addAttribute("lastFullListenDate", lastFullListenDate);
+        model.addAttribute("lastFullListenDateFrom", lastFullListenDateFrom);
+        model.addAttribute("lastFullListenDateTo", lastFullListenDateTo);
+        model.addAttribute("lastFullListenDateMode", lastFullListenDateMode != null ? lastFullListenDateMode : "exact");
+
         // Length filter
         model.addAttribute("lengthMin", lengthMin);
         model.addAttribute("lengthMax", lengthMax);

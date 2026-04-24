@@ -83,6 +83,7 @@ public class ArtistService {
                                           Integer albumCountMin, Integer albumCountMax,
                                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                           Integer songCountMin, Integer songCountMax,
+                                          Integer itunesPresenceMin, Integer itunesPresenceMax,
                                           String sortBy, String sortDir, int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
@@ -92,6 +93,8 @@ public class ArtistService {
         if (languageIds != null && languageIds.isEmpty()) languageIds = null;
         if (countries != null && countries.isEmpty()) countries = null;
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        
+        String itunesSongIdsJson = itunesService.getAllItunesSongIdsJson();
         
         List<Object[]> results = artistRepository.findArtistsWithStats(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode, 
@@ -106,6 +109,7 @@ public class ArtistService {
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
                 sortBy, sortDir, perPage, page * perPage
         );
         
@@ -169,11 +173,22 @@ public class ArtistService {
             dto.setSongsWithFeatCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
             dto.setStandaloneSongCount(row[31] != null ? ((Number) row[31]).intValue() : 0);
             dto.setHasThemeImage(row[32] != null && ((Number) row[32]).intValue() == 1);
+            dto.setItunesPresenceRatio(row[33] != null ? ((Number) row[33]).doubleValue() : null);
 
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
             
             artists.add(dto);
+        }
+
+        if (artists.stream().anyMatch(artist -> artist.getItunesPresenceRatio() == null)) {
+            Map<Integer, Double> ratioByArtistId = itunesService.getArtistItunesPresenceRatios(
+                    artists.stream().map(ArtistCardDTO::getId).toList());
+            for (ArtistCardDTO artist : artists) {
+                if (artist.getItunesPresenceRatio() == null) {
+                    artist.setItunesPresenceRatio(ratioByArtistId.get(artist.getId()));
+                }
+            }
         }
         
         return artists;
@@ -195,7 +210,8 @@ public class ArtistService {
                             Integer playCountMin, Integer playCountMax,
                             Integer albumCountMin, Integer albumCountMax,
                             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
-                            Integer songCountMin, Integer songCountMax) {
+                            Integer songCountMin, Integer songCountMax,
+                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null here as well
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -216,7 +232,8 @@ public class ArtistService {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
-                songCountMin, songCountMax);
+                songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
     }
     
     /**
@@ -240,7 +257,8 @@ public class ArtistService {
                             Integer playCountMin, Integer playCountMax,
                             Integer albumCountMin, Integer albumCountMax,
                             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
-                            Integer songCountMin, Integer songCountMax) {
+                            Integer songCountMin, Integer songCountMax,
+                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -262,7 +280,8 @@ public class ArtistService {
                 organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand,
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, albumCountMin, albumCountMax,
-                birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax);
+                birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);

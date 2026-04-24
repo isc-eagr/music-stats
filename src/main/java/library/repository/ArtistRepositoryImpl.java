@@ -71,6 +71,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String birthDateMode,
             Integer songCountMin,
             Integer songCountMax,
+            Integer itunesPresenceMin,
+            Integer itunesPresenceMax,
+            String itunesSongIdsJson,
             String sortBy,
             String sortDir,
             int limit,
@@ -143,7 +146,13 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    COALESCE(solo_stats.solo_song_count, 0) as solo_song_count, ");
     sql.append("    COALESCE(swf_stats.songs_with_feat_count, 0) as songs_with_feat_count, ");
     sql.append("    COALESCE(standalone_stats.standalone_song_count, 0) as standalone_song_count, ");
-    sql.append("    CASE WHEN EXISTS (SELECT 1 FROM ArtistImageTheme ait JOIN ArtistTheme t ON t.id = ait.theme_id WHERE t.is_active = 1 AND ait.artist_id = a.id) THEN 1 ELSE 0 END as has_theme_image ");
+    sql.append("    CASE WHEN EXISTS (SELECT 1 FROM ArtistImageTheme ait JOIN ArtistTheme t ON t.id = ait.theme_id WHERE t.is_active = 1 AND ait.artist_id = a.id) THEN 1 ELSE 0 END as has_theme_image, ");
+        boolean needsItunesJoin = (itunesPresenceMin != null || itunesPresenceMax != null || "itunes_presence".equals(sortBy));
+        if (needsItunesJoin) {
+            sql.append("    CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) as itunes_presence_ratio ");
+        } else {
+            sql.append("    NULL as itunes_presence_ratio ");
+        }
     sql.append("FROM Artist a ");
     sql.append("LEFT JOIN Gender g ON a.gender_id = g.id ");
     sql.append("LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id ");
@@ -157,6 +166,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
     sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as solo_song_count FROM Song s WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) GROUP BY artist_id) solo_stats ON solo_stats.artist_id = a.id ");
     sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as songs_with_feat_count FROM Song s WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id) GROUP BY artist_id) swf_stats ON swf_stats.artist_id = a.id ");
     sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as standalone_song_count FROM Song WHERE album_id IS NULL GROUP BY artist_id) standalone_stats ON standalone_stats.artist_id = a.id ");
+        if (needsItunesJoin) {
+            sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) GROUP BY artist_id) itunes_stats ON itunes_stats.artist_id = a.id ");
+        }
         boolean hasListenedDateFilter = (listenedDateFrom != null && !listenedDateFrom.isEmpty()) || 
                                         (listenedDateTo != null && !listenedDateTo.isEmpty());
         String playStatsJoinType = ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) ? "INNER JOIN" : "LEFT JOIN";
@@ -191,6 +203,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("WHERE 1=1 ");
         
         List<Object> params = new ArrayList<>();
+        // itunes_stats JOIN appears before play_stats in SQL, so its ? must come first (when join is active)
+        if (needsItunesJoin) {
+            params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
+        }
         // Add account params and listened date params
         params.addAll(accountParams);
         params.addAll(listenedDateParams);
@@ -319,6 +335,16 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(songCountMax);
         }
         
+        // iTunes presence ratio filter
+        if (itunesPresenceMin != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) >= ? ");
+            params.add(itunesPresenceMin);
+        }
+        if (itunesPresenceMax != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) <= ? ");
+            params.add(itunesPresenceMax);
+        }
+        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         sql.append(" ORDER BY ");
@@ -372,6 +398,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             sql.append(" songs_with_feat_count " + direction + ", a.name ASC");
         } else if ("subgenre".equals(sortBy)) {
             sql.append(" sg.name " + direction + " NULLS LAST, a.name ASC");
+        } else if ("itunes_presence".equals(sortBy)) {
+            sql.append(" CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
         } else {
             sql.append(" a.name " + direction);
         }
@@ -414,7 +442,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getInt("solo_song_count"),
                 rs.getInt("songs_with_feat_count"),
                 rs.getInt("standalone_song_count"),
-                rs.getInt("has_theme_image")
+                rs.getInt("has_theme_image"),
+                rs.getObject("itunes_presence_ratio")
             };
         }, params.toArray());
     }
@@ -470,7 +499,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String birthDateTo,
             String birthDateMode,
             Integer songCountMin,
-            Integer songCountMax
+            Integer songCountMax,
+            Integer itunesPresenceMin,
+            Integer itunesPresenceMax,
+            String itunesSongIdsJson
     ) {
         // Build listened date filter clause
         StringBuilder listenedDateFilterClause = new StringBuilder();
@@ -487,47 +519,47 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         boolean hasListenedDateFilter = (listenedDateFrom != null && !listenedDateFrom.isEmpty()) || 
                                         (listenedDateTo != null && !listenedDateTo.isEmpty());
         
+        boolean needsItunesJoin = (itunesPresenceMin != null || itunesPresenceMax != null);
         StringBuilder sql = new StringBuilder();
         
-        // Use a more efficient approach with JOIN for account filtering or listened date filtering
+        // Build FROM clause with optional JOINs for account/date filtering and iTunes presence
+        sql.append("SELECT COUNT(DISTINCT a.id) FROM Artist a ");
         if ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) {
-            sql.append(
-                "SELECT COUNT(DISTINCT a.id) " +
-                "FROM Artist a " +
-                "INNER JOIN Song s ON s.artist_id = a.id " +
-                "INNER JOIN Play p ON p.song_id = s.id " +
-                "WHERE 1=1 ");
-            if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-                sql.append("AND p.account IN (");
-                for (int i = 0; i < accounts.size(); i++) {
-                    if (i > 0) sql.append(",");
-                    sql.append("?");
-                }
-                sql.append(") ");
-            }
-            sql.append(listenedDateFilterClause);
-        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            sql.append(
-                "SELECT COUNT(DISTINCT a.id) " +
-                "FROM Artist a " +
-                "WHERE NOT EXISTS ( " +
-                "    SELECT 1 FROM Play p " +
-                "    JOIN Song song ON p.song_id = song.id " +
-                "    WHERE song.artist_id = a.id AND p.account IN (");
+            sql.append("INNER JOIN Song s ON s.artist_id = a.id INNER JOIN Play p ON p.song_id = s.id ");
+        }
+        // Pre-aggregate iTunes stats as JOINs to avoid correlated subqueries per row
+        if (needsItunesJoin) {
+            sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) GROUP BY artist_id) itunes_stats ON itunes_stats.artist_id = a.id ");
+            sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as song_count FROM Song GROUP BY artist_id) count_song_stats ON count_song_stats.artist_id = a.id ");
+        }
+        if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            sql.append("WHERE NOT EXISTS ( SELECT 1 FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
             }
             sql.append(") ) AND 1=1 ");
         } else {
-            sql.append(
-                "SELECT COUNT(DISTINCT a.id) " +
-                "FROM Artist a " +
-                "WHERE 1=1 ");
+            sql.append("WHERE 1=1 ");
+            if ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) {
+                if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+                    sql.append("AND p.account IN (");
+                    for (int i = 0; i < accounts.size(); i++) {
+                        if (i > 0) sql.append(",");
+                        sql.append("?");
+                    }
+                    sql.append(") ");
+                }
+                sql.append(listenedDateFilterClause);
+            }
         }
         
         List<Object> params = new ArrayList<>();
         
+        // iTunes JOIN param comes first (appears in FROM clause before WHERE conditions)
+        if (needsItunesJoin) {
+            params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
+        }
         // Account params first if using includes mode
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
             params.addAll(accounts);
@@ -665,6 +697,16 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(songCountMax);
         }
         
+        // iTunes presence ratio filter (using pre-joined itunes_stats)
+        if (itunesPresenceMin != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(count_song_stats.song_count, 0), 0) >= ? ");
+            params.add(itunesPresenceMin);
+        }
+        if (itunesPresenceMax != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(count_song_stats.song_count, 0), 0) <= ? ");
+            params.add(itunesPresenceMax);
+        }
+        
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0L;
     }
@@ -720,7 +762,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String birthDateTo,
             String birthDateMode,
             Integer songCountMin,
-            Integer songCountMax
+            Integer songCountMax,
+            Integer itunesPresenceMin,
+            Integer itunesPresenceMax,
+            String itunesSongIdsJson
     ) {
         // Build listened date filter clause
         StringBuilder listenedDateFilterClause = new StringBuilder();
@@ -737,47 +782,47 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         boolean hasListenedDateFilter = (listenedDateFrom != null && !listenedDateFrom.isEmpty()) || 
                                         (listenedDateTo != null && !listenedDateTo.isEmpty());
         
+        boolean needsItunesJoinGender = (itunesPresenceMin != null || itunesPresenceMax != null);
         StringBuilder sql = new StringBuilder();
         
-        // Use a more efficient approach with JOIN for account filtering or listened date filtering
+        // Build FROM clause with optional JOINs for account/date filtering and iTunes presence
+        sql.append("SELECT a.gender_id, COUNT(DISTINCT a.id) as cnt FROM Artist a ");
         if ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) {
-            sql.append(
-                "SELECT a.gender_id, COUNT(DISTINCT a.id) as cnt " +
-                "FROM Artist a " +
-                "INNER JOIN Song s ON s.artist_id = a.id " +
-                "INNER JOIN Play p ON p.song_id = s.id " +
-                "WHERE 1=1 ");
-            if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
-                sql.append("AND p.account IN (");
-                for (int i = 0; i < accounts.size(); i++) {
-                    if (i > 0) sql.append(",");
-                    sql.append("?");
-                }
-                sql.append(") ");
-            }
-            sql.append(listenedDateFilterClause);
-        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            sql.append(
-                "SELECT a.gender_id, COUNT(DISTINCT a.id) as cnt " +
-                "FROM Artist a " +
-                "WHERE NOT EXISTS ( " +
-                "    SELECT 1 FROM Play p " +
-                "    JOIN Song song ON p.song_id = song.id " +
-                "    WHERE song.artist_id = a.id AND p.account IN (");
+            sql.append("INNER JOIN Song s ON s.artist_id = a.id INNER JOIN Play p ON p.song_id = s.id ");
+        }
+        // Pre-aggregate iTunes stats as JOINs to avoid correlated subqueries per row
+        if (needsItunesJoinGender) {
+            sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) GROUP BY artist_id) itunes_stats ON itunes_stats.artist_id = a.id ");
+            sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as song_count FROM Song GROUP BY artist_id) count_song_stats ON count_song_stats.artist_id = a.id ");
+        }
+        if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
+            sql.append("WHERE NOT EXISTS ( SELECT 1 FROM Play p JOIN Song song ON p.song_id = song.id WHERE song.artist_id = a.id AND p.account IN (");
             for (int i = 0; i < accounts.size(); i++) {
                 if (i > 0) sql.append(",");
                 sql.append("?");
             }
             sql.append(") ) AND 1=1 ");
         } else {
-            sql.append(
-                "SELECT a.gender_id, COUNT(DISTINCT a.id) as cnt " +
-                "FROM Artist a " +
-                "WHERE 1=1 ");
+            sql.append("WHERE 1=1 ");
+            if ((accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) || hasListenedDateFilter) {
+                if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
+                    sql.append("AND p.account IN (");
+                    for (int i = 0; i < accounts.size(); i++) {
+                        if (i > 0) sql.append(",");
+                        sql.append("?");
+                    }
+                    sql.append(") ");
+                }
+                sql.append(listenedDateFilterClause);
+            }
         }
         
         List<Object> params = new ArrayList<>();
         
+        // iTunes JOIN param comes first (appears in FROM clause before WHERE conditions)
+        if (needsItunesJoinGender) {
+            params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
+        }
         // Account params first if using includes mode
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
             params.addAll(accounts);
@@ -912,6 +957,16 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         if (songCountMax != null) {
             sql.append(" AND COALESCE((SELECT COUNT(*) FROM Song WHERE artist_id = a.id), 0) <= ? ");
             params.add(songCountMax);
+        }
+        
+        // iTunes presence ratio filter (using pre-joined itunes_stats)
+        if (itunesPresenceMin != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(count_song_stats.song_count, 0), 0) >= ? ");
+            params.add(itunesPresenceMin);
+        }
+        if (itunesPresenceMax != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(count_song_stats.song_count, 0), 0) <= ? ");
+            params.add(itunesPresenceMax);
         }
         
         // Add GROUP BY

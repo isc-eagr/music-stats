@@ -42,6 +42,15 @@
             border-color: rgba(220, 130, 40, 0.85);
             color: #f0b870;
         }
+        .winning-chip.pc-chip {
+            background: linear-gradient(135deg, rgba(130, 60, 180, 0.25), rgba(90, 30, 140, 0.2));
+            border-color: rgba(170, 90, 220, 0.5);
+            color: #c080e8;
+        }
+        .winning-chip.pc-chip:hover {
+            border-color: rgba(170, 90, 220, 0.85);
+            color: #d49af5;
+        }
     </style>
 </head>
 <body>
@@ -302,6 +311,15 @@
                        th:text="${trlStats.daysOnCountdown} + ' Days on TRL'
                               + (${trlStats.peakPosition != null} ? ' (Peak #' + ${trlStats.peakPosition} + (${trlStats.daysAtPeak != null and trlStats.daysAtPeak > 1} ? ' for ' + ${trlStats.daysAtPeak} + ' days)' : ')') : '')"
                        th:title="'This video spent ' + ${trlStats.daysOnCountdown} + ' days on MTV Total Request Live'"></a>
+
+                    <!-- Personal Cuntdown chip (same section as TRL) -->
+                    <a th:if="${pcStats != null}"
+                       th:href="@{/misc/pc}"
+                       target="_blank"
+                       class="winning-chip rank-chip pc-chip"
+                       th:text="${pcStats.daysOnCountdown} + ' Days on Vato\'s Cuntdown'
+                              + (${pcStats.peakPosition != null} ? ' (Peak #' + ${pcStats.peakPosition} + (${pcStats.daysAtPeak != null and pcStats.daysAtPeak > 1} ? ' for ' + ${pcStats.daysAtPeak} + ' days)' : ')') : '')"
+                       th:title="'This song spent ' + ${pcStats.daysOnCountdown} + ' days on Vato\'s Personal Cuntdown'"></a>
                 </div>
                 
             </div>
@@ -2682,6 +2700,15 @@
                         }
                     }
 
+                    // Populate track number if found
+                    if (data.trackNumber != null) {
+                        const tn = document.getElementById('trackNumber');
+                        if (tn && tn.value !== String(data.trackNumber)) {
+                            tn.value = data.trackNumber;
+                            highlightField('trackNumber');
+                        }
+                    }
+
                     // Show success message
                     let message = 'Successfully fetched from iTunes:\n';
                     if (data.matchType === 'partial') {
@@ -2695,7 +2722,10 @@
                         message += '\n';
                     }
                     if (data.lengthFormatted) {
-                        message += `- Length: ${data.lengthFormatted}`;
+                        message += `- Length: ${data.lengthFormatted}\n`;
+                    }
+                    if (data.trackNumber != null) {
+                        message += `- Track Number: ${data.trackNumber}`;
                     }
                     showSuccessToast(message);
                 } else {

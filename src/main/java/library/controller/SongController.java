@@ -14,6 +14,7 @@ import library.service.ChartService;
 import library.service.SongService;
 import library.service.ItunesService;
 import library.service.TrlService;
+import library.service.PcService;
 import library.util.DateFormatUtils;
 import library.service.iTunesLibraryService;
 import org.springframework.stereotype.Controller;
@@ -41,10 +42,11 @@ public class SongController {
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
     private final TrlService trlService;
+    private final PcService pcService;
 
     public SongController(SongService songService, ChartService chartService, ArtistService artistService,
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
-                         ItunesService itunesService, TrlService trlService) {
+                         ItunesService itunesService, TrlService trlService, PcService pcService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -53,6 +55,7 @@ public class SongController {
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
         this.trlService = trlService;
+        this.pcService = pcService;
     }
     
     @InitBinder
@@ -551,6 +554,9 @@ public class SongController {
         model.addAttribute("trlDays", trlService.getDaysOnTrlBySongId(id));
         model.addAttribute("trlStats", trlService.getTrlStatsBySongId(id));
 
+        // Personal Cuntdown chip
+        model.addAttribute("pcStats", pcService.getPcStatsBySongId(id));
+
         // Extended stats for detail page - age at release
         if (artist != null && artist.getBirthDate() != null) {
             java.time.LocalDate effectiveReleaseDate = null;
@@ -729,6 +735,7 @@ public class SongController {
                 response.put("success", true);
                 response.put("releaseDate", trackData.releaseDate);
                 response.put("lengthSeconds", trackData.lengthSeconds);
+                response.put("trackNumber", trackData.trackNumber);
                 response.put("matchType", trackData.matchType);
                 
                 // Format length as mm:ss for display
@@ -793,6 +800,7 @@ public class SongController {
                 response.put("success", true);
                 response.put("releaseDate", trackData.releaseDate);
                 response.put("lengthSeconds", trackData.lengthSeconds);
+                response.put("trackNumber", trackData.trackNumber);
                 response.put("matchType", trackData.matchType);
                 response.put("populateReleaseDate", populateReleaseDate);
                 if (trackData.lengthSeconds != null) {
@@ -845,9 +853,11 @@ public class SongController {
             String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
             String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode, String firstListenedDateEntity,
             String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode, String lastListenedDateEntity,
+            String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
             String listenedDateFrom, String listenedDateTo,
             Integer playCountMin, Integer playCountMax, String playCountEntity,
             String hasFeaturedArtists, String isBand, String isSingle, String inItunes,
+            Integer itunesPresenceMin, Integer itunesPresenceMax,
             Integer limit,
             // Albums chart filters
             Integer albumsWeeklyChartPeak, Integer albumsWeeklyChartWeeks,
@@ -905,6 +915,8 @@ public class SongController {
             .setIsBand(isBand)
             .setIsSingle(isSingle)
             .setInItunes(inItunes)
+            .setItunesPresenceMin(itunesPresenceMin)
+            .setItunesPresenceMax(itunesPresenceMax)
             .setTopLimit(limit)
             // Albums chart filters
             .setAlbumsWeeklyChartPeak(albumsWeeklyChartPeak)
@@ -972,6 +984,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1018,8 +1034,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1075,6 +1092,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1120,8 +1141,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1174,6 +1196,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1219,8 +1245,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1273,6 +1300,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1318,8 +1349,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1372,6 +1404,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1417,8 +1453,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1471,6 +1508,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1516,8 +1557,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1570,6 +1612,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1615,8 +1661,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1669,6 +1716,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1714,8 +1765,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1768,6 +1820,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1777,6 +1833,8 @@ public class SongController {
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
             @RequestParam(required = false) String inItunes,
+            @RequestParam(required = false) Integer itunesPresenceMin,
+            @RequestParam(required = false) Integer itunesPresenceMax,
             @RequestParam(required = false) Integer albumsWeeklyChartPeak,
             @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
             @RequestParam(required = false) Integer albumsSeasonalChartPeak,
@@ -1813,8 +1871,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, limit,
+            hasFeaturedArtists, isBand, isSingle, inItunes, itunesPresenceMin, itunesPresenceMax, limit,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,
@@ -1869,6 +1928,10 @@ public class SongController {
             @RequestParam(required = false) String lastListenedDateTo,
             @RequestParam(required = false) String lastListenedDateMode,
             @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
             @RequestParam(required = false) String listenedDateFrom,
             @RequestParam(required = false) String listenedDateTo,
             @RequestParam(required = false) Integer playCountMin,
@@ -1911,8 +1974,9 @@ public class SongController {
             releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
             firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
             lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
             listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, 0,
+            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, 0,
             albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
             albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
             albumsYearlyChartPeak, albumsYearlyChartYears,

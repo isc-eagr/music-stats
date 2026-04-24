@@ -35,7 +35,7 @@ public class TrlController {
     @ResponseBody
     public List<Map<String, Object>> searchSongs(
             @RequestParam(defaultValue = "") String q) {
-        return trlService.searchSongs(q, 30);
+        return trlService.searchSongs(q);
     }
 
     /** Link a TRL entry to a song in the library. */
@@ -90,7 +90,7 @@ public class TrlController {
     @ResponseBody
     public List<TrlChartEntryGroupDTO> searchChartEntries(
             @RequestParam(defaultValue = "") String q) {
-        return trlService.searchChartEntries(q, 30);
+        return trlService.searchChartEntries(q);
     }
 
     /** Link a TRL debut to a specific chart entry combo. */

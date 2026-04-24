@@ -94,6 +94,7 @@ const topColumnConfig = {
         { key: 'releaseDate', label: 'Release Date', defaultVisible: true, align: 'left' },
         { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
         { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'lastFullListen', label: 'Last Full Listen', defaultVisible: false, align: 'left' },
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
         { key: 'avgPlays', label: 'Avg Plays', defaultVisible: false, align: 'right' },
@@ -2043,6 +2044,7 @@ function buildAlbumRow(album, rank) {
             <td style="display:${vis('releaseDate')};">${album.releaseDate || '-'}</td>
             <td style="display:${vis('firstListened')};">${album.firstListened || '-'}</td>
             <td style="display:${vis('lastListened')};">${album.lastListened || '-'}</td>
+            <td style="display:${vis('lastFullListen')};">${album.lastFullListen || '-'}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(album.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${album.avgLengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(album.avgPlays)}</td>
@@ -2207,7 +2209,7 @@ const numericSortColumns = new Set([
     'ageAtRelease', 'seasonalChartPeak', 'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
 ]);
 
-const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'birthDate', 'deathDate']);
+const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'lastFullListen', 'birthDate', 'deathDate']);
 
 // Columns where lower numeric value is "better" (chart peaks)
 const descDefaultColumns = new Set([

@@ -162,22 +162,21 @@ public class TrlService {
     }
 
     /** Search songs by title/artist for the match modal. */
-    public List<Map<String, Object>> searchSongs(String q, int limit) {
+    public List<Map<String, Object>> searchSongs(String q) {
         String like = "%" + q.toLowerCase() + "%";
         String sql =
             "SELECT s.id, s.name AS title, a.name AS artist_name " +
             "FROM Song s " +
             "JOIN Artist a ON a.id = s.artist_id " +
             "WHERE LOWER(s.name) LIKE ? OR LOWER(a.name) LIKE ? " +
-            "ORDER BY s.name COLLATE NOCASE ASC " +
-            "LIMIT ?";
+            "ORDER BY s.name COLLATE NOCASE ASC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id", rs.getInt("id"));
             row.put("title", rs.getString("title"));
             row.put("artistName", rs.getString("artist_name"));
             return row;
-        }, like, like, limit);
+        }, like, like);
     }
 
     /** Link a TRL debut entry to a song in the library and normalize names. */
@@ -252,22 +251,21 @@ public class TrlService {
     }
 
     /** Search distinct chart entries for the chart-link modal. */
-    public List<TrlChartEntryGroupDTO> searchChartEntries(String q, int limit) {
+    public List<TrlChartEntryGroupDTO> searchChartEntries(String q) {
         String like = "%" + q.toLowerCase() + "%";
         String sql =
             "SELECT artist_name, song_title, COUNT(*) AS appearances " +
             "FROM trl_chart_entry " +
             "WHERE LOWER(artist_name) LIKE ? OR LOWER(song_title) LIKE ? " +
             "GROUP BY artist_name, song_title " +
-            "ORDER BY appearances DESC " +
-            "LIMIT ?";
+            "ORDER BY appearances DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) ->
             new TrlChartEntryGroupDTO(
                 rs.getString("artist_name"),
                 rs.getString("song_title"),
                 rs.getInt("appearances")
             ),
-            like, like, limit
+            like, like
         );
     }
 

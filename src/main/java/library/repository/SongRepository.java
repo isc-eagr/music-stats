@@ -6095,8 +6095,38 @@ public class SongRepository {
 
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         // Use full filter for all entity types - filter based on songs that match, then aggregate
-        result.put("topArtists", getTopArtistsFilteredByDTO(filter, limit));
-        result.put("topAlbums", getTopAlbumsFilteredByDTO(filter, limit));
+        java.util.List<java.util.Map<String, Object>> topArtists = getTopArtistsFilteredByDTO(filter, limit);
+        java.util.List<java.util.Map<String, Object>> topAlbums = getTopAlbumsFilteredByDTO(filter, limit);
+        
+        // Enrich with iTunes presence ratio if itunesSongIdsJson is available
+        String itunesSongIdsJson = filter.getItunesSongIdsJson();
+        if (itunesSongIdsJson != null && !itunesSongIdsJson.isEmpty() && !"[]".equals(itunesSongIdsJson)) {
+            enrichWithItunesPresenceByArtist(topArtists, itunesSongIdsJson);
+            enrichWithItunesPresenceByAlbum(topAlbums, itunesSongIdsJson);
+        }
+        
+        // Filter by itunesPresenceMin/Max after enrichment
+        Integer itunesPresenceMin = filter.getItunesPresenceMin();
+        Integer itunesPresenceMax = filter.getItunesPresenceMax();
+        if (itunesPresenceMin != null || itunesPresenceMax != null) {
+            topArtists = topArtists.stream().filter(row -> {
+                Double ratio = (Double) row.get("itunesPresence");
+                if (ratio == null) return false;
+                if (itunesPresenceMin != null && ratio < itunesPresenceMin) return false;
+                if (itunesPresenceMax != null && ratio > itunesPresenceMax) return false;
+                return true;
+            }).collect(java.util.stream.Collectors.toList());
+            topAlbums = topAlbums.stream().filter(row -> {
+                Double ratio = (Double) row.get("itunesPresence");
+                if (ratio == null) return false;
+                if (itunesPresenceMin != null && ratio < itunesPresenceMin) return false;
+                if (itunesPresenceMax != null && ratio > itunesPresenceMax) return false;
+                return true;
+            }).collect(java.util.stream.Collectors.toList());
+        }
+        
+        result.put("topArtists", topArtists);
+        result.put("topAlbums", topAlbums);
         // Use DTO-based song query to support featured/group indicators
         result.put("topSongs", getTopSongsFilteredByDTO(filter, limit));
 
@@ -6665,13 +6695,35 @@ public class SongRepository {
         java.util.List<Object> playDateParams = new java.util.ArrayList<>();
         buildPlayDateFilter(playDateFilter, playDateParams, filter);
         
-        // Combine parameters: play date params, then song params, then limit
+        // Last Full Listen Date filter for outer query
+        String lastFullListenDateMode = filter.getLastFullListenDateMode();
+        String lastFullListenDate = filter.getLastFullListenDate();
+        String lastFullListenDateFrom = filter.getLastFullListenDateFrom();
+        String lastFullListenDateTo = filter.getLastFullListenDateTo();
+        boolean hasLastFullListenFilter = lastFullListenDateMode != null && !lastFullListenDateMode.isEmpty();
+        StringBuilder lastFullListenClause = new StringBuilder();
+        java.util.List<Object> lastFullListenParams = new java.util.ArrayList<>();
+        if (hasLastFullListenFilter) {
+            switch (lastFullListenDateMode) {
+                case "exact" -> { if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) { lastFullListenClause.append(" AND DATE(last_full_listen_date) = DATE(?)"); lastFullListenParams.add(lastFullListenDate); } }
+                case "gte"   -> { if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) { lastFullListenClause.append(" AND DATE(last_full_listen_date) >= DATE(?)"); lastFullListenParams.add(lastFullListenDate); } }
+                case "lte"   -> { if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) { lastFullListenClause.append(" AND DATE(last_full_listen_date) <= DATE(?)"); lastFullListenParams.add(lastFullListenDate); } }
+                case "between" -> { if (lastFullListenDateFrom != null && !lastFullListenDateFrom.isEmpty() && lastFullListenDateTo != null && !lastFullListenDateTo.isEmpty()) { lastFullListenClause.append(" AND DATE(last_full_listen_date) >= DATE(?) AND DATE(last_full_listen_date) <= DATE(?)"); lastFullListenParams.add(lastFullListenDateFrom); lastFullListenParams.add(lastFullListenDateTo); } }
+                case "isnull"    -> lastFullListenClause.append(" AND last_full_listen_date IS NULL");
+                case "isnotnull" -> lastFullListenClause.append(" AND last_full_listen_date IS NOT NULL");
+            }
+        }
+
+        // Combine parameters: play date params, then song params, optionally lastFullListen params, then limit
         java.util.List<Object> params = new java.util.ArrayList<>();
         params.addAll(playDateParams);
         params.addAll(songParams);
+        if (hasLastFullListenFilter && lastFullListenClause.length() > 0) {
+            params.addAll(lastFullListenParams);
+        }
         params.add(limit);
 
-        String sql = """
+        String innerSql = """
             SELECT 
                 alb.id,
                 alb.name,
@@ -6704,9 +6756,31 @@ public class SongRepository {
                 COALESCE(agg.legacy_plays, 0) as legacy_plays,
                 COALESCE(agg.time_listened, 0) as time_listened,
                 agg.first_listened,
-                agg.last_listened
+                agg.last_listened,
+                (SELECT MAX(DATE(arc.run_end_date))
+                 FROM (
+                     SELECT rn2.album_id, rn2.run_id, MAX(rn2.play_date) AS run_end_date, COUNT(DISTINCT rn2.song_id) AS songs_played
+                     FROM (
+                         SELECT *, SUM(CASE WHEN lag_alb IS NOT album_id THEN 1 ELSE 0 END) OVER (ORDER BY rn_ord) AS run_id
+                         FROM (
+                             SELECT p2.id, p2.play_date, p2.song_id, s2.album_id,
+                                    ROW_NUMBER() OVER (ORDER BY p2.play_date, p2.id) AS rn_ord,
+                                    LAG(s2.album_id) OVER (ORDER BY p2.play_date, p2.id) AS lag_alb
+                             FROM Play p2
+                             LEFT JOIN Song s2 ON p2.song_id = s2.id
+                         )
+                     ) rn2
+                     WHERE rn2.album_id IS NOT NULL
+                     GROUP BY rn2.album_id, rn2.run_id
+                 ) arc
+                 WHERE arc.album_id = alb.id
+                   AND arc.songs_played >= (
+                     SELECT CASE WHEN cnt <= 6 THEN cnt WHEN cnt <= 10 THEN cnt - 2 WHEN cnt <= 20 THEN cnt - 3 ELSE cnt - 4 END
+                     FROM (SELECT COUNT(*) AS cnt FROM Song WHERE album_id = alb.id)
+                   )
+                ) AS last_full_listen_date
             FROM Album alb
-            INNER JOIN Artist ar ON alb.artist_id = ar.id
+            LEFT JOIN Artist ar ON alb.artist_id = ar.id
             LEFT JOIN Genre gen ON COALESCE(alb.override_genre_id, ar.genre_id) = gen.id
             LEFT JOIN SubGenre sg ON COALESCE(alb.override_subgenre_id, ar.subgenre_id) = sg.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
@@ -6752,9 +6826,15 @@ public class SongRepository {
             ) agg ON alb.id = agg.album_id
             WHERE agg.album_id IS NOT NULL
             ORDER BY plays DESC, agg.last_listened ASC
-            LIMIT ?
             """;
-        
+
+        String sql;
+        if (hasLastFullListenFilter && lastFullListenClause.length() > 0) {
+            sql = "SELECT * FROM (" + innerSql + ") alb_sub WHERE 1=1" + lastFullListenClause + " ORDER BY plays DESC, last_listened ASC LIMIT ?";
+        } else {
+            sql = innerSql + "LIMIT ?";
+        }
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             java.util.Map<String, Object> row = new java.util.HashMap<>();
             row.put("id", rs.getInt("id"));
@@ -6822,6 +6902,7 @@ public class SongRepository {
             row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
+            row.put("lastFullListen", formatDate(rs.getString("last_full_listen_date")));
             return row;
         }, params.toArray());
     }
@@ -7330,6 +7411,47 @@ public class SongRepository {
             row.put("lastListened", formatDate(rs.getString("last_listened")));
             return row;
         }, params.toArray());
+    }
+    
+    // Helper: enrich top artists list with itunesPresence ratio
+    private void enrichWithItunesPresenceByArtist(java.util.List<java.util.Map<String, Object>> artists, String itunesSongIdsJson) {
+        if (artists == null || artists.isEmpty()) return;
+        // Query: for each artist, count songs in iTunes
+        java.util.Map<Integer, Integer> itunesCountByArtist = new java.util.HashMap<>();
+        jdbcTemplate.query(
+            "SELECT s.artist_id, COUNT(*) as itunes_count FROM Song s " +
+            "WHERE s.id IN (SELECT value FROM json_each(?)) GROUP BY s.artist_id",
+            rs -> { itunesCountByArtist.put(rs.getInt("artist_id"), rs.getInt("itunes_count")); },
+            itunesSongIdsJson
+        );
+        for (java.util.Map<String, Object> row : artists) {
+            int artistId = (Integer) row.get("id");
+            int songCount = row.get("songCount") instanceof Integer ? (Integer) row.get("songCount") : 0;
+            int itunesCount = itunesCountByArtist.getOrDefault(artistId, 0);
+            Double ratio = songCount > 0 ? Math.round(itunesCount * 100.0 / songCount * 10.0) / 10.0 : null;
+            row.put("itunesPresence", ratio);
+        }
+    }
+    
+    // Helper: enrich top albums list with itunesPresence ratio
+    private void enrichWithItunesPresenceByAlbum(java.util.List<java.util.Map<String, Object>> albums, String itunesSongIdsJson) {
+        if (albums == null || albums.isEmpty()) return;
+        java.util.Map<Integer, Integer> itunesCountByAlbum = new java.util.HashMap<>();
+        jdbcTemplate.query(
+            "SELECT s.album_id, COUNT(*) as itunes_count FROM Song s " +
+            "WHERE s.id IN (SELECT value FROM json_each(?)) AND s.album_id IS NOT NULL GROUP BY s.album_id",
+            rs -> { itunesCountByAlbum.put(rs.getInt("album_id"), rs.getInt("itunes_count")); },
+            itunesSongIdsJson
+        );
+        for (java.util.Map<String, Object> row : albums) {
+            Object albumIdObj = row.get("id");
+            if (albumIdObj == null) continue;
+            int albumId = (Integer) albumIdObj;
+            int songCount = row.get("songCount") instanceof Integer ? (Integer) row.get("songCount") : 0;
+            int itunesCount = itunesCountByAlbum.getOrDefault(albumId, 0);
+            Double ratio = songCount > 0 ? Math.round(itunesCount * 100.0 / songCount * 10.0) / 10.0 : null;
+            row.put("itunesPresence", ratio);
+        }
     }
     
     // Helper method to format date strings

@@ -146,6 +146,12 @@ public class AlbumController {
             @RequestParam(required = false) Integer seasonalChartSeasons,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
+            @RequestParam(required = false) Integer itunesPresenceMin,
+            @RequestParam(required = false) Integer itunesPresenceMax,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
@@ -162,6 +168,9 @@ public class AlbumController {
         String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
         String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String lastFullListenDateConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDate);
+        String lastFullListenDateFromConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDateFrom);
+        String lastFullListenDateToConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDateTo);
         String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
         String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
         String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
@@ -191,6 +200,8 @@ public class AlbumController {
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                itunesPresenceMin, itunesPresenceMax,
                 sortby, sortdir, page, perpage
         );
         
@@ -209,7 +220,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                itunesPresenceMin, itunesPresenceMax);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Get gender counts for the filtered dataset
@@ -227,7 +240,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                itunesPresenceMin, itunesPresenceMax);
         
         // Add data to model
         model.addAttribute("currentSection", "albums");
@@ -289,6 +304,8 @@ public class AlbumController {
         model.addAttribute("playCountMax", playCountMax);
         model.addAttribute("songCountMin", songCountMin);
         model.addAttribute("songCountMax", songCountMax);
+        model.addAttribute("itunesPresenceMin", itunesPresenceMin);
+        model.addAttribute("itunesPresenceMax", itunesPresenceMax);
         model.addAttribute("lengthMin", lengthMin);
         model.addAttribute("lengthMax", lengthMax);
         model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
@@ -324,6 +341,15 @@ public class AlbumController {
         model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
         model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        
+        // Last full listen date filter attributes
+        model.addAttribute("lastFullListenDate", lastFullListenDate);
+        model.addAttribute("lastFullListenDateFrom", lastFullListenDateFrom);
+        model.addAttribute("lastFullListenDateTo", lastFullListenDateTo);
+        model.addAttribute("lastFullListenDateMode", lastFullListenDateMode != null ? lastFullListenDateMode : "exact");
+        model.addAttribute("lastFullListenDateFormatted", formatDateForDisplay(lastFullListenDate));
+        model.addAttribute("lastFullListenDateFromFormatted", formatDateForDisplay(lastFullListenDateFrom));
+        model.addAttribute("lastFullListenDateToFormatted", formatDateForDisplay(lastFullListenDateTo));
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
@@ -435,6 +461,7 @@ public class AlbumController {
         // Add first and last listened dates for the album
         model.addAttribute("firstListenedDate", albumService.getFirstListenedDateForAlbum(id));
         model.addAttribute("lastListenedDate", albumService.getLastListenedDateForAlbum(id));
+        model.addAttribute("lastFullListenDate", albumService.getLastFullListenDateForAlbum(id));
         
         // Add unique period stats for the album
         model.addAttribute("uniqueDaysPlayed", albumService.getUniqueDaysPlayedForAlbum(id));
@@ -530,6 +557,7 @@ public class AlbumController {
         // Extended stats for detail page
         model.addAttribute("soloSongCount", albumService.getSoloSongCountForAlbum(id));
         model.addAttribute("songsWithFeatCount", albumService.getSongsWithFeatCountForAlbum(id));
+        model.addAttribute("itunesPresenceRatio", itunesService.getAlbumItunesPresenceRatio(id));
         // Age at release
         if (artist != null && artist.getBirthDate() != null && albumEntity.getReleaseDate() != null) {
             long ageAtRelease = java.time.temporal.ChronoUnit.YEARS.between(artist.getBirthDate(), albumEntity.getReleaseDate().toLocalDate());
@@ -699,7 +727,15 @@ public class AlbumController {
         }
         return response;
     }
-    
+
+    @GetMapping("/api/{id}/last-full-listen")
+    @ResponseBody
+    public Map<String, Object> getLastFullListenDate(@PathVariable Integer id) {
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("lastFullListenDate", albumService.getLastFullListenDateForAlbum(id));
+        return response;
+    }
+
     @GetMapping("/api/all-albums")
     @ResponseBody
     public List<Map<String, Object>> getAllAlbums() {

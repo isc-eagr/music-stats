@@ -440,4 +440,24 @@ public class AlbumCardDTO {
     public void setYearlyChartPeakYears(Integer yearlyChartPeakYears) {
         this.yearlyChartPeakYears = yearlyChartPeakYears;
     }
+
+    private String lastFullListenDate;
+
+    public String getLastFullListenDate() {
+        return lastFullListenDate;
+    }
+
+    public void setLastFullListenDate(String lastFullListenDate) {
+        this.lastFullListenDate = lastFullListenDate;
+    }
+
+    private Double itunesPresenceRatio;
+
+    public Double getItunesPresenceRatio() {
+        return itunesPresenceRatio;
+    }
+
+    public void setItunesPresenceRatio(Double itunesPresenceRatio) {
+        this.itunesPresenceRatio = itunesPresenceRatio;
+    }
 }

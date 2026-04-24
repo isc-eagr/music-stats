@@ -61,6 +61,12 @@ public class ChartFilterDTO {
     private String lastListenedDateTo;
     private String lastListenedDateMode;
     private String lastListenedDateEntity; // "artist", "album", "song"
+
+    // Last Full Listen Date filter (album only)
+    private String lastFullListenDate;
+    private String lastFullListenDateFrom;
+    private String lastFullListenDateTo;
+    private String lastFullListenDateMode;
     
     // Listened Date Range (for timeframe filtering - applies to plays)
     private String listenedDateFrom;
@@ -76,6 +82,9 @@ public class ChartFilterDTO {
     private String isBand; // "true", "false", or null
     private String isSingle; // "true", "false", or null
     private String inItunes; // "true", "false", or null
+    private Integer itunesPresenceMin;
+    private Integer itunesPresenceMax;
+    private String itunesSongIdsJson;
     
     // Age filter
     private Integer ageMin;
@@ -226,6 +235,18 @@ public class ChartFilterDTO {
     
     public String getLastListenedDateEntity() { return lastListenedDateEntity; }
     public ChartFilterDTO setLastListenedDateEntity(String lastListenedDateEntity) { this.lastListenedDateEntity = lastListenedDateEntity; return this; }
+
+    public String getLastFullListenDate() { return lastFullListenDate; }
+    public ChartFilterDTO setLastFullListenDate(String lastFullListenDate) { this.lastFullListenDate = lastFullListenDate; return this; }
+
+    public String getLastFullListenDateFrom() { return lastFullListenDateFrom; }
+    public ChartFilterDTO setLastFullListenDateFrom(String lastFullListenDateFrom) { this.lastFullListenDateFrom = lastFullListenDateFrom; return this; }
+
+    public String getLastFullListenDateTo() { return lastFullListenDateTo; }
+    public ChartFilterDTO setLastFullListenDateTo(String lastFullListenDateTo) { this.lastFullListenDateTo = lastFullListenDateTo; return this; }
+
+    public String getLastFullListenDateMode() { return lastFullListenDateMode; }
+    public ChartFilterDTO setLastFullListenDateMode(String lastFullListenDateMode) { this.lastFullListenDateMode = lastFullListenDateMode; return this; }
     
     public String getListenedDateFrom() { return listenedDateFrom; }
     public ChartFilterDTO setListenedDateFrom(String listenedDateFrom) { this.listenedDateFrom = listenedDateFrom; return this; }
@@ -253,6 +274,15 @@ public class ChartFilterDTO {
     
     public String getInItunes() { return inItunes; }
     public ChartFilterDTO setInItunes(String inItunes) { this.inItunes = inItunes; return this; }
+    
+    public Integer getItunesPresenceMin() { return itunesPresenceMin; }
+    public ChartFilterDTO setItunesPresenceMin(Integer itunesPresenceMin) { this.itunesPresenceMin = itunesPresenceMin; return this; }
+    
+    public Integer getItunesPresenceMax() { return itunesPresenceMax; }
+    public ChartFilterDTO setItunesPresenceMax(Integer itunesPresenceMax) { this.itunesPresenceMax = itunesPresenceMax; return this; }
+    
+    public String getItunesSongIdsJson() { return itunesSongIdsJson; }
+    public ChartFilterDTO setItunesSongIdsJson(String itunesSongIdsJson) { this.itunesSongIdsJson = itunesSongIdsJson; return this; }
     
     public Integer getAgeMin() { return ageMin; }
     public ChartFilterDTO setAgeMin(Integer ageMin) { this.ageMin = ageMin; return this; }

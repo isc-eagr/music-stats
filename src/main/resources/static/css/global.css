@@ -2368,7 +2368,6 @@ select:focus {
 
     /* Hide non-essential stats on mobile */
     .artist-stats:not(.artist-stats-plays):not(.artist-stats-row2),
-    .album-stats:not(.album-stats-plays):not(.album-stats-row2),
     .song-stats:not(.song-stats-plays):not(.song-stats-row2) {
         display: none;
     }

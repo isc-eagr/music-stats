@@ -2086,6 +2086,46 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Last Full Listen Date Filter (album only) -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Last Full Listen Date
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-modifiers">
+                                <button type="button" class="filter-modifier" data-filter="lastFullListenDate" data-mode="exact"
+                                        th:classappend="${lastFullListenDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                <button type="button" class="filter-modifier" data-filter="lastFullListenDate" data-mode="gte"
+                                        th:classappend="${lastFullListenDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                <button type="button" class="filter-modifier" data-filter="lastFullListenDate" data-mode="lte"
+                                        th:classappend="${lastFullListenDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                <button type="button" class="filter-modifier" data-filter="lastFullListenDate" data-mode="between"
+                                        th:classappend="${lastFullListenDateMode == 'between'} ? 'active' : ''">Between</button>
+                                <button type="button" class="filter-modifier" data-filter="lastFullListenDate" data-mode="isnull"
+                                        th:classappend="${lastFullListenDateMode == 'isnull'} ? 'active' : ''">Is Empty</button>
+                                <button type="button" class="filter-modifier" data-filter="lastFullListenDate" data-mode="isnotnull"
+                                        th:classappend="${lastFullListenDateMode == 'isnotnull'} ? 'active' : ''">Has Value</button>
+                            </div>
+                            <input type="hidden" autocomplete="off" name="lastFullListenDateMode" id="lastFullListenDateModeInput" th:value="${lastFullListenDateMode}" />
+                            <div id="lastFullListenDateSingle" th:style="${lastFullListenDateMode == 'between' or lastFullListenDateMode == 'isnull' or lastFullListenDateMode == 'isnotnull'} ? 'display:none' : ''">
+                                <label class="field"><span>Date</span>
+                                    <input type="text" autocomplete="off" name="lastFullListenDate" th:value="${lastFullListenDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                            </div>
+                            <div id="lastFullListenDateRange" th:style="${lastFullListenDateMode != 'between'} ? 'display:none' : ''">
+                                <label class="field"><span>From</span>
+                                    <input type="text" autocomplete="off" name="lastFullListenDateFrom" th:value="${lastFullListenDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>To</span>
+                                    <input type="text" autocomplete="off" name="lastFullListenDateTo" th:value="${lastFullListenDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Listened Date Filter (for plays) -->
                     <div class="filter-item">
@@ -2791,6 +2831,7 @@
                                             <th data-sort="releaseDate" data-col="releaseDate" class="hide-mobile">Release Date</th>
                                             <th data-sort="firstListened" data-col="firstListened" class="hide-mobile">First Listened</th>
                                             <th data-sort="lastListened" data-col="lastListened" class="hide-mobile">Last Listened</th>
+                                            <th data-sort="lastFullListen" data-col="lastFullListen" style="display:none;">Last Full Listen</th>
                                             <th data-sort="ageAtRelease" data-col="ageAtRelease" style="text-align:right;display:none;">Age at Release</th>
                                             <th data-sort="avgLength" data-col="avgLength" style="text-align:right;display:none;">Avg Length</th>
                                             <th data-sort="avgPlays" data-col="avgPlays" style="text-align:right;display:none;">Avg Plays</th>
@@ -3344,6 +3385,11 @@
             document.querySelectorAll('input[name="deathDate"], input[name="deathDateFrom"], input[name="deathDateTo"]').forEach(function(el) {
                 flatpickr(el, flatpickrConfig);
             });
+
+            // Last Full Listen Date
+            document.querySelectorAll('input[name="lastFullListenDate"], input[name="lastFullListenDateFrom"], input[name="lastFullListenDateTo"]').forEach(function(el) {
+                flatpickr(el, flatpickrConfig);
+            });
             
             // Listen Date Range (different format yyyy-mm-dd)
             document.querySelectorAll('input[name="listenedDateFrom"], input[name="listenedDateTo"]').forEach(function(el) {
@@ -3356,6 +3402,7 @@
             setupDateModeToggle('releaseDate');
             setupDateModeToggle('birthDate');
             setupDateModeToggle('deathDate');
+            setupDateModeToggle('lastFullListenDate');
             
             // Setup Age filter mode toggle
             setupAgeModeToggle();
@@ -3373,7 +3420,7 @@
          */
         function setupGenericFilterModifiers() {
             // Get all filter-modifier buttons NOT already handled by date/age specific handlers
-            const dateFilters = ['firstListenedDate', 'lastListenedDate', 'releaseDate', 'birthDate', 'deathDate', 'age'];
+            const dateFilters = ['firstListenedDate', 'lastListenedDate', 'lastFullListenDate', 'releaseDate', 'birthDate', 'deathDate', 'age'];
             const modifierButtons = document.querySelectorAll('.filter-modifier');
             
             modifierButtons.forEach(function(button) {

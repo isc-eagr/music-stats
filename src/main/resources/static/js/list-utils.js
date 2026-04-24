@@ -296,6 +296,20 @@ function openCardModal(btn) {
     body.innerHTML = '';
     body.appendChild(clone);
 
+    // Lazy-load Last Full Listen Date for album cards
+    const albumId = card.getAttribute('data-album-id');
+    if (albumId) {
+        const lflSpan = clone.querySelector('.last-full-listen-value');
+        if (lflSpan) {
+            fetch('/albums/api/' + albumId + '/last-full-listen')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    lflSpan.textContent = data.lastFullListenDate || 'N/A';
+                })
+                .catch(function() { lflSpan.textContent = 'N/A'; });
+        }
+    }
+
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
 }

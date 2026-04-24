@@ -443,7 +443,7 @@ public class SongService {
         String sql = """
             UPDATE Song 
             SET name = ?, artist_id = ?, album_id = ?, release_date = ?,
-                length_seconds = ?, is_single = ?,
+                length_seconds = ?, track_number = ?, is_single = ?,
                 override_genre_id = ?, override_subgenre_id = ?, override_language_id = ?,
                 override_gender_id = ?, override_ethnicity_id = ?, organized = ?,
                 update_date = CURRENT_TIMESTAMP
@@ -463,6 +463,7 @@ public class SongService {
             song.getAlbumId(),
             releaseDateStr,
             song.getLengthSeconds(),
+            song.getTrackNumber(),
             song.getIsSingle() ? 1 : 0,
             song.getOverrideGenreId(),
             song.getOverrideSubgenreId(),
@@ -1067,6 +1068,13 @@ public class SongService {
      */
     private void applyItunesFilter(ChartFilterDTO filter) {
         String inItunes = filter.getInItunes();
+        
+        // Populate itunesSongIdsJson if needed for presence ratio filtering
+        if (filter.getItunesSongIdsJson() == null && 
+                (filter.getItunesPresenceMin() != null || filter.getItunesPresenceMax() != null)) {
+            filter.setItunesSongIdsJson(itunesService.getAllItunesSongIdsJson());
+        }
+        
         if (inItunes == null || inItunes.isEmpty()) {
             return; // No iTunes filter, nothing to do
         }

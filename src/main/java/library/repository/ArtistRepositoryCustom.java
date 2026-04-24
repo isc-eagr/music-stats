@@ -56,6 +56,9 @@ public interface ArtistRepositoryCustom {
             String birthDateMode,
             Integer songCountMin,
             Integer songCountMax,
+            Integer itunesPresenceMin,
+            Integer itunesPresenceMax,
+            String itunesSongIdsJson,
             String sortBy,
             String sortDir,
             int limit,
@@ -112,7 +115,10 @@ public interface ArtistRepositoryCustom {
             String birthDateTo,
             String birthDateMode,
             Integer songCountMin,
-            Integer songCountMax
+            Integer songCountMax,
+            Integer itunesPresenceMin,
+            Integer itunesPresenceMax,
+            String itunesSongIdsJson
     );
     
     /**
@@ -170,6 +176,9 @@ public interface ArtistRepositoryCustom {
             String birthDateTo,
             String birthDateMode,
             Integer songCountMin,
-            Integer songCountMax
+            Integer songCountMax,
+            Integer itunesPresenceMin,
+            Integer itunesPresenceMax,
+            String itunesSongIdsJson
     );
 }

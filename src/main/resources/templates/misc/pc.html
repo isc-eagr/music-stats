@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Cuntdown Overview - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <script th:src="@{/js/table-sort.js}" defer></script>
+    <style>
+        .pc-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Summary bar */
+        .pc-summary {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .pc-stat {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px 22px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .pc-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .pc-stat-label {
+            font-size: 0.78rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+        }
+
+        /* Toolbar */
+        .pc-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .pc-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 16px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #aaa;
+            font-size: 0.83rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .pc-toggle-btn:hover { border-color: #666; color: #ddd; }
+        .pc-toggle-btn.active {
+            background: rgba(170, 90, 220, 0.18);
+            border-color: rgba(170, 90, 220, 0.55);
+            color: #c080e8;
+        }
+        .pc-toggle-btn .btn-icon { font-size: 0.9em; }
+
+        /* Table */
+        .pc-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        }
+        .pc-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #141414;
+        }
+        .pc-table thead tr {
+            background: #1e1e1e;
+            border-bottom: 2px solid #333;
+        }
+        .pc-table th {
+            padding: 11px 14px;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .pc-table th:hover { color: #ccc; }
+        .pc-table th.center,
+        .pc-table td.center { text-align: center; }
+
+        .pc-table tbody tr {
+            border-bottom: 1px solid #1f1f1f;
+            transition: background 0.12s;
+        }
+        .pc-table tbody tr:hover { background: #1c1c1c; }
+
+        /* Gender row coloring */
+        .pc-table tbody tr.gender-male {
+            background: rgba(74, 144, 226, 0.06);
+            border-left: 3px solid rgba(74, 144, 226, 0.5);
+        }
+        .pc-table tbody tr.gender-male:hover {
+            background: rgba(74, 144, 226, 0.11);
+        }
+        .pc-table tbody tr.gender-female {
+            background: rgba(217, 74, 138, 0.06);
+            border-left: 3px solid rgba(217, 74, 138, 0.5);
+        }
+        .pc-table tbody tr.gender-female:hover {
+            background: rgba(217, 74, 138, 0.11);
+        }
+
+        .pc-table td {
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: #d0d0d0;
+            vertical-align: middle;
+        }
+
+        /* Position badge */
+        .pos-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #2a2a2a;
+            color: #aaa;
+            border: 1px solid #444;
+        }
+
+        /* Days bar */
+        .days-bar-wrap { display: flex; align-items: center; gap: 8px; }
+        .days-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #a855f7;
+            min-width: 4px;
+        }
+        .days-val { font-size: 0.82rem; color: #aaa; white-space: nowrap; }
+
+        /* Song / artist links */
+        .pc-song-link {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .pc-song-link:hover { color: #a855f7; text-decoration: underline; }
+
+        .pc-artist-link {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .pc-artist-link:hover { color: #ccc; text-decoration: underline; }
+
+        .pc-no-link-song   { color: #999; font-size: 0.88rem; }
+        .pc-no-link-artist { color: #777; font-size: 0.85rem; }
+
+        /* Date column */
+        .pc-date { color: #888; font-size: 0.83rem; white-space: nowrap; }
+        .pc-date-link {
+            color: #a855f7;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.12s;
+        }
+        .pc-date-link:hover { color: #c080e8; text-decoration: underline; }
+
+        /* Match button */
+        .pc-match-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #888;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.12s;
+            white-space: nowrap;
+        }
+        .pc-match-btn:hover { border-color: #a855f7; color: #a855f7; background: rgba(168,85,247,0.08); }
+
+        /* Sort indicators */
+        .pc-table th.sorted-asc::after  { content: ' \25B2'; font-size: 0.7em; }
+        .pc-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
+
+        /* Retired / Hall of Fame rows — gold */
+        .pc-table tbody tr.pc-retired td { color: #c9a227; }
+        .pc-table tbody tr.pc-retired .days-val { color: #c9a227; }
+        .pc-table tbody tr.pc-retired .days-bar { background: #c9a227; }
+        .pc-table tbody tr.pc-retired .pc-song-link { color: #e8c547; }
+        .pc-table tbody tr.pc-retired .pc-song-link:hover { color: #ffd700; }
+        .pc-table tbody tr.pc-retired .pc-artist-link { color: #b8881e; }
+        .pc-table tbody tr.pc-retired .pc-artist-link:hover { color: #d4a429; }
+        .pc-table tbody tr.pc-retired .pc-no-link-song  { color: #c9a227; }
+        .pc-table tbody tr.pc-retired .pc-no-link-artist { color: #a8861a; }
+        .pc-table tbody tr.pc-retired .pos-badge {
+            background: rgba(201,162,39,0.2);
+            border-color: rgba(201,162,39,0.5);
+            color: #c9a227;
+        }
+        .pc-table tbody tr.pc-retired.gender-male {
+            background: rgba(74,144,226,0.07);
+            border-left-color: rgba(74,144,226,0.55);
+        }
+        .pc-table tbody tr.pc-retired.gender-female {
+            background: rgba(217,74,138,0.07);
+            border-left-color: rgba(217,74,138,0.55);
+        }
+
+        /* Hidden-by-filter rows */
+        .pc-table tbody tr.pc-hidden { display: none; }
+        .pc-table tbody tr.pc-search-hidden { display: none; }
+        .pc-table-search {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        .pc-table-search input {
+            width: 100%;
+            padding: 7px 14px 7px 34px;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 20px;
+            color: #ddd;
+            font-size: 0.83rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .pc-table-search input:focus { border-color: #a855f7; }
+        .pc-table-search input::placeholder { color: #555; }
+        .pc-table-search .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #555;
+            font-size: 0.82rem;
+            pointer-events: none;
+        }
+        .pc-search-count {
+            font-size: 0.78rem;
+            color: #555;
+            white-space: nowrap;
+            align-self: center;
+        }
+
+        /* ---- Match Modal ---- */
+        .pc-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .pc-modal-overlay.open { display: flex; }
+        .pc-modal {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 14px;
+            width: 540px;
+            max-width: calc(100vw - 32px);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+        }
+        .pc-modal-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .pc-modal-title { font-size: 1rem; font-weight: 700; color: #eee; }
+        .pc-modal-subtitle { font-size: 0.78rem; color: #888; margin-top: 2px; }
+        .pc-modal-close {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .pc-modal-close:hover { color: #ccc; }
+        .pc-modal-body { padding: 16px 20px; flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+        .pc-search-input {
+            width: 100%;
+            padding: 9px 14px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #ddd;
+            font-size: 0.88rem;
+            box-sizing: border-box;
+        }
+        .pc-search-input:focus { outline: none; border-color: #a855f7; }
+        .pc-search-results {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            min-height: 180px;
+            max-height: 340px;
+        }
+        .pc-result-item {
+            padding: 9px 14px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .pc-result-item:last-child { border-bottom: none; }
+        .pc-result-item:hover { background: rgba(168,85,247,0.1); }
+        .pc-result-title { font-size: 0.88rem; font-weight: 600; color: #e0e0e0; }
+        .pc-result-artist { font-size: 0.78rem; color: #888; margin-top: 1px; }
+        .pc-search-empty { padding: 24px; text-align: center; color: #555; font-size: 0.85rem; }
+
+        @media (max-width: 700px) {
+            .pc-table th:nth-child(1),
+            .pc-table td:nth-child(1) { display: none; }
+        }
+
+        /* Merge selection states */
+        .pc-table tbody tr.pc-source {
+            background: rgba(76,175,80,0.12) !important;
+            border-left: 3px solid #4caf50 !important;
+        }
+        .pc-table tbody tr.pc-target {
+            background: rgba(255,112,67,0.12) !important;
+            border-left: 3px solid #ff7043 !important;
+        }
+        .pc-table tbody tr { cursor: pointer; }
+
+        /* Selection info bar */
+        .pc-selection-bar {
+            display: none;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .pc-selection-bar.visible { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+        .pc-sel-label { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; }
+        .pc-sel-source { color: #4caf50; }
+        .pc-sel-target { color: #ff7043; }
+        .pc-sel-value { color: #ddd; margin-left: 6px; }
+
+        .pc-clear-btn {
+            padding: 5px 14px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: #888;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+        .pc-clear-btn:hover { border-color: #666; color: #ccc; }
+
+        /* Floating merge button */
+        .pc-float-merge-btn {
+            display: none;
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            align-items: center;
+            gap: 8px;
+            padding: 13px 26px;
+            border-radius: 12px;
+            border: 1px solid #4a90e2;
+            background: rgba(16,24,40,0.92);
+            color: #4a90e2;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+            z-index: 1000;
+            transition: background 0.15s, box-shadow 0.15s;
+            backdrop-filter: blur(6px);
+        }
+        .pc-float-merge-btn:hover {
+            background: rgba(74,144,226,0.22);
+            box-shadow: 0 6px 32px rgba(0,0,0,0.7);
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <header class="topbar">
+        <div class="container">
+            <nav class="breadcrumbs">
+                <a href="/">Home</a>
+                <span class="breadcrumb-sep">/</span>
+                <span>Miscellaneous</span>
+                <span class="breadcrumb-sep">/</span>
+                <span>Personal Cuntdown Overview</span>
+            </nav>
+            <h1 class="page-title">Personal Cuntdown Overview</h1>
+            <p class="page-subtitle">Vato's Censored Countdown (Feb 2003 &ndash; Sep 2009)</p>
+        </div>
+    </header>
+
+    <main class="container pc-container">
+
+        <!-- Summary stats -->
+        <div class="pc-summary">
+            <div class="pc-stat">
+                <div class="pc-stat-value" th:text="${summary.total}">0</div>
+                <div class="pc-stat-label">Total Songs</div>
+            </div>
+            <div class="pc-stat">
+                <div class="pc-stat-value" th:text="${summary.matched}">0</div>
+                <div class="pc-stat-label">In My Library</div>
+            </div>
+            <div class="pc-stat">
+                <div class="pc-stat-value" th:text="${summary.unmatched}">0</div>
+                <div class="pc-stat-label">Not in Library</div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="pc-toolbar">
+            <button id="btnRetiredOnly" class="pc-toggle-btn" onclick="toggleRetiredFilter(this)">
+                <span class="btn-icon">&#9733;</span> Hall of Fame Only
+            </button>
+            <button class="pc-toggle-btn" onclick="doAutoLink(this)">
+                Auto-Link Exact Matches
+            </button>
+            <div class="pc-table-search">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="pcTableSearch" placeholder="Search song or artist..." oninput="onTableSearch(this.value)" autocomplete="off">
+            </div>
+            <span class="pc-search-count" id="pcSearchCount"></span>
+        </div>
+
+        <!-- Merge selection info bar -->
+        <div class="pc-selection-bar" id="pcSelectionBar">
+            <div>
+                <span class="pc-sel-label pc-sel-source">Source:</span>
+                <span class="pc-sel-value" id="pcSelSourceLabel">-</span>
+            </div>
+            <div>
+                <span class="pc-sel-label pc-sel-target">Targets:</span>
+                <span class="pc-sel-value" id="pcSelTargetsLabel">-</span>
+            </div>
+            <button class="pc-clear-btn" onclick="clearMergeSelection()">Clear</button>
+        </div>
+
+        <div class="pc-table-wrap">
+            <table class="pc-table js-sortable" id="pcTable">
+                <thead>
+                    <tr>
+                        <th data-type="number">Days</th>
+                        <th class="center" data-type="date" data-default-sort="asc">Debut Date</th>
+                        <th class="center" data-type="number">Debut Position</th>
+                        <th class="center" data-type="date">Last Appearance</th>
+                        <th data-type="text">Song</th>
+                        <th data-type="text">Artist</th>
+                        <th class="center" data-type="number">Peak</th>
+                        <th class="center" data-type="number">Days At Peak</th>
+                        <th data-no-sort></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="d : ${debuts}"
+                        th:data-pc-id="${d.id}"
+                        th:data-song-title="${d.songTitle}"
+                        th:data-artist-name="${d.artistName}"
+                        th:data-retired="${d.retired}"
+                        th:classappend="${(d.genderClass != null ? d.genderClass : '') + (d.retired ? ' pc-retired' : '')}"
+                        onclick="toggleRow(this)">
+                        <!-- Days on countdown -->
+                        <td th:attr="data-value=${d.daysOnCountdown}" th:text="${d.daysOnCountdown}">0</td>
+                        <!-- Debut date -->
+                        <td class="center pc-date"
+                            th:attr="data-value=${d.debutDate}">
+                            <a th:if="${d.debutDate != null and d.debutDate != '-'}"
+                               class="pc-date-link"
+                               th:href="@{/misc/pc/recaps(date=${d.debutDate})}"
+                               th:text="${d.debutDate}">-</a>
+                            <span th:if="${d.debutDate == null or d.debutDate == '-'}"
+                                  th:text="${d.debutDate}">-</span>
+                        </td>
+                        <!-- Debut position badge -->
+                        <td class="center" th:attr="data-value=${d.debutPosition}">
+                            <span class="pos-badge" th:text="${d.debutPosition}">-</span>
+                        </td>
+                        <!-- Last appearance date -->
+                        <td class="center pc-date"
+                            th:attr="data-value=${d.lastAppearanceDate}">
+                            <a th:if="${d.lastAppearanceDate != null and d.lastAppearanceDate != '-'}"
+                               class="pc-date-link"
+                               th:href="@{/misc/pc/recaps(date=${d.lastAppearanceDate})}"
+                               th:text="${d.lastAppearanceDate}">-</a>
+                            <span th:if="${d.lastAppearanceDate == null or d.lastAppearanceDate == '-'}"
+                                  th:text="${d.lastAppearanceDate}">-</span>
+                        </td>
+                        <!-- Song title -->
+                        <td th:attr="data-value=${d.songTitle}">
+                            <a th:if="${d.songId != null}"
+                               th:href="@{/songs/{id}(id=${d.songId})}"
+                               class="pc-song-link"
+                               th:text="${d.songTitle}">Song</a>
+                            <span th:if="${d.songId == null}"
+                                  class="pc-no-link-song"
+                                  th:text="${d.songTitle}">Song</span>
+                        </td>
+                        <!-- Artist name -->
+                        <td th:attr="data-value=${d.artistName}">
+                            <a th:if="${d.resolvedArtistId != null}"
+                               th:href="@{/artists/{id}(id=${d.resolvedArtistId})}"
+                               class="pc-artist-link"
+                               th:text="${d.artistName}">Artist</a>
+                            <span th:if="${d.resolvedArtistId == null}"
+                                  class="pc-no-link-artist"
+                                  th:text="${d.artistName}">Artist</span>
+                        </td>
+                        <!-- Peak position -->
+                        <td class="center" th:attr="data-value=${d.peakPosition != null ? d.peakPosition : 99}">
+                            <span th:if="${d.peakPosition != null}" class="pos-badge" th:text="${d.peakPosition}">-</span>
+                            <span th:if="${d.peakPosition == null}" style="color:#555">-</span>
+                        </td>
+                        <!-- Days at peak -->
+                        <td class="center" th:attr="data-value=${d.daysAtPeak != null ? d.daysAtPeak : 0}">
+                            <span th:if="${d.daysAtPeak != null}" th:text="${d.daysAtPeak}">-</span>
+                            <span th:if="${d.daysAtPeak == null}" style="color:#555">-</span>
+                        </td>
+                        <!-- Actions column -->
+                        <td>
+                            <button th:if="${d.songId == null}"
+                                    class="pc-match-btn"
+                                    onclick="openMatchModal(this); event.stopPropagation();"
+                                    title="Link to a song in your library">
+                                Library
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(debuts)}">
+                        <td colspan="10" style="text-align:center; color:#666; padding:40px;">
+                            No Personal Cuntdown data found. Run the crawler script first.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Match Modal -->
+    <div class="pc-modal-overlay" id="matchModal" onclick="closeMatchModalOnBackdrop(event)">
+        <div class="pc-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
+            <div class="pc-modal-header">
+                <div>
+                    <div class="pc-modal-title" id="matchModalTitle">Link to Song</div>
+                    <div class="pc-modal-subtitle" id="matchModalSubtitle"></div>
+                </div>
+                <button class="pc-modal-close" onclick="closeMatchModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="pc-modal-body">
+                <input type="text" id="matchSearchInput" class="pc-search-input"
+                       placeholder="Search by song title or artist..."
+                       oninput="onMatchSearch(this.value)"
+                       autocomplete="off">
+                <div class="pc-search-results" id="matchSearchResults">
+                    <div class="pc-search-empty">Start typing to search your library</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---- Retired-only filter ----
+        var _retiredOnly = false;
+        var _searchQuery = '';
+
+        function applyTableFilters() {
+            var total = 0, visible = 0;
+            document.querySelectorAll('#pcTable tbody tr[data-pc-id]').forEach(function(row) {
+                var isRetired = row.dataset.retired === 'true';
+                var title = (row.dataset.songTitle || '').toLowerCase();
+                var artist = (row.dataset.artistName || '').toLowerCase();
+                var q = _searchQuery.toLowerCase();
+                var retiredHide = _retiredOnly && !isRetired;
+                var searchHide = q.length > 0 && title.indexOf(q) === -1 && artist.indexOf(q) === -1;
+                row.classList.toggle('pc-hidden', retiredHide);
+                row.classList.toggle('pc-search-hidden', searchHide);
+                total++;
+                if (!retiredHide && !searchHide) visible++;
+            });
+            var countEl = document.getElementById('pcSearchCount');
+            if (countEl) countEl.textContent = _searchQuery.length > 0 ? (visible + ' / ' + total) : '';
+        }
+
+        function toggleRetiredFilter(btn) {
+            btn.classList.toggle('active');
+            _retiredOnly = btn.classList.contains('active');
+            applyTableFilters();
+        }
+
+        function onTableSearch(val) {
+            _searchQuery = val;
+            applyTableFilters();
+        }
+
+        // ---- Match Modal ----
+        var _modalPcId = null;
+        var _modalRow = null;
+        var _searchTimer = null;
+
+        function openMatchModal(btn) {
+            var row = btn.closest('tr');
+            _modalPcId = row.dataset.pcId;
+            _modalRow = row;
+            var title = row.dataset.songTitle || '';
+            var artist = row.dataset.artistName || '';
+            document.getElementById('matchModalSubtitle').textContent = '"' + title + '" by ' + artist;
+            document.getElementById('matchSearchInput').value = title;
+            document.getElementById('matchSearchResults').innerHTML = '<div class="pc-search-empty">Searching...</div>';
+            document.getElementById('matchModal').classList.add('open');
+            document.getElementById('matchSearchInput').focus();
+            doSearch(title);
+        }
+
+        function closeMatchModal() {
+            document.getElementById('matchModal').classList.remove('open');
+            _modalPcId = null;
+            _modalRow = null;
+        }
+
+        function closeMatchModalOnBackdrop(e) {
+            if (e.target === document.getElementById('matchModal')) closeMatchModal();
+        }
+
+        function onMatchSearch(val) {
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(function() { doSearch(val); }, 220);
+        }
+
+        function doSearch(q) {
+            if (!q || q.trim().length < 1) {
+                document.getElementById('matchSearchResults').innerHTML = '<div class="pc-search-empty">Start typing to search your library</div>';
+                return;
+            }
+            var enc = encodeURIComponent(q.trim());
+            fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=50')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var container = document.getElementById('matchSearchResults');
+                    if (!data.length) {
+                        container.innerHTML = '<div class="pc-search-empty">No songs found</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(function(s) {
+                        return '<div class="pc-result-item" data-song-id="' + s.id + '">'
+                             + '<div class="pc-result-title">' + escapeHtml(s.name) + '</div>'
+                             + '<div class="pc-result-artist">' + escapeHtml(s.artistName) + '</div>'
+                             + '</div>';
+                    }).join('');
+                    container.querySelectorAll('.pc-result-item').forEach(function(item) {
+                        item.addEventListener('click', function() { selectSong(item.dataset.songId); });
+                    });
+                })
+                .catch(function() {
+                    document.getElementById('matchSearchResults').innerHTML = '<div class="pc-search-empty">Error searching. Try again.</div>';
+                });
+        }
+
+        function selectSong(songId) {
+            if (!_modalPcId) return;
+            fetch('/misc/pc/' + _modalPcId + '/match?songId=' + songId, { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        closeMatchModal();
+                        location.reload();
+                    }
+                })
+                .catch(function() { alert('Failed to save match. Please try again.'); });
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Close modal on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeMatchModal(); clearMergeSelection(); }
+        });
+
+        // ---- Merge selection ----
+        var _mergeSource = null;
+        var _mergeTargets = [];
+
+        function toggleRow(row) {
+            if (!row.dataset.pcId) return;
+            if (row.classList.contains('pc-hidden')) return;
+
+            // Deselect source
+            if (row === _mergeSource) {
+                row.classList.remove('pc-source');
+                _mergeSource = null;
+                // Promote first target to source if any
+                if (_mergeTargets.length > 0) {
+                    _mergeSource = _mergeTargets.shift();
+                    _mergeSource.classList.remove('pc-target');
+                    _mergeSource.classList.add('pc-source');
+                }
+                updateMergeUI();
+                return;
+            }
+
+            // Deselect a target
+            var tgtIdx = _mergeTargets.indexOf(row);
+            if (tgtIdx !== -1) {
+                row.classList.remove('pc-target');
+                _mergeTargets.splice(tgtIdx, 1);
+                updateMergeUI();
+                return;
+            }
+
+            // Select: first click = source, rest = targets
+            if (!_mergeSource) {
+                _mergeSource = row;
+                row.classList.add('pc-source');
+            } else {
+                _mergeTargets.push(row);
+                row.classList.add('pc-target');
+            }
+            updateMergeUI();
+        }
+
+        function clearMergeSelection() {
+            if (_mergeSource) {
+                _mergeSource.classList.remove('pc-source');
+                _mergeSource = null;
+            }
+            _mergeTargets.forEach(function(r) { r.classList.remove('pc-target'); });
+            _mergeTargets = [];
+            updateMergeUI();
+        }
+
+        function updateMergeUI() {
+            var bar = document.getElementById('pcSelectionBar');
+            var btn = document.getElementById('pcMergeBtn');
+            var hasAny = !!_mergeSource || _mergeTargets.length > 0;
+            bar.classList.toggle('visible', hasAny);
+
+            document.getElementById('pcSelSourceLabel').textContent =
+                _mergeSource
+                    ? (_mergeSource.dataset.artistName + ' - ' + _mergeSource.dataset.songTitle)
+                    : '-';
+            document.getElementById('pcSelTargetsLabel').textContent =
+                _mergeTargets.length > 0 ? _mergeTargets.length + ' selected' : '-';
+
+            var ready = !!_mergeSource && _mergeTargets.length > 0;
+            btn.style.display = ready ? 'flex' : 'none';
+            btn.textContent = ready
+                ? 'Merge ' + _mergeTargets.length + ' Target' + (_mergeTargets.length > 1 ? 's' : '') + ' into Source'
+                : 'Merge';
+        }
+
+        function doMerge() {
+            if (!_mergeSource || _mergeTargets.length === 0) return;
+
+            var sourceId    = _mergeSource.dataset.pcId;
+            var sourceLabel = _mergeSource.dataset.artistName + ' - ' + _mergeSource.dataset.songTitle;
+            var targets = _mergeTargets.slice();
+
+            var targetList = targets.map(function(r) {
+                return '  ' + r.dataset.artistName + ' - ' + r.dataset.songTitle;
+            }).join('\n');
+            var msg = 'Merge ' + targets.length + ' target(s) into Source:\n\n'
+                    + '  Source: ' + sourceLabel + '\n\n'
+                    + 'Targets:\n' + targetList + '\n\n'
+                    + 'Their chart entries will be reassigned to the source debut and the target debuts will be deleted. Continue?';
+
+            if (!confirm(msg)) return;
+
+            var btn = document.getElementById('pcMergeBtn');
+            btn.style.pointerEvents = 'none';
+            btn.textContent = 'Merging...';
+
+            var chain = Promise.resolve();
+            targets.forEach(function(targetRow) {
+                chain = chain.then(function() {
+                    var params = new URLSearchParams();
+                    params.append('sourceId', sourceId);
+                    params.append('targetId', targetRow.dataset.pcId);
+                    return fetch('/misc/pc/merge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.ok) {
+                            var idx = _mergeTargets.indexOf(targetRow);
+                            if (idx !== -1) _mergeTargets.splice(idx, 1);
+                            targetRow.remove();
+                        }
+                    });
+                });
+            });
+
+            chain.then(function() {
+                btn.style.pointerEvents = '';
+                clearMergeSelection();
+                location.reload();
+            }).catch(function() {
+                btn.style.pointerEvents = '';
+                updateMergeUI();
+                alert('Merge failed. Please try again.');
+            });
+        }
+
+        // ---- Auto-link ----
+        function doAutoLink(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Linking...';
+            fetch('/misc/pc/auto-link', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        btn.textContent = 'Linked ' + data.linked + ' entries';
+                        if (data.linked > 0) {
+                            setTimeout(function() { location.reload(); }, 800);
+                        } else {
+                            setTimeout(function() {
+                                btn.disabled = false;
+                                btn.textContent = 'Auto-Link Exact Matches';
+                            }, 2000);
+                        }
+                    }
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    btn.textContent = 'Auto-Link Exact Matches';
+                    alert('Auto-link failed. Please try again.');
+                });
+        }
+    </script>
+
+    <button id="pcMergeBtn" class="pc-float-merge-btn" onclick="doMerge()">Merge</button>
+</body>
+</html>

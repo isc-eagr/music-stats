@@ -2,6 +2,7 @@ package library.service;
 
 import library.util.StringNormalizer;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.*;
 
@@ -30,6 +31,7 @@ public class ItunesService {
     private List<ItunesSong> cachedAllSongs = null;  // Full song list for iTunes Only page
     private long cachedFileLastModified = 0;
     private String cachedFilePath = null;
+    private String cachedSongIdsJson = null;
 
     public ItunesService(JdbcTemplate jdbcTemplate, iTunesLibraryService iTunesLibraryService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -116,6 +118,7 @@ public class ItunesService {
         cachedAllSongs = null;
         cachedFilePath = null;
         cachedFileLastModified = 0;
+        cachedSongIdsJson = null;
     }
 
     /**
@@ -624,6 +627,37 @@ public class ItunesService {
     }
 
     /**
+     * Return a JSON array of Song IDs (from the database) that exist in the iTunes library.
+     * Used for the iTunes presence ratio filter and display in artist/album list pages.
+     */
+    public String getAllItunesSongIdsJson() {
+        if (!libraryExists()) return "[]";
+        if (cachedSongIdsJson != null) return cachedSongIdsJson;
+        List<Integer> ids = new ArrayList<>();
+        jdbcTemplate.query(
+            "SELECT s.id, ar.name, COALESCE(alb.name, ''), s.name FROM Song s " +
+            "JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album alb ON s.album_id = alb.id",
+            rs -> {
+                if (songExistsInItunes(rs.getString(2), rs.getString(3), rs.getString(4))) {
+                    ids.add(rs.getInt(1));
+                }
+            }
+        );
+        if (ids.isEmpty()) {
+            cachedSongIdsJson = "[]";
+            return cachedSongIdsJson;
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(ids.get(i));
+        }
+        sb.append("]");
+        cachedSongIdsJson = sb.toString();
+        return cachedSongIdsJson;
+    }
+
+    /**
      * Create normalized lookup key for artist + album.
      */
     private String createAlbumLookupKey(String artist, String album) {
@@ -722,5 +756,89 @@ public class ItunesService {
         } catch (Exception e) {
             return new HashSet<>();
         }
+    }
+
+    /**
+     * Compute iTunes presence ratio for a single artist's songs.
+     * Returns null if iTunes library is not available or artist has no songs.
+     */
+    public Double getArtistItunesPresenceRatio(int artistId) {
+        if (!libraryExists()) return null;
+        String idsJson = getAllItunesSongIdsJson();
+        if ("[]".equals(idsJson)) return null;
+        Integer total = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM Song WHERE artist_id = ?", Integer.class, artistId);
+        if (total == null || total == 0) return null;
+        Integer inItunes = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM Song WHERE artist_id = ? AND id IN (SELECT value FROM json_each(?))",
+            Integer.class, artistId, idsJson);
+        if (inItunes == null) return null;
+        return (inItunes * 100.0) / total;
+    }
+
+    public Map<Integer, Double> getArtistItunesPresenceRatios(List<Integer> artistIds) {
+        if (!libraryExists() || artistIds == null || artistIds.isEmpty()) return Collections.emptyMap();
+
+        String idsJson = getAllItunesSongIdsJson();
+        if ("[]".equals(idsJson)) return Collections.emptyMap();
+
+        String placeholders = String.join(",", Collections.nCopies(artistIds.size(), "?"));
+        String sql = "SELECT totals.entity_id, " +
+                "CAST(COALESCE(itunes.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(totals.song_count, 0) AS itunes_presence_ratio " +
+                "FROM (SELECT artist_id AS entity_id, COUNT(*) AS song_count FROM Song WHERE artist_id IN (" + placeholders + ") GROUP BY artist_id) totals " +
+                "LEFT JOIN (SELECT artist_id AS entity_id, COUNT(*) AS itunes_song_count FROM Song WHERE artist_id IN (" + placeholders + ") AND id IN (SELECT value FROM json_each(?)) GROUP BY artist_id) itunes " +
+                "ON itunes.entity_id = totals.entity_id";
+
+        List<Object> params = new ArrayList<>(artistIds.size() * 2 + 1);
+        params.addAll(artistIds);
+        params.addAll(artistIds);
+        params.add(idsJson);
+
+        Map<Integer, Double> ratios = new HashMap<>();
+        jdbcTemplate.query(sql, params.toArray(), (RowCallbackHandler) rs ->
+            ratios.put(rs.getInt("entity_id"), rs.getDouble("itunes_presence_ratio")));
+        return ratios;
+    }
+
+    /**
+     * Compute iTunes presence ratio for a single album's songs.
+     * Returns null if iTunes library is not available or album has no songs.
+     */
+    public Double getAlbumItunesPresenceRatio(int albumId) {
+        if (!libraryExists()) return null;
+        String idsJson = getAllItunesSongIdsJson();
+        if ("[]".equals(idsJson)) return null;
+        Integer total = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM Song WHERE album_id = ?", Integer.class, albumId);
+        if (total == null || total == 0) return null;
+        Integer inItunes = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM Song WHERE album_id = ? AND id IN (SELECT value FROM json_each(?))",
+            Integer.class, albumId, idsJson);
+        if (inItunes == null) return null;
+        return (inItunes * 100.0) / total;
+    }
+
+    public Map<Integer, Double> getAlbumItunesPresenceRatios(List<Integer> albumIds) {
+        if (!libraryExists() || albumIds == null || albumIds.isEmpty()) return Collections.emptyMap();
+
+        String idsJson = getAllItunesSongIdsJson();
+        if ("[]".equals(idsJson)) return Collections.emptyMap();
+
+        String placeholders = String.join(",", Collections.nCopies(albumIds.size(), "?"));
+        String sql = "SELECT totals.entity_id, " +
+                "CAST(COALESCE(itunes.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(totals.song_count, 0) AS itunes_presence_ratio " +
+                "FROM (SELECT album_id AS entity_id, COUNT(*) AS song_count FROM Song WHERE album_id IN (" + placeholders + ") GROUP BY album_id) totals " +
+                "LEFT JOIN (SELECT album_id AS entity_id, COUNT(*) AS itunes_song_count FROM Song WHERE album_id IN (" + placeholders + ") AND id IN (SELECT value FROM json_each(?)) GROUP BY album_id) itunes " +
+                "ON itunes.entity_id = totals.entity_id";
+
+        List<Object> params = new ArrayList<>(albumIds.size() * 2 + 1);
+        params.addAll(albumIds);
+        params.addAll(albumIds);
+        params.add(idsJson);
+
+        Map<Integer, Double> ratios = new HashMap<>();
+        jdbcTemplate.query(sql, params.toArray(), (RowCallbackHandler) rs ->
+            ratios.put(rs.getInt("entity_id"), rs.getDouble("itunes_presence_ratio")));
+        return ratios;
     }
 }

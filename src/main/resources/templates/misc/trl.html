@@ -255,6 +255,9 @@
             border-left-color: rgba(217,74,138,0.55);
         }
 
+        /* Pre-hide tbody to prevent unsorted flash before JS runs */
+        #trlTable > tbody { visibility: hidden; }
+
         /* Hidden-by-filter rows */
         .trl-table tbody tr.trl-hidden { display: none; }
 
@@ -512,7 +515,7 @@
     </main>
 
     <!-- Match Modal -->
-    <div class="trl-modal-overlay" id="matchModal" onclick="closeMatchModalOnBackdrop(event)">
+    <div class="trl-modal-overlay" id="matchModal">
         <div class="trl-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
             <div class="trl-modal-header">
                 <div>
@@ -534,7 +537,7 @@
     </div>
 
     <!-- Chart Link Modal -->
-    <div class="trl-modal-overlay" id="chartLinkModal" onclick="if(event.target===this)closeChartLinkModal()">
+    <div class="trl-modal-overlay" id="chartLinkModal">
         <div class="trl-modal" role="dialog" aria-modal="true">
             <div class="trl-modal-header">
                 <div>
@@ -645,6 +648,22 @@
             if (e.target === document.getElementById('matchModal')) closeMatchModal();
         }
 
+        // Track mousedown target so text-selection drags never dismiss modals
+        (function() {
+            var _mdTarget = null;
+            ['matchModal', 'chartLinkModal'].forEach(function(id) {
+                var el = document.getElementById(id);
+                el.addEventListener('mousedown', function(e) { _mdTarget = e.target; });
+                el.addEventListener('click', function(e) {
+                    if (_mdTarget === el && e.target === el) {
+                        if (id === 'matchModal') closeMatchModal();
+                        else closeChartLinkModal();
+                    }
+                    _mdTarget = null;
+                });
+            });
+        })();
+
         function onMatchSearch(val) {
             clearTimeout(_searchTimer);
             _searchTimer = setTimeout(function() { doSearch(val); }, 220);
@@ -665,18 +684,21 @@
                         return;
                     }
                     container.innerHTML = data.map(function(s) {
-                        return '<div class="trl-result-item" onclick="selectSong(' + s.id + ', \'' + escapeHtml(s.name) + '\', \'' + escapeHtml(s.artistName) + '\')">'
+                        return '<div class="trl-result-item" data-song-id="' + s.id + '">'
                              + '<div class="trl-result-title">' + escapeHtml(s.name) + '</div>'
                              + '<div class="trl-result-artist">' + escapeHtml(s.artistName) + '</div>'
                              + '</div>';
                     }).join('');
+                    container.querySelectorAll('.trl-result-item').forEach(function(item) {
+                        item.addEventListener('click', function() { selectSong(item.dataset.songId); });
+                    });
                 })
                 .catch(function() {
                     document.getElementById('matchSearchResults').innerHTML = '<div class="trl-search-empty">Error searching. Try again.</div>';
                 });
         }
 
-        function selectSong(songId, songTitle, artistName) {
+        function selectSong(songId) {
             if (!_modalTrlId) return;
             fetch('/misc/trl/' + _modalTrlId + '/match?songId=' + songId, { method: 'POST' })
                 .then(function(r) { return r.json(); })
@@ -720,11 +742,11 @@
 
             document.getElementById('chartLinkUnlinkWrap').style.display = hasLink ? 'block' : 'none';
 
-            document.getElementById('chartLinkSearchInput').value = artist;
+            document.getElementById('chartLinkSearchInput').value = title;
             document.getElementById('chartLinkResults').innerHTML = '<div class="trl-search-empty">Searching...</div>';
             document.getElementById('chartLinkModal').classList.add('open');
             document.getElementById('chartLinkSearchInput').focus();
-            doChartSearch(artist);
+            doChartSearch(title);
         }
 
         function closeChartLinkModal() {
@@ -752,12 +774,15 @@
                         return;
                     }
                     container.innerHTML = data.map(function(e) {
-                        return '<div class="trl-result-item" onclick="selectChartEntry(\'' + escapeAttr(e.artistName) + '\', \'' + escapeAttr(e.songTitle) + '\')">'
+                        return '<div class="trl-result-item" data-artist="' + escapeHtml(e.artistName) + '" data-title="' + escapeHtml(e.songTitle) + '">'
                              + '<div class="trl-result-title">' + escapeHtml(e.songTitle) + '</div>'
                              + '<div class="trl-result-artist">' + escapeHtml(e.artistName) + '</div>'
                              + '<div class="trl-result-count">' + e.appearances + ' appearances</div>'
                              + '</div>';
                     }).join('');
+                    container.querySelectorAll('.trl-result-item').forEach(function(item) {
+                        item.addEventListener('click', function() { selectChartEntry(item.dataset.artist, item.dataset.title); });
+                    });
                 })
                 .catch(function() {
                     document.getElementById('chartLinkResults').innerHTML = '<div class="trl-search-empty">Error searching. Try again.</div>';

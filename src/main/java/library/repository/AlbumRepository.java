@@ -41,7 +41,12 @@ public class AlbumRepository {
                                                Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                                Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                                Integer yearlyChartPeak, Integer yearlyChartYears,
+                                               String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
+                                               Integer itunesPresenceMin, Integer itunesPresenceMax,
+                                               String itunesSongIdsJson,
                                                String sortBy, String sortDir, int limit, int offset) {
+        boolean needsFullListen = "last_full_listen".equals(sortBy) || (lastFullListenDateMode != null && !lastFullListenDateMode.isEmpty());
+        boolean needsItunesJoin = (itunesPresenceMin != null || itunesPresenceMax != null || "itunes_presence".equals(sortBy));
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -76,6 +81,51 @@ public class AlbumRepository {
         }
         
         StringBuilder sql = new StringBuilder();
+        if (needsFullListen) {
+            sql.append("""
+                WITH all_plays_ranked AS (
+                    SELECT p.id, p.play_date, p.song_id, s.album_id,
+                           ROW_NUMBER() OVER (ORDER BY p.play_date, p.id) AS rn
+                    FROM Play p
+                    LEFT JOIN Song s ON p.song_id = s.id
+                ),
+                play_with_prev AS (
+                    SELECT *, LAG(album_id) OVER (ORDER BY rn) AS prev_album_id
+                    FROM all_plays_ranked
+                ),
+                run_ids AS (
+                    SELECT *,
+                           SUM(CASE WHEN prev_album_id IS NOT album_id THEN 1 ELSE 0 END)
+                               OVER (ORDER BY rn) AS run_id
+                    FROM play_with_prev
+                ),
+                album_run_coverage AS (
+                    SELECT album_id, run_id, MAX(play_date) AS run_end_date,
+                           COUNT(DISTINCT song_id) AS songs_played
+                    FROM run_ids
+                    WHERE album_id IS NOT NULL
+                    GROUP BY album_id, run_id
+                ),
+                album_song_counts AS (
+                    SELECT album_id,
+                           CASE WHEN COUNT(*) <= 6 THEN COUNT(*)
+                                WHEN COUNT(*) <= 10 THEN COUNT(*) - 2
+                                WHEN COUNT(*) <= 20 THEN COUNT(*) - 3
+                                ELSE COUNT(*) - 4
+                           END AS required_songs
+                    FROM Song
+                    WHERE album_id IS NOT NULL
+                    GROUP BY album_id
+                ),
+                last_full_listen AS (
+                    SELECT arc.album_id, MAX(DATE(arc.run_end_date)) AS last_full_listen_date
+                    FROM album_run_coverage arc
+                    JOIN album_song_counts sc ON sc.album_id = arc.album_id
+                    WHERE arc.songs_played >= sc.required_songs
+                    GROUP BY arc.album_id
+                )
+                """);
+        }
         sql.append("""
             SELECT 
                 a.id,
@@ -121,7 +171,19 @@ public class AlbumRepository {
                 COALESCE(album_fac.featured_artist_count, 0) as featured_artist_count,
                 COALESCE(album_solo.solo_song_count, 0) as solo_song_count,
                 COALESCE(album_feat.featured_song_count, 0) as songs_with_feat_count,
-                CASE WHEN ar.birth_date IS NOT NULL AND a.release_date IS NOT NULL THEN CAST((julianday(a.release_date) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release
+                CASE WHEN ar.birth_date IS NOT NULL AND a.release_date IS NOT NULL THEN CAST((julianday(a.release_date) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release,
+            """);
+        if (needsFullListen) {
+            sql.append("    lfl.last_full_listen_date,\n");
+        } else {
+            sql.append("    NULL AS last_full_listen_date,\n");
+        }
+        if (needsItunesJoin) {
+            sql.append("    CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) as itunes_presence_ratio\n");
+        } else {
+            sql.append("    NULL as itunes_presence_ratio\n");
+        }
+        sql.append("""
             FROM Album a
             LEFT JOIN Artist ar ON a.artist_id = ar.id
             LEFT JOIN Gender gender ON ar.gender_id = gender.id
@@ -137,6 +199,12 @@ public class AlbumRepository {
             LEFT JOIN (SELECT s.album_id, COUNT(*) as solo_song_count FROM Song s WHERE s.album_id IS NOT NULL AND s.id NOT IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa) GROUP BY s.album_id) album_solo ON album_solo.album_id = a.id
             LEFT JOIN (SELECT s.album_id, COUNT(*) as featured_song_count FROM Song s WHERE s.album_id IS NOT NULL AND s.id IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa) GROUP BY s.album_id) album_feat ON album_feat.album_id = a.id
             """);
+        if (needsItunesJoin) {
+            sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_stats ON itunes_stats.album_id = a.id\n");
+        }
+        if (needsFullListen) {
+            sql.append("LEFT JOIN last_full_listen lfl ON lfl.album_id = a.id\n");
+        }
         
         // Use INNER JOIN when account filter is includes mode OR when listened date filter is active (for better performance)
         boolean hasListenedDateFilter = listenedDateFilterClause.length() > 0;
@@ -175,6 +243,10 @@ public class AlbumRepository {
             """);
         
         List<Object> params = new ArrayList<>();
+        // itunes_stats JOIN appears before play_stats in SQL, so its ? must come first (when join is active)
+        if (needsItunesJoin) {
+            params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
+        }
         // Add account params and listened date params for play_stats subquery
         params.addAll(accountParams);
         params.addAll(listenedDateParams);
@@ -414,6 +486,46 @@ public class AlbumRepository {
             }
         }
         
+
+        // Last Full Listen Date filter
+        if (lastFullListenDateMode != null && !lastFullListenDateMode.isEmpty()) {
+            switch (lastFullListenDateMode) {
+                case "isnull":
+                    sql.append(" AND lfl.last_full_listen_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND lfl.last_full_listen_date IS NOT NULL");
+                    break;
+                case "exact":
+                    if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) = ?");
+                        params.add(lastFullListenDate);
+                    }
+                    break;
+                case "gte":
+                    if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) >= ?");
+                        params.add(lastFullListenDate);
+                    }
+                    break;
+                case "lte":
+                    if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) <= ?");
+                        params.add(lastFullListenDate);
+                    }
+                    break;
+                case "between":
+                    if (lastFullListenDateFrom != null && !lastFullListenDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) >= ?");
+                        params.add(lastFullListenDateFrom);
+                    }
+                    if (lastFullListenDateTo != null && !lastFullListenDateTo.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) <= ?");
+                        params.add(lastFullListenDateTo);
+                    }
+                    break;
+            }
+        }
         // Organized filter
         if (organized != null && !organized.isEmpty()) {
             if ("true".equalsIgnoreCase(organized)) {
@@ -662,6 +774,16 @@ public class AlbumRepository {
             sql.append(")");
         }
         
+        // iTunes presence ratio filter
+        if (itunesPresenceMin != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) >= ? ");
+            params.add(itunesPresenceMin);
+        }
+        if (itunesPresenceMax != null) {
+            sql.append(" AND CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) <= ? ");
+            params.add(itunesPresenceMax);
+        }
+        
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         switch (sortBy != null ? sortBy : "name") {
@@ -693,6 +815,8 @@ public class AlbumRepository {
             case "weekly_chart_peak" -> sql.append(" ORDER BY weekly_chart_peak " + direction + " NULLS LAST, weekly_chart_peak_start_date DESC NULLS LAST, a.name");
             case "weekly_chart_weeks" -> sql.append(" ORDER BY weekly_chart_weeks " + direction + ", a.name");
             case "yearly_chart_peak" -> sql.append(" ORDER BY yearly_chart_peak " + direction + " NULLS LAST, yearly_chart_peak_period DESC NULLS LAST, a.name");
+            case "last_full_listen" -> sql.append(" ORDER BY lfl.last_full_listen_date " + direction + " NULLS LAST, a.name");
+            case "itunes_presence" -> sql.append(" ORDER BY CAST(COALESCE(itunes_stats.itunes_song_count,0) AS REAL)*100.0/NULLIF(COALESCE(song_stats.song_count,0),0) " + direction + " NULLS LAST, a.name");
             default -> sql.append(" ORDER BY a.name " + direction);
         }
         
@@ -701,7 +825,7 @@ public class AlbumRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[44];
+            Object[] row = new Object[46];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -746,6 +870,8 @@ public class AlbumRepository {
             row[41] = rs.getObject("weekly_chart_peak_weeks");
             row[42] = rs.getObject("seasonal_chart_peak_seasons");
             row[43] = rs.getObject("yearly_chart_peak_years");
+            row[44] = rs.getString("last_full_listen_date");
+            row[45] = rs.getObject("itunes_presence_ratio");
             return row;
         }, params.toArray());
     }
@@ -772,7 +898,11 @@ public class AlbumRepository {
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                       Integer yearlyChartPeak, Integer yearlyChartYears) {
+                                       Integer yearlyChartPeak, Integer yearlyChartYears,
+                                       String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
+                                       Integer itunesPresenceMin, Integer itunesPresenceMax,
+                                       String itunesSongIdsJson) {
+        boolean needsFullListen = lastFullListenDateMode != null && !lastFullListenDateMode.isEmpty();
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -807,6 +937,7 @@ public class AlbumRepository {
             accountFilterClause.append(")");
         }
         
+        boolean needsItunesJoin = (itunesPresenceMin != null || itunesPresenceMax != null);
         StringBuilder sql = new StringBuilder();
         
         // Use a more efficient approach with JOIN for account filtering
@@ -832,6 +963,11 @@ public class AlbumRepository {
                     """);
             }
             
+            // Pre-aggregate iTunes stats as JOINs to avoid correlated subqueries per row
+            if (needsItunesJoin) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
+            }
             sql.append("INNER JOIN Song s ON s.album_id = a.id " +
                 "INNER JOIN Play p ON p.song_id = s.id " +
                 "WHERE p.account IN (");
@@ -862,6 +998,11 @@ public class AlbumRepository {
                     """);
             }
             
+            // Pre-aggregate iTunes stats as JOINs to avoid correlated subqueries per row
+            if (needsItunesJoin) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
+            }
             sql.append("WHERE NOT EXISTS ( " +
                 "    SELECT 1 FROM Play p " +
                 "    JOIN Song song ON p.song_id = song.id " +
@@ -898,15 +1039,81 @@ public class AlbumRepository {
                     """);
             }
             
+            // Pre-aggregate iTunes stats as JOINs to avoid correlated subqueries per row
+            if (needsItunesJoin) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
+            }
             sql.append("WHERE 1=1 ");
         }
         
+
+        if (needsFullListen) {
+            // Inject CTE prefix and lfl LEFT JOIN into SQL
+            String cte = """
+                WITH all_plays_ranked AS (
+                    SELECT p.id, p.play_date, p.song_id, s.album_id,
+                           ROW_NUMBER() OVER (ORDER BY p.play_date, p.id) AS rn
+                    FROM Play p
+                    LEFT JOIN Song s ON p.song_id = s.id
+                ),
+                play_with_prev AS (
+                    SELECT *, LAG(album_id) OVER (ORDER BY rn) AS prev_album_id
+                    FROM all_plays_ranked
+                ),
+                run_ids AS (
+                    SELECT *,
+                           SUM(CASE WHEN prev_album_id IS NOT album_id THEN 1 ELSE 0 END)
+                               OVER (ORDER BY rn) AS run_id
+                    FROM play_with_prev
+                ),
+                album_run_coverage AS (
+                    SELECT album_id, run_id, MAX(play_date) AS run_end_date,
+                           COUNT(DISTINCT song_id) AS songs_played
+                    FROM run_ids
+                    WHERE album_id IS NOT NULL
+                    GROUP BY album_id, run_id
+                ),
+                album_song_counts AS (
+                    SELECT album_id,
+                           CASE WHEN COUNT(*) <= 6 THEN COUNT(*)
+                                WHEN COUNT(*) <= 10 THEN COUNT(*) - 2
+                                WHEN COUNT(*) <= 20 THEN COUNT(*) - 3
+                                ELSE COUNT(*) - 4
+                           END AS required_songs
+                    FROM Song
+                    WHERE album_id IS NOT NULL
+                    GROUP BY album_id
+                ),
+                last_full_listen AS (
+                    SELECT arc.album_id, MAX(DATE(arc.run_end_date)) AS last_full_listen_date
+                    FROM album_run_coverage arc
+                    JOIN album_song_counts sc ON sc.album_id = arc.album_id
+                    WHERE arc.songs_played >= sc.required_songs
+                    GROUP BY arc.album_id
+                )
+                """;
+            String sqlStr = sql.toString();
+            // Insert lfl LEFT JOIN before WHERE/AND 1=1
+            String marker = "WHERE 1=1 ";
+            int whereIdx = sqlStr.lastIndexOf(marker);
+            if (whereIdx < 0) { marker = "AND 1=1 "; whereIdx = sqlStr.lastIndexOf(marker); }
+            if (whereIdx >= 0) {
+                sqlStr = sqlStr.substring(0, whereIdx) + "LEFT JOIN last_full_listen lfl ON lfl.album_id = a.id " + sqlStr.substring(whereIdx);
+            }
+            sql = new StringBuilder(cte + sqlStr);
+        }
         List<Object> params = new ArrayList<>();
         
         // Add account params for play_stats subquery
         if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
             params.addAll(accountParams);
             params.addAll(listenedDateParams);
+        }
+        
+        // iTunes JOIN param (appears in FROM clause after play_stats, before main WHERE conditions)
+        if (needsItunesJoin) {
+            params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
         }
         
         // Account params for main query if using includes or excludes mode
@@ -1145,6 +1352,46 @@ public class AlbumRepository {
             }
         }
         
+
+        // Last Full Listen Date filter
+        if (lastFullListenDateMode != null && !lastFullListenDateMode.isEmpty()) {
+            switch (lastFullListenDateMode) {
+                case "isnull":
+                    sql.append(" AND lfl.last_full_listen_date IS NULL");
+                    break;
+                case "isnotnull":
+                    sql.append(" AND lfl.last_full_listen_date IS NOT NULL");
+                    break;
+                case "exact":
+                    if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) = ?");
+                        params.add(lastFullListenDate);
+                    }
+                    break;
+                case "gte":
+                    if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) >= ?");
+                        params.add(lastFullListenDate);
+                    }
+                    break;
+                case "lte":
+                    if (lastFullListenDate != null && !lastFullListenDate.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) <= ?");
+                        params.add(lastFullListenDate);
+                    }
+                    break;
+                case "between":
+                    if (lastFullListenDateFrom != null && !lastFullListenDateFrom.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) >= ?");
+                        params.add(lastFullListenDateFrom);
+                    }
+                    if (lastFullListenDateTo != null && !lastFullListenDateTo.isEmpty()) {
+                        sql.append(" AND DATE(lfl.last_full_listen_date) <= ?");
+                        params.add(lastFullListenDateTo);
+                    }
+                    break;
+            }
+        }
         // Organized filter
         if (organized != null && !organized.isEmpty()) {
             if ("true".equalsIgnoreCase(organized)) {
@@ -1393,6 +1640,16 @@ public class AlbumRepository {
             sql.append(")");
         }
         
+        // iTunes presence ratio filter (using pre-joined itunes_count_stats)
+        if (itunesPresenceMin != null) {
+            sql.append(" AND CAST(COALESCE(itunes_count_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(album_song_count_stats.song_count, 0), 0) >= ? ");
+            params.add(itunesPresenceMin);
+        }
+        if (itunesPresenceMax != null) {
+            sql.append(" AND CAST(COALESCE(itunes_count_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(album_song_count_stats.song_count, 0), 0) <= ? ");
+            params.add(itunesPresenceMax);
+        }
+        
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
     }
@@ -1424,7 +1681,9 @@ public class AlbumRepository {
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                       Integer yearlyChartPeak, Integer yearlyChartYears) {
+                                       Integer yearlyChartPeak, Integer yearlyChartYears,
+                                       Integer itunesPresenceMin, Integer itunesPresenceMax,
+                                       String itunesSongIdsJson) {
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -1459,6 +1718,7 @@ public class AlbumRepository {
             accountFilterClause.append(")");
         }
         
+        boolean needsItunesJoinGender = (itunesPresenceMin != null || itunesPresenceMax != null);
         StringBuilder sql = new StringBuilder();
         
         // Use a more efficient approach with JOIN for account filtering
@@ -1483,6 +1743,10 @@ public class AlbumRepository {
                     """);
             }
             
+            if (needsItunesJoinGender) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
+            }
             sql.append("INNER JOIN Song s ON s.album_id = a.id " +
                 "INNER JOIN Play p ON p.song_id = s.id " +
                 "WHERE p.account IN (");
@@ -1512,6 +1776,10 @@ public class AlbumRepository {
                     """);
             }
             
+            if (needsItunesJoinGender) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
+            }
             sql.append("WHERE NOT EXISTS ( " +
                 "    SELECT 1 FROM Play p " +
                 "    JOIN Song song ON p.song_id = song.id " +
@@ -1546,6 +1814,10 @@ public class AlbumRepository {
                     """);
             }
             
+            if (needsItunesJoinGender) {
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
+                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
+            }
             sql.append("WHERE 1=1 ");
         }
         
@@ -1555,6 +1827,11 @@ public class AlbumRepository {
         if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
             params.addAll(accountParams);
             params.addAll(listenedDateParams);
+        }
+        
+        // iTunes JOIN param (appears in FROM clause before WHERE conditions)
+        if (needsItunesJoinGender) {
+            params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
         }
         
         // Account params for main query if using includes or excludes mode
@@ -1773,6 +2050,16 @@ public class AlbumRepository {
                 params.add(yearlyChartYears);
             }
             sql.append(")");
+        }
+        
+        // iTunes presence ratio filter (using pre-joined itunes_count_stats)
+        if (itunesPresenceMin != null) {
+            sql.append(" AND CAST(COALESCE(itunes_count_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(album_song_count_stats.song_count, 0), 0) >= ? ");
+            params.add(itunesPresenceMin);
+        }
+        if (itunesPresenceMax != null) {
+            sql.append(" AND CAST(COALESCE(itunes_count_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(album_song_count_stats.song_count, 0), 0) <= ? ");
+            params.add(itunesPresenceMax);
         }
         
         // Add GROUP BY
