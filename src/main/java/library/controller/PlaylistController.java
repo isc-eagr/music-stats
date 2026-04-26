@@ -110,6 +110,7 @@ public class PlaylistController {
                 null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode
                 null, null,                 // itunesIdsJson, inItunes
                 null, null,                 // playCountMin, playCountMax
+                null, null,                 // trackNumber, trackNumberMode
                 null, null, null,           // lengthMin, lengthMax, lengthMode
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks
                 null, null,                 // seasonalChartPeak, seasonalChartSeasons

@@ -51,10 +51,107 @@
             border-color: rgba(170, 90, 220, 0.85);
             color: #d49af5;
         }
+        .detail-save-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 14, 22, 0.72);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 4000;
+            pointer-events: none;
+        }
+        body.gender-male .detail-save-overlay {
+            background: rgba(11, 23, 40, 0.74);
+        }
+        body.gender-female .detail-save-overlay {
+            background: rgba(40, 12, 28, 0.74);
+        }
+        body.gender-other .detail-save-overlay {
+            background: rgba(16, 19, 24, 0.74);
+        }
+        body.detail-save-busy .detail-save-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+        .detail-save-card {
+            min-width: 240px;
+            padding: 22px 26px;
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(36, 40, 49, 0.96), rgba(21, 24, 31, 0.92));
+            border: 1px solid rgba(171, 178, 191, 0.34);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #eef1f6;
+        }
+        body.gender-male .detail-save-card {
+            border-color: rgba(115, 170, 255, 0.34);
+            background: linear-gradient(145deg, rgba(18, 29, 43, 0.96), rgba(10, 15, 24, 0.92));
+            color: #e5edf8;
+        }
+        body.gender-female .detail-save-card {
+            border-color: rgba(236, 112, 169, 0.34);
+            background: linear-gradient(145deg, rgba(44, 19, 35, 0.96), rgba(18, 11, 20, 0.92));
+            color: #fbe9f2;
+        }
+        .detail-save-spinner {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.18);
+            border-top-color: #9ca3af;
+            animation: detail-save-spin 0.85s linear infinite;
+            flex: 0 0 auto;
+        }
+        body.gender-male .detail-save-spinner {
+            border-top-color: #7cb8ff;
+        }
+        body.gender-female .detail-save-spinner {
+            border-top-color: #f28ab8;
+        }
+        .detail-save-text {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .detail-save-text strong {
+            font-size: 0.98rem;
+            letter-spacing: 0.01em;
+        }
+        .detail-save-text span {
+            font-size: 0.83rem;
+            color: rgba(238, 241, 246, 0.72);
+        }
+        body.gender-male .detail-save-text span {
+            color: rgba(229, 237, 248, 0.74);
+        }
+        body.gender-female .detail-save-text span {
+            color: rgba(251, 233, 242, 0.74);
+        }
+        @keyframes detail-save-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
-<body>
+<body th:classappend="${effectiveGenderName != null and effectiveGenderName.toLowerCase().contains('male') and !effectiveGenderName.toLowerCase().contains('female')} ? 'gender-male' : (${effectiveGenderName != null and effectiveGenderName.toLowerCase().contains('female')} ? 'gender-female' : 'gender-other')">
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="detail-save-overlay" id="detailSaveOverlay" aria-hidden="true">
+        <div class="detail-save-card" role="status" aria-live="polite">
+            <div class="detail-save-spinner"></div>
+            <div class="detail-save-text">
+                <strong>Saving changes...</strong>
+                <span>Updating song details and linked stats.</span>
+            </div>
+        </div>
+    </div>
     <div class="container-wide" th:classappend="${effectiveGenderName != null and effectiveGenderName.toLowerCase().contains('male') and !effectiveGenderName.toLowerCase().contains('female')} ? 'gender-male' : (${effectiveGenderName != null and effectiveGenderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
         <div class="detail-grid">
             <!-- Left column: Image with name overlay -->
@@ -1402,6 +1499,8 @@
     
     <script th:inline="javascript">
         let isEditing = false;
+        let initialSongFormState = null;
+        let initialSelectedFeaturedArtists = [];
         
         // Featured artists state
         let selectedFeaturedArtists = /*[[${featuredArtists}]]*/ [];
@@ -1410,6 +1509,8 @@
         // Initialize featured artists from server data
         document.addEventListener('DOMContentLoaded', function() {
             initializeFeaturedArtists();
+            initialSongFormState = captureFormState('songForm');
+            initialSelectedFeaturedArtists = cloneStateArray(selectedFeaturedArtists);
         });
         
         function initializeFeaturedArtists() {
@@ -1420,10 +1521,191 @@
                 artistName: fa.artistName
             }));
         }
+
+        function cloneStateArray(items) {
+            return Array.isArray(items) ? items.map(item => ({ ...item })) : [];
+        }
+
+        function captureFormState(formId) {
+            const form = document.getElementById(formId);
+            if (!form) {
+                return null;
+            }
+
+            const values = {};
+            const selectOptions = {};
+
+            Array.from(form.elements).forEach(element => {
+                if (!element.name) {
+                    return;
+                }
+
+                if (element.tagName === 'SELECT' && element.id) {
+                    selectOptions[element.id] = element.innerHTML;
+                }
+
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    if (!values[element.name]) {
+                        values[element.name] = [];
+                    }
+                    if (element.checked) {
+                        values[element.name].push(element.value);
+                    }
+                    return;
+                }
+
+                if (element.tagName === 'SELECT' && element.multiple) {
+                    values[element.name] = Array.from(element.selectedOptions).map(option => option.value);
+                    return;
+                }
+
+                values[element.name] = element.value;
+            });
+
+            return { values, selectOptions };
+        }
+
+        function restoreFormState(formId, state) {
+            const form = document.getElementById(formId);
+            if (!form || !state) {
+                return;
+            }
+
+            form.querySelectorAll('select[id]').forEach(select => {
+                if (state.selectOptions[select.id] !== undefined) {
+                    select.innerHTML = state.selectOptions[select.id];
+                }
+            });
+
+            Array.from(form.elements).forEach(element => {
+                if (!element.name) {
+                    return;
+                }
+
+                const savedValue = state.values[element.name];
+
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    const selectedValues = Array.isArray(savedValue) ? savedValue : [];
+                    element.checked = selectedValues.includes(element.value);
+                    return;
+                }
+
+                if (element.tagName === 'SELECT' && element.multiple) {
+                    const selectedValues = Array.isArray(savedValue) ? savedValue : [];
+                    Array.from(element.options).forEach(option => {
+                        option.selected = selectedValues.includes(option.value);
+                    });
+                    return;
+                }
+
+                element.value = savedValue ?? '';
+            });
+        }
+
+        function destroySearchableSelects(formId) {
+            const form = document.getElementById(formId);
+            if (!form) {
+                return;
+            }
+
+            form.querySelectorAll('select[data-searchable-initialized]').forEach(select => {
+                const wrapper = select.closest('.searchable-select-wrapper');
+                if (wrapper && wrapper.parentNode) {
+                    wrapper.parentNode.insertBefore(select, wrapper);
+                    wrapper.remove();
+                }
+                delete select.dataset.searchableInitialized;
+                select.style.display = 'none';
+            });
+        }
+
+        function showDetailSaveOverlay() {
+            document.body.classList.add('detail-save-busy');
+        }
+
+        function exitEditMode() {
+            restoreFormState('songForm', initialSongFormState);
+            selectedFeaturedArtists = cloneStateArray(initialSelectedFeaturedArtists);
+            renderFeaturedArtistChips();
+
+            const editBtn = document.getElementById('editBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+            const formActions = document.getElementById('formActions');
+            const fetchItunesDataBtn = document.getElementById('fetchItunesDataBtn');
+            const textInputs = document.querySelectorAll('#songForm .editable-input');
+            const numberInputs = document.querySelectorAll('#songForm input[type="number"]');
+            const checkboxInputs = document.querySelectorAll('#songForm input[type="checkbox"]');
+            const selects = document.querySelectorAll('#songForm select');
+            const attributeTexts = document.querySelectorAll('.attribute-text');
+
+            isEditing = false;
+            editBtn.style.display = 'inline-block';
+            deleteBtn.style.display = 'inline-block';
+            formActions.style.display = 'none';
+            if (fetchItunesDataBtn) {
+                fetchItunesDataBtn.style.display = 'none';
+            }
+
+            document.querySelectorAll('.view-only-field').forEach(el => el.style.display = '');
+            document.querySelectorAll('.label-view').forEach(el => el.style.display = 'inline');
+            document.querySelectorAll('.label-edit').forEach(el => el.style.display = 'none');
+
+            const nameFieldGroup = document.getElementById('nameFieldGroup');
+            if (nameFieldGroup) {
+                nameFieldGroup.style.display = 'none';
+            }
+            const albumFieldGroup = document.getElementById('albumFieldGroup');
+            if (albumFieldGroup) {
+                albumFieldGroup.style.display = 'none';
+            }
+
+            textInputs.forEach(input => {
+                input.style.display = 'none';
+            });
+            numberInputs.forEach(input => {
+                input.style.display = 'none';
+            });
+            checkboxInputs.forEach(input => {
+                input.style.display = 'none';
+            });
+            document.querySelectorAll('.inline-checkbox-label').forEach(label => {
+                label.style.display = 'none';
+            });
+            selects.forEach(select => {
+                select.setAttribute('disabled', 'disabled');
+                select.style.display = 'none';
+            });
+            attributeTexts.forEach(text => {
+                if (text.dataset.field) {
+                    text.style.display = '';
+                }
+            });
+
+            const allAlbumsToggle = document.querySelector('.all-albums-toggle');
+            if (allAlbumsToggle) {
+                allAlbumsToggle.style.display = 'none';
+            }
+            const featuredArtistsField = document.getElementById('featuredArtistsField');
+            if (featuredArtistsField) {
+                featuredArtistsField.style.display = 'none';
+            }
+            const featuredArtistsContainer = document.getElementById('featuredArtistsContainer');
+            if (featuredArtistsContainer) {
+                featuredArtistsContainer.style.display = 'none';
+            }
+
+            const featuredArtistsInput = document.getElementById('featuredArtistsInput');
+            if (featuredArtistsInput) {
+                featuredArtistsInput.value = '';
+            }
+            hideFeaturedArtistsDropdown();
+            destroySearchableSelects('songForm');
+        }
         
         // Add form submit handler to convert mm:ss to seconds and save featured artists
         document.getElementById('songForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            showDetailSaveOverlay();
             
             const lengthFormatted = document.getElementById('lengthFormatted').value;
             const lengthSecondsField = document.getElementById('lengthSeconds');
@@ -1565,6 +1847,9 @@
                 
                 // Initialize searchable selects for dropdowns
                 setTimeout(function() {
+                    if (!isEditing) {
+                        return;
+                    }
                     // Set select values based on selected options before initializing searchable selects
                     ['overrideGenreId', 'overrideSubgenreId', 'overrideLanguageId', 'overrideGenderId', 'overrideEthnicityId'].forEach(function(selectId) {
                         const select = document.getElementById(selectId);
@@ -1584,7 +1869,7 @@
                     initSearchableSelect('overrideEthnicityId');
                 }, 100); // Slightly longer delay to wait for album dropdown to populate
             } else {
-                window.location.reload();
+                exitEditMode();
             }
         }
         
@@ -1603,6 +1888,10 @@
             fetch(url)
                 .then(response => response.json())
                 .then(albums => {
+                    if (!isEditing) {
+                        return;
+                    }
+
                     // Keep the "No album" option
                     albumSelect.innerHTML = '<option value="">No album (single)</option>';
                     
@@ -1640,7 +1929,7 @@
         }
         
         function cancelEdit() {
-            window.location.reload();
+            exitEditMode();
         }
         
         function confirmDelete() {

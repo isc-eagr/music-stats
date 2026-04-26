@@ -82,6 +82,7 @@ public class SongService {
                                        String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                        String itunesIdsJson, String inItunes,
                                        Integer playCountMin, Integer playCountMax,
+                                       Integer trackNumber, String trackNumberMode,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
@@ -105,6 +106,7 @@ public class SongService {
                 birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 sortBy, sortDirection, perPage, page * perPage
@@ -144,6 +146,7 @@ public class SongService {
             // Set first and last listened dates (indices 23 and 24)
             dto.setFirstListenedDate(row[23] != null ? formatDate((String) row[23]) : null);
             dto.setLastListenedDate(row[24] != null ? formatDate((String) row[24]) : null);
+            dto.setTrackNumber(row[45] != null ? ((Number) row[45]).intValue() : null);
             
             // Set country (inherited from artist, index 25)
             dto.setCountry((String) row[25]);
@@ -217,6 +220,7 @@ public class SongService {
                           String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                           String itunesIdsJson, String inItunes,
                           Integer playCountMin, Integer playCountMax,
+                          Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
@@ -238,6 +242,7 @@ public class SongService {
                 birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
     }
@@ -266,6 +271,7 @@ public class SongService {
                           String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                           String itunesIdsJson, String inItunes,
                           Integer playCountMin, Integer playCountMax,
+                          Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
@@ -289,6 +295,7 @@ public class SongService {
                 deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         
@@ -947,11 +954,11 @@ public class SongService {
     // Create a new song
     public Song createSong(Song song) {
         String sql = """
-            INSERT INTO Song (artist_id, album_id, name, release_date, length_seconds, 
+            INSERT INTO Song (artist_id, album_id, name, release_date, length_seconds, track_number,
                              is_single, override_genre_id, override_subgenre_id, 
                              override_language_id, override_gender_id, override_ethnicity_id,
                              creation_date, update_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """;
         
         // Convert java.sql.Date to yyyy-MM-dd string format for database
@@ -967,6 +974,7 @@ public class SongService {
             song.getName(),
             releaseDateStr,
             song.getLengthSeconds(),
+            song.getTrackNumber(),
             song.getIsSingle() != null && song.getIsSingle() ? 1 : 0,
             song.getOverrideGenreId(),
             song.getOverrideSubgenreId(),
@@ -1005,6 +1013,9 @@ public class SongService {
         }
         if (data.get("lengthSeconds") != null) {
             song.setLengthSeconds(((Number) data.get("lengthSeconds")).intValue());
+        }
+        if (data.get("trackNumber") != null) {
+            song.setTrackNumber(((Number) data.get("trackNumber")).intValue());
         }
         Song created = createSong(song);
         return created.getId();

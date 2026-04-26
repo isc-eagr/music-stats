@@ -4,10 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unmatched Plays</title>
+    <script>document.documentElement.classList.add('js');</script>
     <link rel="stylesheet" th:href="@{/css/global.css}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-styles}"></th:block>
     <style>
+        .page-load-overlay { display: none; }
+        html.js body.page-loading .page-load-overlay,
+        html.js body.page-busy .page-load-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(96, 165, 250, 0.12), rgba(6, 8, 12, 0.94) 60%);
+            backdrop-filter: blur(6px);
+            z-index: 3000;
+        }
+        .page-load-card {
+            min-width: 220px;
+            padding: 22px 26px;
+            border-radius: 18px;
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            background: rgba(12, 18, 28, 0.92);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            text-align: center;
+        }
+        .page-load-spinner {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.08);
+            border-top-color: #60a5fa;
+            animation: page-load-spin 0.8s linear infinite;
+        }
+        .page-load-title { color: #e8f1ff; font-size: 15px; font-weight: 600; }
+        .page-load-subtitle { color: rgba(232, 241, 255, 0.62); font-size: 12px; margin-top: 6px; }
+        @keyframes page-load-spin { to { transform: rotate(360deg); } }
         .content-card { max-width: 1200px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
         .hint { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
         table { width: 100%; border-collapse: collapse; }
@@ -20,6 +54,8 @@
         .action-col .btn { padding: 4px 8px; font-size: 11px; margin: 0 2px; }
         .btn-delete { background: transparent; border: 1px solid #dc3545; color: #dc3545; }
         .btn-delete:hover { background: #dc3545; color: white; }
+        #unmatchedTableBody tr { transition: opacity 0.18s ease, transform 0.18s ease; }
+        #unmatchedTableBody tr.row-fade-out { opacity: 0; transform: translateY(-4px); }
         
         /* Clickable links in table */
         td a { transition: color 0.2s ease; }
@@ -46,7 +82,14 @@
         .delete-modal .checkbox-row label { color: #dc3545; font-weight: 500; }
     </style>
 </head>
-<body>
+<body class="page-loading">
+    <div class="page-load-overlay" aria-hidden="true">
+        <div class="page-load-card">
+            <div class="page-load-spinner"></div>
+            <div class="page-load-title" id="unmatchedOverlayTitle">Loading unmatched plays</div>
+            <div class="page-load-subtitle" id="unmatchedOverlaySubtitle">Preparing the big table and actions...</div>
+        </div>
+    </div>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
@@ -54,8 +97,8 @@
             <div>
                 <h1 style="margin: 0; font-size: 28px; font-weight: 650;">Unmatched Plays</h1>
                 <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 14px;">
-                    <span th:text="${totalUnmatchedCount}">0</span> total plays in 
-                    <span th:text="${unmatchedGroupCount}">0</span> groups
+                    <span id="totalUnmatchedCountLabel" th:text="${totalUnmatchedCount}">0</span> total plays in 
+                    <span id="unmatchedGroupCountLabel" th:text="${unmatchedGroupCount}">0</span> groups
                 </p>
             </div>
             
@@ -240,7 +283,9 @@
             
             // Reset confirmation state
             document.getElementById('confirmDeleteCheckbox').checked = false;
-            document.getElementById('confirmDeleteBtn').disabled = true;
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            confirmDeleteBtn.disabled = true;
+            confirmDeleteBtn.textContent = 'Delete Permanently';
             
             document.getElementById('deleteModal').classList.add('active');
         }
@@ -262,6 +307,7 @@
             const btn = document.getElementById('confirmDeleteBtn');
             btn.disabled = true;
             btn.textContent = 'Deleting...';
+            showPageBusyOverlay('Refreshing unmatched plays', 'Deleting plays and updating the table...');
             
             try {
                 const response = await fetch('/plays/api/unmatched', {
@@ -278,14 +324,18 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    removeRowsByPredicate(r => isSameGroup(r, row, false), false);
                     closeDeleteModal();
-                    location.reload();
+                    hidePageBusyOverlay();
+                    showSuccessToast('Deleted ' + (result.deletedCount || 0) + ' play(s).');
                 } else {
+                    hidePageBusyOverlay();
                     showErrorToast('Error deleting plays: ' + (result.error || 'Unknown error'));
                     btn.disabled = false;
                     btn.textContent = 'Delete Permanently';
                 }
             } catch (err) {
+                hidePageBusyOverlay();
                 showErrorToast('Error deleting plays: ' + err.message);
                 btn.disabled = false;
                 btn.textContent = 'Delete Permanently';
@@ -333,7 +383,9 @@
                 listEl.appendChild(p);
             });
             document.getElementById('confirmBulkDeleteCheckbox').checked = false;
-            document.getElementById('confirmBulkDeleteBtn').disabled = true;
+            const confirmBulkDeleteBtn = document.getElementById('confirmBulkDeleteBtn');
+            confirmBulkDeleteBtn.disabled = true;
+            confirmBulkDeleteBtn.textContent = 'Delete Permanently';
             document.getElementById('bulkDeleteModal').classList.add('active');
         }
 
@@ -349,21 +401,27 @@
         async function executeBulkDelete() {
             const btn = document.getElementById('confirmBulkDeleteBtn');
             btn.disabled = true; btn.textContent = 'Deleting...';
+            showPageBusyOverlay('Refreshing unmatched plays', 'Deleting selected plays and updating the table...');
             try {
-                const items = Array.from(selectedIndices).map(i => unmatchedList[i]).map(r => ({ account: r.account, artist: r.artist, album: r.album, song: r.song }));
+                const selectedItems = Array.from(selectedIndices).map(i => unmatchedList[i]);
+                const items = selectedItems.map(r => ({ account: r.account, artist: r.artist, album: r.album, song: r.song }));
                 const response = await fetch('/plays/api/unmatched/delete-selected', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ items })
                 });
                 const result = await response.json();
                 if (result.success) {
+                    removeRowsByPredicate(r => selectedItems.some(item => isSameGroup(r, item, false)), false);
                     closeBulkDeleteModal();
-                    location.reload();
+                    hidePageBusyOverlay();
+                    showSuccessToast('Deleted ' + (result.deletedCount || 0) + ' play(s).');
                 } else {
+                    hidePageBusyOverlay();
                     showErrorToast('Error deleting plays: ' + (result.error || 'Unknown error'));
                     btn.disabled = false; btn.textContent = 'Delete Permanently';
                 }
             } catch (err) {
+                hidePageBusyOverlay();
                 showErrorToast('Error deleting plays: ' + err.message);
                 btn.disabled = false; btn.textContent = 'Delete Permanently';
             }
@@ -376,13 +434,164 @@
                 if (document.getElementById('bulkDeleteModal').classList.contains('active')) closeBulkDeleteModal();
             }
         });
+
+        function normalizeText(value) {
+            return (value || '').trim().toLowerCase();
+        }
+
+        function isSameGroup(left, right, ignoreAccount) {
+            if (!left || !right) {
+                return false;
+            }
+            const sameCore = normalizeText(left.artist) === normalizeText(right.artist)
+                && normalizeText(left.album) === normalizeText(right.album)
+                && normalizeText(left.song) === normalizeText(right.song);
+            if (!sameCore) {
+                return false;
+            }
+            return ignoreAccount || normalizeText(left.account) === normalizeText(right.account);
+        }
+
+        function updateHeaderCounts() {
+            const totalCount = unmatchedList.reduce((sum, row) => sum + Number(row.cnt || 0), 0);
+            const totalCountLabel = document.getElementById('totalUnmatchedCountLabel');
+            if (totalCountLabel) {
+                totalCountLabel.textContent = String(totalCount);
+            }
+            const groupCountLabel = document.getElementById('unmatchedGroupCountLabel');
+            if (groupCountLabel) {
+                groupCountLabel.textContent = String(unmatchedList.length);
+            }
+        }
+
+        function showPageBusyOverlay(title, subtitle) {
+            const titleEl = document.getElementById('unmatchedOverlayTitle');
+            const subtitleEl = document.getElementById('unmatchedOverlaySubtitle');
+            if (titleEl && title) {
+                titleEl.textContent = title;
+            }
+            if (subtitleEl && subtitle) {
+                subtitleEl.textContent = subtitle;
+            }
+            document.body.classList.add('page-busy');
+        }
+
+        function hidePageBusyOverlay() {
+            document.body.classList.remove('page-busy');
+        }
+
+        function renderUnmatchedTable() {
+            const tbody = document.getElementById('unmatchedTableBody');
+            if (!tbody) {
+                return;
+            }
+
+            if (!unmatchedList || unmatchedList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 18px;">No unmatched plays found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = unmatchedList.map((row, index) => {
+                const accountText = escapeHtml(row.account || '');
+                const artistText = escapeHtml(row.artist || '');
+                const albumText = escapeHtml(row.album || '');
+                const songText = escapeHtml(row.song || '');
+                const artistQuery = encodeURIComponent(row.artist || '');
+                const albumQuery = encodeURIComponent(row.album || '');
+                const songQuery = encodeURIComponent(row.song || '');
+
+                return `
+                    <tr data-index="${index}">
+                        <td><input type="checkbox" autocomplete="off" class="rowCheckbox" data-index="${index}" onchange="toggleRowSelection(this)"></td>
+                        <td>${accountText}</td>
+                        <td><a href="/artists?q=${artistQuery}" target="_blank" style="color: inherit; text-decoration: none;">${artistText}</a></td>
+                        <td><a href="/albums?q=${albumQuery}" target="_blank" style="color: inherit; text-decoration: none;">${albumText}</a></td>
+                        <td><a href="/songs?q=${songQuery}" target="_blank" style="color: inherit; text-decoration: none;">${songText}</a></td>
+                        <td class="count">${row.cnt || 0}</td>
+                        <td class="action-col">
+                            <button class="btn btn-action" data-index="${index}" onclick="openCreateWizardFromTable(this.dataset.index)">Create</button>
+                            <button class="btn btn-secondary" data-index="${index}" onclick="openMatchModalFromTable(this.dataset.index)">Match</button>
+                            <button class="btn btn-delete" data-index="${index}" onclick="openDeleteConfirmation(this.dataset.index)">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function removeRowsByPredicate(predicate, animate) {
+            const shouldAnimate = animate !== false;
+            const indicesToRemove = [];
+
+            unmatchedList.forEach((row, index) => {
+                if (predicate(row)) {
+                    indicesToRemove.push(index);
+                }
+            });
+
+            if (indicesToRemove.length === 0) {
+                return;
+            }
+
+            const finalizeRemoval = () => {
+                unmatchedList = unmatchedList.filter(row => !predicate(row));
+                selectedIndices.clear();
+                renderUnmatchedTable();
+                updateHeaderCounts();
+                updateSelectedCount();
+            };
+
+            if (!shouldAnimate) {
+                finalizeRemoval();
+                return;
+            }
+
+            const rowsToAnimate = indicesToRemove
+                .map(index => document.querySelector('#unmatchedTableBody tr[data-index="' + index + '"]'))
+                .filter(row => row != null);
+
+            if (rowsToAnimate.length === 0) {
+                finalizeRemoval();
+                return;
+            }
+
+            rowsToAnimate.forEach(row => row.classList.add('row-fade-out'));
+            setTimeout(finalizeRemoval, 180);
+        }
         
-        // Override refreshUnmatchedList to reload page for /unmatched
+        // Override refreshUnmatchedList to keep updates in-page on /unmatched
         const originalRefreshUnmatchedList = refreshUnmatchedList;
         refreshUnmatchedList = function() {
-            // For the /unmatched page, just reload to get fresh data from DB
-            location.reload();
+            const targets = [];
+            if (matchState && matchState.playData) {
+                targets.push(matchState.playData);
+            }
+            if (wizardState && wizardState.playData) {
+                targets.push(wizardState.playData);
+            }
+
+            if (targets.length === 0) {
+                originalRefreshUnmatchedList();
+                hidePageBusyOverlay();
+                return;
+            }
+
+            requestAnimationFrame(function() {
+                removeRowsByPredicate(row => targets.some(target => isSameGroup(row, target, true)), false);
+                hidePageBusyOverlay();
+            });
         };
+
+        window.showPageBusyOverlay = showPageBusyOverlay;
+        window.hidePageBusyOverlay = hidePageBusyOverlay;
+
+        updateHeaderCounts();
+        updateSelectedCount();
+
+        window.addEventListener('load', function() {
+            requestAnimationFrame(function() {
+                document.body.classList.remove('page-loading');
+            });
+        });
     </script>
 </body>
 </html>

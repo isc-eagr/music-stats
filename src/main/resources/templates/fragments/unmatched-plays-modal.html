@@ -121,6 +121,30 @@
                 color: #ccc;
                 font-size: 14px;
             }
+
+            /* Loading overlay for match modal initialization */
+            .match-loading-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(26, 26, 26, 0.86);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                gap: 12px;
+                z-index: 100;
+                border-radius: 8px;
+            }
+            .match-loading-overlay.active {
+                display: flex;
+            }
+            .match-loading-text {
+                color: #ccc;
+                font-size: 14px;
+            }
             
             /* Search result item loading state */
             .search-result-item.loading {
@@ -391,6 +415,10 @@
                             </div>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Track Number</label>
+                        <input type="number" autocomplete="off" id="wizardSongTrackNumber" placeholder="1" min="1" step="1">
+                    </div>
                     <div class="form-group" style="margin-top: 8px;">
                         <div style="display: flex; gap: 8px;">
                             <button type="button" class="btn btn-action" id="wizardFetchItunesBtn" onclick="wizardFetchFromItunes()" style="flex: 1;">
@@ -424,7 +452,11 @@
 
     <!-- Match to Existing Song Modal -->
     <div th:fragment="match-modal" id="matchSongModal" class="unmatched-modal">
-        <div class="unmatched-modal-content">
+        <div class="unmatched-modal-content" style="position: relative;">
+            <div id="matchLoadingOverlay" class="match-loading-overlay">
+                <div class="wizard-spinner"></div>
+                <div class="match-loading-text" id="matchLoadingText">Loading matches...</div>
+            </div>
             <div class="unmatched-modal-header">
                 <h2>Match to Existing Song</h2>
                 <span class="unmatched-modal-close" onclick="closeMatchModal()">&times;</span>
@@ -548,6 +580,7 @@
                 selectedAlbumName: null,
                 isNewAlbum: false
             };
+            resetCreateButtonState();
             
             // Populate play info
             document.getElementById('wizardArtistName').textContent = row.artist || '(none)';
@@ -595,17 +628,46 @@
                 overlay.classList.remove('active');
             }
         }
+
+        function showMatchLoading(message) {
+            const overlay = document.getElementById('matchLoadingOverlay');
+            const text = document.getElementById('matchLoadingText');
+            if (overlay) {
+                if (text) {
+                    text.textContent = message || 'Loading matches...';
+                }
+                overlay.classList.add('active');
+            }
+        }
+
+        function hideMatchLoading() {
+            const overlay = document.getElementById('matchLoadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+        }
         
         function closeCreateWizard() {
             document.getElementById('createWizardModal').classList.remove('active');
             hideWizardLoading();
-            // Reset the button state
-            const createBtn = document.getElementById('wizardCreateBtn');
-            createBtn.disabled = false;
-            createBtn.textContent = 'Create & Assign Plays';
+            resetCreateButtonState();
             // Reset state and forms
             wizardState = { playData: null, selectedArtistId: null, selectedArtistName: null, isNewArtist: false, selectedAlbumId: null, selectedAlbumName: null, isNewAlbum: false, newAlbumImageUrl: null, newSongImageUrl: null, newAlbumReleaseDate: null };
             resetWizardForms();
+        }
+
+        function resetCreateButtonState() {
+            const createBtn = document.getElementById('wizardCreateBtn');
+            if (!createBtn) return;
+            createBtn.disabled = false;
+            createBtn.textContent = 'Create & Assign Plays';
+        }
+
+        function resetMatchButtonState() {
+            const assignBtn = document.getElementById('matchAssignBtn');
+            if (!assignBtn) return;
+            assignBtn.disabled = true;
+            assignBtn.textContent = 'Match';
         }
         
         function showWizardStep(step) {
@@ -667,6 +729,8 @@
             if (songLength) songLength.value = '';
             const songLengthSeconds = document.getElementById('wizardSongLengthSeconds');
             if (songLengthSeconds) songLengthSeconds.value = '';
+            const songTrackNumber = document.getElementById('wizardSongTrackNumber');
+            if (songTrackNumber) songTrackNumber.value = '';
             const itunesFetchStatus = document.getElementById('wizardItunesFetchStatus');
             if (itunesFetchStatus) itunesFetchStatus.textContent = '';
         }
@@ -1031,6 +1095,7 @@
                 document.getElementById('wizardSongReleaseDate').value = '';
                 document.getElementById('wizardSongLength').value = '';
                 document.getElementById('wizardSongLengthSeconds').value = '';
+                document.getElementById('wizardSongTrackNumber').value = '';
                 document.getElementById('wizardItunesFetchStatus').textContent = '';
                 
                 showWizardStep(3);
@@ -1140,6 +1205,21 @@
             // Convert mm:ss to seconds
             const [minutes, seconds] = songLength.split(':').map(Number);
             const lengthSeconds = minutes * 60 + seconds;
+
+            // Validate optional track number
+            const songTrackNumberRaw = document.getElementById('wizardSongTrackNumber').value.trim();
+            let songTrackNumber = null;
+            if (songTrackNumberRaw) {
+                if (!/^\d+$/.test(songTrackNumberRaw)) {
+                    showWarningToast('Please enter a valid track number');
+                    return;
+                }
+                songTrackNumber = parseInt(songTrackNumberRaw, 10);
+                if (songTrackNumber <= 0) {
+                    showWarningToast('Track number must be greater than 0');
+                    return;
+                }
+            }
             
             const payload = {
                 playArtist: wizardState.playData.artist,
@@ -1167,6 +1247,7 @@
                 songName: songName,
                 songReleaseDate: songReleaseDate,
                 songLengthSeconds: lengthSeconds,
+                songTrackNumber: songTrackNumber,
                 songImageUrl: (wizardState.newSongImageUrl && document.getElementById('wizardSongSaveImage') && document.getElementById('wizardSongSaveImage').checked) ? wizardState.newSongImageUrl : null
             };
             
@@ -1175,6 +1256,9 @@
             const originalText = createBtn.textContent;
             createBtn.disabled = true;
             createBtn.textContent = 'Creating...';
+            if (window.showPageBusyOverlay) {
+                window.showPageBusyOverlay('Refreshing unmatched plays', 'Creating the song and updating the table...');
+            }
             
             fetch('/plays/api/create-and-assign', {
                 method: 'POST',
@@ -1194,6 +1278,9 @@
                     refreshUnmatchedList();
                     closeCreateWizard();
                 } else {
+                    if (window.hidePageBusyOverlay) {
+                        window.hidePageBusyOverlay();
+                    }
                     showErrorToast('Error: ' + (data.error || 'Unknown error'));
                     createBtn.disabled = false;
                     createBtn.textContent = originalText;
@@ -1201,6 +1288,9 @@
             })
             .catch(err => {
                 console.error('Error creating and assigning:', err);
+                if (window.hidePageBusyOverlay) {
+                    window.hidePageBusyOverlay();
+                }
                 showErrorToast('Error creating song');
                 createBtn.disabled = false;
                 createBtn.textContent = originalText;
@@ -1221,18 +1311,23 @@
             document.getElementById('matchArtistFilter').value = row.artist || '';
             document.getElementById('matchSongSearch').value = row.song || '';
             document.getElementById('matchSongResults').innerHTML = '<div class="no-results">Enter a search term and click Search</div>';
-            document.getElementById('matchAssignBtn').disabled = true;
+            resetMatchButtonState();
             
             document.getElementById('matchSongModal').classList.add('active');
+            showMatchLoading('Preparing matches...');
             
             // Auto-search using the artist and song
             if (row.artist || row.song) {
-                searchMatchSongs();
+                searchMatchSongs().finally(() => hideMatchLoading());
+            } else {
+                requestAnimationFrame(() => hideMatchLoading());
             }
         }
         
         function closeMatchModal() {
             document.getElementById('matchSongModal').classList.remove('active');
+            hideMatchLoading();
+            resetMatchButtonState();
             matchState = { playData: null, selectedSongId: null };
         }
         
@@ -1246,7 +1341,7 @@
             
             if (!artistFilter && !songQuery) {
                 document.getElementById('matchSongResults').innerHTML = '<div class="no-results">Please enter an artist or song name to search</div>';
-                return;
+                return Promise.resolve();
             }
             
             const container = document.getElementById('matchSongResults');
@@ -1259,7 +1354,7 @@
             if (songQuery) params.push(`song=${encodeURIComponent(songQuery)}`);
             url += params.join('&');
             
-            fetch(url)
+            return fetch(url)
                 .then(r => r.json())
                 .then(data => {
                     if (!data || data.length === 0) {
@@ -1301,6 +1396,9 @@
             const originalText = assignBtn.textContent;
             assignBtn.disabled = true;
             assignBtn.textContent = 'Matching...';
+            if (window.showPageBusyOverlay) {
+                window.showPageBusyOverlay('Refreshing unmatched plays', 'Matching the song and updating the table...');
+            }
             
             fetch('/plays/api/assign', {
                 method: 'POST',
@@ -1326,6 +1424,9 @@
                     refreshUnmatchedList();
                     closeMatchModal();
                 } else {
+                    if (window.hidePageBusyOverlay) {
+                        window.hidePageBusyOverlay();
+                    }
                     showErrorToast('Error: ' + (data.error || 'Unknown error'));
                     assignBtn.disabled = false;
                     assignBtn.textContent = originalText;
@@ -1333,6 +1434,9 @@
             })
             .catch(err => {
                 console.error('Error assigning song:', err);
+                if (window.hidePageBusyOverlay) {
+                    window.hidePageBusyOverlay();
+                }
                 showErrorToast('Error assigning song');
                 assignBtn.disabled = false;
                 assignBtn.textContent = originalText;
@@ -1474,12 +1578,24 @@
                                 highlightWizardField('wizardSongLength');
                             }
                         }
+
+                        // Populate track number if found
+                        if (data.trackNumber != null) {
+                            const trackNumberField = document.getElementById('wizardSongTrackNumber');
+                            const currentValue = trackNumberField.value;
+                            const trackNumberValue = String(data.trackNumber);
+                            trackNumberField.value = trackNumberValue;
+                            parts.push(`Track #: ${trackNumberValue}`);
+                            if (currentValue !== trackNumberValue) {
+                                highlightWizardField('wizardSongTrackNumber');
+                            }
+                        }
                         
                         if (parts.length > 0) {
                             statusEl.textContent = message + parts.join(', ');
                             statusEl.style.color = data.matchType === 'partial' ? '#ffa94d' : '#69db7c';
                         } else {
-                            statusEl.textContent = '✓ Song found but no date/length available';
+                            statusEl.textContent = '✓ Song found but no release/length/track data available';
                             statusEl.style.color = '#ffa94d';
                         }
                     });
@@ -1619,6 +1735,12 @@
                         document.getElementById('wizardSongLength').value = selectedItem.lengthFormatted;
                         document.getElementById('wizardSongLengthSeconds').value = selectedItem.lengthSeconds;
                         parts.push('Length: ' + selectedItem.lengthFormatted);
+                    }
+
+                    // Set track number if available
+                    if (selectedItem.trackNumber != null) {
+                        document.getElementById('wizardSongTrackNumber').value = selectedItem.trackNumber;
+                        parts.push('Track #: ' + selectedItem.trackNumber);
                     }
                     
                     // Store image URL for later use when creating song

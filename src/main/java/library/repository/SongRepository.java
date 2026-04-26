@@ -39,6 +39,7 @@ public class SongRepository {
                                               String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                               String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                               Integer playCountMin, Integer playCountMax,
+                                              Integer trackNumber, String trackNumberMode,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
@@ -103,6 +104,7 @@ public class SongRepository {
                 COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
                 COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
                 COALESCE(s.length_seconds * play_stats.play_count, 0) as time_listened,
+                s.track_number,
                 play_stats.first_listened,
                 play_stats.last_listened,
                 ar.country as country,
@@ -428,6 +430,21 @@ public class SongRepository {
             sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
             params.add(playCountMax);
         }
+
+        // Track number filter
+        if (trackNumberMode != null && !trackNumberMode.isEmpty()) {
+            if ("isnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NULL ");
+            } else if ("isnotnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NOT NULL ");
+            } else if (trackNumber != null) {
+                sql.append(" AND s.track_number = ? ");
+                params.add(trackNumber);
+            }
+        } else if (trackNumber != null) {
+            sql.append(" AND s.track_number = ? ");
+            params.add(trackNumber);
+        }
         
         // Has Featured Artists filter
         if (hasFeaturedArtists != null && !hasFeaturedArtists.isEmpty()) {
@@ -665,6 +682,7 @@ public class SongRepository {
             case "length" -> sql.append(" ORDER BY s.length_seconds ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "plays" -> sql.append(" ORDER BY play_count ").append(dir).append(", s.name");
             case "primary_plays" -> sql.append(" ORDER BY vatito_play_count ").append(dir).append(", s.name");
+            case "track_number" -> sql.append(" ORDER BY s.track_number ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "subgenre" -> sql.append(" ORDER BY subgenre_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(", s.name");
             case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
@@ -685,7 +703,7 @@ public class SongRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[45];
+            Object[] row = new Object[46];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -731,6 +749,7 @@ public class SongRepository {
             row[42] = rs.getObject("weekly_chart_peak_weeks");
             row[43] = rs.getObject("seasonal_chart_peak_seasons");
             row[44] = rs.getObject("yearly_chart_peak_years");
+            row[45] = rs.getObject("track_number");
             return row;
         }, params.toArray());
     }
@@ -754,6 +773,7 @@ public class SongRepository {
                                       String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                       String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                       Integer playCountMin, Integer playCountMax,
+                                      Integer trackNumber, String trackNumberMode,
                                       Integer lengthMin, Integer lengthMax, String lengthMode,
                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
@@ -1245,6 +1265,21 @@ public class SongRepository {
             sql.append(" AND COALESCE(play_stats.play_count, 0) <= ? ");
             params.add(playCountMax);
         }
+
+        // Track number filter
+        if (trackNumberMode != null && !trackNumberMode.isEmpty()) {
+            if ("isnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NULL ");
+            } else if ("isnotnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NOT NULL ");
+            } else if (trackNumber != null) {
+                sql.append(" AND s.track_number = ? ");
+                params.add(trackNumber);
+            }
+        } else if (trackNumber != null) {
+            sql.append(" AND s.track_number = ? ");
+            params.add(trackNumber);
+        }
         
         // Length filter (song length_seconds)
         if (lengthMode != null && !lengthMode.isEmpty()) {
@@ -1357,6 +1392,7 @@ public class SongRepository {
                                               String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                               String itunesIdsJson, String inItunes,
                                               Integer playCountMin, Integer playCountMax,
+                                              Integer trackNumber, String trackNumberMode,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
@@ -1611,6 +1647,21 @@ public class SongRepository {
         if (playCountMax != null) {
             sql.append(" AND COALESCE(play_stats.play_count, 0) <= ?");
             params.add(playCountMax);
+        }
+
+        // Track number filter
+        if (trackNumberMode != null && !trackNumberMode.isEmpty()) {
+            if ("isnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NULL");
+            } else if ("isnotnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NOT NULL");
+            } else if (trackNumber != null) {
+                sql.append(" AND s.track_number = ?");
+                params.add(trackNumber);
+            }
+        } else if (trackNumber != null) {
+            sql.append(" AND s.track_number = ?");
+            params.add(trackNumber);
         }
         
         // Length filter (song length_seconds)

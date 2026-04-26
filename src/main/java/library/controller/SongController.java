@@ -154,6 +154,8 @@ public class SongController {
             @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) Integer trackNumber,
+            @RequestParam(required = false) String trackNumberMode,
             @RequestParam(required = false) Integer lengthMin,
             @RequestParam(required = false) Integer lengthMax,
             @RequestParam(required = false) String lengthMode,
@@ -206,6 +208,7 @@ public class SongController {
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 sortby, sortdir, page, perpage
@@ -225,6 +228,7 @@ public class SongController {
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
@@ -243,6 +247,7 @@ public class SongController {
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         
@@ -306,6 +311,8 @@ public class SongController {
         model.addAttribute("selectedInItunes", inItunes);
         model.addAttribute("playCountMin", playCountMin);
         model.addAttribute("playCountMax", playCountMax);
+        model.addAttribute("trackNumber", trackNumber);
+        model.addAttribute("trackNumberMode", trackNumberMode != null ? trackNumberMode : "exact");
         model.addAttribute("lengthMin", lengthMin);
         model.addAttribute("lengthMax", lengthMax);
         model.addAttribute("lengthMode", lengthMode != null ? lengthMode : "range");
@@ -2109,6 +2116,8 @@ public class SongController {
             @RequestParam(required = false) String isSingle,
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) Integer trackNumber,
+            @RequestParam(required = false) String trackNumberMode,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "10000") int limit) {
@@ -2142,6 +2151,7 @@ public class SongController {
                 null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode (not used in export)
                 null, null,                 // itunesIdsJson, inItunes (not used in export)
                 playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
                 null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)
                 null, null,                 // seasonalChartPeak, seasonalChartSeasons (not used in export)

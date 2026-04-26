@@ -4,10 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TRL Overview - Music Stats</title>
+    <script>document.documentElement.classList.add('js');</script>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <style>
+        .page-load-overlay { display: none; }
+        html.js body.page-loading .page-load-overlay,
+        html.js body.page-busy .page-load-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(201, 162, 39, 0.14), rgba(7, 7, 9, 0.94) 58%);
+            backdrop-filter: blur(6px);
+            z-index: 3000;
+        }
+        .page-load-card {
+            min-width: 230px;
+            padding: 22px 26px;
+            border-radius: 18px;
+            border: 1px solid rgba(201, 162, 39, 0.24);
+            background: rgba(18, 16, 10, 0.94);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            text-align: center;
+        }
+        .page-load-spinner {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.08);
+            border-top-color: #c9a227;
+            animation: page-load-spin 0.8s linear infinite;
+        }
+        .page-load-title { color: #f1e4b4; font-size: 15px; font-weight: 600; }
+        .page-load-subtitle { color: rgba(241, 228, 180, 0.62); font-size: 12px; margin-top: 6px; }
+        @keyframes page-load-spin { to { transform: rotate(360deg); } }
         .trl-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -110,6 +144,9 @@
             transition: background 0.12s;
         }
         .trl-table tbody tr:hover { background: #1c1c1c; }
+        #trlTableBody { transition: opacity 0.18s ease; }
+        #trlTableBody.trl-refreshing { opacity: 0.35; }
+        #trlTableBody tr.trl-row-fade-out { opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; }
 
         /* Gender row coloring — full row background */
         .trl-table tbody tr.gender-male {
@@ -343,7 +380,14 @@
         }
     </style>
 </head>
-<body>
+<body class="page-loading">
+    <div class="page-load-overlay" aria-hidden="true">
+        <div class="page-load-card">
+            <div class="page-load-spinner"></div>
+            <div class="page-load-title" id="trlOverlayTitle">Loading TRL overview</div>
+            <div class="page-load-subtitle" id="trlOverlaySubtitle">Sorting videos and wiring the table...</div>
+        </div>
+    </div>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <header class="topbar">
@@ -365,15 +409,15 @@
         <!-- Summary stats -->
         <div class="trl-summary">
             <div class="trl-stat">
-                <div class="trl-stat-value" th:text="${summary.total}">0</div>
+                <div class="trl-stat-value" id="trlSummaryTotal" th:text="${summary.total}">0</div>
                 <div class="trl-stat-label">Total Videos</div>
             </div>
             <div class="trl-stat">
-                <div class="trl-stat-value" th:text="${summary.matched}">0</div>
+                <div class="trl-stat-value" id="trlSummaryMatched" th:text="${summary.matched}">0</div>
                 <div class="trl-stat-label">In My Library</div>
             </div>
             <div class="trl-stat">
-                <div class="trl-stat-value" th:text="${summary.unmatched}">0</div>
+                <div class="trl-stat-value" id="trlSummaryUnmatched" th:text="${summary.unmatched}">0</div>
                 <div class="trl-stat-label">Not in Library</div>
             </div>
         </div>
@@ -411,7 +455,7 @@
                         <th data-no-sort></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="trlTableBody">
                     <tr th:each="d : ${debuts}"
                         th:data-trl-id="${d.id}"
                         th:data-song-title="${d.songTitle}"
@@ -564,6 +608,104 @@
     </div>
 
     <script>
+        function updateTrlSummaryFromDoc(doc) {
+            var total = doc.getElementById('trlSummaryTotal');
+            var matched = doc.getElementById('trlSummaryMatched');
+            var unmatched = doc.getElementById('trlSummaryUnmatched');
+            if (total) document.getElementById('trlSummaryTotal').textContent = total.textContent;
+            if (matched) document.getElementById('trlSummaryMatched').textContent = matched.textContent;
+            if (unmatched) document.getElementById('trlSummaryUnmatched').textContent = unmatched.textContent;
+        }
+
+        function captureTableSortState(tableId) {
+            var table = document.getElementById(tableId);
+            if (!table) return null;
+            var headers = Array.from(table.querySelectorAll('thead th'));
+            var sortedHeader = headers.find(function(th) { return th.hasAttribute('data-sort-dir'); });
+            if (sortedHeader) {
+                return {
+                    index: headers.indexOf(sortedHeader),
+                    dir: sortedHeader.getAttribute('data-sort-dir')
+                };
+            }
+            var defaultHeader = headers.find(function(th) { return th.hasAttribute('data-default-sort'); });
+            if (defaultHeader) {
+                return {
+                    index: headers.indexOf(defaultHeader),
+                    dir: defaultHeader.getAttribute('data-default-sort') || 'asc'
+                };
+            }
+            return null;
+        }
+
+        function applyTableSortState(tableId, sortState) {
+            if (!sortState || !window.TableSort) return;
+            var table = document.getElementById(tableId);
+            if (!table) return;
+            var headers = Array.from(table.querySelectorAll('thead th'));
+            var th = headers[sortState.index];
+            if (!th) return;
+            th.setAttribute('data-sort-dir', sortState.dir === 'asc' ? 'desc' : 'asc');
+            window.TableSort.sortByColumn(table, sortState.index, th, headers);
+        }
+
+        function showPageBusyOverlay(title, subtitle) {
+            var titleEl = document.getElementById('trlOverlayTitle');
+            var subtitleEl = document.getElementById('trlOverlaySubtitle');
+            if (titleEl && title) titleEl.textContent = title;
+            if (subtitleEl && subtitle) subtitleEl.textContent = subtitle;
+            document.body.classList.add('page-busy');
+        }
+
+        function hidePageBusyOverlay() {
+            document.body.classList.remove('page-busy');
+        }
+
+        function applyTrlRetiredFilterIfActive() {
+            var btn = document.getElementById('btnRetiredOnly');
+            var retiredOnly = !!(btn && btn.classList.contains('active'));
+            document.querySelectorAll('#trlTableBody tr[data-trl-id]').forEach(function(row) {
+                var isRetired = row.dataset.retired === 'true';
+                row.classList.toggle('trl-hidden', retiredOnly && !isRetired);
+            });
+        }
+
+        function refreshTrlOverviewInPlace() {
+            var tbody = document.getElementById('trlTableBody');
+            if (!tbody) {
+                location.reload();
+                return Promise.resolve();
+            }
+            var sortState = captureTableSortState('trlTable');
+
+            showPageBusyOverlay('Refreshing TRL overview', 'Updating videos and summary stats...');
+            tbody.classList.add('trl-refreshing');
+            return fetch(window.location.pathname + window.location.search, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var nextBody = doc.getElementById('trlTableBody');
+                if (!nextBody) {
+                    location.reload();
+                    return;
+                }
+                tbody.innerHTML = nextBody.innerHTML;
+                updateTrlSummaryFromDoc(doc);
+                applyTableSortState('trlTable', sortState);
+                applyTrlRetiredFilterIfActive();
+            })
+            .catch(function() {
+                location.reload();
+            })
+            .finally(function() {
+                tbody.classList.remove('trl-refreshing');
+                hidePageBusyOverlay();
+            });
+        }
+
         // ---- Auto-link ----
         function doAutoLink(btn) {
             btn.disabled = true;
@@ -574,7 +716,12 @@
                     if (data.ok) {
                         btn.textContent = 'Linked ' + data.linked + ' entries';
                         if (data.linked > 0) {
-                            setTimeout(function() { location.reload(); }, 800);
+                            setTimeout(function() {
+                                refreshTrlOverviewInPlace().finally(function() {
+                                    btn.disabled = false;
+                                    btn.textContent = 'Auto-Link Exact Matches';
+                                });
+                            }, 300);
                         } else {
                             setTimeout(function() {
                                 btn.disabled = false;
@@ -599,7 +746,12 @@
                 .then(function(data) {
                     if (data.ok) {
                         btn.textContent = 'Normalized ' + data.updated + ' entries';
-                        setTimeout(function() { location.reload(); }, 800);
+                        setTimeout(function() {
+                            refreshTrlOverviewInPlace().finally(function() {
+                                btn.disabled = false;
+                                btn.textContent = 'Normalize Linked';
+                            });
+                        }, 300);
                     }
                 })
                 .catch(function() {
@@ -700,15 +852,19 @@
 
         function selectSong(songId) {
             if (!_modalTrlId) return;
+            showPageBusyOverlay('Refreshing TRL overview', 'Saving the song match...');
             fetch('/misc/trl/' + _modalTrlId + '/match?songId=' + songId, { method: 'POST' })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data.ok) {
                         closeMatchModal();
-                        location.reload();
+                        refreshTrlOverviewInPlace();
                     }
                 })
-                .catch(function() { alert('Failed to save match. Please try again.'); });
+                .catch(function() {
+                    hidePageBusyOverlay();
+                    alert('Failed to save match. Please try again.');
+                });
         }
 
         function escapeHtml(s) {
@@ -791,6 +947,7 @@
 
         function selectChartEntry(chartArtist, chartSong) {
             if (!_chartLinkTrlId) return;
+            showPageBusyOverlay('Refreshing TRL overview', 'Linking the chart entry...');
             var params = new URLSearchParams();
             params.append('chartArtist', chartArtist);
             params.append('chartSong', chartSong);
@@ -811,14 +968,18 @@
                         chartBtn.title = 'Chart linked';
                     }
                     closeChartLinkModal();
-                    location.reload();
+                    refreshTrlOverviewInPlace();
                 }
             })
-            .catch(function() { alert('Failed to link chart entry. Please try again.'); });
+            .catch(function() {
+                hidePageBusyOverlay();
+                alert('Failed to link chart entry. Please try again.');
+            });
         }
 
         function doUnlinkChart() {
             if (!_chartLinkTrlId) return;
+            showPageBusyOverlay('Refreshing TRL overview', 'Removing the chart link...');
             fetch('/misc/trl/' + _chartLinkTrlId + '/unlink-chart', { method: 'POST' })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
@@ -831,15 +992,24 @@
                             chartBtn.title = 'Link to chart entry combo';
                         }
                         closeChartLinkModal();
-                        location.reload();
+                        refreshTrlOverviewInPlace();
                     }
                 })
-                .catch(function() { alert('Failed to unlink. Please try again.'); });
+                .catch(function() {
+                    hidePageBusyOverlay();
+                    alert('Failed to unlink. Please try again.');
+                });
         }
 
         function escapeAttr(s) {
             return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         }
+
+        window.addEventListener('load', function() {
+            requestAnimationFrame(function() {
+                document.body.classList.remove('page-loading');
+            });
+        });
     </script>
 </body>
 </html>

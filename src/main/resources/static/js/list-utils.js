@@ -87,6 +87,40 @@ function changePerPage(newPerPage) {
     window.location.href = url.toString();
 }
 
+function ensureHiddenInput(form, name) {
+    let input = form.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (!input) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        form.appendChild(input);
+    }
+    return input;
+}
+
+function preserveListStateOnFilterSubmit(form) {
+    if (!form || form.dataset.listStateBound === 'true') {
+        return;
+    }
+
+    form.dataset.listStateBound = 'true';
+    form.addEventListener('submit', function() {
+        const url = new URL(window.location.href);
+        const sortByInput = ensureHiddenInput(form, 'sortby');
+        const sortDirInput = ensureHiddenInput(form, 'sortdir');
+        const perPageInput = ensureHiddenInput(form, 'perpage');
+        const pageInput = ensureHiddenInput(form, 'page');
+
+        const sortBySelect = document.getElementById('sortBySelect');
+        const pageSizeInput = document.getElementById('pageSizeInput');
+
+        sortByInput.value = sortBySelect ? sortBySelect.value : (url.searchParams.get('sortby') || sortByInput.value || '');
+        sortDirInput.value = url.searchParams.get('sortdir') || sortDirInput.value || '';
+        perPageInput.value = pageSizeInput ? pageSizeInput.value : (url.searchParams.get('perpage') || perPageInput.value || '');
+        pageInput.value = '0';
+    });
+}
+
 /**
  * Toggle sort direction for a column.
  * @param {string} column - The column name to sort by
@@ -258,6 +292,10 @@ function navigateToGraph(element, filterType) {
     const name = encodeURIComponent(element.dataset.name);
     window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + id + '&filterName=' + name;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    preserveListStateOnFilterSubmit(document.getElementById('filterForm'));
+});
 
 /**
  * Toggle the expanded stats section of a card (used on detail pages).

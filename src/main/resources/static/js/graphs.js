@@ -121,6 +121,7 @@ const topColumnConfig = {
         { key: 'releaseDate', label: 'Release Date', defaultVisible: true, align: 'left' },
         { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
         { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'trackNumber', label: 'Track #', defaultVisible: false, align: 'right' },
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
         { key: 'seasonalChartPeak', label: 'Seasonal Peak', defaultVisible: false, align: 'right' },
@@ -2142,6 +2143,7 @@ function buildSongRow(song, rank) {
             <td style="display:${vis('releaseDate')};">${song.releaseDate || '-'}</td>
             <td style="display:${vis('firstListened')};">${song.firstListened || '-'}</td>
             <td style="display:${vis('lastListened')};">${song.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('trackNumber')};">${cellVal(song.trackNumber)}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(song.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(song.featuredArtistCount)}</td>
             <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(song.seasonalChartPeak)}</td>
@@ -2204,6 +2206,7 @@ function renderTopSongsTable() {
  */
 const numericSortColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
+    'trackNumber',
     'age', 'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'seasonalChartPeak', 'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'

@@ -211,7 +211,7 @@ public class PlayController {
      *   artistId (or null), newArtistName, newArtistGenderId, newArtistLanguageId, 
      *   newArtistGenreId, newArtistSubgenreId, newArtistEthnicityId, newArtistCountry,
      *   albumId (or null), newAlbumName, newAlbumReleaseDate,
-     *   songName, songReleaseDate, songLengthSeconds
+    *   songName, songReleaseDate, songLengthSeconds, songTrackNumber
      * }
      */
     @PostMapping("/api/create-and-assign")
@@ -249,6 +249,8 @@ public class PlayController {
             String songReleaseDate = (String) request.get("songReleaseDate");
             Integer songLengthSeconds = request.get("songLengthSeconds") != null 
                 ? ((Number) request.get("songLengthSeconds")).intValue() : null;
+            Integer songTrackNumber = request.get("songTrackNumber") != null 
+                ? ((Number) request.get("songTrackNumber")).intValue() : null;
             String songImageUrl = (String) request.get("songImageUrl");
             
             if (songName == null || songName.isBlank()) {
@@ -349,6 +351,9 @@ public class PlayController {
             }
             if (songLengthSeconds != null) {
                 songData.put("lengthSeconds", songLengthSeconds);
+            }
+            if (songTrackNumber != null) {
+                songData.put("trackNumber", songTrackNumber);
             }
             Integer songId = songService.createSong(songData);
             

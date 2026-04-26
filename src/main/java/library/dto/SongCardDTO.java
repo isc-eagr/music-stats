@@ -19,6 +19,7 @@ public class SongCardDTO {
     private String releaseDate;
     private String firstListenedDate;
     private String lastListenedDate;
+    private Integer trackNumber;
     private Integer lengthSeconds;
     private String lengthFormatted;
     private Integer playCount;
@@ -190,6 +191,14 @@ public class SongCardDTO {
 
     public void setLastListenedDate(String lastListenedDate) {
         this.lastListenedDate = lastListenedDate;
+    }
+
+    public Integer getTrackNumber() {
+        return trackNumber;
+    }
+
+    public void setTrackNumber(Integer trackNumber) {
+        this.trackNumber = trackNumber;
     }
 
     public Integer getLengthSeconds() {
