@@ -1,11 +1,9 @@
 package library.service;
 
-import library.entity.PcDebut;
-import library.repository.PcDebutRepository;
+import library.dto.PcOverviewRowDTO;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,118 +11,51 @@ import java.util.Map;
 @Service
 public class PcService {
 
-    private final PcDebutRepository pcDebutRepository;
     private final JdbcTemplate jdbcTemplate;
 
-    public PcService(PcDebutRepository pcDebutRepository, JdbcTemplate jdbcTemplate) {
-        this.pcDebutRepository = pcDebutRepository;
+    public PcService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<PcDebut> getAllDebuts() {
-        String sql =
-            "WITH chart_stats AS ( " +
-            "    SELECT " +
-            "        debut_id, " +
-            "        MIN(chart_date)            AS debut_date, " +
-            "        MAX(chart_date)            AS last_appearance_date, " +
-            "        MIN(position)              AS peak_position, " +
-            "        COUNT(DISTINCT chart_date) AS actual_days " +
-            "    FROM pc_countdown_entry " +
-            "    WHERE debut_id IS NOT NULL AND is_close_call = 0 " +
-            "    GROUP BY debut_id " +
-            "), " +
-            "peak_days AS ( " +
-            "    SELECT ce.debut_id, COUNT(*) AS days_at_peak " +
-            "    FROM pc_countdown_entry ce " +
-            "    JOIN chart_stats cs ON cs.debut_id = ce.debut_id AND ce.position = cs.peak_position " +
-            "    WHERE ce.is_close_call = 0 " +
-            "    GROUP BY ce.debut_id " +
-            "), " +
-            "debut_pos AS ( " +
-            "    SELECT ce.debut_id, MIN(ce.position) AS debut_position " +
-            "    FROM pc_countdown_entry ce " +
-            "    JOIN chart_stats cs ON cs.debut_id = ce.debut_id AND ce.chart_date = cs.debut_date " +
-            "    WHERE ce.is_close_call = 0 " +
-            "    GROUP BY ce.debut_id " +
-            ") " +
-            "SELECT t.id, t.days_on_countdown, t.song_title, t.artist_name, t.song_id, t.retired, " +
-            "       cs.debut_date, dp.debut_position, " +
-            "       cs.peak_position, pd.days_at_peak, cs.last_appearance_date, cs.actual_days, " +
-            "       a.id AS resolved_artist_id, " +
-            "       LOWER(g.name) AS gender_name " +
-            "FROM pc_debut t " +
-            "LEFT JOIN chart_stats cs ON cs.debut_id = t.id " +
-            "LEFT JOIN peak_days pd    ON pd.debut_id  = t.id " +
-            "LEFT JOIN debut_pos dp    ON dp.debut_id  = t.id " +
-            "LEFT JOIN Song s ON s.id = t.song_id " +
-            "LEFT JOIN Artist a ON a.id = s.artist_id " +
-            "LEFT JOIN Gender g ON g.id = a.gender_id " +
-            "WHERE (t.days_on_countdown > 0 OR cs.debut_date IS NOT NULL) " +
-            "ORDER BY cs.debut_date ASC, dp.debut_position ASC";
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PcDebut d = new PcDebut();
-            d.setId(rs.getInt("id"));
-            d.setDaysOnCountdown(rs.getInt("days_on_countdown"));
-            d.setDebutDate(rs.getString("debut_date"));
-            int debutPos = rs.getInt("debut_position");
-            if (!rs.wasNull()) d.setDebutPosition(debutPos);
-            d.setSongTitle(rs.getString("song_title"));
-            d.setArtistName(rs.getString("artist_name"));
-            int songId = rs.getInt("song_id");
-            if (!rs.wasNull()) d.setSongId(songId);
-            d.setRetired(rs.getInt("retired") == 1);
-            int peak = rs.getInt("peak_position");
-            if (!rs.wasNull()) d.setPeakPosition(peak);
-            int dap = rs.getInt("days_at_peak");
-            if (!rs.wasNull()) d.setDaysAtPeak(dap);
-            d.setLastAppearanceDate(rs.getString("last_appearance_date"));
-            int actualDays = rs.getInt("actual_days");
-            if (!rs.wasNull()) d.setActualDays(actualDays);
-            int artistId = rs.getInt("resolved_artist_id");
-            if (!rs.wasNull()) d.setResolvedArtistId(artistId);
-            String genderName = rs.getString("gender_name");
-            if (genderName != null) {
-                if (genderName.contains("female")) {
-                    d.setGenderClass("gender-female");
-                } else if (genderName.contains("male")) {
-                    d.setGenderClass("gender-male");
-                }
-            }
-            return d;
-        });
-    }
-
     public Map<String, Object> getSummary() {
-        Integer total = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM pc_debut", Integer.class);
-        Integer matched = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM pc_debut WHERE song_id IS NOT NULL", Integer.class);
-        return Map.of(
-                "total", total != null ? total : 0,
-                "matched", matched != null ? matched : 0,
-                "unmatched", (total != null ? total : 0) - (matched != null ? matched : 0)
-        );
+        String sql =
+            "WITH matched_groups AS ( " +
+            "    SELECT song_id " +
+            "    FROM pc_countdown_entry " +
+            "    WHERE is_close_call = 0 AND song_id IS NOT NULL " +
+            "    GROUP BY song_id " +
+            "), unmatched_groups AS ( " +
+            "    SELECT artist_name, song_title " +
+            "    FROM pc_countdown_entry " +
+            "    WHERE is_close_call = 0 AND song_id IS NULL " +
+            "    GROUP BY artist_name, song_title " +
+            ") " +
+            "SELECT (SELECT COUNT(*) FROM matched_groups) AS matched, " +
+            "       (SELECT COUNT(*) FROM unmatched_groups) AS unmatched";
+        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+            int matched = rs.getInt("matched");
+            int unmatched = rs.getInt("unmatched");
+            return Map.of(
+                "total", matched + unmatched,
+                "matched", matched,
+                "unmatched", unmatched
+            );
+        });
     }
 
     public Map<String, Object> getPcStatsBySongId(Integer songId) {
         if (songId == null) return null;
         String sql =
             "WITH cs AS ( " +
-            "    SELECT MIN(position) AS peak_position, COUNT(DISTINCT chart_date) AS actual_days " +
+            "    SELECT MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days " +
             "    FROM pc_countdown_entry ce " +
-            "    JOIN pc_debut t ON ce.debut_id = t.id AND t.song_id = ? " +
-            "    WHERE ce.is_close_call = 0 " +
+            "    WHERE ce.song_id = ? AND ce.is_close_call = 0 " +
             ") " +
-            "SELECT t.days_on_countdown, cs.peak_position, cs.actual_days, " +
-            "    (SELECT COUNT(*) FROM pc_countdown_entry ce2 " +
-            "     JOIN pc_debut t2 ON ce2.debut_id = t2.id AND t2.song_id = ? " +
-            "     WHERE ce2.position = cs.peak_position AND ce2.is_close_call = 0 " +
+            "SELECT cs.actual_days AS days_on_countdown, cs.peak_position, cs.actual_days, " +
+            "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM pc_countdown_entry ce2 " +
+            "     WHERE ce2.song_id = ? AND ce2.position = cs.peak_position AND ce2.is_close_call = 0 " +
             "    ) AS days_at_peak " +
-            "FROM pc_debut t, cs " +
-            "WHERE t.song_id = ? " +
-            "LIMIT 1";
+            "FROM cs WHERE cs.actual_days > 0";
         try {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
                 Map<String, Object> m = new LinkedHashMap<>();
@@ -136,20 +67,260 @@ public class PcService {
                 int daysAtPeak = rs.getInt("days_at_peak");
                 if (!rs.wasNull()) m.put("daysAtPeak", daysAtPeak);
                 return m;
-            }, songId, songId, songId);
+            }, songId, songId);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            try {
-                Integer days = jdbcTemplate.queryForObject(
-                    "SELECT days_on_countdown FROM pc_debut WHERE song_id = ? LIMIT 1",
-                    Integer.class, songId);
-                if (days == null) return null;
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("daysOnCountdown", days);
-                return m;
-            } catch (org.springframework.dao.EmptyResultDataAccessException e2) {
-                return null;
+            return null;
+        }
+    }
+
+    public List<PcOverviewRowDTO> getOverviewRows() {
+        return jdbcTemplate.query(buildOverviewRowsSql(false), this::mapOverviewRow);
+    }
+
+    public List<PcOverviewRowDTO> getOverviewRows(int page, int size) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(size, 500));
+        int offset = (safePage - 1) * safeSize;
+
+        return jdbcTemplate.query(buildOverviewRowsSql(true), this::mapOverviewRow, safeSize, offset);
+    }
+
+    private String buildOverviewRowsSql(boolean paged) {
+        String sql =
+            "SELECT * FROM ( " +
+            "WITH matched_groups AS ( " +
+            "    SELECT e.song_id, " +
+            "           MIN(e.chart_date) AS first_week, " +
+            "           MAX(e.chart_date) AS last_week, " +
+            "           COUNT(DISTINCT e.chart_date) AS days_on_countdown, " +
+            "           MIN(e.position) AS peak_position, " +
+            "           COUNT(DISTINCT LOWER(TRIM(e.artist_name)) || '||' || LOWER(TRIM(e.song_title))) AS raw_variant_count " +
+            "    FROM pc_countdown_entry e " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
+            "    GROUP BY e.song_id " +
+            "), matched_peak AS ( " +
+            "    SELECT e.song_id, COUNT(DISTINCT e.chart_date) AS days_at_peak, MIN(e.chart_date) AS peak_week " +
+            "    FROM pc_countdown_entry e " +
+            "    JOIN matched_groups mg ON mg.song_id = e.song_id AND e.position = mg.peak_position " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
+            "    GROUP BY e.song_id " +
+            "), unmatched_groups AS ( " +
+            "    SELECT e.artist_name, e.song_title, " +
+            "           MIN(e.chart_date) AS first_week, " +
+            "           MAX(e.chart_date) AS last_week, " +
+            "           COUNT(DISTINCT e.chart_date) AS days_on_countdown, " +
+            "           MIN(e.position) AS peak_position, " +
+            "           1 AS raw_variant_count " +
+            "    FROM pc_countdown_entry e " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
+            "    GROUP BY e.artist_name, e.song_title " +
+            "), unmatched_peak AS ( " +
+            "    SELECT e.artist_name, e.song_title, COUNT(DISTINCT e.chart_date) AS days_at_peak, MIN(e.chart_date) AS peak_week " +
+            "    FROM pc_countdown_entry e " +
+            "    JOIN unmatched_groups ug ON ug.artist_name = e.artist_name AND ug.song_title = e.song_title AND e.position = ug.peak_position " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
+            "    GROUP BY e.artist_name, e.song_title " +
+            ") " +
+            "SELECT 1 AS matched, mg.song_id, s.name AS song_title, a.name AS artist_name, " +
+            "       mg.first_week, mg.last_week, mg.days_on_countdown, mg.peak_position, " +
+            "       COALESCE(mp.days_at_peak, 0) AS days_at_peak, mp.peak_week, mg.raw_variant_count, " +
+            "       a.id AS resolved_artist_id, LOWER(g.name) AS gender_name " +
+            "FROM matched_groups mg " +
+            "JOIN Song s ON s.id = mg.song_id " +
+            "JOIN Artist a ON a.id = s.artist_id " +
+            "LEFT JOIN Gender g ON g.id = a.gender_id " +
+            "LEFT JOIN matched_peak mp ON mp.song_id = mg.song_id " +
+            "UNION ALL " +
+            "SELECT 0 AS matched, NULL AS song_id, ug.song_title, ug.artist_name, " +
+            "       ug.first_week, ug.last_week, ug.days_on_countdown, ug.peak_position, " +
+            "       COALESCE(up.days_at_peak, 0) AS days_at_peak, up.peak_week, ug.raw_variant_count, " +
+            "       NULL AS resolved_artist_id, NULL AS gender_name " +
+            "FROM unmatched_groups ug " +
+            "LEFT JOIN unmatched_peak up ON up.artist_name = ug.artist_name AND up.song_title = ug.song_title " +
+            "ORDER BY days_on_countdown DESC, peak_position ASC, artist_name COLLATE NOCASE ASC, song_title COLLATE NOCASE ASC " +
+            ")";
+
+        if (paged) {
+            sql += " LIMIT ? OFFSET ?";
+        }
+        return sql;
+    }
+
+    private PcOverviewRowDTO mapOverviewRow(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        PcOverviewRowDTO row = new PcOverviewRowDTO();
+        row.setMatched(rs.getInt("matched") == 1);
+        int songId = rs.getInt("song_id");
+        if (!rs.wasNull()) row.setSongId(songId);
+        int artistId = rs.getInt("resolved_artist_id");
+        if (!rs.wasNull()) row.setResolvedArtistId(artistId);
+        row.setSongTitle(rs.getString("song_title"));
+        row.setArtistName(rs.getString("artist_name"));
+        row.setFirstWeek(rs.getString("first_week"));
+        row.setLastWeek(rs.getString("last_week"));
+        row.setPeakWeek(rs.getString("peak_week"));
+        row.setDaysOnCountdown(rs.getInt("days_on_countdown"));
+        row.setPeakPosition(rs.getInt("peak_position"));
+        row.setDaysAtPeak(rs.getInt("days_at_peak"));
+        row.setRawVariantCount(rs.getInt("raw_variant_count"));
+        String genderName = rs.getString("gender_name");
+        if (genderName != null) {
+            if (genderName.contains("female")) {
+                row.setGenderClass("gender-female");
+            } else if (genderName.contains("male")) {
+                row.setGenderClass("gender-male");
             }
         }
+        return row;
+    }
+
+    public Map<String, Object> matchRawGroup(String rawArtist, String rawSong, Integer songId) {
+        Map<String, Object> lib = jdbcTemplate.queryForMap(
+            "SELECT s.name AS song_name, a.name AS artist_name " +
+            "FROM Song s JOIN Artist a ON a.id = s.artist_id WHERE s.id = ?", songId);
+        String canonArtist = (String) lib.get("artist_name");
+        String canonSong = (String) lib.get("song_name");
+
+        int updatedEntries = jdbcTemplate.update(
+            "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ?, song_id = ? " +
+            "WHERE LOWER(TRIM(artist_name)) = LOWER(TRIM(?)) " +
+            "  AND LOWER(TRIM(song_title)) = LOWER(TRIM(?))",
+            canonArtist, canonSong, songId, rawArtist, rawSong
+        );
+
+        return Map.of(
+            "ok", true,
+            "updatedEntries", updatedEntries,
+            "canonArtist", canonArtist,
+            "canonSong", canonSong
+        );
+    }
+
+    public int mergeEntries(String sourceArtist, String sourceSong, String targetArtist, String targetSong) {
+        Integer sourceSongId = jdbcTemplate.query(
+            "SELECT song_id FROM pc_countdown_entry " +
+            "WHERE artist_name = ? AND song_title = ? AND song_id IS NOT NULL LIMIT 1",
+            rs -> rs.next() ? rs.getInt("song_id") : null,
+            sourceArtist,
+            sourceSong
+        );
+
+        int updated;
+        if (sourceSongId != null) {
+            updated = jdbcTemplate.update(
+                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ?, song_id = ? " +
+                "WHERE artist_name = ? AND song_title = ?",
+                sourceArtist, sourceSong, sourceSongId, targetArtist, targetSong
+            );
+        } else {
+            updated = jdbcTemplate.update(
+                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? " +
+                "WHERE artist_name = ? AND song_title = ?",
+                sourceArtist, sourceSong, targetArtist, targetSong
+            );
+            jdbcTemplate.update(
+                "UPDATE pc_countdown_entry " +
+                "SET song_id = (SELECT song_id FROM pc_countdown_entry " +
+                "               WHERE artist_name = ? AND song_title = ? AND song_id IS NOT NULL LIMIT 1) " +
+                "WHERE artist_name = ? AND song_title = ? AND song_id IS NULL",
+                sourceArtist, sourceSong, sourceArtist, sourceSong
+            );
+        }
+        return updated;
+    }
+
+    public int normalizeCaseDifferences() {
+        int updatedRows = normalizeLinkedRowsToLibraryCase();
+
+        List<Map<String, Object>> variantGroups = jdbcTemplate.query(
+            "SELECT LOWER(TRIM(artist_name)) AS artist_key, LOWER(TRIM(song_title)) AS song_key " +
+            "FROM pc_countdown_entry " +
+            "WHERE song_id IS NULL " +
+            "GROUP BY LOWER(TRIM(artist_name)), LOWER(TRIM(song_title)) " +
+            "HAVING COUNT(DISTINCT artist_name || '||' || song_title) > 1",
+            (rs, rowNum) -> {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("artistKey", rs.getString("artist_key"));
+                row.put("songKey", rs.getString("song_key"));
+                return row;
+            }
+        );
+
+        for (Map<String, Object> group : variantGroups) {
+            String artistKey = (String) group.get("artistKey");
+            String songKey = (String) group.get("songKey");
+
+            List<Map<String, Object>> canonicalChoices = jdbcTemplate.query(
+                "SELECT artist_name, song_title, COUNT(*) AS usage_count " +
+                "FROM pc_countdown_entry " +
+                "WHERE song_id IS NULL " +
+                "  AND LOWER(TRIM(artist_name)) = ? " +
+                "  AND LOWER(TRIM(song_title)) = ? " +
+                "GROUP BY artist_name, song_title " +
+                "ORDER BY usage_count DESC, artist_name COLLATE NOCASE ASC, artist_name ASC, song_title COLLATE NOCASE ASC, song_title ASC " +
+                "LIMIT 1",
+                (rs, rowNum) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("artistName", rs.getString("artist_name"));
+                    row.put("songTitle", rs.getString("song_title"));
+                    return row;
+                },
+                artistKey,
+                songKey
+            );
+
+            if (canonicalChoices.isEmpty()) {
+                continue;
+            }
+
+            Map<String, Object> canonical = canonicalChoices.get(0);
+            String canonicalArtist = (String) canonical.get("artistName");
+            String canonicalSong = (String) canonical.get("songTitle");
+
+            updatedRows += jdbcTemplate.update(
+                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? " +
+                "WHERE song_id IS NULL " +
+                "  AND LOWER(TRIM(artist_name)) = ? " +
+                "  AND LOWER(TRIM(song_title)) = ? " +
+                "  AND (artist_name <> ? OR song_title <> ?)",
+                canonicalArtist,
+                canonicalSong,
+                artistKey,
+                songKey,
+                canonicalArtist,
+                canonicalSong
+            );
+        }
+
+        return updatedRows;
+    }
+
+    private int normalizeLinkedRowsToLibraryCase() {
+        List<Map<String, Object>> linkedRows = jdbcTemplate.query(
+            "SELECT e.id, s.name AS song_name, a.name AS artist_name " +
+            "FROM pc_countdown_entry e " +
+            "JOIN Song s ON s.id = e.song_id " +
+            "JOIN Artist a ON a.id = s.artist_id " +
+            "WHERE e.song_id IS NOT NULL " +
+            "  AND (e.artist_name <> a.name OR e.song_title <> s.name)",
+            (rs, rowNum) -> {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", rs.getInt("id"));
+                row.put("artistName", rs.getString("artist_name"));
+                row.put("songTitle", rs.getString("song_name"));
+                return row;
+            }
+        );
+
+        int updatedRows = 0;
+        for (Map<String, Object> row : linkedRows) {
+            updatedRows += jdbcTemplate.update(
+                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? WHERE id = ?",
+                row.get("artistName"),
+                row.get("songTitle"),
+                row.get("id")
+            );
+        }
+        return updatedRows;
     }
 
     public List<Map<String, Object>> searchSongs(String q, int limit) {
@@ -170,77 +341,41 @@ public class PcService {
         }, like, like, limit);
     }
 
-    public Map<String, Object> matchSong(Integer pcId, Integer songId) {
-        Map<String, Object> lib = jdbcTemplate.queryForMap(
-            "SELECT s.name AS song_name, a.name AS artist_name " +
-            "FROM Song s JOIN Artist a ON a.id = s.artist_id WHERE s.id = ?", songId);
-        String canonArtist = (String) lib.get("artist_name");
-        String canonSong   = (String) lib.get("song_name");
-
-        jdbcTemplate.update(
-            "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? WHERE debut_id = ?",
-            canonArtist, canonSong, pcId);
-
-        jdbcTemplate.update(
-            "UPDATE pc_debut SET song_id = ?, artist_name = ?, song_title = ? WHERE id = ?",
-            songId, canonArtist, canonSong, pcId);
-
-        return Map.of("ok", true, "canonArtist", canonArtist, "canonSong", canonSong);
-    }
-
-    public void unmatchSong(Integer pcId) {
-        jdbcTemplate.update("UPDATE pc_debut SET song_id = NULL WHERE id = ?", pcId);
-    }
-
     /**
-     * Merge target pc_debut INTO source: reassign all countdown entries, delete target,
-     * then recalculate days_on_countdown for the source.
-     */
-    public void mergeDebuts(int sourceId, int targetId) {
-        Map<String, Object> src = jdbcTemplate.queryForMap(
-            "SELECT artist_name, song_title FROM pc_debut WHERE id = ?", sourceId);
-        String srcArtist = (String) src.get("artist_name");
-        String srcTitle  = (String) src.get("song_title");
-
-        // Reassign all countdown entries from target to source, normalizing names
-        jdbcTemplate.update(
-            "UPDATE pc_countdown_entry SET debut_id = ?, artist_name = ?, song_title = ? " +
-            "WHERE debut_id = ?",
-            sourceId, srcArtist, srcTitle, targetId);
-
-        // Delete the merged (target) debut
-        jdbcTemplate.update("DELETE FROM pc_debut WHERE id = ?", targetId);
-
-        // Recalculate days_on_countdown for the source (excluding close calls)
-        jdbcTemplate.update(
-            "UPDATE pc_debut SET days_on_countdown = " +
-            "(SELECT COUNT(DISTINCT chart_date) FROM pc_countdown_entry " +
-            " WHERE debut_id = ? AND is_close_call = 0) " +
-            "WHERE id = ?",
-            sourceId, sourceId);
-    }
-
-    /**
-     * Auto-match unlinked pc_debut rows to songs in the library
+     * Auto-match unlinked rows to songs in the library
      * using exact case-insensitive artist + title comparison.
-     * Returns number of debuts linked.
+     * Returns number of rows linked.
      */
     public int autoLinkExactMatches() {
         String sql =
-            "UPDATE pc_debut " +
+            "UPDATE pc_countdown_entry " +
             "SET song_id = ( " +
-            "    SELECT s.id FROM Song s " +
-            "    JOIN Artist a ON a.id = s.artist_id " +
-            "    WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_debut.artist_name)) " +
-            "      AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_debut.song_title)) " +
-            "    LIMIT 1 " +
-            ") " +
+            "        SELECT s.id FROM Song s " +
+            "        JOIN Artist a ON a.id = s.artist_id " +
+            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
+            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "        LIMIT 1 " +
+            "    ), " +
+            "    artist_name = COALESCE(( " +
+            "        SELECT a.name FROM Song s " +
+            "        JOIN Artist a ON a.id = s.artist_id " +
+            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
+            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "        LIMIT 1 " +
+            "    ), artist_name), " +
+            "    song_title = COALESCE(( " +
+            "        SELECT s.name FROM Song s " +
+            "        JOIN Artist a ON a.id = s.artist_id " +
+            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
+            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "        LIMIT 1 " +
+            "    ), song_title) " +
             "WHERE song_id IS NULL " +
-            "  AND EXISTS ( " +
-            "    SELECT 1 FROM Song s " +
+            "  AND 1 = ( " +
+            "    SELECT COUNT(*) FROM Song s " +
             "    JOIN Artist a ON a.id = s.artist_id " +
-            "    WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_debut.artist_name)) " +
-            "      AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_debut.song_title)) " +
+            "    WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
+            "      AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
             "  )";
         return jdbcTemplate.update(sql);
     }
@@ -259,45 +394,49 @@ public class PcService {
             "    FROM pc_countdown_entry " +
             "    WHERE chart_date < ? AND is_close_call = 0 " +
             "), " +
-            "song_stats AS ( " +
-            "    SELECT ce.debut_id, " +
-            "           COUNT(*) AS days_on_chart, " +
-            "           MIN(ce.position) AS peak_pos, " +
-            "           MIN(ce.chart_date) AS first_appearance " +
+            "entry_scope AS ( " +
+            "    SELECT ce.*, " +
+            "           CASE " +
+            "               WHEN ce.song_id IS NOT NULL THEN 'song:' || ce.song_id " +
+            "               ELSE 'raw:' || LOWER(TRIM(ce.artist_name)) || '||' || LOWER(TRIM(ce.song_title)) " +
+            "           END AS identity_key " +
             "    FROM pc_countdown_entry ce " +
-            "    WHERE ce.debut_id IS NOT NULL " +
-            "      AND ce.chart_date <= ? " +
-            "      AND ce.is_close_call = 0 " +
-            "    GROUP BY ce.debut_id " +
+            "), " +
+            "song_stats AS ( " +
+            "    SELECT es.identity_key, " +
+            "           COUNT(DISTINCT es.chart_date) AS days_on_chart, " +
+            "           MIN(es.position) AS peak_pos, " +
+            "           MIN(es.chart_date) AS first_appearance " +
+            "    FROM entry_scope es " +
+            "    WHERE es.chart_date <= ? " +
+            "      AND es.is_close_call = 0 " +
+            "    GROUP BY es.identity_key " +
             "), " +
             "peak_days AS ( " +
-            "    SELECT ce.debut_id, COUNT(*) AS dap " +
-            "    FROM pc_countdown_entry ce " +
-            "    JOIN song_stats ss ON ss.debut_id = ce.debut_id AND ce.position = ss.peak_pos " +
-            "    WHERE ce.chart_date <= ? AND ce.is_close_call = 0 " +
-            "    GROUP BY ce.debut_id " +
+            "    SELECT es.identity_key, COUNT(DISTINCT es.chart_date) AS dap " +
+            "    FROM entry_scope es " +
+            "    JOIN song_stats ss ON ss.identity_key = es.identity_key AND es.position = ss.peak_pos " +
+            "    WHERE es.chart_date <= ? AND es.is_close_call = 0 " +
+            "    GROUP BY es.identity_key " +
             "), " +
             "prev_pos AS ( " +
-            "    SELECT ce.debut_id, ce.position AS pp " +
-            "    FROM pc_countdown_entry ce " +
-            "    JOIN prev_date pd ON ce.chart_date = pd.pd " +
-            "    WHERE ce.debut_id IS NOT NULL AND ce.is_close_call = 0 " +
+            "    SELECT es.identity_key, es.position AS pp " +
+            "    FROM entry_scope es " +
+            "    JOIN prev_date pd ON es.chart_date = pd.pd " +
+            "    WHERE es.is_close_call = 0 " +
             ") " +
-            "SELECT ce.position, ce.artist_name, ce.song_title, ce.is_close_call, " +
-            "       t.id AS debut_id, t.song_id, t.retired, " +
+            "SELECT es.position, es.artist_name, es.song_title, es.is_close_call, es.song_id, " +
             "       a.id AS artist_id, LOWER(g.name) AS gender_name, " +
-            "       ss.days_on_chart, ss.peak_pos, pd.dap AS days_at_peak, " +
-            "       pp.pp AS prev_position, ss.first_appearance " +
-            "FROM pc_countdown_entry ce " +
-            "LEFT JOIN pc_debut t ON t.id = ce.debut_id " +
-            "LEFT JOIN Song s ON s.id = t.song_id " +
+            "       ss.days_on_chart, ss.peak_pos, pd.dap AS days_at_peak, pp.pp AS prev_position, ss.first_appearance " +
+            "FROM entry_scope es " +
+            "LEFT JOIN Song s ON s.id = es.song_id " +
             "LEFT JOIN Artist a ON a.id = s.artist_id " +
             "LEFT JOIN Gender g ON g.id = a.gender_id " +
-            "LEFT JOIN song_stats ss ON ss.debut_id = ce.debut_id " +
-            "LEFT JOIN peak_days pd ON pd.debut_id = ce.debut_id " +
-            "LEFT JOIN prev_pos pp ON pp.debut_id = ce.debut_id " +
-            "WHERE ce.chart_date = ? " +
-            "ORDER BY ce.is_close_call ASC, ce.position DESC";
+            "LEFT JOIN song_stats ss ON ss.identity_key = es.identity_key " +
+            "LEFT JOIN peak_days pd ON pd.identity_key = es.identity_key " +
+            "LEFT JOIN prev_pos pp ON pp.identity_key = es.identity_key " +
+            "WHERE es.chart_date = ? " +
+            "ORDER BY es.is_close_call ASC, es.position DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> row = new LinkedHashMap<>();
             int currentPos = rs.getInt("position");
@@ -306,12 +445,9 @@ public class PcService {
             row.put("songTitle", rs.getString("song_title"));
             boolean isClosecall = rs.getInt("is_close_call") == 1;
             row.put("isClosecall", isClosecall);
-            int debutId = rs.getInt("debut_id");
-            boolean hasDebut = !rs.wasNull();
-            row.put("debutId", hasDebut ? debutId : null);
             int songId = rs.getInt("song_id");
-            row.put("songId", rs.wasNull() ? null : songId);
-            row.put("retired", rs.getInt("retired") == 1);
+            boolean hasIdentity = !rs.wasNull();
+            row.put("songId", hasIdentity ? songId : null);
             int artistId = rs.getInt("artist_id");
             row.put("artistId", rs.wasNull() ? null : artistId);
             String gn = rs.getString("gender_name");
@@ -327,7 +463,7 @@ public class PcService {
             row.put("movement", null);
             row.put("movementClass", null);
 
-            if (hasDebut && !isClosecall) {
+            if (!isClosecall) {
                 int daysOnChart = rs.getInt("days_on_chart");
                 if (!rs.wasNull()) row.put("days", daysOnChart);
                 int peakPos = rs.getInt("peak_pos");

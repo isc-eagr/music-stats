@@ -170,28 +170,6 @@
         .recap-no-link-song   { color: #999; font-size: 0.88rem; }
         .recap-no-link-artist { color: #777; font-size: 0.85rem; }
 
-        /* Retired / Hall of Fame entries */
-        .recap-table tbody tr.recap-retired td { color: #c9a227; }
-        .recap-table tbody tr.recap-retired .recap-song-link { color: #e8c547; }
-        .recap-table tbody tr.recap-retired .recap-song-link:hover { color: #ffd700; }
-        .recap-table tbody tr.recap-retired .recap-artist-link { color: #b8881e; }
-        .recap-table tbody tr.recap-retired .recap-artist-link:hover { color: #d4a429; }
-        .recap-table tbody tr.recap-retired .recap-no-link-song  { color: #c9a227; }
-        .recap-table tbody tr.recap-retired .recap-no-link-artist { color: #a8861a; }
-        .recap-table tbody tr.recap-retired .pos-badge {
-            background: rgba(201,162,39,0.2);
-            border-color: rgba(201,162,39,0.5);
-            color: #c9a227;
-        }
-        .recap-table tbody tr.recap-retired.gender-male {
-            background: rgba(74,144,226,0.07);
-            border-left-color: rgba(74,144,226,0.55);
-        }
-        .recap-table tbody tr.recap-retired.gender-female {
-            background: rgba(217,74,138,0.07);
-            border-left-color: rgba(217,74,138,0.55);
-        }
-
         /* Empty state */
         .recap-empty {
             text-align: center;
@@ -274,7 +252,7 @@
                         <tbody>
                             <tr th:each="e : ${countdown}"
                                 th:if="${!e.isClosecall}"
-                                th:classappend="${(e.genderClass != null ? e.genderClass : '')} + ${(e.retired ? ' recap-retired' : '')}">
+                                th:classappend="${e.genderClass != null ? e.genderClass : ''}">
                                 <td class="center">
                                     <span class="pos-badge" th:text="${e.position}"></span>
                                 </td>
@@ -316,7 +294,7 @@
                             <tbody>
                                 <tr th:each="e : ${countdown}"
                                     th:if="${e.isClosecall}"
-                                    th:classappend="${(e.genderClass != null ? e.genderClass : '')} + ${(e.retired ? ' recap-retired' : '')}">
+                                    th:classappend="${e.genderClass != null ? e.genderClass : ''}">
                                     <td class="center">
                                         <span class="pos-badge" th:text="${e.position}"></span>
                                     </td>
@@ -487,7 +465,6 @@
                     mainEntries.forEach(function(e) {
                         let cls = '';
                         if (e.genderClass) cls += e.genderClass;
-                        if (e.retired) cls += ' recap-retired';
 
                         html += '<tr class="' + cls.trim() + '">';
                         html += '<td class="center"><span class="pos-badge">' + e.position + '</span></td>';
@@ -529,7 +506,6 @@
                         closeCallEntries.forEach(function(e) {
                             let cls = '';
                             if (e.genderClass) cls += e.genderClass;
-                            if (e.retired) cls += ' recap-retired';
 
                             html += '<tr class="' + cls.trim() + '">';
                             html += '<td class="center"><span class="pos-badge">' + e.position + '</span></td>';

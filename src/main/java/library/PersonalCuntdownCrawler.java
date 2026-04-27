@@ -16,7 +16,7 @@ import java.util.regex.*;
 
 /**
  * Standalone crawler to scrape Vato's Personal Countdown from classic.atrl.net
- * and output a SQL script for loading into the pc_debut / pc_countdown_entry tables.
+ * and output a SQL script for loading into the pc_countdown_entry table.
  *
  * Only the original 2003-2009 run is included (stops after 2009-09-15).
  * No database connection is needed — output is a SQL file for review.
@@ -96,6 +96,9 @@ public class PersonalCuntdownCrawler {
     private static final Pattern UNNUMBERED_CC_PATTERN = Pattern.compile(
         "^([^\\d#!\\[].{2,}?)\\s+-\\s+(.+)$"
     );
+    private static final Pattern RETIRED_SUFFIX = Pattern.compile("(?i)\\s*\\(?RETIRED[^)]*\\)?\\s*$");
+    private static final Pattern OLD_SKOOL_SUFFIX = Pattern.compile("(?i)\\s*\\(?OL['’]?\\s*SKOOL[^)]*\\)?\\s*$");
+    private static final Pattern DAYS_AT_PEAK_SUFFIX = Pattern.compile("(?i)\\s*\\d*\\s*DAYS AT #\\d+\\)?\\s*$");
 
     // Section state enum
     private enum Section { MAIN, CLOSECALLS, IGNORE, IDLE }
@@ -456,14 +459,21 @@ public class PersonalCuntdownCrawler {
         song = PAREN_ALBUM.matcher(song).replaceFirst("");
         song = STATS_PARENS.matcher(song).replaceFirst("");
         song = STATS_SLASH_PARENS.matcher(song).replaceFirst("");
+        if (RETIRED_SUFFIX.matcher(song).find()) {
+            song = RETIRED_SUFFIX.matcher(song).replaceFirst("");
+        }
+        if (OLD_SKOOL_SUFFIX.matcher(song).find()) {
+            song = OLD_SKOOL_SUFFIX.matcher(song).replaceFirst("");
+        }
+        if (DAYS_AT_PEAK_SUFFIX.matcher(song).find()) {
+            song = DAYS_AT_PEAK_SUFFIX.matcher(song).replaceFirst("");
+        }
         return song.trim();
     }
 
     /**
      * Build and write the SQL output file.
-     * STEP 1 (in the transaction): Only populates pc_countdown_entry.
-     * STEP 2 (separate SQL block): Derives pc_debut from entries using most-frequent
-     *   canonical spelling, then links entries back via debut_id.
+     * Writes a single-table import for pc_countdown_entry only.
      */
     private void buildSql() throws Exception {
         // Sort entries chronologically, then by section, then position
@@ -490,11 +500,10 @@ public class PersonalCuntdownCrawler {
             pw.println("BEGIN TRANSACTION;");
             pw.println();
             pw.println("DELETE FROM pc_countdown_entry;");
-            pw.println("DELETE FROM pc_debut;");
             pw.println();
 
             for (RawEntry e : sortedEntries) {
-                pw.printf("INSERT INTO pc_countdown_entry (chart_date, position, artist_name, song_title, is_close_call, debut_id) VALUES (%s, %d, %s, %s, %d, NULL);%n",
+                pw.printf("INSERT INTO pc_countdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES (%s, %d, %s, %s, %d, NULL);%n",
                     sqlStr(e.chartDate),
                     e.position,
                     sqlStr(e.artistName),
@@ -502,42 +511,6 @@ public class PersonalCuntdownCrawler {
                     e.isClosecall ? 1 : 0);
             }
 
-            pw.println();
-            pw.println("COMMIT;");
-            pw.println();
-            pw.println("-- ================================================================");
-            pw.println("-- STEP 2: Derive pc_debut from pc_countdown_entry, then link back.");
-            pw.println("-- Run this block AFTER step 1 is committed.");
-            pw.println("-- Uses the most-frequently-occurring spelling for canonical names.");
-            pw.println("-- days_on_countdown = distinct chart dates in main chart (not close calls).");
-            pw.println("-- ================================================================");
-            pw.println();
-            pw.println("BEGIN TRANSACTION;");
-            pw.println();
-            pw.println("INSERT INTO pc_debut (song_title, artist_name, days_on_countdown, song_id, retired)");
-            pw.println("SELECT");
-            pw.println("    (SELECT ce2.song_title FROM pc_countdown_entry ce2");
-            pw.println("     WHERE LOWER(TRIM(ce2.artist_name)) = key_a AND LOWER(TRIM(ce2.song_title)) = key_s");
-            pw.println("     GROUP BY ce2.song_title ORDER BY COUNT(*) DESC LIMIT 1) AS song_title,");
-            pw.println("    (SELECT ce2.artist_name FROM pc_countdown_entry ce2");
-            pw.println("     WHERE LOWER(TRIM(ce2.artist_name)) = key_a AND LOWER(TRIM(ce2.song_title)) = key_s");
-            pw.println("     GROUP BY ce2.artist_name ORDER BY COUNT(*) DESC LIMIT 1) AS artist_name,");
-            pw.println("    COUNT(DISTINCT CASE WHEN is_close_call = 0 THEN chart_date END) AS days_on_countdown,");
-            pw.println("    NULL AS song_id,");
-            pw.println("    0 AS retired");
-            pw.println("FROM (");
-            pw.println("    SELECT LOWER(TRIM(artist_name)) AS key_a, LOWER(TRIM(song_title)) AS key_s,");
-            pw.println("           chart_date, is_close_call");
-            pw.println("    FROM pc_countdown_entry");
-            pw.println(") t");
-            pw.println("GROUP BY key_a, key_s;");
-            pw.println();
-            pw.println("UPDATE pc_countdown_entry");
-            pw.println("SET debut_id = (");
-            pw.println("    SELECT d.id FROM pc_debut d");
-            pw.println("    WHERE LOWER(TRIM(d.artist_name)) = LOWER(TRIM(pc_countdown_entry.artist_name))");
-            pw.println("      AND LOWER(TRIM(d.song_title))  = LOWER(TRIM(pc_countdown_entry.song_title))");
-            pw.println(");");
             pw.println();
             pw.println("COMMIT;");
         }

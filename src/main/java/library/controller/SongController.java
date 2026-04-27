@@ -15,6 +15,7 @@ import library.service.SongService;
 import library.service.ItunesService;
 import library.service.TrlService;
 import library.service.PcService;
+import library.service.BillboardHot100Service;
 import library.util.DateFormatUtils;
 import library.util.StringNormalizer;
 import library.service.iTunesLibraryService;
@@ -55,13 +56,15 @@ public class SongController {
     private final ItunesService itunesService;
     private final TrlService trlService;
     private final PcService pcService;
+    private final BillboardHot100Service billboardHot100Service;
     private final JdbcTemplate jdbcTemplate;
     private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
 
     public SongController(SongService songService, ChartService chartService, ArtistService artistService,
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
-                         ItunesService itunesService, TrlService trlService, PcService pcService, JdbcTemplate jdbcTemplate) {
+                         ItunesService itunesService, TrlService trlService, PcService pcService,
+                         BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -71,6 +74,7 @@ public class SongController {
         this.itunesService = itunesService;
         this.trlService = trlService;
         this.pcService = pcService;
+        this.billboardHot100Service = billboardHot100Service;
         this.jdbcTemplate = jdbcTemplate;
     }
     
@@ -579,6 +583,9 @@ public class SongController {
 
         // Personal Cuntdown chip
         model.addAttribute("pcStats", pcService.getPcStatsBySongId(id));
+
+        // Billboard Hot 100 chip
+        model.addAttribute("billboardHot100Stats", billboardHot100Service.getStatsBySongId(id));
 
         // Extended stats for detail page - age at release
         if (artist != null && artist.getBirthDate() != null) {

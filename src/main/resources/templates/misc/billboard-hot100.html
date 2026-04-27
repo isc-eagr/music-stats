@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billboard Hot 100 Overview - Music Stats</title>
+    <script>document.documentElement.classList.add('js');</script>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <script th:src="@{/js/table-sort.js}" defer></script>
+    <style>
+        .page-load-overlay { display: none; }
+        html.js body.page-loading .page-load-overlay,
+        html.js body.page-busy .page-load-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(34, 211, 238, 0.16), rgba(7, 7, 9, 0.94) 58%);
+            backdrop-filter: blur(6px);
+            z-index: 3000;
+        }
+        .page-load-card {
+            min-width: 230px;
+            padding: 22px 26px;
+            border-radius: 18px;
+            border: 1px solid rgba(34, 211, 238, 0.26);
+            background: rgba(10, 24, 28, 0.94);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            text-align: center;
+        }
+        .page-load-spinner {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.08);
+            border-top-color: #22d3ee;
+            animation: page-load-spin 0.8s linear infinite;
+        }
+        .page-load-title { color: #d5fbff; font-size: 15px; font-weight: 600; }
+        .page-load-subtitle { color: rgba(213, 251, 255, 0.68); font-size: 12px; margin-top: 6px; }
+        @keyframes page-load-spin { to { transform: rotate(360deg); } }
+        .bb-container { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; }
+        .bb-summary { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .bb-stat { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px 22px; min-width: 120px; text-align: center; }
+        .bb-stat-value { font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .bb-stat-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+        .bb-toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+        .bb-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(34, 211, 238, 0.38); background: rgba(34, 211, 238, 0.08); color: #8de7f2; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .bb-btn:hover:not(:disabled) { border-color: rgba(34, 211, 238, 0.75); color: #d5fbff; background: rgba(34, 211, 238, 0.14); }
+        .bb-btn:disabled { opacity: 0.55; cursor: default; }
+        .bb-search-form { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .bb-search-input-inline { width: min(340px, 100%); padding: 10px 12px; border-radius: 10px; border: 1px solid #353535; background: #101010; color: #e0e0e0; font-size: 0.88rem; outline: none; }
+        .bb-search-input-inline:focus { border-color: #22d3ee; }
+        .bb-search-status { color: #7f9195; font-size: 0.8rem; margin-left: 2px; }
+        .bb-clear-link { color: #8de7f2; text-decoration: none; font-size: 0.82rem; }
+        .bb-clear-link:hover { color: #d5fbff; text-decoration: underline; }
+        .bb-page-size { display: inline-flex; gap: 8px; align-items: center; color: #888; font-size: 0.82rem; }
+        .bb-page-size a { color: #8de7f2; text-decoration: none; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, 0.28); background: rgba(34, 211, 238, 0.05); }
+        .bb-page-size a:hover { border-color: rgba(34, 211, 238, 0.68); color: #d5fbff; }
+        .bb-page-size a.active { color: #04191d; border-color: rgba(34, 211, 238, 0.9); background: #6ee7f0; }
+        .bb-panel { background: #141414; border: 1px solid #272727; border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; }
+        .bb-panel-title { font-size: 0.78rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+        .bb-panel-copy { color: #b9b9b9; font-size: 0.9rem; line-height: 1.5; }
+        .bb-diagnostics { margin-bottom: 18px; }
+        .bb-diagnostics summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .bb-diagnostics summary::-webkit-details-marker { display: none; }
+        .bb-diagnostics-summary-copy { color: #b9b9b9; font-size: 0.9rem; line-height: 1.45; }
+        .bb-diagnostics-chevron { color: #7fe9f1; font-size: 0.8rem; transition: transform 0.15s ease; }
+        .bb-diagnostics[open] .bb-diagnostics-chevron { transform: rotate(180deg); }
+        .bb-diagnostics-body { margin-top: 14px; }
+        .bb-diagnostics-empty { color: #777; font-size: 0.84rem; }
+        .bb-issue-table-wrap, .bb-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #2a2a2a; }
+        .bb-table, .bb-issue-table { width: 100%; border-collapse: collapse; background: #141414; }
+        .bb-table thead tr, .bb-issue-table thead tr { background: #1e1e1e; border-bottom: 2px solid #333; }
+        .bb-table th, .bb-issue-table th { padding: 11px 14px; text-align: left; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+        .bb-table th.center, .bb-table td.center, .bb-issue-table th.center, .bb-issue-table td.center { text-align: center; }
+        .bb-table th { user-select: none; }
+        .bb-sort-link { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .bb-sort-link:hover { color: #c9f7fb; }
+        .bb-sort-link.active { color: #d5fbff; }
+        .bb-table th.sorted-asc::after { content: ' \25B2'; font-size: 0.7em; }
+        .bb-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
+        .bb-table tbody tr, .bb-issue-table tbody tr { border-bottom: 1px solid #1f1f1f; transition: background 0.12s; }
+        .bb-table tbody tr:hover, .bb-issue-table tbody tr:hover { background: #1c1c1c; }
+        .bb-table tbody tr.gender-male { background: rgba(74, 144, 226, 0.06); border-left: 3px solid rgba(74, 144, 226, 0.5); }
+        .bb-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
+        .bb-table td, .bb-issue-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
+        .bb-song-link { color: #e0e0e0; text-decoration: none; font-weight: 600; }
+        .bb-song-link:hover { color: #7ed0ff; text-decoration: underline; }
+        .bb-artist-link { color: #aaa; text-decoration: none; font-size: 0.85rem; }
+        .bb-artist-link:hover { color: #ccc; text-decoration: underline; }
+        .bb-date-link { color: #7fe9f1; text-decoration: none; font-size: 0.83rem; }
+        .bb-date-link:hover { color: #d5fbff; text-decoration: underline; }
+        .bb-no-link-song { color: #999; font-size: 0.88rem; }
+        .bb-no-link-artist { color: #777; font-size: 0.85rem; }
+        .bb-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(126, 208, 255, 0.45); background: rgba(126, 208, 255, 0.08); color: #7ed0ff; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+        .bb-match-btn:hover { border-color: rgba(126, 208, 255, 0.8); color: #b7ebff; }
+        .bb-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
+        .bb-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .bb-modal-overlay.open { display: flex; }
+        .bb-modal { width: min(640px, calc(100vw - 24px)); max-height: min(78vh, 760px); background: #151515; border: 1px solid #303030; border-radius: 16px; box-shadow: 0 28px 80px rgba(0,0,0,0.45); overflow: hidden; }
+        .bb-modal-header { padding: 16px 18px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #252525; }
+        .bb-modal-title { font-size: 1rem; font-weight: 700; color: #f0f0f0; }
+        .bb-modal-subtitle { font-size: 0.85rem; color: #999; margin-top: 4px; }
+        .bb-modal-close { border: 0; background: transparent; color: #888; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+        .bb-modal-body { padding: 16px 18px 18px; }
+        .bb-search-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #353535; background: #101010; color: #e0e0e0; font-size: 0.88rem; outline: none; }
+        .bb-search-input:focus { border-color: #7ed0ff; }
+        .bb-search-results { margin-top: 12px; max-height: 48vh; overflow-y: auto; border: 1px solid #252525; border-radius: 10px; }
+        .bb-result-item { padding: 10px 12px; border-bottom: 1px solid #1f1f1f; cursor: pointer; }
+        .bb-result-item:last-child { border-bottom: 0; }
+        .bb-result-item:hover { background: rgba(126, 208, 255, 0.08); }
+        .bb-result-title { color: #eee; font-size: 0.9rem; font-weight: 600; }
+        .bb-result-artist { color: #949494; font-size: 0.82rem; margin-top: 2px; }
+        .bb-search-empty { padding: 20px 14px; color: #777; font-size: 0.85rem; }
+        .pager { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 16px 0; flex-wrap: wrap; }
+        .pager-links { display: flex; gap: 8px; align-items: center; }
+        .pager-link { color: #8de7f2; text-decoration: none; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, 0.28); background: rgba(34, 211, 238, 0.05); }
+        .pager-link:hover:not(.disabled) { border-color: rgba(34, 211, 238, 0.68); color: #d5fbff; background: rgba(34, 211, 238, 0.1); }
+        .pager-link.disabled { pointer-events: none; opacity: 0.35; }
+        .pager-label { color: #888; font-size: 0.82rem; }
+    </style>
+</head>
+<body class="page-loading">
+    <div class="page-load-overlay" aria-hidden="true">
+        <div class="page-load-card">
+            <div class="page-load-spinner"></div>
+            <div class="page-load-title" id="billboardOverlayTitle">Loading Billboard overview</div>
+            <div class="page-load-subtitle" id="billboardOverlaySubtitle">Sorting entries and wiring Hot 100 actions...</div>
+        </div>
+    </div>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <div class="bb-container">
+        <div class="topbar">
+            <div class="breadcrumbs">
+                <a href="/">Home</a> / <span>Billboard Hot 100 Overview</span>
+            </div>
+            <h1>Billboard Hot 100 Overview</h1>
+            <p class="page-subtitle">Derived directly from weekly Hot 100 entries, grouped by raw name until a library song link exists.</p>
+        </div>
+
+        <div class="bb-summary">
+            <div class="bb-stat">
+                <div class="bb-stat-value" id="bbSummaryTotal" th:text="${summary.total}">0</div>
+                <div class="bb-stat-label">Overview Rows</div>
+            </div>
+            <div class="bb-stat">
+                <div class="bb-stat-value" id="bbSummaryMatched" th:text="${summary.matched}">0</div>
+                <div class="bb-stat-label">Linked to Library</div>
+            </div>
+            <div class="bb-stat">
+                <div class="bb-stat-value" id="bbSummaryUnmatched" th:text="${summary.unmatched}">0</div>
+                <div class="bb-stat-label">Still Raw</div>
+            </div>
+            <div class="bb-stat">
+                <div class="bb-stat-value" id="bbSummaryRows" th:text="${summary.rowsImported}">0</div>
+                <div class="bb-stat-label">Weekly Rows</div>
+            </div>
+            <div class="bb-stat">
+                <div class="bb-stat-value" id="bbSummaryLastDate" th:text="${summary.lastImportedChartDate != null ? summary.lastImportedChartDate : '-'}">-</div>
+                <div class="bb-stat-label">Last Imported Week</div>
+            </div>
+        </div>
+
+        <div class="bb-toolbar">
+            <button class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
+            <button class="bb-btn" id="bbAutoLinkBtn" onclick="runBillboardAutoLink(this)">Auto-Link Matches</button>
+            <button class="bb-btn" id="bbNormalizeBtn" onclick="runBillboardNormalizeCase(this)">Normalize Case Differences</button>
+            <form class="bb-search-form" method="get" th:action="@{/misc/billboard-hot-100}">
+                <input type="hidden" name="page" value="1">
+                <input type="hidden" name="size" th:value="${size}">
+                <input type="hidden" name="sort" th:value="${sort}">
+                <input type="hidden" name="dir" th:value="${dir}">
+                <input id="billboardSearchInput" name="q" class="bb-search-input-inline" type="text" placeholder="Search song or artist..." th:value="${q}" autocomplete="off">
+                <button type="submit" class="bb-btn">Search</button>
+                <a th:if="${q != null and !q.isBlank()}" class="bb-clear-link" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort=${sort},dir=${dir})}">Clear</a>
+            </form>
+            <div class="bb-search-status" th:if="${q != null and !q.isBlank()}" th:text="|Searching all Billboard rows for '${q}' (${resultTotal} matches)|">Searching all Billboard rows</div>
+            <div class="bb-page-size">
+                <span>Rows:</span>
+                <a th:href="@{/misc/billboard-hot-100(page=1,size=100,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 100} ? 'active' : ''">100</a>
+                <a th:href="@{/misc/billboard-hot-100(page=1,size=250,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 250} ? 'active' : ''">250</a>
+                <a th:href="@{/misc/billboard-hot-100(page=1,size=500,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 500} ? 'active' : ''">500</a>
+            </div>
+        </div>
+
+        <details class="bb-panel bb-diagnostics">
+            <summary>
+                <div>
+                    <div class="bb-panel-title" style="margin-bottom:6px;">Spelling Diagnostics</div>
+                    <div class="bb-diagnostics-summary-copy">
+                        <span th:text="${nameIssueReport.sourceVariantGroupCount}">0</span>
+                        possible source-side variant groups and
+                        <span th:text="${nameIssueReport.normalizedOnlyCandidateCount}">0</span>
+                        unmatched rows that look like normalized-only matches to your library.
+                    </div>
+                </div>
+                <span class="bb-diagnostics-chevron">&#9662;</span>
+            </summary>
+
+            <div class="bb-diagnostics-body">
+                <div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don’t compete visually with the main Hot 100 table.</div>
+                <div class="bb-issue-table-wrap" th:if="${!#lists.isEmpty(nameIssueReport.samples)}">
+                    <table class="bb-issue-table">
+                        <thead>
+                            <tr>
+                                <th>Billboard Entry</th>
+                                <th>Suggested Library Song</th>
+                                <th class="center">Weeks</th>
+                                <th class="center">Peak</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="sample : ${nameIssueReport.samples}">
+                                <td>
+                                    <div class="bb-no-link-song" th:text="${sample.billboardSongTitle}">Song</div>
+                                    <div class="bb-no-link-artist" th:text="${sample.billboardArtistName}">Artist</div>
+                                </td>
+                                <td>
+                                    <a th:if="${sample.songId != null}" th:href="@{/songs/{id}(id=${sample.songId})}" class="bb-song-link" th:text="${sample.librarySongTitle}">Song</a>
+                                    <div class="bb-artist-link" th:text="${sample.libraryArtistName}">Artist</div>
+                                </td>
+                                <td class="center" th:text="${sample.weeksOnChart}">0</td>
+                                <td class="center" th:text="${sample.peakPosition}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="bb-diagnostics-empty" th:if="${#lists.isEmpty(nameIssueReport.samples)}">No sample rows to preview right now.</div>
+            </div>
+        </details>
+
+        <div class="bb-panel" style="margin-top:-4px;">
+            <div class="bb-panel-title">Import Behavior</div>
+            <div class="bb-panel-copy">Incremental Refresh only imports chart weeks newer than your latest local Billboard date. If the table is empty, it loads the full history; otherwise it leaves existing weeks alone and carries forward exact raw-name song links onto the new rows.</div>
+        </div>
+
+        <div class="pager">
+            <div class="pager-links">
+                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(page=${page - 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Previous</a>
+                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(page=${page + 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Next</a>
+            </div>
+            <div class="pager-label" th:text="'Page ' + ${page} + ' of ' + ${totalPages}">Page 1 of 1</div>
+        </div>
+
+        <div class="bb-table-wrap">
+            <table class="bb-table" id="billboardTable">
+                <thead>
+                    <tr>
+                        <th class="center" th:classappend="${sort == 'weeks'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'weeks'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='weeks',dir=${sort == 'weeks' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Weeks</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'peak'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'peak'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='peak',dir=${sort == 'peak' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Peak</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'weeksAtPeak'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'weeksAtPeak'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='weeksAtPeak',dir=${sort == 'weeksAtPeak' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Weeks at Peak</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'firstWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'firstWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='firstWeek',dir=${sort == 'firstWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Debut Week</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'lastWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'lastWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='lastWeek',dir=${sort == 'lastWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Last Week</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'peakWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'peakWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='peakWeek',dir=${sort == 'peakWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Peak Week</a>
+                        </th>
+                        <th th:classappend="${sort == 'song'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'song'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='song',dir=${sort == 'song' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Song</a>
+                        </th>
+                        <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
+                        </th>
+                        <th data-no-sort></th>
+                    </tr>
+                </thead>
+                <tbody id="billboardTableBody">
+                    <tr th:each="entry : ${entries}"
+                        th:data-raw-artist="${entry.artistName}"
+                        th:data-raw-song="${entry.songTitle}"
+                        th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center" th:attr="data-value=${entry.weeksOnChart}" th:text="${entry.weeksOnChart}">0</td>
+                        <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
+                        <td class="center" th:attr="data-value=${entry.weeksAtPeak}" th:text="${entry.weeksAtPeak}">0</td>
+                        <td class="center" th:attr="data-value=${entry.firstWeek}">
+                            <a th:if="${entry.firstWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.firstWeek})}" class="bb-date-link" th:text="${entry.firstWeek}">-</a>
+                            <span th:if="${entry.firstWeek == null}">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.lastWeek}">
+                            <a th:if="${entry.lastWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.lastWeek})}" class="bb-date-link" th:text="${entry.lastWeek}">-</a>
+                            <span th:if="${entry.lastWeek == null}">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.peakWeek}">
+                            <a th:if="${entry.peakWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.peakWeek})}" class="bb-date-link" th:text="${entry.peakWeek}">-</a>
+                            <span th:if="${entry.peakWeek == null}">-</span>
+                        </td>
+                        <td th:attr="data-value=${entry.songTitle}">
+                            <a th:if="${entry.songId != null}" th:href="@{/songs/{id}(id=${entry.songId})}" class="bb-song-link" th:text="${entry.songTitle}">Song</a>
+                            <span th:if="${entry.songId == null}" class="bb-no-link-song" th:text="${entry.songTitle}">Song</span>
+                        </td>
+                        <td th:attr="data-value=${entry.artistName}">
+                            <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
+                            <span th:if="${entry.resolvedArtistId == null}" class="bb-no-link-artist" th:text="${entry.artistName}">Artist</span>
+                        </td>
+                        <td>
+                            <button th:if="${entry.songId == null}" class="bb-match-btn" onclick="openBillboardMatchModal(this)">Library</button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(entries)}">
+                        <td colspan="9" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pager">
+            <div class="pager-links">
+                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(page=${page - 1},size=${size},sort=${sort},dir=${dir})} : '#'">Previous</a>
+                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(page=${page + 1},size=${size},sort=${sort},dir=${dir})} : '#'">Next</a>
+            </div>
+            <div class="pager-label" th:text="'Page ' + ${page} + ' of ' + ${totalPages}">Page 1 of 1</div>
+        </div>
+    </div>
+
+    <div class="bb-modal-overlay" id="billboardMatchModal">
+        <div class="bb-modal" role="dialog" aria-modal="true">
+            <div class="bb-modal-header">
+                <div>
+                    <div class="bb-modal-title">Link Billboard Entry</div>
+                    <div class="bb-modal-subtitle" id="billboardMatchSubtitle"></div>
+                </div>
+                <button class="bb-modal-close" onclick="closeBillboardMatchModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="bb-modal-body">
+                <input id="billboardMatchSearchInput" class="bb-search-input" type="text" placeholder="Search by song or artist..." oninput="searchBillboardLibrary(this.value)" autocomplete="off">
+                <div class="bb-search-results" id="billboardMatchResults">
+                    <div class="bb-search-empty">Start typing to search your library</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let billboardModalRow = null;
+        let billboardSearchTimer = null;
+
+        function showPageBusyOverlay(title, subtitle) {
+            const titleEl = document.getElementById('billboardOverlayTitle');
+            const subtitleEl = document.getElementById('billboardOverlaySubtitle');
+            if (titleEl && title) titleEl.textContent = title;
+            if (subtitleEl && subtitle) subtitleEl.textContent = subtitle;
+            document.body.classList.add('page-busy');
+        }
+
+        function hidePageBusyOverlay() {
+            document.body.classList.remove('page-busy');
+        }
+
+        function runBillboardImport(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Refreshing...';
+            showPageBusyOverlay('Refreshing Billboard overview', 'Checking for new chart weeks on GitHub...');
+            fetch('/misc/billboard-hot-100/import', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    btn.textContent = data.rowsImported > 0
+                        ? 'Added ' + data.rowsImported + ' rows'
+                        : 'Already current';
+                    window.location.reload();
+                })
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    btn.disabled = false;
+                    btn.textContent = 'Incremental Refresh';
+                    alert('Billboard import failed.');
+                });
+        }
+
+        function runBillboardAutoLink(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Linking...';
+            showPageBusyOverlay('Refreshing Billboard overview', 'Linking exact and fuzzy Billboard matches...');
+            fetch('/misc/billboard-hot-100/auto-link', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    btn.textContent = 'Linked ' + data.groupsLinked + ' rows';
+                    window.location.reload();
+                })
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    btn.disabled = false;
+                    btn.textContent = 'Auto-Link Matches';
+                    alert('Auto-link failed.');
+                });
+        }
+
+        function runBillboardNormalizeCase(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Normalizing...';
+            showPageBusyOverlay('Refreshing Billboard overview', 'Normalizing Billboard spelling differences...');
+            fetch('/misc/billboard-hot-100/normalize-case', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    btn.textContent = 'Normalized ' + data.updatedRows + ' rows';
+                    window.location.reload();
+                })
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    btn.disabled = false;
+                    btn.textContent = 'Normalize Case Differences';
+                    alert('Normalization failed.');
+                });
+        }
+
+        function openBillboardMatchModal(btn) {
+            billboardModalRow = btn.closest('tr');
+            const rawSong = billboardModalRow.dataset.rawSong || '';
+            const rawArtist = billboardModalRow.dataset.rawArtist || '';
+            document.getElementById('billboardMatchSubtitle').textContent = '"' + rawSong + '" by ' + rawArtist;
+            document.getElementById('billboardMatchSearchInput').value = rawSong;
+            document.getElementById('billboardMatchResults').innerHTML = '<div class="bb-search-empty">Searching...</div>';
+            document.getElementById('billboardMatchModal').classList.add('open');
+            searchBillboardLibrary(rawSong);
+        }
+
+        function closeBillboardMatchModal() {
+            document.getElementById('billboardMatchModal').classList.remove('open');
+            billboardModalRow = null;
+        }
+
+        function searchBillboardLibrary(query) {
+            clearTimeout(billboardSearchTimer);
+            billboardSearchTimer = setTimeout(() => doBillboardLibrarySearch(query), 200);
+        }
+
+        function doBillboardLibrarySearch(query) {
+            const results = document.getElementById('billboardMatchResults');
+            if (!query || !query.trim()) {
+                results.innerHTML = '<div class="bb-search-empty">Start typing to search your library</div>';
+                return;
+            }
+            const enc = encodeURIComponent(query.trim());
+            fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=50')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.length) {
+                        results.innerHTML = '<div class="bb-search-empty">No songs found</div>';
+                        return;
+                    }
+                    results.innerHTML = data.map(song =>
+                        '<div class="bb-result-item" data-song-id="' + song.id + '">' +
+                        '<div class="bb-result-title">' + escapeBillboardHtml(song.name) + '</div>' +
+                        '<div class="bb-result-artist">' + escapeBillboardHtml(song.artistName) + '</div>' +
+                        '</div>'
+                    ).join('');
+                    results.querySelectorAll('.bb-result-item').forEach(item => {
+                        item.addEventListener('click', () => linkBillboardMatch(item.dataset.songId));
+                    });
+                })
+                .catch(() => {
+                    results.innerHTML = '<div class="bb-search-empty">Search failed</div>';
+                });
+        }
+
+        function linkBillboardMatch(songId) {
+            if (!billboardModalRow) return;
+            const targetRow = billboardModalRow;
+            closeBillboardMatchModal();
+            showPageBusyOverlay('Refreshing Billboard overview', 'Saving the song match...');
+            const params = new URLSearchParams();
+            params.set('rawArtist', targetRow.dataset.rawArtist || '');
+            params.set('rawSong', targetRow.dataset.rawSong || '');
+            params.set('songId', songId);
+            fetch('/misc/billboard-hot-100/match', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            })
+                .then(r => r.json())
+                .then(() => window.location.reload())
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    alert('Match failed.');
+                });
+        }
+
+        function escapeBillboardHtml(value) {
+            return (value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        document.getElementById('billboardMatchModal').addEventListener('click', function (event) {
+            if (event.target === this) {
+                closeBillboardMatchModal();
+            }
+        });
+
+        document.querySelectorAll('.bb-sort-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                showPageBusyOverlay('Sorting Billboard overview', 'Resorting the full Hot 100 dataset...');
+            });
+        });
+
+        document.querySelectorAll('.pager-link:not(.disabled), .bb-page-size a').forEach(function(link) {
+            link.addEventListener('click', function() {
+                showPageBusyOverlay('Loading Billboard overview', 'Fetching the next slice of Hot 100 rows...');
+            });
+        });
+
+        document.querySelectorAll('.bb-search-form').forEach(function(form) {
+            form.addEventListener('submit', function() {
+                showPageBusyOverlay('Searching Billboard overview', 'Searching the full Hot 100 dataset...');
+            });
+        });
+
+        window.addEventListener('load', function() {
+            requestAnimationFrame(function() {
+                document.body.classList.remove('page-loading');
+            });
+        });
+    </script>
+</body>
+</html>

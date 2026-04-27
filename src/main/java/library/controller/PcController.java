@@ -1,6 +1,5 @@
 package library.controller;
 
-import library.entity.PcDebut;
 import library.service.PcService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -22,11 +21,21 @@ public class PcController {
 
     @GetMapping
     public String pcList(Model model) {
-        List<PcDebut> debuts = pcService.getAllDebuts();
-        model.addAttribute("debuts", debuts);
+        model.addAttribute("entries", pcService.getOverviewRows());
         model.addAttribute("summary", pcService.getSummary());
         model.addAttribute("currentSection", "pc");
         return "misc/pc";
+    }
+
+    @PostMapping("/merge")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> mergeEntries(
+            @RequestParam String sourceArtist,
+            @RequestParam String sourceSong,
+            @RequestParam String targetArtist,
+            @RequestParam String targetSong) {
+        int updated = pcService.mergeEntries(sourceArtist, sourceSong, targetArtist, targetSong);
+        return ResponseEntity.ok(Map.of("ok", true, "updated", updated));
     }
 
     /** Search songs by title/artist for the match modal. */
@@ -37,39 +46,29 @@ public class PcController {
         return pcService.searchSongs(q, 30);
     }
 
-    /** Link a PC entry to a song in the library. */
-    @PostMapping("/{id}/match")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> matchSong(
-            @PathVariable Integer id,
-            @RequestParam Integer songId) {
-        return ResponseEntity.ok(pcService.matchSong(id, songId));
-    }
-
-    /** Remove the song link from a PC entry. */
-    @PostMapping("/{id}/unmatch")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> unmatchSong(@PathVariable Integer id) {
-        pcService.unmatchSong(id);
-        return ResponseEntity.ok(Map.of("ok", true));
-    }
-
-    /** Merge a target pc_debut into a source pc_debut. */
-    @PostMapping("/merge")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> mergeDebuts(
-            @RequestParam int sourceId,
-            @RequestParam int targetId) {
-        pcService.mergeDebuts(sourceId, targetId);
-        return ResponseEntity.ok(Map.of("ok", true));
-    }
-
-    /** Auto-match unlinked pc_debut rows to songs in the library by exact name. */
+    /** Auto-match unlinked PC rows to songs in the library by exact name. */
     @PostMapping("/auto-link")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> autoLink() {
         int linked = pcService.autoLinkExactMatches();
         return ResponseEntity.ok(Map.of("ok", true, "linked", linked));
+    }
+
+    @PostMapping("/normalize-case")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> normalizeCase() {
+        int normalized = pcService.normalizeCaseDifferences();
+        return ResponseEntity.ok(Map.of("ok", true, "normalized", normalized));
+    }
+
+    /** Link a raw PC artist/title group to a library song. */
+    @PostMapping("/match-group")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> matchRawGroup(
+            @RequestParam String rawArtist,
+            @RequestParam String rawSong,
+            @RequestParam Integer songId) {
+        return ResponseEntity.ok(pcService.matchRawGroup(rawArtist, rawSong, songId));
     }
 
     // ---- PC Recaps page ----

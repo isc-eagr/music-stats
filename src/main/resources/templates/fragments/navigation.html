@@ -255,13 +255,14 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle"
-                        th:classappend="${currentSection == 'trl' or currentSection == 'trl-recaps' or currentSection == 'pc' or currentSection == 'pc-recaps'} ? 'active' : ''"
+                        th:classappend="${currentSection == 'trl' or currentSection == 'trl-recaps' or currentSection == 'pc' or currentSection == 'pc-recaps' or currentSection == 'billboard-hot100'} ? 'active' : ''"
                         onclick="toggleDropdown(event, this)">Misc &#9662;</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/misc/trl" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl'} ? 'active' : ''">TRL Overview</a></li>
                          <li><a href="/misc/trl/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl-recaps'} ? 'active' : ''">TRL Recaps</a></li>
                          <li><a href="/misc/pc" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc'} ? 'active' : ''">Personal Cuntdown Overview</a></li>
                          <li><a href="/misc/pc/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc-recaps'} ? 'active' : ''">Personal Cuntdown Recaps</a></li>
+                         <li><a href="/misc/billboard-hot-100" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100'} ? 'active' : ''">Billboard Hot 100 Overview</a></li>
                      </ul>
                  </li>
                  <!-- Mobile-only: utilities links -->

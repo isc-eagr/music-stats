@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billboard Hot 100 Recaps - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .recap-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+        .recap-date-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .recap-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 211, 238, 0.28);
+            background: rgba(34, 211, 238, 0.05);
+            color: #8de7f2;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.12s;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+        .recap-nav-btn:hover:not(:disabled) { border-color: rgba(34, 211, 238, 0.72); color: #d5fbff; background: rgba(34, 211, 238, 0.12); }
+        .recap-nav-btn:disabled { opacity: 0.3; cursor: default; }
+        .recap-date-bar label {
+            font-size: 0.88rem;
+            color: #aaa;
+            font-weight: 600;
+        }
+        .recap-date-select {
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-size: 0.88rem;
+            outline: none;
+            cursor: pointer;
+        }
+        .recap-date-select:focus { border-color: #22d3ee; }
+        .recap-date-select option {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .recap-showing {
+            font-size: 0.82rem;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .recap-showing strong { color: #d5fbff; }
+        .recap-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        }
+        .recap-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #141414;
+        }
+        .recap-table thead tr {
+            background: #1e1e1e;
+            border-bottom: 2px solid #333;
+        }
+        .recap-table th {
+            padding: 11px 14px;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+        .recap-table th.center,
+        .recap-table td.center { text-align: center; }
+        .recap-table tbody tr {
+            border-bottom: 1px solid #1f1f1f;
+            transition: background 0.12s;
+        }
+        .recap-table tbody tr:hover { background: #1c1c1c; }
+        .recap-table tbody tr.gender-male {
+            background: rgba(74, 144, 226, 0.06);
+            border-left: 3px solid rgba(74, 144, 226, 0.5);
+        }
+        .recap-table tbody tr.gender-male:hover {
+            background: rgba(74, 144, 226, 0.11);
+        }
+        .recap-table tbody tr.gender-female {
+            background: rgba(217, 74, 138, 0.06);
+            border-left: 3px solid rgba(217, 74, 138, 0.5);
+        }
+        .recap-table tbody tr.gender-female:hover {
+            background: rgba(217, 74, 138, 0.11);
+        }
+        .recap-table td {
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: #d0d0d0;
+            vertical-align: middle;
+        }
+        .pos-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #2a2a2a;
+            color: #aaa;
+            border: 1px solid #444;
+        }
+        .recap-song-link {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .recap-song-link:hover { color: #7fe9f1; text-decoration: underline; }
+        .recap-artist-link {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .recap-artist-link:hover { color: #d5fbff; text-decoration: underline; }
+        .recap-no-link-song { color: #999; font-size: 0.88rem; }
+        .recap-no-link-artist { color: #777; font-size: 0.85rem; }
+        .recap-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        .recap-empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+        .mvmt {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .mvmt-new  { background: rgba(46,160,67,0.18); color: #3fb950; border: 1px solid rgba(46,160,67,0.35); }
+        .mvmt-re   { background: rgba(210,139,0,0.18); color: #e3a420; border: 1px solid rgba(210,139,0,0.35); }
+        .mvmt-up   { background: rgba(46,160,67,0.12); color: #3fb950; border: 1px solid rgba(46,160,67,0.25); }
+        .mvmt-down { background: rgba(218,54,54,0.12); color: #f07070; border: 1px solid rgba(218,54,54,0.25); }
+        .mvmt-same { background: transparent; color: #666; border: 1px solid #333; }
+        .recap-table th.stat-col,
+        .recap-table td.stat-col { min-width: 58px; }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <div class="recap-container">
+        <div class="topbar">
+            <div class="breadcrumbs">
+                <a href="/">Home</a> / <a href="/misc/billboard-hot-100">Billboard Hot 100</a> / <span>Recaps</span>
+            </div>
+            <h1>Billboard Hot 100 Recaps</h1>
+        </div>
+
+        <div class="recap-date-bar">
+            <button id="recapPrev" class="recap-nav-btn" title="Previous chart" disabled>&#8592;</button>
+            <label>Select week:</label>
+            <select id="recapMonth" class="recap-date-select" title="Month"></select>
+            <select id="recapDay" class="recap-date-select" title="Day"></select>
+            <select id="recapYear" class="recap-date-select" title="Year"></select>
+            <button id="recapNext" class="recap-nav-btn" title="Next chart" disabled>&#8594;</button>
+        </div>
+
+        <div id="recapShowing" class="recap-showing" style="display:none;">
+            Showing Billboard Hot 100 week for <strong id="recapShowDate"></strong>
+        </div>
+
+        <div id="recapContent">
+            <div th:if="${countdown != null}">
+                <div class="recap-showing">
+                    Showing Billboard Hot 100 week for <strong th:text="${selectedDate}"></strong>
+                </div>
+                <div class="recap-table-wrap">
+                    <table class="recap-table">
+                        <thead>
+                            <tr>
+                                <th class="center" style="width:60px;">#</th>
+                                <th>Song</th>
+                                <th>Artist</th>
+                                <th class="center stat-col" title="Weeks on chart up to this week">Weeks</th>
+                                <th class="center stat-col" title="Peak position">Peak</th>
+                                <th class="center stat-col" title="Weeks at peak">@ Peak</th>
+                                <th class="center" title="Movement vs previous week">Move</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="e : ${countdown}"
+                                th:classappend="${e.genderClass != null ? e.genderClass : ''}">
+                                <td class="center">
+                                    <span class="pos-badge" th:text="${e.position}"></span>
+                                </td>
+                                <td>
+                                    <a th:if="${e.songId != null}" class="recap-song-link"
+                                       th:href="@{'/songs/' + ${e.songId}}" th:text="${e.songTitle}"></a>
+                                    <span th:if="${e.songId == null}" class="recap-no-link-song" th:text="${e.songTitle}"></span>
+                                </td>
+                                <td>
+                                    <a th:if="${e.artistId != null}" class="recap-artist-link"
+                                       th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
+                                    <span th:if="${e.artistId == null}" class="recap-no-link-artist" th:text="${e.artistName}"></span>
+                                </td>
+                                <td class="center" th:text="${e.weeks != null ? e.weeks : '-'}"></td>
+                                <td class="center" th:text="${e.peak != null ? e.peak : '-'}"></td>
+                                <td class="center" th:text="${e.weeksAtPeak != null ? e.weeksAtPeak : '-'}"></td>
+                                <td class="center">
+                                    <span th:if="${e.movement != null}"
+                                          th:classappend="'mvmt ' + ${e.movementClass}"
+                                          th:text="${e.movement}"></span>
+                                    <span th:if="${e.movement == null}" style="color:#555;">-</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div th:if="${countdown == null}" class="recap-empty">
+                <div class="recap-empty-icon">&#9835;</div>
+                <div>Select a week to view that Billboard Hot 100 chart</div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const availableDates = /*[[${availableDates}]]*/ [];
+        const selectedDate = /*[[${selectedDate}]]*/ null;
+
+        let initYear = null, initMonth = null, initDay = null;
+        if (selectedDate) {
+            const parts = selectedDate.split('-');
+            if (parts.length === 3) {
+                initYear = parts[0];
+                initMonth = parts[1];
+                initDay = parts[2];
+            }
+        }
+
+        const monthSelect = document.getElementById('recapMonth');
+        const daySelect = document.getElementById('recapDay');
+        const yearSelect = document.getElementById('recapYear');
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+        appendSelectPlaceholder(monthSelect, '-- Month --');
+        months.forEach(function(monthName, index) {
+            const opt = document.createElement('option');
+            opt.value = String(index + 1).padStart(2, '0');
+            opt.textContent = monthName;
+            if (initMonth === opt.value) opt.selected = true;
+            monthSelect.appendChild(opt);
+        });
+
+        appendSelectPlaceholder(daySelect, '-- Day --');
+        for (let day = 1; day <= 31; day++) {
+            const opt = document.createElement('option');
+            opt.value = String(day).padStart(2, '0');
+            opt.textContent = String(day).padStart(2, '0');
+            if (initDay === opt.value) opt.selected = true;
+            daySelect.appendChild(opt);
+        }
+
+        appendSelectPlaceholder(yearSelect, '-- Year --');
+        Array.from(new Set(availableDates.map(function(date) { return date.split('-')[0]; })))
+            .sort()
+            .forEach(function(year) {
+                const opt = document.createElement('option');
+                opt.value = year;
+                opt.textContent = year;
+                if (initYear === year) opt.selected = true;
+                yearSelect.appendChild(opt);
+            });
+
+        [monthSelect, daySelect, yearSelect].forEach(function(select) {
+            select.addEventListener('change', function() {
+                const month = monthSelect.value;
+                const day = daySelect.value;
+                const year = yearSelect.value;
+                if (month && day && year) {
+                    loadCountdown(year + '-' + month + '-' + day);
+                }
+            });
+        });
+
+        document.getElementById('recapPrev').addEventListener('click', function() {
+            if (this._date) loadCountdown(this._date);
+        });
+        document.getElementById('recapNext').addEventListener('click', function() {
+            if (this._date) loadCountdown(this._date);
+        });
+
+        if (selectedDate) {
+            setTimeout(function() { loadCountdown(selectedDate); }, 0);
+        }
+
+        function loadCountdown(date) {
+            fetch('/misc/billboard-hot-100/recaps/data?date=' + encodeURIComponent(date))
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    const content = document.getElementById('recapContent');
+                    if (!data.entries || data.entries.length === 0 || !data.date) {
+                        content.innerHTML = '<div class="recap-empty"><div class="recap-empty-icon">&#9835;</div><div>No Billboard Hot 100 chart found for this week</div></div>';
+                        document.getElementById('recapShowing').style.display = 'none';
+                        syncNavButtons(data);
+                        return;
+                    }
+
+                    syncDateSelectors(data.date);
+
+                    const showing = document.getElementById('recapShowing');
+                    showing.style.display = '';
+                    document.getElementById('recapShowDate').textContent = data.date;
+
+                    syncNavButtons(data);
+
+                    let html = '<div class="recap-table-wrap"><table class="recap-table"><thead><tr>';
+                    html += '<th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
+                    html += '<th class="center stat-col" title="Weeks on chart up to this week">Weeks</th>';
+                    html += '<th class="center stat-col" title="Peak position">Peak</th>';
+                    html += '<th class="center stat-col" title="Weeks at peak">@ Peak</th>';
+                    html += '<th class="center" title="Movement vs previous week">Move</th>';
+                    html += '</tr></thead><tbody>';
+
+                    data.entries.forEach(function(entry) {
+                        const rowClass = entry.genderClass ? ' class="' + entry.genderClass + '"' : '';
+                        html += '<tr' + rowClass + '>';
+                        html += '<td class="center"><span class="pos-badge">' + entry.position + '</span></td>';
+
+                        if (entry.songId) {
+                            html += '<td><a class="recap-song-link" href="/songs/' + entry.songId + '">' + escHtml(entry.songTitle) + '</a></td>';
+                        } else {
+                            html += '<td><span class="recap-no-link-song">' + escHtml(entry.songTitle) + '</span></td>';
+                        }
+
+                        if (entry.artistId) {
+                            html += '<td><a class="recap-artist-link" href="/artists/' + entry.artistId + '">' + escHtml(entry.artistName) + '</a></td>';
+                        } else {
+                            html += '<td><span class="recap-no-link-artist">' + escHtml(entry.artistName) + '</span></td>';
+                        }
+
+                        html += '<td class="center">' + (entry.weeks != null ? entry.weeks : '-') + '</td>';
+                        html += '<td class="center">' + (entry.peak != null ? entry.peak : '-') + '</td>';
+                        html += '<td class="center">' + (entry.weeksAtPeak != null ? entry.weeksAtPeak : '-') + '</td>';
+
+                        if (entry.movement != null) {
+                            html += '<td class="center"><span class="mvmt ' + (entry.movementClass || '') + '">' + escHtml(String(entry.movement)) + '</span></td>';
+                        } else {
+                            html += '<td class="center"><span style="color:#555;">-</span></td>';
+                        }
+
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table></div>';
+                    content.innerHTML = html;
+                });
+        }
+
+        function appendSelectPlaceholder(select, label) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = label;
+            select.appendChild(option);
+        }
+
+        function syncDateSelectors(date) {
+            const parts = date.split('-');
+            if (parts.length !== 3) return;
+            yearSelect.value = parts[0];
+            monthSelect.value = parts[1];
+            daySelect.value = parts[2];
+        }
+
+        function syncNavButtons(data) {
+            const prevBtn = document.getElementById('recapPrev');
+            const nextBtn = document.getElementById('recapNext');
+            prevBtn.disabled = !data.prevDate;
+            prevBtn._date = data.prevDate || null;
+            nextBtn.disabled = !data.nextDate;
+            nextBtn._date = data.nextDate || null;
+        }
+
+        function escHtml(value) {
+            if (!value) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

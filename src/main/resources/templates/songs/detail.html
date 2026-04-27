@@ -51,6 +51,15 @@
             border-color: rgba(170, 90, 220, 0.85);
             color: #d49af5;
         }
+        .winning-chip.billboard-chip {
+            background: linear-gradient(135deg, rgba(45, 117, 184, 0.24), rgba(13, 68, 113, 0.18));
+            border-color: rgba(95, 180, 255, 0.5);
+            color: #8dd3ff;
+        }
+        .winning-chip.billboard-chip:hover {
+            border-color: rgba(95, 180, 255, 0.85);
+            color: #bde8ff;
+        }
         .detail-save-overlay {
             position: fixed;
             inset: 0;
@@ -398,7 +407,7 @@
                        th:text="${entry.displayName}"></a>
 
                     <!-- GROUP 5: Miscellaneous -->
-                    <div class="chip-group-separator" th:if="${trlDays != null}"></div>
+                    <div class="chip-group-separator" th:if="${trlStats != null or pcStats != null or billboardHot100Stats != null}"></div>
 
                     <!-- TRL Days chip -->
                     <a th:if="${trlStats != null}"
@@ -417,6 +426,14 @@
                        th:text="${pcStats.daysOnCountdown} + ' Days on Vato\'s Cuntdown'
                               + (${pcStats.peakPosition != null} ? ' (Peak #' + ${pcStats.peakPosition} + (${pcStats.daysAtPeak != null and pcStats.daysAtPeak > 1} ? ' for ' + ${pcStats.daysAtPeak} + ' days)' : ')') : '')"
                        th:title="'This song spent ' + ${pcStats.daysOnCountdown} + ' days on Vato\'s Personal Cuntdown'"></a>
+
+                          <a th:if="${billboardHot100Stats != null}"
+                          th:href="@{/misc/billboard-hot-100}"
+                          target="_blank"
+                          class="winning-chip rank-chip billboard-chip"
+                          th:text="${billboardHot100Stats.weeksOnChart} + ' weeks on the hot 100'
+                              + (${billboardHot100Stats.peakPosition != null} ? ' (Peak #' + ${billboardHot100Stats.peakPosition} + (${billboardHot100Stats.weeksAtPeak != null and billboardHot100Stats.weeksAtPeak > 0} ? ' for ' + ${billboardHot100Stats.weeksAtPeak} + (${billboardHot100Stats.weeksAtPeak == 1} ? ' week)' : ' weeks)') : ')') : '')"
+                          th:title="'This song spent ' + ${billboardHot100Stats.weeksOnChart} + ' weeks on the Billboard Hot 100'"></a>
                 </div>
                 
             </div>

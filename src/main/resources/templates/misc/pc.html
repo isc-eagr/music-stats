@@ -17,7 +17,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at top, rgba(168, 85, 247, 0.15), rgba(7, 6, 10, 0.94) 58%);
+            background: radial-gradient(circle at top, rgba(170, 90, 220, 0.15), rgba(7, 7, 9, 0.94) 58%);
             backdrop-filter: blur(6px);
             z-index: 3000;
         }
@@ -25,8 +25,8 @@
             min-width: 230px;
             padding: 22px 26px;
             border-radius: 18px;
-            border: 1px solid rgba(168, 85, 247, 0.24);
-            background: rgba(17, 11, 24, 0.94);
+            border: 1px solid rgba(170, 90, 220, 0.26);
+            background: rgba(21, 14, 28, 0.94);
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
             text-align: center;
         }
@@ -39,606 +39,243 @@
             border-top-color: #a855f7;
             animation: page-load-spin 0.8s linear infinite;
         }
-        .page-load-title { color: #ead8ff; font-size: 15px; font-weight: 600; }
-        .page-load-subtitle { color: rgba(234, 216, 255, 0.62); font-size: 12px; margin-top: 6px; }
+        .page-load-title { color: #efddff; font-size: 15px; font-weight: 600; }
+        .page-load-subtitle { color: rgba(239, 221, 255, 0.68); font-size: 12px; margin-top: 6px; }
         @keyframes page-load-spin { to { transform: rotate(360deg); } }
-        .pc-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px 40px;
-        }
-
-        /* Summary bar */
-        .pc-summary {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .pc-stat {
-            background: #1a1a1a;
-            border: 1px solid #333;
+        .pc-container { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; }
+        .pc-summary { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .pc-stat { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px 22px; min-width: 120px; text-align: center; }
+        .pc-stat-value { font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .pc-stat-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+        .pc-toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+        .pc-search-input-inline {
+            width: min(340px, 100%);
+            padding: 10px 12px;
             border-radius: 10px;
-            padding: 14px 22px;
-            text-align: center;
-            min-width: 120px;
-        }
-        .pc-stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        .pc-stat-label {
-            font-size: 0.78rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 4px;
-        }
-
-        /* Toolbar */
-        .pc-toolbar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .pc-toggle-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 7px 16px;
-            border-radius: 20px;
-            border: 1px solid #444;
-            background: #1e1e1e;
-            color: #aaa;
-            font-size: 0.83rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s;
-            user-select: none;
-        }
-        .pc-toggle-btn:hover { border-color: #666; color: #ddd; }
-        .pc-toggle-btn.active {
-            background: rgba(170, 90, 220, 0.18);
-            border-color: rgba(170, 90, 220, 0.55);
-            color: #c080e8;
-        }
-        .pc-toggle-btn .btn-icon { font-size: 0.9em; }
-
-        /* Table */
-        .pc-table-wrap {
-            overflow-x: auto;
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-        }
-        .pc-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #141414;
-        }
-        .pc-table thead tr {
-            background: #1e1e1e;
-            border-bottom: 2px solid #333;
-        }
-        .pc-table th {
-            padding: 11px 14px;
-            text-align: left;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            white-space: nowrap;
-            cursor: pointer;
-            user-select: none;
-        }
-        .pc-table th:hover { color: #ccc; }
-        .pc-table th.center,
-        .pc-table td.center { text-align: center; }
-
-        .pc-table tbody tr {
-            border-bottom: 1px solid #1f1f1f;
-            transition: background 0.12s;
-        }
-        .pc-table tbody tr:hover { background: #1c1c1c; }
-        #pcTableBody { transition: opacity 0.18s ease; }
-        #pcTableBody.pc-refreshing { opacity: 0.35; }
-        #pcTableBody tr.pc-row-fade-out { opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; }
-
-        /* Gender row coloring */
-        .pc-table tbody tr.gender-male {
-            background: rgba(74, 144, 226, 0.06);
-            border-left: 3px solid rgba(74, 144, 226, 0.5);
-        }
-        .pc-table tbody tr.gender-male:hover {
-            background: rgba(74, 144, 226, 0.11);
-        }
-        .pc-table tbody tr.gender-female {
-            background: rgba(217, 74, 138, 0.06);
-            border-left: 3px solid rgba(217, 74, 138, 0.5);
-        }
-        .pc-table tbody tr.gender-female:hover {
-            background: rgba(217, 74, 138, 0.11);
-        }
-
-        .pc-table td {
-            padding: 10px 14px;
-            font-size: 0.88rem;
-            color: #d0d0d0;
-            vertical-align: middle;
-        }
-
-        /* Position badge */
-        .pos-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            font-size: 0.82rem;
-            font-weight: 700;
-            background: #2a2a2a;
-            color: #aaa;
-            border: 1px solid #444;
-        }
-
-        /* Days bar */
-        .days-bar-wrap { display: flex; align-items: center; gap: 8px; }
-        .days-bar {
-            height: 6px;
-            border-radius: 3px;
-            background: #a855f7;
-            min-width: 4px;
-        }
-        .days-val { font-size: 0.82rem; color: #aaa; white-space: nowrap; }
-
-        /* Song / artist links */
-        .pc-song-link {
+            border: 1px solid #353535;
+            background: #101010;
             color: #e0e0e0;
-            text-decoration: none;
-            font-weight: 600;
+            font-size: 0.88rem;
+            outline: none;
         }
+        .pc-search-input-inline:focus { border-color: #a855f7; }
+        .pc-toggle-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(170, 90, 220, 0.45); background: rgba(170, 90, 220, 0.08); color: #c080e8; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .pc-toggle-btn:hover:not(:disabled) { border-color: rgba(170, 90, 220, 0.8); color: #dbb3ff; background: rgba(170, 90, 220, 0.14); }
+        .pc-toggle-btn.active { background: rgba(170, 90, 220, 0.18); border-color: rgba(170, 90, 220, 0.55); color: #c080e8; }
+        .pc-toggle-btn:disabled { opacity: 0.55; cursor: default; }
+        .pc-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #2a2a2a; }
+        .pc-table { width: 100%; border-collapse: collapse; background: #141414; }
+        .pc-table thead tr { background: #1e1e1e; border-bottom: 2px solid #333; }
+        .pc-table th { padding: 11px 14px; text-align: left; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+        .pc-table th.center, .pc-table td.center { text-align: center; }
+        .pc-table th.sorted-asc::after { content: ' \25B2'; font-size: 0.7em; }
+        .pc-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
+        .pc-table tbody tr { border-bottom: 1px solid #1f1f1f; transition: background 0.12s; }
+        .pc-table tbody tr:hover { background: #1c1c1c; }
+        .pc-table tbody tr.gender-male { background: rgba(74, 144, 226, 0.06); border-left: 3px solid rgba(74, 144, 226, 0.5); }
+        .pc-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
+        .pc-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
+        .pc-song-link { color: #e0e0e0; text-decoration: none; font-weight: 600; }
         .pc-song-link:hover { color: #a855f7; text-decoration: underline; }
-
-        .pc-artist-link {
-            color: #aaa;
-            text-decoration: none;
-            font-size: 0.85rem;
-        }
+        .pc-artist-link { color: #aaa; text-decoration: none; font-size: 0.85rem; }
         .pc-artist-link:hover { color: #ccc; text-decoration: underline; }
-
-        .pc-no-link-song   { color: #999; font-size: 0.88rem; }
+        .pc-date-link { color: #c080e8; text-decoration: none; font-size: 0.83rem; }
+        .pc-date-link:hover { color: #dbb3ff; text-decoration: underline; }
+        .pc-no-link-song { color: #999; font-size: 0.88rem; }
         .pc-no-link-artist { color: #777; font-size: 0.85rem; }
-
-        /* Date column */
-        .pc-date { color: #888; font-size: 0.83rem; white-space: nowrap; }
-        .pc-date-link {
-            color: #a855f7;
-            cursor: pointer;
-            text-decoration: none;
-            transition: color 0.12s;
-        }
-        .pc-date-link:hover { color: #c080e8; text-decoration: underline; }
-
-        /* Match button */
-        .pc-match-btn {
+        .pc-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(170, 90, 220, 0.45); background: rgba(170, 90, 220, 0.08); color: #c080e8; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+        .pc-match-btn:hover { border-color: rgba(170, 90, 220, 0.8); color: #dbb3ff; }
+        .pc-variant-chip { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(255, 199, 94, 0.35); color: #ffc75e; background: rgba(255, 199, 94, 0.08); font-size: 0.76rem; font-weight: 700; }
+        .pc-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
+        .pc-hidden { display: none; }
+        .pc-select-label {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 3px 10px;
-            border-radius: 12px;
-            border: 1px solid #444;
-            background: #1e1e1e;
-            color: #888;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.12s;
-            white-space: nowrap;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        .pc-match-btn:hover { border-color: #a855f7; color: #a855f7; background: rgba(168,85,247,0.08); }
-
-        /* Sort indicators */
-        .pc-table th.sorted-asc::after  { content: ' \25B2'; font-size: 0.7em; }
-        .pc-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
-
-        /* Retired / Hall of Fame rows — gold */
-        .pc-table tbody tr.pc-retired td { color: #c9a227; }
-        .pc-table tbody tr.pc-retired .days-val { color: #c9a227; }
-        .pc-table tbody tr.pc-retired .days-bar { background: #c9a227; }
-        .pc-table tbody tr.pc-retired .pc-song-link { color: #e8c547; }
-        .pc-table tbody tr.pc-retired .pc-song-link:hover { color: #ffd700; }
-        .pc-table tbody tr.pc-retired .pc-artist-link { color: #b8881e; }
-        .pc-table tbody tr.pc-retired .pc-artist-link:hover { color: #d4a429; }
-        .pc-table tbody tr.pc-retired .pc-no-link-song  { color: #c9a227; }
-        .pc-table tbody tr.pc-retired .pc-no-link-artist { color: #a8861a; }
-        .pc-table tbody tr.pc-retired .pos-badge {
-            background: rgba(201,162,39,0.2);
-            border-color: rgba(201,162,39,0.5);
-            color: #c9a227;
-        }
-        .pc-table tbody tr.pc-retired.gender-male {
-            background: rgba(74,144,226,0.07);
-            border-left-color: rgba(74,144,226,0.55);
-        }
-        .pc-table tbody tr.pc-retired.gender-female {
-            background: rgba(217,74,138,0.07);
-            border-left-color: rgba(217,74,138,0.55);
-        }
-
-        /* Hidden-by-filter rows */
-        .pc-table tbody tr.pc-hidden { display: none; }
-        .pc-table tbody tr.pc-search-hidden { display: none; }
-        .pc-table-search {
-            flex: 1;
-            min-width: 200px;
-            position: relative;
-        }
-        .pc-table-search input {
-            width: 100%;
-            padding: 7px 14px 7px 34px;
-            background: #1e1e1e;
-            border: 1px solid #444;
-            border-radius: 20px;
-            color: #ddd;
-            font-size: 0.83rem;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.15s;
-        }
-        .pc-table-search input:focus { border-color: #a855f7; }
-        .pc-table-search input::placeholder { color: #555; }
-        .pc-table-search .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #555;
-            font-size: 0.82rem;
-            pointer-events: none;
-        }
-        .pc-search-count {
-            font-size: 0.78rem;
-            color: #555;
-            white-space: nowrap;
-            align-self: center;
-        }
-
-        /* ---- Match Modal ---- */
-        .pc-modal-overlay {
+        .pc-select-label.source { background: rgba(168, 85, 247, 0.18); color: #d9b8ff; }
+        .pc-select-label.target { background: rgba(255, 199, 94, 0.16); color: #ffd37a; }
+        .pc-select-bar {
             display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .pc-modal-overlay.open { display: flex; }
-        .pc-modal {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 14px;
-            width: 540px;
-            max-width: calc(100vw - 32px);
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.7);
-        }
-        .pc-modal-header {
-            padding: 18px 20px 14px;
-            border-bottom: 1px solid #2a2a2a;
-            display: flex;
-            align-items: flex-start;
             justify-content: space-between;
             gap: 12px;
-        }
-        .pc-modal-title { font-size: 1rem; font-weight: 700; color: #eee; }
-        .pc-modal-subtitle { font-size: 0.78rem; color: #888; margin-top: 2px; }
-        .pc-modal-close {
-            background: none;
-            border: none;
-            color: #666;
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 0 4px;
-            line-height: 1;
-            flex-shrink: 0;
-        }
-        .pc-modal-close:hover { color: #ccc; }
-        .pc-modal-body { padding: 16px 20px; flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
-        .pc-search-input {
-            width: 100%;
-            padding: 9px 14px;
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 8px;
-            color: #ddd;
-            font-size: 0.88rem;
-            box-sizing: border-box;
-        }
-        .pc-search-input:focus { outline: none; border-color: #a855f7; }
-        .pc-search-results {
-            flex: 1;
-            overflow-y: auto;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            min-height: 180px;
-            max-height: 340px;
-        }
-        .pc-result-item {
-            padding: 9px 14px;
-            border-bottom: 1px solid #222;
-            cursor: pointer;
-            transition: background 0.1s;
-        }
-        .pc-result-item:last-child { border-bottom: none; }
-        .pc-result-item:hover { background: rgba(168,85,247,0.1); }
-        .pc-result-title { font-size: 0.88rem; font-weight: 600; color: #e0e0e0; }
-        .pc-result-artist { font-size: 0.78rem; color: #888; margin-top: 1px; }
-        .pc-search-empty { padding: 24px; text-align: center; color: #555; font-size: 0.85rem; }
-
-        @media (max-width: 700px) {
-            .pc-table th:nth-child(1),
-            .pc-table td:nth-child(1) { display: none; }
-        }
-
-        /* Merge selection states */
-        .pc-table tbody tr.pc-source {
-            background: rgba(76,175,80,0.12) !important;
-            border-left: 3px solid #4caf50 !important;
-        }
-        .pc-table tbody tr.pc-target {
-            background: rgba(255,112,67,0.12) !important;
-            border-left: 3px solid #ff7043 !important;
-        }
-        .pc-table tbody tr { cursor: pointer; }
-
-        /* Selection info bar */
-        .pc-selection-bar {
-            display: none;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 12px 18px;
-            margin-bottom: 16px;
-            font-size: 0.85rem;
-            color: #aaa;
-        }
-        .pc-selection-bar.visible { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
-        .pc-sel-label { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; }
-        .pc-sel-source { color: #4caf50; }
-        .pc-sel-target { color: #ff7043; }
-        .pc-sel-value { color: #ddd; margin-left: 6px; }
-
-        .pc-clear-btn {
-            padding: 5px 14px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            background: #1e1e1e;
-            color: #888;
-            font-size: 0.82rem;
-            cursor: pointer;
-            transition: all 0.12s;
-        }
-        .pc-clear-btn:hover { border-color: #666; color: #ccc; }
-
-        /* Floating merge button */
-        .pc-float-merge-btn {
-            display: none;
-            position: fixed;
-            bottom: 28px;
-            right: 28px;
-            align-items: center;
-            gap: 8px;
-            padding: 13px 26px;
+            margin-bottom: 14px;
+            padding: 12px 14px;
             border-radius: 12px;
-            border: 1px solid #4a90e2;
-            background: rgba(16,24,40,0.92);
-            color: #4a90e2;
-            font-size: 0.9rem;
+            border: 1px solid #2d2237;
+            background: rgba(50, 24, 68, 0.32);
+            color: #d9c9e8;
+            font-size: 0.84rem;
+        }
+        .pc-select-bar.visible { display: flex; flex-wrap: wrap; }
+        .pc-select-label-text { color: #9d7dc1; font-weight: 700; margin-right: 6px; }
+        .pc-source-row { outline: 1px solid rgba(168, 85, 247, 0.7); background: rgba(168, 85, 247, 0.08) !important; }
+        .pc-target-row { outline: 1px solid rgba(255, 199, 94, 0.45); background: rgba(255, 199, 94, 0.06) !important; }
+        .pc-float-merge-btn {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px;
+            border: 0;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #a855f7, #d946ef);
+            color: #fff;
+            font-size: 0.85rem;
             font-weight: 700;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
             cursor: pointer;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
-            z-index: 1000;
-            transition: background 0.15s, box-shadow 0.15s;
-            backdrop-filter: blur(6px);
+            z-index: 1200;
         }
-        .pc-float-merge-btn:hover {
-            background: rgba(74,144,226,0.22);
-            box-shadow: 0 6px 32px rgba(0,0,0,0.7);
-        }
+        .pc-float-merge-btn:hover { filter: brightness(1.05); }
+        .pc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .pc-modal-overlay.open { display: flex; }
+        .pc-modal { width: min(640px, calc(100vw - 24px)); max-height: min(78vh, 760px); background: #151515; border: 1px solid #303030; border-radius: 16px; box-shadow: 0 28px 80px rgba(0,0,0,0.45); overflow: hidden; }
+        .pc-modal-header { padding: 16px 18px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #252525; }
+        .pc-modal-title { font-size: 1rem; font-weight: 700; color: #f0f0f0; }
+        .pc-modal-subtitle { font-size: 0.85rem; color: #999; margin-top: 4px; }
+        .pc-modal-close { border: 0; background: transparent; color: #888; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+        .pc-modal-body { padding: 16px 18px 18px; }
+        .pc-search-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #353535; background: #101010; color: #e0e0e0; font-size: 0.88rem; outline: none; }
+        .pc-search-input:focus { border-color: #a855f7; }
+        .pc-search-results { margin-top: 12px; max-height: 48vh; overflow-y: auto; border: 1px solid #252525; border-radius: 10px; }
+        .pc-result-item { padding: 10px 12px; border-bottom: 1px solid #1f1f1f; cursor: pointer; }
+        .pc-result-item:last-child { border-bottom: 0; }
+        .pc-result-item:hover { background: rgba(170, 90, 220, 0.08); }
+        .pc-result-title { color: #eee; font-size: 0.9rem; font-weight: 600; }
+        .pc-result-artist { color: #949494; font-size: 0.82rem; margin-top: 2px; }
+        .pc-search-empty { padding: 20px 14px; color: #777; font-size: 0.85rem; }
     </style>
 </head>
 <body class="page-loading">
     <div class="page-load-overlay" aria-hidden="true">
         <div class="page-load-card">
             <div class="page-load-spinner"></div>
-            <div class="page-load-title" id="pcOverlayTitle">Loading Personal Cuntdown</div>
-            <div class="page-load-subtitle" id="pcOverlaySubtitle">Setting up the chart table and filters...</div>
+            <div class="page-load-title" id="pcOverlayTitle">Loading Personal Cuntdown overview</div>
+            <div class="page-load-subtitle" id="pcOverlaySubtitle">Sorting entries and wiring your table...</div>
         </div>
     </div>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
-    <header class="topbar">
-        <div class="container">
-            <nav class="breadcrumbs">
-                <a href="/">Home</a>
-                <span class="breadcrumb-sep">/</span>
-                <span>Miscellaneous</span>
-                <span class="breadcrumb-sep">/</span>
-                <span>Personal Cuntdown Overview</span>
-            </nav>
-            <h1 class="page-title">Personal Cuntdown Overview</h1>
-            <p class="page-subtitle">Vato's Censored Countdown (Feb 2003 &ndash; Sep 2009)</p>
+    <div class="pc-container">
+        <div class="topbar">
+            <div class="breadcrumbs">
+                <a href="/">Home</a> / <span>Personal Cuntdown Overview</span>
+            </div>
+            <h1>Personal Cuntdown Overview</h1>
+            <p class="page-subtitle">Derived directly from non-close-call countdown entries, grouped by raw name until a library song link exists.</p>
         </div>
-    </header>
 
-    <main class="container pc-container">
-
-        <!-- Summary stats -->
         <div class="pc-summary">
             <div class="pc-stat">
-                <div class="pc-stat-value" id="pcSummaryTotal" th:text="${summary.total}">0</div>
-                <div class="pc-stat-label">Total Songs</div>
+                <div class="pc-stat-value" th:text="${summary.total}">0</div>
+                <div class="pc-stat-label">Overview Rows</div>
             </div>
             <div class="pc-stat">
-                <div class="pc-stat-value" id="pcSummaryMatched" th:text="${summary.matched}">0</div>
-                <div class="pc-stat-label">In My Library</div>
+                <div class="pc-stat-value" th:text="${summary.matched}">0</div>
+                <div class="pc-stat-label">Linked to Library</div>
             </div>
             <div class="pc-stat">
-                <div class="pc-stat-value" id="pcSummaryUnmatched" th:text="${summary.unmatched}">0</div>
-                <div class="pc-stat-label">Not in Library</div>
+                <div class="pc-stat-value" th:text="${summary.unmatched}">0</div>
+                <div class="pc-stat-label">Still Raw</div>
             </div>
         </div>
 
-        <!-- Toolbar -->
         <div class="pc-toolbar">
-            <button id="btnRetiredOnly" class="pc-toggle-btn" onclick="toggleRetiredFilter(this)">
-                <span class="btn-icon">&#9733;</span> Hall of Fame Only
-            </button>
-            <button class="pc-toggle-btn" onclick="doAutoLink(this)">
-                Auto-Link Exact Matches
-            </button>
-            <div class="pc-table-search">
-                <span class="search-icon">&#128269;</span>
-                <input type="text" id="pcTableSearch" placeholder="Search song or artist..." oninput="onTableSearch(this.value)" autocomplete="off">
-            </div>
-            <span class="pc-search-count" id="pcSearchCount"></span>
+            <input type="text" id="pcSearchInput" class="pc-search-input-inline" placeholder="Filter by artist or song..." oninput="filterPcTable()" autocomplete="off">
+            <button class="pc-toggle-btn" onclick="clearPcSelection()">Clear Selection</button>
+            <button class="pc-toggle-btn" onclick="runPcNormalizeCase(this)">Normalize Case Differences</button>
+            <button class="pc-toggle-btn" onclick="runPcAutoLink(this)">Auto-Link Exact Matches</button>
         </div>
 
-        <!-- Merge selection info bar -->
-        <div class="pc-selection-bar" id="pcSelectionBar">
-            <div>
-                <span class="pc-sel-label pc-sel-source">Source:</span>
-                <span class="pc-sel-value" id="pcSelSourceLabel">-</span>
-            </div>
-            <div>
-                <span class="pc-sel-label pc-sel-target">Targets:</span>
-                <span class="pc-sel-value" id="pcSelTargetsLabel">-</span>
-            </div>
-            <button class="pc-clear-btn" onclick="clearMergeSelection()">Clear</button>
+        <div class="pc-select-bar" id="pcSelectionBar">
+            <div><span class="pc-select-label-text">Source:</span><span id="pcSelectionSource">-</span></div>
+            <div><span class="pc-select-label-text">Targets:</span><span id="pcSelectionTargets">-</span></div>
         </div>
 
         <div class="pc-table-wrap">
             <table class="pc-table js-sortable" id="pcTable">
                 <thead>
                     <tr>
-                        <th data-type="number">Days</th>
+                        <th class="center" data-type="number">Days</th>
+                        <th class="center" data-type="number">Peak</th>
+                        <th class="center" data-type="number">At Peak</th>
                         <th class="center" data-type="date" data-default-sort="asc">Debut Date</th>
-                        <th class="center" data-type="number">Debut Position</th>
-                        <th class="center" data-type="date">Last Appearance</th>
+                        <th class="center" data-type="date">Last Date</th>
+                        <th class="center" data-type="date">Peak Date</th>
                         <th data-type="text">Song</th>
                         <th data-type="text">Artist</th>
-                        <th class="center" data-type="number">Peak</th>
-                        <th class="center" data-type="number">Days At Peak</th>
+                        <th class="center" data-type="number">Variants</th>
+                        <th class="center" data-no-sort>Role</th>
                         <th data-no-sort></th>
                     </tr>
                 </thead>
                 <tbody id="pcTableBody">
-                    <tr th:each="d : ${debuts}"
-                        th:data-pc-id="${d.id}"
-                        th:data-song-title="${d.songTitle}"
-                        th:data-artist-name="${d.artistName}"
-                        th:data-retired="${d.retired}"
-                        th:classappend="${(d.genderClass != null ? d.genderClass : '') + (d.retired ? ' pc-retired' : '')}"
-                        onclick="toggleRow(this)">
-                        <!-- Days on countdown -->
-                        <td th:attr="data-value=${d.daysOnCountdown}" th:text="${d.daysOnCountdown}">0</td>
-                        <!-- Debut date -->
-                        <td class="center pc-date"
-                            th:attr="data-value=${d.debutDate}">
-                            <a th:if="${d.debutDate != null and d.debutDate != '-'}"
-                               class="pc-date-link"
-                               th:href="@{/misc/pc/recaps(date=${d.debutDate})}"
-                               th:text="${d.debutDate}">-</a>
-                            <span th:if="${d.debutDate == null or d.debutDate == '-'}"
-                                  th:text="${d.debutDate}">-</span>
+                    <tr th:each="entry : ${entries}"
+                        th:data-raw-artist="${entry.artistName}"
+                        th:data-raw-song="${entry.songTitle}"
+                        onclick="togglePcRow(this)"
+                        th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center" th:attr="data-value=${entry.daysOnCountdown}" th:text="${entry.daysOnCountdown}">0</td>
+                        <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
+                        <td class="center" th:attr="data-value=${entry.daysAtPeak}" th:text="${entry.daysAtPeak}">0</td>
+                        <td class="center" th:attr="data-value=${entry.firstWeek}">
+                            <a th:href="@{/misc/pc/recaps(date=${entry.firstWeek})}" class="pc-date-link" th:text="${entry.firstWeek}">-</a>
                         </td>
-                        <!-- Debut position badge -->
-                        <td class="center" th:attr="data-value=${d.debutPosition}">
-                            <span class="pos-badge" th:text="${d.debutPosition}">-</span>
+                        <td class="center" th:attr="data-value=${entry.lastWeek}">
+                            <a th:href="@{/misc/pc/recaps(date=${entry.lastWeek})}" class="pc-date-link" th:text="${entry.lastWeek}">-</a>
                         </td>
-                        <!-- Last appearance date -->
-                        <td class="center pc-date"
-                            th:attr="data-value=${d.lastAppearanceDate}">
-                            <a th:if="${d.lastAppearanceDate != null and d.lastAppearanceDate != '-'}"
-                               class="pc-date-link"
-                               th:href="@{/misc/pc/recaps(date=${d.lastAppearanceDate})}"
-                               th:text="${d.lastAppearanceDate}">-</a>
-                            <span th:if="${d.lastAppearanceDate == null or d.lastAppearanceDate == '-'}"
-                                  th:text="${d.lastAppearanceDate}">-</span>
+                        <td class="center" th:attr="data-value=${entry.peakWeek}">
+                            <a th:if="${entry.peakWeek != null}" th:href="@{/misc/pc/recaps(date=${entry.peakWeek})}" class="pc-date-link" th:text="${entry.peakWeek}">-</a>
+                            <span th:if="${entry.peakWeek == null}" style="color:#666;">-</span>
                         </td>
-                        <!-- Song title -->
-                        <td th:attr="data-value=${d.songTitle}">
-                            <a th:if="${d.songId != null}"
-                               th:href="@{/songs/{id}(id=${d.songId})}"
-                               class="pc-song-link"
-                               th:text="${d.songTitle}">Song</a>
-                            <span th:if="${d.songId == null}"
-                                  class="pc-no-link-song"
-                                  th:text="${d.songTitle}">Song</span>
+                        <td th:attr="data-value=${entry.songTitle}">
+                            <a th:if="${entry.songId != null}" th:href="@{/songs/{id}(id=${entry.songId})}" class="pc-song-link" th:text="${entry.songTitle}">Song</a>
+                            <span th:if="${entry.songId == null}" class="pc-no-link-song" th:text="${entry.songTitle}">Song</span>
                         </td>
-                        <!-- Artist name -->
-                        <td th:attr="data-value=${d.artistName}">
-                            <a th:if="${d.resolvedArtistId != null}"
-                               th:href="@{/artists/{id}(id=${d.resolvedArtistId})}"
-                               class="pc-artist-link"
-                               th:text="${d.artistName}">Artist</a>
-                            <span th:if="${d.resolvedArtistId == null}"
-                                  class="pc-no-link-artist"
-                                  th:text="${d.artistName}">Artist</span>
+                        <td th:attr="data-value=${entry.artistName}">
+                            <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="pc-artist-link" th:text="${entry.artistName}">Artist</a>
+                            <span th:if="${entry.resolvedArtistId == null}" class="pc-no-link-artist" th:text="${entry.artistName}">Artist</span>
                         </td>
-                        <!-- Peak position -->
-                        <td class="center" th:attr="data-value=${d.peakPosition != null ? d.peakPosition : 99}">
-                            <span th:if="${d.peakPosition != null}" class="pos-badge" th:text="${d.peakPosition}">-</span>
-                            <span th:if="${d.peakPosition == null}" style="color:#555">-</span>
+                        <td class="center" th:attr="data-value=${entry.rawVariantCount}">
+                            <span th:if="${entry.rawVariantCount > 1}" class="pc-variant-chip" th:text="${entry.rawVariantCount} + ' forms'">2 forms</span>
+                            <span th:if="${entry.rawVariantCount <= 1}" style="color:#666;">-</span>
                         </td>
-                        <!-- Days at peak -->
-                        <td class="center" th:attr="data-value=${d.daysAtPeak != null ? d.daysAtPeak : 0}">
-                            <span th:if="${d.daysAtPeak != null}" th:text="${d.daysAtPeak}">-</span>
-                            <span th:if="${d.daysAtPeak == null}" style="color:#555">-</span>
-                        </td>
-                        <!-- Actions column -->
+                        <td class="center"></td>
                         <td>
-                            <button th:if="${d.songId == null}"
-                                    class="pc-match-btn"
-                                    onclick="openMatchModal(this); event.stopPropagation();"
-                                    title="Link to a song in your library">
-                                Library
-                            </button>
+                            <button th:if="${entry.songId == null}" class="pc-match-btn" onclick="openPcMatchModal(event, this)">Library</button>
                         </td>
                     </tr>
-                    <tr th:if="${#lists.isEmpty(debuts)}">
-                        <td colspan="10" style="text-align:center; color:#666; padding:40px;">
-                            No Personal Cuntdown data found. Run the crawler script first.
-                        </td>
+                    <tr th:if="${#lists.isEmpty(entries)}">
+                        <td colspan="11" class="pc-empty">No Personal Cuntdown rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-    </main>
 
-    <!-- Match Modal -->
-    <div class="pc-modal-overlay" id="matchModal" onclick="closeMatchModalOnBackdrop(event)">
-        <div class="pc-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
+    </div>
+
+    <button id="pcMergeBtn" class="pc-float-merge-btn" onclick="mergePcEntries()">Merge</button>
+
+    <div class="pc-modal-overlay" id="pcMatchModal">
+        <div class="pc-modal" role="dialog" aria-modal="true">
             <div class="pc-modal-header">
                 <div>
-                    <div class="pc-modal-title" id="matchModalTitle">Link to Song</div>
-                    <div class="pc-modal-subtitle" id="matchModalSubtitle"></div>
+                    <div class="pc-modal-title">Link Personal Cuntdown Entry</div>
+                    <div class="pc-modal-subtitle" id="pcMatchSubtitle"></div>
                 </div>
-                <button class="pc-modal-close" onclick="closeMatchModal()" aria-label="Close">&times;</button>
+                <button class="pc-modal-close" onclick="closePcMatchModal()" aria-label="Close">&times;</button>
             </div>
             <div class="pc-modal-body">
-                <input type="text" id="matchSearchInput" class="pc-search-input"
-                       placeholder="Search by song title or artist..."
-                       oninput="onMatchSearch(this.value)"
-                       autocomplete="off">
-                <div class="pc-search-results" id="matchSearchResults">
+                <input id="pcMatchSearchInput" class="pc-search-input" type="text" placeholder="Search by song or artist..." oninput="searchPcLibrary(this.value)" autocomplete="off">
+                <div class="pc-search-results" id="pcMatchResults">
                     <div class="pc-search-empty">Start typing to search your library</div>
                 </div>
             </div>
@@ -646,50 +283,14 @@
     </div>
 
     <script>
-        function updatePcSummaryFromDoc(doc) {
-            var total = doc.getElementById('pcSummaryTotal');
-            var matched = doc.getElementById('pcSummaryMatched');
-            var unmatched = doc.getElementById('pcSummaryUnmatched');
-            if (total) document.getElementById('pcSummaryTotal').textContent = total.textContent;
-            if (matched) document.getElementById('pcSummaryMatched').textContent = matched.textContent;
-            if (unmatched) document.getElementById('pcSummaryUnmatched').textContent = unmatched.textContent;
-        }
-
-        function captureTableSortState(tableId) {
-            var table = document.getElementById(tableId);
-            if (!table) return null;
-            var headers = Array.from(table.querySelectorAll('thead th'));
-            var sortedHeader = headers.find(function(th) { return th.hasAttribute('data-sort-dir'); });
-            if (sortedHeader) {
-                return {
-                    index: headers.indexOf(sortedHeader),
-                    dir: sortedHeader.getAttribute('data-sort-dir')
-                };
-            }
-            var defaultHeader = headers.find(function(th) { return th.hasAttribute('data-default-sort'); });
-            if (defaultHeader) {
-                return {
-                    index: headers.indexOf(defaultHeader),
-                    dir: defaultHeader.getAttribute('data-default-sort') || 'asc'
-                };
-            }
-            return null;
-        }
-
-        function applyTableSortState(tableId, sortState) {
-            if (!sortState || !window.TableSort) return;
-            var table = document.getElementById(tableId);
-            if (!table) return;
-            var headers = Array.from(table.querySelectorAll('thead th'));
-            var th = headers[sortState.index];
-            if (!th) return;
-            th.setAttribute('data-sort-dir', sortState.dir === 'asc' ? 'desc' : 'asc');
-            window.TableSort.sortByColumn(table, sortState.index, th, headers);
-        }
+        let pcModalRow = null;
+        let pcSearchTimer = null;
+        let pcSourceRow = null;
+        let pcTargetRows = [];
 
         function showPageBusyOverlay(title, subtitle) {
-            var titleEl = document.getElementById('pcOverlayTitle');
-            var subtitleEl = document.getElementById('pcOverlaySubtitle');
+            const titleEl = document.getElementById('pcOverlayTitle');
+            const subtitleEl = document.getElementById('pcOverlaySubtitle');
             if (titleEl && title) titleEl.textContent = title;
             if (subtitleEl && subtitle) subtitleEl.textContent = subtitle;
             document.body.classList.add('page-busy');
@@ -699,158 +300,243 @@
             document.body.classList.remove('page-busy');
         }
 
-        function refreshPcOverviewInPlace() {
-            var tbody = document.getElementById('pcTableBody');
-            if (!tbody) {
-                location.reload();
-                return Promise.resolve();
-            }
-            var sortState = captureTableSortState('pcTable');
+        function filterPcTable() {
+            const query = (document.getElementById('pcSearchInput').value || '').toLowerCase().trim();
+            document.querySelectorAll('#pcTableBody tr[data-raw-song]').forEach(row => {
+                const artist = (row.dataset.rawArtist || '').toLowerCase();
+                const song = (row.dataset.rawSong || '').toLowerCase();
+                const matches = !query || artist.includes(query) || song.includes(query);
+                row.classList.toggle('pc-hidden', !matches);
+            });
+        }
 
-            showPageBusyOverlay('Refreshing Personal Cuntdown', 'Updating songs and summary stats...');
-            tbody.classList.add('pc-refreshing');
-            return fetch(window.location.pathname + window.location.search, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(function(r) { return r.text(); })
-            .then(function(html) {
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-                var nextBody = doc.getElementById('pcTableBody');
-                if (!nextBody) {
-                    location.reload();
-                    return;
+        function togglePcRow(row) {
+            if (!row || !row.dataset.rawArtist) return;
+
+            if (row === pcSourceRow) {
+                row.classList.remove('pc-source-row');
+                row.cells[8].innerHTML = '';
+                pcSourceRow = null;
+                if (pcTargetRows.length > 0) {
+                    pcSourceRow = pcTargetRows.shift();
+                    pcSourceRow.classList.remove('pc-target-row');
+                    pcSourceRow.classList.add('pc-source-row');
+                    pcSourceRow.cells[8].innerHTML = '<span class="pc-select-label source">Source</span>';
                 }
-                tbody.innerHTML = nextBody.innerHTML;
-                updatePcSummaryFromDoc(doc);
-                applyTableSortState('pcTable', sortState);
-                clearMergeSelection();
-                applyTableFilters();
-            })
-            .catch(function() {
-                location.reload();
-            })
-            .finally(function() {
-                tbody.classList.remove('pc-refreshing');
-                hidePageBusyOverlay();
-            });
-        }
-
-        // ---- Retired-only filter ----
-        var _retiredOnly = false;
-        var _searchQuery = '';
-
-        function applyTableFilters() {
-            var total = 0, visible = 0;
-            document.querySelectorAll('#pcTable tbody tr[data-pc-id]').forEach(function(row) {
-                var isRetired = row.dataset.retired === 'true';
-                var title = (row.dataset.songTitle || '').toLowerCase();
-                var artist = (row.dataset.artistName || '').toLowerCase();
-                var q = _searchQuery.toLowerCase();
-                var retiredHide = _retiredOnly && !isRetired;
-                var searchHide = q.length > 0 && title.indexOf(q) === -1 && artist.indexOf(q) === -1;
-                row.classList.toggle('pc-hidden', retiredHide);
-                row.classList.toggle('pc-search-hidden', searchHide);
-                total++;
-                if (!retiredHide && !searchHide) visible++;
-            });
-            var countEl = document.getElementById('pcSearchCount');
-            if (countEl) countEl.textContent = _searchQuery.length > 0 ? (visible + ' / ' + total) : '';
-        }
-
-        function toggleRetiredFilter(btn) {
-            btn.classList.toggle('active');
-            _retiredOnly = btn.classList.contains('active');
-            applyTableFilters();
-        }
-
-        function onTableSearch(val) {
-            _searchQuery = val;
-            applyTableFilters();
-        }
-
-        // ---- Match Modal ----
-        var _modalPcId = null;
-        var _modalRow = null;
-        var _searchTimer = null;
-
-        function openMatchModal(btn) {
-            var row = btn.closest('tr');
-            _modalPcId = row.dataset.pcId;
-            _modalRow = row;
-            var title = row.dataset.songTitle || '';
-            var artist = row.dataset.artistName || '';
-            document.getElementById('matchModalSubtitle').textContent = '"' + title + '" by ' + artist;
-            document.getElementById('matchSearchInput').value = title;
-            document.getElementById('matchSearchResults').innerHTML = '<div class="pc-search-empty">Searching...</div>';
-            document.getElementById('matchModal').classList.add('open');
-            document.getElementById('matchSearchInput').focus();
-            doSearch(title);
-        }
-
-        function closeMatchModal() {
-            document.getElementById('matchModal').classList.remove('open');
-            _modalPcId = null;
-            _modalRow = null;
-        }
-
-        function closeMatchModalOnBackdrop(e) {
-            if (e.target === document.getElementById('matchModal')) closeMatchModal();
-        }
-
-        function onMatchSearch(val) {
-            clearTimeout(_searchTimer);
-            _searchTimer = setTimeout(function() { doSearch(val); }, 220);
-        }
-
-        function doSearch(q) {
-            if (!q || q.trim().length < 1) {
-                document.getElementById('matchSearchResults').innerHTML = '<div class="pc-search-empty">Start typing to search your library</div>';
+                updatePcSelectionUi();
                 return;
             }
-            var enc = encodeURIComponent(q.trim());
+
+            const targetIndex = pcTargetRows.indexOf(row);
+            if (targetIndex !== -1) {
+                row.classList.remove('pc-target-row');
+                row.cells[8].innerHTML = '';
+                pcTargetRows.splice(targetIndex, 1);
+                updatePcSelectionUi();
+                return;
+            }
+
+            if (!pcSourceRow) {
+                pcSourceRow = row;
+                row.classList.add('pc-source-row');
+                row.cells[8].innerHTML = '<span class="pc-select-label source">Source</span>';
+            } else {
+                pcTargetRows.push(row);
+                row.classList.add('pc-target-row');
+                row.cells[8].innerHTML = '<span class="pc-select-label target">Target</span>';
+            }
+            updatePcSelectionUi();
+        }
+
+        function clearPcSelection() {
+            if (pcSourceRow) {
+                pcSourceRow.classList.remove('pc-source-row');
+                pcSourceRow.cells[8].innerHTML = '';
+                pcSourceRow = null;
+            }
+            pcTargetRows.forEach(row => {
+                row.classList.remove('pc-target-row');
+                row.cells[8].innerHTML = '';
+            });
+            pcTargetRows = [];
+            updatePcSelectionUi();
+        }
+
+        function updatePcSelectionUi() {
+            const selectionBar = document.getElementById('pcSelectionBar');
+            const mergeBtn = document.getElementById('pcMergeBtn');
+            const hasSelection = !!pcSourceRow || pcTargetRows.length > 0;
+            selectionBar.classList.toggle('visible', hasSelection);
+
+            document.getElementById('pcSelectionSource').textContent = pcSourceRow
+                ? pcSourceRow.dataset.rawArtist + ' - ' + pcSourceRow.dataset.rawSong
+                : '-';
+            document.getElementById('pcSelectionTargets').textContent = pcTargetRows.length > 0
+                ? pcTargetRows.length + ' selected'
+                : '-';
+
+            const ready = !!pcSourceRow && pcTargetRows.length > 0;
+            mergeBtn.style.display = ready ? 'flex' : 'none';
+            mergeBtn.textContent = ready
+                ? 'Merge ' + pcTargetRows.length + ' Target' + (pcTargetRows.length > 1 ? 's' : '') + ' into Source'
+                : 'Merge';
+        }
+
+        function mergePcEntries() {
+            if (!pcSourceRow || pcTargetRows.length === 0) return;
+
+            const sourceArtist = pcSourceRow.dataset.rawArtist || '';
+            const sourceSong = pcSourceRow.dataset.rawSong || '';
+            const targets = pcTargetRows.slice();
+            const targetList = targets.map(row => '  ' + row.dataset.rawArtist + ' - ' + row.dataset.rawSong).join('\n');
+            const message = 'Merge ' + targets.length + ' target(s) into Source:\n\n'
+                + '  Source: ' + sourceArtist + ' - ' + sourceSong + '\n\n'
+                + 'Targets:\n' + targetList + '\n\n'
+                + 'All Target Personal Cuntdown rows will be renamed to the Source values. Continue?';
+
+            if (!confirm(message)) return;
+
+            const mergeBtn = document.getElementById('pcMergeBtn');
+            mergeBtn.style.pointerEvents = 'none';
+            mergeBtn.textContent = 'Merging...';
+            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Merging selected entries...');
+
+            let chain = Promise.resolve();
+            targets.forEach(targetRow => {
+                chain = chain.then(() => {
+                    const params = new URLSearchParams();
+                    params.append('sourceArtist', sourceArtist);
+                    params.append('sourceSong', sourceSong);
+                    params.append('targetArtist', targetRow.dataset.rawArtist || '');
+                    params.append('targetSong', targetRow.dataset.rawSong || '');
+                    return fetch('/misc/pc/merge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    }).then(r => r.json());
+                });
+            });
+
+            chain.then(() => window.location.reload())
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    mergeBtn.style.pointerEvents = '';
+                    updatePcSelectionUi();
+                    alert('Merge failed.');
+                });
+        }
+
+        function runPcAutoLink(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Linking...';
+            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Linking exact song matches...');
+            fetch('/misc/pc/auto-link', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    btn.textContent = 'Linked ' + data.linked + ' entries';
+                    window.location.reload();
+                })
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    btn.disabled = false;
+                    btn.textContent = 'Auto-Link Exact Matches';
+                    alert('Auto-link failed.');
+                });
+        }
+
+        function runPcNormalizeCase(btn) {
+            btn.disabled = true;
+            btn.textContent = 'Normalizing...';
+            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Normalizing case-only differences...');
+            fetch('/misc/pc/normalize-case', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    btn.textContent = 'Normalized ' + data.normalized + ' row' + (data.normalized === 1 ? '' : 's');
+                    window.location.reload();
+                })
+                .catch(() => {
+                    hidePageBusyOverlay();
+                    btn.disabled = false;
+                    btn.textContent = 'Normalize Case Differences';
+                    alert('Normalization failed.');
+                });
+        }
+
+        function openPcMatchModal(event, btn) {
+            event.stopPropagation();
+            pcModalRow = btn.closest('tr');
+            const rawSong = pcModalRow.dataset.rawSong || '';
+            const rawArtist = pcModalRow.dataset.rawArtist || '';
+            document.getElementById('pcMatchSubtitle').textContent = '"' + rawSong + '" by ' + rawArtist;
+            document.getElementById('pcMatchSearchInput').value = rawSong;
+            document.getElementById('pcMatchResults').innerHTML = '<div class="pc-search-empty">Searching...</div>';
+            document.getElementById('pcMatchModal').classList.add('open');
+            searchPcLibrary(rawSong);
+        }
+
+        function closePcMatchModal() {
+            document.getElementById('pcMatchModal').classList.remove('open');
+            pcModalRow = null;
+        }
+
+        function searchPcLibrary(query) {
+            clearTimeout(pcSearchTimer);
+            pcSearchTimer = setTimeout(() => doPcLibrarySearch(query), 200);
+        }
+
+        function doPcLibrarySearch(query) {
+            const results = document.getElementById('pcMatchResults');
+            if (!query || !query.trim()) {
+                results.innerHTML = '<div class="pc-search-empty">Start typing to search your library</div>';
+                return;
+            }
+            const enc = encodeURIComponent(query.trim());
             fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=50')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    var container = document.getElementById('matchSearchResults');
+                .then(r => r.json())
+                .then(data => {
                     if (!data.length) {
-                        container.innerHTML = '<div class="pc-search-empty">No songs found</div>';
+                        results.innerHTML = '<div class="pc-search-empty">No songs found</div>';
                         return;
                     }
-                    container.innerHTML = data.map(function(s) {
-                        return '<div class="pc-result-item" data-song-id="' + s.id + '">'
-                             + '<div class="pc-result-title">' + escapeHtml(s.name) + '</div>'
-                             + '<div class="pc-result-artist">' + escapeHtml(s.artistName) + '</div>'
-                             + '</div>';
-                    }).join('');
-                    container.querySelectorAll('.pc-result-item').forEach(function(item) {
-                        item.addEventListener('click', function() { selectSong(item.dataset.songId); });
+                    results.innerHTML = data.map(song =>
+                        '<div class="pc-result-item" data-song-id="' + song.id + '">' +
+                        '<div class="pc-result-title">' + escapePcHtml(song.name) + '</div>' +
+                        '<div class="pc-result-artist">' + escapePcHtml(song.artistName) + '</div>' +
+                        '</div>'
+                    ).join('');
+                    results.querySelectorAll('.pc-result-item').forEach(item => {
+                        item.addEventListener('click', () => linkPcMatch(item.dataset.songId));
                     });
                 })
-                .catch(function() {
-                    document.getElementById('matchSearchResults').innerHTML = '<div class="pc-search-empty">Error searching. Try again.</div>';
+                .catch(() => {
+                    results.innerHTML = '<div class="pc-search-empty">Search failed</div>';
                 });
         }
 
-        function selectSong(songId) {
-            if (!_modalPcId) return;
-            showPageBusyOverlay('Refreshing Personal Cuntdown', 'Saving the song match...');
-            fetch('/misc/pc/' + _modalPcId + '/match?songId=' + songId, { method: 'POST' })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data.ok) {
-                        closeMatchModal();
-                        refreshPcOverviewInPlace();
-                    }
-                })
-                .catch(function() {
+        function linkPcMatch(songId) {
+            if (!pcModalRow) return;
+            const targetRow = pcModalRow;
+            closePcMatchModal();
+            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Saving the song match...');
+            const params = new URLSearchParams();
+            params.set('rawArtist', targetRow.dataset.rawArtist || '');
+            params.set('rawSong', targetRow.dataset.rawSong || '');
+            params.set('songId', songId);
+            fetch('/misc/pc/match-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            })
+                .then(r => r.json())
+                .then(() => window.location.reload())
+                .catch(() => {
                     hidePageBusyOverlay();
-                    alert('Failed to save match. Please try again.');
+                    alert('Match failed.');
                 });
         }
 
-        function escapeHtml(s) {
-            return String(s)
+        function escapePcHtml(value) {
+            return (value || '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
@@ -858,172 +544,11 @@
                 .replace(/'/g, '&#39;');
         }
 
-        // Close modal on Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') { closeMatchModal(); clearMergeSelection(); }
+        document.getElementById('pcMatchModal').addEventListener('click', function (event) {
+            if (event.target === this) {
+                closePcMatchModal();
+            }
         });
-
-        // ---- Merge selection ----
-        var _mergeSource = null;
-        var _mergeTargets = [];
-
-        function toggleRow(row) {
-            if (!row.dataset.pcId) return;
-            if (row.classList.contains('pc-hidden')) return;
-
-            // Deselect source
-            if (row === _mergeSource) {
-                row.classList.remove('pc-source');
-                _mergeSource = null;
-                // Promote first target to source if any
-                if (_mergeTargets.length > 0) {
-                    _mergeSource = _mergeTargets.shift();
-                    _mergeSource.classList.remove('pc-target');
-                    _mergeSource.classList.add('pc-source');
-                }
-                updateMergeUI();
-                return;
-            }
-
-            // Deselect a target
-            var tgtIdx = _mergeTargets.indexOf(row);
-            if (tgtIdx !== -1) {
-                row.classList.remove('pc-target');
-                _mergeTargets.splice(tgtIdx, 1);
-                updateMergeUI();
-                return;
-            }
-
-            // Select: first click = source, rest = targets
-            if (!_mergeSource) {
-                _mergeSource = row;
-                row.classList.add('pc-source');
-            } else {
-                _mergeTargets.push(row);
-                row.classList.add('pc-target');
-            }
-            updateMergeUI();
-        }
-
-        function clearMergeSelection() {
-            if (_mergeSource) {
-                _mergeSource.classList.remove('pc-source');
-                _mergeSource = null;
-            }
-            _mergeTargets.forEach(function(r) { r.classList.remove('pc-target'); });
-            _mergeTargets = [];
-            updateMergeUI();
-        }
-
-        function updateMergeUI() {
-            var bar = document.getElementById('pcSelectionBar');
-            var btn = document.getElementById('pcMergeBtn');
-            var hasAny = !!_mergeSource || _mergeTargets.length > 0;
-            bar.classList.toggle('visible', hasAny);
-
-            document.getElementById('pcSelSourceLabel').textContent =
-                _mergeSource
-                    ? (_mergeSource.dataset.artistName + ' - ' + _mergeSource.dataset.songTitle)
-                    : '-';
-            document.getElementById('pcSelTargetsLabel').textContent =
-                _mergeTargets.length > 0 ? _mergeTargets.length + ' selected' : '-';
-
-            var ready = !!_mergeSource && _mergeTargets.length > 0;
-            btn.style.display = ready ? 'flex' : 'none';
-            btn.textContent = ready
-                ? 'Merge ' + _mergeTargets.length + ' Target' + (_mergeTargets.length > 1 ? 's' : '') + ' into Source'
-                : 'Merge';
-        }
-
-        function doMerge() {
-            if (!_mergeSource || _mergeTargets.length === 0) return;
-
-            var sourceId    = _mergeSource.dataset.pcId;
-            var sourceLabel = _mergeSource.dataset.artistName + ' - ' + _mergeSource.dataset.songTitle;
-            var targets = _mergeTargets.slice();
-
-            var targetList = targets.map(function(r) {
-                return '  ' + r.dataset.artistName + ' - ' + r.dataset.songTitle;
-            }).join('\n');
-            var msg = 'Merge ' + targets.length + ' target(s) into Source:\n\n'
-                    + '  Source: ' + sourceLabel + '\n\n'
-                    + 'Targets:\n' + targetList + '\n\n'
-                    + 'Their chart entries will be reassigned to the source debut and the target debuts will be deleted. Continue?';
-
-            if (!confirm(msg)) return;
-
-            var btn = document.getElementById('pcMergeBtn');
-            btn.style.pointerEvents = 'none';
-            btn.textContent = 'Merging...';
-            showPageBusyOverlay('Refreshing Personal Cuntdown', 'Merging selected countdown entries...');
-
-            var chain = Promise.resolve();
-            targets.forEach(function(targetRow) {
-                chain = chain.then(function() {
-                    var params = new URLSearchParams();
-                    params.append('sourceId', sourceId);
-                    params.append('targetId', targetRow.dataset.pcId);
-                    return fetch('/misc/pc/merge', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: params.toString()
-                    })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.ok) {
-                            var idx = _mergeTargets.indexOf(targetRow);
-                            if (idx !== -1) _mergeTargets.splice(idx, 1);
-                            targetRow.remove();
-                        }
-                    });
-                });
-            });
-
-            chain.then(function() {
-                btn.style.pointerEvents = '';
-                clearMergeSelection();
-                refreshPcOverviewInPlace().finally(function() {
-                    btn.textContent = 'Merge';
-                });
-            }).catch(function() {
-                btn.style.pointerEvents = '';
-                hidePageBusyOverlay();
-                updateMergeUI();
-                btn.textContent = 'Merge';
-                alert('Merge failed. Please try again.');
-            });
-        }
-
-        // ---- Auto-link ----
-        function doAutoLink(btn) {
-            btn.disabled = true;
-            btn.textContent = 'Linking...';
-            fetch('/misc/pc/auto-link', { method: 'POST' })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data.ok) {
-                        btn.textContent = 'Linked ' + data.linked + ' entries';
-                        if (data.linked > 0) {
-                            setTimeout(function() {
-                                refreshPcOverviewInPlace().finally(function() {
-                                    btn.disabled = false;
-                                    btn.textContent = 'Auto-Link Exact Matches';
-                                });
-                            }, 300);
-                        } else {
-                            setTimeout(function() {
-                                btn.disabled = false;
-                                btn.textContent = 'Auto-Link Exact Matches';
-                            }, 2000);
-                        }
-                    }
-                })
-                .catch(function() {
-                    btn.disabled = false;
-                    btn.textContent = 'Auto-Link Exact Matches';
-                    alert('Auto-link failed. Please try again.');
-                });
-        }
 
         window.addEventListener('load', function() {
             requestAnimationFrame(function() {
@@ -1031,7 +556,5 @@
             });
         });
     </script>
-
-    <button id="pcMergeBtn" class="pc-float-merge-btn" onclick="doMerge()">Merge</button>
 </body>
 </html>

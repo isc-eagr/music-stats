@@ -1,6 +1,7 @@
 package library.controller;
 
 import library.repository.SongRepository;
+import library.service.BillboardHot100Service;
 import library.service.SongService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,12 +24,14 @@ public class NowPlayingLookupController {
     private final JdbcTemplate jdbcTemplate;
     private final SongService songService;
     private final ChartService chartService;
+    private final BillboardHot100Service billboardHot100Service;
 
-    public NowPlayingLookupController(SongRepository songRepository, JdbcTemplate jdbcTemplate, SongService songService, ChartService chartService) {
+    public NowPlayingLookupController(SongRepository songRepository, JdbcTemplate jdbcTemplate, SongService songService, ChartService chartService, BillboardHot100Service billboardHot100Service) {
         this.songRepository = songRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.songService = songService;
         this.chartService = chartService;
+        this.billboardHot100Service = billboardHot100Service;
     }
 
     @GetMapping("/lookup")
@@ -306,6 +309,11 @@ public class NowPlayingLookupController {
                     resp.put("yearlyChartHistory", yearlyChartHistory);
                 } catch (Exception e) {}
 
+                try {
+                    Map<String, Object> billboardHot100Stats = billboardHot100Service.getStatsBySongId(songId);
+                    resp.put("billboardHot100Stats", billboardHot100Stats);
+                } catch (Exception e) {}
+
                 Integer overall = songService.getSongOverallPosition(songId);
                 Integer rankArtist = songService.getSongRankByArtist(songId);
                 Integer rankAlbum = songService.getSongRankByAlbum(songId);
@@ -567,6 +575,9 @@ public class NowPlayingLookupController {
             h.append(".chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}");
             h.append(".chip{background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px}");
             h.append(".chip .val{font-weight:700;color:var(--accent)}");
+            h.append(".chip-link{text-decoration:none}");
+            h.append(".chip-billboard{background:rgba(126,208,255,0.08);border:1px solid rgba(126,208,255,0.45)}");
+            h.append(".chip-billboard .val{color:#7ed0ff}");
             h.append(".chip-proj{background:var(--chip-bg);border:1px dashed var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px}");
             h.append(".chip-proj .val{font-weight:600;color:var(--accent)}");
             h.append(".chip-yearly{background:linear-gradient(135deg, var(--chip-bg), var(--accent));border:1px solid var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;font-weight:700;box-shadow:0 0 12px var(--chip-border)}");
@@ -615,6 +626,27 @@ public class NowPlayingLookupController {
                          .append("<span class=\"val\">").append("⭐ ").append(safe(map.get("displayName")))
                          .append("</span></div>");
                     }
+                }
+            }
+
+            Object rawBillboardStats = resp.get("billboardHot100Stats");
+            if (rawBillboardStats instanceof Map<?, ?> billboardStats) {
+                String weeksOnChart = safe(billboardStats.get("weeksOnChart"));
+                String peakPosition = safe(billboardStats.get("peakPosition"));
+                String weeksAtPeak = safe(billboardStats.get("weeksAtPeak"));
+                if (!weeksOnChart.isEmpty()) {
+                    String billboardText = weeksOnChart + " weeks on the Hot 100";
+                    if (!peakPosition.isEmpty()) {
+                        billboardText += " (Peak #" + peakPosition;
+                        if (!weeksAtPeak.isEmpty() && !"0".equals(weeksAtPeak)) {
+                            billboardText += " for " + weeksAtPeak + ("1".equals(weeksAtPeak) ? " week)" : " weeks)");
+                        } else {
+                            billboardText += ")";
+                        }
+                    }
+                    h.append("<a class=\"chip chip-link chip-billboard\" href=\"").append(base).append("/misc/billboard-hot-100\" target=\"_blank\"><span class=\"val\">")
+                     .append(escapeHtml(billboardText))
+                     .append("</span></a>");
                 }
             }
 
@@ -696,5 +728,14 @@ public class NowPlayingLookupController {
     private String safe(Object o) {
         if (o == null) return "";
         return o.toString();
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) return "";
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 }
