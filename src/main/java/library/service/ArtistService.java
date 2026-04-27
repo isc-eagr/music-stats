@@ -144,22 +144,26 @@ public class ArtistService {
             // Set first and last listened dates (indices 20 and 21)
             dto.setFirstListenedDate(row[20] != null ? formatDate((String) row[20]) : null);
             dto.setLastListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
+            dto.setDaysListened(row[22] != null ? ((Number) row[22]).intValue() : 0);
+            dto.setWeeksListened(row[23] != null ? ((Number) row[23]).intValue() : 0);
+            dto.setMonthsListened(row[24] != null ? ((Number) row[24]).intValue() : 0);
+            dto.setYearsListened(row[25] != null ? ((Number) row[25]).intValue() : 0);
             
-            // Set organized (index 22)
-            dto.setOrganized(row[22] != null && ((Number) row[22]).intValue() == 1);
+            // Set organized (index 26)
+            dto.setOrganized(row[26] != null && ((Number) row[26]).intValue() == 1);
             
-            // Set featured song count (index 23)
-            dto.setFeaturedSongCount(row[23] != null ? ((Number) row[23]).intValue() : 0);
+            // Set featured song count (index 27)
+            dto.setFeaturedSongCount(row[27] != null ? ((Number) row[27]).intValue() : 0);
             
-            // Set birth date (index 24) and death date (index 25)
-            dto.setBirthDate(parseDateSafely(row[24]));
-            dto.setDeathDate(parseDateSafely(row[25]));
+            // Set birth date (index 28) and death date (index 29)
+            dto.setBirthDate(parseDateSafely(row[28]));
+            dto.setDeathDate(parseDateSafely(row[29]));
             
-            // Set image count (index 26)
-            dto.setImageCount(row[26] != null ? ((Number) row[26]).intValue() : 0);
+            // Set image count (index 30)
+            dto.setImageCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
 
-            // Compute average plays and average length (index 27 = total_song_length)
-            long totalSongLength = row[27] != null ? ((Number) row[27]).longValue() : 0L;
+            // Compute average plays and average length (index 31 = total_song_length)
+            long totalSongLength = row[31] != null ? ((Number) row[31]).longValue() : 0L;
             int sc = dto.getSongCount();
             dto.setAvgPlays(sc > 0 ? (double) dto.getPlayCount() / sc : null);
             int ac = dto.getAlbumCount();
@@ -167,13 +171,13 @@ public class ArtistService {
             dto.setAvgLengthFormatted(sc > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / sc) : null);
             dto.setAvgAlbumLengthFormatted(ac > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / ac) : null);
 
-            // Set featured artist count (index 28), solo song count (index 29), songs with feat count (index 30)
-            dto.setFeaturedArtistCount(row[28] != null ? ((Number) row[28]).intValue() : 0);
-            dto.setSoloSongCount(row[29] != null ? ((Number) row[29]).intValue() : 0);
-            dto.setSongsWithFeatCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
-            dto.setStandaloneSongCount(row[31] != null ? ((Number) row[31]).intValue() : 0);
-            dto.setHasThemeImage(row[32] != null && ((Number) row[32]).intValue() == 1);
-            dto.setItunesPresenceRatio(row[33] != null ? ((Number) row[33]).doubleValue() : null);
+            // Set featured artist count (index 32), solo song count (index 33), songs with feat count (index 34)
+            dto.setFeaturedArtistCount(row[32] != null ? ((Number) row[32]).intValue() : 0);
+            dto.setSoloSongCount(row[33] != null ? ((Number) row[33]).intValue() : 0);
+            dto.setSongsWithFeatCount(row[34] != null ? ((Number) row[34]).intValue() : 0);
+            dto.setStandaloneSongCount(row[35] != null ? ((Number) row[35]).intValue() : 0);
+            dto.setHasThemeImage(row[36] != null && ((Number) row[36]).intValue() == 1);
+            dto.setItunesPresenceRatio(row[37] != null ? ((Number) row[37]).doubleValue() : null);
 
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));

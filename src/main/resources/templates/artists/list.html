@@ -48,6 +48,7 @@
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
+                            <option value="days_listened" th:selected="${sortBy == 'days_listened'}">Days Listened</option>
                             <option value="ethnicity" th:selected="${sortBy == 'ethnicity'}">Ethnicity</option>
                             <option value="featured" th:selected="${sortBy == 'featured'}">Featured Songs</option>
                             <option value="featured_artist_count" th:selected="${sortBy == 'featured_artist_count'}">Featured Artist Count</option>
@@ -58,6 +59,7 @@
                             <option value="language" th:selected="${sortBy == 'language'}">Language</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
                             <option value="legacy_plays" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
+                            <option value="months_listened" th:selected="${sortBy == 'months_listened'}">Months Listened</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Total Plays</option>
                             <option value="primary_plays" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
@@ -66,6 +68,8 @@
                             <option value="songs_with_features" th:selected="${sortBy == 'songs_with_features'}">Songs with Features</option>
                             <option value="subgenre" th:selected="${sortBy == 'subgenre'}">Subgenre</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
+                            <option value="weeks_listened" th:selected="${sortBy == 'weeks_listened'}">Weeks Listened</option>
+                            <option value="years_listened" th:selected="${sortBy == 'years_listened'}">Years Listened</option>
                         </select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
                                 th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
@@ -1224,10 +1228,14 @@
                             <th:block th:case="'avg_plays_album'">Avg Plays / Album:</th:block>
                             <th:block th:case="'birth_date'">Born:</th:block>
                             <th:block th:case="'death_date'">Died:</th:block>
+                            <th:block th:case="'days_listened'">Days Listened:</th:block>
                             <th:block th:case="'first_listened'">First Listened:</th:block>
                             <th:block th:case="'image_count'">Images:</th:block>
                             <th:block th:case="'itunes_presence'">iTunes Presence:</th:block>
                             <th:block th:case="'last_listened'">Last Listened:</th:block>
+                            <th:block th:case="'months_listened'">Months Listened:</th:block>
+                            <th:block th:case="'weeks_listened'">Weeks Listened:</th:block>
+                            <th:block th:case="'years_listened'">Years Listened:</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'age'" th:text="${artist.ageDisplay != null ? artist.ageDisplay : 'N/A'}"></th:block>
@@ -1236,10 +1244,14 @@
                             <th:block th:case="'avg_plays_album'" th:text="${artist.avgPlaysPerAlbum != null ? #numbers.formatDecimal(artist.avgPlaysPerAlbum, 1, 1) : 'N/A'}"></th:block>
                             <th:block th:case="'birth_date'" th:text="${artist.birthDate != null ? #temporals.format(artist.birthDate, 'dd MMM yyyy') : 'N/A'}"></th:block>
                             <th:block th:case="'death_date'" th:text="${artist.deathDate != null ? #temporals.format(artist.deathDate, 'dd MMM yyyy') : 'N/A'}"></th:block>
+                            <th:block th:case="'days_listened'" th:text="${artist.daysListened + (artist.daysListened == 1 ? ' day' : ' days')}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${artist.firstListenedDate != null ? artist.firstListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'image_count'" th:text="${artist.imageCount}"></th:block>
                             <th:block th:case="'itunes_presence'" th:text="${artist.itunesPresenceRatio != null ? #numbers.formatDecimal(artist.itunesPresenceRatio, 1, 1) + '%' : 'N/A'}"></th:block>
                             <th:block th:case="'last_listened'" th:text="${artist.lastListenedDate != null ? artist.lastListenedDate : 'N/A'}"></th:block>
+                            <th:block th:case="'months_listened'" th:text="${artist.monthsListened + (artist.monthsListened == 1 ? ' month' : ' months')}"></th:block>
+                            <th:block th:case="'weeks_listened'" th:text="${artist.weeksListened + (artist.weeksListened == 1 ? ' week' : ' weeks')}"></th:block>
+                            <th:block th:case="'years_listened'" th:text="${artist.yearsListened + (artist.yearsListened == 1 ? ' year' : ' years')}"></th:block>
                         </span>
                     </div>
                     
@@ -1416,6 +1428,22 @@
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">Last Listened</span>
                                 <span class="modal-stat-value" th:text="${artist.lastListenedDate != null ? artist.lastListenedDate : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Days Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.daysListened}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Weeks Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.weeksListened}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Months Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.monthsListened}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Years Listened</span>
+                                <span class="modal-stat-value" th:text="${artist.yearsListened}">0</span>
                             </div>
                             <div class="modal-stat-row" th:if="${artist.birthDate != null}">
                                 <span class="modal-stat-label">Birth Date</span>

@@ -47,6 +47,10 @@ public class SongCardDTO {
     private Integer weeklyChartPeakWeeks; // Number of weeks spent at the peak position
     private Integer seasonalChartPeakSeasons; // Number of seasons spent at the peak position
     private Integer yearlyChartPeakYears; // Number of years spent at the peak position
+    private Integer daysListened;
+    private Integer weeksListened;
+    private Integer monthsListened;
+    private Integer yearsListened;
 
     // Getters and Setters
     public Integer getId() {
@@ -343,6 +347,38 @@ public class SongCardDTO {
 
     public void setImageCount(Integer imageCount) {
         this.imageCount = imageCount;
+    }
+
+    public Integer getDaysListened() {
+        return daysListened;
+    }
+
+    public void setDaysListened(Integer daysListened) {
+        this.daysListened = daysListened;
+    }
+
+    public Integer getWeeksListened() {
+        return weeksListened;
+    }
+
+    public void setWeeksListened(Integer weeksListened) {
+        this.weeksListened = weeksListened;
+    }
+
+    public Integer getMonthsListened() {
+        return monthsListened;
+    }
+
+    public void setMonthsListened(Integer monthsListened) {
+        this.monthsListened = monthsListened;
+    }
+
+    public Integer getYearsListened() {
+        return yearsListened;
+    }
+
+    public void setYearsListened(Integer yearsListened) {
+        this.yearsListened = yearsListened;
     }
 
     public Integer getSeasonalChartPeak() {

@@ -136,6 +136,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    COALESCE(play_stats.time_listened, 0) as time_listened, ");
         sql.append("    play_stats.first_listened, ");
         sql.append("    play_stats.last_listened, ");
+        sql.append("    COALESCE(consistency_stats.days_listened, 0) as days_listened, ");
+        sql.append("    COALESCE(consistency_stats.weeks_listened, 0) as weeks_listened, ");
+        sql.append("    COALESCE(consistency_stats.months_listened, 0) as months_listened, ");
+        sql.append("    COALESCE(consistency_stats.years_listened, 0) as years_listened, ");
         sql.append("    a.organized, ");
         sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count, ");
         sql.append("    a.birth_date, ");
@@ -199,6 +203,18 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    ) ps ON ps.song_id = s.id ");
         sql.append("    GROUP BY s.artist_id ");
         sql.append(") play_stats ON play_stats.artist_id = a.id ");
+        sql.append("LEFT JOIN ( ");
+        sql.append("    SELECT ");
+        sql.append("        s.artist_id, ");
+        sql.append("        COUNT(DISTINCT DATE(p.play_date)) as days_listened, ");
+        sql.append("        COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened, ");
+        sql.append("        COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened, ");
+        sql.append("        COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened ");
+        sql.append("    FROM Song s ");
+        sql.append("    JOIN Play p ON p.song_id = s.id ");
+        sql.append("    WHERE 1=1 ").append(accountFilterClause).append(listenedDateFilterClause).append(" ");
+        sql.append("    GROUP BY s.artist_id ");
+        sql.append(") consistency_stats ON consistency_stats.artist_id = a.id ");
         
         sql.append("WHERE 1=1 ");
         
@@ -208,6 +224,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(itunesSongIdsJson != null ? itunesSongIdsJson : "[]");
         }
         // Add account params and listened date params
+        params.addAll(accountParams);
+        params.addAll(listenedDateParams);
         params.addAll(accountParams);
         params.addAll(listenedDateParams);
         
@@ -374,6 +392,14 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             sql.append(" first_listened " + direction + " NULLS LAST, a.name ASC");
         } else if ("last_listened".equals(sortBy)) {
             sql.append(" last_listened " + direction + " NULLS LAST, a.name ASC");
+        } else if ("days_listened".equals(sortBy)) {
+            sql.append(" days_listened " + direction + ", a.name ASC");
+        } else if ("weeks_listened".equals(sortBy)) {
+            sql.append(" weeks_listened " + direction + ", a.name ASC");
+        } else if ("months_listened".equals(sortBy)) {
+            sql.append(" months_listened " + direction + ", a.name ASC");
+        } else if ("years_listened".equals(sortBy)) {
+            sql.append(" years_listened " + direction + ", a.name ASC");
         } else if ("name".equals(sortBy)) {
             sql.append(" a.name " + direction);
         } else if ("image_count".equals(sortBy)) {
@@ -432,6 +458,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getLong("time_listened"),
                 rs.getString("first_listened"),
                 rs.getString("last_listened"),
+                rs.getInt("days_listened"),
+                rs.getInt("weeks_listened"),
+                rs.getInt("months_listened"),
+                rs.getInt("years_listened"),
                 rs.getObject("organized"),
                 rs.getInt("featured_song_count"),
                 rs.getString("birth_date"),

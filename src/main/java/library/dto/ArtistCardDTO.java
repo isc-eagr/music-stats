@@ -31,6 +31,10 @@ public class ArtistCardDTO {
     private java.time.LocalDate birthDate;
     private java.time.LocalDate deathDate;
     private Integer imageCount; // Count of gallery images
+    private Integer daysListened;
+    private Integer weeksListened;
+    private Integer monthsListened;
+    private Integer yearsListened;
 
     // Getters and Setters
     public Integer getId() {
@@ -279,6 +283,38 @@ public class ArtistCardDTO {
 
     public void setImageCount(Integer imageCount) {
         this.imageCount = imageCount;
+    }
+
+    public Integer getDaysListened() {
+        return daysListened;
+    }
+
+    public void setDaysListened(Integer daysListened) {
+        this.daysListened = daysListened;
+    }
+
+    public Integer getWeeksListened() {
+        return weeksListened;
+    }
+
+    public void setWeeksListened(Integer weeksListened) {
+        this.weeksListened = weeksListened;
+    }
+
+    public Integer getMonthsListened() {
+        return monthsListened;
+    }
+
+    public void setMonthsListened(Integer monthsListened) {
+        this.monthsListened = monthsListened;
+    }
+
+    public Integer getYearsListened() {
+        return yearsListened;
+    }
+
+    public void setYearsListened(Integer yearsListened) {
+        this.yearsListened = yearsListened;
     }
 
     private Double avgPlays;

@@ -67,6 +67,10 @@ const topColumnConfig = {
         { key: 'timeListened', label: 'Time Listened', defaultVisible: true, align: 'right' },
         { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
         { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'daysListened', label: 'Days Listened', defaultVisible: false, align: 'right' },
+        { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
+        { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
+        { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
         { key: 'age', label: 'Age', defaultVisible: false, align: 'right' },
         { key: 'albumCount', label: 'Album Count', defaultVisible: false, align: 'right' },
         { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
@@ -94,6 +98,10 @@ const topColumnConfig = {
         { key: 'releaseDate', label: 'Release Date', defaultVisible: true, align: 'left' },
         { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
         { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'daysListened', label: 'Days Listened', defaultVisible: false, align: 'right' },
+        { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
+        { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
+        { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
         { key: 'lastFullListen', label: 'Last Full Listen', defaultVisible: false, align: 'left' },
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
@@ -121,6 +129,10 @@ const topColumnConfig = {
         { key: 'releaseDate', label: 'Release Date', defaultVisible: true, align: 'left' },
         { key: 'firstListened', label: 'First Listened', defaultVisible: true, align: 'left' },
         { key: 'lastListened', label: 'Last Listened', defaultVisible: true, align: 'left' },
+        { key: 'daysListened', label: 'Days Listened', defaultVisible: false, align: 'right' },
+        { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
+        { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
+        { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
         { key: 'trackNumber', label: 'Track #', defaultVisible: false, align: 'right' },
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
@@ -1968,6 +1980,10 @@ function buildArtistRow(artist, rank) {
             <td style="text-align:right;display:${vis('timeListened')};">${artist.timeListenedFormatted || '-'}</td>
             <td style="display:${vis('firstListened')};">${artist.firstListened || '-'}</td>
             <td style="display:${vis('lastListened')};">${artist.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('daysListened')};">${cellVal(artist.daysListened)}</td>
+            <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(artist.weeksListened)}</td>
+            <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(artist.monthsListened)}</td>
+            <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(artist.yearsListened)}</td>
             <td style="text-align:right;display:${vis('age')};">${cellVal(artist.age)}</td>
             <td style="text-align:right;display:${vis('albumCount')};">${cellVal(artist.albumCount)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${artist.avgLengthFormatted || '-'}</td>
@@ -2045,6 +2061,10 @@ function buildAlbumRow(album, rank) {
             <td style="display:${vis('releaseDate')};">${album.releaseDate || '-'}</td>
             <td style="display:${vis('firstListened')};">${album.firstListened || '-'}</td>
             <td style="display:${vis('lastListened')};">${album.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('daysListened')};">${cellVal(album.daysListened)}</td>
+            <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(album.weeksListened)}</td>
+            <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(album.monthsListened)}</td>
+            <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(album.yearsListened)}</td>
             <td style="display:${vis('lastFullListen')};">${album.lastFullListen || '-'}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(album.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${album.avgLengthFormatted || '-'}</td>
@@ -2143,6 +2163,10 @@ function buildSongRow(song, rank) {
             <td style="display:${vis('releaseDate')};">${song.releaseDate || '-'}</td>
             <td style="display:${vis('firstListened')};">${song.firstListened || '-'}</td>
             <td style="display:${vis('lastListened')};">${song.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('daysListened')};">${cellVal(song.daysListened)}</td>
+            <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(song.weeksListened)}</td>
+            <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(song.monthsListened)}</td>
+            <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(song.yearsListened)}</td>
             <td style="text-align:right;display:${vis('trackNumber')};">${cellVal(song.trackNumber)}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(song.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(song.featuredArtistCount)}</td>
@@ -2206,7 +2230,7 @@ function renderTopSongsTable() {
  */
 const numericSortColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
-    'trackNumber',
+    'trackNumber', 'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
     'age', 'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'seasonalChartPeak', 'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
@@ -2218,6 +2242,7 @@ const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened',
 const descDefaultColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
     'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength', 'age',
+    'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'weeklyChartWeeks'
 ]);

@@ -107,6 +107,10 @@ public class SongRepository {
                 s.track_number,
                 play_stats.first_listened,
                 play_stats.last_listened,
+                COALESCE(play_stats.days_listened, 0) as days_listened,
+                COALESCE(play_stats.weeks_listened, 0) as weeks_listened,
+                COALESCE(play_stats.months_listened, 0) as months_listened,
+                COALESCE(play_stats.years_listened, 0) as years_listened,
                 ar.country as country,
                 s.organized,
                 CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image,
@@ -155,6 +159,10 @@ public class SongRepository {
                     COUNT(*) as play_count,
                     SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
                     SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
+                    COUNT(DISTINCT DATE(p.play_date)) as days_listened,
+                    COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened,
+                    COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened,
+                    COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened,
                     MIN(p.play_date) as first_listened,
                     MAX(p.play_date) as last_listened
                 FROM Play p
@@ -687,6 +695,10 @@ public class SongRepository {
             case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(", s.name");
             case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "days_listened" -> sql.append(" ORDER BY days_listened ").append(dir).append(", s.name");
+            case "weeks_listened" -> sql.append(" ORDER BY weeks_listened ").append(dir).append(", s.name");
+            case "months_listened" -> sql.append(" ORDER BY months_listened ").append(dir).append(", s.name");
+            case "years_listened" -> sql.append(" ORDER BY years_listened ").append(dir).append(", s.name");
             case "age_at_release" -> sql.append(" ORDER BY CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "birth_date" -> sql.append(" ORDER BY ar.birth_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
             case "death_date" -> sql.append(" ORDER BY ar.death_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
@@ -703,7 +715,7 @@ public class SongRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[46];
+            Object[] row = new Object[50];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -729,27 +741,31 @@ public class SongRepository {
             row[22] = rs.getLong("time_listened");
             row[23] = rs.getString("first_listened");
             row[24] = rs.getString("last_listened");
-            row[25] = rs.getString("country");
-            row[26] = rs.getObject("organized");
-            row[27] = rs.getInt("album_has_image");
-            row[28] = rs.getInt("is_single");
-            row[29] = rs.getString("birth_date");
-            row[30] = rs.getString("death_date");
-            row[31] = rs.getInt("image_count");
-            row[32] = rs.getObject("seasonal_chart_peak");
-            row[33] = rs.getObject("weekly_chart_peak");
-            row[34] = rs.getObject("weekly_chart_weeks");
-            row[35] = rs.getObject("yearly_chart_peak");
-            row[36] = rs.getString("weekly_chart_peak_start_date");
-            row[37] = rs.getString("seasonal_chart_peak_period");
-            row[38] = rs.getString("yearly_chart_peak_period");
-            row[39] = rs.getString("seasonal_chart_peak_start_date");
-            row[40] = rs.getInt("featured_artist_count");
-            row[41] = rs.getObject("age_at_release");
-            row[42] = rs.getObject("weekly_chart_peak_weeks");
-            row[43] = rs.getObject("seasonal_chart_peak_seasons");
-            row[44] = rs.getObject("yearly_chart_peak_years");
-            row[45] = rs.getObject("track_number");
+            row[25] = rs.getInt("days_listened");
+            row[26] = rs.getInt("weeks_listened");
+            row[27] = rs.getInt("months_listened");
+            row[28] = rs.getInt("years_listened");
+            row[29] = rs.getString("country");
+            row[30] = rs.getObject("organized");
+            row[31] = rs.getInt("album_has_image");
+            row[32] = rs.getInt("is_single");
+            row[33] = rs.getString("birth_date");
+            row[34] = rs.getString("death_date");
+            row[35] = rs.getInt("image_count");
+            row[36] = rs.getObject("seasonal_chart_peak");
+            row[37] = rs.getObject("weekly_chart_peak");
+            row[38] = rs.getObject("weekly_chart_weeks");
+            row[39] = rs.getObject("yearly_chart_peak");
+            row[40] = rs.getString("weekly_chart_peak_start_date");
+            row[41] = rs.getString("seasonal_chart_peak_period");
+            row[42] = rs.getString("yearly_chart_peak_period");
+            row[43] = rs.getString("seasonal_chart_peak_start_date");
+            row[44] = rs.getInt("featured_artist_count");
+            row[45] = rs.getObject("age_at_release");
+            row[46] = rs.getObject("weekly_chart_peak_weeks");
+            row[47] = rs.getObject("seasonal_chart_peak_seasons");
+            row[48] = rs.getObject("yearly_chart_peak_years");
+            row[49] = rs.getObject("track_number");
             return row;
         }, params.toArray());
     }
@@ -6415,7 +6431,11 @@ public class SongRepository {
                     COALESCE(agg.legacy_plays, 0) as legacy_plays,
                     COALESCE(agg.time_listened, 0) as time_listened,
                     agg.first_listened,
-                    agg.last_listened
+                    agg.last_listened,
+                    COALESCE(consistency_agg.days_listened, 0) as days_listened,
+                    COALESCE(consistency_agg.weeks_listened, 0) as weeks_listened,
+                    COALESCE(consistency_agg.months_listened, 0) as months_listened,
+                    COALESCE(consistency_agg.years_listened, 0) as years_listened
                 FROM Artist ar
                 LEFT JOIN Genre gen ON ar.genre_id = gen.id
                 LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
@@ -6456,10 +6476,26 @@ public class SongRepository {
                     WHERE 1=1 """ + songFilterClause.toString() + """
                     GROUP BY s.artist_id
                 ) agg ON ar.id = agg.artist_id
+                LEFT JOIN (
+                    SELECT
+                        s.artist_id,
+                        COUNT(DISTINCT DATE(p.play_date)) as days_listened,
+                        COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened,
+                        COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened,
+                        COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    INNER JOIN Play p ON p.song_id = s.id
+                    WHERE 1=1 """ + playDateFilter.toString() + songFilterClause.toString() + """
+                    GROUP BY s.artist_id
+                ) consistency_agg ON ar.id = consistency_agg.artist_id
                 ORDER BY plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
             // Add play date params first, then song params, then limit
+            params.addAll(playDateParams);
+            params.addAll(songParams);
             params.addAll(playDateParams);
             params.addAll(songParams);
             params.add(limit);
@@ -6495,7 +6531,11 @@ public class SongRepository {
                     COALESCE(agg.legacy_plays, 0) as legacy_plays,
                     COALESCE(agg.time_listened, 0) as time_listened,
                     agg.first_listened,
-                    agg.last_listened
+                    agg.last_listened,
+                    COALESCE(consistency_agg.days_listened, 0) as days_listened,
+                    COALESCE(consistency_agg.weeks_listened, 0) as weeks_listened,
+                    COALESCE(consistency_agg.months_listened, 0) as months_listened,
+                    COALESCE(consistency_agg.years_listened, 0) as years_listened
                 FROM Artist ar
                 LEFT JOIN Genre gen ON ar.genre_id = gen.id
                 LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
@@ -6536,10 +6576,26 @@ public class SongRepository {
                     WHERE 1=1 """ + songFilterClause.toString() + """
                     GROUP BY s.artist_id
                 ) agg ON ar.id = agg.artist_id
+                LEFT JOIN (
+                    SELECT
+                        s.artist_id,
+                        COUNT(DISTINCT DATE(p.play_date)) as days_listened,
+                        COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened,
+                        COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened,
+                        COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    INNER JOIN Play p ON p.song_id = s.id
+                    WHERE 1=1 """ + playDateFilter.toString() + songFilterClause.toString() + """
+                    GROUP BY s.artist_id
+                ) consistency_agg ON ar.id = consistency_agg.artist_id
                 ORDER BY plays DESC, agg.last_listened ASC
                 LIMIT ?
                 """;
             // Add play date params first, then song params, then limit
+            params.addAll(playDateParams);
+            params.addAll(songParams);
             params.addAll(playDateParams);
             params.addAll(songParams);
             params.add(limit);
@@ -6640,7 +6696,11 @@ public class SongRepository {
                     agg.legacy_plays,
                     agg.time_listened,
                     agg.first_listened,
-                    agg.last_listened
+                    agg.last_listened,
+                    agg.days_listened,
+                    agg.weeks_listened,
+                    agg.months_listened,
+                    agg.years_listened
                 FROM Artist ar
                 LEFT JOIN Genre gen ON ar.genre_id = gen.id
                 LEFT JOIN SubGenre sg ON ar.subgenre_id = sg.id
@@ -6660,7 +6720,11 @@ public class SongRepository {
                         SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
                         SUM(length_seconds) as time_listened,
                         MIN(play_date) as first_listened,
-                        MAX(play_date) as last_listened
+                        MAX(play_date) as last_listened,
+                        COUNT(DISTINCT DATE(play_date)) as days_listened,
+                        COUNT(DISTINCT strftime('%Y-%W', play_date)) as weeks_listened,
+                        COUNT(DISTINCT strftime('%Y-%m', play_date)) as months_listened,
+                        COUNT(DISTINCT strftime('%Y', play_date)) as years_listened
                     FROM (
                         """ + unionParts.toString() + """
                     )
@@ -6719,6 +6783,10 @@ public class SongRepository {
             row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
+            row.put("daysListened", rs.getInt("days_listened"));
+            row.put("weeksListened", rs.getInt("weeks_listened"));
+            row.put("monthsListened", rs.getInt("months_listened"));
+            row.put("yearsListened", rs.getInt("years_listened"));
             return row;
         }, params.toArray());
     }
@@ -6769,6 +6837,8 @@ public class SongRepository {
         java.util.List<Object> params = new java.util.ArrayList<>();
         params.addAll(playDateParams);
         params.addAll(songParams);
+        params.addAll(playDateParams);
+        params.addAll(songParams);
         if (hasLastFullListenFilter && lastFullListenClause.length() > 0) {
             params.addAll(lastFullListenParams);
         }
@@ -6808,6 +6878,10 @@ public class SongRepository {
                 COALESCE(agg.time_listened, 0) as time_listened,
                 agg.first_listened,
                 agg.last_listened,
+                COALESCE(consistency_agg.days_listened, 0) as days_listened,
+                COALESCE(consistency_agg.weeks_listened, 0) as weeks_listened,
+                COALESCE(consistency_agg.months_listened, 0) as months_listened,
+                COALESCE(consistency_agg.years_listened, 0) as years_listened,
                 (SELECT MAX(DATE(arc.run_end_date))
                  FROM (
                      SELECT rn2.album_id, rn2.run_id, MAX(rn2.play_date) AS run_end_date, COUNT(DISTINCT rn2.song_id) AS songs_played
@@ -6875,6 +6949,20 @@ public class SongRepository {
                 WHERE s.album_id IS NOT NULL """ + songFilterClause.toString() + """
                 GROUP BY s.album_id
             ) agg ON alb.id = agg.album_id
+            LEFT JOIN (
+                SELECT
+                    s.album_id,
+                    COUNT(DISTINCT DATE(p.play_date)) as days_listened,
+                    COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened,
+                    COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened,
+                    COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened
+                FROM Song s
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album alb ON s.album_id = alb.id
+                INNER JOIN Play p ON p.song_id = s.id
+                WHERE s.album_id IS NOT NULL """ + playDateFilter.toString() + songFilterClause.toString() + """
+                GROUP BY s.album_id
+            ) consistency_agg ON alb.id = consistency_agg.album_id
             WHERE agg.album_id IS NOT NULL
             ORDER BY plays DESC, agg.last_listened ASC
             """;
@@ -6953,6 +7041,10 @@ public class SongRepository {
             row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
+            row.put("daysListened", rs.getInt("days_listened"));
+            row.put("weeksListened", rs.getInt("weeks_listened"));
+            row.put("monthsListened", rs.getInt("months_listened"));
+            row.put("yearsListened", rs.getInt("years_listened"));
             row.put("lastFullListen", formatDate(rs.getString("last_full_listen_date")));
             return row;
         }, params.toArray());
@@ -7051,7 +7143,11 @@ public class SongRepository {
                 COALESCE(play_stats.legacy_plays, 0) as legacy_plays,
                 COALESCE(s.length_seconds, 0) * COALESCE(play_stats.plays, 0) as time_listened,
                 play_stats.first_listened,
-                play_stats.last_listened
+                play_stats.last_listened,
+                COALESCE(play_stats.days_listened, 0) as days_listened,
+                COALESCE(play_stats.weeks_listened, 0) as weeks_listened,
+                COALESCE(play_stats.months_listened, 0) as months_listened,
+                COALESCE(play_stats.years_listened, 0) as years_listened
                 """ + featuredOnColumn + fromGroupColumn + primaryArtistColumns + sourceArtistColumns + " " + """
             FROM Song s
             INNER JOIN Artist ar ON s.artist_id = ar.id
@@ -7073,6 +7169,10 @@ public class SongRepository {
                     COUNT(*) as plays,
                     SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as primary_plays,
                     SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as legacy_plays,
+                    COUNT(DISTINCT DATE(p.play_date)) as days_listened,
+                    COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened,
+                    COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened,
+                    COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened,
                     MIN(p.play_date) as first_listened,
                     MAX(p.play_date) as last_listened
                 FROM Play p
@@ -7147,6 +7247,10 @@ public class SongRepository {
             row.put("timeListenedFormatted", TimeFormatUtils.formatTime(timeListened));
             row.put("firstListened", formatDate(rs.getString("first_listened")));
             row.put("lastListened", formatDate(rs.getString("last_listened")));
+            row.put("daysListened", rs.getInt("days_listened"));
+            row.put("weeksListened", rs.getInt("weeks_listened"));
+            row.put("monthsListened", rs.getInt("months_listened"));
+            row.put("yearsListened", rs.getInt("years_listened"));
             
             // Add featured/group flags if applicable
             if (hasArtistFilter && includeFeatured) {
