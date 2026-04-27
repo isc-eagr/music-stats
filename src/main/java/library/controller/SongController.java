@@ -16,6 +16,7 @@ import library.service.ItunesService;
 import library.service.TrlService;
 import library.service.PcService;
 import library.util.DateFormatUtils;
+import library.util.StringNormalizer;
 import library.service.iTunesLibraryService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,12 +24,23 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Controller
 @RequestMapping("/songs")
@@ -43,10 +55,13 @@ public class SongController {
     private final ItunesService itunesService;
     private final TrlService trlService;
     private final PcService pcService;
+    private final JdbcTemplate jdbcTemplate;
+    private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
+    private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
 
     public SongController(SongService songService, ChartService chartService, ArtistService artistService,
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
-                         ItunesService itunesService, TrlService trlService, PcService pcService) {
+                         ItunesService itunesService, TrlService trlService, PcService pcService, JdbcTemplate jdbcTemplate) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -56,6 +71,7 @@ public class SongController {
         this.itunesService = itunesService;
         this.trlService = trlService;
         this.pcService = pcService;
+        this.jdbcTemplate = jdbcTemplate;
     }
     
     @InitBinder
@@ -694,6 +710,625 @@ public class SongController {
             e.printStackTrace();
             return "error";
         }
+    }
+    
+    /**
+     * Fetch sampling information from WhoSampled for a specific song.
+     * Returns HTML content if found, or error status if not.
+     */
+    @GetMapping("/{id}/whosampled")
+    @ResponseBody
+    public Map<String, Object> fetchWhoSampledData(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Optional<Song> songOpt = songService.getSongById(id);
+            if (!songOpt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "Song not found");
+                return response;
+            }
+            
+            Song song = songOpt.get();
+            String artistName = songService.getArtistName(song.getArtistId());
+            String songName = song.getName();
+            
+            if (artistName == null || songName == null) {
+                response.put("success", false);
+                response.put("message", "Missing artist or song name");
+                return response;
+            }
+            
+            // Build WhoSampled URL: https://www.whosampled.com/Artist-Name/Song-Name/
+            String urlPath = buildWhoSampledUrl(artistName, songName);
+            String fullUrl = "https://www.whosampled.com" + urlPath;
+            String searchUrl = buildWhoSampledSearchUrl(artistName, songName);
+
+            response.put("url", fullUrl);
+            response.put("searchUrl", searchUrl);
+            
+            System.out.println("Attempting WhoSampled URL: " + fullUrl);
+            
+            // Try to fetch the page
+            try {
+                org.jsoup.nodes.Document doc = fetchWhoSampledDocument(fullUrl);
+                
+                System.out.println("Successfully fetched WhoSampled page!");
+                
+                org.jsoup.nodes.Element mainContent = extractWhoSampledContent(doc, fullUrl);
+                
+                if (mainContent != null) {
+                    response.put("success", true);
+                    response.put("html", mainContent.outerHtml());
+                } else {
+                    response.put("success", false);
+                    response.put("parseFailed", true);
+                    response.put("message", "WhoSampled loaded, but the expected song content could not be parsed.");
+                }
+            } catch (org.jsoup.HttpStatusException e) {
+                int statusCode = e.getStatusCode();
+                System.out.println("WhoSampled request failed (status " + statusCode + "): " + fullUrl);
+                response.put("success", false);
+                response.put("statusCode", statusCode);
+
+                if (statusCode == 404) {
+                    response.put("notFound", true);
+                    response.put("message", "WhoSampled does not appear to have a direct page for this song.");
+                } else if (statusCode == 403) {
+                    response.put("blocked", true);
+                    response.put("message", "WhoSampled blocked the server-side fetch for this page.");
+                } else {
+                    response.put("message", "WhoSampled returned HTTP " + statusCode + " while fetching this page.");
+                }
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "Error fetching WhoSampled data: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    /**
+     * Build WhoSampled URL path from artist and song name.
+     * Format: /Artist-Name/Song-Name/
+     * WhoSampled keeps most punctuation but URL-encodes it.
+     */
+    private String buildWhoSampledUrl(String artist, String song) {
+        // Remove featuring artists (e.g., "feat. Someone")
+        artist = artist.replaceAll("(?i)\\s+feat\\..*$", "");
+        artist = artist.replaceAll("(?i)\\s+ft\\..*$", "");
+        artist = artist.replaceAll("(?i)\\s+featuring.*$", "");
+
+        song = normalizeWhoSampledSongTitle(song);
+        
+        // Replace spaces with hyphens
+        artist = artist.replaceAll("\\s+", "-");
+        song = song.replaceAll("\\s+", "-");
+        
+        // URL encode the segments to handle special characters properly
+        try {
+            artist = java.net.URLEncoder.encode(artist, "UTF-8")
+                    .replace("+", "-")  // URLEncoder uses + for spaces, we want -
+                    .replace("%2D", "-");  // Keep hyphens as-is
+            song = java.net.URLEncoder.encode(song, "UTF-8")
+                    .replace("+", "-")
+                    .replace("%2D", "-");
+        } catch (Exception e) {
+            // Fallback: just remove problematic characters
+            artist = artist.replaceAll("[^a-zA-Z0-9\\s-]", "");
+            song = song.replaceAll("[^a-zA-Z0-9\\s-]", "");
+        }
+        
+        return "/" + artist + "/" + song + "/";
+    }
+
+    private String normalizeWhoSampledSongTitle(String song) {
+        if (song == null || song.isBlank()) {
+            return "";
+        }
+
+        String normalizedSong = stripFeaturingDelimitedClause(song, PARENTHETICAL_PATTERN, '(', ')');
+        normalizedSong = stripFeaturingDelimitedClause(normalizedSong, BRACKET_PATTERN, '[', ']');
+
+        normalizedSong = stripFeaturingClause(normalizedSong)
+                .replaceAll("\\s+", " ")
+            .replaceAll("\\s+\\)", ")")
+            .replaceAll("\\s+\\]", "]")
+            .replaceAll("\\(\\s+", "(")
+            .replaceAll("\\[\\s+", "[")
+                .trim();
+
+        return normalizedSong;
+    }
+
+    private String stripFeaturingDelimitedClause(String value, Pattern pattern, char openChar, char closeChar) {
+        Matcher matcher = pattern.matcher(value);
+        StringBuffer normalized = new StringBuffer();
+        while (matcher.find()) {
+            String cleaned = stripFeaturingClause(matcher.group(1));
+            String replacement = cleaned.isBlank() ? "" : openChar + cleaned + closeChar;
+            matcher.appendReplacement(normalized, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(normalized);
+        return normalized.toString();
+    }
+
+    private String stripFeaturingClause(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        return value
+                .replaceAll("(?i)\\s*(?:[,/&+-]|and)?\\s*(feat\\.?|ft\\.?|featuring)\\s+.*$", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String buildWhoSampledSearchUrl(String artistName, String songName) throws java.io.UnsupportedEncodingException {
+        return "https://www.whosampled.com/search/?q=" + java.net.URLEncoder.encode(artistName + " " + songName, "UTF-8");
+    }
+
+    private org.jsoup.nodes.Element extractWhoSampledContent(org.jsoup.nodes.Document doc, String fullUrl) throws IOException {
+        java.util.List<org.jsoup.nodes.Element> sections = extractSongConnectionSections(doc);
+        if (sections.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Integer> artistCache = new HashMap<>();
+        Map<String, Integer> songCache = new HashMap<>();
+        org.jsoup.nodes.Element container = new org.jsoup.nodes.Element("div");
+        container.addClass("whosampled-song-connections");
+        container.appendElement("h2").text("Song Connections");
+
+        for (org.jsoup.nodes.Element section : sections) {
+            org.jsoup.nodes.Element preparedSection = expandAndPrepareConnectionSection(section, fullUrl, artistCache, songCache);
+            if (preparedSection != null) {
+                container.appendChild(preparedSection);
+            }
+        }
+
+        return container.children().isEmpty() ? null : container;
+    }
+
+    private java.util.List<org.jsoup.nodes.Element> extractSongConnectionSections(org.jsoup.nodes.Document doc) {
+        java.util.List<org.jsoup.nodes.Element> sections = new ArrayList<>();
+        org.jsoup.nodes.Element article = doc.selectFirst("main article.leftContent, main article");
+        if (article == null) {
+            return sections;
+        }
+
+        org.jsoup.nodes.Element songConnectionsHeading = article.selectFirst("h2:matchesOwn(^\\s*Song Connections\\s*$)");
+        if (songConnectionsHeading == null) {
+            return sections;
+        }
+
+        for (org.jsoup.nodes.Element sibling = songConnectionsHeading.nextElementSibling(); sibling != null; sibling = sibling.nextElementSibling()) {
+            if ("h2".equalsIgnoreCase(sibling.tagName())) {
+                break;
+            }
+
+            if (sibling.selectFirst("h3") != null) {
+                sections.add(sibling.clone());
+            }
+        }
+
+        return sections;
+    }
+
+    private org.jsoup.nodes.Element expandAndPrepareConnectionSection(org.jsoup.nodes.Element section,
+                                                                     String fullUrl,
+                                                                     Map<String, Integer> artistCache,
+                                                                     Map<String, Integer> songCache) throws IOException {
+        org.jsoup.nodes.Element workingSection = section.clone();
+        String headingText = getConnectionSectionHeading(workingSection);
+        if (headingText.startsWith("remixed in")) {
+            return null;
+        }
+        String seeAllUrl = findSeeAllUrl(workingSection);
+
+        if (seeAllUrl != null && (headingText.startsWith("contains samples") || headingText.startsWith("sampled in"))) {
+            try {
+                org.jsoup.nodes.Document detailDoc = fetchWhoSampledDocument(seeAllUrl);
+                org.jsoup.nodes.Element fullSection = extractDetailedConnectionSection(detailDoc);
+                if (fullSection != null) {
+                    workingSection = fullSection;
+                }
+            } catch (Exception e) {
+                System.out.println("Failed to expand WhoSampled section from " + seeAllUrl + ": " + e.getMessage());
+            }
+        }
+
+        normalizeConnectionSection(workingSection, fullUrl, artistCache, songCache);
+        return workingSection;
+    }
+
+    private org.jsoup.nodes.Element extractDetailedConnectionSection(org.jsoup.nodes.Document doc) {
+        org.jsoup.nodes.Element article = doc.selectFirst("main article.leftContent, main article");
+        if (article == null) {
+            return null;
+        }
+
+        org.jsoup.nodes.Element heading = article.selectFirst("h2");
+        if (heading == null) {
+            return null;
+        }
+
+        org.jsoup.nodes.Element section = new org.jsoup.nodes.Element("div");
+        section.addClass("ws-connection-section");
+        org.jsoup.nodes.Element headingHeader = heading.parent();
+        if (headingHeader != null && "header".equalsIgnoreCase(headingHeader.tagName())) {
+            section.appendChild(headingHeader.clone());
+            for (org.jsoup.nodes.Element sibling = headingHeader.nextElementSibling(); sibling != null; sibling = sibling.nextElementSibling()) {
+                if ("header".equalsIgnoreCase(sibling.tagName())) {
+                    break;
+                }
+
+                if ("h1".equalsIgnoreCase(sibling.tagName()) || "h2".equalsIgnoreCase(sibling.tagName())) {
+                    break;
+                }
+
+                if ("nav".equalsIgnoreCase(sibling.tagName()) || "table".equalsIgnoreCase(sibling.tagName()) || sibling.selectFirst("table") != null) {
+                    section.appendChild(sibling.clone());
+                }
+            }
+            return section;
+        }
+
+        section.appendChild(heading.clone());
+
+        for (org.jsoup.nodes.Element sibling = heading.nextElementSibling(); sibling != null; sibling = sibling.nextElementSibling()) {
+            if ("h2".equalsIgnoreCase(sibling.tagName())) {
+                break;
+            }
+
+            if ("h1".equalsIgnoreCase(sibling.tagName())) {
+                break;
+            }
+
+            if (sibling.selectFirst("table") != null || "nav".equalsIgnoreCase(sibling.tagName())) {
+                section.appendChild(sibling.clone());
+            }
+        }
+
+        return section;
+    }
+
+    private void normalizeConnectionSection(org.jsoup.nodes.Element section,
+                                            String baseUrl,
+                                            Map<String, Integer> artistCache,
+                                            Map<String, Integer> songCache) {
+        section.select("script, style, .ad, .ads, .ad-wrapper, .comment, .comments, .comment-form, nav").remove();
+        removeSeeAllLinks(section);
+
+        section.select("img[src]").forEach(image -> image.attr("src", image.absUrl("src")));
+        section.select("img[srcset]").forEach(image -> image.attr("srcset", absolutizeSrcSet(image.attr("srcset"), baseUrl)));
+
+        for (org.jsoup.nodes.Element row : section.select("tr")) {
+            if (!row.select("th").isEmpty()) {
+                continue;
+            }
+
+            org.jsoup.select.Elements cells = row.select("> td");
+            if (cells.size() < 3) {
+                continue;
+            }
+
+            String songTitle = cells.get(1).text().trim();
+            String primaryArtist = extractPrimaryArtistName(cells.get(2));
+            Integer localSongId = findLocalSongId(primaryArtist, songTitle, songCache);
+
+            rewriteSongLinks(cells.get(0), localSongId);
+            rewriteSongLinks(cells.get(1), localSongId);
+            rewriteArtistLinks(cells.get(2), artistCache);
+        }
+
+        section.select("a[href]").forEach(link -> {
+            String href = link.attr("href");
+            if (!href.startsWith("/songs/") && !href.startsWith("/artists/")) {
+                link.unwrap();
+            }
+        });
+    }
+
+    private String getConnectionSectionHeading(org.jsoup.nodes.Element section) {
+        org.jsoup.nodes.Element heading = section.selectFirst("h3, h2");
+        return heading != null ? heading.text().toLowerCase().trim() : "";
+    }
+
+    private String findSeeAllUrl(org.jsoup.nodes.Element section) {
+        org.jsoup.nodes.Element seeAllLink = findSeeAllLink(section);
+        return seeAllLink != null ? seeAllLink.absUrl("href") : null;
+    }
+
+    private org.jsoup.nodes.Element findSeeAllLink(org.jsoup.nodes.Element section) {
+        for (org.jsoup.nodes.Element link : section.select("a[href]")) {
+            if ("see all".equalsIgnoreCase(link.text().trim())) {
+                return link;
+            }
+        }
+        return null;
+    }
+
+    private void removeSeeAllLinks(org.jsoup.nodes.Element section) {
+        for (org.jsoup.nodes.Element link : section.select("a[href]")) {
+            if ("see all".equalsIgnoreCase(link.text().trim())) {
+                link.remove();
+            }
+        }
+    }
+
+    private String extractPrimaryArtistName(org.jsoup.nodes.Element artistCell) {
+        org.jsoup.nodes.Element firstArtistLink = artistCell.selectFirst("a");
+        if (firstArtistLink != null) {
+            return firstArtistLink.text().trim();
+        }
+
+        String artistText = artistCell.text().trim();
+        if (artistText.isEmpty()) {
+            return artistText;
+        }
+
+        return artistText.split("(?i)\\s+(feat\\.?|featuring|and|&)\\s+")[0].trim();
+    }
+
+    private void rewriteSongLinks(org.jsoup.nodes.Element cell, Integer localSongId) {
+        for (org.jsoup.nodes.Element link : cell.select("a[href]")) {
+            if (localSongId != null) {
+                link.attr("href", "/songs/" + localSongId);
+            } else {
+                link.unwrap();
+            }
+        }
+    }
+
+    private void rewriteArtistLinks(org.jsoup.nodes.Element cell, Map<String, Integer> artistCache) {
+        for (org.jsoup.nodes.Element link : cell.select("a[href]")) {
+            Integer localArtistId = findLocalArtistId(link.text().trim(), artistCache);
+            if (localArtistId != null) {
+                link.attr("href", "/artists/" + localArtistId);
+            } else {
+                link.unwrap();
+            }
+        }
+    }
+
+    private Integer findLocalArtistId(String artistName, Map<String, Integer> artistCache) {
+        if (artistName == null || artistName.isBlank()) {
+            return null;
+        }
+
+        String cacheKey = normalizeForLookup(artistName);
+        if (artistCache.containsKey(cacheKey)) {
+            return artistCache.get(cacheKey);
+        }
+
+        String sql = "SELECT id FROM Artist WHERE " + StringNormalizer.sqlNormalizeColumn("name") + " = ? LIMIT 1";
+        List<Integer> results = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getInt("id"), cacheKey);
+        Integer artistId = results.isEmpty() ? null : results.get(0);
+        artistCache.put(cacheKey, artistId);
+        return artistId;
+    }
+
+    private Integer findLocalSongId(String artistName, String songTitle, Map<String, Integer> songCache) {
+        if (artistName == null || artistName.isBlank() || songTitle == null || songTitle.isBlank()) {
+            return null;
+        }
+
+        String normalizedArtist = normalizeForLookup(artistName);
+        String normalizedSong = normalizeForLookup(songTitle);
+        String normalizedWhoSampledSong = normalizeForWhoSampledLookup(songTitle);
+        String cacheKey = normalizedArtist + "||" + normalizedWhoSampledSong;
+        if (songCache.containsKey(cacheKey)) {
+            return songCache.get(cacheKey);
+        }
+
+        String sql = "SELECT s.id, s.name FROM Song s JOIN Artist a ON s.artist_id = a.id " +
+                "WHERE " + StringNormalizer.sqlNormalizeColumn("a.name") + " = ?";
+        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, normalizedArtist);
+
+        Integer songId = null;
+        for (Map<String, Object> result : results) {
+            String candidateTitle = result.get("name") != null ? result.get("name").toString() : "";
+            String candidateNormalized = normalizeForLookup(candidateTitle);
+            String candidateWhoSampledNormalized = normalizeForWhoSampledLookup(candidateTitle);
+
+            if (candidateNormalized.equals(normalizedSong)
+                    || candidateNormalized.equals(normalizedWhoSampledSong)
+                    || candidateWhoSampledNormalized.equals(normalizedSong)
+                    || candidateWhoSampledNormalized.equals(normalizedWhoSampledSong)) {
+                songId = ((Number) result.get("id")).intValue();
+                break;
+            }
+        }
+
+        // If no match found, try stripping title variants like "Single Version", "Radio Edit", "Album Version"
+        if (songId == null) {
+            String strippedSong = stripTitleVariants(songTitle);
+            if (!strippedSong.equals(songTitle)) {
+                String strippedNormalized = normalizeForLookup(strippedSong);
+                String strippedWhoSampled = normalizeForWhoSampledLookup(strippedSong);
+                for (Map<String, Object> result : results) {
+                    String candidateTitle = result.get("name") != null ? result.get("name").toString() : "";
+                    String candidateNormalized = normalizeForLookup(candidateTitle);
+                    String candidateWhoSampledNormalized = normalizeForWhoSampledLookup(candidateTitle);
+
+                    if (candidateNormalized.equals(strippedNormalized)
+                            || candidateNormalized.equals(strippedWhoSampled)
+                            || candidateWhoSampledNormalized.equals(strippedNormalized)
+                            || candidateWhoSampledNormalized.equals(strippedWhoSampled)) {
+                        songId = ((Number) result.get("id")).intValue();
+                        break;
+                    }
+                }
+            }
+        }
+
+        songCache.put(cacheKey, songId);
+        return songId;
+    }
+
+    private String stripTitleVariants(String title) {
+        if (title == null) return title;
+        // Strip common title variants like "Single Version", "Radio Edit", "Album Version", etc.
+        return title
+                .replaceAll("(?i)\\s*[-–]\\s*(Single|Album|Extended|Clean|Explicit|Radio|Acoustic|Remix|Remaster|Version|Edit|Mix).*$", "")
+                .replaceAll("(?i)\\s*\\(\s*(Single|Album|Extended|Clean|Explicit|Radio|Acoustic|Remix|Remaster|Version|Edit|Mix|Feat\\..*?)\\s*\\).*$", "")
+                .replaceAll("(?i)\\s*\\[\\s*(Single|Album|Extended|Clean|Explicit|Radio|Acoustic|Remix|Remaster|Version|Edit|Mix).*?\\].*$", "")
+                .trim();
+    }
+
+    private String normalizeForLookup(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return StringNormalizer.stripAccents(value.toLowerCase().trim()).replace("'", "");
+    }
+
+    private String normalizeForWhoSampledLookup(String value) {
+        return normalizeForLookup(normalizeWhoSampledSongTitle(value))
+                .replace("[", "")
+                .replace("]", "");
+    }
+
+    private String absolutizeSrcSet(String srcSet, String baseUri) {
+        String[] entries = srcSet.split(",");
+        java.util.List<String> rewrittenEntries = new java.util.ArrayList<>();
+
+        for (String entry : entries) {
+            String trimmedEntry = entry.trim();
+            if (trimmedEntry.isEmpty()) {
+                continue;
+            }
+
+            String[] parts = trimmedEntry.split("\\s+", 2);
+            String absoluteUrl = org.jsoup.internal.StringUtil.resolve(baseUri, parts[0]);
+            if (parts.length == 2) {
+                rewrittenEntries.add(absoluteUrl + " " + parts[1]);
+            } else {
+                rewrittenEntries.add(absoluteUrl);
+            }
+        }
+
+        return String.join(", ", rewrittenEntries);
+    }
+
+    private org.jsoup.nodes.Document fetchWhoSampledDocument(String fullUrl) throws IOException {
+        org.jsoup.nodes.Document curlDocument = fetchWhoSampledDocumentWithCurl(fullUrl);
+        if (curlDocument != null) {
+            return curlDocument;
+        }
+
+        return org.jsoup.Jsoup.connect(fullUrl)
+            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+            .referrer("https://www.google.com/")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Cache-Control", "no-cache")
+            .header("Pragma", "no-cache")
+            .header("Sec-Fetch-Site", "none")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-User", "?1")
+            .header("Sec-Fetch-Dest", "document")
+            .timeout(10000)
+            .get();
+    }
+
+    private org.jsoup.nodes.Document fetchWhoSampledDocumentWithCurl(String fullUrl) {
+        File tempFile = null;
+        List<String> command = new ArrayList<>();
+        command.add("curl.exe");
+        command.add("-L");
+        command.add("--silent");
+        command.add("--show-error");
+        command.add("--compressed");
+        command.add("--max-time");
+        command.add("20");
+        command.add(fullUrl);
+        command.add("-H");
+        command.add("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
+        command.add("-H");
+        command.add("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+        command.add("-H");
+        command.add("Accept-Language: en-US,en;q=0.9");
+        command.add("-H");
+        command.add("Cache-Control: no-cache");
+        command.add("-H");
+        command.add("Pragma: no-cache");
+        command.add("-H");
+        command.add("Sec-Fetch-Site: none");
+        command.add("-H");
+        command.add("Sec-Fetch-Mode: navigate");
+        command.add("-H");
+        command.add("Sec-Fetch-User: ?1");
+        command.add("-H");
+        command.add("Sec-Fetch-Dest: document");
+
+        try {
+            tempFile = Files.createTempFile("whosampled-", ".html").toFile();
+            command.add("--output");
+            command.add(tempFile.getAbsolutePath());
+        } catch (IOException e) {
+            System.out.println("Unable to create temp file for WhoSampled curl fetch: " + e.getMessage());
+            return null;
+        }
+
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true);
+
+        try {
+            Process process = processBuilder.start();
+            boolean finished = process.waitFor(20, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                System.out.println("curl.exe timed out while fetching WhoSampled page.");
+                return null;
+            }
+
+            String stderrOutput;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder builder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    builder.append(line).append('\n');
+                }
+                stderrOutput = builder.toString();
+            }
+
+            if (process.exitValue() != 0) {
+                System.out.println("curl.exe did not return usable WhoSampled HTML. Exit code: " + process.exitValue());
+                if (!stderrOutput.isBlank()) {
+                    System.out.println(stderrOutput);
+                }
+                return null;
+            }
+
+            String output = Files.readString(tempFile.toPath(), StandardCharsets.UTF_8);
+            if (output.isBlank()) {
+                System.out.println("curl.exe completed but returned an empty WhoSampled response.");
+                return null;
+            }
+
+            if (output.contains("Song Connections") || output.contains("Rain on Me by Ashanti") || output.contains("WhoSampled")) {
+                return org.jsoup.Jsoup.parse(output, fullUrl);
+            }
+
+            System.out.println("curl.exe output did not look like a WhoSampled song page.");
+        } catch (IOException e) {
+            System.out.println("curl.exe is not available for WhoSampled fetch: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("curl.exe fetch was interrupted.");
+        } finally {
+            if (tempFile != null && tempFile.exists() && !tempFile.delete()) {
+                tempFile.deleteOnExit();
+            }
+        }
+
+        return null;
     }
     
     /**

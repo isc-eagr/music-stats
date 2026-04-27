@@ -1705,6 +1705,24 @@ select:focus {
     border-color: #b91c1c;
 }
 
+.btn-view-samples {
+    padding: 8px 12px;
+    background-color: #4a2d5f;
+    color: #d4a5ff;
+    border: 1px solid #6b4a8f;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-view-samples:hover {
+    background-color: #6b4a8f;
+    color: #ffffff;
+    border-color: #8f63bf;
+}
+
 /* Gallery Navigation Styles */
 .gallery-nav {
     position: absolute;
@@ -1933,7 +1951,8 @@ select:focus {
 }
 
 .edit-button-container .btn-action,
-.edit-button-container .btn-negative {
+.edit-button-container .btn-negative,
+.edit-button-container .btn-view-samples {
     padding: 6px 14px;
     font-size: 12px;
     border-radius: 6px;
@@ -4521,7 +4540,8 @@ input.flatpickr-input:focus {
     }
     
     .edit-button-container .btn-action,
-    .edit-button-container .btn-negative {
+    .edit-button-container .btn-negative,
+    .edit-button-container .btn-view-samples {
         padding: 8px 12px;
         font-size: 12px;
         min-height: 36px;
@@ -4787,7 +4807,8 @@ input.flatpickr-input:focus {
     }
     
     .edit-button-container .btn-action,
-    .edit-button-container .btn-negative {
+    .edit-button-container .btn-negative,
+    .edit-button-container .btn-view-samples {
         flex: 1;
         max-width: 100px;
         padding: 8px 10px;
