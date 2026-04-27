@@ -2252,6 +2252,25 @@ function sortTopData(data, sortState) {
     
     const sorted = [...data];
     const { column, direction } = sortState;
+
+    function compareDisplayIdentity(a, b) {
+        const aName = (a.name || '').toString().toLowerCase();
+        const bName = (b.name || '').toString().toLowerCase();
+        if (aName < bName) return -1;
+        if (aName > bName) return 1;
+
+        const aArtist = (a.artistName || '').toString().toLowerCase();
+        const bArtist = (b.artistName || '').toString().toLowerCase();
+        if (aArtist < bArtist) return -1;
+        if (aArtist > bArtist) return 1;
+
+        const aAlbum = (a.albumName || '').toString().toLowerCase();
+        const bAlbum = (b.albumName || '').toString().toLowerCase();
+        if (aAlbum < bAlbum) return -1;
+        if (aAlbum > bAlbum) return 1;
+
+        return (a.id || 0) - (b.id || 0);
+    }
     
     sorted.sort((a, b) => {
         let aVal = a[column];
@@ -2277,6 +2296,18 @@ function sortTopData(data, sortState) {
         let result = 0;
         if (aVal < bVal) result = -1;
         else if (aVal > bVal) result = 1;
+
+        if (result === 0 && column !== 'plays') {
+            const aPlays = Number(a.plays) || 0;
+            const bPlays = Number(b.plays) || 0;
+            if (aPlays !== bPlays) {
+                return bPlays - aPlays;
+            }
+        }
+
+        if (result === 0) {
+            result = compareDisplayIdentity(a, b);
+        }
         
         return direction === 'desc' ? -result : result;
     });

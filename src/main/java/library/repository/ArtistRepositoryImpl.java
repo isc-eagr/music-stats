@@ -365,69 +365,70 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Sorting
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
+        String playCountTieBreak = ", play_count DESC, a.name ASC";
         sql.append(" ORDER BY ");
         if ("age".equals(sortBy)) {
-            sql.append(" CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER) " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER) " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("avg_length".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(song_stats.total_length, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" CAST(COALESCE(song_stats.total_length, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("avg_plays".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("avg_plays_album".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(album_stats.album_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(album_stats.album_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("birth_date".equals(sortBy)) {
-            sql.append(" a.birth_date " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" a.birth_date " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("death_date".equals(sortBy)) {
-            sql.append(" a.death_date " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" a.death_date " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("songs".equals(sortBy)) {
-            sql.append(" song_count " + direction + ", a.name ASC");
+            sql.append(" song_count " + direction + playCountTieBreak);
         } else if ("featured".equals(sortBy)) {
-            sql.append(" featured_song_count " + direction + ", a.name ASC");
+            sql.append(" featured_song_count " + direction + playCountTieBreak);
         } else if ("albums".equals(sortBy)) {
-            sql.append(" album_count " + direction + ", a.name ASC");
+            sql.append(" album_count " + direction + playCountTieBreak);
         } else if ("plays".equals(sortBy)) {
             sql.append(" play_count " + direction + ", a.name ASC");
         } else if ("time".equals(sortBy)) {
-            sql.append(" time_listened " + direction + ", a.name ASC");
+            sql.append(" time_listened " + direction + playCountTieBreak);
         } else if ("first_listened".equals(sortBy)) {
-            sql.append(" first_listened " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" first_listened " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("last_listened".equals(sortBy)) {
-            sql.append(" last_listened " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" last_listened " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("days_listened".equals(sortBy)) {
-            sql.append(" days_listened " + direction + ", a.name ASC");
+            sql.append(" days_listened " + direction + playCountTieBreak);
         } else if ("weeks_listened".equals(sortBy)) {
-            sql.append(" weeks_listened " + direction + ", a.name ASC");
+            sql.append(" weeks_listened " + direction + playCountTieBreak);
         } else if ("months_listened".equals(sortBy)) {
-            sql.append(" months_listened " + direction + ", a.name ASC");
+            sql.append(" months_listened " + direction + playCountTieBreak);
         } else if ("years_listened".equals(sortBy)) {
-            sql.append(" years_listened " + direction + ", a.name ASC");
+            sql.append(" years_listened " + direction + playCountTieBreak);
         } else if ("name".equals(sortBy)) {
-            sql.append(" a.name " + direction);
+            sql.append(" a.name " + direction + ", play_count DESC");
         } else if ("image_count".equals(sortBy)) {
-            sql.append(" image_count " + direction + ", a.name ASC");
+            sql.append(" image_count " + direction + playCountTieBreak);
         } else if ("country".equals(sortBy)) {
-            sql.append(" a.country " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" a.country " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("ethnicity".equals(sortBy)) {
-            sql.append(" e.name " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" e.name " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("featured_artist_count".equals(sortBy)) {
-            sql.append(" featured_artist_count_stat " + direction + ", a.name ASC");
+            sql.append(" featured_artist_count_stat " + direction + playCountTieBreak);
         } else if ("genre".equals(sortBy)) {
-            sql.append(" gen.name " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" gen.name " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("language".equals(sortBy)) {
-            sql.append(" l.name " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" l.name " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("legacy_plays".equals(sortBy)) {
-            sql.append(" robertlover_play_count " + direction + ", a.name ASC");
+            sql.append(" robertlover_play_count " + direction + playCountTieBreak);
         } else if ("primary_plays".equals(sortBy)) {
-            sql.append(" vatito_play_count " + direction + ", a.name ASC");
+            sql.append(" vatito_play_count " + direction + playCountTieBreak);
         } else if ("solo_songs".equals(sortBy)) {
-            sql.append(" solo_song_count " + direction + ", a.name ASC");
+            sql.append(" solo_song_count " + direction + playCountTieBreak);
         } else if ("songs_with_features".equals(sortBy)) {
-            sql.append(" songs_with_feat_count " + direction + ", a.name ASC");
+            sql.append(" songs_with_feat_count " + direction + playCountTieBreak);
         } else if ("subgenre".equals(sortBy)) {
-            sql.append(" sg.name " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" sg.name " + direction + " NULLS LAST" + playCountTieBreak);
         } else if ("itunes_presence".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST, a.name ASC");
+            sql.append(" CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
         } else {
-            sql.append(" a.name " + direction);
+            sql.append(" a.name " + direction + ", play_count DESC");
         }
         
         sql.append(" LIMIT ? OFFSET ? ");

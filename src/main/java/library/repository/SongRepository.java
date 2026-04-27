@@ -675,39 +675,40 @@ public class SongRepository {
         // Determine sort direction
         String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
         String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
+        String playCountTieBreak = ", play_count DESC, s.name";
         
         // Sorting with direction
         switch (sortBy != null ? sortBy : "name") {
-            case "artist" -> sql.append(" ORDER BY ar.name ").append(dir).append(", s.name");
-            case "album" -> sql.append(" ORDER BY alb.name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "country" -> sql.append(" ORDER BY ar.country ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "ethnicity" -> sql.append(" ORDER BY e.name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "featured_artist_count" -> sql.append(" ORDER BY featured_artist_count ").append(dir).append(", s.name");
-            case "release_date" -> sql.append(" ORDER BY COALESCE(s.release_date, alb.release_date) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "genre" -> sql.append(" ORDER BY genre_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "language" -> sql.append(" ORDER BY language_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "legacy_plays" -> sql.append(" ORDER BY robertlover_play_count ").append(dir).append(", s.name");
-            case "length" -> sql.append(" ORDER BY s.length_seconds ").append(dir).append(" ").append(nullsOrder).append(", s.name");
+            case "artist" -> sql.append(" ORDER BY ar.name ").append(dir).append(playCountTieBreak);
+            case "album" -> sql.append(" ORDER BY alb.name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "country" -> sql.append(" ORDER BY ar.country ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "ethnicity" -> sql.append(" ORDER BY e.name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "featured_artist_count" -> sql.append(" ORDER BY featured_artist_count ").append(dir).append(playCountTieBreak);
+            case "release_date" -> sql.append(" ORDER BY COALESCE(s.release_date, alb.release_date) ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "genre" -> sql.append(" ORDER BY genre_name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "language" -> sql.append(" ORDER BY language_name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "legacy_plays" -> sql.append(" ORDER BY robertlover_play_count ").append(dir).append(playCountTieBreak);
+            case "length" -> sql.append(" ORDER BY s.length_seconds ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
             case "plays" -> sql.append(" ORDER BY play_count ").append(dir).append(", s.name");
-            case "primary_plays" -> sql.append(" ORDER BY vatito_play_count ").append(dir).append(", s.name");
-            case "track_number" -> sql.append(" ORDER BY s.track_number ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "subgenre" -> sql.append(" ORDER BY subgenre_name ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(", s.name");
-            case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "days_listened" -> sql.append(" ORDER BY days_listened ").append(dir).append(", s.name");
-            case "weeks_listened" -> sql.append(" ORDER BY weeks_listened ").append(dir).append(", s.name");
-            case "months_listened" -> sql.append(" ORDER BY months_listened ").append(dir).append(", s.name");
-            case "years_listened" -> sql.append(" ORDER BY years_listened ").append(dir).append(", s.name");
-            case "age_at_release" -> sql.append(" ORDER BY CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "birth_date" -> sql.append(" ORDER BY ar.birth_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "death_date" -> sql.append(" ORDER BY ar.death_date ").append(dir).append(" ").append(nullsOrder).append(", s.name");
-            case "image_count" -> sql.append(" ORDER BY image_count ").append(dir).append(", s.name");
-            case "seasonal_chart_peak" -> sql.append(" ORDER BY seasonal_chart_peak ").append(dir).append(" NULLS LAST, seasonal_chart_peak_start_date DESC NULLS LAST, s.name");
-            case "weekly_chart_peak" -> sql.append(" ORDER BY weekly_chart_peak ").append(dir).append(" NULLS LAST, weekly_chart_peak_start_date DESC NULLS LAST, s.name");
-            case "weekly_chart_weeks" -> sql.append(" ORDER BY weekly_chart_weeks ").append(dir).append(", s.name");
-            case "yearly_chart_peak" -> sql.append(" ORDER BY yearly_chart_peak ").append(dir).append(" NULLS LAST, yearly_chart_peak_period DESC NULLS LAST, s.name");
-            default -> sql.append(" ORDER BY s.name ").append(dir);
+            case "primary_plays" -> sql.append(" ORDER BY vatito_play_count ").append(dir).append(playCountTieBreak);
+            case "track_number" -> sql.append(" ORDER BY s.track_number ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "subgenre" -> sql.append(" ORDER BY subgenre_name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(playCountTieBreak);
+            case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "days_listened" -> sql.append(" ORDER BY days_listened ").append(dir).append(playCountTieBreak);
+            case "weeks_listened" -> sql.append(" ORDER BY weeks_listened ").append(dir).append(playCountTieBreak);
+            case "months_listened" -> sql.append(" ORDER BY months_listened ").append(dir).append(playCountTieBreak);
+            case "years_listened" -> sql.append(" ORDER BY years_listened ").append(dir).append(playCountTieBreak);
+            case "age_at_release" -> sql.append(" ORDER BY CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "birth_date" -> sql.append(" ORDER BY ar.birth_date ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "death_date" -> sql.append(" ORDER BY ar.death_date ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
+            case "image_count" -> sql.append(" ORDER BY image_count ").append(dir).append(playCountTieBreak);
+            case "seasonal_chart_peak" -> sql.append(" ORDER BY seasonal_chart_peak ").append(dir).append(" NULLS LAST, play_count DESC, seasonal_chart_peak_start_date DESC NULLS LAST, s.name");
+            case "weekly_chart_peak" -> sql.append(" ORDER BY weekly_chart_peak ").append(dir).append(" NULLS LAST, play_count DESC, weekly_chart_peak_start_date DESC NULLS LAST, s.name");
+            case "weekly_chart_weeks" -> sql.append(" ORDER BY weekly_chart_weeks ").append(dir).append(playCountTieBreak);
+            case "yearly_chart_peak" -> sql.append(" ORDER BY yearly_chart_peak ").append(dir).append(" NULLS LAST, play_count DESC, yearly_chart_peak_period DESC NULLS LAST, s.name");
+            default -> sql.append(" ORDER BY s.name ").append(dir).append(", play_count DESC");
         }
         
         sql.append(" LIMIT ? OFFSET ?");
