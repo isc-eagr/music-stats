@@ -1,10 +1,10 @@
 -- ==========================================================
--- Personal Cuntdown Migration Script
+-- Vato's Cuntdown Migration Script
 -- Vato's Censored Countdown (Feb 2003 - Sep 2009)
 -- Run manually in SQLite against C:/Music Stats DB/music-stats.db
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS pc_countdown_entry (
+CREATE TABLE IF NOT EXISTS vatos_cuntdown_entry (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     chart_date    TEXT NOT NULL,   -- YYYY-MM-DD
     position      INTEGER NOT NULL,
@@ -15,6 +15,6 @@ CREATE TABLE IF NOT EXISTS pc_countdown_entry (
     FOREIGN KEY (song_id) REFERENCES Song(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_pc_countdown_entry_chart_date ON pc_countdown_entry(chart_date);
-CREATE INDEX IF NOT EXISTS idx_pc_countdown_entry_song_id    ON pc_countdown_entry(song_id);
-CREATE INDEX IF NOT EXISTS idx_pc_countdown_entry_artist_song ON pc_countdown_entry(artist_name, song_title);
+CREATE INDEX IF NOT EXISTS idx_vatos_cuntdown_entry_chart_date ON vatos_cuntdown_entry(chart_date);
+CREATE INDEX IF NOT EXISTS idx_vatos_cuntdown_entry_song_id    ON vatos_cuntdown_entry(song_id);
+CREATE INDEX IF NOT EXISTS idx_vatos_cuntdown_entry_artist_song ON vatos_cuntdown_entry(artist_name, song_title);

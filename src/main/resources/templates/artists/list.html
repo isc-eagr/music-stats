@@ -1166,7 +1166,7 @@
         
         <!-- Artist cards grid -->
         <div class="artist-grid">
-            <div th:each="artist : ${artists}" 
+            <div th:each="artist, iterStat : ${artists}" 
                  class="artist-card" 
                  th:attr="data-artist-id=${artist.id}, data-has-theme-image=${activeTheme != null and artist.hasThemeImage}"
                  th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
@@ -1193,6 +1193,7 @@
                     </div>
                 
                 <div class="artist-info">
+                    <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
                     <a th:href="@{'/artists/' + ${artist.id}}">
                         <h3 class="artist-name">
                             <span th:if="${artist.inItunes != null}" 
@@ -1778,7 +1779,7 @@
         }
         
         function applyFilters() {
-            document.getElementById('filterForm').submit();
+            submitFilterForm('filterForm');
         }
         
         function changeSortBy(sortValue) {
@@ -2229,6 +2230,15 @@
     </div>
     
     <style>
+        .card-index {
+            position: absolute;
+            bottom: 6px;
+            right: 8px;
+            font-size: 0.7rem;
+            color: #555;
+            line-height: 1;
+            pointer-events: none;
+        }
         /* Gender counters below filter chips */
         .gender-counters-container {
             display: flex;

@@ -351,8 +351,29 @@
             white-space: nowrap;
             padding-right: 12px;
         }
-        
-        .entry-actions {
+
+        .entry-genre {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .seasonal-table-container { background:#0a0a0a; border-radius:10px; border:1px solid #2a2a2a; overflow:hidden; margin-bottom:12px; }
+        .seasonal-table { width:100%; border-collapse:collapse; }
+        .seasonal-table th, .seasonal-table td { padding:10px 14px; text-align:left; border-bottom:1px solid #1a1a1a; }
+        .seasonal-table th { background:#111; color:#888; font-weight:600; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; }
+        .seasonal-table th.sortable { cursor:pointer; user-select:none; }
+        .seasonal-table th.sortable:hover { color:#ccc; background:#191919; }
+        .seasonal-table th.sort-asc::after  { content:' \2191'; color:#22c55e; font-weight:normal; }
+        .seasonal-table th.sort-desc::after { content:' \2193'; color:#22c55e; font-weight:normal; }
+        .seasonal-table tbody tr:hover { background:#151515; }
+        .seasonal-table tbody tr:last-child td { border-bottom:none; }
+        .seasonal-table .st-pos  { width:52px; text-align:center; font-size:1.1rem; font-weight:bold; color:#fff; }
+        .seasonal-table .st-thumb { width:52px; padding:6px 10px; }
+        .seasonal-table .st-thumb img { width:36px; height:36px; border-radius:4px; object-fit:cover; display:block; }
+        .seasonal-table .st-thumb span { font-size:1.3rem; }
+        .seasonal-table .st-plays { width:70px; text-align:right; font-size:0.9rem; color:#ccc; }
+        .seasonal-table a { color:inherit; text-decoration:none; }
+        .seasonal-table a:hover { text-decoration:underline; }
             display: flex;
             gap: 8px;
         }
@@ -577,6 +598,7 @@
                         <span th:if="${songEntries.size() == maxSongs}" style="color: #22c55e;">✓ </span>
                         <span th:text="${songEntries.size()} + '/' + ${maxSongs}">0/30</span>
                     </span>
+                    <button th:if="${songChartFinalized}" type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#songListFinalized', null, 'Songs Genre Breakdown')">Genre Breakdown</button>
                     <button th:if="${songChartFinalized}" type="button" class="chart-playlist-btn" onclick="openYearlySongsPlaylistGenerator()">🎵 Playlist</button>
                 </div>
                 
@@ -593,14 +615,43 @@
                     <div class="no-results">Start typing to search...</div>
                 </div>
                 
-                <div class="chart-list" id="songList" th:classappend="${songChartFinalized ? 'finalized' : ''}">
+                <!-- Finalized: sortable table -->
+                <div th:if="${songChartFinalized}" id="songListFinalized" class="seasonal-table-container">
+                    <table class="seasonal-table">
+                        <thead><tr>
+                            <th class="st-pos sortable" onclick="sortTable(this,'number')">Pos</th>
+                            <th class="st-thumb"></th>
+                            <th class="sortable" onclick="sortTable(this,'text')">Song</th>
+                            <th class="sortable" onclick="sortTable(this,'text')">Artist</th>
+                            <th class="sortable" onclick="sortTable(this,'text')">Genre</th>
+                            <th class="st-plays sortable" onclick="sortTable(this,'number')">Plays</th>
+                        </tr></thead>
+                        <tbody>
+                            <tr th:each="entry : ${songEntries}"
+                                th:attr="data-gender=${entry.genderId}"
+                                th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                                <td class="st-pos" th:attr="data-sort-val=${entry.position}" th:text="${entry.position}">1</td>
+                                <td class="st-thumb">
+                                    <img th:if="${entry.albumHasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                                    <img th:if="${!entry.albumHasImage and entry.hasImage}" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="">
+                                    <span th:if="${!entry.albumHasImage and !entry.hasImage}">🎵</span>
+                                </td>
+                                <td th:attr="data-sort-val=${entry.songName}"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                <td th:attr="data-sort-val=${entry.artistName}"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></td>
+                                <td th:attr="data-sort-val=${entry.genreName ?: ''}" th:text="${entry.genreName}"></td>
+                                <td class="st-plays" th:attr="data-sort-val=${entry.playCount}" th:text="${entry.playCount}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Editing: card list -->
+                <div th:unless="${songChartFinalized}" class="chart-list" id="songList">
                     <div th:if="${#lists.isEmpty(songEntries)}" class="empty-chart">
                         <div class="empty-chart-icon">🎵</div>
                         <p>No songs added yet. Search above to add songs.</p>
                     </div>
                     <div th:each="entry, stat : ${songEntries}" class="chart-entry" th:data-id="${entry.songId}" th:data-album="${entry.albumName}"
-                        th:attr="data-gender=${entry.genderId}"
-                        th:style="${songChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${songChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                        th:attr="data-gender=${entry.genderId}">
                         <div class="entry-position" th:text="${entry.position}">1</div>
                         <div th:if="${entry.albumHasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
@@ -613,10 +664,7 @@
                             <div class="entry-name"><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></div>
                             <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
                         </div>
-                        <div class="entry-plays" th:if="${songChartFinalized}">
-                            <span th:text="${entry.playCount} + ' plays'">0 plays</span>
-                        </div>
-                        <div class="entry-actions" th:unless="${songChartFinalized}">
+                        <div class="entry-actions">
                             <button class="entry-btn" onclick="moveUp('song', this)" th:disabled="${stat.first}">↑</button>
                             <button class="entry-btn" onclick="moveDown('song', this)" th:disabled="${stat.last}">↓</button>
                             <button class="entry-btn remove" onclick="removeEntry('song', this)">×</button>
@@ -634,6 +682,7 @@
                         <span th:if="${albumEntries.size() == maxAlbums}" style="color: #22c55e;">✓ </span>
                         <span th:text="${albumEntries.size()} + '/' + ${maxAlbums}">0/10</span>
                     </span>
+                    <button th:if="${albumChartFinalized}" type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#albumListFinalized', null, 'Albums Genre Breakdown')">Genre Breakdown</button>
                 </div>
                 
                 <div class="search-container" th:unless="${albumChartFinalized}">
@@ -649,14 +698,42 @@
                     <div class="no-results">Start typing to search...</div>
                 </div>
                 
-                <div class="chart-list" id="albumList" th:classappend="${albumChartFinalized ? 'finalized' : ''}">
+                <!-- Finalized: sortable table -->
+                <div th:if="${albumChartFinalized}" id="albumListFinalized" class="seasonal-table-container">
+                    <table class="seasonal-table">
+                        <thead><tr>
+                            <th class="st-pos sortable" onclick="sortTable(this,'number')">Pos</th>
+                            <th class="st-thumb"></th>
+                            <th class="sortable" onclick="sortTable(this,'text')">Album</th>
+                            <th class="sortable" onclick="sortTable(this,'text')">Artist</th>
+                            <th class="sortable" onclick="sortTable(this,'text')">Genre</th>
+                            <th class="st-plays sortable" onclick="sortTable(this,'number')">Plays</th>
+                        </tr></thead>
+                        <tbody>
+                            <tr th:each="entry : ${albumEntries}"
+                                th:attr="data-gender=${entry.genderId}"
+                                th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                                <td class="st-pos" th:attr="data-sort-val=${entry.position}" th:text="${entry.position}">1</td>
+                                <td class="st-thumb">
+                                    <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
+                                    <span th:unless="${entry.hasImage}">💿</span>
+                                </td>
+                                <td th:attr="data-sort-val=${entry.albumName}"><a th:href="@{/albums/{id}(id=${entry.albumId})}" th:text="${entry.albumName}">Album Name</a></td>
+                                <td th:attr="data-sort-val=${entry.artistName}"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></td>
+                                <td th:attr="data-sort-val=${entry.genreName ?: ''}" th:text="${entry.genreName}"></td>
+                                <td class="st-plays" th:attr="data-sort-val=${entry.playCount}" th:text="${entry.playCount}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Editing: card list -->
+                <div th:unless="${albumChartFinalized}" class="chart-list" id="albumList">
                     <div th:if="${#lists.isEmpty(albumEntries)}" class="empty-chart">
                         <div class="empty-chart-icon">💿</div>
                         <p>No albums added yet. Search above to add albums.</p>
                     </div>
                     <div th:each="entry, stat : ${albumEntries}" class="chart-entry" th:data-id="${entry.albumId}"
-                        th:attr="data-gender=${entry.genderId}"
-                        th:style="${albumChartFinalized and entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${albumChartFinalized and entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                        th:attr="data-gender=${entry.genderId}">
                         <div class="entry-position" th:text="${entry.position}">1</div>
                         <div th:if="${entry.hasImage}" class="entry-image-container">
                             <img class="entry-image" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
@@ -666,10 +743,7 @@
                             <div class="entry-name"><a th:href="@{/albums/{id}(id=${entry.albumId})}" th:text="${entry.albumName}">Album Name</a></div>
                             <div class="entry-artist"><a th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist Name</a></div>
                         </div>
-                        <div class="entry-plays" th:if="${albumChartFinalized}">
-                            <span th:text="${entry.playCount} + ' plays'">0 plays</span>
-                        </div>
-                        <div class="entry-actions" th:unless="${albumChartFinalized}">
+                        <div class="entry-actions">
                             <button class="entry-btn" onclick="moveUp('album', this)" th:disabled="${stat.first}">↑</button>
                             <button class="entry-btn" onclick="moveDown('album', this)" th:disabled="${stat.last}">↓</button>
                             <button class="entry-btn remove" onclick="removeEntry('album', this)">×</button>
@@ -1282,7 +1356,8 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
         function computeMalePctForYearly(listSelector, targetId) {
-            const rows = document.querySelectorAll(listSelector + ' .chart-entry');
+            let rows = document.querySelectorAll(listSelector + ' > .chart-entry');
+            if (rows.length === 0) rows = document.querySelectorAll(listSelector + ' tbody tr[data-gender]');
             let male = 0, total = 0;
             rows.forEach(r => {
                 const g = r.getAttribute('data-gender');
@@ -1343,8 +1418,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            computeMalePctForYearly('#songList', 'yearlySongsGenderPct');
-            computeMalePctForYearly('#albumList', 'yearlyAlbumsGenderPct');
+            computeMalePctForYearly(songAlreadyFinalized ? '#songListFinalized' : '#songList', 'yearlySongsGenderPct');
+            computeMalePctForYearly(albumAlreadyFinalized ? '#albumListFinalized' : '#albumList', 'yearlyAlbumsGenderPct');
 
             // Load past chart history sub-lines for all items already in the list (edit mode only)
             if (!isFinalized) {
@@ -1363,5 +1438,152 @@
 
     <!-- Playlist Generator Modal -->
     <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+
+    <script>
+        function sortTable(th, dataType) {
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            const colIndex = th.cellIndex;
+            const asc = !th.classList.contains('sort-asc');
+            table.querySelectorAll('thead th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+            th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort((a, b) => {
+                const aCell = a.cells[colIndex];
+                const bCell = b.cells[colIndex];
+                if (!aCell || !bCell) return 0;
+                const aVal = aCell.dataset.sortVal !== undefined ? aCell.dataset.sortVal : aCell.textContent.trim();
+                const bVal = bCell.dataset.sortVal !== undefined ? bCell.dataset.sortVal : bCell.textContent.trim();
+                if (dataType === 'number') {
+                    return asc ? (parseFloat(aVal) || 0) - (parseFloat(bVal) || 0) : (parseFloat(bVal) || 0) - (parseFloat(aVal) || 0);
+                }
+                return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            });
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        function showGenreBreakdown(sectionSelector, skipRowClass, title) {
+            const section = document.querySelector(sectionSelector);
+            if (!section) return;
+            const table = section.querySelector('table');
+            if (!table) return;
+
+            const ths = Array.from(table.querySelectorAll('thead th'));
+            const genreColIdx = ths.findIndex(th => th.textContent.trim().toLowerCase() === 'genre');
+            if (genreColIdx < 0) return;
+
+            const counts = {};
+            table.querySelectorAll('tbody tr').forEach(row => {
+                if (skipRowClass && row.classList.contains(skipRowClass.replace('.', ''))) return;
+                const cell = row.cells[genreColIdx];
+                if (!cell) return;
+                const genre = (cell.dataset.sortVal !== undefined ? cell.dataset.sortVal : cell.textContent.trim()) || '(none)';
+                counts[genre] = (counts[genre] || 0) + 1;
+            });
+
+            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const total = entries.reduce((s, [, c]) => s + c, 0);
+
+            let html = '<table class="gb-table"><thead><tr><th>Genre</th><th></th><th>Count</th><th>%</th></tr></thead><tbody>';
+            entries.forEach(([genre, count]) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                html += `<tr>
+                    <td>${genre}</td>
+                    <td class="gb-bar-cell"><div class="gb-bar-wrap"><div class="gb-bar" style="width:${pct}%"></div></div></td>
+                    <td class="gb-count">${count}</td>
+                    <td><span class="gb-pct">${pct}%</span></td>
+                </tr>`;
+            });
+            if (entries.length === 0) html += '<tr><td colspan="4" style="color:#666;text-align:center;padding:20px">No genre data.</td></tr>';
+            html += '</tbody></table>';
+
+            document.getElementById('gbModalTitle').textContent = title;
+            document.getElementById('gbModalBody').innerHTML = html;
+            document.getElementById('genreBreakdownModal').classList.add('open');
+        }
+
+        function closeGenreBreakdown(event) {
+            const overlay = document.getElementById('genreBreakdownModal');
+            if (event.target === overlay) overlay.classList.remove('open');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') document.getElementById('genreBreakdownModal')?.classList.remove('open');
+        });
+    </script>
+
+    <!-- Genre Breakdown Modal -->
+    <div id="genreBreakdownModal" class="gb-modal-overlay" onclick="closeGenreBreakdown(event)">
+        <div class="gb-modal">
+            <div class="gb-modal-header">
+                <h3 class="gb-modal-title" id="gbModalTitle">Genre Breakdown</h3>
+                <button class="gb-modal-close" onclick="document.getElementById('genreBreakdownModal').classList.remove('open')">&times;</button>
+            </div>
+            <div class="gb-modal-body" id="gbModalBody"></div>
+        </div>
+    </div>
+
+    <style>
+        .genre-breakdown-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .genre-breakdown-btn:hover { border-color: #888; color: #ccc; }
+        .gb-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .gb-modal-overlay.open { display: flex; }
+        .gb-modal {
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            width: min(420px, 92vw);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .gb-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .gb-modal-title { margin: 0; font-size: 1rem; font-weight: 600; color: #eee; }
+        .gb-modal-close {
+            background: none; border: none; color: #666; font-size: 1.4rem;
+            cursor: pointer; line-height: 1; padding: 0;
+        }
+        .gb-modal-close:hover { color: #ccc; }
+        .gb-modal-body { overflow-y: auto; padding: 14px 20px 18px; }
+        .gb-table { width: 100%; border-collapse: collapse; }
+        .gb-table th {
+            text-align: left; font-size: 0.75rem; font-weight: 600;
+            color: #666; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 0 8px 8px 0; border-bottom: 1px solid #222;
+        }
+        .gb-table th:last-child { text-align: right; padding-right: 0; }
+        .gb-table td { padding: 7px 8px 7px 0; border-bottom: 1px solid #181818; font-size: 0.9rem; color: #ccc; }
+        .gb-table td:last-child { text-align: right; padding-right: 0; color: #888; }
+        .gb-table tr:last-child td { border-bottom: none; }
+        .gb-bar-cell { width: 90px; }
+        .gb-bar-wrap { background: #1e1e1e; border-radius: 3px; height: 6px; overflow: hidden; }
+        .gb-bar { height: 100%; border-radius: 3px; background: #22c55e; }
+        .gb-count { color: #aaa; }
+        .gb-pct { min-width: 42px; display: inline-block; }
+    </style>
 </body>
 </html>

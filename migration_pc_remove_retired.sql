@@ -1,13 +1,13 @@
 -- ==========================================================
--- Personal Cuntdown Remove Retired Column
--- Converts existing pc_countdown_entry installs to remove retired
+-- Vato's Cuntdown Remove Retired Column
+-- Converts existing vatos_cuntdown_entry installs to remove retired
 -- Run manually in SQLite against C:/Music Stats DB/music-stats.db
 -- ==========================================================
 
 PRAGMA foreign_keys = OFF;
 BEGIN TRANSACTION;
 
-CREATE TABLE pc_countdown_entry_new (
+CREATE TABLE vatos_cuntdown_entry_new (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     chart_date    TEXT NOT NULL,
     position      INTEGER NOT NULL,
@@ -18,16 +18,16 @@ CREATE TABLE pc_countdown_entry_new (
     FOREIGN KEY (song_id) REFERENCES Song(id)
 );
 
-INSERT INTO pc_countdown_entry_new (id, chart_date, position, artist_name, song_title, is_close_call, song_id)
+INSERT INTO vatos_cuntdown_entry_new (id, chart_date, position, artist_name, song_title, is_close_call, song_id)
 SELECT id, chart_date, position, artist_name, song_title, is_close_call, song_id
-FROM pc_countdown_entry;
+FROM vatos_cuntdown_entry;
 
-DROP TABLE pc_countdown_entry;
-ALTER TABLE pc_countdown_entry_new RENAME TO pc_countdown_entry;
+DROP TABLE vatos_cuntdown_entry;
+ALTER TABLE vatos_cuntdown_entry_new RENAME TO vatos_cuntdown_entry;
 
-CREATE INDEX IF NOT EXISTS idx_pc_countdown_entry_chart_date ON pc_countdown_entry(chart_date);
-CREATE INDEX IF NOT EXISTS idx_pc_countdown_entry_song_id ON pc_countdown_entry(song_id);
-CREATE INDEX IF NOT EXISTS idx_pc_countdown_entry_artist_song ON pc_countdown_entry(artist_name, song_title);
+CREATE INDEX IF NOT EXISTS idx_vatos_cuntdown_entry_chart_date ON vatos_cuntdown_entry(chart_date);
+CREATE INDEX IF NOT EXISTS idx_vatos_cuntdown_entry_song_id ON vatos_cuntdown_entry(song_id);
+CREATE INDEX IF NOT EXISTS idx_vatos_cuntdown_entry_artist_song ON vatos_cuntdown_entry(artist_name, song_title);
 
 COMMIT;
 PRAGMA foreign_keys = ON;

@@ -418,14 +418,14 @@
                               + (${trlStats.peakPosition != null} ? ' (Peak #' + ${trlStats.peakPosition} + (${trlStats.daysAtPeak != null and trlStats.daysAtPeak > 1} ? ' for ' + ${trlStats.daysAtPeak} + ' days)' : ')') : '')"
                        th:title="'This video spent ' + ${trlStats.daysOnCountdown} + ' days on MTV Total Request Live'"></a>
 
-                    <!-- Personal Cuntdown chip (same section as TRL) -->
+                          <!-- Vato's Cuntdown chip (same section as TRL) -->
                     <a th:if="${pcStats != null}"
-                       th:href="@{/misc/pc}"
+                              th:href="@{/misc/vatos-cuntdown}"
                        target="_blank"
                        class="winning-chip rank-chip pc-chip"
                        th:text="${pcStats.daysOnCountdown} + ' Days on Vato\'s Cuntdown'
                               + (${pcStats.peakPosition != null} ? ' (Peak #' + ${pcStats.peakPosition} + (${pcStats.daysAtPeak != null and pcStats.daysAtPeak > 1} ? ' for ' + ${pcStats.daysAtPeak} + ' days)' : ')') : '')"
-                       th:title="'This song spent ' + ${pcStats.daysOnCountdown} + ' days on Vato\'s Personal Cuntdown'"></a>
+                              th:title="'This song spent ' + ${pcStats.daysOnCountdown} + ' days on Vato\'s Cuntdown'"></a>
 
                           <a th:if="${billboardHot100Stats != null}"
                           th:href="@{/misc/billboard-hot-100}"

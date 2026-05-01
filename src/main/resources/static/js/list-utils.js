@@ -98,13 +98,64 @@ function ensureHiddenInput(form, name) {
     return input;
 }
 
+function hasMeaningfulFilterValue(nameToValues, baseName) {
+    if (nameToValues.has(baseName)) {
+        return true;
+    }
+
+    const relatedSuffixes = ['Min', 'Max', 'From', 'To', 'Years', 'Weeks', 'Seasons'];
+    return relatedSuffixes.some(function(suffix) {
+        return nameToValues.has(baseName + suffix);
+    });
+}
+
+function buildCleanFilterParams(form) {
+    const rawEntries = Array.from(new FormData(form).entries()).map(function(entry) {
+        const value = typeof entry[1] === 'string' ? entry[1].trim() : entry[1];
+        return [entry[0], value];
+    }).filter(function(entry) {
+        return !(typeof entry[1] === 'string' && entry[1] === '');
+    });
+
+    const nameToValues = new Map();
+    rawEntries.forEach(function(entry) {
+        const name = entry[0];
+        if (!nameToValues.has(name)) {
+            nameToValues.set(name, []);
+        }
+        nameToValues.get(name).push(entry[1]);
+    });
+
+    const params = new URLSearchParams();
+    rawEntries.forEach(function(entry) {
+        const name = entry[0];
+        const value = entry[1];
+
+        if (name.endsWith('Mode')) {
+            const baseName = name.slice(0, -4);
+            const keepsItself = value === 'isnull' || value === 'isnotnull';
+            if (!keepsItself && !hasMeaningfulFilterValue(nameToValues, baseName)) {
+                return;
+            }
+        }
+
+        if (name === 'page' && value === '0') {
+            return;
+        }
+
+        params.append(name, value);
+    });
+
+    return params;
+}
+
 function preserveListStateOnFilterSubmit(form) {
     if (!form || form.dataset.listStateBound === 'true') {
         return;
     }
 
     form.dataset.listStateBound = 'true';
-    form.addEventListener('submit', function() {
+    form.addEventListener('submit', function(event) {
         const url = new URL(window.location.href);
         const sortByInput = ensureHiddenInput(form, 'sortby');
         const sortDirInput = ensureHiddenInput(form, 'sortdir');
@@ -118,7 +169,34 @@ function preserveListStateOnFilterSubmit(form) {
         sortDirInput.value = url.searchParams.get('sortdir') || sortDirInput.value || '';
         perPageInput.value = pageSizeInput ? pageSizeInput.value : (url.searchParams.get('perpage') || perPageInput.value || '');
         pageInput.value = '0';
+
+        if ((form.getAttribute('method') || 'get').toLowerCase() !== 'get') {
+            return;
+        }
+
+        event.preventDefault();
+        const destination = new URL(form.getAttribute('action') || window.location.pathname, window.location.origin);
+        destination.search = buildCleanFilterParams(form).toString();
+        window.location.href = destination.toString();
     });
+}
+
+function submitFilterForm(formOrId) {
+    const form = typeof formOrId === 'string'
+        ? document.getElementById(formOrId)
+        : formOrId;
+    if (!form) {
+        return;
+    }
+
+    if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+        return;
+    }
+
+    const destination = new URL(form.getAttribute('action') || window.location.pathname, window.location.origin);
+    destination.search = buildCleanFilterParams(form).toString();
+    window.location.href = destination.toString();
 }
 
 /**

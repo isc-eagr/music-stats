@@ -17,6 +17,7 @@ public class ChartEntryDTO {
     private boolean hasImage;
     private boolean albumHasImage;
     private Integer genderId;  // For gender-based row coloring
+    private String genreName;  // Effective genre name (with override chain)
     
     // Calculated stats from comparing with previous charts
     private Integer lastWeekPosition;      // null = new entry, -1 = re-entry
@@ -115,6 +116,14 @@ public class ChartEntryDTO {
     
     public void setGenderId(Integer genderId) {
         this.genderId = genderId;
+    }
+
+    public String getGenreName() {
+        return genreName;
+    }
+
+    public void setGenreName(String genreName) {
+        this.genreName = genreName;
     }
     
     public Integer getLastWeekPosition() {

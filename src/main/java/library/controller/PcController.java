@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/misc/pc")
+@RequestMapping({"/misc/vatos-cuntdown", "/misc/pc"})
 public class PcController {
 
     private final PcService pcService;

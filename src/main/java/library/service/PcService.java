@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.PcOverviewRowDTO;
+import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,22 +12,43 @@ import java.util.Map;
 @Service
 public class PcService {
 
+    private static final String LEGACY_TABLE = "pc_countdown_entry";
+    private static final String CURRENT_TABLE = "vatos_cuntdown_entry";
+
     private final JdbcTemplate jdbcTemplate;
 
     public PcService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @PostConstruct
+    void ensureCountdownTableCompatibility() {
+        if (tableExists(CURRENT_TABLE) || !tableExists(LEGACY_TABLE)) {
+            return;
+        }
+
+        jdbcTemplate.execute("ALTER TABLE " + LEGACY_TABLE + " RENAME TO " + CURRENT_TABLE);
+    }
+
+    private boolean tableExists(String tableName) {
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+            Integer.class,
+            tableName
+        );
+        return count != null && count > 0;
+    }
+
     public Map<String, Object> getSummary() {
         String sql =
             "WITH matched_groups AS ( " +
             "    SELECT song_id " +
-            "    FROM pc_countdown_entry " +
+            "    FROM vatos_cuntdown_entry " +
             "    WHERE is_close_call = 0 AND song_id IS NOT NULL " +
             "    GROUP BY song_id " +
             "), unmatched_groups AS ( " +
             "    SELECT artist_name, song_title " +
-            "    FROM pc_countdown_entry " +
+            "    FROM vatos_cuntdown_entry " +
             "    WHERE is_close_call = 0 AND song_id IS NULL " +
             "    GROUP BY artist_name, song_title " +
             ") " +
@@ -48,11 +70,11 @@ public class PcService {
         String sql =
             "WITH cs AS ( " +
             "    SELECT MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days " +
-            "    FROM pc_countdown_entry ce " +
+            "    FROM vatos_cuntdown_entry ce " +
             "    WHERE ce.song_id = ? AND ce.is_close_call = 0 " +
             ") " +
             "SELECT cs.actual_days AS days_on_countdown, cs.peak_position, cs.actual_days, " +
-            "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM pc_countdown_entry ce2 " +
+            "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM vatos_cuntdown_entry ce2 " +
             "     WHERE ce2.song_id = ? AND ce2.position = cs.peak_position AND ce2.is_close_call = 0 " +
             "    ) AS days_at_peak " +
             "FROM cs WHERE cs.actual_days > 0";
@@ -95,12 +117,12 @@ public class PcService {
             "           COUNT(DISTINCT e.chart_date) AS days_on_countdown, " +
             "           MIN(e.position) AS peak_position, " +
             "           COUNT(DISTINCT LOWER(TRIM(e.artist_name)) || '||' || LOWER(TRIM(e.song_title))) AS raw_variant_count " +
-            "    FROM pc_countdown_entry e " +
+            "    FROM vatos_cuntdown_entry e " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
             "    GROUP BY e.song_id " +
             "), matched_peak AS ( " +
             "    SELECT e.song_id, COUNT(DISTINCT e.chart_date) AS days_at_peak, MIN(e.chart_date) AS peak_week " +
-            "    FROM pc_countdown_entry e " +
+            "    FROM vatos_cuntdown_entry e " +
             "    JOIN matched_groups mg ON mg.song_id = e.song_id AND e.position = mg.peak_position " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
             "    GROUP BY e.song_id " +
@@ -111,12 +133,12 @@ public class PcService {
             "           COUNT(DISTINCT e.chart_date) AS days_on_countdown, " +
             "           MIN(e.position) AS peak_position, " +
             "           1 AS raw_variant_count " +
-            "    FROM pc_countdown_entry e " +
+            "    FROM vatos_cuntdown_entry e " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
             "    GROUP BY e.artist_name, e.song_title " +
             "), unmatched_peak AS ( " +
             "    SELECT e.artist_name, e.song_title, COUNT(DISTINCT e.chart_date) AS days_at_peak, MIN(e.chart_date) AS peak_week " +
-            "    FROM pc_countdown_entry e " +
+            "    FROM vatos_cuntdown_entry e " +
             "    JOIN unmatched_groups ug ON ug.artist_name = e.artist_name AND ug.song_title = e.song_title AND e.position = ug.peak_position " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
             "    GROUP BY e.artist_name, e.song_title " +
@@ -181,7 +203,7 @@ public class PcService {
         String canonSong = (String) lib.get("song_name");
 
         int updatedEntries = jdbcTemplate.update(
-            "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ?, song_id = ? " +
+            "UPDATE vatos_cuntdown_entry SET artist_name = ?, song_title = ?, song_id = ? " +
             "WHERE LOWER(TRIM(artist_name)) = LOWER(TRIM(?)) " +
             "  AND LOWER(TRIM(song_title)) = LOWER(TRIM(?))",
             canonArtist, canonSong, songId, rawArtist, rawSong
@@ -197,7 +219,7 @@ public class PcService {
 
     public int mergeEntries(String sourceArtist, String sourceSong, String targetArtist, String targetSong) {
         Integer sourceSongId = jdbcTemplate.query(
-            "SELECT song_id FROM pc_countdown_entry " +
+            "SELECT song_id FROM vatos_cuntdown_entry " +
             "WHERE artist_name = ? AND song_title = ? AND song_id IS NOT NULL LIMIT 1",
             rs -> rs.next() ? rs.getInt("song_id") : null,
             sourceArtist,
@@ -207,19 +229,19 @@ public class PcService {
         int updated;
         if (sourceSongId != null) {
             updated = jdbcTemplate.update(
-                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ?, song_id = ? " +
+                "UPDATE vatos_cuntdown_entry SET artist_name = ?, song_title = ?, song_id = ? " +
                 "WHERE artist_name = ? AND song_title = ?",
                 sourceArtist, sourceSong, sourceSongId, targetArtist, targetSong
             );
         } else {
             updated = jdbcTemplate.update(
-                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? " +
+                "UPDATE vatos_cuntdown_entry SET artist_name = ?, song_title = ? " +
                 "WHERE artist_name = ? AND song_title = ?",
                 sourceArtist, sourceSong, targetArtist, targetSong
             );
             jdbcTemplate.update(
-                "UPDATE pc_countdown_entry " +
-                "SET song_id = (SELECT song_id FROM pc_countdown_entry " +
+                "UPDATE vatos_cuntdown_entry " +
+                "SET song_id = (SELECT song_id FROM vatos_cuntdown_entry " +
                 "               WHERE artist_name = ? AND song_title = ? AND song_id IS NOT NULL LIMIT 1) " +
                 "WHERE artist_name = ? AND song_title = ? AND song_id IS NULL",
                 sourceArtist, sourceSong, sourceArtist, sourceSong
@@ -233,7 +255,7 @@ public class PcService {
 
         List<Map<String, Object>> variantGroups = jdbcTemplate.query(
             "SELECT LOWER(TRIM(artist_name)) AS artist_key, LOWER(TRIM(song_title)) AS song_key " +
-            "FROM pc_countdown_entry " +
+            "FROM vatos_cuntdown_entry " +
             "WHERE song_id IS NULL " +
             "GROUP BY LOWER(TRIM(artist_name)), LOWER(TRIM(song_title)) " +
             "HAVING COUNT(DISTINCT artist_name || '||' || song_title) > 1",
@@ -251,7 +273,7 @@ public class PcService {
 
             List<Map<String, Object>> canonicalChoices = jdbcTemplate.query(
                 "SELECT artist_name, song_title, COUNT(*) AS usage_count " +
-                "FROM pc_countdown_entry " +
+                "FROM vatos_cuntdown_entry " +
                 "WHERE song_id IS NULL " +
                 "  AND LOWER(TRIM(artist_name)) = ? " +
                 "  AND LOWER(TRIM(song_title)) = ? " +
@@ -277,7 +299,7 @@ public class PcService {
             String canonicalSong = (String) canonical.get("songTitle");
 
             updatedRows += jdbcTemplate.update(
-                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? " +
+                "UPDATE vatos_cuntdown_entry SET artist_name = ?, song_title = ? " +
                 "WHERE song_id IS NULL " +
                 "  AND LOWER(TRIM(artist_name)) = ? " +
                 "  AND LOWER(TRIM(song_title)) = ? " +
@@ -297,7 +319,7 @@ public class PcService {
     private int normalizeLinkedRowsToLibraryCase() {
         List<Map<String, Object>> linkedRows = jdbcTemplate.query(
             "SELECT e.id, s.name AS song_name, a.name AS artist_name " +
-            "FROM pc_countdown_entry e " +
+            "FROM vatos_cuntdown_entry e " +
             "JOIN Song s ON s.id = e.song_id " +
             "JOIN Artist a ON a.id = s.artist_id " +
             "WHERE e.song_id IS NOT NULL " +
@@ -314,7 +336,7 @@ public class PcService {
         int updatedRows = 0;
         for (Map<String, Object> row : linkedRows) {
             updatedRows += jdbcTemplate.update(
-                "UPDATE pc_countdown_entry SET artist_name = ?, song_title = ? WHERE id = ?",
+                "UPDATE vatos_cuntdown_entry SET artist_name = ?, song_title = ? WHERE id = ?",
                 row.get("artistName"),
                 row.get("songTitle"),
                 row.get("id")
@@ -348,41 +370,41 @@ public class PcService {
      */
     public int autoLinkExactMatches() {
         String sql =
-            "UPDATE pc_countdown_entry " +
+            "UPDATE vatos_cuntdown_entry " +
             "SET song_id = ( " +
             "        SELECT s.id FROM Song s " +
             "        JOIN Artist a ON a.id = s.artist_id " +
-            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
-            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(vatos_cuntdown_entry.artist_name)) " +
+            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(vatos_cuntdown_entry.song_title)) " +
             "        LIMIT 1 " +
             "    ), " +
             "    artist_name = COALESCE(( " +
             "        SELECT a.name FROM Song s " +
             "        JOIN Artist a ON a.id = s.artist_id " +
-            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
-            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(vatos_cuntdown_entry.artist_name)) " +
+            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(vatos_cuntdown_entry.song_title)) " +
             "        LIMIT 1 " +
             "    ), artist_name), " +
             "    song_title = COALESCE(( " +
             "        SELECT s.name FROM Song s " +
             "        JOIN Artist a ON a.id = s.artist_id " +
-            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
-            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "        WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(vatos_cuntdown_entry.artist_name)) " +
+            "          AND LOWER(TRIM(s.name)) = LOWER(TRIM(vatos_cuntdown_entry.song_title)) " +
             "        LIMIT 1 " +
             "    ), song_title) " +
             "WHERE song_id IS NULL " +
             "  AND 1 = ( " +
             "    SELECT COUNT(*) FROM Song s " +
             "    JOIN Artist a ON a.id = s.artist_id " +
-            "    WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(pc_countdown_entry.artist_name)) " +
-            "      AND LOWER(TRIM(s.name)) = LOWER(TRIM(pc_countdown_entry.song_title)) " +
+            "    WHERE LOWER(TRIM(a.name)) = LOWER(TRIM(vatos_cuntdown_entry.artist_name)) " +
+            "      AND LOWER(TRIM(s.name)) = LOWER(TRIM(vatos_cuntdown_entry.song_title)) " +
             "  )";
         return jdbcTemplate.update(sql);
     }
 
     public List<String> getAvailableChartDates() {
         return jdbcTemplate.queryForList(
-            "SELECT DISTINCT chart_date FROM pc_countdown_entry ORDER BY chart_date ASC",
+            "SELECT DISTINCT chart_date FROM vatos_cuntdown_entry ORDER BY chart_date ASC",
             String.class
         );
     }
@@ -391,7 +413,7 @@ public class PcService {
         String sql =
             "WITH prev_date AS ( " +
             "    SELECT MAX(chart_date) AS pd " +
-            "    FROM pc_countdown_entry " +
+            "    FROM vatos_cuntdown_entry " +
             "    WHERE chart_date < ? AND is_close_call = 0 " +
             "), " +
             "entry_scope AS ( " +
@@ -400,7 +422,7 @@ public class PcService {
             "               WHEN ce.song_id IS NOT NULL THEN 'song:' || ce.song_id " +
             "               ELSE 'raw:' || LOWER(TRIM(ce.artist_name)) || '||' || LOWER(TRIM(ce.song_title)) " +
             "           END AS identity_key " +
-            "    FROM pc_countdown_entry ce " +
+            "    FROM vatos_cuntdown_entry ce " +
             "), " +
             "song_stats AS ( " +
             "    SELECT es.identity_key, " +
@@ -501,7 +523,7 @@ public class PcService {
     public String findClosestChartDate(String date) {
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT DISTINCT chart_date FROM pc_countdown_entry " +
+                "SELECT DISTINCT chart_date FROM vatos_cuntdown_entry " +
                 "WHERE chart_date <= ? " +
                 "ORDER BY chart_date DESC LIMIT 1",
                 String.class, date);
@@ -513,7 +535,7 @@ public class PcService {
     public String getPrevChartDate(String date) {
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT DISTINCT chart_date FROM pc_countdown_entry " +
+                "SELECT DISTINCT chart_date FROM vatos_cuntdown_entry " +
                 "WHERE chart_date < ? " +
                 "ORDER BY chart_date DESC LIMIT 1",
                 String.class, date);
@@ -525,7 +547,7 @@ public class PcService {
     public String getNextChartDate(String date) {
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT DISTINCT chart_date FROM pc_countdown_entry " +
+                "SELECT DISTINCT chart_date FROM vatos_cuntdown_entry " +
                 "WHERE chart_date > ? " +
                 "ORDER BY chart_date ASC LIMIT 1",
                 String.class, date);

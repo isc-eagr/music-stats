@@ -351,6 +351,7 @@ public class ChartService {
             dto.setAlbumName((String) row[10]); // Album name for playlist export
             dto.setGenderId(row[11] != null ? ((Number) row[11]).intValue() : null);
             dto.setAlbumHasImage(row[12] != null && ((Number) row[12]).intValue() == 1);
+            dto.setGenreName(row[13] != null ? (String) row[13] : null);
 
             Integer songId = dto.getSongId();
             
@@ -418,6 +419,7 @@ public class ChartService {
             dto.setHasImage(((Number) row[8]).intValue() == 1);
             dto.setArtistId((Integer) row[9]);
             dto.setGenderId(row[10] != null ? ((Number) row[10]).intValue() : null);
+            dto.setGenreName(row[11] != null ? (String) row[11] : null);
             
             Integer albumId = dto.getAlbumId();
             
@@ -464,7 +466,8 @@ public class ChartService {
                 g.id as gender_id,
                 COUNT(*) as play_count,
                 MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
-                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image
+                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
+                (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(s.override_genre_id, MAX(al.override_genre_id), ar.genre_id)) as genre_name
             FROM Play p
             INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
@@ -493,6 +496,7 @@ public class ChartService {
             dto.setPlayCount(rs.getInt("play_count"));
             dto.setHasImage(rs.getInt("has_image") == 1);
             dto.setAlbumHasImage(rs.getInt("album_has_image") == 1);
+            dto.setGenreName(rs.getString("genre_name"));
             result.add(dto);
         }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
 
@@ -518,7 +522,8 @@ public class ChartService {
                 ar.name as artist_name,
                 g.id as gender_id,
                 COUNT(*) as play_count,
-                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as has_image
+                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(al.override_genre_id, ar.genre_id)) as genre_name
             FROM Play p
             INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Album al ON s.album_id = al.id
@@ -545,6 +550,7 @@ public class ChartService {
             dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setPlayCount(rs.getInt("play_count"));
             dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setGenreName(rs.getString("genre_name"));
             result.add(dto);
         }, startDate.toString(), endDate.toString(), TOP_ALBUMS_COUNT);
 
@@ -2211,11 +2217,16 @@ public class ChartService {
               "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image"
             : "CASE WHEN item.image IS NOT NULL THEN 1 ELSE 0 END as has_image, 0 as album_has_image";
 
+        String genreSubquery = "song".equals(chartType)
+            ? "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, (SELECT al2.override_genre_id FROM Album al2 WHERE al2.id = item.album_id), ar.genre_id)) as genre_name"
+            : "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, ar.genre_id)) as genre_name";
+
         String sql = String.format("""
             SELECT ce.position, ce.%s as item_id, 
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
                    ar.gender_id as gender_id,
+                   %s,
                    %s,
                    %s
             FROM ChartEntry ce
@@ -2228,6 +2239,7 @@ public class ChartService {
             itemIdCol,
             imageColumns,
             "song".equals(chartType) ? "item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name" : "NULL as album_id, NULL as album_name",
+            genreSubquery,
             itemTable,
             itemIdCol
         );
@@ -2253,6 +2265,7 @@ public class ChartService {
             dto.setArtistName(rs.getString("artist_name"));
             dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setPlayCount(0); // No play count for draft editing
+            dto.setGenreName(rs.getString("genre_name"));
             
             return dto;
         }, periodType, chartType, periodKey);
@@ -2277,12 +2290,17 @@ public class ChartService {
         String playCountSubquery = "song".equals(chartType)
             ? "(SELECT COUNT(*) FROM Play sc WHERE sc.song_id = item.id AND DATE(sc.play_date) >= c.period_start_date AND DATE(sc.play_date) <= c.period_end_date)"
             : "(SELECT COUNT(*) FROM Play sc INNER JOIN Song s ON sc.song_id = s.id WHERE s.album_id = item.id AND DATE(sc.play_date) >= c.period_start_date AND DATE(sc.play_date) <= c.period_end_date)";
+
+        String genreSubquery2 = "song".equals(chartType)
+            ? "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, (SELECT al2.override_genre_id FROM Album al2 WHERE al2.id = item.album_id), ar.genre_id)) as genre_name"
+            : "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, ar.genre_id)) as genre_name";
         
         String sql = String.format("""
             SELECT ce.position, ce.%s as item_id, 
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
                    ar.gender_id as gender_id,
+                   %s,
                    %s,
                    %s,
                    %s as play_count
@@ -2297,6 +2315,7 @@ public class ChartService {
             itemIdCol,
             imageColumns,
             "song".equals(chartType) ? "item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name" : "NULL as album_id, NULL as album_name",
+            genreSubquery2,
             playCountSubquery,
             itemTable,
             itemIdCol,
@@ -2324,6 +2343,7 @@ public class ChartService {
             dto.setArtistName(rs.getString("artist_name"));
             dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setPlayCount(rs.getInt("play_count"));
+            dto.setGenreName(rs.getString("genre_name"));
             
             return dto;
         }, periodType, chartType, periodKey);
@@ -2341,7 +2361,8 @@ public class ChartService {
                    ar.gender_id as gender_id,
                    CASE WHEN item.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_single_cover,
                    CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image,
-                   item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name
+                   item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name,
+                   (SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, (SELECT al2.override_genre_id FROM Album al2 WHERE al2.id = item.album_id), ar.genre_id)) as genre_name
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song item ON ce.song_id = item.id
@@ -2363,6 +2384,7 @@ public class ChartService {
             dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
             dto.setHasImage(rs.getInt("has_single_cover") == 1);
             dto.setAlbumHasImage(rs.getInt("album_has_image") == 1);
+            dto.setGenreName(rs.getString("genre_name"));
 
             return dto;
         }, periodKey, SEASONAL_YEARLY_SONGS_COUNT);

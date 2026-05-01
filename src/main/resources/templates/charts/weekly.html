@@ -281,6 +281,7 @@
             /* Adjust column widths for mobile */
             .col-title { min-width: 180px; }
             .col-artist { min-width: 130px; }
+            .col-genre { min-width: 100px; }
         }
         
         /* Chart table links */
@@ -330,6 +331,14 @@
             letter-spacing: 0.5px;
         }
         
+        .charts-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .charts-table th.sortable:hover { color: #ccc; background: #191919; }
+        .charts-table th.sort-asc::after  { content: ' \2191'; color: #22c55e; font-weight: normal; }
+        .charts-table th.sort-desc::after { content: ' \2193'; color: #22c55e; font-weight: normal; }
+        
         .charts-table tbody tr:hover {
             background: #151515;
         }
@@ -343,6 +352,7 @@
         .col-position { width: 80px; text-align: center; }
         .col-title { min-width: 200px; }
         .col-artist { min-width: 150px; }
+        .col-genre { min-width: 100px; }
         .col-plays { width: 100px; text-align: right; }
         .col-peak { width: 80px; text-align: center; }
         .col-weeks { width: 80px; text-align: center; }
@@ -838,6 +848,7 @@
                     <span class="chart-section-icon">🎵</span>
                     <h2 class="chart-section-title">Top 20 Songs</h2>
                     <div id="songsGenderPct" class="gender-pct"></div>
+                    <button type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#songsSection', '.chart-run-row', 'Songs Genre Breakdown')">Genre Breakdown</button>
                     <button type="button" class="chart-playlist-btn" onclick="openWeeklySongsPlaylistGenerator()">🎵 Generate Playlist</button>
                 </div>
                 <div class="charts-table-container">
@@ -846,12 +857,13 @@
                             <thead>
                                 <tr>
                                     <th class="col-expand"></th>
-                                    <th class="col-position">Position</th>
-                                    <th class="col-title">Title</th>
-                                    <th class="col-artist">Artist</th>
-                                    <th class="col-plays">Plays</th>
-                                    <th class="col-peak" th:if="${!isPreview}">Peak</th>
-                                    <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
+                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Position</th>
+                                    <th class="col-title sortable" onclick="sortTable(this,'text')">Title</th>
+                                    <th class="col-artist sortable" onclick="sortTable(this,'text')">Artist</th>
+                                    <th class="col-genre sortable" onclick="sortTable(this,'text')">Genre</th>
+                                    <th class="col-plays sortable" onclick="sortTable(this,'number')">Plays</th>
+                                    <th class="col-peak sortable" th:if="${!isPreview}" onclick="sortTable(this,'number')">Peak</th>
+                                    <th class="col-weeks sortable" th:if="${!isPreview}" onclick="sortTable(this,'number')">Weeks</th>
                                 </tr>
                         </thead>
                     <tbody>
@@ -865,7 +877,7 @@
                                             th:data-song-id="${entry.songId}"
                                             onclick="toggleChartRun(this)">+</button>
                                 </td>
-                                <td class="col-position">
+                                <td class="col-position" th:attr="data-sort-val=${entry.position}">
                                     <div class="position-cell">
                                         <span class="position-number" th:text="${entry.position}">1</span>
                                         <span class="position-lw" th:classappend="${entry.positionChangeClass}">
@@ -878,34 +890,35 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td class="col-title">
+                                <td class="col-title" th:attr="data-sort-val=${entry.songName}">
                                     <a th:href="@{/songs/{id}(id=${entry.songId})}" 
                                        class="chart-link chart-link-primary"
                                        th:text="${entry.songName}">Song Name</a>
                                 </td>
-                                <td class="col-artist">
+                                <td class="col-artist" th:attr="data-sort-val=${entry.artistName}">
                                     <a th:href="@{/artists/{id}(id=${entry.artistId})}"
                                        class="chart-link chart-link-secondary"
                                        th:text="${entry.artistName}">Artist Name</a>
                                 </td>
-                                <td class="col-plays">
+                                <td class="col-genre" th:attr="data-sort-val=${entry.genreName ?: ''}" th:text="${entry.genreName}"></td>
+                                <td class="col-plays" th:attr="data-sort-val=${entry.playCount}">
                                     <div class="plays-cell">
                                         <span class="plays-count" th:text="${entry.playCount}">10</span>
                                         <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}" 
                                               th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
                                     </div>
                                 </td>
-                                <td class="col-peak" th:if="${!isPreview}">
+                                <td class="col-peak" th:if="${!isPreview}" th:attr="data-sort-val=${entry.peakPosition}">
                                     <div class="peak-cell">
                                         <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
                                         <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
                                     </div>
                                 </td>
-                                <td class="col-weeks" th:if="${!isPreview}" th:text="${entry.weeksOnChart}">5</td>
+                                <td class="col-weeks" th:if="${!isPreview}" th:attr="data-sort-val=${entry.weeksOnChart}" th:text="${entry.weeksOnChart}">5</td>
                             </tr>
                             <!-- Chart run detail row (hidden by default) -->
                             <tr class="chart-run-row" th:data-song-id="${entry.songId}">
-                                <td colspan="7" class="chart-run-cell">
+                                <td colspan="8" class="chart-run-cell">
                                     <div class="chart-run-content" th:id="'chart-run-' + ${entry.songId}">
                                         <!-- Content loaded via AJAX -->
                                         <div style="text-align: center; color: #888;">Loading chart run...</div>
@@ -937,6 +950,7 @@
                     <span class="chart-section-icon">💿</span>
                     <h2 class="chart-section-title">Top 10 Albums</h2>
                     <div id="albumsGenderPct" class="gender-pct"></div>
+                    <button type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#albumsSection', '.album-chart-run-row', 'Albums Genre Breakdown')">Genre Breakdown</button>
                 </div>
                 <div class="charts-table-container">
                     <div class="charts-table-wrapper">
@@ -944,12 +958,13 @@
                             <thead>
                                 <tr>
                                     <th class="col-expand"></th>
-                                    <th class="col-position">Position</th>
-                                    <th class="col-title">Album</th>
-                                    <th class="col-artist">Artist</th>
-                                    <th class="col-plays">Plays</th>
-                                    <th class="col-peak" th:if="${!isPreview}">Peak</th>
-                                    <th class="col-weeks" th:if="${!isPreview}">Weeks</th>
+                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Position</th>
+                                    <th class="col-title sortable" onclick="sortTable(this,'text')">Album</th>
+                                    <th class="col-artist sortable" onclick="sortTable(this,'text')">Artist</th>
+                                    <th class="col-genre sortable" onclick="sortTable(this,'text')">Genre</th>
+                                    <th class="col-plays sortable" onclick="sortTable(this,'number')">Plays</th>
+                                    <th class="col-peak sortable" th:if="${!isPreview}" onclick="sortTable(this,'number')">Peak</th>
+                                    <th class="col-weeks sortable" th:if="${!isPreview}" onclick="sortTable(this,'number')">Weeks</th>
                                 </tr>
                             </thead>
                         <tbody>
@@ -963,7 +978,7 @@
                                                 th:data-album-id="${entry.albumId}"
                                                 onclick="toggleAlbumChartRun(this)">+</button>
                                     </td>
-                                    <td class="col-position">
+                                    <td class="col-position" th:attr="data-sort-val=${entry.position}">
                                         <div class="position-cell">
                                             <span class="position-number" th:text="${entry.position}">1</span>
                                             <span class="position-lw" th:classappend="${entry.positionChangeClass}">
@@ -976,34 +991,35 @@
                                             </span>
                                         </div>
                                     </td>
-                                    <td class="col-title">
+                                    <td class="col-title" th:attr="data-sort-val=${entry.albumName}">
                                         <a th:href="@{/albums/{id}(id=${entry.albumId})}" 
                                            class="chart-link chart-link-primary"
                                            th:text="${entry.albumName}">Album Name</a>
                                     </td>
-                                    <td class="col-artist">
+                                    <td class="col-artist" th:attr="data-sort-val=${entry.artistName}">
                                         <a th:href="@{/artists/{id}(id=${entry.artistId})}"
                                            class="chart-link chart-link-secondary"
                                            th:text="${entry.artistName}">Artist Name</a>
                                     </td>
-                                    <td class="col-plays">
+                                    <td class="col-genre" th:attr="data-sort-val=${entry.genreName ?: ''}" th:text="${entry.genreName}"></td>
+                                    <td class="col-plays" th:attr="data-sort-val=${entry.playCount}">
                                         <div class="plays-cell">
                                             <span class="plays-count" th:text="${entry.playCount}">10</span>
                                             <span class="plays-lw" th:if="${entry.lastWeekPlayCount != null}" 
                                                   th:text="'LW: ' + ${entry.lastWeekPlayCount}">LW: 8</span>
                                         </div>
                                     </td>
-                                    <td class="col-peak" th:if="${!isPreview}">
+                                    <td class="col-peak" th:if="${!isPreview}" th:attr="data-sort-val=${entry.peakPosition}">
                                         <div class="peak-cell">
                                             <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
                                             <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
                                         </div>
                                     </td>
-                                    <td class="col-weeks" th:if="${!isPreview}" th:text="${entry.weeksOnChart}">5</td>
+                                    <td class="col-weeks" th:if="${!isPreview}" th:attr="data-sort-val=${entry.weeksOnChart}" th:text="${entry.weeksOnChart}">5</td>
                                 </tr>
                                 <!-- Chart run detail row (hidden by default) -->
                                 <tr class="chart-run-row album-chart-run-row" th:data-album-id="${entry.albumId}">
-                                    <td colspan="7" class="chart-run-cell">
+                                    <td colspan="8" class="chart-run-cell">
                                         <div class="chart-run-content" th:id="'album-chart-run-' + ${entry.albumId}">
                                             <!-- Content loaded via AJAX -->
                                             <div style="text-align: center; color: #888;">Loading chart run...</div>
@@ -1484,6 +1500,54 @@
         }
         /*]]>*/
     </script>
+
+    <script>
+        function sortTable(th, dataType) {
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            const colIndex = th.cellIndex;
+            const currentDir = th.dataset.sortDir || '';
+            const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+
+            table.querySelectorAll('thead th').forEach(h => {
+                h.dataset.sortDir = '';
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
+            th.dataset.sortDir = newDir;
+            th.classList.add(newDir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+            const allRows = Array.from(tbody.children);
+            const pairs = [];
+            for (let i = 0; i < allRows.length; i++) {
+                const row = allRows[i];
+                if (row.classList.contains('chart-run-row') || row.classList.contains('album-chart-run-row')) continue;
+                const nextRow = allRows[i + 1];
+                const detailRow = nextRow && (nextRow.classList.contains('chart-run-row') || nextRow.classList.contains('album-chart-run-row')) ? nextRow : null;
+                pairs.push({ mainRow: row, detailRow });
+            }
+
+            pairs.forEach(p => {
+                const cell = p.mainRow.cells[colIndex];
+                p.sortVal = cell?.dataset?.sortVal ?? cell?.textContent?.trim() ?? '';
+            });
+
+            pairs.sort((a, b) => {
+                if (dataType === 'number') {
+                    return newDir === 'asc'
+                        ? (parseFloat(a.sortVal) || 0) - (parseFloat(b.sortVal) || 0)
+                        : (parseFloat(b.sortVal) || 0) - (parseFloat(a.sortVal) || 0);
+                }
+                return newDir === 'asc'
+                    ? a.sortVal.localeCompare(b.sortVal)
+                    : b.sortVal.localeCompare(a.sortVal);
+            });
+
+            pairs.forEach(({ mainRow, detailRow }) => {
+                tbody.appendChild(mainRow);
+                if (detailRow) tbody.appendChild(detailRow);
+            });
+        }
+    </script>
     
     <script th:inline="javascript">
         /*<![CDATA[*/
@@ -1522,5 +1586,133 @@
 
     <!-- Playlist Generator Modal -->
     <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+
+    <!-- Genre Breakdown Modal -->
+    <div id="genreBreakdownModal" class="gb-modal-overlay" onclick="closeGenreBreakdown(event)">
+        <div class="gb-modal">
+            <div class="gb-modal-header">
+                <h3 class="gb-modal-title" id="gbModalTitle">Genre Breakdown</h3>
+                <button class="gb-modal-close" onclick="document.getElementById('genreBreakdownModal').classList.remove('open')">&times;</button>
+            </div>
+            <div class="gb-modal-body" id="gbModalBody"></div>
+        </div>
+    </div>
+
+    <style>
+        .genre-breakdown-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .genre-breakdown-btn:hover { border-color: #888; color: #ccc; }
+        .gb-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .gb-modal-overlay.open { display: flex; }
+        .gb-modal {
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            width: min(420px, 92vw);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .gb-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .gb-modal-title { margin: 0; font-size: 1rem; font-weight: 600; color: #eee; }
+        .gb-modal-close {
+            background: none; border: none; color: #666; font-size: 1.4rem;
+            cursor: pointer; line-height: 1; padding: 0;
+        }
+        .gb-modal-close:hover { color: #ccc; }
+        .gb-modal-body { overflow-y: auto; padding: 14px 20px 18px; }
+        .gb-table { width: 100%; border-collapse: collapse; }
+        .gb-table th {
+            text-align: left; font-size: 0.75rem; font-weight: 600;
+            color: #666; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 0 8px 8px 0; border-bottom: 1px solid #222;
+        }
+        .gb-table th:last-child { text-align: right; padding-right: 0; }
+        .gb-table td { padding: 7px 8px 7px 0; border-bottom: 1px solid #181818; font-size: 0.9rem; color: #ccc; }
+        .gb-table td:last-child { text-align: right; padding-right: 0; color: #888; }
+        .gb-table tr:last-child td { border-bottom: none; }
+        .gb-bar-cell { width: 90px; }
+        .gb-bar-wrap { background: #1e1e1e; border-radius: 3px; height: 6px; overflow: hidden; }
+        .gb-bar { height: 100%; border-radius: 3px; background: #22c55e; }
+        .gb-count { color: #aaa; }
+        .gb-pct { min-width: 42px; display: inline-block; }
+    </style>
+
+    <script>
+        function showGenreBreakdown(sectionSelector, skipRowClass, title) {
+            const section = document.querySelector(sectionSelector);
+            if (!section) return;
+            const table = section.querySelector('table');
+            if (!table) return;
+
+            // Find genre column index
+            const ths = Array.from(table.querySelectorAll('thead th'));
+            const genreColIdx = ths.findIndex(th => th.textContent.trim().toLowerCase() === 'genre');
+            if (genreColIdx < 0) return;
+
+            // Collect genre values from data rows
+            const counts = {};
+            table.querySelectorAll('tbody tr').forEach(row => {
+                if (skipRowClass && row.classList.contains(skipRowClass.replace('.', ''))) return;
+                const cell = row.cells[genreColIdx];
+                if (!cell) return;
+                const genre = (cell.dataset.sortVal !== undefined ? cell.dataset.sortVal : cell.textContent.trim()) || '(none)';
+                counts[genre] = (counts[genre] || 0) + 1;
+            });
+
+            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const total = entries.reduce((s, [, c]) => s + c, 0);
+
+            // Build table HTML
+            let html = '<table class="gb-table"><thead><tr><th>Genre</th><th></th><th>Count</th><th>%</th></tr></thead><tbody>';
+            entries.forEach(([genre, count]) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                html += `<tr>
+                    <td>${genre}</td>
+                    <td class="gb-bar-cell"><div class="gb-bar-wrap"><div class="gb-bar" style="width:${pct}%"></div></div></td>
+                    <td class="gb-count">${count}</td>
+                    <td><span class="gb-pct">${pct}%</span></td>
+                </tr>`;
+            });
+            if (entries.length === 0) html += '<tr><td colspan="4" style="color:#666;text-align:center;padding:20px">No genre data.</td></tr>';
+            html += '</tbody></table>';
+
+            document.getElementById('gbModalTitle').textContent = title;
+            document.getElementById('gbModalBody').innerHTML = html;
+            document.getElementById('genreBreakdownModal').classList.add('open');
+        }
+
+        function closeGenreBreakdown(event) {
+            const overlay = document.getElementById('genreBreakdownModal');
+            if (event.target === overlay) overlay.classList.remove('open');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') document.getElementById('genreBreakdownModal')?.classList.remove('open');
+        });
+    </script>
 </body>
 </html>

@@ -1432,7 +1432,7 @@
         
         <!-- Album cards grid -->
         <div class="album-grid">
-            <div th:each="album : ${albums}" 
+            <div th:each="album, iterStat : ${albums}" 
                  class="album-card"
                  th:attr="data-album-id=${album.id}"
                  th:classappend="${album.genderName != null and album.genderName.toLowerCase().contains('male') and !album.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${album.genderName != null and album.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
@@ -1460,6 +1460,7 @@
                 </div>
                 
                 <div class="album-info">
+                    <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
                     <a th:href="@{'/albums/' + ${album.id}}">
                         <h3 class="album-name">
                             <span th:if="${album.inItunes != null}" 
@@ -2476,6 +2477,15 @@
     </div>
     
     <style>
+        .card-index {
+            position: absolute;
+            bottom: 6px;
+            right: 8px;
+            font-size: 0.7rem;
+            color: #555;
+            line-height: 1;
+            pointer-events: none;
+        }
         .card-detail-modal-content {
             max-width: 1100px;
             max-height: 125vh;

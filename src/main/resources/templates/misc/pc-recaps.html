@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Cuntdown Recaps - Music Stats</title>
+    <title>Vato's Cuntdown Recaps - Music Stats</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <style>
@@ -209,9 +209,9 @@
     <div class="recap-container">
         <div class="topbar">
             <div class="breadcrumbs">
-                <a href="/">Home</a> / <a href="/misc/pc">Personal Cuntdown</a> / <span>Recaps</span>
+                <a href="/">Home</a> / <a href="/misc/vatos-cuntdown">Vato's Cuntdown</a> / <span>Recaps</span>
             </div>
-            <h1>Personal Cuntdown Recaps</h1>
+            <h1>Vato's Cuntdown Recaps</h1>
         </div>
 
         <!-- Date picker dropdowns + nav arrows -->
@@ -316,7 +316,7 @@
             </div>
             <div th:if="${countdown == null}" class="recap-empty">
                 <div class="recap-empty-icon">&#9835;</div>
-                <div>Select a date to view that week's Personal Cuntdown</div>
+                <div>Select a date to view that week's Vato's Cuntdown</div>
             </div>
         </div>
     </div>
@@ -407,7 +407,7 @@
         }
 
         function loadCountdown(date) {
-            fetch('/misc/pc/recaps/data?date=' + encodeURIComponent(date))
+            fetch('/misc/vatos-cuntdown/recaps/data?date=' + encodeURIComponent(date))
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     const content = document.getElementById('recapContent');

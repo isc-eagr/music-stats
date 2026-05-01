@@ -581,7 +581,7 @@ public class SongController {
         model.addAttribute("trlDays", trlService.getDaysOnTrlBySongId(id));
         model.addAttribute("trlStats", trlService.getTrlStatsBySongId(id));
 
-        // Personal Cuntdown chip
+        // Vato's Cuntdown chip
         model.addAttribute("pcStats", pcService.getPcStatsBySongId(id));
 
         // Billboard Hot 100 chip

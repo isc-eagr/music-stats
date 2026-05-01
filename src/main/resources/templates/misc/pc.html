@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Cuntdown Overview - Music Stats</title>
+    <title>Vato's Cuntdown Overview - Music Stats</title>
     <script>document.documentElement.classList.add('js');</script>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
@@ -63,10 +63,16 @@
         .pc-toggle-btn:hover:not(:disabled) { border-color: rgba(170, 90, 220, 0.8); color: #dbb3ff; background: rgba(170, 90, 220, 0.14); }
         .pc-toggle-btn.active { background: rgba(170, 90, 220, 0.18); border-color: rgba(170, 90, 220, 0.55); color: #c080e8; }
         .pc-toggle-btn:disabled { opacity: 0.55; cursor: default; }
-        .pc-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #2a2a2a; }
+        .pc-table-wrap { overflow: visible; border-radius: 12px; border: 1px solid #2a2a2a; }
         .pc-table { width: 100%; border-collapse: collapse; background: #141414; }
         .pc-table thead tr { background: #1e1e1e; border-bottom: 2px solid #333; }
-        .pc-table th { padding: 11px 14px; text-align: left; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+        .pc-table th { padding: 11px 14px; text-align: left; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; position: sticky; top: 0; z-index: 2; background: #1e1e1e; box-shadow: inset 0 -1px 0 #333; }
+
+        @media (max-width: 900px) {
+            .pc-table-wrap {
+                overflow-x: auto;
+            }
+        }
         .pc-table th.center, .pc-table td.center { text-align: center; }
         .pc-table th.sorted-asc::after { content: ' \25B2'; font-size: 0.7em; }
         .pc-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
@@ -158,7 +164,7 @@
     <div class="page-load-overlay" aria-hidden="true">
         <div class="page-load-card">
             <div class="page-load-spinner"></div>
-            <div class="page-load-title" id="pcOverlayTitle">Loading Personal Cuntdown overview</div>
+            <div class="page-load-title" id="pcOverlayTitle">Loading Vato's Cuntdown overview</div>
             <div class="page-load-subtitle" id="pcOverlaySubtitle">Sorting entries and wiring your table...</div>
         </div>
     </div>
@@ -167,9 +173,9 @@
     <div class="pc-container">
         <div class="topbar">
             <div class="breadcrumbs">
-                <a href="/">Home</a> / <span>Personal Cuntdown Overview</span>
+                <a href="/">Home</a> / <span>Vato's Cuntdown Overview</span>
             </div>
-            <h1>Personal Cuntdown Overview</h1>
+            <h1>Vato's Cuntdown Overview</h1>
             <p class="page-subtitle">Derived directly from non-close-call countdown entries, grouped by raw name until a library song link exists.</p>
         </div>
 
@@ -227,13 +233,13 @@
                         <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
                         <td class="center" th:attr="data-value=${entry.daysAtPeak}" th:text="${entry.daysAtPeak}">0</td>
                         <td class="center" th:attr="data-value=${entry.firstWeek}">
-                            <a th:href="@{/misc/pc/recaps(date=${entry.firstWeek})}" class="pc-date-link" th:text="${entry.firstWeek}">-</a>
+                            <a th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.firstWeek})}" class="pc-date-link" th:text="${entry.firstWeek}">-</a>
                         </td>
                         <td class="center" th:attr="data-value=${entry.lastWeek}">
-                            <a th:href="@{/misc/pc/recaps(date=${entry.lastWeek})}" class="pc-date-link" th:text="${entry.lastWeek}">-</a>
+                            <a th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.lastWeek})}" class="pc-date-link" th:text="${entry.lastWeek}">-</a>
                         </td>
                         <td class="center" th:attr="data-value=${entry.peakWeek}">
-                            <a th:if="${entry.peakWeek != null}" th:href="@{/misc/pc/recaps(date=${entry.peakWeek})}" class="pc-date-link" th:text="${entry.peakWeek}">-</a>
+                            <a th:if="${entry.peakWeek != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.peakWeek})}" class="pc-date-link" th:text="${entry.peakWeek}">-</a>
                             <span th:if="${entry.peakWeek == null}" style="color:#666;">-</span>
                         </td>
                         <td th:attr="data-value=${entry.songTitle}">
@@ -254,7 +260,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="11" class="pc-empty">No Personal Cuntdown rows found yet.</td>
+                        <td colspan="11" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -268,7 +274,7 @@
         <div class="pc-modal" role="dialog" aria-modal="true">
             <div class="pc-modal-header">
                 <div>
-                    <div class="pc-modal-title">Link Personal Cuntdown Entry</div>
+                    <div class="pc-modal-title">Link Vato's Cuntdown Entry</div>
                     <div class="pc-modal-subtitle" id="pcMatchSubtitle"></div>
                 </div>
                 <button class="pc-modal-close" onclick="closePcMatchModal()" aria-label="Close">&times;</button>
@@ -392,14 +398,14 @@
             const message = 'Merge ' + targets.length + ' target(s) into Source:\n\n'
                 + '  Source: ' + sourceArtist + ' - ' + sourceSong + '\n\n'
                 + 'Targets:\n' + targetList + '\n\n'
-                + 'All Target Personal Cuntdown rows will be renamed to the Source values. Continue?';
+                + 'All target Vato\'s Cuntdown rows will be renamed to the Source values. Continue?';
 
             if (!confirm(message)) return;
 
             const mergeBtn = document.getElementById('pcMergeBtn');
             mergeBtn.style.pointerEvents = 'none';
             mergeBtn.textContent = 'Merging...';
-            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Merging selected entries...');
+            showPageBusyOverlay('Refreshing Vato\'s Cuntdown overview', 'Merging selected entries...');
 
             let chain = Promise.resolve();
             targets.forEach(targetRow => {
@@ -409,7 +415,7 @@
                     params.append('sourceSong', sourceSong);
                     params.append('targetArtist', targetRow.dataset.rawArtist || '');
                     params.append('targetSong', targetRow.dataset.rawSong || '');
-                    return fetch('/misc/pc/merge', {
+                    return fetch('/misc/vatos-cuntdown/merge', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: params.toString()
@@ -417,7 +423,7 @@
                 });
             });
 
-            chain.then(() => window.location.reload())
+            chain.then(() => reloadWithSearch())
                 .catch(() => {
                     hidePageBusyOverlay();
                     mergeBtn.style.pointerEvents = '';
@@ -429,12 +435,12 @@
         function runPcAutoLink(btn) {
             btn.disabled = true;
             btn.textContent = 'Linking...';
-            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Linking exact song matches...');
-            fetch('/misc/pc/auto-link', { method: 'POST' })
+            showPageBusyOverlay('Refreshing Vato\'s Cuntdown overview', 'Linking exact song matches...');
+            fetch('/misc/vatos-cuntdown/auto-link', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
                     btn.textContent = 'Linked ' + data.linked + ' entries';
-                    window.location.reload();
+                    reloadWithSearch();
                 })
                 .catch(() => {
                     hidePageBusyOverlay();
@@ -447,12 +453,12 @@
         function runPcNormalizeCase(btn) {
             btn.disabled = true;
             btn.textContent = 'Normalizing...';
-            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Normalizing case-only differences...');
-            fetch('/misc/pc/normalize-case', { method: 'POST' })
+            showPageBusyOverlay('Refreshing Vato\'s Cuntdown overview', 'Normalizing case-only differences...');
+            fetch('/misc/vatos-cuntdown/normalize-case', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
                     btn.textContent = 'Normalized ' + data.normalized + ' row' + (data.normalized === 1 ? '' : 's');
-                    window.location.reload();
+                    reloadWithSearch();
                 })
                 .catch(() => {
                     hidePageBusyOverlay();
@@ -517,18 +523,18 @@
             if (!pcModalRow) return;
             const targetRow = pcModalRow;
             closePcMatchModal();
-            showPageBusyOverlay('Refreshing Personal Cuntdown overview', 'Saving the song match...');
+            showPageBusyOverlay('Refreshing Vato\'s Cuntdown overview', 'Saving the song match...');
             const params = new URLSearchParams();
             params.set('rawArtist', targetRow.dataset.rawArtist || '');
             params.set('rawSong', targetRow.dataset.rawSong || '');
             params.set('songId', songId);
-            fetch('/misc/pc/match-group', {
+            fetch('/misc/vatos-cuntdown/match-group', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: params.toString()
             })
                 .then(r => r.json())
-                .then(() => window.location.reload())
+                .then(() => reloadWithSearch())
                 .catch(() => {
                     hidePageBusyOverlay();
                     alert('Match failed.');
@@ -550,10 +556,22 @@
             }
         });
 
+        function reloadWithSearch() {
+            const val = document.getElementById('pcSearchInput').value || '';
+            if (val) sessionStorage.setItem('pc-overview-search', val);
+            window.location.reload();
+        }
+
         window.addEventListener('load', function() {
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });
+            const saved = sessionStorage.getItem('pc-overview-search');
+            if (saved) {
+                sessionStorage.removeItem('pc-overview-search');
+                const input = document.getElementById('pcSearchInput');
+                if (input) { input.value = saved; filterPcTable(); }
+            }
         });
     </script>
 </body>
