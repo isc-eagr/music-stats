@@ -61,6 +61,10 @@ public interface ArtistRepositoryCustom {
             String itunesSongIdsJson,
             String sortBy,
             String sortDir,
+            String sortBy2,
+            String sortDir2,
+            String sortBy3,
+            String sortDir3,
             int limit,
             int offset
     );

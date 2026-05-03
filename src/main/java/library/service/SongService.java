@@ -85,9 +85,15 @@ public class SongService {
                                        Integer trackNumber, String trackNumberMode,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer trlPeak, Integer trlDays,
+                                       Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                       Integer billboardPeak, Integer billboardWeeks,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                        Integer yearlyChartPeak, Integer yearlyChartYears,
-                                       String sortBy, String sortDirection, int page, int perPage) {
+                                       String sortBy, String sortDirection,
+                                       String sortBy2, String sortDirection2,
+                                       String sortBy3, String sortDirection3,
+                                       int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -108,8 +114,12 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortBy, sortDirection, perPage, page * perPage
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, perPage, page * perPage
         );
         
         List<SongCardDTO> songs = new ArrayList<>();
@@ -150,7 +160,7 @@ public class SongService {
             dto.setWeeksListened(row[26] != null ? ((Number) row[26]).intValue() : 0);
             dto.setMonthsListened(row[27] != null ? ((Number) row[27]).intValue() : 0);
             dto.setYearsListened(row[28] != null ? ((Number) row[28]).intValue() : 0);
-            dto.setTrackNumber(row[49] != null ? ((Number) row[49]).intValue() : null);
+            dto.setTrackNumber(row[55] != null ? ((Number) row[55]).intValue() : null);
             
             // Set country (inherited from artist, index 29)
             dto.setCountry((String) row[29]);
@@ -171,23 +181,29 @@ public class SongService {
             // Set image count (index 35)
             dto.setImageCount(row[35] != null ? ((Number) row[35]).intValue() : 0);
             
-            // Set chart stats (indices 36-39)
-            dto.setSeasonalChartPeak(row[36] != null ? ((Number) row[36]).intValue() : null);
-            dto.setWeeklyChartPeak(row[37] != null ? ((Number) row[37]).intValue() : null);
-            dto.setWeeklyChartWeeks(row[38] != null ? ((Number) row[38]).intValue() : 0);
-            dto.setYearlyChartPeak(row[39] != null ? ((Number) row[39]).intValue() : null);
-            dto.setWeeklyChartPeakStartDate(row[40] != null ? formatDate((String) row[40]) : null);
-            dto.setSeasonalChartPeakPeriod((String) row[41]);
-            dto.setYearlyChartPeakPeriod((String) row[42]);
+            // Set chart stats (indices 36-49)
+            dto.setBillboardPeak(row[36] != null ? ((Number) row[36]).intValue() : null);
+            dto.setBillboardWeeks(row[37] != null ? ((Number) row[37]).intValue() : null);
+            dto.setSeasonalChartPeak(row[38] != null ? ((Number) row[38]).intValue() : null);
+            dto.setTrlDays(row[39] != null ? ((Number) row[39]).intValue() : null);
+            dto.setTrlPeak(row[40] != null ? ((Number) row[40]).intValue() : null);
+            dto.setVatosCuntdownDays(row[41] != null ? ((Number) row[41]).intValue() : null);
+            dto.setVatosCuntdownPeak(row[42] != null ? ((Number) row[42]).intValue() : null);
+            dto.setWeeklyChartPeak(row[43] != null ? ((Number) row[43]).intValue() : null);
+            dto.setWeeklyChartWeeks(row[44] != null ? ((Number) row[44]).intValue() : 0);
+            dto.setYearlyChartPeak(row[45] != null ? ((Number) row[45]).intValue() : null);
+            dto.setWeeklyChartPeakStartDate(row[46] != null ? formatDate((String) row[46]) : null);
+            dto.setSeasonalChartPeakPeriod((String) row[47]);
+            dto.setYearlyChartPeakPeriod((String) row[48]);
             
-            // Set featured artist count (index 44) and age at release (index 45)
-            dto.setFeaturedArtistCount(row[44] != null ? ((Number) row[44]).intValue() : 0);
-            dto.setAgeAtRelease(row[45] != null ? ((Number) row[45]).intValue() : null);
+            // Set featured artist count (index 50) and age at release (index 51)
+            dto.setFeaturedArtistCount(row[50] != null ? ((Number) row[50]).intValue() : 0);
+            dto.setAgeAtRelease(row[51] != null ? ((Number) row[51]).intValue() : null);
             
-            // Set peak durations (indices 46-48)
-            dto.setWeeklyChartPeakWeeks(row[46] != null ? ((Number) row[46]).intValue() : null);
-            dto.setSeasonalChartPeakSeasons(row[47] != null ? ((Number) row[47]).intValue() : null);
-            dto.setYearlyChartPeakYears(row[48] != null ? ((Number) row[48]).intValue() : null);
+            // Set peak durations (indices 52-54)
+            dto.setWeeklyChartPeakWeeks(row[52] != null ? ((Number) row[52]).intValue() : null);
+            dto.setSeasonalChartPeakSeasons(row[53] != null ? ((Number) row[53]).intValue() : null);
+            dto.setYearlyChartPeakYears(row[54] != null ? ((Number) row[54]).intValue() : null);
 
             // Format length
             if (dto.getLengthSeconds() != null) {
@@ -227,6 +243,9 @@ public class SongService {
                           Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          Integer trlPeak, Integer trlDays,
+                          Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                          Integer billboardPeak, Integer billboardWeeks,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
                           Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
@@ -248,7 +267,11 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
     }
     
     /**
@@ -278,6 +301,9 @@ public class SongService {
                           Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          Integer trlPeak, Integer trlDays,
+                          Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                          Integer billboardPeak, Integer billboardWeeks,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
                           Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Normalize empty lists to null
@@ -301,7 +327,11 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);

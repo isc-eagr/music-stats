@@ -1,5 +1,7 @@
 package library.service;
 
+import library.dto.ChartAlbumOverviewRowDTO;
+import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
 import library.repository.TrlDebutRepository;
@@ -7,9 +9,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class TrlService {
@@ -36,7 +43,7 @@ public class TrlService {
             "    GROUP BY debut_id " +
             "), " +
             "peak_days AS ( " +
-            "    SELECT ce.debut_id, COUNT(*) AS days_at_peak " +
+            "    SELECT ce.debut_id, COUNT(*) AS days_at_peak, MIN(ce.chart_date) AS peak_date " +
             "    FROM trl_chart_entry ce " +
             "    JOIN chart_stats cs ON cs.debut_id = ce.debut_id AND ce.position = cs.peak_position " +
             "    GROUP BY ce.debut_id " +
@@ -46,16 +53,29 @@ public class TrlService {
             "    FROM trl_chart_entry ce " +
             "    JOIN chart_stats cs ON cs.debut_id = ce.debut_id AND ce.chart_date = cs.debut_date " +
             "    GROUP BY ce.debut_id " +
+            "), " +
+            "tier_stats AS ( " +
+            "    SELECT debut_id, " +
+            "           COUNT(DISTINCT CASE WHEN position <= 1  THEN chart_date END) AS days_at_top1, " +
+            "           COUNT(DISTINCT CASE WHEN position <= 5  THEN chart_date END) AS days_at_top5, " +
+            "           COUNT(DISTINCT CASE WHEN position <= 10 THEN chart_date END) AS days_at_top10 " +
+            "    FROM trl_chart_entry " +
+            "    WHERE debut_id IS NOT NULL " +
+            "    GROUP BY debut_id " +
             ") " +
             "SELECT t.id, t.days_on_countdown, t.song_title, t.artist_name, t.song_id, t.retired, " +
             "       cs.debut_date, dp.debut_position, " +
-            "       cs.peak_position, pd.days_at_peak, cs.last_appearance_date, cs.actual_days, " +
+            "       cs.peak_position, pd.days_at_peak, pd.peak_date, cs.last_appearance_date, cs.actual_days, " +
             "       a.id AS resolved_artist_id, " +
-            "       LOWER(g.name) AS gender_name " +
+            "       LOWER(g.name) AS gender_name, " +
+            "       COALESCE(ts.days_at_top1, 0)  AS days_at_top1, " +
+            "       COALESCE(ts.days_at_top5, 0)  AS days_at_top5, " +
+            "       COALESCE(ts.days_at_top10, 0) AS days_at_top10 " +
             "FROM trl_debut t " +
             "LEFT JOIN chart_stats cs ON cs.debut_id = t.id " +
             "LEFT JOIN peak_days pd    ON pd.debut_id  = t.id " +
             "LEFT JOIN debut_pos dp    ON dp.debut_id  = t.id " +
+            "LEFT JOIN tier_stats ts   ON ts.debut_id  = t.id " +
             "LEFT JOIN Song s ON s.id = t.song_id " +
             "LEFT JOIN Artist a ON a.id = s.artist_id " +
             "LEFT JOIN Gender g ON g.id = a.gender_id " +
@@ -77,6 +97,7 @@ public class TrlService {
             if (!rs.wasNull()) d.setPeakPosition(peak);
             int dap = rs.getInt("days_at_peak");
             if (!rs.wasNull()) d.setDaysAtPeak(dap);
+            d.setPeakDate(rs.getString("peak_date"));
             d.setLastAppearanceDate(rs.getString("last_appearance_date"));
             int actualDays = rs.getInt("actual_days");
             if (!rs.wasNull()) d.setActualDays(actualDays);
@@ -90,8 +111,92 @@ public class TrlService {
                     d.setGenderClass("gender-male");
                 }
             }
+            d.setDaysAtTop1(rs.getInt("days_at_top1"));
+            d.setDaysAtTop5(rs.getInt("days_at_top5"));
+            d.setDaysAtTop10(rs.getInt("days_at_top10"));
             return d;
         });
+    }
+
+    public List<ChartAlbumOverviewRowDTO> getAlbumOverviewRows() {
+        return getAlbumOverviewRows(getAllDebuts());
+    }
+
+    public List<ChartAlbumOverviewRowDTO> getAlbumOverviewRows(List<TrlDebut> debuts) {
+        Map<Integer, AlbumSongInfo> albumSongInfoBySongId = getAlbumSongInfoBySongId(debuts);
+        Map<Integer, AlbumOverviewAccumulator> grouped = new LinkedHashMap<>();
+
+        for (TrlDebut debut : debuts) {
+            if (debut.getSongId() == null) {
+                continue;
+            }
+            AlbumSongInfo albumSongInfo = albumSongInfoBySongId.get(debut.getSongId());
+            if (albumSongInfo == null) {
+                continue;
+            }
+
+            AlbumOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                albumSongInfo.albumId,
+                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId, albumSongInfo.albumName, debut.getResolvedArtistId(), debut.getArtistName(), debut.getGenderClass())
+            );
+            accumulator.accept(debut);
+        }
+
+        List<ChartAlbumOverviewRowDTO> rows = new ArrayList<>();
+        for (AlbumOverviewAccumulator accumulator : grouped.values()) {
+            rows.add(accumulator.toRow());
+        }
+        rows.sort(Comparator
+            .comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan).reversed()
+            .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
+            .thenComparing(row -> safeLower(row.getArtistName()))
+            .thenComparing(row -> safeLower(row.getAlbumName())));
+        return rows;
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows() {
+        return getArtistOverviewRows(getAllDebuts());
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(List<TrlDebut> debuts) {
+        Map<String, ArtistOverviewAccumulator> grouped = new LinkedHashMap<>();
+
+        for (TrlDebut debut : debuts) {
+            String key;
+            boolean matched = debut.getResolvedArtistId() != null;
+            if (matched) {
+                key = "artist:" + debut.getResolvedArtistId();
+            } else {
+                key = "raw:" + normalizeKeyPart(debut.getArtistName());
+            }
+
+            ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                key,
+                ignored -> new ArtistOverviewAccumulator(matched, debut.getResolvedArtistId(), debut.getArtistName(), debut.getGenderClass())
+            );
+            accumulator.accept(debut);
+        }
+
+        List<ChartArtistOverviewRowDTO> rows = new ArrayList<>();
+        for (ArtistOverviewAccumulator accumulator : grouped.values()) {
+            rows.add(accumulator.toRow());
+        }
+        rows.sort(Comparator
+            .comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan).reversed()
+            .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
+            .thenComparing(row -> safeLower(row.getArtistName())));
+        return rows;
+    }
+
+    public List<Map<String, Object>> getChartRunForDebut(int debutId) {
+        return jdbcTemplate.queryForList(
+            "SELECT d.chart_date, " +
+            "       CASE WHEN ce.debut_id IS NOT NULL THEN 1 ELSE 0 END AS on_chart, " +
+            "       ce.position " +
+            "FROM (SELECT DISTINCT chart_date FROM trl_chart_entry) d " +
+            "LEFT JOIN trl_chart_entry ce ON ce.chart_date = d.chart_date AND ce.debut_id = ? " +
+            "ORDER BY d.chart_date ASC",
+            debutId);
     }
 
     public Map<String, Object> getSummary() {
@@ -492,5 +597,188 @@ public class TrlService {
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return null;
         }
+    }
+
+    private Map<Integer, AlbumSongInfo> getAlbumSongInfoBySongId(List<TrlDebut> debuts) {
+        Set<Integer> songIds = new HashSet<>();
+        for (TrlDebut debut : debuts) {
+            if (debut.getSongId() != null) {
+                songIds.add(debut.getSongId());
+            }
+        }
+        if (songIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Integer> orderedSongIds = new ArrayList<>(songIds);
+        String placeholders = String.join(",", java.util.Collections.nCopies(orderedSongIds.size(), "?"));
+        String sql =
+            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name " +
+            "FROM Song s " +
+            "JOIN Album al ON al.id = s.album_id " +
+            "WHERE s.id IN (" + placeholders + ")";
+
+        Map<Integer, AlbumSongInfo> result = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            result.put(
+                rs.getInt("song_id"),
+                new AlbumSongInfo(
+                    rs.getInt("album_id"),
+                    rs.getString("album_name")
+                )
+            );
+        }, orderedSongIds.toArray());
+        return result;
+    }
+
+    private int getChartSpan(TrlDebut debut) {
+        if (debut.getActualDays() != null && debut.getActualDays() > 0) {
+            return debut.getActualDays();
+        }
+        return debut.getDaysOnCountdown() != null ? debut.getDaysOnCountdown() : 0;
+    }
+
+    private Integer getBestPeak(TrlDebut debut) {
+        if (debut.getPeakPosition() != null) {
+            return debut.getPeakPosition();
+        }
+        return debut.getDebutPosition();
+    }
+
+    private String normalizeKeyPart(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String pickPreferredDisplayValue(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank()) {
+            return candidateValue;
+        }
+        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
+        if (ignoreCase < 0) {
+            return candidateValue;
+        }
+        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private String minDate(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) < 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private String maxDate(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) > 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private String safeLower(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private final class AlbumOverviewAccumulator {
+        private final ChartAlbumOverviewRowDTO row;
+        private final Set<Integer> songIds = new HashSet<>();
+        private final Set<Integer> numberOneSongIds = new HashSet<>();
+
+        private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
+            row = new ChartAlbumOverviewRowDTO();
+            row.setAlbumId(albumId);
+            row.setAlbumName(albumName);
+            row.setResolvedArtistId(resolvedArtistId);
+            row.setArtistName(artistName);
+            row.setGenderClass(genderClass);
+        }
+
+        private void accept(TrlDebut debut) {
+            if (debut.getSongId() != null && songIds.add(debut.getSongId())) {
+                row.setChartedSongsCount(songIds.size());
+            }
+            row.setTotalChartSpan(row.getTotalChartSpan() + getChartSpan(debut));
+
+            Integer bestPeak = getBestPeak(debut);
+            if (bestPeak != null && (row.getHighestPeak() == null || bestPeak < row.getHighestPeak())) {
+                row.setHighestPeak(bestPeak);
+            }
+
+            if (bestPeak != null && bestPeak == 1 && debut.getSongId() != null && numberOneSongIds.add(debut.getSongId())) {
+                row.setNumberOneSongsCount(numberOneSongIds.size());
+            }
+            row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
+            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
+            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
+        }
+
+        private ChartAlbumOverviewRowDTO toRow() {
+            return row;
+        }
+    }
+
+    private final class ArtistOverviewAccumulator {
+        private final ChartArtistOverviewRowDTO row;
+        private final Set<String> songKeys = new HashSet<>();
+        private final Set<String> numberOneSongKeys = new HashSet<>();
+
+        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
+            row = new ChartArtistOverviewRowDTO();
+            row.setMatched(matched);
+            row.setResolvedArtistId(resolvedArtistId);
+            row.setArtistName(artistName);
+            row.setGenderClass(genderClass);
+        }
+
+        private void accept(TrlDebut debut) {
+            row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), debut.getArtistName()));
+            if (row.getResolvedArtistId() == null) {
+                row.setResolvedArtistId(debut.getResolvedArtistId());
+            }
+            if (row.getGenderClass() == null) {
+                row.setGenderClass(debut.getGenderClass());
+            }
+
+            String songKey = debut.getSongId() != null
+                ? "song:" + debut.getSongId()
+                : "raw:" + normalizeKeyPart(debut.getSongTitle());
+            if (songKeys.add(songKey)) {
+                row.setChartedSongsCount(songKeys.size());
+            }
+            row.setTotalChartSpan(row.getTotalChartSpan() + getChartSpan(debut));
+
+            Integer bestPeak = getBestPeak(debut);
+            if (bestPeak != null && (row.getHighestPeak() == null || bestPeak < row.getHighestPeak())) {
+                row.setHighestPeak(bestPeak);
+            }
+
+            if (bestPeak != null && bestPeak == 1 && numberOneSongKeys.add(songKey)) {
+                row.setNumberOneSongsCount(numberOneSongKeys.size());
+            }
+            row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
+            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
+            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
+        }
+
+        private ChartArtistOverviewRowDTO toRow() {
+            return row;
+        }
+    }
+
+    private record AlbumSongInfo(Integer albumId, String albumName) {
     }
 }

@@ -1,5 +1,7 @@
 package library.controller;
 
+import library.dto.ChartAlbumOverviewRowDTO;
+import library.dto.ChartArtistOverviewRowDTO;
 import library.service.BillboardHot100Service;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -31,23 +33,40 @@ public class BillboardHot100Controller {
             @RequestParam(defaultValue = "firstWeek") String sort,
             @RequestParam(defaultValue = "desc") String dir,
             @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "song") String overviewTab,
             Model model) {
+        String safeOverviewTab = normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
-        String safeSort = normalizeSort(sort);
+        String safeSort = normalizeSort(safeOverviewTab, sort);
         String safeDir = normalizeDir(dir);
         Map<String, Object> summary = billboardHot100Service.getSummary();
-        int resultTotal = billboardHot100Service.countOverviewRows(q);
+        int resultTotal;
+        if ("album".equals(safeOverviewTab)) {
+            resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
+        } else if ("artist".equals(safeOverviewTab)) {
+            resultTotal = billboardHot100Service.countArtistOverviewRows(q);
+        } else {
+            resultTotal = billboardHot100Service.countOverviewRows(q);
+        }
         int totalPages = Math.max(1, (int) Math.ceil(resultTotal / (double) safeSize));
         int safePage = Math.max(1, Math.min(page, totalPages));
 
-        model.addAttribute("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+        if ("album".equals(safeOverviewTab)) {
+            List<ChartAlbumOverviewRowDTO> albumEntries = billboardHot100Service.getAlbumOverviewRows(safePage, safeSize, safeSort, safeDir, q);
+            model.addAttribute("albumEntries", albumEntries);
+        } else if ("artist".equals(safeOverviewTab)) {
+            List<ChartArtistOverviewRowDTO> artistEntries = billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q);
+            model.addAttribute("artistEntries", artistEntries);
+        } else {
+            model.addAttribute("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+        }
         model.addAttribute("summary", summary);
-        model.addAttribute("nameIssueReport", billboardHot100Service.getNameIssueReport(20));
         model.addAttribute("page", safePage);
         model.addAttribute("size", safeSize);
         model.addAttribute("sort", safeSort);
         model.addAttribute("dir", safeDir);
         model.addAttribute("q", q);
+        model.addAttribute("overviewTab", safeOverviewTab);
         model.addAttribute("resultTotal", resultTotal);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("hasPrev", safePage > 1);
@@ -86,6 +105,12 @@ public class BillboardHot100Controller {
         return ResponseEntity.ok(billboardHot100Service.matchRawGroup(rawArtist, rawSong, songId));
     }
 
+    @GetMapping("/diagnostics")
+    @ResponseBody
+    public ResponseEntity<Object> diagnostics() {
+        return ResponseEntity.ok(billboardHot100Service.getNameIssueReport(20));
+    }
+
     @GetMapping("/recaps")
     public String recaps(@RequestParam(required = false) String date, Model model) {
         List<String> availableDates = billboardHot100Service.getAvailableChartDates();
@@ -119,13 +144,40 @@ public class BillboardHot100Controller {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/chart-run")
+    @ResponseBody
+    public List<Map<String, Object>> getChartRun(
+            @RequestParam(required = false) Integer songId,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String song) {
+        if (songId != null) {
+            return billboardHot100Service.getChartRunBySongId(songId);
+        }
+        if (artist != null && song != null) {
+            return billboardHot100Service.getChartRunByNames(artist, song);
+        }
+        return List.of();
+    }
+
     private int normalizeSize(int size) {
         if (size <= 100) return 100;
         if (size <= 250) return 250;
         return 500;
     }
 
-    private String normalizeSort(String sort) {
+    private String normalizeSort(String overviewTab, String sort) {
+        if ("album".equals(overviewTab)) {
+            return switch (sort) {
+                case "artist", "album", "songs", "weeks", "peak", "numberOnes", "weeksAtNumberOne", "firstWeek", "lastWeek" -> sort;
+                default -> "weeks";
+            };
+        }
+        if ("artist".equals(overviewTab)) {
+            return switch (sort) {
+                case "artist", "songs", "weeks", "peak", "numberOnes", "weeksAtNumberOne", "firstWeek", "lastWeek" -> sort;
+                default -> "weeks";
+            };
+        }
         return switch (sort) {
             case "weeks", "peak", "weeksAtPeak", "peakWeek", "firstWeek", "lastWeek", "song", "artist" -> sort;
             default -> "firstWeek";
@@ -134,5 +186,15 @@ public class BillboardHot100Controller {
 
     private String normalizeDir(String dir) {
         return "asc".equalsIgnoreCase(dir) ? "asc" : "desc";
+    }
+
+    private String normalizeOverviewTab(String overviewTab) {
+        if ("album".equalsIgnoreCase(overviewTab)) {
+            return "album";
+        }
+        if ("artist".equalsIgnoreCase(overviewTab)) {
+            return "artist";
+        }
+        return "song";
     }
 }

@@ -1,5 +1,8 @@
 package library.controller;
 
+import library.dto.ChartAlbumOverviewRowDTO;
+import library.dto.ChartArtistOverviewRowDTO;
+import library.dto.PcOverviewRowDTO;
 import library.service.PcService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,8 +23,14 @@ public class PcController {
     }
 
     @GetMapping
-    public String pcList(Model model) {
-        model.addAttribute("entries", pcService.getOverviewRows());
+    public String pcList(@RequestParam(defaultValue = "song") String overviewTab, Model model) {
+        List<PcOverviewRowDTO> entries = pcService.getOverviewRows();
+        List<ChartAlbumOverviewRowDTO> albumOverviewRows = pcService.getAlbumOverviewRows(entries);
+        List<ChartArtistOverviewRowDTO> artistOverviewRows = pcService.getArtistOverviewRows(entries);
+        model.addAttribute("entries", entries);
+        model.addAttribute("albumOverviewRows", albumOverviewRows);
+        model.addAttribute("artistOverviewRows", artistOverviewRows);
+        model.addAttribute("overviewTab", normalizeOverviewTab(overviewTab));
         model.addAttribute("summary", pcService.getSummary());
         model.addAttribute("currentSection", "pc");
         return "misc/pc";
@@ -103,5 +112,30 @@ public class PcController {
         result.put("prevDate", pcService.getPrevChartDate(effectiveDate));
         result.put("nextDate", pcService.getNextChartDate(effectiveDate));
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/chart-run")
+    @ResponseBody
+    public List<Map<String, Object>> getChartRun(
+            @RequestParam(required = false) Integer songId,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String song) {
+        if (songId != null) {
+            return pcService.getChartRunBySongId(songId);
+        }
+        if (artist != null && song != null) {
+            return pcService.getChartRunByNames(artist, song);
+        }
+        return List.of();
+    }
+
+    private String normalizeOverviewTab(String overviewTab) {
+        if ("album".equalsIgnoreCase(overviewTab)) {
+            return "album";
+        }
+        if ("artist".equalsIgnoreCase(overviewTab)) {
+            return "artist";
+        }
+        return "song";
     }
 }

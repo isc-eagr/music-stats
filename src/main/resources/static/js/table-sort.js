@@ -192,25 +192,53 @@
     let rows = Array.from((tbody || table).rows);
     if(!tbody) rows = rows.slice(1);
 
-    // Filter out special rows (like summary rows)
-    const regularRows = rows.filter(r => !r.classList.contains('non-sortable-row') && !r.id);
-    const specialRows = rows.filter(r => r.classList.contains('non-sortable-row') || (r.id && r.id.includes('Summary')));
+    // Group rows: each regular row may be followed by detail-row siblings that must move with it
+    const rowGroups = []; // [{main: tr, details: [tr, ...]}]
+    const specialRows = [];
+    let ri = 0;
+    while (ri < rows.length) {
+      const r = rows[ri];
+      if (r.classList.contains('non-sortable-row') || (r.id && r.id.includes('Summary'))) {
+        specialRows.push(r);
+        ri++;
+      } else if (r.classList.contains('detail-row')) {
+        // Orphaned detail-row (e.g., before any main row): treat as special
+        specialRows.push(r);
+        ri++;
+      } else {
+        const group = { main: r, details: [] };
+        ri++;
+        while (ri < rows.length && rows[ri].classList.contains('detail-row')) {
+          group.details.push(rows[ri]);
+          ri++;
+        }
+        rowGroups.push(group);
+      }
+    }
+    const sortableGroups = rowGroups.map(group => ({
+      group,
+      rawParsed: getCellValue(group.main.cells[colIndex] || {}, null)
+    }));
 
     // Determine type by sampling if not explicitly provided
     let sampleType = dataType || 'string';
     if(!dataType){
-      for(const r of regularRows){
-        const parsed = getCellValue(r.cells[colIndex] || {}, null);
-        if(parsed.value !== '' && parsed.type !== 'string'){ 
-          sampleType = parsed.type; 
-          break; 
+      for(const sortableGroup of sortableGroups){
+        const parsed = sortableGroup.rawParsed;
+        if(parsed.value !== '' && parsed.type !== 'string'){
+          sampleType = parsed.type;
+          break;
         }
       }
     }
 
-    regularRows.sort((a,b)=>{
-      const pa = getCellValue(a.cells[colIndex] || {}, dataType || sampleType);
-      const pb = getCellValue(b.cells[colIndex] || {}, dataType || sampleType);
+    sortableGroups.forEach(sortableGroup => {
+      sortableGroup.parsed = dataType ? getCellValue(sortableGroup.group.main.cells[colIndex] || {}, dataType) : sortableGroup.rawParsed;
+    });
+
+    sortableGroups.sort((a,b)=>{
+      const pa = a.parsed;
+      const pb = b.parsed;
 
       // Handle empty values - sort to end
       const aEmpty = pa.value === '' || pa.value === 0;
@@ -229,10 +257,16 @@
       return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
     });
 
-    // Re-append in sorted order, then special rows at end
+    // Re-append in sorted order using a fragment so large resort operations do not
+    // churn the live table body one row at a time.
     const parent = tbody || table;
-    regularRows.forEach(r=> parent.appendChild(r));
-    specialRows.forEach(r=> parent.appendChild(r));
+    const fragment = document.createDocumentFragment();
+    sortableGroups.forEach(({ group }) => {
+      fragment.appendChild(group.main);
+      group.details.forEach(d => fragment.appendChild(d));
+    });
+    specialRows.forEach(r => fragment.appendChild(r));
+    parent.appendChild(fragment);
     
     // Update row numbers after sorting
     updateRowNumbers(table);

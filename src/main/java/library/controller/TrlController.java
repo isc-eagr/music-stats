@@ -1,5 +1,7 @@
 package library.controller;
 
+import library.dto.ChartAlbumOverviewRowDTO;
+import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
 import library.service.TrlService;
@@ -22,9 +24,14 @@ public class TrlController {
     }
 
     @GetMapping
-    public String trlList(Model model) {
+    public String trlList(@RequestParam(defaultValue = "song") String overviewTab, Model model) {
         List<TrlDebut> debuts = trlService.getAllDebuts();
+        List<ChartAlbumOverviewRowDTO> albumOverviewRows = trlService.getAlbumOverviewRows(debuts);
+        List<ChartArtistOverviewRowDTO> artistOverviewRows = trlService.getArtistOverviewRows(debuts);
         model.addAttribute("debuts", debuts);
+        model.addAttribute("albumOverviewRows", albumOverviewRows);
+        model.addAttribute("artistOverviewRows", artistOverviewRows);
+        model.addAttribute("overviewTab", normalizeOverviewTab(overviewTab));
         model.addAttribute("summary", trlService.getSummary());
         model.addAttribute("currentSection", "trl");
         return "misc/trl";
@@ -152,5 +159,21 @@ public class TrlController {
         result.put("prevDate", trlService.getPrevChartDate(effectiveDate));
         result.put("nextDate", trlService.getNextChartDate(effectiveDate));
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/chart-run")
+    @ResponseBody
+    public List<Map<String, Object>> getChartRun(@PathVariable int id) {
+        return trlService.getChartRunForDebut(id);
+    }
+
+    private String normalizeOverviewTab(String overviewTab) {
+        if ("album".equalsIgnoreCase(overviewTab)) {
+            return "album";
+        }
+        if ("artist".equalsIgnoreCase(overviewTab)) {
+            return "artist";
+        }
+        return "song";
     }
 }

@@ -77,6 +77,39 @@
             margin-top: 4px;
         }
 
+        .overview-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .overview-tab-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 9px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(201,162,39,0.28);
+            background: rgba(201,162,39,0.05);
+            color: #bda56b;
+            text-decoration: none;
+            font-size: 0.84rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            transition: all 0.15s;
+        }
+        .overview-tab-link:hover {
+            border-color: rgba(201,162,39,0.58);
+            color: #ead38f;
+            background: rgba(201,162,39,0.12);
+        }
+        .overview-tab-link.active {
+            border-color: rgba(201,162,39,0.82);
+            color: #141107;
+            background: linear-gradient(135deg, #d7b347, #f0d889);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+        }
+
         /* Toolbar */
         .trl-toolbar {
             display: flex;
@@ -181,6 +214,8 @@
             color: #d0d0d0;
             vertical-align: middle;
         }
+        .trl-table td.right,
+        .trl-table th.right { text-align: right; }
 
         /* Position badge — uniform */
         .pos-badge {
@@ -385,12 +420,63 @@
         .trl-result-count { font-size: 0.72rem; color: #666; margin-top: 1px; }
         .trl-search-empty { padding: 24px; text-align: center; color: #555; font-size: 0.85rem; }
 
+        /* Expand button and detail row */
+        .trl-expand-btn {
+            background: #222;
+            border: 1px solid #333;
+            color: #888;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+        .trl-expand-btn:hover { background: #333; color: #fff; }
+        .trl-expand-btn.expanded { background: #2d5016; border-color: #3d6b1e; color: #fff; }
+        .trl-detail-row { display: none; }
+        .trl-detail-row.visible { display: table-row; }
+        .trl-detail-cell {
+            background: #0f0f0f;
+            padding: 16px 20px !important;
+        }
+        .trl-run-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .trl-run-stat {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            text-align: center;
+            min-width: 70px;
+        }
+        .trl-run-stat-label { font-size: 0.72rem; color: #888; margin-bottom: 4px; }
+        .trl-run-stat-value { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        .ov-chart-run-container { margin-top: 14px; }
+        .ov-chart-run-label { font-size: 0.78rem; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .ov-chart-run-boxes { display: flex; flex-wrap: wrap; gap: 4px; }
+        .ov-chart-run-box {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
+            text-decoration: none; color: #fff;
+            background: #2a5c8a; border: 1px solid #3a7cc0;
+        }
+        .ov-chart-run-box:hover { opacity: 0.85; }
+        .ov-chart-run-box.peak-one { background: #7c5200; border-color: #c47f00; color: #ffd966; }
+        .ov-chart-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
+        .ov-chart-run-loading { color: #888; font-style: italic; font-size: 0.82rem; margin-top: 8px; }
+        .ov-chart-run-error { color: #f87171; font-size: 0.82rem; margin-top: 8px; }
+        .ov-chart-run-empty { color: #888; font-style: italic; font-size: 0.82rem; margin-top: 8px; }
+
         @media (max-width: 700px) {
             .trl-table th:nth-child(1),
             .trl-table td:nth-child(1) { display: none; }
         }
-    </style>
-</head>
+    </style></head>
 <body class="page-loading">
     <div class="page-load-overlay" aria-hidden="true">
         <div class="page-load-card">
@@ -433,8 +519,20 @@
             </div>
         </div>
 
+        <div class="overview-tabs" role="tablist" aria-label="TRL overview type">
+            <a class="overview-tab-link"
+               th:classappend="${overviewTab == 'song'} ? ' active' : ''"
+               th:href="@{/misc/trl(overviewTab='song')}">Song Overview</a>
+            <a class="overview-tab-link"
+               th:classappend="${overviewTab == 'album'} ? ' active' : ''"
+               th:href="@{/misc/trl(overviewTab='album')}">Album Overview</a>
+            <a class="overview-tab-link"
+               th:classappend="${overviewTab == 'artist'} ? ' active' : ''"
+               th:href="@{/misc/trl(overviewTab='artist')}">Artist Overview</a>
+        </div>
+
         <!-- Toolbar -->
-        <div class="trl-toolbar">
+        <div class="trl-toolbar" th:if="${overviewTab == 'song'}">
             <button id="btnRetiredOnly" class="trl-toggle-btn" onclick="toggleRetiredFilter(this)">
                 <span class="btn-icon">&#9733;</span> Hall of Fame Only
             </button>
@@ -450,38 +548,55 @@
         </div>
 
         <!-- Data attributes store TRL entry info for each row -->
-        <div class="trl-table-wrap">
+        <div class="trl-table-wrap" th:if="${overviewTab == 'song'}">
             <table class="trl-table js-sortable" id="trlTable">
                 <thead>
                     <tr>
+                        <th data-no-sort></th>
                         <th data-type="number">Days</th>
-                        <th class="center" data-type="number" title="Distinct days found in chart entry data">Actual Days</th>
+                            <th class="center" data-type="number" title="Distinct days found in chart entry data">Actual Days</th>
+                            <th class="center" data-type="number" title="Distinct days found in chart entry data">Peak</th>
+                        <th class="center" data-type="number" title="Days at peak">Days at Peak</th>
                         <th class="center" data-type="date" data-default-sort="asc">Debut Date</th>
                         <th class="center" data-type="number">Debut Position</th>
-                        <th class="center" data-type="date">Last Appearance</th>
+                        <th class="center" data-type="date">Last Date</th>
+                        <th class="center" data-type="date">Peak Date</th>
                         <th data-type="text">Song</th>
                         <th data-type="text">Artist</th>
-                        <th class="center" data-type="number">Peak</th>
-                        <th class="center" data-type="number">Days At Peak</th>
                         <th data-no-sort></th>
                     </tr>
                 </thead>
                 <tbody id="trlTableBody">
-                    <tr th:each="d : ${debuts}"
+                    <th:block th:each="d : ${debuts}">
+                    <tr
                         th:data-trl-id="${d.id}"
                         th:data-song-title="${d.songTitle}"
                         th:data-artist-name="${d.artistName}"
                         th:data-retired="${d.retired}"
                         th:data-chart-linked="${d.actualDays != null}"
                         th:classappend="${(d.genderClass != null ? d.genderClass : '') + (d.retired ? ' trl-retired' : '')}">
+                        <!-- Expand button -->
+                        <td class="center" th:if="${d.actualDays != null}">
+                            <button class="trl-expand-btn" onclick="toggleTrlExpand(this)" title="Show chart tier stats">+</button>
+                        </td>
+                        <td th:if="${d.actualDays == null}"></td>
                         <!-- Days on countdown -->
                         <td th:attr="data-value=${d.daysOnCountdown}" th:text="${d.daysOnCountdown}">0</td>
                         <!-- Actual days from chart data -->
-                        <td class="center" th:attr="data-value=${d.actualDays != null ? d.actualDays : 0}">
-                            <span th:if="${d.actualDays != null}"
-                                  th:text="${d.actualDays}"
-                                  th:style="${d.actualDays != null and d.daysOnCountdown != null and d.actualDays != d.daysOnCountdown} ? 'color:#ff9800' : ''">-</span>
-                            <span th:if="${d.actualDays == null}" style="color:#555">-</span>
+                            <td class="center" th:attr="data-value=${d.actualDays != null ? d.actualDays : 0}">
+                                <span th:if="${d.actualDays != null}"
+                                      th:text="${d.actualDays}"
+                                      th:style="${d.actualDays != null and d.daysOnCountdown != null and d.actualDays != d.daysOnCountdown} ? 'color:#ff9800' : ''">-</span>
+                                <span th:if="${d.actualDays == null}" style="color:#555">-</span>
+                            </td>
+                        <td class="center" th:attr="data-value=${d.peakPosition != null ? d.peakPosition : 999}">
+                            <span th:if="${d.peakPosition != null}" class="pos-badge" th:text="${d.peakPosition}">-</span>
+                            <span th:if="${d.peakPosition == null}" style="color:#555">-</span>
+                        </td>
+                        <!-- Days at peak -->
+                        <td class="center" th:attr="data-value=${d.daysAtPeak != null ? d.daysAtPeak : 0}">
+                            <span th:if="${d.daysAtPeak != null}" th:text="${d.daysAtPeak}">-</span>
+                            <span th:if="${d.daysAtPeak == null}" style="color:#555">-</span>
                         </td>
                         <!-- Debut date -->
                         <td class="center trl-date"
@@ -507,6 +622,15 @@
                             <span th:if="${d.lastAppearanceDate == null or d.lastAppearanceDate == '-'}"
                                   th:text="${d.lastAppearanceDate}">-</span>
                         </td>
+                        <!-- Peak date -->
+                        <td class="center trl-date"
+                            th:attr="data-value=${d.peakDate}">
+                            <a th:if="${d.peakDate != null and d.peakDate != '-'}"
+                               class="trl-date-link"
+                               th:href="@{/misc/trl/recaps(date=${d.peakDate})}"
+                               th:text="${d.peakDate}">-</a>
+                            <span th:if="${d.peakDate == null or d.peakDate == '-'}">-</span>
+                        </td>
                         <!-- Song title -->
                         <td th:attr="data-value=${d.songTitle}">
                             <a th:if="${d.songId != null}"
@@ -527,16 +651,6 @@
                                   class="trl-no-link-artist"
                                   th:text="${d.artistName}">Artist</span>
                         </td>
-                        <!-- Peak position -->
-                        <td class="center" th:attr="data-value=${d.peakPosition != null ? d.peakPosition : 99}">
-                            <span th:if="${d.peakPosition != null}" class="pos-badge" th:text="${d.peakPosition}">-</span>
-                            <span th:if="${d.peakPosition == null}" style="color:#555">-</span>
-                        </td>
-                        <!-- Days at peak -->
-                        <td class="center" th:attr="data-value=${d.daysAtPeak != null ? d.daysAtPeak : 0}">
-                            <span th:if="${d.daysAtPeak != null}" th:text="${d.daysAtPeak}">-</span>
-                            <span th:if="${d.daysAtPeak == null}" style="color:#555">-</span>
-                        </td>
                         <!-- Match / actions column -->
                         <td>
                             <button th:if="${d.songId == null}"
@@ -553,10 +667,152 @@
                             </button>
                         </td>
                     </tr>
+                    <tr th:if="${d.actualDays != null}" class="detail-row trl-detail-row">
+                            <td colspan="12" class="trl-detail-cell">
+                            <div class="trl-run-stats">
+                                <div class="trl-run-stat">
+                                    <div class="trl-run-stat-label">#1</div>
+                                    <div class="trl-run-stat-value" th:text="${d.daysAtTop1}">0</div>
+                                </div>
+                                <div class="trl-run-stat">
+                                    <div class="trl-run-stat-label">Top 5</div>
+                                    <div class="trl-run-stat-value" th:text="${d.daysAtTop5}">0</div>
+                                </div>
+                                <div class="trl-run-stat">
+                                    <div class="trl-run-stat-label">Top 10</div>
+                                    <div class="trl-run-stat-value" th:text="${d.daysAtTop10}">0</div>
+                                </div>
+                            </div>
+                            <div class="ov-chart-run-container" th:id="'trl-run-' + ${d.id}"></div>
+                        </td>
+                    </tr>
+                    </th:block>
                     <tr th:if="${#lists.isEmpty(debuts)}">
-                        <td colspan="9" style="text-align:center; color:#666; padding:40px;">
+                            <td colspan="12" style="text-align:center; color:#666; padding:40px;">
                             No TRL data found. Run the import script first.
                         </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="trl-table-wrap" th:if="${overviewTab == 'album'}">
+            <table class="trl-table js-sortable" id="trlAlbumOverviewTable">
+                <thead>
+                    <tr>
+                        <th data-type="text">Artist</th>
+                        <th data-type="text">Album Name</th>
+                        <th class="right" data-type="number">Songs Charted</th>
+                        <th class="right" data-type="number" data-default-sort="desc">Total Days</th>
+                        <th class="center" data-type="number">Highest Peak</th>
+                        <th class="right" data-type="number">#1 Songs</th>
+                        <th class="right" data-type="number">Days at #1</th>
+                        <th class="center" data-type="date">First Debut</th>
+                        <th class="center" data-type="date">Last Appearance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${albumOverviewRows}"
+                        th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td th:attr="data-value=${entry.artistName}">
+                            <a th:if="${entry.resolvedArtistId != null}"
+                               th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}"
+                               class="trl-artist-link"
+                               th:text="${entry.artistName}">Artist</a>
+                            <span th:if="${entry.resolvedArtistId == null}"
+                                  class="trl-no-link-artist"
+                                  th:text="${entry.artistName}">Artist</span>
+                        </td>
+                        <td th:attr="data-value=${entry.albumName}">
+                            <a th:if="${entry.albumId != null}"
+                               th:href="@{/albums/{id}(id=${entry.albumId})}"
+                               class="trl-song-link"
+                               th:text="${entry.albumName}">Album</a>
+                            <span th:if="${entry.albumId == null}"
+                                  class="trl-no-link-song"
+                                  th:text="${entry.albumName}">Album</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.chartedSongsCount}" th:text="${entry.chartedSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
+                        <td class="center" th:attr="data-value=${entry.highestPeak != null ? entry.highestPeak : 999}">
+                            <span th:if="${entry.highestPeak != null}" class="pos-badge" th:text="${entry.highestPeak}">-</span>
+                            <span th:if="${entry.highestPeak == null}" style="color:#555">-</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
+                        <td class="center trl-date" th:attr="data-value=${entry.firstDebutDate}">
+                            <a th:if="${entry.firstDebutDate != null}"
+                               th:href="@{/misc/trl/recaps(date=${entry.firstDebutDate})}"
+                               class="trl-date-link"
+                               th:text="${entry.firstDebutDate}">-</a>
+                            <span th:if="${entry.firstDebutDate == null}" style="color:#555">-</span>
+                        </td>
+                        <td class="center trl-date" th:attr="data-value=${entry.lastAppearanceDate}">
+                            <a th:if="${entry.lastAppearanceDate != null}"
+                               th:href="@{/misc/trl/recaps(date=${entry.lastAppearanceDate})}"
+                               class="trl-date-link"
+                               th:text="${entry.lastAppearanceDate}">-</a>
+                            <span th:if="${entry.lastAppearanceDate == null}" style="color:#555">-</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(albumOverviewRows)}">
+                        <td colspan="9" style="text-align:center; color:#666; padding:40px;">No linked albums have charted on TRL yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="trl-table-wrap" th:if="${overviewTab == 'artist'}">
+            <table class="trl-table js-sortable" id="trlArtistOverviewTable">
+                <thead>
+                    <tr>
+                        <th data-type="text">Artist</th>
+                        <th class="right" data-type="number">Songs Charted</th>
+                        <th class="right" data-type="number" data-default-sort="desc">Total Days</th>
+                        <th class="center" data-type="number">Highest Peak</th>
+                        <th class="right" data-type="number">#1 Songs</th>
+                        <th class="right" data-type="number">Days at #1</th>
+                        <th class="center" data-type="date">First Debut</th>
+                        <th class="center" data-type="date">Last Appearance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${artistOverviewRows}"
+                        th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td th:attr="data-value=${entry.artistName}">
+                            <a th:if="${entry.resolvedArtistId != null}"
+                               th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}"
+                               class="trl-artist-link"
+                               th:text="${entry.artistName}">Artist</a>
+                            <span th:if="${entry.resolvedArtistId == null}"
+                                  class="trl-no-link-artist"
+                                  th:text="${entry.artistName}">Artist</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.chartedSongsCount}" th:text="${entry.chartedSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
+                        <td class="center" th:attr="data-value=${entry.highestPeak != null ? entry.highestPeak : 999}">
+                            <span th:if="${entry.highestPeak != null}" class="pos-badge" th:text="${entry.highestPeak}">-</span>
+                            <span th:if="${entry.highestPeak == null}" style="color:#555">-</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
+                        <td class="center trl-date" th:attr="data-value=${entry.firstDebutDate}">
+                            <a th:if="${entry.firstDebutDate != null}"
+                               th:href="@{/misc/trl/recaps(date=${entry.firstDebutDate})}"
+                               class="trl-date-link"
+                               th:text="${entry.firstDebutDate}">-</a>
+                            <span th:if="${entry.firstDebutDate == null}" style="color:#555">-</span>
+                        </td>
+                        <td class="center trl-date" th:attr="data-value=${entry.lastAppearanceDate}">
+                            <a th:if="${entry.lastAppearanceDate != null}"
+                               th:href="@{/misc/trl/recaps(date=${entry.lastAppearanceDate})}"
+                               class="trl-date-link"
+                               th:text="${entry.lastAppearanceDate}">-</a>
+                            <span th:if="${entry.lastAppearanceDate == null}" style="color:#555">-</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(artistOverviewRows)}">
+                        <td colspan="8" style="text-align:center; color:#666; padding:40px;">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -776,10 +1032,82 @@
             });
         }
 
+        // ---- Chart Run Rendering (shared) ----
+        function renderOvChartRun(entries, chartType) {
+            if (!entries || entries.length === 0) {
+                return '<div class="ov-chart-run-empty">No chart entries found.</div>';
+            }
+            // Trim leading and trailing absent (off-chart) entries
+            let trimStart = 0;
+            while (trimStart < entries.length && !entries[trimStart].on_chart) trimStart++;
+            let trimEnd = entries.length - 1;
+            while (trimEnd >= 0 && !entries[trimEnd].on_chart) trimEnd--;
+            const trimmed = entries.slice(trimStart, trimEnd + 1);
+            if (trimmed.length === 0) {
+                return '<div class="ov-chart-run-empty">No chart entries found.</div>';
+            }
+            // Consolidate consecutive absent (off-chart) entries
+            const consolidated = [];
+            let i = 0;
+            while (i < trimmed.length) {
+                if (trimmed[i].on_chart) {
+                    consolidated.push(trimmed[i]);
+                    i++;
+                } else {
+                    let count = 0;
+                    const startDate = trimmed[i].chart_date;
+                    while (i < trimmed.length && !trimmed[i].on_chart) { count++; i++; }
+                    consolidated.push({ on_chart: false, count: count, chart_date: startDate });
+                }
+            }
+            const unitWord = chartType === 'bb' ? 'weeks' : 'days';
+            const boxesHtml = consolidated.map(entry => {
+                if (entry.on_chart) {
+                    const pos = entry.position;
+                    const date = entry.chart_date;
+                    let cls = 'ov-chart-run-box';
+                    if (pos === 1) cls += ' peak-one';
+                    let recapUrl = '#';
+                    if (chartType === 'trl') recapUrl = '/misc/trl/recaps?date=' + encodeURIComponent(date);
+                    else if (chartType === 'pc') recapUrl = '/misc/vatos-cuntdown/recaps?date=' + encodeURIComponent(date);
+                    else if (chartType === 'bb') recapUrl = '/misc/billboard-hot-100/recaps?date=' + encodeURIComponent(date);
+                    return '<a href="' + recapUrl + '" class="' + cls + '" title="' + date + '">' + pos + '</a>';
+                } else {
+                    return '<span class="ov-chart-run-box absent" title="' + entry.count + ' ' + unitWord + ' off chart">' + entry.count + '\u00d7</span>';
+                }
+            }).join('');
+            return '<div class="ov-chart-run-label">Chart-run</div><div class="ov-chart-run-boxes">' + boxesHtml + '</div>';
+        }
+
         // ---- Match Modal ----
         var _modalTrlId = null;
         var _modalRow = null;
         var _searchTimer = null;
+
+        async function toggleTrlExpand(btn) {
+            var row = btn.closest('tr');
+            var detailRow = row.nextElementSibling;
+            if (!detailRow || !detailRow.classList.contains('trl-detail-row')) return;
+            var isVisible = detailRow.classList.contains('visible');
+            if (!isVisible) {
+                var debutId = row.dataset.trlId;
+                var container = document.getElementById('trl-run-' + debutId);
+                if (container && !container.dataset.loaded) {
+                    container.innerHTML = '<div class="ov-chart-run-loading">Loading...</div>';
+                    try {
+                        const resp = await fetch('/misc/trl/' + debutId + '/chart-run');
+                        const data = await resp.json();
+                        container.innerHTML = renderOvChartRun(data, 'trl');
+                        container.dataset.loaded = '1';
+                    } catch(e) {
+                        container.innerHTML = '<div class="ov-chart-run-error">Failed to load</div>';
+                    }
+                }
+            }
+            detailRow.classList.toggle('visible', !isVisible);
+            btn.classList.toggle('expanded', !isVisible);
+            btn.textContent = isVisible ? '+' : '-';
+        }
 
         function openMatchModal(btn) {
             var row = btn.closest('tr');

@@ -47,6 +47,33 @@
         .bb-stat { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px 22px; min-width: 120px; text-align: center; }
         .bb-stat-value { font-size: 1.8rem; font-weight: 700; color: #fff; }
         .bb-stat-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+        .overview-tabs { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+        .overview-tab-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 9px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(34, 211, 238, 0.28);
+            background: rgba(34, 211, 238, 0.06);
+            color: #a8edf4;
+            text-decoration: none;
+            font-size: 0.84rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            transition: all 0.15s;
+        }
+        .overview-tab-link:hover {
+            border-color: rgba(34, 211, 238, 0.7);
+            color: #dfffff;
+            background: rgba(34, 211, 238, 0.14);
+        }
+        .overview-tab-link.active {
+            border-color: rgba(34, 211, 238, 0.86);
+            color: #062026;
+            background: linear-gradient(135deg, #22d3ee, #7dd3fc);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+        }
         .bb-toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
         .bb-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(34, 211, 238, 0.38); background: rgba(34, 211, 238, 0.08); color: #8de7f2; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
         .bb-btn:hover:not(:disabled) { border-color: rgba(34, 211, 238, 0.75); color: #d5fbff; background: rgba(34, 211, 238, 0.14); }
@@ -71,6 +98,7 @@
         .bb-diagnostics-chevron { color: #7fe9f1; font-size: 0.8rem; transition: transform 0.15s ease; }
         .bb-diagnostics[open] .bb-diagnostics-chevron { transform: rotate(180deg); }
         .bb-diagnostics-body { margin-top: 14px; }
+        .bb-diagnostics-count { color: #d5fbff; font-weight: 700; }
         .bb-diagnostics-empty { color: #777; font-size: 0.84rem; }
         .bb-issue-table-wrap, .bb-table-wrap { overflow: visible; border-radius: 12px; border: 1px solid #2a2a2a; }
         .bb-table, .bb-issue-table { width: 100%; border-collapse: collapse; background: #141414; }
@@ -94,6 +122,7 @@
         .bb-table tbody tr.gender-male { background: rgba(74, 144, 226, 0.06); border-left: 3px solid rgba(74, 144, 226, 0.5); }
         .bb-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
         .bb-table td, .bb-issue-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
+        .bb-table td.right, .bb-table th.right { text-align: right; }
         .bb-song-link { color: #e0e0e0; text-decoration: none; font-weight: 600; }
         .bb-song-link:hover { color: #7ed0ff; text-decoration: underline; }
         .bb-artist-link { color: #aaa; text-decoration: none; font-size: 0.85rem; }
@@ -105,6 +134,36 @@
         .bb-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(126, 208, 255, 0.45); background: rgba(126, 208, 255, 0.08); color: #7ed0ff; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
         .bb-match-btn:hover { border-color: rgba(126, 208, 255, 0.8); color: #b7ebff; }
         .bb-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
+        .bb-expand-btn {
+            background: #222; border: 1px solid #333; color: #888;
+            width: 26px; height: 26px; border-radius: 6px;
+            cursor: pointer; font-size: 1rem; line-height: 1;
+            transition: all 0.2s ease;
+        }
+        .bb-expand-btn:hover { background: #333; color: #fff; }
+        .bb-expand-btn.expanded { background: #2d5016; border-color: #3d6b1e; color: #fff; }
+        .bb-detail-row { display: none; }
+        .bb-detail-row.visible { display: table-row; }
+        .bb-detail-cell { background: #0f0f0f; padding: 16px 20px !important; }
+        .bb-run-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+        .bb-run-stat { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; text-align: center; min-width: 70px; }
+        .bb-run-stat-label { font-size: 0.72rem; color: #888; margin-bottom: 4px; }
+        .bb-run-stat-value { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        .ov-chart-run-container { margin-top: 14px; }
+        .ov-chart-run-label { font-size: 0.78rem; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .ov-chart-run-boxes { display: flex; flex-wrap: wrap; gap: 4px; }
+        .ov-chart-run-box {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
+            text-decoration: none; color: #fff;
+            background: #2a5c8a; border: 1px solid #3a7cc0;
+        }
+        .ov-chart-run-box:hover { opacity: 0.85; }
+        .ov-chart-run-box.peak-one { background: #7c5200; border-color: #c47f00; color: #ffd966; }
+        .ov-chart-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
+        .ov-chart-run-loading { color: #888; font-style: italic; font-size: 0.82rem; margin-top: 8px; }
+        .ov-chart-run-error { color: #f87171; font-size: 0.82rem; margin-top: 8px; }
+        .ov-chart-run-empty { color: #888; font-style: italic; font-size: 0.82rem; margin-top: 8px; }
         .bb-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; }
         .bb-modal-overlay.open { display: flex; }
         .bb-modal { width: min(640px, calc(100vw - 24px)); max-height: min(78vh, 760px); background: #151515; border: 1px solid #303030; border-radius: 16px; box-shadow: 0 28px 80px rgba(0,0,0,0.45); overflow: hidden; }
@@ -146,7 +205,7 @@
                 <a href="/">Home</a> / <span>Billboard Hot 100 Overview</span>
             </div>
             <h1>Billboard Hot 100 Overview</h1>
-            <p class="page-subtitle">Derived directly from weekly Hot 100 entries, grouped by raw name until a library song link exists.</p>
+            <p class="page-subtitle">Loaded from a materialized Billboard debut snapshot, while chart runs and recaps still drill into the weekly history rows.</p>
         </div>
 
         <div class="bb-summary">
@@ -172,91 +231,76 @@
             </div>
         </div>
 
+        <div class="overview-tabs" role="tablist" aria-label="Billboard overview type">
+            <a class="overview-tab-link"
+               th:classappend="${overviewTab == 'song'} ? ' active' : ''"
+               th:href="@{/misc/billboard-hot-100(overviewTab='song',page=1,size=${size},q=${q})}">Song Overview</a>
+            <a class="overview-tab-link"
+               th:classappend="${overviewTab == 'album'} ? ' active' : ''"
+               th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},q=${q})}">Album Overview</a>
+            <a class="overview-tab-link"
+               th:classappend="${overviewTab == 'artist'} ? ' active' : ''"
+               th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},q=${q})}">Artist Overview</a>
+        </div>
+
         <div class="bb-toolbar">
-            <button class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
-            <button class="bb-btn" id="bbAutoLinkBtn" onclick="runBillboardAutoLink(this)">Auto-Link Matches</button>
-            <button class="bb-btn" id="bbNormalizeBtn" onclick="runBillboardNormalizeCase(this)">Normalize Case Differences</button>
+            <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
+            <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbAutoLinkBtn" onclick="runBillboardAutoLink(this)">Auto-Link Matches</button>
+            <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbNormalizeBtn" onclick="runBillboardNormalizeCase(this)">Normalize Case Differences</button>
             <form class="bb-search-form" method="get" th:action="@{/misc/billboard-hot-100}">
+                <input type="hidden" name="overviewTab" th:value="${overviewTab}">
                 <input type="hidden" name="page" value="1">
                 <input type="hidden" name="size" th:value="${size}">
                 <input type="hidden" name="sort" th:value="${sort}">
                 <input type="hidden" name="dir" th:value="${dir}">
-                <input id="billboardSearchInput" name="q" class="bb-search-input-inline" type="text" placeholder="Search song or artist..." th:value="${q}" autocomplete="off">
+                <input id="billboardSearchInput" name="q" class="bb-search-input-inline" type="text" placeholder="Search the current overview..." th:value="${q}" autocomplete="off">
                 <button type="submit" class="bb-btn">Search</button>
-                <a th:if="${q != null and !q.isBlank()}" class="bb-clear-link" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort=${sort},dir=${dir})}">Clear</a>
+                <a th:if="${q != null and !q.isBlank()}" class="bb-clear-link" th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=${size},sort=${sort},dir=${dir})}">Clear</a>
             </form>
-            <div class="bb-search-status" th:if="${q != null and !q.isBlank()}" th:text="|Searching all Billboard rows for '${q}' (${resultTotal} matches)|">Searching all Billboard rows</div>
+            <div class="bb-search-status" th:if="${q != null and !q.isBlank()}" th:text="|Searching Billboard ${overviewTab} overview for '${q}' (${resultTotal} matches)|">Searching Billboard rows</div>
             <div class="bb-page-size">
                 <span>Rows:</span>
-                <a th:href="@{/misc/billboard-hot-100(page=1,size=100,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 100} ? 'active' : ''">100</a>
-                <a th:href="@{/misc/billboard-hot-100(page=1,size=250,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 250} ? 'active' : ''">250</a>
-                <a th:href="@{/misc/billboard-hot-100(page=1,size=500,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 500} ? 'active' : ''">500</a>
+                <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=100,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 100} ? 'active' : ''">100</a>
+                <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=250,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 250} ? 'active' : ''">250</a>
+                <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=500,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 500} ? 'active' : ''">500</a>
             </div>
         </div>
 
-        <details class="bb-panel bb-diagnostics">
+        <details th:if="${overviewTab == 'song'}" class="bb-panel bb-diagnostics">
             <summary>
                 <div>
                     <div class="bb-panel-title" style="margin-bottom:6px;">Spelling Diagnostics</div>
-                    <div class="bb-diagnostics-summary-copy">
-                        <span th:text="${nameIssueReport.sourceVariantGroupCount}">0</span>
-                        possible source-side variant groups and
-                        <span th:text="${nameIssueReport.normalizedOnlyCandidateCount}">0</span>
-                        unmatched rows that look like normalized-only matches to your library.
+                    <div class="bb-diagnostics-summary-copy" id="bbDiagnosticsSummary">
+                        Open this panel to load possible source-side variants and normalized-only library matches.
                     </div>
                 </div>
                 <span class="bb-diagnostics-chevron">&#9662;</span>
             </summary>
 
-            <div class="bb-diagnostics-body">
+            <div class="bb-diagnostics-body" id="bbDiagnosticsBody">
                 <div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don’t compete visually with the main Hot 100 table.</div>
-                <div class="bb-issue-table-wrap" th:if="${!#lists.isEmpty(nameIssueReport.samples)}">
-                    <table class="bb-issue-table">
-                        <thead>
-                            <tr>
-                                <th>Billboard Entry</th>
-                                <th>Suggested Library Song</th>
-                                <th class="center">Weeks</th>
-                                <th class="center">Peak</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="sample : ${nameIssueReport.samples}">
-                                <td>
-                                    <div class="bb-no-link-song" th:text="${sample.billboardSongTitle}">Song</div>
-                                    <div class="bb-no-link-artist" th:text="${sample.billboardArtistName}">Artist</div>
-                                </td>
-                                <td>
-                                    <a th:if="${sample.songId != null}" th:href="@{/songs/{id}(id=${sample.songId})}" class="bb-song-link" th:text="${sample.librarySongTitle}">Song</a>
-                                    <div class="bb-artist-link" th:text="${sample.libraryArtistName}">Artist</div>
-                                </td>
-                                <td class="center" th:text="${sample.weeksOnChart}">0</td>
-                                <td class="center" th:text="${sample.peakPosition}">0</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="bb-diagnostics-empty" th:if="${#lists.isEmpty(nameIssueReport.samples)}">No sample rows to preview right now.</div>
+                <div class="bb-diagnostics-empty" id="bbDiagnosticsStatus">Diagnostics haven’t been loaded yet.</div>
             </div>
         </details>
 
-        <div class="bb-panel" style="margin-top:-4px;">
+        <div th:if="${overviewTab == 'song'}" class="bb-panel" style="margin-top:-4px;">
             <div class="bb-panel-title">Import Behavior</div>
-            <div class="bb-panel-copy">Incremental Refresh only imports chart weeks newer than your latest local Billboard date. If the table is empty, it loads the full history; otherwise it leaves existing weeks alone and carries forward exact raw-name song links onto the new rows.</div>
+            <div class="bb-panel-copy">Incremental Refresh only imports chart weeks newer than your latest local Billboard date. If the table is empty, it loads the full history; otherwise it leaves existing weeks alone, carries forward exact raw-name song links onto the new rows, and rebuilds the debut snapshot used by this overview.</div>
         </div>
 
         <div class="pager">
             <div class="pager-links">
-                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(page=${page - 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Previous</a>
-                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(page=${page + 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Next</a>
+                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page - 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Previous</a>
+                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page + 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Next</a>
             </div>
             <div class="pager-label" th:text="'Page ' + ${page} + ' of ' + ${totalPages}">Page 1 of 1</div>
         </div>
 
-        <div class="bb-table-wrap">
+        <div class="bb-table-wrap" th:if="${overviewTab == 'song'}">
             <table class="bb-table" id="billboardTable">
                 <thead>
                     <tr>
+                        <th></th>
                         <th class="center" th:classappend="${sort == 'weeks'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'weeks'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='weeks',dir=${sort == 'weeks' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Weeks</a>
                         </th>
@@ -269,6 +313,7 @@
                         <th class="center" th:classappend="${sort == 'firstWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'firstWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='firstWeek',dir=${sort == 'firstWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Debut Week</a>
                         </th>
+                        <th class="center">Debut Position</th>
                         <th class="center" th:classappend="${sort == 'lastWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'lastWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='lastWeek',dir=${sort == 'lastWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Last Week</a>
                         </th>
@@ -285,16 +330,24 @@
                     </tr>
                 </thead>
                 <tbody id="billboardTableBody">
-                    <tr th:each="entry : ${entries}"
+                    <th:block th:each="entry, iterStat : ${entries}">
+                    <tr
                         th:data-raw-artist="${entry.artistName}"
                         th:data-raw-song="${entry.songTitle}"
+                        th:data-song-id="${entry.songId}"
+                        th:data-bb-idx="${iterStat.index}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center"><button class="bb-expand-btn" onclick="toggleBbExpand(this)" title="Show chart tier stats">+</button></td>
                         <td class="center" th:attr="data-value=${entry.weeksOnChart}" th:text="${entry.weeksOnChart}">0</td>
                         <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
                         <td class="center" th:attr="data-value=${entry.weeksAtPeak}" th:text="${entry.weeksAtPeak}">0</td>
                         <td class="center" th:attr="data-value=${entry.firstWeek}">
                             <a th:if="${entry.firstWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.firstWeek})}" class="bb-date-link" th:text="${entry.firstWeek}">-</a>
                             <span th:if="${entry.firstWeek == null}">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.debutPosition != null ? entry.debutPosition : 999}">
+                            <span th:if="${entry.debutPosition != null}" th:text="${entry.debutPosition}">-</span>
+                            <span th:if="${entry.debutPosition == null}">-</span>
                         </td>
                         <td class="center" th:attr="data-value=${entry.lastWeek}">
                             <a th:if="${entry.lastWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.lastWeek})}" class="bb-date-link" th:text="${entry.lastWeek}">-</a>
@@ -316,8 +369,149 @@
                             <button th:if="${entry.songId == null}" class="bb-match-btn" onclick="openBillboardMatchModal(this)">Library</button>
                         </td>
                     </tr>
+                    <tr class="detail-row bb-detail-row">
+                        <td colspan="11" class="bb-detail-cell">
+                            <div class="bb-run-stats">
+                                <div class="bb-run-stat"><div class="bb-run-stat-label">#1</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop1}">0</div></div>
+                                <div class="bb-run-stat"><div class="bb-run-stat-label">Top 5</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop5}">0</div></div>
+                                <div class="bb-run-stat"><div class="bb-run-stat-label">Top 10</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop10}">0</div></div>
+                                <div class="bb-run-stat"><div class="bb-run-stat-label">Top 20</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop20}">0</div></div>
+                                <div class="bb-run-stat"><div class="bb-run-stat-label">Top 50</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop50}">0</div></div>
+                                <div class="bb-run-stat"><div class="bb-run-stat-label">Top 100</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop100}">0</div></div>
+                            </div>
+                            <div class="ov-chart-run-container" th:id="'bb-run-' + ${iterStat.index}"></div>
+                        </td>
+                    </tr>
+                    </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="9" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
+                        <td colspan="11" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bb-table-wrap" th:if="${overviewTab == 'album'}">
+            <table class="bb-table" id="billboardAlbumTable">
+                <thead>
+                    <tr>
+                        <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
+                        </th>
+                        <th th:classappend="${sort == 'album'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'album'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='album',dir=${sort == 'album' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Album Name</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'songs'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'songs'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='songs',dir=${sort == 'songs' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Songs</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'weeks'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'weeks'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='weeks',dir=${sort == 'weeks' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Total Weeks</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'peak'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'peak'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='peak',dir=${sort == 'peak' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Highest Peak</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'numberOnes'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'numberOnes'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='numberOnes',dir=${sort == 'numberOnes' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">#1 Songs</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'weeksAtNumberOne'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'weeksAtNumberOne'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='weeksAtNumberOne',dir=${sort == 'weeksAtNumberOne' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Weeks at #1</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'firstWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'firstWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='firstWeek',dir=${sort == 'firstWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">First Debut</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'lastWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'lastWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='lastWeek',dir=${sort == 'lastWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Last Appearance</a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${albumEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td th:attr="data-value=${entry.artistName}">
+                            <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
+                            <span th:if="${entry.resolvedArtistId == null}" class="bb-no-link-artist" th:text="${entry.artistName}">Artist</span>
+                        </td>
+                        <td th:attr="data-value=${entry.albumName}">
+                            <a th:if="${entry.albumId != null}" th:href="@{/albums/{id}(id=${entry.albumId})}" class="bb-song-link" th:text="${entry.albumName}">Album</a>
+                            <span th:if="${entry.albumId == null}" class="bb-no-link-song" th:text="${entry.albumName}">Album</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.chartedSongsCount}" th:text="${entry.chartedSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
+                        <td class="center" th:attr="data-value=${entry.highestPeak != null ? entry.highestPeak : 999}">
+                            <span th:if="${entry.highestPeak != null}" th:text="${entry.highestPeak}">-</span>
+                            <span th:if="${entry.highestPeak == null}">-</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
+                        <td class="center" th:attr="data-value=${entry.firstDebutDate}">
+                            <a th:if="${entry.firstDebutDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.firstDebutDate})}" class="bb-date-link" th:text="${entry.firstDebutDate}">-</a>
+                            <span th:if="${entry.firstDebutDate == null}">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.lastAppearanceDate}">
+                            <a th:if="${entry.lastAppearanceDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.lastAppearanceDate})}" class="bb-date-link" th:text="${entry.lastAppearanceDate}">-</a>
+                            <span th:if="${entry.lastAppearanceDate == null}">-</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(albumEntries)}">
+                        <td colspan="9" class="bb-empty">No linked albums have charted on the Billboard Hot 100 yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bb-table-wrap" th:if="${overviewTab == 'artist'}">
+            <table class="bb-table" id="billboardArtistTable">
+                <thead>
+                    <tr>
+                        <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'songs'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'songs'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='songs',dir=${sort == 'songs' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Songs</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'weeks'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'weeks'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='weeks',dir=${sort == 'weeks' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Total Weeks</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'peak'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'peak'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='peak',dir=${sort == 'peak' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Highest Peak</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'numberOnes'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'numberOnes'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='numberOnes',dir=${sort == 'numberOnes' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">#1 Songs</a>
+                        </th>
+                        <th class="right" th:classappend="${sort == 'weeksAtNumberOne'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'weeksAtNumberOne'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='weeksAtNumberOne',dir=${sort == 'weeksAtNumberOne' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Weeks at #1</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'firstWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'firstWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='firstWeek',dir=${sort == 'firstWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">First Debut</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'lastWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'lastWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='lastWeek',dir=${sort == 'lastWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Last Appearance</a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${artistEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td th:attr="data-value=${entry.artistName}">
+                            <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
+                            <span th:if="${entry.resolvedArtistId == null}" class="bb-no-link-artist" th:text="${entry.artistName}">Artist</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.chartedSongsCount}" th:text="${entry.chartedSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
+                        <td class="center" th:attr="data-value=${entry.highestPeak != null ? entry.highestPeak : 999}">
+                            <span th:if="${entry.highestPeak != null}" th:text="${entry.highestPeak}">-</span>
+                            <span th:if="${entry.highestPeak == null}">-</span>
+                        </td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
+                        <td class="center" th:attr="data-value=${entry.firstDebutDate}">
+                            <a th:if="${entry.firstDebutDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.firstDebutDate})}" class="bb-date-link" th:text="${entry.firstDebutDate}">-</a>
+                            <span th:if="${entry.firstDebutDate == null}">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.lastAppearanceDate}">
+                            <a th:if="${entry.lastAppearanceDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.lastAppearanceDate})}" class="bb-date-link" th:text="${entry.lastAppearanceDate}">-</a>
+                            <span th:if="${entry.lastAppearanceDate == null}">-</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(artistEntries)}">
+                        <td colspan="8" class="bb-empty">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -325,8 +519,8 @@
 
         <div class="pager">
             <div class="pager-links">
-                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(page=${page - 1},size=${size},sort=${sort},dir=${dir})} : '#'">Previous</a>
-                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(page=${page + 1},size=${size},sort=${sort},dir=${dir})} : '#'">Next</a>
+                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page - 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Previous</a>
+                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page + 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Next</a>
             </div>
             <div class="pager-label" th:text="'Page ' + ${page} + ' of ' + ${totalPages}">Page 1 of 1</div>
         </div>
@@ -353,6 +547,87 @@
     <script>
         let billboardModalRow = null;
         let billboardSearchTimer = null;
+        let billboardDiagnosticsLoaded = false;
+
+        function renderOvChartRun(entries, chartType) {
+            if (!entries || entries.length === 0) {
+                return '<div class="ov-chart-run-empty">No chart entries found.</div>';
+            }
+            // Trim leading and trailing absent (off-chart) entries
+            let trimStart = 0;
+            while (trimStart < entries.length && !entries[trimStart].on_chart) trimStart++;
+            let trimEnd = entries.length - 1;
+            while (trimEnd >= 0 && !entries[trimEnd].on_chart) trimEnd--;
+            const trimmed = entries.slice(trimStart, trimEnd + 1);
+            if (trimmed.length === 0) {
+                return '<div class="ov-chart-run-empty">No chart entries found.</div>';
+            }
+            // Consolidate consecutive absent (off-chart) entries
+            const consolidated = [];
+            let i = 0;
+            while (i < trimmed.length) {
+                if (trimmed[i].on_chart) {
+                    consolidated.push(trimmed[i]);
+                    i++;
+                } else {
+                    let count = 0;
+                    const startDate = trimmed[i].chart_date;
+                    while (i < trimmed.length && !trimmed[i].on_chart) { count++; i++; }
+                    consolidated.push({ on_chart: false, count: count, chart_date: startDate });
+                }
+            }
+            const unitWord = chartType === 'bb' ? 'weeks' : 'days';
+            const boxesHtml = consolidated.map(entry => {
+                if (entry.on_chart) {
+                    const pos = entry.position;
+                    const date = entry.chart_date;
+                    let cls = 'ov-chart-run-box';
+                    if (pos === 1) cls += ' peak-one';
+                    let recapUrl = '#';
+                    if (chartType === 'trl') recapUrl = '/misc/trl/recaps?date=' + encodeURIComponent(date);
+                    else if (chartType === 'pc') recapUrl = '/misc/vatos-cuntdown/recaps?date=' + encodeURIComponent(date);
+                    else if (chartType === 'bb') recapUrl = '/misc/billboard-hot-100/recaps?date=' + encodeURIComponent(date);
+                    return '<a href="' + recapUrl + '" class="' + cls + '" title="' + date + '">' + pos + '</a>';
+                } else {
+                    return '<span class="ov-chart-run-box absent" title="' + entry.count + ' ' + unitWord + ' off chart">' + entry.count + '\u00d7</span>';
+                }
+            }).join('');
+            return '<div class="ov-chart-run-label">Chart-run</div><div class="ov-chart-run-boxes">' + boxesHtml + '</div>';
+        }
+
+        async function toggleBbExpand(btn) {
+            var row = btn.closest('tr');
+            var detailRow = row.nextElementSibling;
+            if (!detailRow || !detailRow.classList.contains('bb-detail-row')) return;
+            var isVisible = detailRow.classList.contains('visible');
+            if (!isVisible) {
+                var idx = row.dataset.bbIdx;
+                var container = document.getElementById('bb-run-' + idx);
+                if (container && !container.dataset.loaded) {
+                    container.innerHTML = '<div class="ov-chart-run-loading">Loading...</div>';
+                    try {
+                        var songId = row.dataset.songId;
+                        var url;
+                        if (songId) {
+                            url = '/misc/billboard-hot-100/chart-run?songId=' + encodeURIComponent(songId);
+                        } else {
+                            var artist = row.dataset.rawArtist;
+                            var song = row.dataset.rawSong;
+                            url = '/misc/billboard-hot-100/chart-run?artist=' + encodeURIComponent(artist) + '&song=' + encodeURIComponent(song);
+                        }
+                        const resp = await fetch(url);
+                        const data = await resp.json();
+                        container.innerHTML = renderOvChartRun(data, 'bb');
+                        container.dataset.loaded = '1';
+                    } catch(e) {
+                        container.innerHTML = '<div class="ov-chart-run-error">Failed to load</div>';
+                    }
+                }
+            }
+            detailRow.classList.toggle('visible', !isVisible);
+            btn.classList.toggle('expanded', !isVisible);
+            btn.textContent = isVisible ? '+' : '-';
+        }
 
         function showPageBusyOverlay(title, subtitle) {
             const titleEl = document.getElementById('billboardOverlayTitle');
@@ -503,11 +778,85 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function renderBillboardDiagnostics(report) {
+            const summary = document.getElementById('bbDiagnosticsSummary');
+            const body = document.getElementById('bbDiagnosticsBody');
+            const samples = Array.isArray(report.samples) ? report.samples : [];
+
+            summary.innerHTML =
+                '<span class="bb-diagnostics-count">' + (report.sourceVariantGroupCount || 0) + '</span> possible source-side variant groups and ' +
+                '<span class="bb-diagnostics-count">' + (report.normalizedOnlyCandidateCount || 0) + '</span> unmatched rows that look like normalized-only matches to your library.';
+
+            if (!samples.length) {
+                body.innerHTML =
+                    '<div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don\'t compete visually with the main Hot 100 table.</div>' +
+                    '<div class="bb-diagnostics-empty">No sample rows to preview right now.</div>';
+                return;
+            }
+
+            const rows = samples.map(sample => {
+                const songCell = sample.songId != null
+                    ? '<a href="/songs/' + sample.songId + '" class="bb-song-link">' + escapeBillboardHtml(sample.librarySongTitle) + '</a>'
+                    : '<span class="bb-no-link-song">' + escapeBillboardHtml(sample.librarySongTitle) + '</span>';
+                return '<tr>' +
+                    '<td><div class="bb-no-link-song">' + escapeBillboardHtml(sample.billboardSongTitle) + '</div><div class="bb-no-link-artist">' + escapeBillboardHtml(sample.billboardArtistName) + '</div></td>' +
+                    '<td>' + songCell + '<div class="bb-artist-link">' + escapeBillboardHtml(sample.libraryArtistName) + '</div></td>' +
+                    '<td class="center">' + (sample.weeksOnChart || 0) + '</td>' +
+                    '<td class="center">' + (sample.peakPosition || 0) + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            body.innerHTML =
+                '<div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don\'t compete visually with the main Hot 100 table.</div>' +
+                '<div class="bb-issue-table-wrap">' +
+                '<table class="bb-issue-table">' +
+                '<thead><tr><th>Billboard Entry</th><th>Suggested Library Song</th><th class="center">Weeks</th><th class="center">Peak</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '</table>' +
+                '</div>';
+        }
+
+        function loadBillboardDiagnostics() {
+            if (billboardDiagnosticsLoaded) {
+                return;
+            }
+
+            const status = document.getElementById('bbDiagnosticsStatus');
+            if (status) {
+                status.textContent = 'Loading diagnostics...';
+            }
+
+            fetch('/misc/billboard-hot-100/diagnostics')
+                .then(r => r.json())
+                .then(report => {
+                    billboardDiagnosticsLoaded = true;
+                    renderBillboardDiagnostics(report);
+                })
+                .catch(() => {
+                    const summary = document.getElementById('bbDiagnosticsSummary');
+                    if (summary) {
+                        summary.textContent = 'Diagnostics failed to load.';
+                    }
+                    if (status) {
+                        status.textContent = 'Diagnostics failed to load.';
+                    }
+                });
+        }
+
         document.getElementById('billboardMatchModal').addEventListener('click', function (event) {
             if (event.target === this) {
                 closeBillboardMatchModal();
             }
         });
+
+        var diagnosticsPanel = document.querySelector('.bb-diagnostics');
+        if (diagnosticsPanel) {
+            diagnosticsPanel.addEventListener('toggle', function(event) {
+                if (event.target.open) {
+                    loadBillboardDiagnostics();
+                }
+            });
+        }
 
         document.querySelectorAll('.bb-sort-link').forEach(function(link) {
             link.addEventListener('click', function() {

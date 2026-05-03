@@ -819,6 +819,9 @@
             
             <!-- Actions -->
             <div class="charts-actions">
+                <a class="action-btn" th:href="@{/charts/weekly/overview}">
+                    View Overview
+                </a>
                 <button th:if="${missingWeeksCount > 0}" class="action-btn primary" onclick="startBulkGeneration()">
                     Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
                 </button>
@@ -1173,7 +1176,7 @@
             
             return `
                 <div class="chart-run-header">
-                    Chart-run: <a href="/songs/${data.songId}">${data.songName}</a> by ${data.artistName}
+                    Chart-run
                 </div>
                 <div class="chart-run-boxes">
                     ${boxesHtml}
@@ -1261,7 +1264,7 @@
             
             return `
                 <div class="chart-run-header">
-                    Chart-run: <a href="/albums/${data.albumId}">${data.albumName}</a> by ${data.artistName}
+                    Chart-run
                 </div>
                 <div class="chart-run-boxes">
                     ${boxesHtml}

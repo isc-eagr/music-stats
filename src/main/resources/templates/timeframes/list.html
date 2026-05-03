@@ -180,6 +180,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        /* Infinite scroll loading overlay */
+        .inf-load-overlay { display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 2000; }
+        .inf-load-overlay.active { display: block; }
+        .inf-load-card { min-width: 200px; padding: 18px 24px; border-radius: 16px; border: 1px solid rgba(250, 128, 114, 0.26); background: rgba(16, 8, 7, 0.94); box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(6px); text-align: center; }
+        .inf-load-spinner { width: 38px; height: 38px; margin: 0 auto 10px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.08); border-top-color: #FA8072; animation: inf-load-spin 0.8s linear infinite; }
+        .inf-load-title { color: #f5e4e2; font-size: 13px; font-weight: 600; }
+        @keyframes inf-load-spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -845,7 +852,8 @@
         </div>
         
         <!-- Timeframe cards grid -->
-        <div class="catalog-grid">
+        <div class="catalog-grid" id="tfGrid"
+             th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="tf, iterStat : ${timeframes}" 
                  class="catalog-card timeframe-card"
                  th:classappend="${tf.perfectMale == true ? 'perfect-male' : ''} + ' ' + (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('male') and !tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-male' : (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-female' : ''))"
@@ -1174,31 +1182,10 @@
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Pagination controls (bottom) -->
-        <div class="pagination" th:if="${totalPages > 1}">
-            <a th:if="${currentPage > 0}" 
-               th:href="@{'/' + ${periodType} + '?' + ${queryString} + (${queryString} != '' ? '&' : '') + 'page=0'}"
-               class="page-btn">«</a>
-            
-            <a th:if="${currentPage > 0}" 
-               th:href="@{'/' + ${periodType} + '?' + ${queryString} + (${queryString} != '' ? '&' : '') + 'page=' + ${currentPage - 1}}"
-               class="page-btn">‹</a>
-            
-            <span class="page-info">
-                Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
-                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
-                of <span th:text="${totalPages}"></span>
-            </span>
-            
-            <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{'/' + ${periodType} + '?' + ${queryString} + (${queryString} != '' ? '&' : '') + 'page=' + ${currentPage + 1}}"
-               class="page-btn">›</a>
-            
-            <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{'/' + ${periodType} + '?' + ${queryString} + (${queryString} != '' ? '&' : '') + 'page=' + ${totalPages - 1}}"
-               class="page-btn">»</a>
+
+            <!-- Infinite scroll sentinel + status indicators -->
+            <div id="scrollSentinel" style="height:1px;"></div>
+            <div id="scrollEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All timeframes loaded</div>
         </div>
     </div>
     
@@ -1466,6 +1453,86 @@
             const dateToInput = document.getElementById('dateToInput');
             if (dateToInput) flatpickr(dateToInput, dateConfig);
         });
+    </script>
+
+    <!-- Infinite scroll loading overlay -->
+    <div id="infLoadOverlay" class="inf-load-overlay" aria-hidden="true">
+        <div class="inf-load-card">
+            <div class="inf-load-spinner"></div>
+            <div class="inf-load-title">Loading more...</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const grid = document.getElementById('tfGrid');
+            if (!grid) return;
+
+            let currentPage = parseInt(grid.dataset.currentPage, 10);
+            const totalPages = parseInt(grid.dataset.totalPages, 10);
+            const sentinel = document.getElementById('scrollSentinel');
+            const overlay = document.getElementById('infLoadOverlay');
+            const endMsg = document.getElementById('scrollEnd');
+
+            if (currentPage === 0) {
+                document.querySelectorAll('.pagination').forEach(el => el.style.display = 'none');
+            }
+
+            if (totalPages <= 1 || currentPage >= totalPages - 1) {
+                if (totalPages > 0) endMsg.hidden = false;
+                return;
+            }
+
+            let loading = false;
+
+            const observer = new IntersectionObserver(function(entries) {
+                if (entries[0].isIntersecting && !loading) {
+                    loadNextPage();
+                }
+            }, { rootMargin: '300px' });
+
+            observer.observe(sentinel);
+
+            function updateCounterText(addedCount) {
+                const infoEl = document.querySelector('.pagination-info span');
+                if (!infoEl) return;
+                const parts = infoEl.textContent.split(' of ');
+                if (parts.length === 2) {
+                    const currentEnd = parseInt(parts[0].split(' - ')[1], 10) || 0;
+                    infoEl.textContent = parts[0].split(' - ')[0] + ' - ' + (currentEnd + addedCount) + ' of ' + parts[1];
+                }
+            }
+
+            async function loadNextPage() {
+                loading = true;
+                overlay.classList.add('active');
+                currentPage++;
+
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', currentPage);
+                    const resp = await fetch(url.toString());
+                    if (!resp.ok) throw new Error('Network error');
+                    const html = await resp.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newCards = doc.querySelectorAll('#tfGrid .catalog-card');
+                    const addedCount = newCards.length;
+                    newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
+                    updateCounterText(addedCount);
+                } catch (e) {
+                    currentPage--;
+                }
+
+                overlay.classList.remove('active');
+
+                if (currentPage >= totalPages - 1) {
+                    observer.disconnect();
+                    endMsg.hidden = false;
+                }
+
+                loading = false;
+            }
+        })();
     </script>
 </body>
 </html>

@@ -40,10 +40,12 @@
                     <!-- Sort By Dropdown -->
                     <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
                         <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
-                        <select id="sortBySelect" onchange="changeSortBy(this.value)">
+                        <select id="sortBySelect" onchange="changeSortBy(1, this.value)">
                             <option value="age_at_release" th:selected="${sortBy == 'age_at_release'}">Age at Release</option>
                             <option value="album" th:selected="${sortBy == 'album'}">Album</option>
                             <option value="artist" th:selected="${sortBy == 'artist'}">Artist</option>
+                            <option value="billboard_peak" th:selected="${sortBy == 'billboard_peak'}">Billboard Peak</option>
+                            <option value="billboard_weeks" th:selected="${sortBy == 'billboard_weeks'}">Billboard Total Weeks</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
@@ -66,16 +68,40 @@
                             <option value="subgenre" th:selected="${sortBy == 'subgenre'}">Subgenre</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
                             <option value="track_number" th:selected="${sortBy == 'track_number'}">Track Number</option>
+                            <option value="trl_days" th:selected="${sortBy == 'trl_days'}">TRL Total Days</option>
+                            <option value="trl_peak" th:selected="${sortBy == 'trl_peak'}">TRL Peak</option>
+                            <option value="vatos_cuntdown_days" th:selected="${sortBy == 'vatos_cuntdown_days'}">Vato's Cuntdown Total Days</option>
+                            <option value="vatos_cuntdown_peak" th:selected="${sortBy == 'vatos_cuntdown_peak'}">Vato's Cuntdown Peak</option>
                             <option value="weeks_listened" th:selected="${sortBy == 'weeks_listened'}">Weeks Listened</option>
                             <option value="weekly_chart_peak" th:selected="${sortBy == 'weekly_chart_peak'}">Weekly Chart Peak</option>
                             <option value="weekly_chart_weeks" th:selected="${sortBy == 'weekly_chart_weeks'}">Weekly Chart Total Weeks</option>
                             <option value="years_listened" th:selected="${sortBy == 'years_listened'}">Years Listened</option>
                             <option value="yearly_chart_peak" th:selected="${sortBy == 'yearly_chart_peak'}">Yearly Chart Peak</option>
                         </select>
-                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection()" 
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDirection(1)" 
                                 th:title="${sortDir == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
                             <span th:if="${sortDir == 'desc'}">↓</span>
                             <span th:if="${sortDir != 'desc'}">↑</span>
+                        </button>
+                    </div>
+
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect2" style="margin-right: 5px; font-weight: bold;">Then By:</label>
+                        <select id="sortBySelect2" th:attr="data-selected-sort=${sortBy2}" onchange="changeSortBy(2, this.value)"></select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn2" onclick="toggleSortDirection(2)"
+                                th:title="${sortDir2 == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir2 == 'desc'}">↓</span>
+                            <span th:if="${sortDir2 != 'desc'}">↑</span>
+                        </button>
+                    </div>
+
+                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
+                        <label for="sortBySelect3" style="margin-right: 5px; font-weight: bold;">Then By:</label>
+                        <select id="sortBySelect3" th:attr="data-selected-sort=${sortBy3}" onchange="changeSortBy(3, this.value)"></select>
+                        <button type="button" class="sort-dir-btn" id="sortDirBtn3" onclick="toggleSortDirection(3)"
+                                th:title="${sortDir3 == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
+                            <span th:if="${sortDir3 == 'desc'}">↓</span>
+                            <span th:if="${sortDir3 != 'desc'}">↑</span>
                         </button>
                     </div>
                     
@@ -90,6 +116,10 @@
                                 <input type="hidden" autocomplete="off" name="q" th:value="${searchQuery}">
                                 <input type="hidden" autocomplete="off" name="sortby" th:value="${sortBy}">
                                 <input type="hidden" autocomplete="off" name="sortdir" th:value="${sortDir}">
+                                <input type="hidden" autocomplete="off" name="sortby2" th:value="${sortBy2}">
+                                <input type="hidden" autocomplete="off" name="sortdir2" th:value="${sortDir2}">
+                                <input type="hidden" autocomplete="off" name="sortby3" th:value="${sortBy3}">
+                                <input type="hidden" autocomplete="off" name="sortdir3" th:value="${sortDir3}">
                                 <input type="hidden" autocomplete="off" name="perpage" th:value="${perPage}">
                                 
                                 <!-- Account Filter -->
@@ -247,6 +277,26 @@
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>To</span>
                                                 <input type="text" autocomplete="off" name="birthDateTo" th:value="${birthDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Billboard Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Billboard
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Peak Position ≤</span>
+                                                <input type="number" autocomplete="off" name="billboardPeak" th:value="${billboardPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
+                                                <input type="number" autocomplete="off" name="billboardWeeks" th:value="${billboardWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
                                             </label>
                                         </div>
                                     </div>
@@ -882,7 +932,47 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
+                                <!-- TRL Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            TRL
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Peak Position ≤</span>
+                                                <input type="number" autocomplete="off" name="trlPeak" th:value="${trlPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
+                                                <input type="number" autocomplete="off" name="trlDays" th:value="${trlDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Vato's Cuntdown Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Vato's Cuntdown
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Peak Position ≤</span>
+                                                <input type="number" autocomplete="off" name="vatosCuntdownPeak" th:value="${vatosCuntdownPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
+                                                <input type="number" autocomplete="off" name="vatosCuntdownDays" th:value="${vatosCuntdownDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Weekly Chart Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -1325,6 +1415,39 @@
                 </span>
                 <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartWeeks')" type="button">×</button>
             </div>
+
+            <!-- TRL filter chip -->
+            <div class="filter-chip" th:if="${trlPeak != null or trlDays != null}">
+                <span class="filter-chip-label">
+                    📺 TRL:
+                    <span th:if="${trlPeak != null}" th:text="'Peak ≤' + ${trlPeak}"></span>
+                    <span th:if="${trlPeak != null and trlDays != null}">, </span>
+                    <span th:if="${trlDays != null}" th:text="'≥' + ${trlDays} + ' days'"></span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('trlPeak', 'trlDays')" type="button">×</button>
+            </div>
+
+            <!-- Vato's Cuntdown filter chip -->
+            <div class="filter-chip" th:if="${vatosCuntdownPeak != null or vatosCuntdownDays != null}">
+                <span class="filter-chip-label">
+                    🗓 Vato's Cuntdown:
+                    <span th:if="${vatosCuntdownPeak != null}" th:text="'Peak ≤' + ${vatosCuntdownPeak}"></span>
+                    <span th:if="${vatosCuntdownPeak != null and vatosCuntdownDays != null}">, </span>
+                    <span th:if="${vatosCuntdownDays != null}" th:text="'≥' + ${vatosCuntdownDays} + ' days'"></span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('vatosCuntdownPeak', 'vatosCuntdownDays')" type="button">×</button>
+            </div>
+
+            <!-- Billboard filter chip -->
+            <div class="filter-chip" th:if="${billboardPeak != null or billboardWeeks != null}">
+                <span class="filter-chip-label">
+                    🎵 Billboard:
+                    <span th:if="${billboardPeak != null}" th:text="'Peak ≤' + ${billboardPeak}"></span>
+                    <span th:if="${billboardPeak != null and billboardWeeks != null}">, </span>
+                    <span th:if="${billboardWeeks != null}" th:text="'≥' + ${billboardWeeks} + ' weeks'"></span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('billboardPeak', 'billboardWeeks')" type="button">×</button>
+            </div>
             
             <!-- Yearly Chart filter chip -->
             <div class="filter-chip" th:if="${yearlyChartPeak != null or yearlyChartYears != null}">
@@ -1338,7 +1461,7 @@
             </div>
             
                 <button class="clear-all-filters" onclick="clearFilters()" type="button" 
-                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedArtist != null and !selectedArtist.isEmpty()) or (selectedAlbum != null and !selectedAlbum.isEmpty()) or (releaseDate != null and !releaseDate.isEmpty()) or (releaseDateFrom != null and !releaseDateFrom.isEmpty()) or (releaseDateTo != null and !releaseDateTo.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedAccounts != null and !selectedAccounts.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or imageCountMin != null or imageCountMax != null or (selectedHasFeaturedArtists != null and !selectedHasFeaturedArtists.isEmpty()) or (selectedIsBand != null and !selectedIsBand.isEmpty()) or (selectedIsSingle != null and !selectedIsSingle.isEmpty()) or (selectedInItunes != null and !selectedInItunes.isEmpty()) or playCountMin != null or playCountMax != null or trackNumber != null or trackNumberMode == 'isnull' or trackNumberMode == 'isnotnull' or lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero')) or weeklyChartPeak != null or weeklyChartWeeks != null or seasonalChartPeak != null or seasonalChartSeasons != null or yearlyChartPeak != null or yearlyChartYears != null or (firstListenedDate != null and !firstListenedDate.isEmpty()) or (firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty()) or (firstListenedDateTo != null and !firstListenedDateTo.isEmpty()) or (lastListenedDate != null and !lastListenedDate.isEmpty()) or (lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty()) or (lastListenedDateTo != null and !lastListenedDateTo.isEmpty()) or (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or (listenedDateTo != null and !listenedDateTo.isEmpty()) or genderMode == 'isnull' or genderMode == 'isnotnull' or ethnicityMode == 'isnull' or ethnicityMode == 'isnotnull' or genreMode == 'isnull' or genreMode == 'isnotnull' or subgenreMode == 'isnull' or subgenreMode == 'isnotnull' or languageMode == 'isnull' or languageMode == 'isnotnull' or countryMode == 'isnull' or countryMode == 'isnotnull'}">
+                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedArtist != null and !selectedArtist.isEmpty()) or (selectedAlbum != null and !selectedAlbum.isEmpty()) or (releaseDate != null and !releaseDate.isEmpty()) or (releaseDateFrom != null and !releaseDateFrom.isEmpty()) or (releaseDateTo != null and !releaseDateTo.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedAccounts != null and !selectedAccounts.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or imageCountMin != null or imageCountMax != null or (selectedHasFeaturedArtists != null and !selectedHasFeaturedArtists.isEmpty()) or (selectedIsBand != null and !selectedIsBand.isEmpty()) or (selectedIsSingle != null and !selectedIsSingle.isEmpty()) or (selectedInItunes != null and !selectedInItunes.isEmpty()) or playCountMin != null or playCountMax != null or trackNumber != null or trackNumberMode == 'isnull' or trackNumberMode == 'isnotnull' or lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero')) or weeklyChartPeak != null or weeklyChartWeeks != null or trlPeak != null or trlDays != null or vatosCuntdownPeak != null or vatosCuntdownDays != null or billboardPeak != null or billboardWeeks != null or seasonalChartPeak != null or seasonalChartSeasons != null or yearlyChartPeak != null or yearlyChartYears != null or (firstListenedDate != null and !firstListenedDate.isEmpty()) or (firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty()) or (firstListenedDateTo != null and !firstListenedDateTo.isEmpty()) or (lastListenedDate != null and !lastListenedDate.isEmpty()) or (lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty()) or (lastListenedDateTo != null and !lastListenedDateTo.isEmpty()) or (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or (listenedDateTo != null and !listenedDateTo.isEmpty()) or genderMode == 'isnull' or genderMode == 'isnotnull' or ethnicityMode == 'isnull' or ethnicityMode == 'isnotnull' or genreMode == 'isnull' or genreMode == 'isnotnull' or subgenreMode == 'isnull' or subgenreMode == 'isnotnull' or languageMode == 'isnull' or languageMode == 'isnotnull' or countryMode == 'isnull' or countryMode == 'isnotnull'}">
                 Clear
             </button>
         </div>
@@ -1367,11 +1490,11 @@
         <!-- Pagination controls (top) - center-aligned -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=0, perpage=${perPage})}"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage - 1}, perpage=${perPage})}"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -1381,11 +1504,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage + 1}, perpage=${perPage})}"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
+               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
         
@@ -1403,7 +1526,8 @@
         </div>
         
         <!-- Song cards grid -->
-        <div class="song-grid">
+        <div class="song-grid" id="songGrid"
+             th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="song, iterStat : ${songs}" 
                  class="song-card"
                  th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
@@ -1502,11 +1626,17 @@
                     <!-- Sort metric display (only for non-visible metrics) -->
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'artist' and sortBy != 'album' and sortBy != 'time'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
+                            <th:block th:case="'billboard_peak'">Billboard Peak:</th:block>
+                            <th:block th:case="'billboard_weeks'">Billboard Weeks:</th:block>
                             <th:block th:case="'length'">Length:</th:block>
                             <th:block th:case="'release_date'">Released:</th:block>
                             <th:block th:case="'first_listened'">First Listened:</th:block>
                             <th:block th:case="'last_listened'">Last Listened:</th:block>
                             <th:block th:case="'track_number'">Track #:</th:block>
+                            <th:block th:case="'trl_days'">TRL Days:</th:block>
+                            <th:block th:case="'trl_peak'">TRL Peak:</th:block>
+                            <th:block th:case="'vatos_cuntdown_days'">Vato's Days:</th:block>
+                            <th:block th:case="'vatos_cuntdown_peak'">Vato's Peak:</th:block>
                             <th:block th:case="'age_at_release'">Age at Release:</th:block>
                             <th:block th:case="'birth_date'">Born:</th:block>
                             <th:block th:case="'days_listened'">Days Listened:</th:block>
@@ -1521,11 +1651,17 @@
                             <th:block th:case="'yearly_chart_peak'">Yearly Peak:</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
+                            <th:block th:case="'billboard_peak'" th:text="${song.billboardPeak != null ? '#' + song.billboardPeak : 'N/A'}"></th:block>
+                            <th:block th:case="'billboard_weeks'" th:text="${song.billboardWeeks != null ? song.billboardWeeks + (song.billboardWeeks == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
                             <th:block th:case="'length'" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}"></th:block>
                             <th:block th:case="'release_date'" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${song.firstListenedDate != null ? song.firstListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'last_listened'" th:text="${song.lastListenedDate != null ? song.lastListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'track_number'" th:text="${song.trackNumber != null ? song.trackNumber : 'N/A'}"></th:block>
+                            <th:block th:case="'trl_days'" th:text="${song.trlDays != null ? song.trlDays + (song.trlDays == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
+                            <th:block th:case="'trl_peak'" th:text="${song.trlPeak != null ? '#' + song.trlPeak : 'N/A'}"></th:block>
+                            <th:block th:case="'vatos_cuntdown_days'" th:text="${song.vatosCuntdownDays != null ? song.vatosCuntdownDays + (song.vatosCuntdownDays == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
+                            <th:block th:case="'vatos_cuntdown_peak'" th:text="${song.vatosCuntdownPeak != null ? '#' + song.vatosCuntdownPeak : 'N/A'}"></th:block>
                             <th:block th:case="'age_at_release'" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}"></th:block>
                             <th:block th:case="'birth_date'" th:text="${song.birthDate != null ? song.birthDate : 'N/A'}"></th:block>
                             <th:block th:case="'days_listened'" th:text="${song.daysListened + (song.daysListened == 1 ? ' day' : ' days')}"></th:block>
@@ -1702,31 +1838,11 @@
 
                 </div>
             </div>
-        </div>
-        
-        <!-- Pagination controls (bottom) -->
-        <div class="pagination" th:if="${totalPages > 1}">
-            <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=0, perpage=${perPage})}"
-               class="page-btn">«</a>
             
-            <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage - 1}, perpage=${perPage})}"
-               class="page-btn">‹</a>
-            
-            <span class="page-info">
-                Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
-                       onchange="goToPage(this.value - 1)" style="width: 60px;"> 
-                of <span th:text="${totalPages}"></span>
-            </span>
-            
-            <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${currentPage + 1}, perpage=${perPage})}"
-               class="page-btn">›</a>
-            
-            <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, page=${totalPages - 1}, perpage=${perPage})}"
-               class="page-btn">»</a>
+            <!-- Infinite scroll sentinel + status indicators -->
+            <div id="scrollSentinel" style="height:1px;"></div>
+            <div id="scrollLoader" hidden style="text-align:center;padding:28px 0;color:#666;font-size:0.9rem;letter-spacing:0.5px;">Loading...</div>
+            <div id="scrollEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All songs loaded</div>
         </div>
     </div>
     
@@ -2012,24 +2128,16 @@
             document.getElementById('filterForm').requestSubmit();
         }
         
-        function changeSortBy(sortValue) {
-            const url = new URL(window.location);
-            url.searchParams.set('sortby', sortValue);
-            url.searchParams.set('page', '0'); // Reset to first page when sorting changes
-            window.location.href = url.toString();
+        function changeSortBy(level, sortValue) {
+            changeListSort(level, sortValue);
         }
         
-        function toggleSortDirection() {
-            const url = new URL(window.location);
-            const currentDir = url.searchParams.get('sortdir') || 'asc';
-            url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
-            url.searchParams.set('page', '0');
-            window.location.href = url.toString();
+        function toggleSortDirection(level) {
+            toggleListSortDirection(level);
         }
         
         function clearFilters() {
-            const sortBy = document.getElementById('sortBySelect').value;
-            window.location.href = '/songs?sortby=' + sortBy;
+            window.location.href = buildSortOnlyUrl('/songs');
         }
         
         function removeFilter(...paramNames) {
@@ -2703,6 +2811,13 @@
         .btn-playlist:hover {
             background: #3d6b1e !important;
         }
+        /* Infinite scroll loading overlay */
+        .inf-load-overlay { display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 2000; }
+        .inf-load-overlay.active { display: block; }
+        .inf-load-card { min-width: 200px; padding: 18px 24px; border-radius: 16px; border: 1px solid rgba(181, 232, 14, 0.26); background: rgba(12, 16, 7, 0.94); box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(6px); text-align: center; }
+        .inf-load-spinner { width: 38px; height: 38px; margin: 0 auto 10px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.08); border-top-color: #B5E80E; animation: inf-load-spin 0.8s linear infinite; }
+        .inf-load-title { color: #e8f5c4; font-size: 13px; font-weight: 600; }
+        @keyframes inf-load-spin { to { transform: rotate(360deg); } }
     </style>
     
     <!-- Playlist Generator Modal -->
@@ -2869,6 +2984,88 @@
             });
         }
     });
+    </script>
+
+    <!-- Infinite scroll loading overlay -->
+    <div id="infLoadOverlay" class="inf-load-overlay" aria-hidden="true">
+        <div class="inf-load-card">
+            <div class="inf-load-spinner"></div>
+            <div class="inf-load-title">Loading more...</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const grid = document.getElementById('songGrid');
+            if (!grid) return;
+
+            let currentPage = parseInt(grid.dataset.currentPage, 10);
+            const totalPages = parseInt(grid.dataset.totalPages, 10);
+            const sentinel = document.getElementById('scrollSentinel');
+            const overlay = document.getElementById('infLoadOverlay');
+            const endMsg = document.getElementById('scrollEnd');
+
+            // Hide top pagination when on page 0 — infinite scroll handles it
+            if (currentPage === 0) {
+                document.querySelectorAll('.pagination').forEach(el => el.style.display = 'none');
+            }
+
+            // Nothing more to load?
+            if (totalPages <= 1 || currentPage >= totalPages - 1) {
+                if (totalPages > 0) endMsg.hidden = false;
+                return;
+            }
+
+            let loading = false;
+
+            const observer = new IntersectionObserver(function(entries) {
+                if (entries[0].isIntersecting && !loading) {
+                    loadNextPage();
+                }
+            }, { rootMargin: '300px' });
+
+            observer.observe(sentinel);
+
+            function updateCounterText(addedCount) {
+                const infoEl = document.querySelector('.pagination-info span');
+                if (!infoEl) return;
+                const parts = infoEl.textContent.split(' of ');
+                if (parts.length === 2) {
+                    const currentEnd = parseInt(parts[0].split(' - ')[1], 10) || 0;
+                    infoEl.textContent = parts[0].split(' - ')[0] + ' - ' + (currentEnd + addedCount) + ' of ' + parts[1];
+                }
+            }
+
+            async function loadNextPage() {
+                loading = true;
+                overlay.classList.add('active');
+                currentPage++;
+
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', currentPage);
+                    const resp = await fetch(url.toString());
+                    if (!resp.ok) throw new Error('Network error');
+                    const html = await resp.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newCards = doc.querySelectorAll('#songGrid .song-card');
+                    const addedCount = newCards.length;
+                    newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
+                    updateCounterText(addedCount);
+                } catch (e) {
+                    currentPage--; // rollback so we retry on next intersection
+                }
+
+                overlay.classList.remove('active');
+
+                if (currentPage >= totalPages - 1) {
+                    observer.disconnect();
+                    endMsg.hidden = false;
+                }
+
+                loading = false;
+            }
+        })();
     </script>
 </body>
 </html>

@@ -84,7 +84,10 @@ public class ArtistService {
                                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                           Integer songCountMin, Integer songCountMax,
                                           Integer itunesPresenceMin, Integer itunesPresenceMax,
-                                          String sortBy, String sortDir, int page, int perPage) {
+                                          String sortBy, String sortDir,
+                                          String sortBy2, String sortDir2,
+                                          String sortBy3, String sortDir3,
+                                          int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -110,7 +113,7 @@ public class ArtistService {
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
-                sortBy, sortDir, perPage, page * perPage
+                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, perPage, page * perPage
         );
         
         List<ArtistCardDTO> artists = new ArrayList<>();

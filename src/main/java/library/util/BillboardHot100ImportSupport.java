@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -92,6 +93,303 @@ public final class BillboardHot100ImportSupport {
                 "CREATE INDEX IF NOT EXISTS idx_billboard_hot100_entry_artist_song " +
                 "ON billboard_hot100_entry(artist_name, song_title)"
             );
+            statement.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS billboard_hot100_debut (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "identity_key TEXT NOT NULL, " +
+                "matched INTEGER NOT NULL, " +
+                "song_id INTEGER, " +
+                "resolved_artist_id INTEGER, " +
+                "artist_name TEXT NOT NULL, " +
+                "song_title TEXT NOT NULL, " +
+                "gender_name TEXT, " +
+                "debut_week TEXT, " +
+                "last_week TEXT, " +
+                "peak_week TEXT, " +
+                "debut_position INTEGER, " +
+                "peak_position INTEGER, " +
+                "weeks_on_chart INTEGER NOT NULL, " +
+                "weeks_at_peak INTEGER NOT NULL, " +
+                "weeks_at_top1 INTEGER NOT NULL, " +
+                "weeks_at_top5 INTEGER NOT NULL, " +
+                "weeks_at_top10 INTEGER NOT NULL, " +
+                "weeks_at_top20 INTEGER NOT NULL, " +
+                "weeks_at_top50 INTEGER NOT NULL, " +
+                "weeks_at_top100 INTEGER NOT NULL, " +
+                "FOREIGN KEY (song_id) REFERENCES Song(id), " +
+                "FOREIGN KEY (resolved_artist_id) REFERENCES Artist(id))"
+            );
+            statement.executeUpdate(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_billboard_hot100_debut_identity " +
+                "ON billboard_hot100_debut(identity_key)"
+            );
+            statement.executeUpdate(
+                "CREATE INDEX IF NOT EXISTS idx_billboard_hot100_debut_song_id " +
+                "ON billboard_hot100_debut(song_id)"
+            );
+            statement.executeUpdate(
+                "CREATE INDEX IF NOT EXISTS idx_billboard_hot100_debut_artist_song " +
+                "ON billboard_hot100_debut(artist_name, song_title)"
+            );
+            statement.executeUpdate(
+                "CREATE INDEX IF NOT EXISTS idx_billboard_hot100_debut_debut_week " +
+                "ON billboard_hot100_debut(debut_week)"
+            );
+            statement.executeUpdate(
+                "CREATE INDEX IF NOT EXISTS idx_billboard_hot100_debut_last_week " +
+                "ON billboard_hot100_debut(last_week)"
+            );
+            statement.executeUpdate(
+                "CREATE INDEX IF NOT EXISTS idx_billboard_hot100_debut_peak_position " +
+                "ON billboard_hot100_debut(peak_position)"
+            );
+        }
+    }
+
+    public static void rebuildDebutTable(Connection connection) throws SQLException {
+        ensureSchema(connection);
+
+        boolean originalAutoCommit = connection.getAutoCommit();
+        if (originalAutoCommit) {
+            connection.setAutoCommit(false);
+        }
+
+        String sourceSql =
+            "SELECT e.song_id, a.id AS resolved_artist_id, a.name AS canonical_artist_name, s.name AS canonical_song_title, " +
+            "       LOWER(g.name) AS gender_name, e.artist_name AS raw_artist_name, e.song_title AS raw_song_title, " +
+            "       e.chart_date, e.position " +
+            "FROM billboard_hot100_entry e " +
+            "LEFT JOIN Song s ON s.id = e.song_id " +
+            "LEFT JOIN Artist a ON a.id = s.artist_id " +
+            "LEFT JOIN Gender g ON g.id = a.gender_id";
+        String insertSql =
+            "INSERT INTO billboard_hot100_debut (" +
+            "identity_key, matched, song_id, resolved_artist_id, artist_name, song_title, gender_name, " +
+            "debut_week, last_week, peak_week, debut_position, peak_position, weeks_on_chart, weeks_at_peak, " +
+            "weeks_at_top1, weeks_at_top5, weeks_at_top10, weeks_at_top20, weeks_at_top50, weeks_at_top100) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Statement deleteStatement = connection.createStatement();
+             PreparedStatement sourceStatement = connection.prepareStatement(sourceSql);
+             ResultSet rs = sourceStatement.executeQuery();
+             PreparedStatement insertStatement = connection.prepareStatement(insertSql)) {
+            deleteStatement.executeUpdate("DELETE FROM billboard_hot100_debut");
+
+            Map<String, BillboardDebutAggregate> aggregates = new LinkedHashMap<>();
+            while (rs.next()) {
+                Integer songId = null;
+                int songIdValue = rs.getInt("song_id");
+                if (!rs.wasNull()) {
+                    songId = songIdValue;
+                }
+
+                String rawArtistName = rs.getString("raw_artist_name");
+                String rawSongTitle = rs.getString("raw_song_title");
+                String identityKey = buildBillboardIdentityKey(songId, rawArtistName, rawSongTitle);
+                boolean matchedEntry = songId != null;
+                BillboardDebutAggregate aggregate = aggregates.computeIfAbsent(identityKey, key -> new BillboardDebutAggregate(identityKey, matchedEntry));
+
+                Integer resolvedArtistId = null;
+                int resolvedArtistIdValue = rs.getInt("resolved_artist_id");
+                if (!rs.wasNull()) {
+                    resolvedArtistId = resolvedArtistIdValue;
+                }
+
+                aggregate.accept(
+                    songId,
+                    resolvedArtistId,
+                    rs.getString("canonical_artist_name"),
+                    rs.getString("canonical_song_title"),
+                    rs.getString("gender_name"),
+                    rawArtistName,
+                    rawSongTitle,
+                    rs.getString("chart_date"),
+                    rs.getInt("position")
+                );
+            }
+
+            int batchSize = 0;
+            for (BillboardDebutAggregate aggregate : aggregates.values()) {
+                insertStatement.setString(1, aggregate.identityKey);
+                insertStatement.setInt(2, aggregate.matched ? 1 : 0);
+                if (aggregate.songId != null) {
+                    insertStatement.setInt(3, aggregate.songId);
+                } else {
+                    insertStatement.setNull(3, java.sql.Types.INTEGER);
+                }
+                if (aggregate.resolvedArtistId != null) {
+                    insertStatement.setInt(4, aggregate.resolvedArtistId);
+                } else {
+                    insertStatement.setNull(4, java.sql.Types.INTEGER);
+                }
+                insertStatement.setString(5, aggregate.artistName);
+                insertStatement.setString(6, aggregate.songTitle);
+                insertStatement.setString(7, aggregate.genderName);
+                insertStatement.setString(8, aggregate.debutWeek);
+                insertStatement.setString(9, aggregate.lastWeek);
+                insertStatement.setString(10, aggregate.peakWeek);
+                if (aggregate.debutPosition != null) {
+                    insertStatement.setInt(11, aggregate.debutPosition);
+                } else {
+                    insertStatement.setNull(11, java.sql.Types.INTEGER);
+                }
+                if (aggregate.peakPosition != null) {
+                    insertStatement.setInt(12, aggregate.peakPosition);
+                } else {
+                    insertStatement.setNull(12, java.sql.Types.INTEGER);
+                }
+                insertStatement.setInt(13, aggregate.weeksOnChart);
+                insertStatement.setInt(14, aggregate.weeksAtPeak);
+                insertStatement.setInt(15, aggregate.weeksAtTop1);
+                insertStatement.setInt(16, aggregate.weeksAtTop5);
+                insertStatement.setInt(17, aggregate.weeksAtTop10);
+                insertStatement.setInt(18, aggregate.weeksAtTop20);
+                insertStatement.setInt(19, aggregate.weeksAtTop50);
+                insertStatement.setInt(20, aggregate.weeksAtTop100);
+                insertStatement.addBatch();
+
+                batchSize++;
+                if (batchSize % BATCH_SIZE == 0) {
+                    insertStatement.executeBatch();
+                }
+            }
+            insertStatement.executeBatch();
+
+            if (originalAutoCommit) {
+                connection.commit();
+            }
+        } catch (SQLException e) {
+            if (originalAutoCommit) {
+                connection.rollback();
+            }
+            throw e;
+        } finally {
+            if (originalAutoCommit) {
+                connection.setAutoCommit(true);
+            }
+        }
+    }
+
+    private static String buildBillboardIdentityKey(Integer songId, String artistName, String songTitle) {
+        if (songId != null) {
+            return "song:" + songId;
+        }
+        return "raw:" + normalizeBillboardIdentityPart(artistName) + "||" + normalizeBillboardIdentityPart(songTitle);
+    }
+
+    private static String normalizeBillboardIdentityPart(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String pickPreferredDisplayValue(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank()) {
+            return candidateValue;
+        }
+
+        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
+        if (ignoreCase < 0) {
+            return candidateValue;
+        }
+        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private static final class BillboardDebutAggregate {
+        private final String identityKey;
+        private final boolean matched;
+        private Integer songId;
+        private Integer resolvedArtistId;
+        private String artistName;
+        private String songTitle;
+        private String genderName;
+        private String debutWeek;
+        private String lastWeek;
+        private String peakWeek;
+        private Integer debutPosition;
+        private Integer peakPosition;
+        private int weeksOnChart;
+        private int weeksAtPeak;
+        private int weeksAtTop1;
+        private int weeksAtTop5;
+        private int weeksAtTop10;
+        private int weeksAtTop20;
+        private int weeksAtTop50;
+        private int weeksAtTop100;
+
+        private BillboardDebutAggregate(String identityKey, boolean matched) {
+            this.identityKey = identityKey;
+            this.matched = matched;
+        }
+
+        private void accept(
+                Integer songId,
+                Integer resolvedArtistId,
+                String canonicalArtistName,
+                String canonicalSongTitle,
+                String genderName,
+                String rawArtistName,
+                String rawSongTitle,
+                String chartDate,
+                int position) {
+            if (songId != null) {
+                this.songId = songId;
+            }
+            if (resolvedArtistId != null) {
+                this.resolvedArtistId = resolvedArtistId;
+            }
+            if (genderName != null && !genderName.isBlank()) {
+                this.genderName = genderName;
+            }
+
+            if (matched) {
+                if (canonicalArtistName != null && !canonicalArtistName.isBlank()) {
+                    this.artistName = canonicalArtistName;
+                }
+                if (canonicalSongTitle != null && !canonicalSongTitle.isBlank()) {
+                    this.songTitle = canonicalSongTitle;
+                }
+            } else {
+                this.artistName = pickPreferredDisplayValue(this.artistName, rawArtistName);
+                this.songTitle = pickPreferredDisplayValue(this.songTitle, rawSongTitle);
+            }
+
+            weeksOnChart++;
+            if (position <= 1) weeksAtTop1++;
+            if (position <= 5) weeksAtTop5++;
+            if (position <= 10) weeksAtTop10++;
+            if (position <= 20) weeksAtTop20++;
+            if (position <= 50) weeksAtTop50++;
+            if (position <= 100) weeksAtTop100++;
+
+            if (debutWeek == null || chartDate.compareTo(debutWeek) < 0) {
+                debutWeek = chartDate;
+                debutPosition = position;
+            } else if (chartDate.equals(debutWeek) && (debutPosition == null || position < debutPosition)) {
+                debutPosition = position;
+            }
+
+            if (lastWeek == null || chartDate.compareTo(lastWeek) > 0) {
+                lastWeek = chartDate;
+            }
+
+            if (peakPosition == null || position < peakPosition) {
+                peakPosition = position;
+                peakWeek = chartDate;
+                weeksAtPeak = 1;
+            } else if (position == peakPosition) {
+                weeksAtPeak++;
+                if (peakWeek == null || chartDate.compareTo(peakWeek) < 0) {
+                    peakWeek = chartDate;
+                }
+            }
         }
     }
 

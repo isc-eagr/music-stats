@@ -337,6 +337,17 @@
             outline: none;
             border-color: #22c55e;
         }
+
+        .top-sort-hint {
+            margin: 10px 0 14px 0;
+            padding: 8px 12px;
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 6px;
+            color: #93c5fd;
+            font-size: 12px;
+            line-height: 1.4;
+        }
         
         /* Artist Include Toggles */
         .artist-toggles {
@@ -2294,6 +2305,66 @@
                         </div>
                     </div>
 
+                    <!-- Songs TRL Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Songs TRL
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="songsTrlPeak" th:value="${songsTrlPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
+                                    <input type="number" autocomplete="off" name="songsTrlDays" th:value="${songsTrlDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Songs Vato's Cuntdown Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Songs Vato's Cuntdown
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="songsVatosCuntdownPeak" th:value="${songsVatosCuntdownPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
+                                    <input type="number" autocomplete="off" name="songsVatosCuntdownDays" th:value="${songsVatosCuntdownDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Songs Billboard Filter -->
+                    <div class="filter-item">
+                        <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                            <span class="filter-item-title">
+                                <span class="filter-item-chevron">▶</span>
+                                Songs Billboard
+                            </span>
+                        </div>
+                        <div class="filter-item-content">
+                            <div class="filter-group">
+                                <label class="field"><span>Peak Position ≤</span>
+                                    <input type="number" autocomplete="off" name="songsBillboardPeak" th:value="${songsBillboardPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
+                                </label>
+                                <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
+                                    <input type="number" autocomplete="off" name="songsBillboardWeeks" th:value="${songsBillboardWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Songs Yearly Chart Filter -->
                     <div class="filter-item">
                         <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -2404,6 +2475,9 @@
                                           albumsYearlyChartPeak != null or albumsYearlyChartYears != null or
                                           songsSeasonalChartPeak != null or songsSeasonalChartSeasons != null or
                                           songsWeeklyChartPeak != null or songsWeeklyChartWeeks != null or
+                                          songsTrlPeak != null or songsTrlDays != null or
+                                          songsVatosCuntdownPeak != null or songsVatosCuntdownDays != null or
+                                          songsBillboardPeak != null or songsBillboardWeeks != null or
                                           songsYearlyChartPeak != null or songsYearlyChartYears != null} ? 'display:none' : ''">None (showing all data)</span>
                         
                         <!-- Account filter chip -->
@@ -2691,6 +2765,36 @@
                                 <span th:if="${songsWeeklyChartWeeks != null}">Weeks ≥ <span th:text="${songsWeeklyChartWeeks}"></span></span>
                             </span>
                         </span>
+
+                        <!-- Songs TRL filter chip -->
+                        <span class="filter-chip" th:if="${songsTrlPeak != null or songsTrlDays != null}">
+                            <span class="filter-chip-label">
+                                📺 Songs TRL:
+                                <span th:if="${songsTrlPeak != null}">Peak ≤ <span th:text="${songsTrlPeak}"></span></span>
+                                <span th:if="${songsTrlPeak != null and songsTrlDays != null}">, </span>
+                                <span th:if="${songsTrlDays != null}">Days ≥ <span th:text="${songsTrlDays}"></span></span>
+                            </span>
+                        </span>
+
+                        <!-- Songs Vato's Cuntdown filter chip -->
+                        <span class="filter-chip" th:if="${songsVatosCuntdownPeak != null or songsVatosCuntdownDays != null}">
+                            <span class="filter-chip-label">
+                                🗓 Songs Vato's Cuntdown:
+                                <span th:if="${songsVatosCuntdownPeak != null}">Peak ≤ <span th:text="${songsVatosCuntdownPeak}"></span></span>
+                                <span th:if="${songsVatosCuntdownPeak != null and songsVatosCuntdownDays != null}">, </span>
+                                <span th:if="${songsVatosCuntdownDays != null}">Days ≥ <span th:text="${songsVatosCuntdownDays}"></span></span>
+                            </span>
+                        </span>
+
+                        <!-- Songs Billboard filter chip -->
+                        <span class="filter-chip" th:if="${songsBillboardPeak != null or songsBillboardWeeks != null}">
+                            <span class="filter-chip-label">
+                                🎵 Songs Billboard:
+                                <span th:if="${songsBillboardPeak != null}">Peak ≤ <span th:text="${songsBillboardPeak}"></span></span>
+                                <span th:if="${songsBillboardPeak != null and songsBillboardWeeks != null}">, </span>
+                                <span th:if="${songsBillboardWeeks != null}">Weeks ≥ <span th:text="${songsBillboardWeeks}"></span></span>
+                            </span>
+                        </span>
                         
                         <!-- Songs Yearly Chart filter chip -->
                         <span class="filter-chip" th:if="${songsYearlyChartPeak != null or songsYearlyChartYears != null}">
@@ -2752,6 +2856,9 @@
                             <button class="charts-tab-btn active" onclick="switchTopSubTab('artists')" data-subtab="artists">Artists</button>
                             <button class="charts-tab-btn" onclick="switchTopSubTab('albums')" data-subtab="albums">Albums</button>
                             <button class="charts-tab-btn" onclick="switchTopSubTab('songs')" data-subtab="songs">Songs</button>
+                        </div>
+                        <div class="top-sort-hint">
+                            Sorting tip: Click a column header for primary sort. Shift + click adds secondary and tertiary sorts.
                         </div>
                         
                         <!-- Artists Sub-tab -->
@@ -2902,6 +3009,12 @@
                                             <th data-sort="seasonalChartPeak" data-col="seasonalChartPeak" style="text-align:right;display:none;">Seasonal Peak</th>
                                             <th data-sort="weeklyChartPeak" data-col="weeklyChartPeak" style="text-align:right;display:none;">Weekly Peak</th>
                                             <th data-sort="weeklyChartWeeks" data-col="weeklyChartWeeks" style="text-align:right;display:none;">Weekly Weeks</th>
+                                            <th data-sort="trlPeak" data-col="trlPeak" style="text-align:right;display:none;">TRL Peak</th>
+                                            <th data-sort="trlDays" data-col="trlDays" style="text-align:right;display:none;">TRL Days</th>
+                                            <th data-sort="vatosCuntdownPeak" data-col="vatosCuntdownPeak" style="text-align:right;display:none;">Vato's Peak</th>
+                                            <th data-sort="vatosCuntdownDays" data-col="vatosCuntdownDays" style="text-align:right;display:none;">Vato's Days</th>
+                                            <th data-sort="billboardPeak" data-col="billboardPeak" style="text-align:right;display:none;">Billboard Peak</th>
+                                            <th data-sort="billboardWeeks" data-col="billboardWeeks" style="text-align:right;display:none;">Billboard Weeks</th>
                                             <th data-sort="yearlyChartPeak" data-col="yearlyChartPeak" style="text-align:right;display:none;">Yearly Peak</th>
                                             <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
                                             <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>

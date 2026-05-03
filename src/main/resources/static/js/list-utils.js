@@ -62,6 +62,10 @@ function clearAllFilters() {
     const url = new URL(window.location);
     const sortBy = url.searchParams.get('sortby');
     const sortDir = url.searchParams.get('sortdir');
+    const sortBy2 = url.searchParams.get('sortby2');
+    const sortDir2 = url.searchParams.get('sortdir2');
+    const sortBy3 = url.searchParams.get('sortby3');
+    const sortDir3 = url.searchParams.get('sortdir3');
     const perPage = url.searchParams.get('perpage');
     
     // Clear all search params
@@ -70,6 +74,10 @@ function clearAllFilters() {
     // Restore sort/pagination preferences
     if (sortBy) url.searchParams.set('sortby', sortBy);
     if (sortDir) url.searchParams.set('sortdir', sortDir);
+    if (sortBy2) url.searchParams.set('sortby2', sortBy2);
+    if (sortDir2) url.searchParams.set('sortdir2', sortDir2);
+    if (sortBy3) url.searchParams.set('sortby3', sortBy3);
+    if (sortDir3) url.searchParams.set('sortdir3', sortDir3);
     if (perPage) url.searchParams.set('perpage', perPage);
     url.searchParams.set('page', '0');
     
@@ -96,6 +104,126 @@ function ensureHiddenInput(form, name) {
         form.appendChild(input);
     }
     return input;
+}
+
+function getSortParamName(level) {
+    return level === 1 ? 'sortby' : 'sortby' + level;
+}
+
+function getSortDirParamName(level) {
+    return level === 1 ? 'sortdir' : 'sortdir' + level;
+}
+
+function getSortSelectId(level) {
+    return level === 1 ? 'sortBySelect' : 'sortBySelect' + level;
+}
+
+function getSortButtonId(level) {
+    return level === 1 ? 'sortDirBtn' : 'sortDirBtn' + level;
+}
+
+function updateSortButton(level, direction) {
+    const button = document.getElementById(getSortButtonId(level));
+    if (!button) {
+        return;
+    }
+
+    const normalizedDirection = direction === 'desc' ? 'desc' : 'asc';
+    button.title = normalizedDirection === 'desc'
+        ? 'Descending (click to change)'
+        : 'Ascending (click to change)';
+    button.innerHTML = normalizedDirection === 'desc' ? '<span>↓</span>' : '<span>↑</span>';
+}
+
+function initializeAdditionalSortSelects() {
+    const primarySelect = document.getElementById('sortBySelect');
+    if (!primarySelect) {
+        return;
+    }
+
+    [2, 3].forEach(function(level) {
+        const select = document.getElementById(getSortSelectId(level));
+        if (!select || select.dataset.initialized === 'true') {
+            return;
+        }
+
+        const selectedValue = select.dataset.selectedSort || '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'None';
+        select.appendChild(placeholder);
+
+        Array.from(primarySelect.options).forEach(function(option) {
+            const clone = option.cloneNode(true);
+            select.appendChild(clone);
+        });
+
+        select.value = selectedValue;
+        select.dataset.initialized = 'true';
+    });
+
+    [1, 2, 3].forEach(function(level) {
+        const dirParam = new URL(window.location.href).searchParams.get(getSortDirParamName(level)) || 'asc';
+        updateSortButton(level, dirParam);
+    });
+}
+
+function changeListSort(level, sortValue) {
+    const url = new URL(window.location.href);
+    const sortParam = getSortParamName(level);
+    const dirParam = getSortDirParamName(level);
+
+    if (sortValue) {
+        url.searchParams.set(sortParam, sortValue);
+        if (!url.searchParams.get(dirParam)) {
+            url.searchParams.set(dirParam, 'asc');
+        }
+    } else {
+        url.searchParams.delete(sortParam);
+        url.searchParams.delete(dirParam);
+    }
+
+    url.searchParams.set('page', '0');
+    window.location.href = url.toString();
+}
+
+function toggleListSortDirection(level) {
+    const url = new URL(window.location.href);
+    const sortParam = getSortParamName(level);
+    const dirParam = getSortDirParamName(level);
+
+    if (!url.searchParams.get(sortParam)) {
+        const select = document.getElementById(getSortSelectId(level));
+        if (!select || !select.value) {
+            return;
+        }
+        url.searchParams.set(sortParam, select.value);
+    }
+
+    const currentDir = url.searchParams.get(dirParam) || 'asc';
+    url.searchParams.set(dirParam, currentDir === 'asc' ? 'desc' : 'asc');
+    url.searchParams.set('page', '0');
+    window.location.href = url.toString();
+}
+
+function buildSortOnlyUrl(basePath) {
+    const url = new URL(basePath, window.location.origin);
+    const currentUrl = new URL(window.location.href);
+
+    [1, 2, 3].forEach(function(level) {
+        const sortParam = getSortParamName(level);
+        const dirParam = getSortDirParamName(level);
+        const sortValue = currentUrl.searchParams.get(sortParam);
+        const dirValue = currentUrl.searchParams.get(dirParam);
+        if (sortValue) {
+            url.searchParams.set(sortParam, sortValue);
+        }
+        if (dirValue) {
+            url.searchParams.set(dirParam, dirValue);
+        }
+    });
+
+    return url.toString();
 }
 
 function hasMeaningfulFilterValue(nameToValues, baseName) {
@@ -157,16 +285,20 @@ function preserveListStateOnFilterSubmit(form) {
     form.dataset.listStateBound = 'true';
     form.addEventListener('submit', function(event) {
         const url = new URL(window.location.href);
-        const sortByInput = ensureHiddenInput(form, 'sortby');
-        const sortDirInput = ensureHiddenInput(form, 'sortdir');
         const perPageInput = ensureHiddenInput(form, 'perpage');
         const pageInput = ensureHiddenInput(form, 'page');
-
-        const sortBySelect = document.getElementById('sortBySelect');
         const pageSizeInput = document.getElementById('pageSizeInput');
 
-        sortByInput.value = sortBySelect ? sortBySelect.value : (url.searchParams.get('sortby') || sortByInput.value || '');
-        sortDirInput.value = url.searchParams.get('sortdir') || sortDirInput.value || '';
+        [1, 2, 3].forEach(function(level) {
+            const sortParam = getSortParamName(level);
+            const dirParam = getSortDirParamName(level);
+            const sortInput = ensureHiddenInput(form, sortParam);
+            const dirInput = ensureHiddenInput(form, dirParam);
+            const sortSelect = document.getElementById(getSortSelectId(level));
+
+            sortInput.value = sortSelect ? sortSelect.value : (url.searchParams.get(sortParam) || sortInput.value || '');
+            dirInput.value = url.searchParams.get(dirParam) || dirInput.value || '';
+        });
         perPageInput.value = pageSizeInput ? pageSizeInput.value : (url.searchParams.get('perpage') || perPageInput.value || '');
         pageInput.value = '0';
 
@@ -372,6 +504,7 @@ function navigateToGraph(element, filterType) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initializeAdditionalSortSelects();
     preserveListStateOnFilterSubmit(document.getElementById('filterForm'));
 });
 

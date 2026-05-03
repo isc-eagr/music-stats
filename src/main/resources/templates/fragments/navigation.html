@@ -231,12 +231,15 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'weekly-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-charts' or currentSection == 'most-weeks-charts' or currentSection == 'most-hits-charts' or currentSection == 'number-ones-charts'} ? 'active' : ''"
+                        th:classappend="${currentSection == 'weekly-overview-charts' or currentSection == 'weekly-charts' or currentSection == 'seasonal-overview-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-overview-charts' or currentSection == 'yearly-charts' or currentSection == 'most-weeks-charts' or currentSection == 'most-hits-charts' or currentSection == 'number-ones-charts'} ? 'active' : ''"
                         onclick="toggleDropdown(event, this)">📈 Charts ▾</a>
                      <ul class="app-nav-dropdown-menu">
-                         <li><a href="/charts/weekly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-charts'} ? 'active' : ''">Weekly</a></li>
-                         <li><a href="/charts/seasonal" class="app-nav-dropdown-link" th:classappend="${currentSection == 'seasonal-charts'} ? 'active' : ''">Seasonal</a></li>
-                         <li><a href="/charts/yearly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'yearly-charts'} ? 'active' : ''">Yearly</a></li>
+                         <li><a href="/charts/weekly/overview" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-overview-charts'} ? 'active' : ''">Weekly Overview</a></li>
+                         <li><a href="/charts/weekly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-charts'} ? 'active' : ''">Weekly Chart</a></li>
+                         <li><a href="/charts/seasonal/overview" class="app-nav-dropdown-link" th:classappend="${currentSection == 'seasonal-overview-charts'} ? 'active' : ''">Seasonal Overview</a></li>
+                         <li><a href="/charts/seasonal" class="app-nav-dropdown-link" th:classappend="${currentSection == 'seasonal-charts'} ? 'active' : ''">Seasonal Chart</a></li>
+                         <li><a href="/charts/yearly/overview" class="app-nav-dropdown-link" th:classappend="${currentSection == 'yearly-overview-charts'} ? 'active' : ''">Yearly Overview</a></li>
+                         <li><a href="/charts/yearly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'yearly-charts'} ? 'active' : ''">Yearly Chart</a></li>
                          <li><a href="/charts/most-weeks" class="app-nav-dropdown-link" th:classappend="${currentSection == 'most-weeks-charts'} ? 'active' : ''">Most Weeks at Position</a></li>
                          <li><a href="/charts/most-hits" class="app-nav-dropdown-link" th:classappend="${currentSection == 'most-hits-charts'} ? 'active' : ''">Most Hits</a></li>
                          <li><a href="/charts/number-ones" class="app-nav-dropdown-link" th:classappend="${currentSection == 'number-ones-charts'} ? 'active' : ''">Weekly Number Ones</a></li>
@@ -255,7 +258,7 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle"
-                        th:classappend="${currentSection == 'trl' or currentSection == 'trl-recaps' or currentSection == 'pc' or currentSection == 'pc-recaps' or currentSection == 'billboard-hot100'} ? 'active' : ''"
+                        th:classappend="${currentSection == 'trl' or currentSection == 'trl-recaps' or currentSection == 'pc' or currentSection == 'pc-recaps' or currentSection == 'billboard-hot100' or currentSection == 'billboard-hot100-recaps'} ? 'active' : ''"
                         onclick="toggleDropdown(event, this)">Misc &#9662;</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/misc/trl" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl'} ? 'active' : ''">TRL Overview</a></li>
@@ -263,6 +266,7 @@
                          <li><a href="/misc/vatos-cuntdown" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc'} ? 'active' : ''">Vato's Cuntdown Overview</a></li>
                          <li><a href="/misc/vatos-cuntdown/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc-recaps'} ? 'active' : ''">Vato's Cuntdown Recaps</a></li>
                          <li><a href="/misc/billboard-hot-100" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100'} ? 'active' : ''">Billboard Hot 100 Overview</a></li>
+                         <li><a href="/misc/billboard-hot-100/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100-recaps'} ? 'active' : ''">Billboard Hot 100 Recaps</a></li>
                      </ul>
                  </li>
                  <!-- Mobile-only: utilities links -->

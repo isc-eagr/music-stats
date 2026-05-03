@@ -37,7 +37,13 @@ public class SongCardDTO {
     private String birthDate; // Artist birth date
     private String deathDate; // Artist death date
     private Integer imageCount; // Count of primary + gallery images
+    private Integer billboardPeak; // Best position on Billboard Hot 100
+    private Integer billboardWeeks; // Total weeks spent on Billboard Hot 100
     private Integer seasonalChartPeak; // Best position on seasonal chart
+    private Integer trlDays; // Total days spent on TRL
+    private Integer trlPeak; // Best position on TRL
+    private Integer vatosCuntdownDays; // Total days spent on Vato's Cuntdown
+    private Integer vatosCuntdownPeak; // Best position on Vato's Cuntdown
     private Integer weeklyChartPeak; // Best position on weekly chart
     private Integer weeklyChartWeeks; // Total weeks spent on weekly chart
     private Integer yearlyChartPeak; // Best position on yearly chart
@@ -387,6 +393,54 @@ public class SongCardDTO {
 
     public void setSeasonalChartPeak(Integer seasonalChartPeak) {
         this.seasonalChartPeak = seasonalChartPeak;
+    }
+
+    public Integer getBillboardPeak() {
+        return billboardPeak;
+    }
+
+    public void setBillboardPeak(Integer billboardPeak) {
+        this.billboardPeak = billboardPeak;
+    }
+
+    public Integer getBillboardWeeks() {
+        return billboardWeeks;
+    }
+
+    public void setBillboardWeeks(Integer billboardWeeks) {
+        this.billboardWeeks = billboardWeeks;
+    }
+
+    public Integer getTrlDays() {
+        return trlDays;
+    }
+
+    public void setTrlDays(Integer trlDays) {
+        this.trlDays = trlDays;
+    }
+
+    public Integer getTrlPeak() {
+        return trlPeak;
+    }
+
+    public void setTrlPeak(Integer trlPeak) {
+        this.trlPeak = trlPeak;
+    }
+
+    public Integer getVatosCuntdownDays() {
+        return vatosCuntdownDays;
+    }
+
+    public void setVatosCuntdownDays(Integer vatosCuntdownDays) {
+        this.vatosCuntdownDays = vatosCuntdownDays;
+    }
+
+    public Integer getVatosCuntdownPeak() {
+        return vatosCuntdownPeak;
+    }
+
+    public void setVatosCuntdownPeak(Integer vatosCuntdownPeak) {
+        this.vatosCuntdownPeak = vatosCuntdownPeak;
     }
 
     public Integer getWeeklyChartPeak() {

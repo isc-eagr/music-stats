@@ -39,6 +39,9 @@ public class TrlDebut {
     private Integer daysAtPeak;
 
     @Transient
+    private String peakDate;
+
+    @Transient
     private Integer actualDays;
 
     @Transient
@@ -56,6 +59,15 @@ public class TrlDebut {
 
     @Transient
     private Integer resolvedArtistId; // artist_id from Song join
+
+    @Transient
+    private int daysAtTop1;
+
+    @Transient
+    private int daysAtTop5;
+
+    @Transient
+    private int daysAtTop10;
 
     // ---- Getters / Setters ----
 
@@ -89,6 +101,9 @@ public class TrlDebut {
     public Integer getDaysAtPeak() { return daysAtPeak; }
     public void setDaysAtPeak(Integer daysAtPeak) { this.daysAtPeak = daysAtPeak; }
 
+    public String getPeakDate() { return peakDate; }
+    public void setPeakDate(String peakDate) { this.peakDate = peakDate; }
+
     public Integer getActualDays() { return actualDays; }
     public void setActualDays(Integer actualDays) { this.actualDays = actualDays; }
 
@@ -106,4 +121,13 @@ public class TrlDebut {
 
     public Integer getResolvedArtistId() { return resolvedArtistId; }
     public void setResolvedArtistId(Integer resolvedArtistId) { this.resolvedArtistId = resolvedArtistId; }
+
+    public int getDaysAtTop1() { return daysAtTop1; }
+    public void setDaysAtTop1(int daysAtTop1) { this.daysAtTop1 = daysAtTop1; }
+
+    public int getDaysAtTop5() { return daysAtTop5; }
+    public void setDaysAtTop5(int daysAtTop5) { this.daysAtTop5 = daysAtTop5; }
+
+    public int getDaysAtTop10() { return daysAtTop10; }
+    public void setDaysAtTop10(int daysAtTop10) { this.daysAtTop10 = daysAtTop10; }
 }

@@ -3,7 +3,10 @@ package library.controller;
 import library.dto.AlbumChartRunDTO;
 import library.dto.ChartEntryDTO;
 import library.dto.ChartGenerationProgressDTO;
+import library.dto.ChartAlbumOverviewRowDTO;
+import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.ChartRunDTO;
+import library.dto.ChartSongOverviewRowDTO;
 import library.dto.MostHitsEntryDTO;
 import library.dto.MostWeeksEntryDTO;
 import library.entity.Chart;
@@ -16,8 +19,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,6 +32,8 @@ import java.util.Optional;
 @Controller
 @RequestMapping("/charts")
 public class ChartsController {
+
+    private static final int WEEKLY_OVERVIEW_PAGE_SIZE = 100;
     
     private final ChartService chartService;
     
@@ -772,6 +779,128 @@ public class ChartsController {
         }
     }
 
+    @GetMapping("/weekly/overview")
+    public String weeklyOverview(
+            @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            Model model) {
+        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        String normalizedSort = normalizeWeeklyOverviewSort(normalizedOverviewTab, sort);
+        String normalizedDir = normalizeWeeklyOverviewDir(dir);
+        String normalizedQuery = normalizeOverviewQuery(q);
+
+        List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
+        List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows(weeklySongRows);
+        List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows(weeklySongRows);
+
+        List<ChartSongOverviewRowDTO> pagedSongRows = List.of();
+        List<ChartAlbumOverviewRowDTO> pagedAlbumRows = List.of();
+        List<ChartArtistOverviewRowDTO> pagedArtistRows = List.of();
+        int activeTotalCount;
+
+        switch (normalizedOverviewTab) {
+            case "album" -> {
+                activeTotalCount = countFilteredAlbumOverviewRows(weeklyAlbumRows, normalizedQuery);
+                pagedAlbumRows = pageAlbumOverviewRows(weeklyAlbumRows, normalizedQuery, normalizedSort, normalizedDir, 0, WEEKLY_OVERVIEW_PAGE_SIZE);
+            }
+            case "artist" -> {
+                activeTotalCount = countFilteredArtistOverviewRows(weeklyArtistRows, normalizedQuery);
+                pagedArtistRows = pageArtistOverviewRows(weeklyArtistRows, normalizedQuery, normalizedSort, normalizedDir, 0, WEEKLY_OVERVIEW_PAGE_SIZE);
+            }
+            default -> {
+                activeTotalCount = countFilteredSongOverviewRows(weeklySongRows, normalizedQuery);
+                pagedSongRows = pageSongOverviewRows(weeklySongRows, normalizedQuery, normalizedSort, normalizedDir, 0, WEEKLY_OVERVIEW_PAGE_SIZE);
+            }
+        }
+
+        model.addAttribute("currentSection", "weekly-overview-charts");
+        model.addAttribute("periodType", "weekly");
+        model.addAttribute("overviewTab", normalizedOverviewTab);
+        model.addAttribute("songRows", pagedSongRows);
+        model.addAttribute("albumRows", pagedAlbumRows);
+        model.addAttribute("artistRows", pagedArtistRows);
+        model.addAttribute("songCount", weeklySongRows.size());
+        model.addAttribute("albumCount", weeklyAlbumRows.size());
+        model.addAttribute("artistCount", weeklyArtistRows.size());
+        model.addAttribute("pageTitle", "Weekly Chart Overview");
+        model.addAttribute("pageSubtitle", "Every finalized weekly song chart rolled up into song, album, and artist stats.");
+        model.addAttribute("unitLabel", "Weeks");
+        model.addAttribute("mainChartUrl", "/charts/weekly");
+        model.addAttribute("mainChartLabel", "Weekly Charts");
+        model.addAttribute("weeklyInfiniteScrollEnabled", true);
+        model.addAttribute("pageSize", WEEKLY_OVERVIEW_PAGE_SIZE);
+        model.addAttribute("activeTotalCount", activeTotalCount);
+        model.addAttribute("selectedSort", normalizedSort);
+        model.addAttribute("selectedDir", normalizedDir);
+        model.addAttribute("searchQuery", normalizedQuery);
+
+        return "charts/overview";
+    }
+
+    @GetMapping("/weekly/overview/data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> weeklyOverviewData(
+            @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        String normalizedSort = normalizeWeeklyOverviewSort(normalizedOverviewTab, sort);
+        String normalizedDir = normalizeWeeklyOverviewDir(dir);
+        String normalizedQuery = normalizeOverviewQuery(q);
+        int safeSize = Math.min(Math.max(size, 1), 250);
+
+        Map<String, Object> result = new HashMap<>();
+
+        switch (normalizedOverviewTab) {
+            case "album" -> {
+                List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows("weekly");
+                int totalCount = countFilteredAlbumOverviewRows(weeklyAlbumRows, normalizedQuery);
+                List<ChartAlbumOverviewRowDTO> entries = pageAlbumOverviewRows(weeklyAlbumRows, normalizedQuery, normalizedSort, normalizedDir, page, safeSize);
+                result.put("entries", entries);
+                result.put("totalCount", totalCount);
+                result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
+            }
+            case "artist" -> {
+                List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly");
+                int totalCount = countFilteredArtistOverviewRows(weeklyArtistRows, normalizedQuery);
+                List<ChartArtistOverviewRowDTO> entries = pageArtistOverviewRows(weeklyArtistRows, normalizedQuery, normalizedSort, normalizedDir, page, safeSize);
+                result.put("entries", entries);
+                result.put("totalCount", totalCount);
+                result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
+            }
+            default -> {
+                List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
+                int totalCount = countFilteredSongOverviewRows(weeklySongRows, normalizedQuery);
+                List<ChartSongOverviewRowDTO> entries = pageSongOverviewRows(weeklySongRows, normalizedQuery, normalizedSort, normalizedDir, page, safeSize);
+                result.put("entries", entries);
+                result.put("totalCount", totalCount);
+                result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
+            }
+        }
+
+        result.put("nextPage", page + 1);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/seasonal/overview")
+    public String seasonalOverview(
+            @RequestParam(defaultValue = "song") String overviewTab,
+            Model model) {
+        return renderChartOverview("seasonal", overviewTab, model);
+    }
+
+    @GetMapping("/yearly/overview")
+    public String yearlyOverview(
+            @RequestParam(defaultValue = "song") String overviewTab,
+            Model model) {
+        return renderChartOverview("yearly", overviewTab, model);
+    }
+
     /**
      * Most Weeks at Position page - shows songs/albums with most weeks at #1, top 5, etc.
      */
@@ -780,27 +909,71 @@ public class ChartsController {
             @RequestParam(defaultValue = "song") String type,
             @RequestParam(defaultValue = "1") Integer position,
             @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "weeks") String sort,
+            @RequestParam(defaultValue = "desc") String dir,
             Model model) {
-        
+
         // Validate position based on type
         // Songs: 1, 5, 10, 20 allowed
         // Albums: 1, 5, 10 allowed
         if ("album".equals(type) && position > 10) {
-            // Redirect to position 1 if invalid for albums
             return "redirect:/charts/most-weeks?type=album&position=1" + (year != null ? "&year=" + year : "");
         }
-        
-        List<MostWeeksEntryDTO> entries = chartService.getMostWeeksAtPosition(type, position, year);
+
+        if (!List.of("weeks", "name", "artist", "peak").contains(sort)) sort = "weeks";
+        if (!List.of("asc", "desc").contains(dir)) dir = "desc";
+
+        final int PAGE_SIZE = 50;
+        List<MostWeeksEntryDTO> entries = chartService.getMostWeeksAtPosition(type, position, year, 0, PAGE_SIZE, sort, dir);
+        int totalCount = chartService.getMostWeeksCount(type, position, year);
         List<Map<String, Object>> years = chartService.getChartYearsForMostWeeks();
-        
+
         model.addAttribute("currentSection", "most-weeks-charts");
         model.addAttribute("entries", entries);
+        model.addAttribute("totalCount", totalCount);
+        model.addAttribute("pageSize", PAGE_SIZE);
         model.addAttribute("years", years);
         model.addAttribute("selectedType", type);
         model.addAttribute("selectedPosition", position);
         model.addAttribute("selectedYear", year);
-        
+        model.addAttribute("selectedSort", sort);
+        model.addAttribute("selectedDir", dir);
+
         return "charts/most-weeks";
+    }
+
+    /**
+     * JSON endpoint for infinite-scroll pagination on the Most Weeks at Position page.
+     */
+    @GetMapping("/most-weeks/data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> mostWeeksData(
+            @RequestParam(defaultValue = "song") String type,
+            @RequestParam(defaultValue = "1") Integer position,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "weeks") String sort,
+            @RequestParam(defaultValue = "desc") String dir) {
+
+        if ("album".equals(type) && position > 10) {
+            position = 1;
+        }
+        if (!List.of("weeks", "name", "artist", "peak").contains(sort)) sort = "weeks";
+        if (!List.of("asc", "desc").contains(dir)) dir = "desc";
+        // Cap page size to prevent abuse
+        int safeSize = Math.min(size, 200);
+
+        List<MostWeeksEntryDTO> entries = chartService.getMostWeeksAtPosition(type, position, year, page, safeSize, sort, dir);
+        int totalCount = chartService.getMostWeeksCount(type, position, year);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("entries", entries);
+        result.put("totalCount", totalCount);
+        result.put("hasMore", (long)(page + 1) * safeSize < totalCount);
+        result.put("nextPage", page + 1);
+
+        return ResponseEntity.ok(result);
     }
     
     /**
@@ -810,18 +983,58 @@ public class ChartsController {
     public String mostHits(
             @RequestParam(defaultValue = "1") Integer position,
             @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "songs") String sort,
+            @RequestParam(defaultValue = "desc") String dir,
             Model model) {
-        
-        List<MostHitsEntryDTO> entries = chartService.getMostHits(position, year);
+
+        if (!List.of("songs", "weeks", "artist").contains(sort)) sort = "songs";
+        if (!List.of("asc", "desc").contains(dir)) dir = "desc";
+
+        final int PAGE_SIZE = 50;
+        List<MostHitsEntryDTO> entries = chartService.getMostHits(position, year, 0, PAGE_SIZE, sort, dir);
+        int totalCount = chartService.getMostHitsCount(position, year);
         List<Map<String, Object>> years = chartService.getChartYearsForMostWeeks();
-        
+
         model.addAttribute("currentSection", "most-hits-charts");
         model.addAttribute("entries", entries);
+        model.addAttribute("totalCount", totalCount);
+        model.addAttribute("pageSize", PAGE_SIZE);
         model.addAttribute("years", years);
         model.addAttribute("selectedPosition", position);
         model.addAttribute("selectedYear", year);
-        
+        model.addAttribute("selectedSort", sort);
+        model.addAttribute("selectedDir", dir);
+
         return "charts/most-hits";
+    }
+
+    /**
+     * JSON endpoint for infinite-scroll pagination on the Most Hits page.
+     */
+    @GetMapping("/most-hits/data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> mostHitsData(
+            @RequestParam(defaultValue = "1") Integer position,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "songs") String sort,
+            @RequestParam(defaultValue = "desc") String dir) {
+
+        if (!List.of("songs", "weeks", "artist").contains(sort)) sort = "songs";
+        if (!List.of("asc", "desc").contains(dir)) dir = "desc";
+        int safeSize = Math.min(size, 200);
+
+        List<MostHitsEntryDTO> entries = chartService.getMostHits(position, year, page, safeSize, sort, dir);
+        int totalCount = chartService.getMostHitsCount(position, year);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("entries", entries);
+        result.put("totalCount", totalCount);
+        result.put("hasMore", (long)(page + 1) * safeSize < totalCount);
+        result.put("nextPage", page + 1);
+
+        return ResponseEntity.ok(result);
     }
     
     /**
@@ -856,6 +1069,231 @@ public class ChartsController {
             @RequestParam(required = false, defaultValue = "") String excludePeriodKey) {
         List<Map<String, Object>> history = chartService.getPastChartAppearancesForItem(itemId, chartType, periodType, excludePeriodKey);
         return ResponseEntity.ok(history);
+    }
+
+    private String renderChartOverview(String periodType, String overviewTab, Model model) {
+        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        List<ChartSongOverviewRowDTO> songRows = chartService.getChartOverviewSongRows(periodType);
+        List<ChartAlbumOverviewRowDTO> albumRows = chartService.getChartOverviewAlbumRows(songRows);
+        List<ChartArtistOverviewRowDTO> artistRows = chartService.getChartOverviewArtistRows(songRows);
+
+        model.addAttribute("currentSection", switch (periodType) {
+            case "seasonal" -> "seasonal-overview-charts";
+            case "yearly" -> "yearly-overview-charts";
+            default -> "weekly-overview-charts";
+        });
+        model.addAttribute("periodType", periodType);
+        model.addAttribute("overviewTab", normalizedOverviewTab);
+        model.addAttribute("songRows", songRows);
+        model.addAttribute("albumRows", albumRows);
+        model.addAttribute("artistRows", artistRows);
+        model.addAttribute("songCount", songRows.size());
+        model.addAttribute("albumCount", albumRows.size());
+        model.addAttribute("artistCount", artistRows.size());
+        model.addAttribute("pageTitle", switch (periodType) {
+            case "seasonal" -> "Seasonal Chart Overview";
+            case "yearly" -> "Yearly Chart Overview";
+            default -> "Weekly Chart Overview";
+        });
+        model.addAttribute("pageSubtitle", switch (periodType) {
+            case "seasonal" -> "Finalized seasonal song charts rolled up into song, album, and artist stats.";
+            case "yearly" -> "Finalized yearly song charts rolled up into song, album, and artist stats.";
+            default -> "Every finalized weekly song chart rolled up into song, album, and artist stats.";
+        });
+        model.addAttribute("unitLabel", switch (periodType) {
+            case "seasonal" -> "Seasons";
+            case "yearly" -> "Years";
+            default -> "Weeks";
+        });
+        model.addAttribute("mainChartUrl", "/charts/" + periodType);
+        model.addAttribute("mainChartLabel", switch (periodType) {
+            case "seasonal" -> "Seasonal Charts";
+            case "yearly" -> "Yearly Charts";
+            default -> "Weekly Charts";
+        });
+        model.addAttribute("weeklyInfiniteScrollEnabled", false);
+        model.addAttribute("selectedSort", null);
+        model.addAttribute("selectedDir", null);
+        model.addAttribute("searchQuery", "");
+        model.addAttribute("activeTotalCount", 0);
+        model.addAttribute("pageSize", 0);
+        return "charts/overview";
+    }
+
+    private String normalizeOverviewQuery(String query) {
+        if (query == null) {
+            return "";
+        }
+        return query.trim();
+    }
+
+    private String normalizeWeeklyOverviewSort(String overviewTab, String sort) {
+        List<String> allowedSorts = switch (overviewTab) {
+            case "album" -> List.of("artist", "album", "songs", "weeks", "peak", "numberOnes", "atNumberOne", "debutPeriod", "lastPeriod");
+            case "artist" -> List.of("artist", "songs", "weeks", "peak", "numberOnes", "atNumberOne", "debutPeriod", "lastPeriod");
+            default -> List.of("artist", "song", "weeks", "peak", "atPeak", "debutPeriod", "debutPosition", "lastPeriod", "peakPeriod");
+        };
+
+        if (sort == null || !allowedSorts.contains(sort)) {
+            return "debutPeriod";
+        }
+        return sort;
+    }
+
+    private String normalizeWeeklyOverviewDir(String dir) {
+        return "asc".equalsIgnoreCase(dir) ? "asc" : "desc";
+    }
+
+    private int countFilteredSongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query) {
+        return filterSongOverviewRows(rows, query).size();
+    }
+
+    private int countFilteredAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query) {
+        return filterAlbumOverviewRows(rows, query).size();
+    }
+
+    private int countFilteredArtistOverviewRows(List<ChartArtistOverviewRowDTO> rows, String query) {
+        return filterArtistOverviewRows(rows, query).size();
+    }
+
+    private List<ChartSongOverviewRowDTO> pageSongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query, String sort, String dir, int page, int pageSize) {
+        List<ChartSongOverviewRowDTO> filteredRows = filterSongOverviewRows(rows, query);
+        filteredRows.sort(buildSongOverviewComparator(sort, dir));
+        return paginateRows(filteredRows, page, pageSize);
+    }
+
+    private List<ChartAlbumOverviewRowDTO> pageAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query, String sort, String dir, int page, int pageSize) {
+        List<ChartAlbumOverviewRowDTO> filteredRows = filterAlbumOverviewRows(rows, query);
+        filteredRows.sort(buildAlbumOverviewComparator(sort, dir));
+        return paginateRows(filteredRows, page, pageSize);
+    }
+
+    private List<ChartArtistOverviewRowDTO> pageArtistOverviewRows(List<ChartArtistOverviewRowDTO> rows, String query, String sort, String dir, int page, int pageSize) {
+        List<ChartArtistOverviewRowDTO> filteredRows = filterArtistOverviewRows(rows, query);
+        filteredRows.sort(buildArtistOverviewComparator(sort, dir));
+        return paginateRows(filteredRows, page, pageSize);
+    }
+
+    private List<ChartSongOverviewRowDTO> filterSongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query) {
+        List<ChartSongOverviewRowDTO> filteredRows = new ArrayList<>(rows);
+        if (query == null || query.isBlank()) {
+            return filteredRows;
+        }
+
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        filteredRows.removeIf(row -> !containsOverviewValue(row.getArtistName(), normalizedQuery)
+                && !containsOverviewValue(row.getSongTitle(), normalizedQuery)
+                && !containsOverviewValue(row.getAlbumName(), normalizedQuery));
+        return filteredRows;
+    }
+
+    private List<ChartAlbumOverviewRowDTO> filterAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query) {
+        List<ChartAlbumOverviewRowDTO> filteredRows = new ArrayList<>(rows);
+        if (query == null || query.isBlank()) {
+            return filteredRows;
+        }
+
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        filteredRows.removeIf(row -> !containsOverviewValue(row.getArtistName(), normalizedQuery)
+                && !containsOverviewValue(row.getAlbumName(), normalizedQuery));
+        return filteredRows;
+    }
+
+    private List<ChartArtistOverviewRowDTO> filterArtistOverviewRows(List<ChartArtistOverviewRowDTO> rows, String query) {
+        List<ChartArtistOverviewRowDTO> filteredRows = new ArrayList<>(rows);
+        if (query == null || query.isBlank()) {
+            return filteredRows;
+        }
+
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        filteredRows.removeIf(row -> !containsOverviewValue(row.getArtistName(), normalizedQuery));
+        return filteredRows;
+    }
+
+    private boolean containsOverviewValue(String value, String normalizedQuery) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedQuery);
+    }
+
+    private Comparator<ChartSongOverviewRowDTO> buildSongOverviewComparator(String sort, String dir) {
+        Comparator<ChartSongOverviewRowDTO> comparator = switch (sort) {
+            case "artist" -> Comparator.comparing(ChartSongOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
+            case "song" -> Comparator.comparing(ChartSongOverviewRowDTO::getSongTitle, String.CASE_INSENSITIVE_ORDER);
+            case "peak" -> Comparator.comparingInt(ChartSongOverviewRowDTO::getPeakPosition);
+            case "atPeak" -> Comparator.comparingInt(ChartSongOverviewRowDTO::getSpanAtPeak);
+            case "debutPeriod" -> Comparator.comparing(ChartSongOverviewRowDTO::getFirstAppearanceSortValue, Comparator.nullsLast(String::compareTo));
+            case "debutPosition" -> Comparator.comparing(ChartSongOverviewRowDTO::getDebutPosition, Comparator.nullsLast(Integer::compareTo));
+            case "lastPeriod" -> Comparator.comparing(ChartSongOverviewRowDTO::getLastAppearanceSortValue, Comparator.nullsLast(String::compareTo));
+            case "peakPeriod" -> Comparator.comparing(ChartSongOverviewRowDTO::getPeakAppearanceSortValue, Comparator.nullsLast(String::compareTo));
+            default -> Comparator.comparingInt(ChartSongOverviewRowDTO::getTotalChartSpan);
+        };
+
+        comparator = switch (sort) {
+            case "artist" -> comparator.thenComparing(ChartSongOverviewRowDTO::getSongTitle, String.CASE_INSENSITIVE_ORDER);
+            case "song" -> comparator.thenComparing(ChartSongOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
+            default -> comparator.thenComparing(ChartSongOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(ChartSongOverviewRowDTO::getSongTitle, String.CASE_INSENSITIVE_ORDER);
+        };
+
+        return "asc".equals(dir) ? comparator : comparator.reversed();
+    }
+
+    private Comparator<ChartAlbumOverviewRowDTO> buildAlbumOverviewComparator(String sort, String dir) {
+        Comparator<ChartAlbumOverviewRowDTO> comparator = switch (sort) {
+            case "artist" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
+            case "album" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getAlbumName, String.CASE_INSENSITIVE_ORDER);
+            case "songs" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getChartedSongsCount);
+            case "peak" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
+            case "numberOnes" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getNumberOneSongsCount);
+            case "atNumberOne" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalSpanAtNumberOne);
+            case "debutPeriod" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getFirstDebutSortValue, Comparator.nullsLast(String::compareTo));
+            case "lastPeriod" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getLastAppearanceSortValue, Comparator.nullsLast(String::compareTo));
+            default -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan);
+        };
+
+        comparator = switch (sort) {
+            case "artist" -> comparator.thenComparing(ChartAlbumOverviewRowDTO::getAlbumName, String.CASE_INSENSITIVE_ORDER);
+            case "album" -> comparator.thenComparing(ChartAlbumOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
+            default -> comparator.thenComparing(ChartAlbumOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(ChartAlbumOverviewRowDTO::getAlbumName, String.CASE_INSENSITIVE_ORDER);
+        };
+
+        return "asc".equals(dir) ? comparator : comparator.reversed();
+    }
+
+    private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewComparator(String sort, String dir) {
+        Comparator<ChartArtistOverviewRowDTO> comparator = switch (sort) {
+            case "artist" -> Comparator.comparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
+            case "songs" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getChartedSongsCount);
+            case "peak" -> Comparator.comparing(ChartArtistOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
+            case "numberOnes" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getNumberOneSongsCount);
+            case "atNumberOne" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalSpanAtNumberOne);
+            case "debutPeriod" -> Comparator.comparing(ChartArtistOverviewRowDTO::getFirstDebutSortValue, Comparator.nullsLast(String::compareTo));
+            case "lastPeriod" -> Comparator.comparing(ChartArtistOverviewRowDTO::getLastAppearanceSortValue, Comparator.nullsLast(String::compareTo));
+            default -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan);
+        };
+
+        comparator = comparator.thenComparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
+        return "asc".equals(dir) ? comparator : comparator.reversed();
+    }
+
+    private <T> List<T> paginateRows(List<T> rows, int page, int pageSize) {
+        int safePage = Math.max(page, 0);
+        int offset = safePage * pageSize;
+        if (offset >= rows.size()) {
+            return List.of();
+        }
+        int endIndex = Math.min(offset + pageSize, rows.size());
+        return new ArrayList<>(rows.subList(offset, endIndex));
+    }
+
+    private String normalizeOverviewTab(String overviewTab) {
+        if (overviewTab == null) {
+            return "song";
+        }
+        return switch (overviewTab.toLowerCase()) {
+            case "album", "artist" -> overviewTab.toLowerCase();
+            default -> "song";
+        };
     }
 
     private ResponseEntity<Map<String, Object>> createErrorResponse(String errorMessage) {

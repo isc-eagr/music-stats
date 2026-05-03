@@ -10,11 +10,15 @@ public class PcOverviewRowDTO {
     private String firstWeek;
     private String lastWeek;
     private String peakWeek;
+    private Integer debutPosition;
     private int daysOnCountdown;
     private int peakPosition;
     private int daysAtPeak;
     private int rawVariantCount;
     private String genderClass;
+    private int daysAtTop1;
+    private int daysAtTop5;
+    private int daysAtTop10;
 
     public boolean isMatched() {
         return matched;
@@ -62,6 +66,14 @@ public class PcOverviewRowDTO {
 
     public void setFirstWeek(String firstWeek) {
         this.firstWeek = firstWeek;
+    }
+
+    public Integer getDebutPosition() {
+        return debutPosition;
+    }
+
+    public void setDebutPosition(Integer debutPosition) {
+        this.debutPosition = debutPosition;
     }
 
     public String getLastWeek() {
@@ -119,4 +131,13 @@ public class PcOverviewRowDTO {
     public void setGenderClass(String genderClass) {
         this.genderClass = genderClass;
     }
+
+    public int getDaysAtTop1() { return daysAtTop1; }
+    public void setDaysAtTop1(int daysAtTop1) { this.daysAtTop1 = daysAtTop1; }
+
+    public int getDaysAtTop5() { return daysAtTop5; }
+    public void setDaysAtTop5(int daysAtTop5) { this.daysAtTop5 = daysAtTop5; }
+
+    public int getDaysAtTop10() { return daysAtTop10; }
+    public void setDaysAtTop10(int daysAtTop10) { this.daysAtTop10 = daysAtTop10; }
 }

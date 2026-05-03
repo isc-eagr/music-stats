@@ -1,13 +1,21 @@
 package library.service;
 
+import library.dto.ChartAlbumOverviewRowDTO;
+import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.PcOverviewRowDTO;
 import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class PcService {
@@ -19,24 +27,6 @@ public class PcService {
 
     public PcService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    @PostConstruct
-    void ensureCountdownTableCompatibility() {
-        if (tableExists(CURRENT_TABLE) || !tableExists(LEGACY_TABLE)) {
-            return;
-        }
-
-        jdbcTemplate.execute("ALTER TABLE " + LEGACY_TABLE + " RENAME TO " + CURRENT_TABLE);
-    }
-
-    private boolean tableExists(String tableName) {
-        Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
-            Integer.class,
-            tableName
-        );
-        return count != null && count > 0;
     }
 
     public Map<String, Object> getSummary() {
@@ -99,6 +89,101 @@ public class PcService {
         return jdbcTemplate.query(buildOverviewRowsSql(false), this::mapOverviewRow);
     }
 
+    public List<ChartAlbumOverviewRowDTO> getAlbumOverviewRows() {
+        return getAlbumOverviewRows(getOverviewRows());
+    }
+
+    public List<ChartAlbumOverviewRowDTO> getAlbumOverviewRows(List<PcOverviewRowDTO> entries) {
+        Map<Integer, AlbumSongInfo> albumSongInfoBySongId = getAlbumSongInfoBySongId(entries);
+        Map<Integer, AlbumOverviewAccumulator> grouped = new LinkedHashMap<>();
+
+        for (PcOverviewRowDTO entry : entries) {
+            if (entry.getSongId() == null) {
+                continue;
+            }
+            AlbumSongInfo albumSongInfo = albumSongInfoBySongId.get(entry.getSongId());
+            if (albumSongInfo == null) {
+                continue;
+            }
+
+            AlbumOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                albumSongInfo.albumId,
+                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId, albumSongInfo.albumName, entry.getResolvedArtistId(), entry.getArtistName(), entry.getGenderClass())
+            );
+            accumulator.accept(entry);
+        }
+
+        List<ChartAlbumOverviewRowDTO> rows = new ArrayList<>();
+        for (AlbumOverviewAccumulator accumulator : grouped.values()) {
+            rows.add(accumulator.toRow());
+        }
+        rows.sort(Comparator
+            .comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan).reversed()
+            .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
+            .thenComparing(row -> safeLower(row.getArtistName()))
+            .thenComparing(row -> safeLower(row.getAlbumName())));
+        return rows;
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows() {
+        return getArtistOverviewRows(getOverviewRows());
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(List<PcOverviewRowDTO> entries) {
+        Map<String, ArtistOverviewAccumulator> grouped = new LinkedHashMap<>();
+
+        for (PcOverviewRowDTO entry : entries) {
+            String key;
+            boolean matched = entry.getResolvedArtistId() != null;
+            if (matched) {
+                key = "artist:" + entry.getResolvedArtistId();
+            } else {
+                key = "raw:" + normalizeKeyPart(entry.getArtistName());
+            }
+
+            ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                key,
+                ignored -> new ArtistOverviewAccumulator(matched, entry.getResolvedArtistId(), entry.getArtistName(), entry.getGenderClass())
+            );
+            accumulator.accept(entry);
+        }
+
+        List<ChartArtistOverviewRowDTO> rows = new ArrayList<>();
+        for (ArtistOverviewAccumulator accumulator : grouped.values()) {
+            rows.add(accumulator.toRow());
+        }
+        rows.sort(Comparator
+            .comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan).reversed()
+            .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
+            .thenComparing(row -> safeLower(row.getArtistName())));
+        return rows;
+    }
+
+    public List<Map<String, Object>> getChartRunBySongId(int songId) {
+        return jdbcTemplate.queryForList(
+            "SELECT d.chart_date, " +
+            "       CASE WHEN ce.song_id IS NOT NULL THEN 1 ELSE 0 END AS on_chart, " +
+            "       ce.position " +
+            "FROM (SELECT DISTINCT chart_date FROM vatos_cuntdown_entry WHERE is_close_call = 0) d " +
+            "LEFT JOIN vatos_cuntdown_entry ce ON ce.chart_date = d.chart_date " +
+            "    AND ce.song_id = ? AND ce.is_close_call = 0 " +
+            "ORDER BY d.chart_date ASC",
+            songId);
+    }
+
+    public List<Map<String, Object>> getChartRunByNames(String artistName, String songTitle) {
+        return jdbcTemplate.queryForList(
+            "SELECT d.chart_date, " +
+            "       CASE WHEN ce.artist_name IS NOT NULL THEN 1 ELSE 0 END AS on_chart, " +
+            "       ce.position " +
+            "FROM (SELECT DISTINCT chart_date FROM vatos_cuntdown_entry WHERE is_close_call = 0) d " +
+            "LEFT JOIN vatos_cuntdown_entry ce ON ce.chart_date = d.chart_date " +
+            "    AND LOWER(ce.artist_name) = LOWER(?) AND LOWER(ce.song_title) = LOWER(?) " +
+            "    AND ce.song_id IS NULL AND ce.is_close_call = 0 " +
+            "ORDER BY d.chart_date ASC",
+            artistName, songTitle);
+    }
+
     public List<PcOverviewRowDTO> getOverviewRows(int page, int size) {
         int safePage = Math.max(1, page);
         int safeSize = Math.max(1, Math.min(size, 500));
@@ -120,10 +205,24 @@ public class PcService {
             "    FROM vatos_cuntdown_entry e " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
             "    GROUP BY e.song_id " +
+            "), matched_debut AS ( " +
+            "    SELECT e.song_id, MIN(e.position) AS debut_position " +
+            "    FROM vatos_cuntdown_entry e " +
+            "    JOIN matched_groups mg ON mg.song_id = e.song_id AND e.chart_date = mg.first_week " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
+            "    GROUP BY e.song_id " +
             "), matched_peak AS ( " +
             "    SELECT e.song_id, COUNT(DISTINCT e.chart_date) AS days_at_peak, MIN(e.chart_date) AS peak_week " +
             "    FROM vatos_cuntdown_entry e " +
             "    JOIN matched_groups mg ON mg.song_id = e.song_id AND e.position = mg.peak_position " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
+            "    GROUP BY e.song_id " +
+            "), matched_tiers AS ( " +
+            "    SELECT e.song_id, " +
+            "           COUNT(DISTINCT CASE WHEN e.position <= 1  THEN e.chart_date END) AS days_at_top1, " +
+            "           COUNT(DISTINCT CASE WHEN e.position <= 5  THEN e.chart_date END) AS days_at_top5, " +
+            "           COUNT(DISTINCT CASE WHEN e.position <= 10 THEN e.chart_date END) AS days_at_top10 " +
+            "    FROM vatos_cuntdown_entry e " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NOT NULL " +
             "    GROUP BY e.song_id " +
             "), unmatched_groups AS ( " +
@@ -136,29 +235,53 @@ public class PcService {
             "    FROM vatos_cuntdown_entry e " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
             "    GROUP BY e.artist_name, e.song_title " +
+            "), unmatched_debut AS ( " +
+            "    SELECT e.artist_name, e.song_title, MIN(e.position) AS debut_position " +
+            "    FROM vatos_cuntdown_entry e " +
+            "    JOIN unmatched_groups ug ON ug.artist_name = e.artist_name AND ug.song_title = e.song_title AND e.chart_date = ug.first_week " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
+            "    GROUP BY e.artist_name, e.song_title " +
             "), unmatched_peak AS ( " +
             "    SELECT e.artist_name, e.song_title, COUNT(DISTINCT e.chart_date) AS days_at_peak, MIN(e.chart_date) AS peak_week " +
             "    FROM vatos_cuntdown_entry e " +
             "    JOIN unmatched_groups ug ON ug.artist_name = e.artist_name AND ug.song_title = e.song_title AND e.position = ug.peak_position " +
             "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
             "    GROUP BY e.artist_name, e.song_title " +
+            "), unmatched_tiers AS ( " +
+            "    SELECT e.artist_name, e.song_title, " +
+            "           COUNT(DISTINCT CASE WHEN e.position <= 1  THEN e.chart_date END) AS days_at_top1, " +
+            "           COUNT(DISTINCT CASE WHEN e.position <= 5  THEN e.chart_date END) AS days_at_top5, " +
+            "           COUNT(DISTINCT CASE WHEN e.position <= 10 THEN e.chart_date END) AS days_at_top10 " +
+            "    FROM vatos_cuntdown_entry e " +
+            "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
+            "    GROUP BY e.artist_name, e.song_title " +
             ") " +
             "SELECT 1 AS matched, mg.song_id, s.name AS song_title, a.name AS artist_name, " +
-            "       mg.first_week, mg.last_week, mg.days_on_countdown, mg.peak_position, " +
+            "       mg.first_week, mg.last_week, md.debut_position, mg.days_on_countdown, mg.peak_position, " +
             "       COALESCE(mp.days_at_peak, 0) AS days_at_peak, mp.peak_week, mg.raw_variant_count, " +
-            "       a.id AS resolved_artist_id, LOWER(g.name) AS gender_name " +
+            "       a.id AS resolved_artist_id, LOWER(g.name) AS gender_name, " +
+            "       COALESCE(mt.days_at_top1, 0) AS days_at_top1, " +
+            "       COALESCE(mt.days_at_top5, 0) AS days_at_top5, " +
+            "       COALESCE(mt.days_at_top10, 0) AS days_at_top10 " +
             "FROM matched_groups mg " +
             "JOIN Song s ON s.id = mg.song_id " +
             "JOIN Artist a ON a.id = s.artist_id " +
             "LEFT JOIN Gender g ON g.id = a.gender_id " +
+            "LEFT JOIN matched_debut md ON md.song_id = mg.song_id " +
             "LEFT JOIN matched_peak mp ON mp.song_id = mg.song_id " +
+            "LEFT JOIN matched_tiers mt ON mt.song_id = mg.song_id " +
             "UNION ALL " +
             "SELECT 0 AS matched, NULL AS song_id, ug.song_title, ug.artist_name, " +
-            "       ug.first_week, ug.last_week, ug.days_on_countdown, ug.peak_position, " +
+            "       ug.first_week, ug.last_week, ud.debut_position, ug.days_on_countdown, ug.peak_position, " +
             "       COALESCE(up.days_at_peak, 0) AS days_at_peak, up.peak_week, ug.raw_variant_count, " +
-            "       NULL AS resolved_artist_id, NULL AS gender_name " +
+            "       NULL AS resolved_artist_id, NULL AS gender_name, " +
+            "       COALESCE(ut.days_at_top1, 0) AS days_at_top1, " +
+            "       COALESCE(ut.days_at_top5, 0) AS days_at_top5, " +
+            "       COALESCE(ut.days_at_top10, 0) AS days_at_top10 " +
             "FROM unmatched_groups ug " +
+            "LEFT JOIN unmatched_debut ud ON ud.artist_name = ug.artist_name AND ud.song_title = ug.song_title " +
             "LEFT JOIN unmatched_peak up ON up.artist_name = ug.artist_name AND up.song_title = ug.song_title " +
+            "LEFT JOIN unmatched_tiers ut ON ut.artist_name = ug.artist_name AND ut.song_title = ug.song_title " +
             "ORDER BY days_on_countdown DESC, peak_position ASC, artist_name COLLATE NOCASE ASC, song_title COLLATE NOCASE ASC " +
             ")";
 
@@ -180,6 +303,8 @@ public class PcService {
         row.setFirstWeek(rs.getString("first_week"));
         row.setLastWeek(rs.getString("last_week"));
         row.setPeakWeek(rs.getString("peak_week"));
+        int debutPosition = rs.getInt("debut_position");
+        if (!rs.wasNull()) row.setDebutPosition(debutPosition);
         row.setDaysOnCountdown(rs.getInt("days_on_countdown"));
         row.setPeakPosition(rs.getInt("peak_position"));
         row.setDaysAtPeak(rs.getInt("days_at_peak"));
@@ -192,7 +317,185 @@ public class PcService {
                 row.setGenderClass("gender-male");
             }
         }
+        row.setDaysAtTop1(rs.getInt("days_at_top1"));
+        row.setDaysAtTop5(rs.getInt("days_at_top5"));
+        row.setDaysAtTop10(rs.getInt("days_at_top10"));
         return row;
+    }
+
+    private Map<Integer, AlbumSongInfo> getAlbumSongInfoBySongId(List<PcOverviewRowDTO> entries) {
+        Set<Integer> songIds = new HashSet<>();
+        for (PcOverviewRowDTO entry : entries) {
+            if (entry.getSongId() != null) {
+                songIds.add(entry.getSongId());
+            }
+        }
+        if (songIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Integer> orderedSongIds = new ArrayList<>(songIds);
+        String placeholders = String.join(",", java.util.Collections.nCopies(orderedSongIds.size(), "?"));
+        String sql =
+            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name " +
+            "FROM Song s " +
+            "JOIN Album al ON al.id = s.album_id " +
+            "WHERE s.id IN (" + placeholders + ")";
+
+        Map<Integer, AlbumSongInfo> result = new HashMap<>();
+        List<AlbumSongInfoRow> rows = jdbcTemplate.query(
+            sql,
+            (rs, rowNum) -> new AlbumSongInfoRow(
+                rs.getInt("song_id"),
+                rs.getInt("album_id"),
+                rs.getString("album_name")
+            ),
+            orderedSongIds.toArray()
+        );
+        for (AlbumSongInfoRow row : rows) {
+            result.put(row.songId(), new AlbumSongInfo(row.albumId(), row.albumName()));
+        }
+        return result;
+    }
+
+    private String normalizeKeyPart(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String pickPreferredDisplayValue(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank()) {
+            return candidateValue;
+        }
+        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
+        if (ignoreCase < 0) {
+            return candidateValue;
+        }
+        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private String minDate(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) < 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private String maxDate(String currentValue, String candidateValue) {
+        if (candidateValue == null || candidateValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) > 0) {
+            return candidateValue;
+        }
+        return currentValue;
+    }
+
+    private String safeLower(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private final class AlbumOverviewAccumulator {
+        private final ChartAlbumOverviewRowDTO row;
+        private final Set<Integer> songIds = new HashSet<>();
+        private final Set<Integer> numberOneSongIds = new HashSet<>();
+
+        private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
+            row = new ChartAlbumOverviewRowDTO();
+            row.setAlbumId(albumId);
+            row.setAlbumName(albumName);
+            row.setResolvedArtistId(resolvedArtistId);
+            row.setArtistName(artistName);
+            row.setGenderClass(genderClass);
+        }
+
+        private void accept(PcOverviewRowDTO entry) {
+            if (entry.getSongId() != null && songIds.add(entry.getSongId())) {
+                row.setChartedSongsCount(songIds.size());
+            }
+            row.setTotalChartSpan(row.getTotalChartSpan() + entry.getDaysOnCountdown());
+
+            int bestPeak = entry.getPeakPosition();
+            if (row.getHighestPeak() == null || bestPeak < row.getHighestPeak()) {
+                row.setHighestPeak(bestPeak);
+            }
+
+            if (bestPeak == 1 && entry.getSongId() != null && numberOneSongIds.add(entry.getSongId())) {
+                row.setNumberOneSongsCount(numberOneSongIds.size());
+            }
+            row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
+            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
+            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
+        }
+
+        private ChartAlbumOverviewRowDTO toRow() {
+            return row;
+        }
+    }
+
+    private final class ArtistOverviewAccumulator {
+        private final ChartArtistOverviewRowDTO row;
+        private final Set<String> songKeys = new HashSet<>();
+        private final Set<String> numberOneSongKeys = new HashSet<>();
+
+        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
+            row = new ChartArtistOverviewRowDTO();
+            row.setMatched(matched);
+            row.setResolvedArtistId(resolvedArtistId);
+            row.setArtistName(artistName);
+            row.setGenderClass(genderClass);
+        }
+
+        private void accept(PcOverviewRowDTO entry) {
+            row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), entry.getArtistName()));
+            if (row.getResolvedArtistId() == null) {
+                row.setResolvedArtistId(entry.getResolvedArtistId());
+            }
+            if (row.getGenderClass() == null) {
+                row.setGenderClass(entry.getGenderClass());
+            }
+
+            String songKey = entry.getSongId() != null
+                ? "song:" + entry.getSongId()
+                : "raw:" + normalizeKeyPart(entry.getSongTitle());
+            if (songKeys.add(songKey)) {
+                row.setChartedSongsCount(songKeys.size());
+            }
+            row.setTotalChartSpan(row.getTotalChartSpan() + entry.getDaysOnCountdown());
+
+            int bestPeak = entry.getPeakPosition();
+            if (row.getHighestPeak() == null || bestPeak < row.getHighestPeak()) {
+                row.setHighestPeak(bestPeak);
+            }
+
+            if (bestPeak == 1 && numberOneSongKeys.add(songKey)) {
+                row.setNumberOneSongsCount(numberOneSongKeys.size());
+            }
+            row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
+            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
+            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
+        }
+
+        private ChartArtistOverviewRowDTO toRow() {
+            return row;
+        }
+    }
+
+    private record AlbumSongInfo(Integer albumId, String albumName) {
+    }
+
+    private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName) {
     }
 
     public Map<String, Object> matchRawGroup(String rawArtist, String rawSong, Integer songId) {

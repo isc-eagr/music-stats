@@ -24,6 +24,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -181,12 +183,22 @@ public class SongController {
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer trlPeak,
+            @RequestParam(required = false) Integer trlDays,
+            @RequestParam(required = false) Integer vatosCuntdownPeak,
+            @RequestParam(required = false) Integer vatosCuntdownDays,
+            @RequestParam(required = false) Integer billboardPeak,
+            @RequestParam(required = false) Integer billboardWeeks,
             @RequestParam(required = false) Integer seasonalChartPeak,
             @RequestParam(required = false) Integer seasonalChartSeasons,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) String sortby2,
+            @RequestParam(required = false) String sortdir2,
+            @RequestParam(required = false) String sortby3,
+            @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int perpage,
             Model model) {
@@ -230,8 +242,12 @@ public class SongController {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortby, sortdir, page, perpage
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
         );
         
         // Get total count for pagination
@@ -250,7 +266,11 @@ public class SongController {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Get gender counts for the filtered dataset
@@ -269,7 +289,11 @@ public class SongController {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
         
         // Add data to model
         model.addAttribute("currentSection", "songs");
@@ -340,6 +364,12 @@ public class SongController {
         // Chart filter attributes
         model.addAttribute("weeklyChartPeak", weeklyChartPeak);
         model.addAttribute("weeklyChartWeeks", weeklyChartWeeks);
+        model.addAttribute("trlPeak", trlPeak);
+        model.addAttribute("trlDays", trlDays);
+        model.addAttribute("vatosCuntdownPeak", vatosCuntdownPeak);
+        model.addAttribute("vatosCuntdownDays", vatosCuntdownDays);
+        model.addAttribute("billboardPeak", billboardPeak);
+        model.addAttribute("billboardWeeks", billboardWeeks);
         model.addAttribute("seasonalChartPeak", seasonalChartPeak);
         model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
         model.addAttribute("yearlyChartPeak", yearlyChartPeak);
@@ -380,6 +410,10 @@ public class SongController {
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("sortBy2", sortby2);
+        model.addAttribute("sortDir2", sortdir2 != null ? sortdir2 : "asc");
+        model.addAttribute("sortBy3", sortby3);
+        model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("defaultSortBy", "plays");
         
         // Add filter options
@@ -1522,7 +1556,7 @@ public class SongController {
             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
             String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode) {
         
-        return ChartFilterDTO.builder()
+        ChartFilterDTO filter = ChartFilterDTO.builder()
             .setName(q)
             .setArtistIds(artist)
             .setAlbumIds(album)
@@ -1595,6 +1629,37 @@ public class SongController {
             .setDeathDateFrom(DateFormatUtils.convertToIsoFormat(deathDateFrom))
             .setDeathDateTo(DateFormatUtils.convertToIsoFormat(deathDateTo))
             .setDeathDateMode(deathDateMode);
+
+        applySongsCountdownFilters(filter);
+        return filter;
+    }
+
+    private void applySongsCountdownFilters(ChartFilterDTO filter) {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+
+        jakarta.servlet.http.HttpServletRequest request = attributes.getRequest();
+        filter.setSongsTrlPeak(parseIntegerParam(request, "songsTrlPeak"));
+        filter.setSongsTrlDays(parseIntegerParam(request, "songsTrlDays"));
+        filter.setSongsVatosCuntdownPeak(parseIntegerParam(request, "songsVatosCuntdownPeak"));
+        filter.setSongsVatosCuntdownDays(parseIntegerParam(request, "songsVatosCuntdownDays"));
+        filter.setSongsBillboardPeak(parseIntegerParam(request, "songsBillboardPeak"));
+        filter.setSongsBillboardWeeks(parseIntegerParam(request, "songsBillboardWeeks"));
+    }
+
+    private Integer parseIntegerParam(jakarta.servlet.http.HttpServletRequest request, String paramName) {
+        String value = request.getParameter(paramName);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
     
     // API endpoint for General tab chart data (pie charts)
@@ -2796,9 +2861,12 @@ public class SongController {
                 trackNumber, trackNumberMode,
                 null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)
+                null, null,                 // trlPeak, trlDays (not used in export)
+                null, null,                 // vatosCuntdownPeak, vatosCuntdownDays (not used in export)
+                null, null,                 // billboardPeak, billboardWeeks (not used in export)
                 null, null,                 // seasonalChartPeak, seasonalChartSeasons (not used in export)
                 null, null,                 // yearlyChartPeak, yearlyChartYears (not used in export)
-                sortby, sortdir, 0, limit
+                sortby, sortdir, null, null, null, null, 0, limit
         );
         
         // Convert to minimal export format

@@ -128,6 +128,12 @@ public class GraphsController {
             @RequestParam(required = false) Integer songsSeasonalChartSeasons,
             @RequestParam(required = false) Integer songsWeeklyChartPeak,
             @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsTrlPeak,
+            @RequestParam(required = false) Integer songsTrlDays,
+            @RequestParam(required = false) Integer songsVatosCuntdownPeak,
+            @RequestParam(required = false) Integer songsVatosCuntdownDays,
+            @RequestParam(required = false) Integer songsBillboardPeak,
+            @RequestParam(required = false) Integer songsBillboardWeeks,
             @RequestParam(required = false) Integer songsYearlyChartPeak,
             @RequestParam(required = false) Integer songsYearlyChartYears,
             // Subgenre filter
@@ -325,6 +331,12 @@ public class GraphsController {
         model.addAttribute("songsSeasonalChartSeasons", songsSeasonalChartSeasons);
         model.addAttribute("songsWeeklyChartPeak", songsWeeklyChartPeak);
         model.addAttribute("songsWeeklyChartWeeks", songsWeeklyChartWeeks);
+        model.addAttribute("songsTrlPeak", songsTrlPeak);
+        model.addAttribute("songsTrlDays", songsTrlDays);
+        model.addAttribute("songsVatosCuntdownPeak", songsVatosCuntdownPeak);
+        model.addAttribute("songsVatosCuntdownDays", songsVatosCuntdownDays);
+        model.addAttribute("songsBillboardPeak", songsBillboardPeak);
+        model.addAttribute("songsBillboardWeeks", songsBillboardWeeks);
         model.addAttribute("songsYearlyChartPeak", songsYearlyChartPeak);
         model.addAttribute("songsYearlyChartYears", songsYearlyChartYears);
         

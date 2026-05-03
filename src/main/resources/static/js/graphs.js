@@ -47,14 +47,21 @@ let topSortedData = {
     songs: []
 };
 
+// Cache sorted arrays by source data reference + sort key to avoid expensive re-sorts
+let topSortedCache = {
+    artists: { dataRef: null, sortKey: '', sorted: [] },
+    albums: { dataRef: null, sortKey: '', sorted: [] },
+    songs: { dataRef: null, sortKey: '', sorted: [] }
+};
+
 // Whether infinite scroll is enabled
 let infiniteScrollEnabled = true;
 
 // Current sort state for each table
 let topSortState = {
-    artists: { column: 'plays', direction: 'desc' },
-    albums: { column: 'plays', direction: 'desc' },
-    songs: { column: 'plays', direction: 'desc' }
+    artists: [{ column: 'plays', direction: 'desc' }],
+    albums: [{ column: 'plays', direction: 'desc' }],
+    songs: [{ column: 'plays', direction: 'desc' }]
 };
 
 // Column visibility configuration for top tables
@@ -121,6 +128,8 @@ const topColumnConfig = {
         { key: 'language', label: 'Language', defaultVisible: false, align: 'left' }
     ],
     songs: [
+        { key: 'billboardPeak', label: 'Billboard Peak', defaultVisible: false, align: 'right' },
+        { key: 'billboardWeeks', label: 'Billboard Weeks', defaultVisible: false, align: 'right' },
         { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
         { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
         { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
@@ -137,6 +146,10 @@ const topColumnConfig = {
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
         { key: 'seasonalChartPeak', label: 'Seasonal Peak', defaultVisible: false, align: 'right' },
+        { key: 'trlDays', label: 'TRL Days', defaultVisible: false, align: 'right' },
+        { key: 'trlPeak', label: 'TRL Peak', defaultVisible: false, align: 'right' },
+        { key: 'vatosCuntdownDays', label: 'Vato\'s Days', defaultVisible: false, align: 'right' },
+        { key: 'vatosCuntdownPeak', label: 'Vato\'s Peak', defaultVisible: false, align: 'right' },
         { key: 'weeklyChartPeak', label: 'Weekly Peak', defaultVisible: false, align: 'right' },
         { key: 'weeklyChartWeeks', label: 'Weekly Weeks', defaultVisible: false, align: 'right' },
         { key: 'yearlyChartPeak', label: 'Yearly Peak', defaultVisible: false, align: 'right' },
@@ -1378,7 +1391,14 @@ function createCombinedBarChart(containerId, canvasId, allData) {
         { key: 'listeningTime', label: 'Listen Time', lookup: listeningTimeLookup, isTime: true }
     ];
     
-    // Store raw values for tooltips and totals
+// Gray colors for inactive metrics in relative scaling mode
+        const grayColors = {
+            male:   'rgba(70,  70,  70,  0.9)',  // darkest gray
+            female: 'rgba(120, 120, 120, 0.9)',  // medium gray
+            other:  'rgba(170, 170, 170, 0.9)'   // lightest gray
+        };
+
+        // Store raw values for tooltips and totals
     const rawValues = {};
     const totalsByMetric = {}; // Store totals for each metric per category
 
@@ -1447,12 +1467,18 @@ function createCombinedBarChart(containerId, canvasId, allData) {
         // Store raw values for tooltips
         rawValues[metric.key] = { male: maleData, female: femaleData, other: otherData, totals: totals, isTime: metric.isTime };
         
+        // When relative scaling is active, only the sort metric keeps its colors; others go gray
+        const isActiveMetric = !useRelativeScaling || metric.key === chartSortMetric;
+        const maleColor   = isActiveMetric ? metricColors[metric.key].male   : grayColors.male;
+        const femaleColor = isActiveMetric ? metricColors[metric.key].female : grayColors.female;
+        const otherColor  = isActiveMetric ? metricColors[metric.key].other  : grayColors.other;
+
         // Male bar for this metric
         datasets.push({
             label: metric.label + ' (M)',
             data: malePercentages,
-            backgroundColor: metricColors[metric.key].male,
-            borderColor: metricColors[metric.key].male.replace('0.9', '1'),
+            backgroundColor: maleColor,
+            borderColor: maleColor.replace('0.9', '1'),
             borderWidth: 1,
             stack: 'stack' + idx,
             metricKey: metric.key,
@@ -1467,8 +1493,8 @@ function createCombinedBarChart(containerId, canvasId, allData) {
         datasets.push({
             label: metric.label + ' (F)',
             data: femalePercentages,
-            backgroundColor: metricColors[metric.key].female,
-            borderColor: metricColors[metric.key].female.replace('0.9', '1'),
+            backgroundColor: femaleColor,
+            borderColor: femaleColor.replace('0.9', '1'),
             borderWidth: 1,
             stack: 'stack' + idx,
             metricKey: metric.key,
@@ -1485,8 +1511,8 @@ function createCombinedBarChart(containerId, canvasId, allData) {
             datasets.push({
                 label: metric.label + ' (O)',
                 data: otherPercentages,
-                backgroundColor: metricColors[metric.key].other,
-                borderColor: metricColors[metric.key].other.replace('0.9', '1'),
+                backgroundColor: otherColor,
+                borderColor: otherColor.replace('0.9', '1'),
                 borderWidth: 1,
                 stack: 'stack' + idx,
                 metricKey: metric.key,
@@ -1741,6 +1767,11 @@ function renderTopTables(data) {
     topTabData.artists = data.topArtists || [];
     topTabData.albums = data.topAlbums || [];
     topTabData.songs = data.topSongs || [];
+
+    // Invalidate sorted cache when source arrays are replaced
+    topSortedCache.artists = { dataRef: null, sortKey: '', sorted: [] };
+    topSortedCache.albums = { dataRef: null, sortKey: '', sorted: [] };
+    topSortedCache.songs = { dataRef: null, sortKey: '', sorted: [] };
     
     // Initialize column toggles
     initColumnToggles();
@@ -2011,7 +2042,7 @@ function renderTopArtistsTable() {
     const tbody = document.querySelector('#topArtistsTable tbody');
     if (!tbody) return;
     
-    const data = sortTopData(topTabData.artists, topSortState.artists);
+    const data = getSortedTopData('artists', topTabData.artists, topSortState.artists);
     topSortedData.artists = data;
     
     // Render podium with sorted data
@@ -2089,7 +2120,7 @@ function renderTopAlbumsTable() {
     const tbody = document.querySelector('#topAlbumsTable tbody');
     if (!tbody) return;
     
-    const data = sortTopData(topTabData.albums, topSortState.albums);
+    const data = getSortedTopData('albums', topTabData.albums, topSortState.albums);
     topSortedData.albums = data;
     
     // Render podium with sorted data
@@ -2173,6 +2204,12 @@ function buildSongRow(song, rank) {
             <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(song.seasonalChartPeak)}</td>
             <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(song.weeklyChartPeak)}</td>
             <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(song.weeklyChartWeeks)}</td>
+            <td style="text-align:right;display:${vis('trlPeak')};">${cellVal(song.trlPeak)}</td>
+            <td style="text-align:right;display:${vis('trlDays')};">${cellVal(song.trlDays)}</td>
+            <td style="text-align:right;display:${vis('vatosCuntdownPeak')};">${cellVal(song.vatosCuntdownPeak)}</td>
+            <td style="text-align:right;display:${vis('vatosCuntdownDays')};">${cellVal(song.vatosCuntdownDays)}</td>
+            <td style="text-align:right;display:${vis('billboardPeak')};">${cellVal(song.billboardPeak)}</td>
+            <td style="text-align:right;display:${vis('billboardWeeks')};">${cellVal(song.billboardWeeks)}</td>
             <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(song.yearlyChartPeak)}</td>
             <td style="display:${vis('genre')};">${song.genre || '-'}</td>
             <td style="display:${vis('subgenre')};">${song.subgenre || '-'}</td>
@@ -2186,7 +2223,7 @@ function renderTopSongsTable() {
     const tbody = document.querySelector('#topSongsTable tbody');
     if (!tbody) return;
     
-    const data = sortTopData(topTabData.songs, topSortState.songs);
+    const data = getSortedTopData('songs', topTabData.songs, topSortState.songs);
     topSortedData.songs = data;
     
     // Render podium with sorted data
@@ -2233,10 +2270,35 @@ const numericSortColumns = new Set([
     'trackNumber', 'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
     'age', 'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
-    'ageAtRelease', 'seasonalChartPeak', 'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
+    'ageAtRelease', 'billboardPeak', 'billboardWeeks', 'seasonalChartPeak',
+    'trlDays', 'trlPeak', 'vatosCuntdownDays', 'vatosCuntdownPeak',
+    'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
 ]);
 
 const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'lastFullListen', 'birthDate', 'deathDate']);
+
+function parseDisplayDate(dateStr) {
+    if (!dateStr || dateStr === '' || dateStr === '-') return 0;
+
+    const months = {
+        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+    };
+
+    const separator = dateStr.includes('-') ? '-' : ' ';
+    const parts = dateStr.trim().split(separator);
+
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = months[parts[1].toLowerCase().substring(0, 3)];
+        const year = parseInt(parts[2], 10);
+        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
+            return new Date(year, month, day).getTime();
+        }
+    }
+
+    return 0;
+}
 
 // Columns where lower numeric value is "better" (chart peaks)
 const descDefaultColumns = new Set([
@@ -2244,14 +2306,39 @@ const descDefaultColumns = new Set([
     'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength', 'age',
     'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
-    'ageAtRelease', 'weeklyChartWeeks'
+    'ageAtRelease', 'billboardWeeks', 'trlDays', 'vatosCuntdownDays', 'weeklyChartWeeks'
 ]);
 
 function sortTopData(data, sortState) {
     if (!data || data.length === 0) return [];
-    
+
     const sorted = [...data];
-    const { column, direction } = sortState;
+    const sorts = Array.isArray(sortState) ? sortState : [sortState];
+    const hasExplicitPlaysSort = sorts.some(sort => sort.column === 'plays');
+
+    function compareByColumn(a, b, column) {
+        let aVal = a[column];
+        let bVal = b[column];
+
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+
+        if (numericSortColumns.has(column)) {
+            aVal = Number(aVal) || 0;
+            bVal = Number(bVal) || 0;
+        } else if (dateSortColumns.has(column)) {
+            aVal = parseDisplayDate(aVal);
+            bVal = parseDisplayDate(bVal);
+        } else if (typeof aVal === 'string') {
+            aVal = aVal.toLowerCase();
+            bVal = (bVal || '').toString().toLowerCase();
+        }
+
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+    }
 
     function compareDisplayIdentity(a, b) {
         const aName = (a.name || '').toString().toLowerCase();
@@ -2271,72 +2358,69 @@ function sortTopData(data, sortState) {
 
         return (a.id || 0) - (b.id || 0);
     }
-    
-    sorted.sort((a, b) => {
-        let aVal = a[column];
-        let bVal = b[column];
-        
-        // Handle null/undefined values - push nulls to the bottom
-        if (aVal == null && bVal == null) return 0;
-        if (aVal == null) return 1;
-        if (bVal == null) return -1;
-        
-        // Numeric columns
-        if (numericSortColumns.has(column)) {
-            aVal = Number(aVal) || 0;
-            bVal = Number(bVal) || 0;
-        } else if (dateSortColumns.has(column)) {
-            aVal = parseDisplayDate(aVal);
-            bVal = parseDisplayDate(bVal);
-        } else if (typeof aVal === 'string') {
-            aVal = aVal.toLowerCase();
-            bVal = (bVal || '').toString().toLowerCase();
-        }
-        
-        let result = 0;
-        if (aVal < bVal) result = -1;
-        else if (aVal > bVal) result = 1;
 
-        if (result === 0 && column !== 'plays') {
-            const aPlays = Number(a.plays) || 0;
-            const bPlays = Number(b.plays) || 0;
-            if (aPlays !== bPlays) {
-                return bPlays - aPlays;
+    sorted.sort((a, b) => {
+        for (const sort of sorts) {
+            const result = compareByColumn(a, b, sort.column);
+            if (result !== 0) {
+                return sort.direction === 'desc' ? -result : result;
             }
         }
 
-        if (result === 0) {
-            result = compareDisplayIdentity(a, b);
+        if (!hasExplicitPlaysSort) {
+            const playResult = compareByColumn(a, b, 'plays');
+            if (playResult !== 0) {
+                return -playResult;
+            }
         }
-        
-        return direction === 'desc' ? -result : result;
+
+        return compareDisplayIdentity(a, b);
     });
-    
+
     return sorted;
 }
 
-/**
- * Parses a display date string like "1 Feb 2012" into a sortable timestamp
- */
-function parseDisplayDate(dateStr) {
-    if (!dateStr || dateStr === '') return 0;
-    
-    const months = {
-        'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
-        'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
-    };
-    
-    const parts = dateStr.trim().split(' ');
-    if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = months[parts[1].toLowerCase().substring(0, 3)];
-        const year = parseInt(parts[2], 10);
-        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
-            return new Date(year, month, day).getTime();
-        }
+function normalizeTopSortState(sortState) {
+    const normalized = (Array.isArray(sortState) ? sortState : [sortState])
+        .filter(sort => sort && sort.column)
+        .map(sort => ({
+            column: sort.column,
+            direction: sort.direction === 'asc' ? 'asc' : 'desc'
+        }))
+        .slice(0, 3);
+
+    if (normalized.length === 0) {
+        return [{ column: 'plays', direction: 'desc' }];
     }
-    
-    return 0;
+
+    return normalized;
+}
+
+function getTopSortKey(sortState) {
+    return normalizeTopSortState(sortState)
+        .map(sort => `${sort.column}:${sort.direction}`)
+        .join('|');
+}
+
+function getSortedTopData(type, data, sortState) {
+    const sourceData = Array.isArray(data) ? data : [];
+    const normalizedSorts = normalizeTopSortState(sortState);
+    const sortKey = getTopSortKey(normalizedSorts);
+    const cache = topSortedCache[type];
+
+    if (cache && cache.dataRef === sourceData && cache.sortKey === sortKey) {
+        return cache.sorted;
+    }
+
+    const sorted = sortTopData(sourceData, normalizedSorts);
+
+    if (cache) {
+        cache.dataRef = sourceData;
+        cache.sortKey = sortKey;
+        cache.sorted = sorted;
+    }
+
+    return sorted;
 }
 
 /**
@@ -2345,17 +2429,29 @@ function parseDisplayDate(dateStr) {
 function updateSortIndicators(tableId, sortState) {
     const table = document.getElementById(tableId);
     if (!table) return;
+    const sorts = Array.isArray(sortState) ? sortState : [sortState];
     
-    // Remove existing sort classes
     table.querySelectorAll('th').forEach(th => {
         th.classList.remove('sorted-asc', 'sorted-desc');
+        const badge = th.querySelector('.sort-priority-badge');
+        if (badge) {
+            badge.remove();
+        }
     });
     
-    // Add sort class to current column
-    const sortedTh = table.querySelector(`th[data-sort="${sortState.column}"]`);
-    if (sortedTh) {
-        sortedTh.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
-    }
+    sorts.forEach((sort, index) => {
+        const sortedTh = table.querySelector(`th[data-sort="${sort.column}"]`);
+        if (!sortedTh) return;
+
+        sortedTh.classList.add(sort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+        const badge = document.createElement('span');
+        badge.className = 'sort-priority-badge';
+        badge.textContent = String(index + 1);
+        badge.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;border-radius:999px;background:#222;color:#fff;font-size:10px;line-height:1;padding:0 4px;vertical-align:middle;';
+        sortedTh.appendChild(badge);
+        sortedTh.title = `${index === 0 ? 'Primary' : index === 1 ? 'Secondary' : 'Tertiary'} sort: ${sort.direction.toUpperCase()}. Shift+click to add another sort level.`;
+    });
 }
 
 /**
@@ -2364,14 +2460,47 @@ function updateSortIndicators(tableId, sortState) {
 function setupTopTableSorting() {
     function bindTableSort(tableId, stateKey, renderFn) {
         document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
-            th.onclick = () => {
+            th.title = 'Click to sort by this column. Shift+click to add a secondary or tertiary sort.';
+            th.onclick = (event) => {
                 const column = th.dataset.sort;
-                if (topSortState[stateKey].column === column) {
-                    topSortState[stateKey].direction = topSortState[stateKey].direction === 'asc' ? 'desc' : 'asc';
+                const currentSorts = Array.isArray(topSortState[stateKey]) ? [...topSortState[stateKey]] : [topSortState[stateKey]];
+                const existingIndex = currentSorts.findIndex(sort => sort.column === column);
+
+                if (event.shiftKey) {
+                    if (existingIndex >= 0) {
+                        currentSorts[existingIndex] = {
+                            column,
+                            direction: currentSorts[existingIndex].direction === 'asc' ? 'desc' : 'asc'
+                        };
+                    } else if (currentSorts.length < 3) {
+                        currentSorts.push({
+                            column,
+                            direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
+                        });
+                    } else {
+                        currentSorts[2] = {
+                            column,
+                            direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
+                        };
+                    }
                 } else {
-                    topSortState[stateKey].column = column;
-                    topSortState[stateKey].direction = descDefaultColumns.has(column) ? 'desc' : 'asc';
+                    const currentPrimary = currentSorts[0];
+                    if (currentPrimary && currentPrimary.column === column) {
+                        topSortState[stateKey] = [{
+                            column,
+                            direction: currentPrimary.direction === 'asc' ? 'desc' : 'asc'
+                        }];
+                    } else {
+                        topSortState[stateKey] = [{
+                            column,
+                            direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
+                        }];
+                    }
+                    renderFn();
+                    return;
                 }
+
+                topSortState[stateKey] = currentSorts;
                 renderFn();
             };
         });

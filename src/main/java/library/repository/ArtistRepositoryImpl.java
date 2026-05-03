@@ -76,6 +76,10 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String itunesSongIdsJson,
             String sortBy,
             String sortDir,
+                String sortBy2,
+                String sortDir2,
+                String sortBy3,
+                String sortDir3,
             int limit,
             int offset
     ) {
@@ -363,73 +367,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(itunesPresenceMax);
         }
         
-        // Sorting
-        String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
-        String playCountTieBreak = ", play_count DESC, a.name ASC";
-        sql.append(" ORDER BY ");
-        if ("age".equals(sortBy)) {
-            sql.append(" CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER) " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("avg_length".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(song_stats.total_length, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("avg_plays".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("avg_plays_album".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(album_stats.album_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("birth_date".equals(sortBy)) {
-            sql.append(" a.birth_date " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("death_date".equals(sortBy)) {
-            sql.append(" a.death_date " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("songs".equals(sortBy)) {
-            sql.append(" song_count " + direction + playCountTieBreak);
-        } else if ("featured".equals(sortBy)) {
-            sql.append(" featured_song_count " + direction + playCountTieBreak);
-        } else if ("albums".equals(sortBy)) {
-            sql.append(" album_count " + direction + playCountTieBreak);
-        } else if ("plays".equals(sortBy)) {
-            sql.append(" play_count " + direction + ", a.name ASC");
-        } else if ("time".equals(sortBy)) {
-            sql.append(" time_listened " + direction + playCountTieBreak);
-        } else if ("first_listened".equals(sortBy)) {
-            sql.append(" first_listened " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("last_listened".equals(sortBy)) {
-            sql.append(" last_listened " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("days_listened".equals(sortBy)) {
-            sql.append(" days_listened " + direction + playCountTieBreak);
-        } else if ("weeks_listened".equals(sortBy)) {
-            sql.append(" weeks_listened " + direction + playCountTieBreak);
-        } else if ("months_listened".equals(sortBy)) {
-            sql.append(" months_listened " + direction + playCountTieBreak);
-        } else if ("years_listened".equals(sortBy)) {
-            sql.append(" years_listened " + direction + playCountTieBreak);
-        } else if ("name".equals(sortBy)) {
-            sql.append(" a.name " + direction + ", play_count DESC");
-        } else if ("image_count".equals(sortBy)) {
-            sql.append(" image_count " + direction + playCountTieBreak);
-        } else if ("country".equals(sortBy)) {
-            sql.append(" a.country " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("ethnicity".equals(sortBy)) {
-            sql.append(" e.name " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("featured_artist_count".equals(sortBy)) {
-            sql.append(" featured_artist_count_stat " + direction + playCountTieBreak);
-        } else if ("genre".equals(sortBy)) {
-            sql.append(" gen.name " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("language".equals(sortBy)) {
-            sql.append(" l.name " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("legacy_plays".equals(sortBy)) {
-            sql.append(" robertlover_play_count " + direction + playCountTieBreak);
-        } else if ("primary_plays".equals(sortBy)) {
-            sql.append(" vatito_play_count " + direction + playCountTieBreak);
-        } else if ("solo_songs".equals(sortBy)) {
-            sql.append(" solo_song_count " + direction + playCountTieBreak);
-        } else if ("songs_with_features".equals(sortBy)) {
-            sql.append(" songs_with_feat_count " + direction + playCountTieBreak);
-        } else if ("subgenre".equals(sortBy)) {
-            sql.append(" sg.name " + direction + " NULLS LAST" + playCountTieBreak);
-        } else if ("itunes_presence".equals(sortBy)) {
-            sql.append(" CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST" + playCountTieBreak);
-        } else {
-            sql.append(" a.name " + direction + ", play_count DESC");
-        }
+        appendArtistSortOrder(sql, sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3);
         
         sql.append(" LIMIT ? OFFSET ? ");
         params.add(limit);
@@ -477,6 +415,64 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
                 rs.getObject("itunes_presence_ratio")
             };
         }, params.toArray());
+    }
+
+    private void appendArtistSortOrder(StringBuilder sql, String sortBy, String sortDir,
+                                       String sortBy2, String sortDir2,
+                                       String sortBy3, String sortDir3) {
+        List<String> clauses = new ArrayList<>();
+        List<String> appliedSorts = new ArrayList<>();
+
+        appendArtistSortClause(clauses, appliedSorts, sortBy != null ? sortBy : "name", sortDir);
+        appendArtistSortClause(clauses, appliedSorts, sortBy2, sortDir2);
+        appendArtistSortClause(clauses, appliedSorts, sortBy3, sortDir3);
+
+        clauses.add("play_count DESC");
+        clauses.add("a.name ASC");
+        sql.append(" ORDER BY ").append(String.join(", ", clauses));
+    }
+
+    private void appendArtistSortClause(List<String> clauses, List<String> appliedSorts, String sortBy, String sortDir) {
+        if (sortBy == null || sortBy.isBlank() || appliedSorts.contains(sortBy)) {
+            return;
+        }
+
+        String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
+        String clause = switch (sortBy) {
+            case "age" -> "CAST((julianday(COALESCE(a.death_date, DATE('now'))) - julianday(a.birth_date)) / 365.25 AS INTEGER) " + direction + " NULLS LAST";
+            case "avg_length" -> "CAST(COALESCE(song_stats.total_length, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST";
+            case "avg_plays" -> "CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST";
+            case "avg_plays_album" -> "CAST(COALESCE(play_stats.play_count, 0) AS REAL) / NULLIF(COALESCE(album_stats.album_count, 0), 0) " + direction + " NULLS LAST";
+            case "birth_date" -> "a.birth_date " + direction + " NULLS LAST";
+            case "death_date" -> "a.death_date " + direction + " NULLS LAST";
+            case "songs" -> "song_count " + direction;
+            case "featured" -> "featured_song_count " + direction;
+            case "albums" -> "album_count " + direction;
+            case "plays" -> "play_count " + direction;
+            case "time" -> "time_listened " + direction;
+            case "first_listened" -> "first_listened " + direction + " NULLS LAST";
+            case "last_listened" -> "last_listened " + direction + " NULLS LAST";
+            case "days_listened" -> "days_listened " + direction;
+            case "weeks_listened" -> "weeks_listened " + direction;
+            case "months_listened" -> "months_listened " + direction;
+            case "years_listened" -> "years_listened " + direction;
+            case "image_count" -> "image_count " + direction;
+            case "country" -> "a.country " + direction + " NULLS LAST";
+            case "ethnicity" -> "e.name " + direction + " NULLS LAST";
+            case "featured_artist_count" -> "featured_artist_count_stat " + direction;
+            case "genre" -> "gen.name " + direction + " NULLS LAST";
+            case "language" -> "l.name " + direction + " NULLS LAST";
+            case "legacy_plays" -> "robertlover_play_count " + direction;
+            case "primary_plays" -> "vatito_play_count " + direction;
+            case "solo_songs" -> "solo_song_count " + direction;
+            case "songs_with_features" -> "songs_with_feat_count " + direction;
+            case "subgenre" -> "sg.name " + direction + " NULLS LAST";
+            case "itunes_presence" -> "CAST(COALESCE(itunes_stats.itunes_song_count, 0) AS REAL) * 100.0 / NULLIF(COALESCE(song_stats.song_count, 0), 0) " + direction + " NULLS LAST";
+            default -> "a.name " + direction;
+        };
+
+        clauses.add(clause);
+        appliedSorts.add(sortBy);
     }
     
     @Override

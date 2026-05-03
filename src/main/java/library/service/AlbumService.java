@@ -84,7 +84,10 @@ public class AlbumService {
                                          Integer yearlyChartPeak, Integer yearlyChartYears,
                                          String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
                                          Integer itunesPresenceMin, Integer itunesPresenceMax,
-                                         String sortBy, String sortDir, int page, int perPage) {
+                                         String sortBy, String sortDir,
+                                         String sortBy2, String sortDir2,
+                                         String sortBy3, String sortDir3,
+                                         int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -109,7 +112,7 @@ public class AlbumService {
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
-                sortBy, sortDir, perPage, page * perPage
+                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, perPage, page * perPage
         );
         
         List<AlbumCardDTO> albums = new ArrayList<>();

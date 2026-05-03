@@ -154,6 +154,10 @@ public class AlbumController {
             @RequestParam(required = false) Integer itunesPresenceMax,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) String sortby2,
+            @RequestParam(required = false) String sortdir2,
+            @RequestParam(required = false) String sortby3,
+            @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int perpage,
             Model model) {
@@ -202,7 +206,7 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, page, perpage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
         );
         
         // Get total count for pagination
@@ -359,6 +363,10 @@ public class AlbumController {
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("sortBy2", sortby2);
+        model.addAttribute("sortDir2", sortdir2 != null ? sortdir2 : "asc");
+        model.addAttribute("sortBy3", sortby3);
+        model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("defaultSortBy", "plays");
         
         // Add filter options

@@ -113,9 +113,12 @@ public class PlaylistController {
                 null, null,                 // trackNumber, trackNumberMode
                 null, null, null,           // lengthMin, lengthMax, lengthMode
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks
+                null, null,                 // trlPeak, trlDays
+                null, null,                 // vatosCuntdownPeak, vatosCuntdownDays
+                null, null,                 // billboardPeak, billboardWeeks
                 null, null,                 // seasonalChartPeak, seasonalChartSeasons
                 null, null,                 // yearlyChartPeak, yearlyChartYears
-                "name", "asc", page, perpage
+                "name", "asc", null, null, null, null, page, perpage
         );
     }
 

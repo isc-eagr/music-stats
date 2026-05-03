@@ -409,6 +409,48 @@
                     <!-- GROUP 5: Miscellaneous -->
                     <div class="chip-group-separator" th:if="${trlStats != null or pcStats != null or billboardHot100Stats != null}"></div>
 
+                          <a th:if="${billboardHot100Stats != null and billboardHot100Stats.peakPosition != null}"
+                              th:href="@{/songs(sortby='billboard_peak',sortdir='asc')}"
+                              target="_blank"
+                              class="winning-chip rank-chip billboard-chip"
+                              th:text="'Billboard Peak #' + ${billboardHot100Stats.peakPosition}"
+                              th:title="'Open Songs sorted by Billboard peak'"></a>
+
+                          <a th:if="${billboardHot100Stats != null and billboardHot100Stats.weeksOnChart != null}"
+                              th:href="@{/songs(sortby='billboard_weeks',sortdir='desc')}"
+                              target="_blank"
+                              class="winning-chip rank-chip billboard-chip"
+                              th:text="${billboardHot100Stats.weeksOnChart} + ' Billboard weeks'"
+                              th:title="'Open Songs sorted by Billboard weeks on chart'"></a>
+
+                          <a th:if="${trlStats != null and trlStats.daysOnCountdown != null}"
+                              th:href="@{/songs(sortby='trl_days',sortdir='desc')}"
+                              target="_blank"
+                              class="winning-chip rank-chip trl-chip"
+                              th:text="${trlStats.daysOnCountdown} + ' TRL days'"
+                              th:title="'Open Songs sorted by TRL days on countdown'"></a>
+
+                          <a th:if="${trlStats != null and trlStats.peakPosition != null}"
+                              th:href="@{/songs(sortby='trl_peak',sortdir='asc')}"
+                              target="_blank"
+                              class="winning-chip rank-chip trl-chip"
+                              th:text="'TRL Peak #' + ${trlStats.peakPosition}"
+                              th:title="'Open Songs sorted by TRL peak'"></a>
+
+                          <a th:if="${pcStats != null and pcStats.daysOnCountdown != null}"
+                              th:href="@{/songs(sortby='vatos_cuntdown_days',sortdir='desc')}"
+                              target="_blank"
+                              class="winning-chip rank-chip pc-chip"
+                              th:text="${pcStats.daysOnCountdown} + ' Vato\'s days'"
+                              th:title="'Open Songs sorted by Vato\'s Cuntdown days on countdown'"></a>
+
+                          <a th:if="${pcStats != null and pcStats.peakPosition != null}"
+                              th:href="@{/songs(sortby='vatos_cuntdown_peak',sortdir='asc')}"
+                              target="_blank"
+                              class="winning-chip rank-chip pc-chip"
+                              th:text="'Vato\'s Peak #' + ${pcStats.peakPosition}"
+                              th:title="'Open Songs sorted by Vato\'s Cuntdown peak'"></a>
+
                     <!-- TRL Days chip -->
                     <a th:if="${trlStats != null}"
                        th:href="@{/misc/trl}"

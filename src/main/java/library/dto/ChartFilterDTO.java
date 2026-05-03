@@ -129,6 +129,12 @@ public class ChartFilterDTO {
     // Songs chart performance filters
     private Integer songsWeeklyChartPeak;
     private Integer songsWeeklyChartWeeks;
+    private Integer songsTrlPeak;
+    private Integer songsTrlDays;
+    private Integer songsVatosCuntdownPeak;
+    private Integer songsVatosCuntdownDays;
+    private Integer songsBillboardPeak;
+    private Integer songsBillboardWeeks;
     private Integer songsSeasonalChartPeak;
     private Integer songsSeasonalChartSeasons;
     private Integer songsYearlyChartPeak;
@@ -360,6 +366,24 @@ public class ChartFilterDTO {
     
     public Integer getSongsWeeklyChartWeeks() { return songsWeeklyChartWeeks; }
     public ChartFilterDTO setSongsWeeklyChartWeeks(Integer songsWeeklyChartWeeks) { this.songsWeeklyChartWeeks = songsWeeklyChartWeeks; return this; }
+
+    public Integer getSongsTrlPeak() { return songsTrlPeak; }
+    public ChartFilterDTO setSongsTrlPeak(Integer songsTrlPeak) { this.songsTrlPeak = songsTrlPeak; return this; }
+
+    public Integer getSongsTrlDays() { return songsTrlDays; }
+    public ChartFilterDTO setSongsTrlDays(Integer songsTrlDays) { this.songsTrlDays = songsTrlDays; return this; }
+
+    public Integer getSongsVatosCuntdownPeak() { return songsVatosCuntdownPeak; }
+    public ChartFilterDTO setSongsVatosCuntdownPeak(Integer songsVatosCuntdownPeak) { this.songsVatosCuntdownPeak = songsVatosCuntdownPeak; return this; }
+
+    public Integer getSongsVatosCuntdownDays() { return songsVatosCuntdownDays; }
+    public ChartFilterDTO setSongsVatosCuntdownDays(Integer songsVatosCuntdownDays) { this.songsVatosCuntdownDays = songsVatosCuntdownDays; return this; }
+
+    public Integer getSongsBillboardPeak() { return songsBillboardPeak; }
+    public ChartFilterDTO setSongsBillboardPeak(Integer songsBillboardPeak) { this.songsBillboardPeak = songsBillboardPeak; return this; }
+
+    public Integer getSongsBillboardWeeks() { return songsBillboardWeeks; }
+    public ChartFilterDTO setSongsBillboardWeeks(Integer songsBillboardWeeks) { this.songsBillboardWeeks = songsBillboardWeeks; return this; }
     
     public Integer getSongsSeasonalChartPeak() { return songsSeasonalChartPeak; }
     public ChartFilterDTO setSongsSeasonalChartPeak(Integer songsSeasonalChartPeak) { this.songsSeasonalChartPeak = songsSeasonalChartPeak; return this; }
@@ -416,6 +440,9 @@ public class ChartFilterDTO {
                albumsYearlyChartPeak != null || albumsYearlyChartYears != null ||
                // Songs chart filters
                songsWeeklyChartPeak != null || songsWeeklyChartWeeks != null ||
+               songsTrlPeak != null || songsTrlDays != null ||
+               songsVatosCuntdownPeak != null || songsVatosCuntdownDays != null ||
+               songsBillboardPeak != null || songsBillboardWeeks != null ||
                songsSeasonalChartPeak != null || songsSeasonalChartSeasons != null ||
                songsYearlyChartPeak != null || songsYearlyChartYears != null;
     }

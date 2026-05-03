@@ -42,9 +42,15 @@ public class SongRepository {
                                               Integer trackNumber, String trackNumberMode,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                              Integer trlPeak, Integer trlDays,
+                                              Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                              Integer billboardPeak, Integer billboardWeeks,
                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                               Integer yearlyChartPeak, Integer yearlyChartYears,
-                                              String sortBy, String sortDirection, int limit, int offset) {
+                                               String sortBy, String sortDirection,
+                                               String sortBy2, String sortDirection2,
+                                               String sortBy3, String sortDirection3,
+                                               int limit, int offset) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -118,7 +124,13 @@ public class SongRepository {
                 ar.birth_date,
                 ar.death_date,
                 ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) as image_count,
+                (SELECT MIN(b.peak_position) FROM billboard_hot100_debut b WHERE b.song_id = s.id) as billboard_peak,
+                (SELECT MAX(b.weeks_on_chart) FROM billboard_hot100_debut b WHERE b.song_id = s.id) as billboard_weeks,
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal') as seasonal_chart_peak,
+                (SELECT COUNT(DISTINCT ce.chart_date) FROM trl_chart_entry ce INNER JOIN trl_debut td ON td.id = ce.debut_id WHERE td.song_id = s.id) as trl_days,
+                (SELECT MIN(ce.position) FROM trl_chart_entry ce INNER JOIN trl_debut td ON td.id = ce.debut_id WHERE td.song_id = s.id) as trl_peak,
+                (SELECT COUNT(DISTINCT e.chart_date) FROM vatos_cuntdown_entry e WHERE e.song_id = s.id AND e.is_close_call = 0) as vatos_cuntdown_days,
+                (SELECT MIN(e.position) FROM vatos_cuntdown_entry e WHERE e.song_id = s.id AND e.is_close_call = 0) as vatos_cuntdown_peak,
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_peak,
                 (SELECT COUNT(DISTINCT c.id) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_weeks,
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly') as yearly_chart_peak,
@@ -633,6 +645,10 @@ public class SongRepository {
             }
             sql.append(")");
         }
+
+        appendSongTrlFilter(sql, params, trlPeak, trlDays);
+        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays);
+        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks);
         
         // Seasonal chart filter (peak position <= specified, total seasons >= specified)
         if (seasonalChartPeak != null || seasonalChartSeasons != null) {
@@ -672,51 +688,14 @@ public class SongRepository {
             sql.append(")");
         }
         
-        // Determine sort direction
-        String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
-        String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
-        String playCountTieBreak = ", play_count DESC, s.name";
-        
-        // Sorting with direction
-        switch (sortBy != null ? sortBy : "name") {
-            case "artist" -> sql.append(" ORDER BY ar.name ").append(dir).append(playCountTieBreak);
-            case "album" -> sql.append(" ORDER BY alb.name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "country" -> sql.append(" ORDER BY ar.country ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "ethnicity" -> sql.append(" ORDER BY e.name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "featured_artist_count" -> sql.append(" ORDER BY featured_artist_count ").append(dir).append(playCountTieBreak);
-            case "release_date" -> sql.append(" ORDER BY COALESCE(s.release_date, alb.release_date) ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "genre" -> sql.append(" ORDER BY genre_name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "language" -> sql.append(" ORDER BY language_name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "legacy_plays" -> sql.append(" ORDER BY robertlover_play_count ").append(dir).append(playCountTieBreak);
-            case "length" -> sql.append(" ORDER BY s.length_seconds ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "plays" -> sql.append(" ORDER BY play_count ").append(dir).append(", s.name");
-            case "primary_plays" -> sql.append(" ORDER BY vatito_play_count ").append(dir).append(playCountTieBreak);
-            case "track_number" -> sql.append(" ORDER BY s.track_number ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "subgenre" -> sql.append(" ORDER BY subgenre_name ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "time" -> sql.append(" ORDER BY (s.length_seconds * play_count) ").append(dir).append(playCountTieBreak);
-            case "first_listened" -> sql.append(" ORDER BY first_listened ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "last_listened" -> sql.append(" ORDER BY last_listened ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "days_listened" -> sql.append(" ORDER BY days_listened ").append(dir).append(playCountTieBreak);
-            case "weeks_listened" -> sql.append(" ORDER BY weeks_listened ").append(dir).append(playCountTieBreak);
-            case "months_listened" -> sql.append(" ORDER BY months_listened ").append(dir).append(playCountTieBreak);
-            case "years_listened" -> sql.append(" ORDER BY years_listened ").append(dir).append(playCountTieBreak);
-            case "age_at_release" -> sql.append(" ORDER BY CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "birth_date" -> sql.append(" ORDER BY ar.birth_date ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "death_date" -> sql.append(" ORDER BY ar.death_date ").append(dir).append(" ").append(nullsOrder).append(playCountTieBreak);
-            case "image_count" -> sql.append(" ORDER BY image_count ").append(dir).append(playCountTieBreak);
-            case "seasonal_chart_peak" -> sql.append(" ORDER BY seasonal_chart_peak ").append(dir).append(" NULLS LAST, play_count DESC, seasonal_chart_peak_start_date DESC NULLS LAST, s.name");
-            case "weekly_chart_peak" -> sql.append(" ORDER BY weekly_chart_peak ").append(dir).append(" NULLS LAST, play_count DESC, weekly_chart_peak_start_date DESC NULLS LAST, s.name");
-            case "weekly_chart_weeks" -> sql.append(" ORDER BY weekly_chart_weeks ").append(dir).append(playCountTieBreak);
-            case "yearly_chart_peak" -> sql.append(" ORDER BY yearly_chart_peak ").append(dir).append(" NULLS LAST, play_count DESC, yearly_chart_peak_period DESC NULLS LAST, s.name");
-            default -> sql.append(" ORDER BY s.name ").append(dir).append(", play_count DESC");
-        }
+        appendSongSortOrder(sql, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
         
         sql.append(" LIMIT ? OFFSET ?");
         params.add(limit);
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[50];
+            Object[] row = new Object[56];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -753,22 +732,109 @@ public class SongRepository {
             row[33] = rs.getString("birth_date");
             row[34] = rs.getString("death_date");
             row[35] = rs.getInt("image_count");
-            row[36] = rs.getObject("seasonal_chart_peak");
-            row[37] = rs.getObject("weekly_chart_peak");
-            row[38] = rs.getObject("weekly_chart_weeks");
-            row[39] = rs.getObject("yearly_chart_peak");
-            row[40] = rs.getString("weekly_chart_peak_start_date");
-            row[41] = rs.getString("seasonal_chart_peak_period");
-            row[42] = rs.getString("yearly_chart_peak_period");
-            row[43] = rs.getString("seasonal_chart_peak_start_date");
-            row[44] = rs.getInt("featured_artist_count");
-            row[45] = rs.getObject("age_at_release");
-            row[46] = rs.getObject("weekly_chart_peak_weeks");
-            row[47] = rs.getObject("seasonal_chart_peak_seasons");
-            row[48] = rs.getObject("yearly_chart_peak_years");
-            row[49] = rs.getObject("track_number");
+            row[36] = rs.getObject("billboard_peak");
+            row[37] = rs.getObject("billboard_weeks");
+            row[38] = rs.getObject("seasonal_chart_peak");
+            row[39] = rs.getObject("trl_days");
+            row[40] = rs.getObject("trl_peak");
+            row[41] = rs.getObject("vatos_cuntdown_days");
+            row[42] = rs.getObject("vatos_cuntdown_peak");
+            row[43] = rs.getObject("weekly_chart_peak");
+            row[44] = rs.getObject("weekly_chart_weeks");
+            row[45] = rs.getObject("yearly_chart_peak");
+            row[46] = rs.getString("weekly_chart_peak_start_date");
+            row[47] = rs.getString("seasonal_chart_peak_period");
+            row[48] = rs.getString("yearly_chart_peak_period");
+            row[49] = rs.getString("seasonal_chart_peak_start_date");
+            row[50] = rs.getInt("featured_artist_count");
+            row[51] = rs.getObject("age_at_release");
+            row[52] = rs.getObject("weekly_chart_peak_weeks");
+            row[53] = rs.getObject("seasonal_chart_peak_seasons");
+            row[54] = rs.getObject("yearly_chart_peak_years");
+            row[55] = rs.getObject("track_number");
             return row;
         }, params.toArray());
+    }
+
+    private void appendSongSortOrder(StringBuilder sql, String sortBy, String sortDirection,
+                                     String sortBy2, String sortDirection2,
+                                     String sortBy3, String sortDirection3) {
+        List<String> clauses = new ArrayList<>();
+        List<String> appliedSorts = new ArrayList<>();
+
+        String effectiveSortBy = sortBy != null ? sortBy : "name";
+        boolean hasSecondSort = sortBy2 != null && !sortBy2.isBlank();
+        boolean hasThirdSort = sortBy3 != null && !sortBy3.isBlank();
+
+        appendSongSortClause(clauses, appliedSorts, effectiveSortBy, sortDirection, !hasSecondSort);
+        appendSongSortClause(clauses, appliedSorts, sortBy2, sortDirection2, !hasThirdSort);
+        appendSongSortClause(clauses, appliedSorts, sortBy3, sortDirection3, true);
+
+        clauses.add("play_count DESC");
+        clauses.add("s.name");
+        sql.append(" ORDER BY ").append(String.join(", ", clauses));
+    }
+
+    private void appendSongSortClause(List<String> clauses, List<String> appliedSorts, String sortBy, String sortDirection, boolean allowInternalTieBreakers) {
+        if (sortBy == null || sortBy.isBlank() || appliedSorts.contains(sortBy)) {
+            return;
+        }
+
+        String dir = "desc".equalsIgnoreCase(sortDirection) ? "DESC" : "ASC";
+        String nullsOrder = "desc".equalsIgnoreCase(sortDirection) ? "NULLS LAST" : "NULLS FIRST";
+        String clause = switch (sortBy) {
+            case "artist" -> "ar.name " + dir;
+            case "album" -> "alb.name " + dir + " " + nullsOrder;
+            case "country" -> "ar.country " + dir + " " + nullsOrder;
+            case "ethnicity" -> "e.name " + dir + " " + nullsOrder;
+            case "featured_artist_count" -> "featured_artist_count " + dir;
+            case "release_date" -> "COALESCE(s.release_date, alb.release_date) " + dir + " " + nullsOrder;
+            case "genre" -> "genre_name " + dir + " " + nullsOrder;
+            case "language" -> "language_name " + dir + " " + nullsOrder;
+            case "legacy_plays" -> "robertlover_play_count " + dir;
+            case "length" -> "s.length_seconds " + dir + " " + nullsOrder;
+            case "plays" -> "play_count " + dir;
+            case "primary_plays" -> "vatito_play_count " + dir;
+            case "track_number" -> "s.track_number " + dir + " " + nullsOrder;
+            case "subgenre" -> "subgenre_name " + dir + " " + nullsOrder;
+            case "time" -> "(s.length_seconds * play_count) " + dir;
+            case "first_listened" -> "first_listened " + dir + " " + nullsOrder;
+            case "last_listened" -> "last_listened " + dir + " " + nullsOrder;
+            case "days_listened" -> "days_listened " + dir;
+            case "weeks_listened" -> "weeks_listened " + dir;
+            case "months_listened" -> "months_listened " + dir;
+            case "years_listened" -> "years_listened " + dir;
+            case "age_at_release" -> "CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) " + dir + " " + nullsOrder;
+            case "birth_date" -> "ar.birth_date " + dir + " " + nullsOrder;
+                case "billboard_peak" -> allowInternalTieBreakers
+                    ? "billboard_peak " + dir + " NULLS LAST, billboard_weeks DESC NULLS LAST"
+                    : "billboard_peak " + dir + " NULLS LAST";
+            case "billboard_weeks" -> "billboard_weeks " + dir;
+            case "death_date" -> "ar.death_date " + dir + " " + nullsOrder;
+            case "image_count" -> "image_count " + dir;
+                case "seasonal_chart_peak" -> allowInternalTieBreakers
+                    ? "seasonal_chart_peak " + dir + " NULLS LAST, seasonal_chart_peak_start_date DESC NULLS LAST"
+                    : "seasonal_chart_peak " + dir + " NULLS LAST";
+            case "trl_days" -> "trl_days " + dir;
+                case "trl_peak" -> allowInternalTieBreakers
+                    ? "trl_peak " + dir + " NULLS LAST, trl_days DESC NULLS LAST"
+                    : "trl_peak " + dir + " NULLS LAST";
+                case "weekly_chart_peak" -> allowInternalTieBreakers
+                    ? "weekly_chart_peak " + dir + " NULLS LAST, weekly_chart_peak_start_date DESC NULLS LAST"
+                    : "weekly_chart_peak " + dir + " NULLS LAST";
+            case "weekly_chart_weeks" -> "weekly_chart_weeks " + dir;
+            case "vatos_cuntdown_days" -> "vatos_cuntdown_days " + dir;
+                case "vatos_cuntdown_peak" -> allowInternalTieBreakers
+                    ? "vatos_cuntdown_peak " + dir + " NULLS LAST, vatos_cuntdown_days DESC NULLS LAST"
+                    : "vatos_cuntdown_peak " + dir + " NULLS LAST";
+                case "yearly_chart_peak" -> allowInternalTieBreakers
+                    ? "yearly_chart_peak " + dir + " NULLS LAST, yearly_chart_peak_period DESC NULLS LAST"
+                    : "yearly_chart_peak " + dir + " NULLS LAST";
+            default -> "s.name " + dir;
+        };
+
+        clauses.add(clause);
+        appliedSorts.add(sortBy);
     }
     
     public long countSongsWithFilters(String name, List<Integer> artistName, String albumName,
@@ -793,6 +859,9 @@ public class SongRepository {
                                       Integer trackNumber, String trackNumberMode,
                                       Integer lengthMin, Integer lengthMax, String lengthMode,
                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                      Integer trlPeak, Integer trlDays,
+                                      Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                      Integer billboardPeak, Integer billboardWeeks,
                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                       Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Build account filter subquery for play_stats if we need play count filter
@@ -1341,6 +1410,10 @@ public class SongRepository {
             }
             sql.append(")");
         }
+
+        appendSongTrlFilter(sql, params, trlPeak, trlDays);
+        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays);
+        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks);
         
         // Seasonal chart filter (peak position <= specified, total seasons >= specified)
         if (seasonalChartPeak != null || seasonalChartSeasons != null) {
@@ -1412,6 +1485,9 @@ public class SongRepository {
                                               Integer trackNumber, String trackNumberMode,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                              Integer trlPeak, Integer trlDays,
+                                              Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                              Integer billboardPeak, Integer billboardWeeks,
                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                               Integer yearlyChartPeak, Integer yearlyChartYears) {
         // Build account filter subquery for the play_stats join
@@ -1723,6 +1799,10 @@ public class SongRepository {
             }
             sql.append(")");
         }
+
+        appendSongTrlFilter(sql, params, trlPeak, trlDays);
+        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays);
+        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks);
         
         // Seasonal chart filter
         if (seasonalChartPeak != null || seasonalChartSeasons != null) {
@@ -2460,6 +2540,10 @@ public class SongRepository {
             }
             sql.append(")");
         }
+
+        appendSongTrlFilter(sql, params, filter.getSongsTrlPeak(), filter.getSongsTrlDays());
+        appendSongVatosCuntdownFilter(sql, params, filter.getSongsVatosCuntdownPeak(), filter.getSongsVatosCuntdownDays());
+        appendSongBillboardFilter(sql, params, filter.getSongsBillboardPeak(), filter.getSongsBillboardWeeks());
         
         // Songs Seasonal Chart filter (peak position <= specified, total seasons >= specified)
         Integer songsSeasonalChartPeak = filter.getSongsSeasonalChartPeak();
@@ -7138,6 +7222,12 @@ public class SongRepository {
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal') as seasonal_chart_peak,
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_peak,
                 (SELECT COUNT(DISTINCT c.id) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly') as weekly_chart_weeks,
+                (SELECT MIN(ce.position) FROM trl_chart_entry ce INNER JOIN trl_debut td ON td.id = ce.debut_id WHERE td.song_id = s.id) as trl_peak,
+                (SELECT COUNT(DISTINCT ce.chart_date) FROM trl_chart_entry ce INNER JOIN trl_debut td ON td.id = ce.debut_id WHERE td.song_id = s.id) as trl_days,
+                (SELECT MIN(e.position) FROM vatos_cuntdown_entry e WHERE e.song_id = s.id AND e.is_close_call = 0) as vatos_cuntdown_peak,
+                (SELECT COUNT(DISTINCT e.chart_date) FROM vatos_cuntdown_entry e WHERE e.song_id = s.id AND e.is_close_call = 0) as vatos_cuntdown_days,
+                (SELECT MIN(b.peak_position) FROM billboard_hot100_debut b WHERE b.song_id = s.id) as billboard_peak,
+                (SELECT MAX(b.weeks_on_chart) FROM billboard_hot100_debut b WHERE b.song_id = s.id) as billboard_weeks,
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly') as yearly_chart_peak,
                 COALESCE(play_stats.plays, 0) as plays,
                 COALESCE(play_stats.primary_plays, 0) as primary_plays,
@@ -7238,6 +7328,15 @@ public class SongRepository {
             int songWeeklyPeak = rs.getInt("weekly_chart_peak");
             row.put("weeklyChartPeak", rs.wasNull() ? null : songWeeklyPeak);
             row.put("weeklyChartWeeks", rs.getInt("weekly_chart_weeks"));
+            int trlPeak = rs.getInt("trl_peak");
+            row.put("trlPeak", rs.wasNull() ? null : trlPeak);
+            row.put("trlDays", rs.getInt("trl_days"));
+            int vatosCuntdownPeak = rs.getInt("vatos_cuntdown_peak");
+            row.put("vatosCuntdownPeak", rs.wasNull() ? null : vatosCuntdownPeak);
+            row.put("vatosCuntdownDays", rs.getInt("vatos_cuntdown_days"));
+            int billboardPeak = rs.getInt("billboard_peak");
+            row.put("billboardPeak", rs.wasNull() ? null : billboardPeak);
+            row.put("billboardWeeks", rs.getInt("billboard_weeks"));
             int songYearlyPeak = rs.getInt("yearly_chart_peak");
             row.put("yearlyChartPeak", rs.wasNull() ? null : songYearlyPeak);
             row.put("plays", rs.getLong("plays"));
@@ -7280,6 +7379,70 @@ public class SongRepository {
             
             return row;
         }, finalParams.toArray());
+    }
+
+    private void appendSongTrlFilter(StringBuilder sql, List<Object> params, Integer peak, Integer days) {
+        if (peak == null && days == null) {
+            return;
+        }
+
+        sql.append(" AND EXISTS (SELECT 1 FROM (");
+        sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT ce.chart_date) as days ");
+        sql.append("FROM trl_chart_entry ce ");
+        sql.append("INNER JOIN trl_debut td ON td.id = ce.debut_id ");
+        sql.append("WHERE td.song_id = s.id");
+        sql.append(") countdown_stats WHERE 1=1");
+        if (peak != null) {
+            sql.append(" AND countdown_stats.peak <= ?");
+            params.add(peak);
+        }
+        if (days != null) {
+            sql.append(" AND countdown_stats.days >= ?");
+            params.add(days);
+        }
+        sql.append(")");
+    }
+
+    private void appendSongVatosCuntdownFilter(StringBuilder sql, List<Object> params, Integer peak, Integer days) {
+        if (peak == null && days == null) {
+            return;
+        }
+
+        sql.append(" AND EXISTS (SELECT 1 FROM (");
+        sql.append("SELECT MIN(e.position) as peak, COUNT(DISTINCT e.chart_date) as days ");
+        sql.append("FROM vatos_cuntdown_entry e ");
+        sql.append("WHERE e.song_id = s.id AND e.is_close_call = 0");
+        sql.append(") countdown_stats WHERE 1=1");
+        if (peak != null) {
+            sql.append(" AND countdown_stats.peak <= ?");
+            params.add(peak);
+        }
+        if (days != null) {
+            sql.append(" AND countdown_stats.days >= ?");
+            params.add(days);
+        }
+        sql.append(")");
+    }
+
+    private void appendSongBillboardFilter(StringBuilder sql, List<Object> params, Integer peak, Integer weeks) {
+        if (peak == null && weeks == null) {
+            return;
+        }
+
+        sql.append(" AND EXISTS (SELECT 1 FROM (");
+        sql.append("SELECT MIN(b.peak_position) as peak, MAX(b.weeks_on_chart) as weeks ");
+        sql.append("FROM billboard_hot100_debut b ");
+        sql.append("WHERE b.song_id = s.id");
+        sql.append(") countdown_stats WHERE 1=1");
+        if (peak != null) {
+            sql.append(" AND countdown_stats.peak <= ?");
+            params.add(peak);
+        }
+        if (weeks != null) {
+            sql.append(" AND countdown_stats.weeks >= ?");
+            params.add(weeks);
+        }
+        sql.append(")");
     }
     
     private java.util.List<java.util.Map<String, Object>> getTopArtistsFiltered(String filterClause, java.util.List<Object> filterParams, String listenedDateFrom, String listenedDateTo, int limit) {

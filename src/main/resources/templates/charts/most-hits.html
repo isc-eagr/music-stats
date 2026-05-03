@@ -147,6 +147,16 @@
             margin-left: 4px;
             opacity: 0.5;
         }
+
+        .results-table th a.sort-link {
+            color: inherit;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .results-table th a.sort-link:hover {
+            color: #fff;
+        }
         
         .results-table tbody tr:hover {
             background: #151515;
@@ -250,16 +260,16 @@
             
             <!-- Position tabs -->
             <div class="position-tabs">
-                <a th:href="@{/charts/most-hits(position=1, year=${selectedYear})}"
+                <a th:href="@{/charts/most-hits(position=1, year=${selectedYear}, sort=${selectedSort}, dir=${selectedDir})}"
                    class="position-tab"
                    th:classappend="${selectedPosition == 1} ? 'active' : ''">#1</a>
-                <a th:href="@{/charts/most-hits(position=5, year=${selectedYear})}"
+                <a th:href="@{/charts/most-hits(position=5, year=${selectedYear}, sort=${selectedSort}, dir=${selectedDir})}"
                    class="position-tab"
                    th:classappend="${selectedPosition == 5} ? 'active' : ''">Top 5</a>
-                <a th:href="@{/charts/most-hits(position=10, year=${selectedYear})}"
+                <a th:href="@{/charts/most-hits(position=10, year=${selectedYear}, sort=${selectedSort}, dir=${selectedDir})}"
                    class="position-tab"
                    th:classappend="${selectedPosition == 10} ? 'active' : ''">Top 10</a>
-                <a th:href="@{/charts/most-hits(position=20, year=${selectedYear})}"
+                <a th:href="@{/charts/most-hits(position=20, year=${selectedYear}, sort=${selectedSort}, dir=${selectedDir})}"
                    class="position-tab"
                    th:classappend="${selectedPosition == 20} ? 'active' : ''">Top 20</a>
             </div>
@@ -279,17 +289,37 @@
         </div>
         
         <!-- Results table -->
-        <div class="results-table-container" th:if="${not #lists.isEmpty(entries)}">
+        <div class="results-table-container"
+             th:if="${not #lists.isEmpty(entries)}"
+             id="results-container"
+             th:data-total="${totalCount}"
+             th:data-page-size="${pageSize}"
+             th:data-position="${selectedPosition}"
+             th:data-year="${selectedYear != null ? selectedYear : ''}"
+             th:data-sort="${selectedSort}"
+             th:data-dir="${selectedDir}">
             <table class="results-table">
                 <thead>
                     <tr>
-                        <th class="col-rank"># <span class="sort-icon">↕</span></th>
-                        <th class="col-artist">Artist <span class="sort-icon">↕</span></th>
-                        <th class="col-songs">Songs <span class="sort-icon">↕</span></th>
-                        <th class="col-weeks">Total Weeks <span class="sort-icon">↕</span></th>
+                        <th class="col-rank">#</th>
+                        <th class="col-artist">
+                            <a th:href="@{/charts/most-hits(position=${selectedPosition},year=${selectedYear},sort='artist',dir=${selectedSort == 'artist' ? (selectedDir == 'asc' ? 'desc' : 'asc') : 'asc'})}" class="sort-link">
+                                Artist <span class="sort-icon" th:text="${selectedSort == 'artist' ? (selectedDir == 'asc' ? '▲' : '▼') : '↕'}"></span>
+                            </a>
+                        </th>
+                        <th class="col-songs">
+                            <a th:href="@{/charts/most-hits(position=${selectedPosition},year=${selectedYear},sort='songs',dir=${selectedSort == 'songs' ? (selectedDir == 'desc' ? 'asc' : 'desc') : 'desc'})}" class="sort-link">
+                                Songs <span class="sort-icon" th:text="${selectedSort == 'songs' ? (selectedDir == 'desc' ? '▼' : '▲') : '↕'}"></span>
+                            </a>
+                        </th>
+                        <th class="col-weeks">
+                            <a th:href="@{/charts/most-hits(position=${selectedPosition},year=${selectedYear},sort='weeks',dir=${selectedSort == 'weeks' ? (selectedDir == 'desc' ? 'asc' : 'desc') : 'desc'})}" class="sort-link">
+                                Total Weeks <span class="sort-icon" th:text="${selectedSort == 'weeks' ? (selectedDir == 'desc' ? '▼' : '▲') : '↕'}"></span>
+                            </a>
+                        </th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="results-tbody">
                     <tr th:each="entry : ${entries}"
                         th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                         <td class="col-rank" th:text="${entry.rank}">1</td>
@@ -314,6 +344,8 @@
                 </tbody>
             </table>
         </div>
+        <div id="infinite-scroll-sentinel" style="height:1px;"></div>
+        <div id="loading-more" style="display:none; text-align:center; padding:16px; color:#888; font-size:0.9rem;">Loading...</div>
         
         <!-- Empty state -->
         <div class="empty-state" th:if="${#lists.isEmpty(entries)}">
@@ -325,13 +357,90 @@
     <script th:inline="javascript">
         function navigateToYear(year) {
             const position = /*[[${selectedPosition}]]*/ 1;
-            
-            let url = '/charts/most-hits?position=' + position;
+            const sort     = /*[[${selectedSort}]]*/ 'songs';
+            const dir      = /*[[${selectedDir}]]*/ 'desc';
+            let url = '/charts/most-hits?position=' + position + '&sort=' + sort + '&dir=' + dir;
             if (year && year !== '') {
                 url += '&year=' + encodeURIComponent(year);
             }
             window.location.href = url;
         }
+
+        // Infinite scroll
+        (function() {
+            const container = document.getElementById('results-container');
+            if (!container) return;
+
+            const totalCount  = parseInt(container.dataset.total);
+            const pageSize    = parseInt(container.dataset.pageSize);
+            const position    = container.dataset.position;
+            const year        = container.dataset.year;
+            const sort        = container.dataset.sort;
+            const dir         = container.dataset.dir;
+            const initialRows = /*[[${#lists.size(entries)}]]*/ 0;
+
+            let currentPage = 1;
+            let loadedCount = initialRows;
+            let isLoading   = false;
+
+            if (loadedCount >= totalCount) return;
+
+            const tbody     = document.getElementById('results-tbody');
+            const loadingEl = document.getElementById('loading-more');
+            const sentinel  = document.getElementById('infinite-scroll-sentinel');
+
+            function escHtml(s) {
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function buildRow(entry) {
+                const gStyle = entry.genderId === 1
+                    ? 'background:rgba(236,72,153,0.15);border-left:3px solid rgba(236,72,153,0.6);'
+                    : entry.genderId === 2
+                    ? 'background:rgba(59,130,246,0.15);border-left:3px solid rgba(59,130,246,0.6);'
+                    : '';
+                const imgHtml = entry.hasImage
+                    ? `<img src="/artists/${entry.artistId}/image" alt="" class="artist-image">`
+                    : `<div class="artist-placeholder"><span>&#127908;</span></div>`;
+                return `<tr style="${gStyle}">`
+                     + `<td class="col-rank">${entry.rank}</td>`
+                     + `<td class="col-artist"><div class="artist-cell">${imgHtml}`
+                     + `<a href="/artists/${entry.artistId}" class="artist-link">${escHtml(entry.artistName)}</a>`
+                     + `</div></td>`
+                     + `<td class="col-songs">${entry.songsCount}</td>`
+                     + `<td class="col-weeks">${entry.totalWeeks}</td>`
+                     + `</tr>`;
+            }
+
+            async function loadMore() {
+                if (isLoading || loadedCount >= totalCount) return;
+                isLoading = true;
+                loadingEl.style.display = 'block';
+                try {
+                    let url = `/charts/most-hits/data?position=${position}&page=${currentPage}&size=${pageSize}&sort=${encodeURIComponent(sort)}&dir=${encodeURIComponent(dir)}`;
+                    if (year) url += `&year=${encodeURIComponent(year)}`;
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    const html = data.entries.map(buildRow).join('');
+                    tbody.insertAdjacentHTML('beforeend', html);
+                    loadedCount += data.entries.length;
+                    currentPage++;
+                } catch (e) {
+                    console.error('Error loading more entries:', e);
+                } finally {
+                    isLoading = false;
+                    loadingEl.style.display = 'none';
+                }
+            }
+
+            new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) loadMore();
+            }, { rootMargin: '300px' }).observe(sentinel);
+        })();
     </script>
 </body>
 </html>
