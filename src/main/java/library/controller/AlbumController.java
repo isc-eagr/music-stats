@@ -7,8 +7,11 @@ import library.entity.Artist;
 import library.repository.LookupRepository;
 import library.service.AlbumService;
 import library.service.ArtistService;
+import library.service.BillboardHot100Service;
 import library.service.ChartService;
 import library.service.ItunesService;
+import library.service.PcService;
+import library.service.TrlService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,13 +35,21 @@ public class AlbumController {
     private final ArtistService artistService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
+    private final BillboardHot100Service billboardHot100Service;
+    private final PcService pcService;
+    private final TrlService trlService;
 
-    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService, LookupRepository lookupRepository, ItunesService itunesService) {
+    public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService,
+                           LookupRepository lookupRepository, ItunesService itunesService,
+                           BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService) {
         this.albumService = albumService;
         this.chartService = chartService;
         this.artistService = artistService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
+        this.billboardHot100Service = billboardHot100Service;
+        this.pcService = pcService;
+        this.trlService = trlService;
     }
     
     @InitBinder
@@ -534,9 +545,14 @@ public class AlbumController {
         // Always load chart history data (eager loading for all tabs)
         model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
         model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
+        model.addAttribute("allSongsWeeklyStats", chartService.getAlbumAllSongsWithWeeklyStats(id));
         // Songs' seasonal/yearly chart history
         model.addAttribute("seasonalSongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "seasonal"));
         model.addAttribute("yearlySongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "yearly"));
+        // Historical chart data (BB, PC, TRL)
+        model.addAttribute("bbChartedSongs", billboardHot100Service.getChartedSongsByAlbumId(id));
+        model.addAttribute("pcChartedSongs", pcService.getChartedSongsByAlbumId(id));
+        model.addAttribute("trlChartedSongs", trlService.getChartedSongsByAlbumId(id));
         
         // Add ranking chips data - optimized single query
         java.util.Map<String, Integer> rankings = albumService.getAllAlbumRankings(id);

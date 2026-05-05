@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import library.service.ChartService;
+import library.service.PcService;
+import library.service.TrlService;
+import library.dto.WeeklyChartStatsDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,13 +28,17 @@ public class NowPlayingLookupController {
     private final SongService songService;
     private final ChartService chartService;
     private final BillboardHot100Service billboardHot100Service;
+    private final PcService pcService;
+    private final TrlService trlService;
 
-    public NowPlayingLookupController(SongRepository songRepository, JdbcTemplate jdbcTemplate, SongService songService, ChartService chartService, BillboardHot100Service billboardHot100Service) {
+    public NowPlayingLookupController(SongRepository songRepository, JdbcTemplate jdbcTemplate, SongService songService, ChartService chartService, BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService) {
         this.songRepository = songRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.songService = songService;
         this.chartService = chartService;
         this.billboardHot100Service = billboardHot100Service;
+        this.pcService = pcService;
+        this.trlService = trlService;
     }
 
     @GetMapping("/lookup")
@@ -314,6 +321,21 @@ public class NowPlayingLookupController {
                     resp.put("billboardHot100Stats", billboardHot100Stats);
                 } catch (Exception e) {}
 
+                try {
+                    WeeklyChartStatsDTO weeklyStats = chartService.getSongWeeklyChartStats(songId);
+                    if (weeklyStats != null && weeklyStats.hasCharted()) resp.put("weeklyChartStats", weeklyStats);
+                } catch (Exception e) {}
+
+                try {
+                    Map<String, Object> pcStats = pcService.getPcStatsBySongId(songId);
+                    if (pcStats != null) resp.put("pcStats", pcStats);
+                } catch (Exception e) {}
+
+                try {
+                    Map<String, Object> trlStats = trlService.getTrlStatsBySongId(songId);
+                    if (trlStats != null) resp.put("trlStats", trlStats);
+                } catch (Exception e) {}
+
                 Integer overall = songService.getSongOverallPosition(songId);
                 Integer rankArtist = songService.getSongRankByArtist(songId);
                 Integer rankAlbum = songService.getSongRankByAlbum(songId);
@@ -572,23 +594,30 @@ public class NowPlayingLookupController {
             h.append(".card{background:var(--card);border:1px solid rgba(255,255,255,.05);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)}");
             h.append(".title{font-size:20px;font-weight:700;color:#fff;margin:0 0 4px;line-height:1.2}");
             h.append(".sub{font-size:15px;color:var(--muted);margin:0 0 16px}");
-            h.append(".chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}");
-            h.append(".chip{background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px}");
+            h.append(".chips{display:block;margin-bottom:16px}");
+            h.append(".chip{background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin:0 6px 6px 0}");
             h.append(".chip .val{font-weight:700;color:var(--accent)}");
             h.append(".chip-link{text-decoration:none}");
-            h.append(".chip-billboard{background:rgba(126,208,255,0.08);border:1px solid rgba(126,208,255,0.45)}");
-            h.append(".chip-billboard .val{color:#7ed0ff}");
-            h.append(".chip-proj{background:var(--chip-bg);border:1px dashed var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px}");
+            h.append(".chip-proj{background:var(--chip-bg);border:1px dashed var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin:0 6px 6px 0}");
             h.append(".chip-proj .val{font-weight:600;color:var(--accent)}");
-            h.append(".chip-yearly{background:linear-gradient(135deg, var(--chip-bg), var(--accent));border:1px solid var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;font-weight:700;box-shadow:0 0 12px var(--chip-border)}");
-            h.append(".chip-yearly .val{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6)}");
+            h.append(".chip-yearly{color:#fff;background:linear-gradient(135deg, rgba(20,12,0,0.65), rgba(255,215,0,0.25))!important;border:1px solid rgba(255,215,0,0.8)!important;border-radius:6px;padding:6px 10px;font-size:13px;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;font-weight:700!important;box-shadow:0 0 12px rgba(255,215,0,0.5)!important;margin:0 6px 6px 0;border-style:solid!important}");
+            h.append(".chip-yearly .val{color:#ffe680!important;text-shadow:0 1px 3px rgba(0,0,0,0.6)}");
             h.append(".date-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}");
             h.append(".date-tile{background:var(--chip-bg);padding:12px 8px;border-radius:8px;text-align:center;border:1px solid var(--chip-border)}");
             h.append(".date-tile .num{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px}");
             h.append(".date-tile .lbl{font-size:11px;color:var(--muted);text-transform:uppercase}");
             h.append("a.header-link{color:var(--accent);text-decoration:none;transition:opacity 0.2s}");
             h.append("a.header-link:hover{opacity:0.8}");
-            h.append(".small-muted{color:var(--muted);font-size:12px;margin:16px 0 8px}</style>");
+            h.append(".small-muted{color:var(--muted);font-size:12px;margin:16px 0 8px}");
+            h.append(".rank-arrow{color:var(--muted);font-size:11px;margin:0 2px}");
+            h.append(".proj-val{font-weight:600;color:rgba(255,255,255,0.65);font-size:12px}");
+            h.append(".rank-delta{font-size:11px;font-weight:700}");
+            h.append(".rank-delta.up{color:#4ade80}");
+            h.append(".rank-delta.down{color:#f87171}");
+            h.append(".chip-new{background:var(--chip-bg);border:1px dashed var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;color:#fff;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin:0 6px 6px 0}");
+            h.append(".new-badge{font-size:10px;color:var(--accent);font-weight:600;opacity:0.8}");
+            h.append(".chip-peak-one{color:#fff!important;background:linear-gradient(135deg, rgba(20,12,0,0.65), rgba(255,215,0,0.25))!important;border:1px solid rgba(255,215,0,0.8)!important;font-weight:700!important;box-shadow:0 0 12px rgba(255,215,0,0.5)!important;border-style:solid!important}");
+            h.append(".chip-peak-one .val{color:#ffe680!important;text-shadow:0 1px 3px rgba(0,0,0,0.6)}</style>");
             
             h.append("</head><body><div class=\"card\">\n");
             String songHtml = !songUrlS.isEmpty() ? "<a class=\"header-link\" href=\"" + songUrlS + "\">" + trueSong + "</a>" : trueSong;
@@ -613,19 +642,61 @@ public class NowPlayingLookupController {
             h.append("<div class=\"date-tile\"><div class=\"num\">").append(last).append("</div><div class=\"lbl\">Last Listened</div></div>");
             h.append("</div>");
 
-            // Current Ranks Section
+            // Combined Ranks Section (current + projected together)
             h.append("<div class=\"chips\">");
-            
+
+            appendCombinedChipHTML(h, overall, overallIf, "Overall");
+            appendCombinedChipHTML(h, rankArtist, rankArtistIf, trueArtist);
+            appendCombinedChipHTML(h, rankAlbum, rankAlbumIf, trueAlbum);
+            appendCombinedChipHTML(h, rankGender, rankGenderIf, genderName);
+            appendCombinedChipHTML(h, rankGenre, rankGenreIf, genreName);
+            appendCombinedChipHTML(h, rankSubgenre, rankSubgenreIf, subgenreName);
+            appendCombinedChipHTML(h, rankLanguage, rankLanguageIf, languageName);
+            appendCombinedChipHTML(h, rankCountry, rankCountryIf, countryName);
+            appendCombinedChipHTML(h, rankSpanishRap, rankSpanishRapIf, "Spanish Rap");
+            if (!rankRelYear.isEmpty() || !rankRelYearIf.isEmpty()) {
+                if (!relYearStr.isEmpty()) appendCombinedChipHTML(h, rankRelYear, rankRelYearIf, "released in " + relYearStr);
+            }
+            if (!rankCurYear.isEmpty() || !rankCurYearIf.isEmpty()) {
+                if (!curYearStr.isEmpty()) appendCombinedChipHTML(h, rankCurYear, rankCurYearIf, "most listened in " + curYearStr);
+            }
+            h.append("</div>");
+
+            // Chart Filter Chips Group (separated with spacing)
+            h.append("<div class=\"chips\" style=\"margin-top:16px;padding-top:16px;border-top:1px solid rgba(200,200,200,0.15)\">");
+
             Object rawChart = resp.get("yearlyChartHistory");
             if (rawChart instanceof List) {
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> chartList = (List<Map<String, Object>>) rawChart;
                 for (Map<String, Object> map : chartList) {
                     if (map != null && map.containsKey("displayName")) {
-                        h.append("<div class=\"chip-yearly\">")
-                         .append("<span class=\"val\">").append("⭐ ").append(safe(map.get("displayName")))
+                        String disp = safe(map.get("displayName"));
+                        String formattedDisp = escapeHtml(disp).replaceAll("^(#[0-9]+)", "<span class=\"val\">$1</span>");
+                        h.append("<div class=\"chip-yearly\"><span>")
+                         .append("\u2b50 ").append(formattedDisp)
                          .append("</span></div>");
                     }
+                }
+            }
+
+            Object rawWeeklyStats = resp.get("weeklyChartStats");
+            if (rawWeeklyStats instanceof WeeklyChartStatsDTO weeklyStats) {
+                int totalWeeks = weeklyStats.getTotalWeeks() != null ? weeklyStats.getTotalWeeks() : 0;
+                Integer peakPos = weeklyStats.getPeakPosition();
+                Integer weeksAtPeakW = weeklyStats.getWeeksAtPeak();
+                if (totalWeeks > 0 && peakPos != null) {
+                    String weeklyPeakOne = peakPos == 1 ? " chip-peak-one" : "";
+                    h.append("<a class=\"chip chip-link").append(weeklyPeakOne).append("\" href=\"").append(base).append("/charts/weekly\" target=\"_blank\"><span>");
+                    if (peakPos == 1) h.append("\u2b50 ");
+                    h.append("<span class=\"val\">").append(totalWeeks).append("</span> weeks on the Weekly Chart");
+                    h.append(" (Peak <span class=\"val\">#").append(peakPos).append("</span>");
+                    if (weeksAtPeakW != null) {
+                        h.append(" for <span class=\"val\">").append(weeksAtPeakW).append("</span> ").append(weeksAtPeakW == 1 ? "week)" : "weeks)");
+                    } else {
+                        h.append(")");
+                    }
+                    h.append("</span></a>");
                 }
             }
 
@@ -635,48 +706,72 @@ public class NowPlayingLookupController {
                 String peakPosition = safe(billboardStats.get("peakPosition"));
                 String weeksAtPeak = safe(billboardStats.get("weeksAtPeak"));
                 if (!weeksOnChart.isEmpty()) {
-                    String billboardText = weeksOnChart + " weeks on the Hot 100";
+                    String billboardPeakOne = "1".equals(peakPosition) ? " chip-peak-one" : "";
+                    h.append("<a class=\"chip chip-link").append(billboardPeakOne).append("\" href=\"").append(base).append("/misc/billboard-hot-100\" target=\"_blank\"><span>");
+                    if ("1".equals(peakPosition)) h.append("\u2b50 ");
+                    h.append("<span class=\"val\">").append(escapeHtml(weeksOnChart)).append("</span> weeks on the Hot 100");
                     if (!peakPosition.isEmpty()) {
-                        billboardText += " (Peak #" + peakPosition;
+                        h.append(" (Peak <span class=\"val\">#").append(escapeHtml(peakPosition)).append("</span>");
                         if (!weeksAtPeak.isEmpty() && !"0".equals(weeksAtPeak)) {
-                            billboardText += " for " + weeksAtPeak + ("1".equals(weeksAtPeak) ? " week)" : " weeks)");
+                            h.append(" for <span class=\"val\">").append(escapeHtml(weeksAtPeak)).append("</span> ").append("1".equals(weeksAtPeak) ? "week)" : "weeks)");
                         } else {
-                            billboardText += ")";
+                            h.append(")");
                         }
                     }
-                    h.append("<a class=\"chip chip-link chip-billboard\" href=\"").append(base).append("/misc/billboard-hot-100\" target=\"_blank\"><span class=\"val\">")
-                     .append(escapeHtml(billboardText))
-                     .append("</span></a>");
+                    h.append("</span></a>");
                 }
             }
 
-            appendChipHTML(h, overall, "Overall", false, null);
-            appendChipHTML(h, rankArtist, trueArtist, false, null);
-            appendChipHTML(h, rankAlbum, trueAlbum, false, null);
-            appendChipHTML(h, rankGender, genderName, false, null);
-            appendChipHTML(h, rankGenre, genreName, false, null);
-            appendChipHTML(h, rankSubgenre, subgenreName, false, null);
-            appendChipHTML(h, rankLanguage, languageName, false, null);
-            appendChipHTML(h, rankCountry, countryName, false, null);
-            appendChipHTML(h, rankSpanishRap, "Spanish Rap", false, null);
-            if (!rankRelYear.isEmpty() && !relYearStr.isEmpty()) appendChipHTML(h, rankRelYear, "released in " + relYearStr, false, null);
-            if (!rankCurYear.isEmpty() && !curYearStr.isEmpty()) appendChipHTML(h, rankCurYear, "most listened in " + curYearStr, false, null);
-            h.append("</div>");
+            Object rawPcStats = resp.get("pcStats");
+            if (rawPcStats instanceof Map<?, ?> pcStats) {
+                Object daysObj = pcStats.get("daysOnCountdown");
+                Object peakObj = pcStats.get("peakPosition");
+                Object daysAtPeakObj = pcStats.get("daysAtPeak");
+                if (daysObj != null) {
+                    String daysStr = daysObj.toString();
+                    String peakStr = peakObj != null ? peakObj.toString() : "";
+                    String daysAtPeakStr = daysAtPeakObj != null ? daysAtPeakObj.toString() : "";
+                    String pcPeakOne = "1".equals(peakStr) ? " chip-peak-one" : "";
+                    h.append("<a class=\"chip chip-link").append(pcPeakOne).append("\" href=\"").append(base).append("/misc/vatos-cuntdown\" target=\"_blank\"><span>");
+                    if ("1".equals(peakStr)) h.append("\u2b50 ");
+                    h.append("<span class=\"val\">").append(escapeHtml(daysStr)).append("</span> Days on Vato's Cuntdown");
+                    if (!peakStr.isEmpty()) {
+                        h.append(" (Peak <span class=\"val\">#").append(escapeHtml(peakStr)).append("</span>");
+                        if (!daysAtPeakStr.isEmpty()) {
+                             h.append(" for <span class=\"val\">").append(escapeHtml(daysAtPeakStr)).append("</span> ").append("1".equals(daysAtPeakStr) ? "day)" : "days)");
+                        } else {
+                            h.append(")");
+                        }
+                    }
+                    h.append("</span></a>");
+                }
+            }
 
-            // Projected section
-            h.append("<div class=\"small-muted\">If this play is recorded:</div>");
-            h.append("<div class=\"chips\">");
-            appendChipHTML(h, overallIf, "Overall", true, overall);
-            appendChipHTML(h, rankArtistIf, trueArtist, true, rankArtist);
-            appendChipHTML(h, rankAlbumIf, trueAlbum, true, rankAlbum);
-            appendChipHTML(h, rankGenderIf, genderName, true, rankGender);
-            appendChipHTML(h, rankGenreIf, genreName, true, rankGenre);
-            appendChipHTML(h, rankSubgenreIf, subgenreName, true, rankSubgenre);
-            appendChipHTML(h, rankLanguageIf, languageName, true, rankLanguage);
-            appendChipHTML(h, rankCountryIf, countryName, true, rankCountry);
-            appendChipHTML(h, rankSpanishRapIf, "Spanish Rap", true, rankSpanishRap);
-            if (!rankRelYearIf.isEmpty() && !relYearStr.isEmpty()) appendChipHTML(h, rankRelYearIf, "released in " + relYearStr, true, rankRelYear);
-            if (!rankCurYearIf.isEmpty() && !curYearStr.isEmpty()) appendChipHTML(h, rankCurYearIf, "most listened in " + curYearStr, true, rankCurYear);
+            Object rawTrlStats = resp.get("trlStats");
+            if (rawTrlStats instanceof Map<?, ?> trlStats) {
+                Object daysObj = trlStats.get("daysOnCountdown");
+                Object peakObj = trlStats.get("peakPosition");
+                Object daysAtPeakObj = trlStats.get("daysAtPeak");
+                if (daysObj != null) {
+                    String daysStr = daysObj.toString();
+                    String peakStr = peakObj != null ? peakObj.toString() : "";
+                    String daysAtPeakStr = daysAtPeakObj != null ? daysAtPeakObj.toString() : "";
+                    String trlPeakOne = "1".equals(peakStr) ? " chip-peak-one" : "";
+                    h.append("<a class=\"chip chip-link").append(trlPeakOne).append("\" href=\"").append(base).append("/misc/trl\" target=\"_blank\"><span>");
+                    if ("1".equals(peakStr)) h.append("\u2b50 ");
+                    h.append("<span class=\"val\">").append(escapeHtml(daysStr)).append("</span> Days on TRL");
+                    if (!peakStr.isEmpty()) {
+                        h.append(" (Peak <span class=\"val\">#").append(escapeHtml(peakStr)).append("</span>");
+                        if (!daysAtPeakStr.isEmpty()) {
+                            h.append(" for <span class=\"val\">").append(escapeHtml(daysAtPeakStr)).append("</span> ").append("1".equals(daysAtPeakStr) ? "day)" : "days)");
+                        } else {
+                            h.append(")");
+                        }
+                    }
+                    h.append("</span></a>");
+                }
+            }
+
             h.append("</div>");
 
             h.append("</div></body></html>");
@@ -687,26 +782,36 @@ public class NowPlayingLookupController {
         return resp;
     }
 
-    private void appendChipHTML(StringBuilder sb, String rank, String name, boolean isProjected, String currentRank) {
-        if (rank == null || rank.isEmpty()) return;
+    private void appendCombinedChipHTML(StringBuilder sb, String currentRank, String projectedRank, String name) {
         if (name == null || name.isEmpty() || "null".equalsIgnoreCase(name)) return;
+        boolean hasCurrent = currentRank != null && !currentRank.isEmpty();
+        boolean hasProjected = projectedRank != null && !projectedRank.isEmpty();
+        if (!hasCurrent && !hasProjected) return;
 
-        String diffHtml = "";
-        if (isProjected && currentRank != null && !currentRank.isEmpty()) {
-            try {
-                int curr = Integer.parseInt(currentRank);
-                int proj = Integer.parseInt(rank);
-                int diff = curr - proj;
-                if (diff > 0) {
-                    diffHtml = "<span style=\"color:#4ade80;font-size:12px;margin-left:4px;font-weight:700;\">▲" + diff + "</span>";
-                }
-            } catch (Exception ignored) { }
-        }
-
-        if (isProjected) {
-            sb.append("<div class=\"chip-proj\"><span class=\"val\">#").append(rank).append("</span> ").append(name).append(diffHtml).append("</div>");
+        if (hasCurrent) {
+            String projHtml = "";
+            if (hasProjected && !projectedRank.equals(currentRank)) {
+                try {
+                    int curr = Integer.parseInt(currentRank);
+                    int proj = Integer.parseInt(projectedRank);
+                    int diff = curr - proj;
+                    if (diff > 0) {
+                        projHtml = " <span class=\"rank-arrow\">\u2192</span>"
+                                 + " <span class=\"proj-val\">#" + projectedRank + "</span>"
+                                 + " <span class=\"rank-delta up\">\u25b2" + diff + "</span>";
+                    } else if (diff < 0) {
+                        projHtml = " <span class=\"rank-arrow\">\u2192</span>"
+                                 + " <span class=\"proj-val\">#" + projectedRank + "</span>"
+                                 + " <span class=\"rank-delta down\">\u25bc" + Math.abs(diff) + "</span>";
+                    }
+                } catch (Exception ignored) { }
+            }
+            sb.append("<div class=\"chip\"><span class=\"val\">#").append(currentRank).append("</span> ")
+              .append(name).append(projHtml).append("</div>");
         } else {
-            sb.append("<div class=\"chip\"><span class=\"val\">#").append(rank).append("</span> ").append(name).append("</div>");
+            // New entry: would rank for the first time if this play is recorded
+            sb.append("<div class=\"chip chip-new\"><span class=\"proj-val\">#").append(projectedRank).append("</span> ")
+              .append(name).append(" <span class=\"new-badge\">new</span></div>");
         }
     }
 

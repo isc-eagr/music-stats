@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class BillboardHot100Service {
@@ -695,6 +696,27 @@ public class BillboardHot100Service {
         }, chartDate, chartDate, chartDate, chartDate);
     }
 
+    public List<Map<String, Object>> getFallOffsForDate(String chartDate) {
+        if (chartDate == null || !tableExists()) {
+            return List.of();
+        }
+
+        String prevDate = getPrevChartDate(chartDate);
+        if (prevDate == null) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> previousEntries = getCountdownForDate(prevDate);
+        List<Map<String, Object>> currentEntries = getCountdownForDate(chartDate);
+        Set<String> currentKeys = currentEntries.stream()
+            .map(this::buildRecapIdentityKey)
+            .collect(Collectors.toSet());
+
+        return previousEntries.stream()
+            .filter(entry -> !currentKeys.contains(buildRecapIdentityKey(entry)))
+            .toList();
+    }
+
     public String findClosestChartDate(String date) {
         if (date == null || date.isBlank() || !tableExists()) {
             return null;
@@ -744,6 +766,18 @@ public class BillboardHot100Service {
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
+    }
+
+    private String buildRecapIdentityKey(Map<String, Object> entry) {
+        Object songId = entry.get("songId");
+        if (songId != null) {
+            return "song:" + songId;
+        }
+        return "raw:" + normalizeIdentityPart(entry.get("artistName")) + "||" + normalizeIdentityPart(entry.get("songTitle"));
+    }
+
+    private String normalizeIdentityPart(Object value) {
+        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
     }
 
     public BillboardHot100ImportSupport.NameIssueReport getNameIssueReport(int sampleLimit) {
@@ -845,6 +879,13 @@ public class BillboardHot100Service {
         }
     }
 
+    /**
+     * Map gender name to CSS gender class for styling.
+     * IMPORTANT: This application's gender_id mapping is:
+     *   - genderId 1 = FEMALE artists (pink/magenta color)
+     *   - genderId 2 = MALE artists (blue color)
+     * This is NOT intuitive order but matches the original schema.
+     */
     private String toGenderClass(String genderName) {
         if (genderName == null) {
             return null;
@@ -936,6 +977,46 @@ public class BillboardHot100Service {
         private ChartArtistOverviewRowDTO toRow() {
             return row;
         }
+    }
+
+    public List<Map<String, Object>> getChartedSongsByAlbumId(int albumId) {
+        if (!tableExists()) return Collections.emptyList();
+        String sql =
+            "WITH stats AS ( " +
+            "    SELECT s.id AS song_id, s.name AS song_name, s.track_number, " +
+            "           COUNT(e.id) AS weeks_on_chart, MIN(e.position) AS peak_position, " +
+            "           MIN(e.chart_date) AS debut_date, " +
+            "           (SELECT MIN(e2.chart_date) FROM billboard_hot100_entry e2 WHERE e2.song_id = s.id AND e2.position = MIN(e.position)) AS peak_date " +
+            "    FROM billboard_hot100_entry e " +
+            "    JOIN song s ON e.song_id = s.id " +
+            "    WHERE s.album_id = ? " +
+            "    GROUP BY s.id, s.name, s.track_number " +
+            ") " +
+            "SELECT song_id, song_name, track_number, weeks_on_chart, peak_position, debut_date, peak_date, " +
+            "       (SELECT COUNT(*) FROM billboard_hot100_entry e2 WHERE e2.song_id = stats.song_id AND e2.position = stats.peak_position) AS weeks_at_peak " +
+            "FROM stats WHERE weeks_on_chart > 0 " +
+            "ORDER BY peak_position ASC, weeks_on_chart DESC, track_number ASC";
+        return jdbcTemplate.queryForList(sql, albumId);
+    }
+
+    public List<Map<String, Object>> getChartedSongsByArtistId(int artistId) {
+        if (!tableExists()) return Collections.emptyList();
+        String sql =
+            "WITH stats AS ( " +
+            "    SELECT s.id AS song_id, s.name AS song_name, " +
+            "           COUNT(e.id) AS weeks_on_chart, MIN(e.position) AS peak_position, " +
+            "           MIN(e.chart_date) AS debut_date, " +
+            "           (SELECT MIN(e2.chart_date) FROM billboard_hot100_entry e2 WHERE e2.song_id = s.id AND e2.position = MIN(e.position)) AS peak_date " +
+            "    FROM billboard_hot100_entry e " +
+            "    JOIN song s ON e.song_id = s.id " +
+            "    WHERE s.artist_id = ? " +
+            "    GROUP BY s.id, s.name " +
+            ") " +
+            "SELECT song_id, song_name, weeks_on_chart, peak_position, debut_date, peak_date, " +
+            "       (SELECT COUNT(*) FROM billboard_hot100_entry e2 WHERE e2.song_id = stats.song_id AND e2.position = stats.peak_position) AS weeks_at_peak " +
+            "FROM stats WHERE weeks_on_chart > 0 " +
+            "ORDER BY peak_position ASC, weeks_on_chart DESC, song_name ASC";
+        return jdbcTemplate.queryForList(sql, artistId);
     }
 
     private record AlbumSongInfo(Integer albumId, String albumName) {

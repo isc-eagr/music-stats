@@ -1129,17 +1129,60 @@
                             from { opacity: 0; }
                             to { opacity: 1; }
                         }
+
+                        /* Chart History Expand Button */
+                        .overview-expand-btn {
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 6px;
+                            border: 1px solid #333;
+                            background: #1a1a1a;
+                            color: #888;
+                            font-size: 1.1rem;
+                            font-weight: bold;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            transition: background 0.15s, color 0.15s, border-color 0.15s;
+                            padding: 0;
+                            line-height: 1;
+                        }
+                        .overview-expand-btn:hover { background: #222; color: #ccc; border-color: #555; }
+                        body.gender-male .overview-expand-btn.expanded { background: #0d2a4a; color: #60a5fa; border-color: #1d4ed8; }
+                        body.gender-female .overview-expand-btn.expanded { background: #3b0a1e; color: #f472b6; border-color: #be185d; }
+                        body.gender-other .overview-expand-btn.expanded, .overview-expand-btn.expanded { background: #1a2e1a; color: #86efac; border-color: #16a34a; }
+                        .overview-detail-row { display: none; }
+                        .overview-detail-row.visible { display: table-row; }
+                        .overview-detail-cell { background: #0f0f0f; padding: 16px 20px; border-top: none; }
+                        .overview-detail-stack { display: flex; flex-direction: column; gap: 12px; }
+                        .overview-detail-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+                        .overview-detail-stat { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 16px; text-align: center; min-width: 80px; }
+                        .overview-detail-label { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+                        .overview-detail-value { font-size: 1.15rem; font-weight: bold; color: #fff; }
+                        .overview-chart-run-wrap { display: flex; flex-direction: column; gap: 6px; }
+                        .overview-chart-run-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+                        .overview-chart-run-boxes { display: flex; flex-wrap: wrap; gap: 4px; }
+                        .overview-chart-run-box { min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 600; border-radius: 4px; border: 1px solid #333; background: #1a1a1a; color: #888; padding: 0 4px; cursor: default; }
+                        body.gender-male .overview-chart-run-box.gender-male { background: #0d2a4a; color: #93c5fd; border-color: #1e40af; }
+                        body.gender-female .overview-chart-run-box.gender-female { background: #3b0a1e; color: #f9a8d4; border-color: #9d174d; }
+                        .overview-chart-run-box.gender-other { background: #1a2e1a; color: #86efac; border-color: #166534; }
+                        .overview-chart-run-box.peak-one { background: #3d3012; color: #fbbf24; border-color: #6b5c1f; }
+                        .overview-chart-run-box.absent { background: transparent; color: #555; border-color: transparent; font-size: 0.72rem; }
                     </style>
                     <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
+                    <button class="ch-toggle-btn" th:if="${!bbChartedSongs.isEmpty()}" onclick="switchChartHistoryType('bb', this)">Billboard Hot 100</button>
+                    <button class="ch-toggle-btn" th:if="${!pcChartedSongs.isEmpty()}" onclick="switchChartHistoryType('pc', this)">Vato's Cuntdown</button>
+                    <button class="ch-toggle-btn" th:if="${!trlChartedSongs.isEmpty()}" onclick="switchChartHistoryType('trl', this)">TRL</button>
                 </div>
 
                 <!-- WEEKLY SECTION -->
                 <div id="ch-weekly-section" class="ch-section active">
                     <!-- Albums Chart History -->
                     <div class="detail-content-card">
-                        <h2 class="section-title">💿 Albums 
+                        <h2 class="section-title">Albums 
                             <span class="item-count">(<span th:text="${albumChartHistory != null ? albumChartHistory.size() : 0}">0</span>)</span>
                         </h2>
                         
@@ -1148,9 +1191,10 @@
                         </div>
                         
                         <div th:if="${albumChartHistory != null and !albumChartHistory.isEmpty()}" class="table-wrapper">
-                            <table class="table js-sortable">
+                            <table class="table">
                                 <thead>
                                     <tr>
+                                        <th style="width:32px;"></th>
                                         <th class="cover-col">Cover</th>
                                         <th>Name</th>
                                         <th style="text-align:right;">Peak</th>
@@ -1163,11 +1207,13 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${albumChartHistory}"
-                                        th:classappend="${includeGroups and entry.fromGroup} ? 'group-item-row' : ''">
+                                        th:classappend="${includeGroups and entry.fromGroup} ? 'group-item-row' : ''"
+                                        th:data-run-url="@{'/charts/album/' + ${entry.id} + '/run'}">
+                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div style="cursor:pointer;" th:onclick="|openAlbumImageModalFromArtist(${entry.id})| " th:title="${entry.name}">
                                                 <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                                                <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
+                                                <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">-</div>
                                             </div>
                                         </td>
                                         <td>
@@ -1203,7 +1249,7 @@
                     
                     <!-- Songs Chart History -->
                     <div class="detail-content-card" style="margin-top: 20px;">
-                        <h2 class="section-title">🎵 Songs 
+                        <h2 class="section-title">Songs 
                             <span class="item-count">(<span th:text="${songChartHistory != null ? songChartHistory.size() : 0}">0</span>)</span>
                         </h2>
                         
@@ -1212,9 +1258,10 @@
                         </div>
                         
                         <div th:if="${songChartHistory != null and !songChartHistory.isEmpty()}" class="table-wrapper">
-                            <table class="table js-sortable">
+                            <table class="table">
                                 <thead>
                                     <tr>
+                                        <th style="width:32px;"></th>
                                         <th class="cover-col">Cover</th>
                                         <th>Name</th>
                                         <th style="text-align:right;">Peak</th>
@@ -1227,7 +1274,9 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${songChartHistory}"
-                                        th:classappend="${(includeFeatured and entry.featuredOn) ? 'featured-song-row' : ''} + ${(includeGroups and entry.fromGroup) ? ' group-item-row' : ''}">
+                                        th:classappend="${(includeFeatured and entry.featuredOn) ? 'featured-song-row' : ''} + ${(includeGroups and entry.fromGroup) ? ' group-item-row' : ''}"
+                                        th:data-run-url="@{'/charts/song/' + ${entry.id} + '/run'}">
+                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div th:title="${entry.name}" style="cursor: pointer;">
                                                 <!-- If song has image - show it -->
@@ -1256,8 +1305,8 @@
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                                                      style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                                 <!-- Placeholder if no images -->
-                                                <div th:if="${!entry.hasImage and entry.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
-                                                <div th:if="${!entry.hasImage and entry.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
+                                                <div th:if="${!entry.hasImage and entry.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">-</div>
+                                                <div th:if="${!entry.hasImage and entry.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">-</div>
                                             </div>
                                         </td>
                                         <td>
@@ -1295,6 +1344,150 @@
                         </div>
                     </div>
                 </div> <!-- End of ch-weekly-section -->
+
+                <!-- BILLBOARD HOT 100 SECTION -->
+                <div id="ch-bb-section" class="ch-section">
+                    <div class="detail-content-card">
+                        <h2 class="section-title">Billboard Hot 100
+                            <span class="item-count">(<span th:text="${bbChartedSongs.size()}">0</span>)</span>
+                        </h2>
+                        <div th:if="${bbChartedSongs.isEmpty()}" class="no-items-message">
+                            <p>No songs from this artist charted on the Billboard Hot 100.</p>
+                        </div>
+                        <div th:if="${!bbChartedSongs.isEmpty()}" class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:32px;"></th>
+                                        <th>Name</th>
+                                        <th style="text-align:right;">Peak</th>
+                                        <th style="text-align:right;">Wks@Peak</th>
+                                        <th style="text-align:right;">Total Weeks</th>
+                                        <th>Debut</th>
+                                        <th>Peak Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${bbChartedSongs}"
+                                        th:data-run-url="@{'/charts/bb/song/' + ${entry['song_id']} + '/run'}">
+                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        <td><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['peak_position'] != null and entry['peak_position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="${entry['peak_position'] != null ? entry['peak_position'] : '-'}">-</span>
+                                        </td>
+                                        <td style="text-align:right;" th:text="${entry['weeks_at_peak'] != null ? entry['weeks_at_peak'] : '-'}">-</td>
+                                        <td style="text-align:right;" th:text="${entry['weeks_on_chart']}">-</td>
+                                        <td>
+                                            <a th:if="${entry['debut_date'] != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry['debut_date']})}" th:text="${entry['debut_date']}">-</a>
+                                            <span th:unless="${entry['debut_date'] != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <a th:if="${entry['peak_date'] != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry['peak_date']})}" th:text="${entry['peak_date']}">-</a>
+                                            <span th:unless="${entry['peak_date'] != null}">-</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VATO'S CUNTDOWN SECTION -->
+                <div id="ch-pc-section" class="ch-section">
+                    <div class="detail-content-card">
+                        <h2 class="section-title">Vato's Cuntdown
+                            <span class="item-count">(<span th:text="${pcChartedSongs.size()}">0</span>)</span>
+                        </h2>
+                        <div th:if="${pcChartedSongs.isEmpty()}" class="no-items-message">
+                            <p>No songs from this artist charted on Vato's Cuntdown.</p>
+                        </div>
+                        <div th:if="${!pcChartedSongs.isEmpty()}" class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:32px;"></th>
+                                        <th>Name</th>
+                                        <th style="text-align:right;">Peak</th>
+                                        <th style="text-align:right;">Days@Peak</th>
+                                        <th style="text-align:right;">Total Days</th>
+                                        <th>Debut</th>
+                                        <th>Peak Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${pcChartedSongs}"
+                                        th:data-run-url="@{'/charts/pc/song/' + ${entry['song_id']} + '/run'}">
+                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        <td><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['peak_position'] != null and entry['peak_position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="${entry['peak_position'] != null ? entry['peak_position'] : '-'}">-</span>
+                                        </td>
+                                        <td style="text-align:right;" th:text="${entry['days_at_peak'] != null ? entry['days_at_peak'] : '-'}">-</td>
+                                        <td style="text-align:right;" th:text="${entry['days_on_countdown']}">-</td>
+                                        <td>
+                                            <a th:if="${entry['debut_date'] != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry['debut_date']})}" th:text="${entry['debut_date']}">-</a>
+                                            <span th:unless="${entry['debut_date'] != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <a th:if="${entry['peak_date'] != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry['peak_date']})}" th:text="${entry['peak_date']}">-</a>
+                                            <span th:unless="${entry['peak_date'] != null}">-</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TRL SECTION -->
+                <div id="ch-trl-section" class="ch-section">
+                    <div class="detail-content-card">
+                        <h2 class="section-title">TRL
+                            <span class="item-count">(<span th:text="${trlChartedSongs.size()}">0</span>)</span>
+                        </h2>
+                        <div th:if="${trlChartedSongs.isEmpty()}" class="no-items-message">
+                            <p>No songs from this artist appeared on TRL.</p>
+                        </div>
+                        <div th:if="${!trlChartedSongs.isEmpty()}" class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:32px;"></th>
+                                        <th>Name</th>
+                                        <th style="text-align:right;">Peak</th>
+                                        <th style="text-align:right;">Days@Peak</th>
+                                        <th style="text-align:right;">Total Days</th>
+                                        <th>Debut</th>
+                                        <th>Peak Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${trlChartedSongs}"
+                                        th:data-run-url="@{'/charts/trl/song/' + ${entry['song_id']} + '/run'}">
+                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        <td><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        <td style="text-align:right;">
+                                            <span th:classappend="${entry['peak_position'] != null and entry['peak_position'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="${entry['peak_position'] != null ? entry['peak_position'] : '-'}">-</span>
+                                        </td>
+                                        <td style="text-align:right;" th:text="${entry['days_at_peak'] != null ? entry['days_at_peak'] : '-'}">-</td>
+                                        <td style="text-align:right;" th:text="${entry['days_on_countdown']}">-</td>
+                                        <td>
+                                            <a th:if="${entry['debut_date'] != null}" th:href="@{/misc/trl/recaps(date=${entry['debut_date']})}" th:text="${entry['debut_date']}">-</a>
+                                            <span th:unless="${entry['debut_date'] != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <a th:if="${entry['peak_date'] != null}" th:href="@{/misc/trl/recaps(date=${entry['peak_date']})}" th:text="${entry['peak_date']}">-</a>
+                                            <span th:unless="${entry['peak_date'] != null}">-</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- SEASONAL SECTION -->
                 <div id="ch-seasonal-section" class="ch-section">
@@ -1484,7 +1677,86 @@
             document.querySelectorAll('.ch-section').forEach(sec => {
                 sec.classList.remove('active');
             });
-            document.getElementById('ch-' + type + '-section').classList.add('active');
+            const targetSection = document.getElementById('ch-' + type + '-section');
+            if (targetSection) targetSection.classList.add('active');
+        }
+
+        function toggleDetailRun(button) {
+            const row = button.closest('tr');
+            const runUrl = row.dataset.runUrl;
+            if (!runUrl) return;
+
+            let detailRow = row.nextElementSibling;
+            if (!detailRow || !detailRow.classList.contains('detail-expand-row')) {
+                detailRow = document.createElement('tr');
+                detailRow.className = 'overview-detail-row detail-expand-row';
+                const td = document.createElement('td');
+                td.className = 'overview-detail-cell';
+                td.colSpan = row.cells.length;
+                td.innerHTML = renderDetailExpandContent({}, true);
+                detailRow.appendChild(td);
+                row.insertAdjacentElement('afterend', detailRow);
+            }
+
+            const isVisible = detailRow.classList.contains('visible');
+            detailRow.classList.toggle('visible', !isVisible);
+            button.classList.toggle('expanded', !isVisible);
+            button.textContent = isVisible ? '+' : '-';
+
+            if (isVisible || detailRow.dataset.loaded || detailRow.dataset.loading) return;
+
+            const td = detailRow.querySelector('.overview-detail-cell');
+            detailRow.dataset.loading = '1';
+            fetch(runUrl)
+                .then(r => r.json())
+                .then(data => {
+                    td.innerHTML = renderDetailExpandContent(data, false);
+                    detailRow.dataset.loaded = '1';
+                })
+                .catch(() => {
+                    td.innerHTML = '<div style="color:#888;padding:12px;">Failed to load chart run.</div>';
+                })
+                .finally(() => delete detailRow.dataset.loading);
+        }
+
+        function renderDetailExpandContent(data, loading) {
+            const top1 = loading ? '-' : (data.weeksAtTop1 ?? 0);
+            const top5 = loading ? '-' : (data.weeksAtTop5 ?? 0);
+            const top10 = loading ? '-' : (data.weeksAtTop10 ?? 0);
+            const top20 = loading ? '-' : (data.weeksAtTop20 ?? 0);
+            const chartRunHtml = loading
+                ? `<div class="overview-chart-run-wrap"><div class="overview-chart-run-label">Chart Run</div><div style="color:#888;">Loading...</div></div>`
+                : renderDetailChartRunBoxes(data);
+            return `<div class="overview-detail-stack">
+                <div class="overview-detail-grid">
+                    <div class="overview-detail-stat"><div class="overview-detail-label">#1</div><div class="overview-detail-value">${top1}</div></div>
+                    <div class="overview-detail-stat"><div class="overview-detail-label">Top 5</div><div class="overview-detail-value">${top5}</div></div>
+                    <div class="overview-detail-stat"><div class="overview-detail-label">Top 10</div><div class="overview-detail-value">${top10}</div></div>
+                    <div class="overview-detail-stat"><div class="overview-detail-label">Top 20</div><div class="overview-detail-value">${top20}</div></div>
+                </div>${chartRunHtml}</div>`;
+        }
+
+        function renderDetailChartRunBoxes(data) {
+            if (!data.weeks || data.weeks.length === 0) return '';
+            const weeks = data.weeks;
+            let start = 0; while (start < weeks.length && !weeks[start].onChart) start++;
+            let end = weeks.length - 1; while (end >= start && !weeks[end].onChart) end--;
+            if (start > end) return '<div class="overview-chart-run-wrap"><div class="overview-chart-run-label">Chart Run</div><div style="color:#888;">No chart entries.</div></div>';
+            const trimmed = weeks.slice(start, end + 1);
+            const consolidated = [];
+            let i = 0;
+            while (i < trimmed.length) {
+                if (trimmed[i].onChart) { consolidated.push(trimmed[i]); i++; }
+                else { let c = 0; while (i < trimmed.length && !trimmed[i].onChart) { c++; i++; } consolidated.push({onChart: false, count: c}); }
+            }
+            const genderClass = document.body.classList.contains('gender-female') ? 'gender-female'
+                : document.body.classList.contains('gender-male') ? 'gender-male' : 'gender-other';
+            const boxesHtml = consolidated.map(w => {
+                if (!w.onChart) return `<span class="overview-chart-run-box absent" title="${w.count} off">${w.count}x</span>`;
+                const cls = w.position === 1 ? 'overview-chart-run-box peak-one' : `overview-chart-run-box ${genderClass}`;
+                return `<span class="${cls}" title="${w.dateRange || w.periodKey}">${w.display}</span>`;
+            }).join('');
+            return `<div class="overview-chart-run-wrap"><div class="overview-chart-run-label">Chart Run</div><div class="overview-chart-run-boxes">${boxesHtml}</div></div>`;
         }
     </script>
     

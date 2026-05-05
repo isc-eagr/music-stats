@@ -9,12 +9,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 @RequestMapping({"/misc/vatos-cuntdown", "/misc/pc"})
 public class PcController {
+
+    private static final int OVERVIEW_PAGE_SIZE = 100;
 
     private final PcService pcService;
 
@@ -23,17 +27,87 @@ public class PcController {
     }
 
     @GetMapping
-    public String pcList(@RequestParam(defaultValue = "song") String overviewTab, Model model) {
-        List<PcOverviewRowDTO> entries = pcService.getOverviewRows();
-        List<ChartAlbumOverviewRowDTO> albumOverviewRows = pcService.getAlbumOverviewRows(entries);
-        List<ChartArtistOverviewRowDTO> artistOverviewRows = pcService.getArtistOverviewRows(entries);
+    public String pcList(
+            @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            Model model) {
+        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        int safePage = Math.max(1, page);
+        int safeSize = normalizeSize(size);
+        String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
+        String normalizedDir = normalizeDir(normalizedOverviewTab, dir);
+        Map<String, Object> summary = pcService.getSummary();
+
+        List<PcOverviewRowDTO> entries = List.of();
+        List<ChartAlbumOverviewRowDTO> albumOverviewRows = List.of();
+        List<ChartArtistOverviewRowDTO> artistOverviewRows = List.of();
+        int activeTotalCount;
+
+        if ("album".equals(normalizedOverviewTab)) {
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(pcService.getAlbumOverviewRows(), normalizedSort, normalizedDir);
+            activeTotalCount = allAlbumRows.size();
+            albumOverviewRows = paginateRows(allAlbumRows, safePage, safeSize);
+        } else if ("artist".equals(normalizedOverviewTab)) {
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(pcService.getArtistOverviewRows(), normalizedSort, normalizedDir);
+            activeTotalCount = allArtistRows.size();
+            artistOverviewRows = paginateRows(allArtistRows, safePage, safeSize);
+        } else {
+            List<PcOverviewRowDTO> allEntries = sortSongRows(pcService.getOverviewRows(), normalizedSort, normalizedDir);
+            activeTotalCount = allEntries.size();
+            entries = paginateRows(allEntries, safePage, safeSize);
+        }
+
         model.addAttribute("entries", entries);
         model.addAttribute("albumOverviewRows", albumOverviewRows);
         model.addAttribute("artistOverviewRows", artistOverviewRows);
-        model.addAttribute("overviewTab", normalizeOverviewTab(overviewTab));
-        model.addAttribute("summary", pcService.getSummary());
+        model.addAttribute("overviewTab", normalizedOverviewTab);
+        model.addAttribute("summary", summary);
+        model.addAttribute("pageSize", safeSize);
+        model.addAttribute("activeTotalCount", activeTotalCount);
+        model.addAttribute("selectedSort", normalizedSort);
+        model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("currentSection", "pc");
         return "misc/pc";
+    }
+
+    @GetMapping("/data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> pcData(
+            @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "2") int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        int safePage = Math.max(1, page);
+        int safeSize = normalizeSize(size);
+        String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
+        String normalizedDir = normalizeDir(normalizedOverviewTab, dir);
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+
+        if ("album".equals(normalizedOverviewTab)) {
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(pcService.getAlbumOverviewRows(), normalizedSort, normalizedDir);
+            result.put("entries", paginateRows(allAlbumRows, safePage, safeSize));
+            result.put("totalCount", allAlbumRows.size());
+            result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
+        } else if ("artist".equals(normalizedOverviewTab)) {
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(pcService.getArtistOverviewRows(), normalizedSort, normalizedDir);
+            result.put("entries", paginateRows(allArtistRows, safePage, safeSize));
+            result.put("totalCount", allArtistRows.size());
+            result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());
+        } else {
+            List<PcOverviewRowDTO> allEntries = sortSongRows(pcService.getOverviewRows(), normalizedSort, normalizedDir);
+            int totalCount = allEntries.size();
+            result.put("entries", paginateRows(allEntries, safePage, safeSize));
+            result.put("totalCount", totalCount);
+            result.put("hasMore", (long) safePage * safeSize < totalCount);
+        }
+
+        result.put("nextPage", safePage + 1);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/merge")
@@ -93,6 +167,7 @@ public class PcController {
         }
         if (effectiveDate != null) {
             model.addAttribute("countdown", pcService.getCountdownForDate(effectiveDate));
+            model.addAttribute("fallOffs", pcService.getFallOffsForDate(effectiveDate));
             model.addAttribute("selectedDate", effectiveDate);
         }
         model.addAttribute("currentSection", "pc-recaps");
@@ -109,6 +184,7 @@ public class PcController {
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("date", effectiveDate);
         result.put("entries", pcService.getCountdownForDate(effectiveDate));
+        result.put("fallOffs", pcService.getFallOffsForDate(effectiveDate));
         result.put("prevDate", pcService.getPrevChartDate(effectiveDate));
         result.put("nextDate", pcService.getNextChartDate(effectiveDate));
         return ResponseEntity.ok(result);
@@ -137,5 +213,117 @@ public class PcController {
             return "artist";
         }
         return "song";
+    }
+
+    private String normalizeSort(String overviewTab, String sort) {
+        if ("album".equals(overviewTab)) {
+            return switch (sort == null ? "" : sort) {
+                case "artist", "album", "songs", "days", "peak", "numberOnes", "atNumberOne", "firstDebut", "lastAppearance" -> sort;
+                default -> "days";
+            };
+        }
+        if ("artist".equals(overviewTab)) {
+            return switch (sort == null ? "" : sort) {
+                case "artist", "songs", "days", "peak", "numberOnes", "atNumberOne", "firstDebut", "lastAppearance" -> sort;
+                default -> "days";
+            };
+        }
+        return switch (sort == null ? "" : sort) {
+            case "days", "peak", "atPeak", "debutDate", "debutPosition", "peakDate", "lastDate", "song", "artist" -> sort;
+            default -> "debutDate";
+        };
+    }
+
+    private String normalizeDir(String overviewTab, String dir) {
+        if (dir == null || dir.isBlank()) {
+            if ("song".equals(overviewTab)) {
+                return "asc";
+            }
+            return "desc";
+        }
+        return "asc".equalsIgnoreCase(dir) ? "asc" : "desc";
+    }
+
+    private List<PcOverviewRowDTO> sortSongRows(List<PcOverviewRowDTO> rows, String sort, String dir) {
+        List<PcOverviewRowDTO> sortedRows = new ArrayList<>(rows);
+        sortedRows.sort(buildSongComparator(sort, dir));
+        return sortedRows;
+    }
+
+    private List<ChartAlbumOverviewRowDTO> sortAlbumRows(List<ChartAlbumOverviewRowDTO> rows, String sort, String dir) {
+        List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(rows);
+        sortedRows.sort(buildAlbumComparator(sort, dir));
+        return sortedRows;
+    }
+
+    private List<ChartArtistOverviewRowDTO> sortArtistRows(List<ChartArtistOverviewRowDTO> rows, String sort, String dir) {
+        List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(rows);
+        sortedRows.sort(buildArtistComparator(sort, dir));
+        return sortedRows;
+    }
+
+    private Comparator<PcOverviewRowDTO> buildSongComparator(String sort, String dir) {
+        Comparator<PcOverviewRowDTO> comparator = switch (sort) {
+            case "days" -> Comparator.comparingInt(PcOverviewRowDTO::getDaysOnCountdown);
+            case "peak" -> Comparator.comparingInt(PcOverviewRowDTO::getPeakPosition);
+            case "atPeak" -> Comparator.comparingInt(PcOverviewRowDTO::getDaysAtPeak);
+            case "debutPosition" -> Comparator.comparing(PcOverviewRowDTO::getDebutPosition, Comparator.nullsLast(Integer::compareTo));
+            case "peakDate" -> Comparator.comparing(PcOverviewRowDTO::getPeakWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "lastDate" -> Comparator.comparing(PcOverviewRowDTO::getLastWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "song" -> Comparator.comparing(PcOverviewRowDTO::getSongTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "artist" -> Comparator.comparing(PcOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            default -> Comparator.comparing(PcOverviewRowDTO::getFirstWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        };
+        comparator = comparator
+            .thenComparing(PcOverviewRowDTO::getFirstWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+            .thenComparing(PcOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+            .thenComparing(PcOverviewRowDTO::getSongTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        return "asc".equals(dir) ? comparator : comparator.reversed();
+    }
+
+    private Comparator<ChartAlbumOverviewRowDTO> buildAlbumComparator(String sort, String dir) {
+        Comparator<ChartAlbumOverviewRowDTO> comparator = switch (sort) {
+            case "artist" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "album" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getAlbumName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "songs" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getChartedSongsCount);
+            case "peak" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
+            case "numberOnes" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getNumberOneSongsCount);
+            case "atNumberOne" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalSpanAtNumberOne);
+            case "firstDebut" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getFirstDebutDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "lastAppearance" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getLastAppearanceDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            default -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan);
+        };
+        comparator = comparator
+            .thenComparing(ChartAlbumOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+            .thenComparing(ChartAlbumOverviewRowDTO::getAlbumName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        return "asc".equals(dir) ? comparator : comparator.reversed();
+    }
+
+    private Comparator<ChartArtistOverviewRowDTO> buildArtistComparator(String sort, String dir) {
+        Comparator<ChartArtistOverviewRowDTO> comparator = switch (sort) {
+            case "artist" -> Comparator.comparing(ChartArtistOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "songs" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getChartedSongsCount);
+            case "peak" -> Comparator.comparing(ChartArtistOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
+            case "numberOnes" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getNumberOneSongsCount);
+            case "atNumberOne" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalSpanAtNumberOne);
+            case "firstDebut" -> Comparator.comparing(ChartArtistOverviewRowDTO::getFirstDebutDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "lastAppearance" -> Comparator.comparing(ChartArtistOverviewRowDTO::getLastAppearanceDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            default -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan);
+        };
+        comparator = comparator.thenComparing(ChartArtistOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        return "asc".equals(dir) ? comparator : comparator.reversed();
+    }
+
+    private int normalizeSize(int size) {
+        return Math.min(Math.max(size, 25), 200);
+    }
+
+    private <T> List<T> paginateRows(List<T> rows, int page, int size) {
+        int fromIndex = Math.max(0, (page - 1) * size);
+        if (fromIndex >= rows.size()) {
+            return List.of();
+        }
+        int toIndex = Math.min(rows.size(), fromIndex + size);
+        return rows.subList(fromIndex, toIndex);
     }
 }

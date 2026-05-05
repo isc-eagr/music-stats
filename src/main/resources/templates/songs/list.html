@@ -2473,6 +2473,36 @@
             ethnicitySelect.options[0].text = 'Inherit (' + (artist.ethnicityName || 'none') + ')';
         }
         
+        let createSongPendingImageUrl = null;
+
+        function openCreateSongExternalFetch() {
+            const artistSel = document.getElementById('createSongArtistId');
+            const artistName = artistSel.selectedIndex > 0 ? artistSel.options[artistSel.selectedIndex].text.trim() : '';
+            const songName = document.getElementById('createSongName').value.trim();
+            if (!songName) {
+                showWarningToast('Please enter a song name first');
+                return;
+            }
+            openExternalFetchModal(artistName, songName, null, 'song', false, 'metadata', function(item) {
+                if (item.releaseDate) {
+                    const p = item.releaseDate.split('-');
+                    if (p.length === 3) {
+                        document.getElementById('createReleaseDateSong').value = p[2].padStart(2, '0') + '/' + p[1].padStart(2, '0') + '/' + p[0];
+                    }
+                }
+                if (item.lengthFormatted) {
+                    document.getElementById('createLengthFormatted').value = item.lengthFormatted;
+                }
+                createSongPendingImageUrl = item.url || null;
+            });
+        }
+
+        function getSongImageSaveEndpoint(url) {
+            if (url && (url.includes('mzstatic.com') || url.includes('apple.com')))
+                return '/api/apple-music/save-images';
+            return '/api/deezer/save-images';
+        }
+
         function submitCreateSong(event) {
             event.preventDefault();
             const form = event.target;
@@ -2514,7 +2544,17 @@
             })
             .then(data => {
                 if (data.id) {
-                    window.location.href = '/songs/' + data.id;
+                    if (createSongPendingImageUrl) {
+                        const imgUrl = createSongPendingImageUrl;
+                        createSongPendingImageUrl = null;
+                        fetch(getSongImageSaveEndpoint(imgUrl), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imageUrls: [imgUrl], entityId: data.id, entityType: 'song', hasExistingImage: false })
+                        }).catch(() => {}).finally(() => { window.location.href = '/songs/' + data.id; });
+                    } else {
+                        window.location.href = '/songs/' + data.id;
+                    }
                 }
             })
             .catch(error => {
@@ -2555,6 +2595,7 @@
     
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
+    <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     
     <!-- Create Song Modal -->
     <div id="createSongModal" class="modal">
@@ -2653,8 +2694,10 @@
                 </div>
                 
                 <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="openCreateSongExternalFetch()">External</button>
                     <button type="submit" class="btn-action">Create</button>
                     <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
+                </div>Cancel</button>
                 </div>
             </form>
         </div>

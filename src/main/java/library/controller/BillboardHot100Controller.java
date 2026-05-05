@@ -75,6 +75,41 @@ public class BillboardHot100Controller {
         return "misc/billboard-hot100";
     }
 
+    @GetMapping("/data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> overviewData(
+            @RequestParam(defaultValue = "2") int page,
+            @RequestParam(defaultValue = "250") int size,
+            @RequestParam(defaultValue = "firstWeek") String sort,
+            @RequestParam(defaultValue = "desc") String dir,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "song") String overviewTab) {
+        String safeOverviewTab = normalizeOverviewTab(overviewTab);
+        int safeSize = normalizeSize(size);
+        int safePage = Math.max(1, page);
+        String safeSort = normalizeSort(safeOverviewTab, sort);
+        String safeDir = normalizeDir(dir);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        int resultTotal;
+
+        if ("album".equals(safeOverviewTab)) {
+            resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
+            result.put("entries", billboardHot100Service.getAlbumOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+        } else if ("artist".equals(safeOverviewTab)) {
+            resultTotal = billboardHot100Service.countArtistOverviewRows(q);
+            result.put("entries", billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+        } else {
+            resultTotal = billboardHot100Service.countOverviewRows(q);
+            result.put("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+        }
+
+        result.put("totalCount", resultTotal);
+        result.put("hasMore", (long) safePage * safeSize < resultTotal);
+        result.put("nextPage", safePage + 1);
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/import")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> importCharts() {
@@ -124,6 +159,7 @@ public class BillboardHot100Controller {
 
         if (effectiveDate != null) {
             model.addAttribute("countdown", billboardHot100Service.getCountdownForDate(effectiveDate));
+            model.addAttribute("fallOffs", billboardHot100Service.getFallOffsForDate(effectiveDate));
         }
 
         model.addAttribute("availableDates", availableDates);
@@ -141,6 +177,7 @@ public class BillboardHot100Controller {
         result.put("prevDate", effectiveDate != null ? billboardHot100Service.getPrevChartDate(effectiveDate) : null);
         result.put("nextDate", effectiveDate != null ? billboardHot100Service.getNextChartDate(effectiveDate) : null);
         result.put("entries", effectiveDate != null ? billboardHot100Service.getCountdownForDate(effectiveDate) : List.of());
+        result.put("fallOffs", effectiveDate != null ? billboardHot100Service.getFallOffsForDate(effectiveDate) : List.of());
         return ResponseEntity.ok(result);
     }
 

@@ -2339,6 +2339,33 @@
             }
         }
         
+        let createAlbumPendingImageUrl = null;
+
+        function openCreateAlbumExternalFetch() {
+            const artistSel = document.getElementById('createArtistId');
+            const artistName = artistSel.selectedIndex > 0 ? artistSel.options[artistSel.selectedIndex].text.trim() : '';
+            const albumName = document.getElementById('createAlbumName').value.trim();
+            if (!albumName) {
+                showWarningToast('Please enter an album name first');
+                return;
+            }
+            openExternalFetchModal(artistName, albumName, null, 'album', false, 'metadata', function(item) {
+                if (item.releaseDate) {
+                    const p = item.releaseDate.split('-');
+                    if (p.length === 3) {
+                        document.getElementById('createReleaseDate').value = p[2].padStart(2, '0') + '/' + p[1].padStart(2, '0') + '/' + p[0];
+                    }
+                }
+                createAlbumPendingImageUrl = item.url || null;
+            });
+        }
+
+        function getImageSaveEndpoint(url) {
+            if (url && (url.includes('mzstatic.com') || url.includes('apple.com')))
+                return '/api/apple-music/save-images';
+            return '/api/deezer/save-images';
+        }
+
         function submitCreateAlbum(event) {
             event.preventDefault();
             const form = event.target;
@@ -2369,7 +2396,17 @@
             })
             .then(data => {
                 if (data.id) {
-                    window.location.href = '/albums/' + data.id;
+                    if (createAlbumPendingImageUrl) {
+                        const imgUrl = createAlbumPendingImageUrl;
+                        createAlbumPendingImageUrl = null;
+                        fetch(getImageSaveEndpoint(imgUrl), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imageUrls: [imgUrl], entityId: data.id, entityType: 'album', hasExistingImage: false })
+                        }).catch(() => {}).finally(() => { window.location.href = '/albums/' + data.id; });
+                    } else {
+                        window.location.href = '/albums/' + data.id;
+                    }
                 }
             })
             .catch(error => {
@@ -2409,6 +2446,7 @@
     
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
+    <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     
     <!-- Create Album Modal -->
     <div id="createAlbumModal" class="modal">
@@ -2468,6 +2506,7 @@
                 </div>
                 
                 <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="openCreateAlbumExternalFetch()">External</button>
                     <button type="submit" class="btn-action">Create</button>
                     <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
                 </div>

@@ -313,6 +313,8 @@
         /* Sort indicators */
         .trl-table th.sorted-asc::after  { content: ' \25B2'; font-size: 0.7em; }
         .trl-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
+        .trl-sort-link { color: inherit; text-decoration: none; }
+        .trl-sort-link:hover { color: #e8e8e8; }
 
         /* Retired / Hall of Fame rows — gold */
         .trl-table tbody tr.trl-retired td { color: #c9a227; }
@@ -338,11 +340,16 @@
             border-left-color: rgba(217,74,138,0.55);
         }
 
-        /* Pre-hide tbody to prevent unsorted flash before JS runs */
-        #trlTable > tbody { visibility: hidden; }
-
         /* Hidden-by-filter rows */
         .trl-table tbody tr.trl-hidden { display: none; }
+        .trl-infinite-loading {
+            display: none;
+            text-align: center;
+            padding: 16px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .trl-infinite-loading.visible { display: block; }
 
         /* ---- Match Modal ---- */
         .trl-modal-overlay {
@@ -434,7 +441,10 @@
             transition: all 0.2s ease;
         }
         .trl-expand-btn:hover { background: #333; color: #fff; }
-        .trl-expand-btn.expanded { background: #2d5016; border-color: #3d6b1e; color: #fff; }
+        .trl-expand-btn.expanded { background: rgba(115, 115, 125, 0.14); border-color: rgba(115, 115, 125, 0.4); color: #d1d5db; }
+        .trl-table tbody tr.gender-male .trl-expand-btn.expanded { background: rgba(74, 144, 226, 0.14); border-color: rgba(74, 144, 226, 0.45); color: #93c5fd; }
+        .trl-table tbody tr.gender-female .trl-expand-btn.expanded { background: rgba(217, 74, 138, 0.14); border-color: rgba(217, 74, 138, 0.45); color: #f9a8d4; }
+
         .trl-detail-row { display: none; }
         .trl-detail-row.visible { display: table-row; }
         .trl-detail-cell {
@@ -463,8 +473,11 @@
             display: inline-flex; align-items: center; justify-content: center;
             width: 28px; height: 28px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
             text-decoration: none; color: #fff;
-            background: #2a5c8a; border: 1px solid #3a7cc0;
+            background: #3a3b43; border: 1px solid #555861;
         }
+        .ov-chart-run-box.gender-male { background: #2a5c8a; border-color: #3a7cc0; }
+        .ov-chart-run-box.gender-female { background: #8a2a63; border-color: #c04a8d; }
+        .ov-chart-run-box.gender-other { background: #3a3b43; border-color: #555861; color: #e5e7eb; }
         .ov-chart-run-box:hover { opacity: 0.85; }
         .ov-chart-run-box.peak-one { background: #7c5200; border-color: #c47f00; color: #ffd966; }
         .ov-chart-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
@@ -548,21 +561,24 @@
         </div>
 
         <!-- Data attributes store TRL entry info for each row -->
-        <div class="trl-table-wrap" th:if="${overviewTab == 'song'}">
-            <table class="trl-table js-sortable" id="trlTable">
+           <div class="trl-table-wrap"
+               id="trlOverviewContainer"
+               th:if="${overviewTab == 'song'}"
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+            <table class="trl-table" id="trlTable">
                 <thead>
                     <tr>
                         <th data-no-sort></th>
-                        <th data-type="number">Days</th>
-                            <th class="center" data-type="number" title="Distinct days found in chart entry data">Actual Days</th>
-                            <th class="center" data-type="number" title="Distinct days found in chart entry data">Peak</th>
-                        <th class="center" data-type="number" title="Days at peak">Days at Peak</th>
-                        <th class="center" data-type="date" data-default-sort="asc">Debut Date</th>
-                        <th class="center" data-type="number">Debut Position</th>
-                        <th class="center" data-type="date">Last Date</th>
-                        <th class="center" data-type="date">Peak Date</th>
-                        <th data-type="text">Song</th>
-                        <th data-type="text">Artist</th>
+                        <th th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days</a></th>
+                            <th class="center" title="Distinct days found in chart entry data" th:classappend="${selectedSort == 'actualDays'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='actualDays',dir=${selectedSort == 'actualDays' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Actual Days</a></th>
+                            <th class="center" title="Distinct days found in chart entry data" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Peak</a></th>
+                        <th class="center" title="Days at peak" th:classappend="${selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days at Peak</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'debutDate'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='debutDate',dir=${selectedSort == 'debutDate' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Debut Date</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Debut Position</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peakDate'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='peakDate',dir=${selectedSort == 'peakDate' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Peak Date</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'lastDate'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='lastDate',dir=${selectedSort == 'lastDate' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Last Date</a></th>
+                        <th th:classappend="${selectedSort == 'song'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Song</a></th>
+                        <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th data-no-sort></th>
                     </tr>
                 </thead>
@@ -574,6 +590,9 @@
                         th:data-artist-name="${d.artistName}"
                         th:data-retired="${d.retired}"
                         th:data-chart-linked="${d.actualDays != null}"
+                        th:data-top1="${d.daysAtTop1 != null ? d.daysAtTop1 : 0}"
+                        th:data-top5="${d.daysAtTop5 != null ? d.daysAtTop5 : 0}"
+                        th:data-top10="${d.daysAtTop10 != null ? d.daysAtTop10 : 0}"
                         th:classappend="${(d.genderClass != null ? d.genderClass : '') + (d.retired ? ' trl-retired' : '')}">
                         <!-- Expand button -->
                         <td class="center" th:if="${d.actualDays != null}">
@@ -612,25 +631,25 @@
                         <td class="center" th:attr="data-value=${d.debutPosition}">
                             <span class="pos-badge" th:text="${d.debutPosition}">-</span>
                         </td>
-                        <!-- Last appearance date -->
-                        <td class="center trl-date"
-                            th:attr="data-value=${d.lastAppearanceDate}">
-                            <a th:if="${d.lastAppearanceDate != null and d.lastAppearanceDate != '-'}"
-                               class="trl-date-link"
-                               th:href="@{/misc/trl/recaps(date=${d.lastAppearanceDate})}"
-                               th:text="${d.lastAppearanceDate}">-</a>
-                            <span th:if="${d.lastAppearanceDate == null or d.lastAppearanceDate == '-'}"
-                                  th:text="${d.lastAppearanceDate}">-</span>
-                        </td>
-                        <!-- Peak date -->
-                        <td class="center trl-date"
-                            th:attr="data-value=${d.peakDate}">
-                            <a th:if="${d.peakDate != null and d.peakDate != '-'}"
-                               class="trl-date-link"
-                               th:href="@{/misc/trl/recaps(date=${d.peakDate})}"
-                               th:text="${d.peakDate}">-</a>
-                            <span th:if="${d.peakDate == null or d.peakDate == '-'}">-</span>
-                        </td>
+                                <!-- Peak date -->
+                                <td class="center trl-date"
+                                     th:attr="data-value=${d.peakDate}">
+                                     <a th:if="${d.peakDate != null and d.peakDate != '-'}"
+                                         class="trl-date-link"
+                                         th:href="@{/misc/trl/recaps(date=${d.peakDate})}"
+                                         th:text="${d.peakDate}">-</a>
+                                     <span th:if="${d.peakDate == null or d.peakDate == '-'}">-</span>
+                                </td>
+                                <!-- Last appearance date -->
+                                <td class="center trl-date"
+                                     th:attr="data-value=${d.lastAppearanceDate}">
+                                     <a th:if="${d.lastAppearanceDate != null and d.lastAppearanceDate != '-'}"
+                                         class="trl-date-link"
+                                         th:href="@{/misc/trl/recaps(date=${d.lastAppearanceDate})}"
+                                         th:text="${d.lastAppearanceDate}">-</a>
+                                     <span th:if="${d.lastAppearanceDate == null or d.lastAppearanceDate == '-'}"
+                                             th:text="${d.lastAppearanceDate}">-</span>
+                                </td>
                         <!-- Song title -->
                         <td th:attr="data-value=${d.songTitle}">
                             <a th:if="${d.songId != null}"
@@ -667,21 +686,12 @@
                             </button>
                         </td>
                     </tr>
-                    <tr th:if="${d.actualDays != null}" class="detail-row trl-detail-row">
-                            <td colspan="12" class="trl-detail-cell">
+                    <tr class="detail-row trl-detail-row">
+                        <td colspan="12" class="trl-detail-cell">
                             <div class="trl-run-stats">
-                                <div class="trl-run-stat">
-                                    <div class="trl-run-stat-label">#1</div>
-                                    <div class="trl-run-stat-value" th:text="${d.daysAtTop1}">0</div>
-                                </div>
-                                <div class="trl-run-stat">
-                                    <div class="trl-run-stat-label">Top 5</div>
-                                    <div class="trl-run-stat-value" th:text="${d.daysAtTop5}">0</div>
-                                </div>
-                                <div class="trl-run-stat">
-                                    <div class="trl-run-stat-label">Top 10</div>
-                                    <div class="trl-run-stat-value" th:text="${d.daysAtTop10}">0</div>
-                                </div>
+                                <div class="trl-run-stat"><div class="trl-run-stat-label">#1</div><div class="trl-run-stat-value" th:text="${d.daysAtTop1 != null ? d.daysAtTop1 : 0}">0</div></div>
+                                <div class="trl-run-stat"><div class="trl-run-stat-label">Top 5</div><div class="trl-run-stat-value" th:text="${d.daysAtTop5 != null ? d.daysAtTop5 : 0}">0</div></div>
+                                <div class="trl-run-stat"><div class="trl-run-stat-label">Top 10</div><div class="trl-run-stat-value" th:text="${d.daysAtTop10 != null ? d.daysAtTop10 : 0}">0</div></div>
                             </div>
                             <div class="ov-chart-run-container" th:id="'trl-run-' + ${d.id}"></div>
                         </td>
@@ -696,22 +706,25 @@
             </table>
         </div>
 
-        <div class="trl-table-wrap" th:if="${overviewTab == 'album'}">
-            <table class="trl-table js-sortable" id="trlAlbumOverviewTable">
+           <div class="trl-table-wrap"
+               id="trlOverviewContainer"
+               th:if="${overviewTab == 'album'}"
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+            <table class="trl-table" id="trlAlbumOverviewTable">
                 <thead>
                     <tr>
-                        <th data-type="text">Artist</th>
-                        <th data-type="text">Album Name</th>
-                        <th class="right" data-type="number">Songs Charted</th>
-                        <th class="right" data-type="number" data-default-sort="desc">Total Days</th>
-                        <th class="center" data-type="number">Highest Peak</th>
-                        <th class="right" data-type="number">#1 Songs</th>
-                        <th class="right" data-type="number">Days at #1</th>
-                        <th class="center" data-type="date">First Debut</th>
-                        <th class="center" data-type="date">Last Appearance</th>
+                        <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
+                        <th th:classappend="${selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Album Name</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Total Days</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Highest Peak</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'})}">#1 Songs</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days at #1</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'firstDebut'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='firstDebut',dir=${selectedSort == 'firstDebut' and selectedDir == 'asc' ? 'desc' : 'asc'})}">First Debut</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'lastAppearance'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='lastAppearance',dir=${selectedSort == 'lastAppearance' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Last Appearance</a></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="trlAlbumOverviewBody">
                     <tr th:each="entry : ${albumOverviewRows}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
                         <td th:attr="data-value=${entry.artistName}">
@@ -762,21 +775,24 @@
             </table>
         </div>
 
-        <div class="trl-table-wrap" th:if="${overviewTab == 'artist'}">
-            <table class="trl-table js-sortable" id="trlArtistOverviewTable">
+           <div class="trl-table-wrap"
+               id="trlOverviewContainer"
+               th:if="${overviewTab == 'artist'}"
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+            <table class="trl-table" id="trlArtistOverviewTable">
                 <thead>
                     <tr>
-                        <th data-type="text">Artist</th>
-                        <th class="right" data-type="number">Songs Charted</th>
-                        <th class="right" data-type="number" data-default-sort="desc">Total Days</th>
-                        <th class="center" data-type="number">Highest Peak</th>
-                        <th class="right" data-type="number">#1 Songs</th>
-                        <th class="right" data-type="number">Days at #1</th>
-                        <th class="center" data-type="date">First Debut</th>
-                        <th class="center" data-type="date">Last Appearance</th>
+                        <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Total Days</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Highest Peak</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'})}">#1 Songs</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days at #1</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'firstDebut'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='firstDebut',dir=${selectedSort == 'firstDebut' and selectedDir == 'asc' ? 'desc' : 'asc'})}">First Debut</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'lastAppearance'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='lastAppearance',dir=${selectedSort == 'lastAppearance' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Last Appearance</a></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="trlArtistOverviewBody">
                     <tr th:each="entry : ${artistOverviewRows}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
                         <td th:attr="data-value=${entry.artistName}">
@@ -817,6 +833,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div th:if="${activeTotalCount > pageSize}" id="trlInfiniteSentinel" style="height:1px;"></div>
+        <div th:if="${activeTotalCount > pageSize}" id="trlInfiniteLoading" class="trl-infinite-loading">Loading...</div>
     </main>
 
     <!-- Match Modal -->
@@ -878,36 +897,209 @@
             if (unmatched) document.getElementById('trlSummaryUnmatched').textContent = unmatched.textContent;
         }
 
-        function captureTableSortState(tableId) {
-            var table = document.getElementById(tableId);
-            if (!table) return null;
-            var headers = Array.from(table.querySelectorAll('thead th'));
-            var sortedHeader = headers.find(function(th) { return th.hasAttribute('data-sort-dir'); });
-            if (sortedHeader) {
-                return {
-                    index: headers.indexOf(sortedHeader),
-                    dir: sortedHeader.getAttribute('data-sort-dir')
-                };
+        function getTrlOverviewBody(overviewTab) {
+            if (overviewTab === 'album') {
+                return document.getElementById('trlAlbumOverviewBody');
             }
-            var defaultHeader = headers.find(function(th) { return th.hasAttribute('data-default-sort'); });
-            if (defaultHeader) {
-                return {
-                    index: headers.indexOf(defaultHeader),
-                    dir: defaultHeader.getAttribute('data-default-sort') || 'asc'
-                };
+            if (overviewTab === 'artist') {
+                return document.getElementById('trlArtistOverviewBody');
             }
-            return null;
+            return document.getElementById('trlTableBody');
         }
 
-        function applyTableSortState(tableId, sortState) {
-            if (!sortState || !window.TableSort) return;
-            var table = document.getElementById(tableId);
-            if (!table) return;
-            var headers = Array.from(table.querySelectorAll('thead th'));
-            var th = headers[sortState.index];
-            if (!th) return;
-            th.setAttribute('data-sort-dir', sortState.dir === 'asc' ? 'desc' : 'asc');
-            window.TableSort.sortByColumn(table, sortState.index, th, headers);
+        function escapeTrlHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderTrlDateCell(dateValue) {
+            if (dateValue && dateValue !== '-') {
+                return '<a class="trl-date-link" href="/misc/trl/recaps?date=' + encodeURIComponent(dateValue) + '">' + escapeTrlHtml(dateValue) + '</a>';
+            }
+            return '<span>' + escapeTrlHtml(dateValue || '-') + '</span>';
+        }
+
+        function renderTrlSongRows(entries) {
+            return entries.map(function(entry) {
+                var genderClass = entry.genderClass ? ' ' + entry.genderClass : '';
+                var retiredClass = entry.retired ? ' trl-retired' : '';
+                var canExpand = entry.actualDays != null;
+                var songCell = entry.songId != null
+                    ? '<a href="/songs/' + entry.songId + '" class="trl-song-link">' + escapeTrlHtml(entry.songTitle) + '</a>'
+                    : '<span class="trl-no-link-song">' + escapeTrlHtml(entry.songTitle) + '</span>';
+                var artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="trl-artist-link">' + escapeTrlHtml(entry.artistName) + '</a>'
+                    : '<span class="trl-no-link-artist">' + escapeTrlHtml(entry.artistName) + '</span>';
+                var matchButton = entry.songId == null
+                    ? '<button class="trl-match-btn" onclick="openMatchModal(this)" title="Link to a song in your library">Link to song in Library</button>'
+                    : '';
+                var chartButton = entry.actualDays == null
+                    ? '<button class="trl-chart-btn" onclick="openChartLinkModal(this)" title="Link to TRL chart entry">Link to TRL</button>'
+                    : '';
+                return ''
+                    + '<tr data-trl-id="' + entry.id + '"'
+                    + ' data-song-title="' + escapeTrlHtml(entry.songTitle) + '"'
+                    + ' data-artist-name="' + escapeTrlHtml(entry.artistName) + '"'
+                    + ' data-retired="' + (entry.retired ? 'true' : 'false') + '"'
+                    + ' data-chart-linked="' + (entry.actualDays != null ? 'true' : 'false') + '"'
+                    + ' data-top1="' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '"'
+                    + ' data-top5="' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '"'
+                    + ' data-top10="' + (entry.daysAtTop10 != null ? entry.daysAtTop10 : 0) + '"'
+                    + ' class="' + (genderClass + retiredClass).trim() + '">'
+                    + '<td class="center">' + (canExpand ? '<button class="trl-expand-btn" onclick="toggleTrlExpand(this)" title="Show chart tier stats">+</button>' : '') + '</td>'
+                    + '<td data-value="' + (entry.daysOnCountdown != null ? entry.daysOnCountdown : 0) + '">' + (entry.daysOnCountdown != null ? entry.daysOnCountdown : 0) + '</td>'
+                    + '<td class="center" data-value="' + (entry.actualDays != null ? entry.actualDays : 0) + '">' + (entry.actualDays != null ? '<span' + ((entry.daysOnCountdown != null && entry.actualDays !== entry.daysOnCountdown) ? ' style="color:#ff9800"' : '') + '>' + entry.actualDays + '</span>' : '<span style="color:#555">-</span>') + '</td>'
+                    + '<td class="center" data-value="' + (entry.peakPosition != null ? entry.peakPosition : 999) + '">' + (entry.peakPosition != null ? '<span class="pos-badge">' + entry.peakPosition + '</span>' : '<span style="color:#555">-</span>') + '</td>'
+                    + '<td class="center" data-value="' + (entry.daysAtPeak != null ? entry.daysAtPeak : 0) + '">' + (entry.daysAtPeak != null ? entry.daysAtPeak : '<span style="color:#555">-</span>') + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.debutDate || '') + '">' + renderTrlDateCell(entry.debutDate) + '</td>'
+                    + '<td class="center" data-value="' + (entry.debutPosition != null ? entry.debutPosition : 999) + '">' + (entry.debutPosition != null ? '<span class="pos-badge">' + entry.debutPosition + '</span>' : '<span style="color:#555">-</span>') + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.peakDate || '') + '">' + renderTrlDateCell(entry.peakDate) + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.lastAppearanceDate || '') + '">' + renderTrlDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '<td data-value="' + escapeTrlHtml(entry.songTitle) + '">' + songCell + '</td>'
+                    + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td>' + matchButton + chartButton + '</td>'
+                    + '</tr>'
+                    + '<tr class="detail-row trl-detail-row">'
+                    + '<td colspan="12" class="trl-detail-cell">'
+                    + '<div class="trl-run-stats">'
+                    + '<div class="trl-run-stat"><div class="trl-run-stat-label">#1</div><div class="trl-run-stat-value">' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '</div></div>'
+                    + '<div class="trl-run-stat"><div class="trl-run-stat-label">Top 5</div><div class="trl-run-stat-value">' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '</div></div>'
+                    + '<div class="trl-run-stat"><div class="trl-run-stat-label">Top 10</div><div class="trl-run-stat-value">' + (entry.daysAtTop10 != null ? entry.daysAtTop10 : 0) + '</div></div>'
+                    + '</div>'
+                    + '<div class="ov-chart-run-container" id="trl-run-' + entry.id + '"></div>'
+                    + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderTrlAlbumRows(entries) {
+            return entries.map(function(entry) {
+                var genderClass = entry.genderClass ? ' class="' + escapeTrlHtml(entry.genderClass) + '"' : '';
+                var artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="trl-artist-link">' + escapeTrlHtml(entry.artistName) + '</a>'
+                    : '<span class="trl-no-link-artist">' + escapeTrlHtml(entry.artistName) + '</span>';
+                var albumCell = entry.albumId != null
+                    ? '<a href="/albums/' + entry.albumId + '" class="trl-song-link">' + escapeTrlHtml(entry.albumName) + '</a>'
+                    : '<span class="trl-no-link-song">' + escapeTrlHtml(entry.albumName) + '</span>';
+                return ''
+                    + '<tr' + genderClass + '>'
+                    + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td data-value="' + escapeTrlHtml(entry.albumName) + '">' + albumCell + '</td>'
+                    + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
+                    + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? '<span class="pos-badge">' + entry.highestPeak + '</span>' : '<span style="color:#555">-</span>') + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.firstDebutDate || '') + '">' + renderTrlDateCell(entry.firstDebutDate) + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.lastAppearanceDate || '') + '">' + renderTrlDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderTrlArtistRows(entries) {
+            return entries.map(function(entry) {
+                var genderClass = entry.genderClass ? ' class="' + escapeTrlHtml(entry.genderClass) + '"' : '';
+                var artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="trl-artist-link">' + escapeTrlHtml(entry.artistName) + '</a>'
+                    : '<span class="trl-no-link-artist">' + escapeTrlHtml(entry.artistName) + '</span>';
+                return ''
+                    + '<tr' + genderClass + '>'
+                    + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
+                    + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? '<span class="pos-badge">' + entry.highestPeak + '</span>' : '<span style="color:#555">-</span>') + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.firstDebutDate || '') + '">' + renderTrlDateCell(entry.firstDebutDate) + '</td>'
+                    + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.lastAppearanceDate || '') + '">' + renderTrlDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function setupTrlInfiniteScroll() {
+            var container = document.getElementById('trlOverviewContainer');
+            if (!container || !window.IntersectionObserver) return;
+
+            var totalCount = parseInt(container.dataset.total || '0', 10);
+            var pageSize = parseInt(container.dataset.pageSize || '0', 10);
+            var overviewTab = container.dataset.overviewTab || 'song';
+            var tbody = getTrlOverviewBody(overviewTab);
+            var sentinel = document.getElementById('trlInfiniteSentinel');
+            var loadingEl = document.getElementById('trlInfiniteLoading');
+
+            if (!tbody || !sentinel || !pageSize) return;
+
+            var initialRows = overviewTab === 'song'
+                ? tbody.querySelectorAll('tr[data-trl-id]').length
+                : tbody.querySelectorAll('tr').length;
+
+            if (initialRows >= totalCount) {
+                return;
+            }
+
+            var nextPage = 2;
+            var loadedCount = initialRows;
+            var isLoading = false;
+            var observer = new IntersectionObserver(function(entries) {
+                if (entries[0].isIntersecting) {
+                    loadMore();
+                }
+            }, { rootMargin: '300px' });
+
+            observer.observe(sentinel);
+
+            async function loadMore() {
+                if (isLoading || loadedCount >= totalCount) {
+                    if (loadedCount >= totalCount) {
+                        observer.disconnect();
+                    }
+                    return;
+                }
+
+                isLoading = true;
+                if (loadingEl) loadingEl.classList.add('visible');
+
+                try {
+                    var url = new URL('/misc/trl/data', window.location.origin);
+                    url.searchParams.set('overviewTab', overviewTab);
+                    url.searchParams.set('page', String(nextPage));
+                    url.searchParams.set('size', String(pageSize));
+                    url.searchParams.set('sort', container.dataset.sort || 'days');
+                    url.searchParams.set('dir', container.dataset.dir || 'desc');
+                    var response = await fetch(url.toString());
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    var data = await response.json();
+                    var entries = Array.isArray(data.entries) ? data.entries : [];
+                    if (!entries.length) {
+                        loadedCount = totalCount;
+                        observer.disconnect();
+                        return;
+                    }
+
+                    var html = overviewTab === 'album'
+                        ? renderTrlAlbumRows(entries)
+                        : overviewTab === 'artist'
+                        ? renderTrlArtistRows(entries)
+                        : renderTrlSongRows(entries);
+                    tbody.insertAdjacentHTML('beforeend', html);
+                    loadedCount += entries.length;
+                    nextPage = data.nextPage || (nextPage + 1);
+                    applyTrlRetiredFilterIfActive();
+
+                    if (!data.hasMore || loadedCount >= totalCount) {
+                        observer.disconnect();
+                    }
+                } catch (error) {
+                    console.error('Failed to load more TRL overview rows:', error);
+                } finally {
+                    isLoading = false;
+                    if (loadingEl) loadingEl.classList.remove('visible');
+                }
+            }
         }
 
         function showPageBusyOverlay(title, subtitle) {
@@ -937,8 +1129,6 @@
                 location.reload();
                 return Promise.resolve();
             }
-            var sortState = captureTableSortState('trlTable');
-
             showPageBusyOverlay('Refreshing TRL overview', 'Updating videos and summary stats...');
             tbody.classList.add('trl-refreshing');
             return fetch(window.location.pathname + window.location.search, {
@@ -955,7 +1145,6 @@
                 }
                 tbody.innerHTML = nextBody.innerHTML;
                 updateTrlSummaryFromDoc(doc);
-                applyTableSortState('trlTable', sortState);
                 applyTrlRetiredFilterIfActive();
             })
             .catch(function() {
@@ -1030,10 +1219,14 @@
                 const isRetired = row.dataset.retired === 'true';
                 row.classList.toggle('trl-hidden', retiredOnly && !isRetired);
             });
+            if (trlOpenSourceRow && trlOpenSourceRow.classList.contains('trl-hidden')) {
+                resetTrlExpandState();
+            }
         }
 
         // ---- Chart Run Rendering (shared) ----
-        function renderOvChartRun(entries, chartType) {
+        function renderOvChartRun(entries, chartType, toneClass) {
+            var resolvedToneClass = toneClass || 'gender-other';
             if (!entries || entries.length === 0) {
                 return '<div class="ov-chart-run-empty">No chart entries found.</div>';
             }
@@ -1065,7 +1258,7 @@
                 if (entry.on_chart) {
                     const pos = entry.position;
                     const date = entry.chart_date;
-                    let cls = 'ov-chart-run-box';
+                    let cls = 'ov-chart-run-box ' + resolvedToneClass;
                     if (pos === 1) cls += ' peak-one';
                     let recapUrl = '#';
                     if (chartType === 'trl') recapUrl = '/misc/trl/recaps?date=' + encodeURIComponent(date);
@@ -1079,6 +1272,12 @@
             return '<div class="ov-chart-run-label">Chart-run</div><div class="ov-chart-run-boxes">' + boxesHtml + '</div>';
         }
 
+        function getTrlRunToneClass(row) {
+            if (row.classList.contains('gender-female')) return 'gender-female';
+            if (row.classList.contains('gender-male')) return 'gender-male';
+            return 'gender-other';
+        }
+
         // ---- Match Modal ----
         var _modalTrlId = null;
         var _modalRow = null;
@@ -1089,24 +1288,36 @@
             var detailRow = row.nextElementSibling;
             if (!detailRow || !detailRow.classList.contains('trl-detail-row')) return;
             var isVisible = detailRow.classList.contains('visible');
-            if (!isVisible) {
-                var debutId = row.dataset.trlId;
-                var container = document.getElementById('trl-run-' + debutId);
-                if (container && !container.dataset.loaded) {
-                    container.innerHTML = '<div class="ov-chart-run-loading">Loading...</div>';
-                    try {
-                        const resp = await fetch('/misc/trl/' + debutId + '/chart-run');
-                        const data = await resp.json();
-                        container.innerHTML = renderOvChartRun(data, 'trl');
-                        container.dataset.loaded = '1';
-                    } catch(e) {
-                        container.innerHTML = '<div class="ov-chart-run-error">Failed to load</div>';
-                    }
-                }
-            }
             detailRow.classList.toggle('visible', !isVisible);
             btn.classList.toggle('expanded', !isVisible);
             btn.textContent = isVisible ? '+' : '-';
+
+            if (isVisible) {
+                return;
+            }
+
+            var debutId = row.dataset.trlId;
+            var container = document.getElementById('trl-run-' + debutId);
+            if (!container || container.dataset.loaded || container.dataset.loading) {
+                return;
+            }
+
+            container.dataset.loading = '1';
+            container.innerHTML = '<div class="ov-chart-run-loading">Loading chart run...</div>';
+
+            requestAnimationFrame(async function() {
+                try {
+                    const resp = await fetch('/misc/trl/' + encodeURIComponent(debutId) + '/chart-run');
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    const data = await resp.json();
+                    container.innerHTML = renderOvChartRun(data, 'trl', getTrlRunToneClass(row));
+                    container.dataset.loaded = '1';
+                } catch (err) {
+                    console.error("Failed to load TRL chart run:", err);
+                    container.innerHTML = '<div class="ov-chart-run-error">Error loading chart run.</div>';
+                    container.dataset.loading = '';
+                }
+            });
         }
 
         function openMatchModal(btn) {
@@ -1339,6 +1550,7 @@
         }
 
         window.addEventListener('load', function() {
+            setupTrlInfiniteScroll();
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

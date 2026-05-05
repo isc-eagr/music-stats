@@ -225,6 +225,22 @@
             font-style: italic;
             font-size: 13px;
         }
+
+        .charts-filters-display .filter-chip-remove {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.4);
+            cursor: pointer;
+            padding: 0 0 0 6px;
+            font-size: 14px;
+            line-height: 1;
+            transition: color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .charts-filters-display .filter-chip-remove:hover {
+            color: rgba(239, 68, 68, 0.9);
+        }
         
         /* Entity Selector Radio Buttons */
         .entity-selector {
@@ -2481,7 +2497,7 @@
                                           songsYearlyChartPeak != null or songsYearlyChartYears != null} ? 'display:none' : ''">None (showing all data)</span>
                         
                         <!-- Account filter chip -->
-                        <span class="filter-chip" th:if="${selectedAccounts != null and !selectedAccounts.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="account,accountMode" th:if="${selectedAccounts != null and !selectedAccounts.isEmpty()}">
                             <span class="filter-chip-label" th:text="${accountMode == 'excludes' ? 'Account excludes' : 'Account includes'}">Account includes</span>
                             <span class="filter-chip-value" th:each="accountName, iterStat : ${selectedAccounts}">
                                 <span th:text="${accountName}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2489,7 +2505,7 @@
                         </span>
                         
                         <!-- Album filter chip -->
-                        <span class="filter-chip" th:if="${selectedAlbums != null and !selectedAlbums.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="album" th:if="${selectedAlbums != null and !selectedAlbums.isEmpty()}">
                             <span class="filter-chip-label">Album</span>
                             <span class="filter-chip-value" th:each="album, iterStat : ${selectedAlbums}">
                                 <span th:text="${album['name']}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2497,7 +2513,7 @@
                         </span>
                         
                         <!-- Albums Seasonal Chart filter chip -->
-                        <span class="filter-chip" th:if="${albumsSeasonalChartPeak != null or albumsSeasonalChartSeasons != null}">
+                        <span class="filter-chip" data-remove-params="albumsSeasonalChartPeak,albumsSeasonalChartSeasons" th:if="${albumsSeasonalChartPeak != null or albumsSeasonalChartSeasons != null}">
                             <span class="filter-chip-label">
                                 🍂 Albums Seasonal Chart:
                                 <span th:if="${albumsSeasonalChartPeak != null}">Peak ≤ <span th:text="${albumsSeasonalChartPeak}"></span></span>
@@ -2507,7 +2523,7 @@
                         </span>
                         
                         <!-- Albums Weekly Chart filter chip -->
-                        <span class="filter-chip" th:if="${albumsWeeklyChartPeak != null or albumsWeeklyChartWeeks != null}">
+                        <span class="filter-chip" data-remove-params="albumsWeeklyChartPeak,albumsWeeklyChartWeeks" th:if="${albumsWeeklyChartPeak != null or albumsWeeklyChartWeeks != null}">
                             <span class="filter-chip-label">
                                 📊 Albums Weekly Chart:
                                 <span th:if="${albumsWeeklyChartPeak != null}">Peak ≤ <span th:text="${albumsWeeklyChartPeak}"></span></span>
@@ -2517,7 +2533,7 @@
                         </span>
                         
                         <!-- Albums Yearly Chart filter chip -->
-                        <span class="filter-chip" th:if="${albumsYearlyChartPeak != null or albumsYearlyChartYears != null}">
+                        <span class="filter-chip" data-remove-params="albumsYearlyChartPeak,albumsYearlyChartYears" th:if="${albumsYearlyChartPeak != null or albumsYearlyChartYears != null}">
                             <span class="filter-chip-label">
                                 📅 Albums Yearly Chart:
                                 <span th:if="${albumsYearlyChartPeak != null}">Peak ≤ <span th:text="${albumsYearlyChartPeak}"></span></span>
@@ -2527,7 +2543,7 @@
                         </span>
                         
                         <!-- Age filter chips -->
-                        <span class="filter-chip" th:if="${(ageMin != null) or (ageMax != null)}">
+                        <span class="filter-chip" data-remove-params="ageMin,ageMax,ageMode" th:if="${(ageMin != null) or (ageMax != null)}">
                             <span class="filter-chip-label">Age</span>
                             <span class="filter-chip-value">
                                 <span th:if="${ageMin != null}" th:text="${ageMin} + '+'"></span>
@@ -2537,7 +2553,7 @@
                         </span>
                         
                         <!-- Age at Release filter chip -->
-                        <span class="filter-chip" th:if="${(ageAtReleaseMin != null) or (ageAtReleaseMax != null)}">
+                        <span class="filter-chip" data-remove-params="ageAtReleaseMin,ageAtReleaseMax" th:if="${(ageAtReleaseMin != null) or (ageAtReleaseMax != null)}">
                             <span class="filter-chip-label">Age at Release</span>
                             <span class="filter-chip-value">
                                 <span th:if="${ageAtReleaseMin != null}" th:text="${ageAtReleaseMin} + '+'"></span>
@@ -2547,7 +2563,7 @@
                         </span>
                         
                         <!-- Artist filter chip -->
-                        <span class="filter-chip" th:if="${selectedArtists != null and !selectedArtists.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="artist" th:if="${selectedArtists != null and !selectedArtists.isEmpty()}">
                             <span class="filter-chip-label">Artist</span>
                             <span class="filter-chip-value" th:each="artist, iterStat : ${selectedArtists}">
                                 <span th:text="${artist['name']}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2555,13 +2571,13 @@
                         </span>
                         
                         <!-- Birth Date filter chips -->
-                        <span class="filter-chip" th:if="${birthDateMode == 'isnull'}">
+                        <span class="filter-chip" data-remove-params="birthDateMode" th:if="${birthDateMode == 'isnull'}">
                             <span class="filter-chip-label">Birth Date is null</span>
                         </span>
-                        <span class="filter-chip" th:if="${birthDateMode == 'isnotnull'}">
+                        <span class="filter-chip" data-remove-params="birthDateMode" th:if="${birthDateMode == 'isnotnull'}">
                             <span class="filter-chip-label">Birth Date is not null</span>
                         </span>
-                        <span class="filter-chip" th:if="${birthDate != null and !birthDate.isEmpty() and birthDateMode != 'between' and birthDateMode != 'isnull' and birthDateMode != 'isnotnull'}">
+                        <span class="filter-chip" data-remove-params="birthDate,birthDateMode" th:if="${birthDate != null and !birthDate.isEmpty() and birthDateMode != 'between' and birthDateMode != 'isnull' and birthDateMode != 'isnotnull'}">
                             <span class="filter-chip-label" th:switch="${birthDateMode}">
                                 <span th:case="'exact'">Birth Date is</span>
                                 <span th:case="'gte'">Birth Date on or after</span>
@@ -2570,7 +2586,7 @@
                             </span>
                             <span class="filter-chip-value" th:text="${birthDate}"></span>
                         </span>
-                        <span class="filter-chip" th:if="${birthDateMode == 'between' and birthDateFrom != null and !birthDateFrom.isEmpty() and birthDateTo != null and !birthDateTo.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="birthDate,birthDateMode,birthDateFrom,birthDateTo" th:if="${birthDateMode == 'between' and birthDateFrom != null and !birthDateFrom.isEmpty() and birthDateTo != null and !birthDateTo.isEmpty()}">
                             <span class="filter-chip-label">Birth Date between</span>
                             <span class="filter-chip-value" th:text="${birthDateFrom}"></span>
                             <span> and </span>
@@ -2578,7 +2594,7 @@
                         </span>
                         
                         <!-- Country filter chip -->
-                        <span class="filter-chip" th:if="${selectedCountries != null and !selectedCountries.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="country,countryMode" th:if="${selectedCountries != null and !selectedCountries.isEmpty()}">
                             <span class="filter-chip-label" th:text="${countryMode == 'excludes' ? 'Country excludes' : 'Country includes'}">Country includes</span>
                             <span class="filter-chip-value" th:each="countryName, iterStat : ${selectedCountries}">
                                 <span th:text="${countryName}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2586,13 +2602,13 @@
                         </span>
                         
                         <!-- Death Date filter chips -->
-                        <span class="filter-chip" th:if="${deathDateMode == 'isnull'}">
+                        <span class="filter-chip" data-remove-params="deathDateMode" th:if="${deathDateMode == 'isnull'}">
                             <span class="filter-chip-label">Death Date is null</span>
                         </span>
-                        <span class="filter-chip" th:if="${deathDateMode == 'isnotnull'}">
+                        <span class="filter-chip" data-remove-params="deathDateMode" th:if="${deathDateMode == 'isnotnull'}">
                             <span class="filter-chip-label">Death Date is not null</span>
                         </span>
-                        <span class="filter-chip" th:if="${deathDate != null and !deathDate.isEmpty() and deathDateMode != 'between' and deathDateMode != 'isnull' and deathDateMode != 'isnotnull'}">
+                        <span class="filter-chip" data-remove-params="deathDate,deathDateMode" th:if="${deathDate != null and !deathDate.isEmpty() and deathDateMode != 'between' and deathDateMode != 'isnull' and deathDateMode != 'isnotnull'}">
                             <span class="filter-chip-label" th:switch="${deathDateMode}">
                                 <span th:case="'exact'">Death Date is</span>
                                 <span th:case="'gte'">Death Date on or after</span>
@@ -2601,7 +2617,7 @@
                             </span>
                             <span class="filter-chip-value" th:text="${deathDate}"></span>
                         </span>
-                        <span class="filter-chip" th:if="${deathDateMode == 'between' and deathDateFrom != null and !deathDateFrom.isEmpty() and deathDateTo != null and !deathDateTo.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="deathDate,deathDateMode,deathDateFrom,deathDateTo" th:if="${deathDateMode == 'between' and deathDateFrom != null and !deathDateFrom.isEmpty() and deathDateTo != null and !deathDateTo.isEmpty()}">
                             <span class="filter-chip-label">Death Date between</span>
                             <span class="filter-chip-value" th:text="${deathDateFrom}"></span>
                             <span> and </span>
@@ -2609,7 +2625,7 @@
                         </span>
                         
                         <!-- Ethnicity filter chip -->
-                        <span class="filter-chip" th:if="${selectedEthnicities != null and !selectedEthnicities.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="ethnicity,ethnicityMode" th:if="${selectedEthnicities != null and !selectedEthnicities.isEmpty()}">
                             <span class="filter-chip-label" th:text="${ethnicityMode == 'excludes' ? 'Ethnicity excludes' : 'Ethnicity includes'}">Ethnicity includes</span>
                             <span class="filter-chip-value" th:each="ethnicityId, iterStat : ${selectedEthnicities}">
                                 <span th:text="${ethnicities.get(ethnicityId)}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2617,19 +2633,19 @@
                         </span>
                         
                         <!-- Exists in iTunes filter chip -->
-                        <span class="filter-chip" th:if="${selectedInItunes != null and !selectedInItunes.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="inItunes" th:if="${selectedInItunes != null and !selectedInItunes.isEmpty()}">
                             <span class="filter-chip-label">In iTunes</span>
                             <span class="filter-chip-value" th:text="${selectedInItunes == 'true' ? 'Yes' : 'No'}"></span>
                         </span>
                         
                         <!-- First Listened Date filter chip -->
-                        <span class="filter-chip" th:if="${firstListenedDate != null and !firstListenedDate.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="firstListenedDate,firstListenedDateEntity,firstListenedDateMode,firstListenedDateFrom,firstListenedDateTo" th:if="${firstListenedDate != null and !firstListenedDate.isEmpty()}">
                             <span class="filter-chip-label" th:text="'First Listened (' + (firstListenedDateEntity != null ? firstListenedDateEntity : 'song') + ')'">First Listened</span>
                             <span class="filter-chip-value" th:text="${firstListenedDate}"></span>
                         </span>
                         
                         <!-- Gender filter chip -->
-                        <span class="filter-chip" th:if="${selectedGenders != null and !selectedGenders.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="gender,genderMode" th:if="${selectedGenders != null and !selectedGenders.isEmpty()}">
                             <span class="filter-chip-label" th:text="${genderMode == 'excludes' ? 'Gender excludes' : 'Gender includes'}">Gender includes</span>
                             <span class="filter-chip-value" th:each="genderId, iterStat : ${selectedGenders}">
                                 <span th:text="${genders.get(genderId)}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2637,7 +2653,7 @@
                         </span>
                         
                         <!-- Genre filter chip -->
-                        <span class="filter-chip" th:if="${selectedGenres != null and !selectedGenres.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="genre,genreMode" th:if="${selectedGenres != null and !selectedGenres.isEmpty()}">
                             <span class="filter-chip-label" th:text="${genreMode == 'excludes' ? 'Genre excludes' : 'Genre includes'}">Genre includes</span>
                             <span class="filter-chip-value" th:each="genreId, iterStat : ${selectedGenres}">
                                 <span th:text="${genres.get(genreId)}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2645,37 +2661,37 @@
                         </span>
                         
                         <!-- Has Featured Artists filter chip -->
-                        <span class="filter-chip" th:if="${selectedHasFeaturedArtists != null and !selectedHasFeaturedArtists.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="hasFeaturedArtists" th:if="${selectedHasFeaturedArtists != null and !selectedHasFeaturedArtists.isEmpty()}">
                             <span class="filter-chip-label">Featured Artists</span>
                             <span class="filter-chip-value" th:text="${selectedHasFeaturedArtists == 'true' ? 'Yes' : 'No'}"></span>
                         </span>
                         
                         <!-- Include Groups filter chip -->
-                        <span class="filter-chip" th:if="${includeGroups}">
+                        <span class="filter-chip" data-remove-params="includeGroups" th:if="${includeGroups}">
                             <span class="filter-chip-label">Include Groups</span>
                             <span class="filter-chip-value">Yes</span>
                         </span>
                         
                         <!-- Include Featured filter chip -->
-                        <span class="filter-chip" th:if="${includeFeatured}">
+                        <span class="filter-chip" data-remove-params="includeFeatured" th:if="${includeFeatured}">
                             <span class="filter-chip-label">Include Featured</span>
                             <span class="filter-chip-value">Yes</span>
                         </span>
                         
                         <!-- Is Band filter chip -->
-                        <span class="filter-chip" th:if="${selectedIsBand != null and !selectedIsBand.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="isBand" th:if="${selectedIsBand != null and !selectedIsBand.isEmpty()}">
                             <span class="filter-chip-label">Is Band</span>
                             <span class="filter-chip-value" th:text="${selectedIsBand == 'true' ? 'Yes' : 'No'}"></span>
                         </span>
                         
                         <!-- Is Single filter chip -->
-                        <span class="filter-chip" th:if="${selectedIsSingle != null and !selectedIsSingle.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="isSingle" th:if="${selectedIsSingle != null and !selectedIsSingle.isEmpty()}">
                             <span class="filter-chip-label">Is Single</span>
                             <span class="filter-chip-value" th:text="${selectedIsSingle == 'true' ? 'Yes' : 'No'}"></span>
                         </span>
                         
                         <!-- Language filter chip -->
-                        <span class="filter-chip" th:if="${selectedLanguages != null and !selectedLanguages.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="language,languageMode" th:if="${selectedLanguages != null and !selectedLanguages.isEmpty()}">
                             <span class="filter-chip-label" th:text="${languageMode == 'excludes' ? 'Language excludes' : 'Language includes'}">Language includes</span>
                             <span class="filter-chip-value" th:each="languageId, iterStat : ${selectedLanguages}">
                                 <span th:text="${languages.get(languageId)}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2683,13 +2699,13 @@
                         </span>
                         
                         <!-- Last Listened Date filter chip -->
-                        <span class="filter-chip" th:if="${lastListenedDate != null and !lastListenedDate.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="lastListenedDate,lastListenedDateEntity,lastListenedDateMode,lastListenedDateFrom,lastListenedDateTo" th:if="${lastListenedDate != null and !lastListenedDate.isEmpty()}">
                             <span class="filter-chip-label" th:text="'Last Listened (' + (lastListenedDateEntity != null ? lastListenedDateEntity : 'song') + ')'">Last Listened</span>
                             <span class="filter-chip-value" th:text="${lastListenedDate}"></span>
                         </span>
                         
                         <!-- Date range filter chip -->
-                        <span class="filter-chip" th:if="${listenedDateFrom != null and !listenedDateFrom.isEmpty() and listenedDateTo != null and !listenedDateTo.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="listenedDateFrom,listenedDateTo,periodLabel" th:if="${listenedDateFrom != null and !listenedDateFrom.isEmpty() and listenedDateTo != null and !listenedDateTo.isEmpty()}">
                             <span class="filter-chip-label" th:text="${periodLabel != null and !periodLabel.isEmpty() ? periodLabel : 'Listened between'}"></span>
                             <span class="filter-chip-value" th:if="${periodLabel == null or periodLabel.isEmpty()}" th:text="${listenedDateFrom}"></span>
                             <span th:if="${periodLabel == null or periodLabel.isEmpty()}"> and </span>
@@ -2697,7 +2713,7 @@
                         </span>
                         
                         <!-- Play Count filter chip -->
-                        <span class="filter-chip" th:if="${(playCountMin != null) or (playCountMax != null)}">
+                        <span class="filter-chip" data-remove-params="playCountMin,playCountMax,playCountEntity" th:if="${(playCountMin != null) or (playCountMax != null)}">
                             <span class="filter-chip-label" th:text="'Play Count (' + (playCountEntity != null ? playCountEntity : 'song') + ')'">Play Count</span>
                             <span class="filter-chip-value">
                                 <span th:if="${playCountMin != null}" th:text="${playCountMin}"></span>
@@ -2707,7 +2723,7 @@
                         </span>
                         
                         <!-- Length filter chip -->
-                        <span class="filter-chip" th:if="${lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero'))}">
+                        <span class="filter-chip" data-remove-params="lengthMin,lengthMax,lengthMode,lengthEntity" th:if="${lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero'))}">
                             <span class="filter-chip-label" th:text="'Length (' + (lengthEntity != null ? lengthEntity : 'song') + ')'">Length</span>
                             <span class="filter-chip-value">
                                 <span th:if="${lengthMode == 'zero'}">Zero/Null</span>
@@ -2725,13 +2741,13 @@
                         </span>
                         
                         <!-- Release Date filter chip -->
-                        <span class="filter-chip" th:if="${releaseDate != null and !releaseDate.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="releaseDate,releaseDateMode,releaseDateFrom,releaseDateTo" th:if="${releaseDate != null and !releaseDate.isEmpty()}">
                             <span class="filter-chip-label">Release Date</span>
                             <span class="filter-chip-value" th:text="${releaseDate}"></span>
                         </span>
                         
                         <!-- Subgenre filter chip -->
-                        <span class="filter-chip" th:if="${selectedSubgenres != null and !selectedSubgenres.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="subgenre,subgenreMode" th:if="${selectedSubgenres != null and !selectedSubgenres.isEmpty()}">
                             <span class="filter-chip-label" th:text="${subgenreMode == 'excludes' ? 'Subgenre excludes' : 'Subgenre includes'}">Subgenre includes</span>
                             <span class="filter-chip-value" th:each="subgenreId, iterStat : ${selectedSubgenres}">
                                 <span th:text="${subgenres.get(subgenreId)}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2739,7 +2755,7 @@
                         </span>
                         
                         <!-- Song filter chip -->
-                        <span class="filter-chip" th:if="${selectedSongs != null and !selectedSongs.isEmpty()}">
+                        <span class="filter-chip" data-remove-params="song" th:if="${selectedSongs != null and !selectedSongs.isEmpty()}">
                             <span class="filter-chip-label">Song</span>
                             <span class="filter-chip-value" th:each="song, iterStat : ${selectedSongs}">
                                 <span th:text="${song['name']}"></span><span th:if="${!iterStat.last}">, </span>
@@ -2747,7 +2763,7 @@
                         </span>
                         
                         <!-- Songs Seasonal Chart filter chip -->
-                        <span class="filter-chip" th:if="${songsSeasonalChartPeak != null or songsSeasonalChartSeasons != null}">
+                        <span class="filter-chip" data-remove-params="songsSeasonalChartPeak,songsSeasonalChartSeasons" th:if="${songsSeasonalChartPeak != null or songsSeasonalChartSeasons != null}">
                             <span class="filter-chip-label">
                                 🍂 Songs Seasonal Chart:
                                 <span th:if="${songsSeasonalChartPeak != null}">Peak ≤ <span th:text="${songsSeasonalChartPeak}"></span></span>
@@ -2757,7 +2773,7 @@
                         </span>
                         
                         <!-- Songs Weekly Chart filter chip -->
-                        <span class="filter-chip" th:if="${songsWeeklyChartPeak != null or songsWeeklyChartWeeks != null}">
+                        <span class="filter-chip" data-remove-params="songsWeeklyChartPeak,songsWeeklyChartWeeks" th:if="${songsWeeklyChartPeak != null or songsWeeklyChartWeeks != null}">
                             <span class="filter-chip-label">
                                 📊 Songs Weekly Chart:
                                 <span th:if="${songsWeeklyChartPeak != null}">Peak ≤ <span th:text="${songsWeeklyChartPeak}"></span></span>
@@ -2767,7 +2783,7 @@
                         </span>
 
                         <!-- Songs TRL filter chip -->
-                        <span class="filter-chip" th:if="${songsTrlPeak != null or songsTrlDays != null}">
+                        <span class="filter-chip" data-remove-params="songsTrlPeak,songsTrlDays" th:if="${songsTrlPeak != null or songsTrlDays != null}">
                             <span class="filter-chip-label">
                                 📺 Songs TRL:
                                 <span th:if="${songsTrlPeak != null}">Peak ≤ <span th:text="${songsTrlPeak}"></span></span>
@@ -2777,7 +2793,7 @@
                         </span>
 
                         <!-- Songs Vato's Cuntdown filter chip -->
-                        <span class="filter-chip" th:if="${songsVatosCuntdownPeak != null or songsVatosCuntdownDays != null}">
+                        <span class="filter-chip" data-remove-params="songsVatosCuntdownPeak,songsVatosCuntdownDays" th:if="${songsVatosCuntdownPeak != null or songsVatosCuntdownDays != null}">
                             <span class="filter-chip-label">
                                 🗓 Songs Vato's Cuntdown:
                                 <span th:if="${songsVatosCuntdownPeak != null}">Peak ≤ <span th:text="${songsVatosCuntdownPeak}"></span></span>
@@ -2787,7 +2803,7 @@
                         </span>
 
                         <!-- Songs Billboard filter chip -->
-                        <span class="filter-chip" th:if="${songsBillboardPeak != null or songsBillboardWeeks != null}">
+                        <span class="filter-chip" data-remove-params="songsBillboardPeak,songsBillboardWeeks" th:if="${songsBillboardPeak != null or songsBillboardWeeks != null}">
                             <span class="filter-chip-label">
                                 🎵 Songs Billboard:
                                 <span th:if="${songsBillboardPeak != null}">Peak ≤ <span th:text="${songsBillboardPeak}"></span></span>
@@ -2797,7 +2813,7 @@
                         </span>
                         
                         <!-- Songs Yearly Chart filter chip -->
-                        <span class="filter-chip" th:if="${songsYearlyChartPeak != null or songsYearlyChartYears != null}">
+                        <span class="filter-chip" data-remove-params="songsYearlyChartPeak,songsYearlyChartYears" th:if="${songsYearlyChartPeak != null or songsYearlyChartYears != null}">
                             <span class="filter-chip-label">
                                 📅 Songs Yearly Chart:
                                 <span th:if="${songsYearlyChartPeak != null}">Peak ≤ <span th:text="${songsYearlyChartPeak}"></span></span>
@@ -2807,7 +2823,7 @@
                         </span>
                         
                         <!-- Entity filter chip (from filterType/filterId/filterName params) -->
-                        <span class="filter-chip" th:if="${filterType != null and !filterType.isEmpty() and filterName != null}">
+                        <span class="filter-chip" data-remove-params="filterType,filterId,filterName" th:if="${filterType != null and !filterType.isEmpty() and filterName != null}">
                             <span class="filter-chip-label" th:text="${filterType == 'genre' ? 'Genre is' : (filterType == 'subgenre' ? 'Subgenre is' : (filterType == 'ethnicity' ? 'Ethnicity is' : (filterType == 'language' ? 'Language is' : 'Filter')))}"></span>
                             <span class="filter-chip-value" th:text="${filterName}"></span>
                         </span>
@@ -3736,6 +3752,27 @@
         function applyFilters() {
             submitFilterForm('filterForm');
         }
+
+        function removeGraphsFilterParams(params) {
+            const url = new URL(window.location.href);
+            params.split(',').forEach(p => url.searchParams.delete(p.trim()));
+            window.location.href = url.toString();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.charts-filters-display .filter-chip[data-remove-params]').forEach(function(chip) {
+                const btn = document.createElement('button');
+                btn.className = 'filter-chip-remove';
+                btn.title = 'Remove filter';
+                btn.textContent = '\u00d7';
+                const params = chip.getAttribute('data-remove-params');
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    removeGraphsFilterParams(params);
+                });
+                chip.appendChild(btn);
+            });
+        });
         
         function toggleFilters() {
             const filterPanel = document.getElementById('filterPanel');

@@ -134,6 +134,14 @@
         .bb-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(126, 208, 255, 0.45); background: rgba(126, 208, 255, 0.08); color: #7ed0ff; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
         .bb-match-btn:hover { border-color: rgba(126, 208, 255, 0.8); color: #b7ebff; }
         .bb-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
+        .bb-infinite-loading {
+            display: none;
+            text-align: center;
+            padding: 16px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .bb-infinite-loading.visible { display: block; }
         .bb-expand-btn {
             background: #222; border: 1px solid #333; color: #888;
             width: 26px; height: 26px; border-radius: 6px;
@@ -141,7 +149,9 @@
             transition: all 0.2s ease;
         }
         .bb-expand-btn:hover { background: #333; color: #fff; }
-        .bb-expand-btn.expanded { background: #2d5016; border-color: #3d6b1e; color: #fff; }
+        .bb-expand-btn.expanded { background: rgba(115, 115, 125, 0.14); border-color: rgba(115, 115, 125, 0.4); color: #d1d5db; }
+        .bb-table tbody tr.gender-male .bb-expand-btn.expanded { background: rgba(74, 144, 226, 0.14); border-color: rgba(74, 144, 226, 0.45); color: #93c5fd; }
+        .bb-table tbody tr.gender-female .bb-expand-btn.expanded { background: rgba(217, 74, 138, 0.14); border-color: rgba(217, 74, 138, 0.45); color: #f9a8d4; }
         .bb-detail-row { display: none; }
         .bb-detail-row.visible { display: table-row; }
         .bb-detail-cell { background: #0f0f0f; padding: 16px 20px !important; }
@@ -156,8 +166,11 @@
             display: inline-flex; align-items: center; justify-content: center;
             width: 28px; height: 28px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
             text-decoration: none; color: #fff;
-            background: #2a5c8a; border: 1px solid #3a7cc0;
+            background: #3a3b43; border: 1px solid #555861;
         }
+        .ov-chart-run-box.gender-male { background: #2a5c8a; border-color: #3a7cc0; }
+        .ov-chart-run-box.gender-female { background: #8a2a63; border-color: #c04a8d; }
+        .ov-chart-run-box.gender-other { background: #3a3b43; border-color: #555861; color: #e5e7eb; }
         .ov-chart-run-box:hover { opacity: 0.85; }
         .ov-chart-run-box.peak-one { background: #7c5200; border-color: #c47f00; color: #ffd966; }
         .ov-chart-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
@@ -289,14 +302,13 @@
         </div>
 
         <div class="pager">
-            <div class="pager-links">
-                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page - 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Previous</a>
-                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page + 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Next</a>
-            </div>
-            <div class="pager-label" th:text="'Page ' + ${page} + ' of ' + ${totalPages}">Page 1 of 1</div>
+            <div class="pager-label" th:text="'Scroll to load more (' + ${resultTotal} + ' total rows)'">Scroll to load more</div>
         </div>
 
-        <div class="bb-table-wrap" th:if="${overviewTab == 'song'}">
+        <div class="bb-table-wrap"
+             id="billboardOverviewContainer"
+             th:if="${overviewTab == 'song'}"
+             th:attr="data-total=${resultTotal},data-page-size=${size},data-overview-tab=${overviewTab},data-sort=${sort},data-dir=${dir},data-q=${q != null ? q : ''}">
             <table class="bb-table" id="billboardTable">
                 <thead>
                     <tr>
@@ -314,11 +326,11 @@
                             <a class="bb-sort-link" th:classappend="${sort == 'firstWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='firstWeek',dir=${sort == 'firstWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Debut Week</a>
                         </th>
                         <th class="center">Debut Position</th>
-                        <th class="center" th:classappend="${sort == 'lastWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
-                            <a class="bb-sort-link" th:classappend="${sort == 'lastWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='lastWeek',dir=${sort == 'lastWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Last Week</a>
-                        </th>
                         <th class="center" th:classappend="${sort == 'peakWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'peakWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='peakWeek',dir=${sort == 'peakWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Peak Week</a>
+                        </th>
+                        <th class="center" th:classappend="${sort == 'lastWeek'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
+                            <a class="bb-sort-link" th:classappend="${sort == 'lastWeek'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='lastWeek',dir=${sort == 'lastWeek' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Last Week</a>
                         </th>
                         <th th:classappend="${sort == 'song'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'song'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='song',dir=${sort == 'song' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Song</a>
@@ -349,13 +361,13 @@
                             <span th:if="${entry.debutPosition != null}" th:text="${entry.debutPosition}">-</span>
                             <span th:if="${entry.debutPosition == null}">-</span>
                         </td>
-                        <td class="center" th:attr="data-value=${entry.lastWeek}">
-                            <a th:if="${entry.lastWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.lastWeek})}" class="bb-date-link" th:text="${entry.lastWeek}">-</a>
-                            <span th:if="${entry.lastWeek == null}">-</span>
-                        </td>
                         <td class="center" th:attr="data-value=${entry.peakWeek}">
                             <a th:if="${entry.peakWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.peakWeek})}" class="bb-date-link" th:text="${entry.peakWeek}">-</a>
                             <span th:if="${entry.peakWeek == null}">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.lastWeek}">
+                            <a th:if="${entry.lastWeek != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.lastWeek})}" class="bb-date-link" th:text="${entry.lastWeek}">-</a>
+                            <span th:if="${entry.lastWeek == null}">-</span>
                         </td>
                         <td th:attr="data-value=${entry.songTitle}">
                             <a th:if="${entry.songId != null}" th:href="@{/songs/{id}(id=${entry.songId})}" class="bb-song-link" th:text="${entry.songTitle}">Song</a>
@@ -390,7 +402,10 @@
             </table>
         </div>
 
-        <div class="bb-table-wrap" th:if="${overviewTab == 'album'}">
+           <div class="bb-table-wrap"
+               id="billboardOverviewContainer"
+               th:if="${overviewTab == 'album'}"
+               th:attr="data-total=${resultTotal},data-page-size=${size},data-overview-tab=${overviewTab},data-sort=${sort},data-dir=${dir},data-q=${q != null ? q : ''}">
             <table class="bb-table" id="billboardAlbumTable">
                 <thead>
                     <tr>
@@ -423,7 +438,7 @@
                         </th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="billboardAlbumTableBody">
                     <tr th:each="entry : ${albumEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
@@ -457,7 +472,10 @@
             </table>
         </div>
 
-        <div class="bb-table-wrap" th:if="${overviewTab == 'artist'}">
+           <div class="bb-table-wrap"
+               id="billboardOverviewContainer"
+               th:if="${overviewTab == 'artist'}"
+               th:attr="data-total=${resultTotal},data-page-size=${size},data-overview-tab=${overviewTab},data-sort=${sort},data-dir=${dir},data-q=${q != null ? q : ''}">
             <table class="bb-table" id="billboardArtistTable">
                 <thead>
                     <tr>
@@ -487,7 +505,7 @@
                         </th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="billboardArtistTableBody">
                     <tr th:each="entry : ${artistEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
@@ -517,13 +535,8 @@
             </table>
         </div>
 
-        <div class="pager">
-            <div class="pager-links">
-                <a class="pager-link" th:classappend="${!hasPrev} ? ' disabled' : ''" th:href="${hasPrev} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page - 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Previous</a>
-                <a class="pager-link" th:classappend="${!hasNext} ? ' disabled' : ''" th:href="${hasNext} ? @{/misc/billboard-hot-100(overviewTab=${overviewTab},page=${page + 1},size=${size},sort=${sort},dir=${dir},q=${q})} : '#'">Next</a>
-            </div>
-            <div class="pager-label" th:text="'Page ' + ${page} + ' of ' + ${totalPages}">Page 1 of 1</div>
-        </div>
+        <div th:if="${resultTotal > size}" id="billboardInfiniteSentinel" style="height:1px;"></div>
+        <div th:if="${resultTotal > size}" id="billboardInfiniteLoading" class="bb-infinite-loading">Loading...</div>
     </div>
 
     <div class="bb-modal-overlay" id="billboardMatchModal">
@@ -548,8 +561,16 @@
         let billboardModalRow = null;
         let billboardSearchTimer = null;
         let billboardDiagnosticsLoaded = false;
+        let billboardRowIndexCounter = 0;
 
-        function renderOvChartRun(entries, chartType) {
+        function getBillboardOverviewBody(overviewTab) {
+            if (overviewTab === 'album') return document.getElementById('billboardAlbumTableBody');
+            if (overviewTab === 'artist') return document.getElementById('billboardArtistTableBody');
+            return document.getElementById('billboardTableBody');
+        }
+
+        function renderOvChartRun(entries, chartType, toneClass) {
+            const resolvedToneClass = toneClass || 'gender-other';
             if (!entries || entries.length === 0) {
                 return '<div class="ov-chart-run-empty">No chart entries found.</div>';
             }
@@ -581,7 +602,7 @@
                 if (entry.on_chart) {
                     const pos = entry.position;
                     const date = entry.chart_date;
-                    let cls = 'ov-chart-run-box';
+                    let cls = 'ov-chart-run-box ' + resolvedToneClass;
                     if (pos === 1) cls += ' peak-one';
                     let recapUrl = '#';
                     if (chartType === 'trl') recapUrl = '/misc/trl/recaps?date=' + encodeURIComponent(date);
@@ -595,38 +616,54 @@
             return '<div class="ov-chart-run-label">Chart-run</div><div class="ov-chart-run-boxes">' + boxesHtml + '</div>';
         }
 
+        function getBillboardRunToneClass(row) {
+            if (row.classList.contains('gender-female')) return 'gender-female';
+            if (row.classList.contains('gender-male')) return 'gender-male';
+            return 'gender-other';
+        }
+
         async function toggleBbExpand(btn) {
             var row = btn.closest('tr');
             var detailRow = row.nextElementSibling;
             if (!detailRow || !detailRow.classList.contains('bb-detail-row')) return;
             var isVisible = detailRow.classList.contains('visible');
-            if (!isVisible) {
-                var idx = row.dataset.bbIdx;
-                var container = document.getElementById('bb-run-' + idx);
-                if (container && !container.dataset.loaded) {
-                    container.innerHTML = '<div class="ov-chart-run-loading">Loading...</div>';
-                    try {
-                        var songId = row.dataset.songId;
-                        var url;
-                        if (songId) {
-                            url = '/misc/billboard-hot-100/chart-run?songId=' + encodeURIComponent(songId);
-                        } else {
-                            var artist = row.dataset.rawArtist;
-                            var song = row.dataset.rawSong;
-                            url = '/misc/billboard-hot-100/chart-run?artist=' + encodeURIComponent(artist) + '&song=' + encodeURIComponent(song);
-                        }
-                        const resp = await fetch(url);
-                        const data = await resp.json();
-                        container.innerHTML = renderOvChartRun(data, 'bb');
-                        container.dataset.loaded = '1';
-                    } catch(e) {
-                        container.innerHTML = '<div class="ov-chart-run-error">Failed to load</div>';
-                    }
-                }
-            }
             detailRow.classList.toggle('visible', !isVisible);
             btn.classList.toggle('expanded', !isVisible);
             btn.textContent = isVisible ? '+' : '-';
+
+            if (isVisible) {
+                return;
+            }
+
+            var idx = row.dataset.bbIdx;
+            var container = document.getElementById('bb-run-' + idx);
+            if (!container || container.dataset.loaded || container.dataset.loading) {
+                return;
+            }
+
+            container.dataset.loading = '1';
+            container.innerHTML = '<div class="ov-chart-run-loading">Loading...</div>';
+            requestAnimationFrame(async function() {
+                try {
+                    var songId = row.dataset.songId;
+                    var url;
+                    if (songId) {
+                        url = '/misc/billboard-hot-100/chart-run?songId=' + encodeURIComponent(songId);
+                    } else {
+                        var artist = row.dataset.rawArtist;
+                        var song = row.dataset.rawSong;
+                        url = '/misc/billboard-hot-100/chart-run?artist=' + encodeURIComponent(artist) + '&song=' + encodeURIComponent(song);
+                    }
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    container.innerHTML = renderOvChartRun(data, 'bb', getBillboardRunToneClass(row));
+                    container.dataset.loaded = '1';
+                } catch(e) {
+                    container.innerHTML = '<div class="ov-chart-run-error">Failed to load</div>';
+                } finally {
+                    delete container.dataset.loading;
+                }
+            });
         }
 
         function showPageBusyOverlay(title, subtitle) {
@@ -639,6 +676,188 @@
 
         function hidePageBusyOverlay() {
             document.body.classList.remove('page-busy');
+        }
+
+        function renderBillboardDateCell(dateValue) {
+            if (!dateValue) {
+                return '<span>-</span>';
+            }
+            return '<a href="/misc/billboard-hot-100/recaps?date=' + encodeURIComponent(dateValue) + '" class="bb-date-link">' + escapeBillboardHtml(dateValue) + '</a>';
+        }
+
+        function renderBillboardSongRows(entries) {
+            return entries.map(entry => {
+                const idx = billboardRowIndexCounter++;
+                const genderClass = entry.genderClass ? ' ' + entry.genderClass : '';
+                const songCell = entry.songId != null
+                    ? '<a href="/songs/' + entry.songId + '" class="bb-song-link">' + escapeBillboardHtml(entry.songTitle) + '</a>'
+                    : '<span class="bb-no-link-song">' + escapeBillboardHtml(entry.songTitle) + '</span>';
+                const artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="bb-artist-link">' + escapeBillboardHtml(entry.artistName) + '</a>'
+                    : '<span class="bb-no-link-artist">' + escapeBillboardHtml(entry.artistName) + '</span>';
+                const libraryButton = entry.songId == null
+                    ? '<button class="bb-match-btn" onclick="openBillboardMatchModal(this)">Library</button>'
+                    : '';
+                return ''
+                    + '<tr data-raw-artist="' + escapeBillboardHtml(entry.artistName) + '"'
+                    + ' data-raw-song="' + escapeBillboardHtml(entry.songTitle) + '"'
+                    + ' data-song-id="' + (entry.songId != null ? entry.songId : '') + '"'
+                    + ' data-bb-idx="' + idx + '"'
+                    + ' class="' + genderClass.trim() + '">'
+                    + '<td class="center"><button class="bb-expand-btn" onclick="toggleBbExpand(this)" title="Show chart tier stats">+</button></td>'
+                    + '<td class="center" data-value="' + entry.weeksOnChart + '">' + entry.weeksOnChart + '</td>'
+                    + '<td class="center" data-value="' + entry.peakPosition + '">' + entry.peakPosition + '</td>'
+                    + '<td class="center" data-value="' + entry.weeksAtPeak + '">' + entry.weeksAtPeak + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.firstWeek || '') + '">' + renderBillboardDateCell(entry.firstWeek) + '</td>'
+                    + '<td class="center" data-value="' + (entry.debutPosition != null ? entry.debutPosition : 999) + '">' + (entry.debutPosition != null ? entry.debutPosition : '-') + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.peakWeek || '') + '">' + renderBillboardDateCell(entry.peakWeek) + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.lastWeek || '') + '">' + renderBillboardDateCell(entry.lastWeek) + '</td>'
+                    + '<td data-value="' + escapeBillboardHtml(entry.songTitle) + '">' + songCell + '</td>'
+                    + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td>' + libraryButton + '</td>'
+                    + '</tr>'
+                    + '<tr class="detail-row bb-detail-row">'
+                    + '<td colspan="11" class="bb-detail-cell">'
+                    + '<div class="bb-run-stats">'
+                    + '<div class="bb-run-stat"><div class="bb-run-stat-label">#1</div><div class="bb-run-stat-value">' + entry.weeksAtTop1 + '</div></div>'
+                    + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 5</div><div class="bb-run-stat-value">' + entry.weeksAtTop5 + '</div></div>'
+                    + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 10</div><div class="bb-run-stat-value">' + entry.weeksAtTop10 + '</div></div>'
+                    + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 20</div><div class="bb-run-stat-value">' + entry.weeksAtTop20 + '</div></div>'
+                    + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 50</div><div class="bb-run-stat-value">' + entry.weeksAtTop50 + '</div></div>'
+                    + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 100</div><div class="bb-run-stat-value">' + entry.weeksAtTop100 + '</div></div>'
+                    + '</div>'
+                    + '<div class="ov-chart-run-container" id="bb-run-' + idx + '"></div>'
+                    + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderBillboardAlbumRows(entries) {
+            return entries.map(entry => {
+                const genderClass = entry.genderClass ? ' class="' + escapeBillboardHtml(entry.genderClass) + '"' : '';
+                const artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="bb-artist-link">' + escapeBillboardHtml(entry.artistName) + '</a>'
+                    : '<span class="bb-no-link-artist">' + escapeBillboardHtml(entry.artistName) + '</span>';
+                const albumCell = entry.albumId != null
+                    ? '<a href="/albums/' + entry.albumId + '" class="bb-song-link">' + escapeBillboardHtml(entry.albumName) + '</a>'
+                    : '<span class="bb-no-link-song">' + escapeBillboardHtml(entry.albumName) + '</span>';
+                return ''
+                    + '<tr' + genderClass + '>'
+                    + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td data-value="' + escapeBillboardHtml(entry.albumName) + '">' + albumCell + '</td>'
+                    + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
+                    + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '-') + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.firstDebutDate || '') + '">' + renderBillboardDateCell(entry.firstDebutDate) + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.lastAppearanceDate || '') + '">' + renderBillboardDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderBillboardArtistRows(entries) {
+            return entries.map(entry => {
+                const genderClass = entry.genderClass ? ' class="' + escapeBillboardHtml(entry.genderClass) + '"' : '';
+                const artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="bb-artist-link">' + escapeBillboardHtml(entry.artistName) + '</a>'
+                    : '<span class="bb-no-link-artist">' + escapeBillboardHtml(entry.artistName) + '</span>';
+                return ''
+                    + '<tr' + genderClass + '>'
+                    + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
+                    + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '-') + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.firstDebutDate || '') + '">' + renderBillboardDateCell(entry.firstDebutDate) + '</td>'
+                    + '<td class="center" data-value="' + escapeBillboardHtml(entry.lastAppearanceDate || '') + '">' + renderBillboardDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function setupBillboardInfiniteScroll() {
+            const container = document.getElementById('billboardOverviewContainer');
+            if (!container || !window.IntersectionObserver) return;
+
+            const totalCount = parseInt(container.dataset.total || '0', 10);
+            const pageSize = parseInt(container.dataset.pageSize || '0', 10);
+            const overviewTab = container.dataset.overviewTab || 'song';
+            const sort = container.dataset.sort || 'firstWeek';
+            const dir = container.dataset.dir || 'desc';
+            const query = container.dataset.q || '';
+            const tbody = getBillboardOverviewBody(overviewTab);
+            const sentinel = document.getElementById('billboardInfiniteSentinel');
+            const loadingEl = document.getElementById('billboardInfiniteLoading');
+
+            if (!tbody || !sentinel || !pageSize) return;
+
+            billboardRowIndexCounter = document.querySelectorAll('#billboardTableBody tr[data-raw-song]').length;
+
+            const initialRows = overviewTab === 'song'
+                ? tbody.querySelectorAll('tr[data-raw-song]').length
+                : tbody.querySelectorAll('tr').length;
+            if (initialRows >= totalCount) return;
+
+            let nextPage = 2;
+            let loadedCount = initialRows;
+            let isLoading = false;
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMore();
+                }
+            }, { rootMargin: '300px' });
+
+            observer.observe(sentinel);
+
+            async function loadMore() {
+                if (isLoading || loadedCount >= totalCount) {
+                    if (loadedCount >= totalCount) observer.disconnect();
+                    return;
+                }
+
+                isLoading = true;
+                if (loadingEl) loadingEl.classList.add('visible');
+
+                try {
+                    const url = new URL('/misc/billboard-hot-100/data', window.location.origin);
+                    url.searchParams.set('overviewTab', overviewTab);
+                    url.searchParams.set('page', String(nextPage));
+                    url.searchParams.set('size', String(pageSize));
+                    url.searchParams.set('sort', sort);
+                    url.searchParams.set('dir', dir);
+                    if (query) {
+                        url.searchParams.set('q', query);
+                    }
+                    const response = await fetch(url.toString());
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const data = await response.json();
+                    const entries = Array.isArray(data.entries) ? data.entries : [];
+                    if (!entries.length) {
+                        loadedCount = totalCount;
+                        observer.disconnect();
+                        return;
+                    }
+
+                    const html = overviewTab === 'album'
+                        ? renderBillboardAlbumRows(entries)
+                        : overviewTab === 'artist'
+                        ? renderBillboardArtistRows(entries)
+                        : renderBillboardSongRows(entries);
+                    tbody.insertAdjacentHTML('beforeend', html);
+                    loadedCount += entries.length;
+                    nextPage = data.nextPage || (nextPage + 1);
+
+                    if (!data.hasMore || loadedCount >= totalCount) {
+                        observer.disconnect();
+                    }
+                } catch (error) {
+                    console.error('Failed to load more Billboard overview rows:', error);
+                } finally {
+                    isLoading = false;
+                    if (loadingEl) loadingEl.classList.remove('visible');
+                }
+            }
         }
 
         function runBillboardImport(btn) {
@@ -864,9 +1083,9 @@
             });
         });
 
-        document.querySelectorAll('.pager-link:not(.disabled), .bb-page-size a').forEach(function(link) {
+        document.querySelectorAll('.bb-page-size a').forEach(function(link) {
             link.addEventListener('click', function() {
-                showPageBusyOverlay('Loading Billboard overview', 'Fetching the next slice of Hot 100 rows...');
+                showPageBusyOverlay('Loading Billboard overview', 'Reloading the Hot 100 slice size...');
             });
         });
 
@@ -877,6 +1096,7 @@
         });
 
         window.addEventListener('load', function() {
+            setupBillboardInfiniteScroll();
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

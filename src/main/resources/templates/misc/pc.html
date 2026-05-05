@@ -103,6 +103,8 @@
         .pc-table th.center, .pc-table td.center { text-align: center; }
         .pc-table th.sorted-asc::after { content: ' \25B2'; font-size: 0.7em; }
         .pc-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
+        .pc-sort-link { color: inherit; text-decoration: none; }
+        .pc-sort-link:hover { color: #e8e8e8; }
         .pc-table tbody tr { border-bottom: 1px solid #1f1f1f; transition: background 0.12s; }
         .pc-table tbody tr:hover { background: #1c1c1c; }
         .pc-table tbody tr.gender-male { background: rgba(74, 144, 226, 0.06); border-left: 3px solid rgba(74, 144, 226, 0.5); }
@@ -122,6 +124,14 @@
         .pc-variant-chip { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(255, 199, 94, 0.35); color: #ffc75e; background: rgba(255, 199, 94, 0.08); font-size: 0.76rem; font-weight: 700; }
         .pc-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
         .pc-hidden { display: none; }
+        .pc-infinite-loading {
+            display: none;
+            text-align: center;
+            padding: 16px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .pc-infinite-loading.visible { display: block; }
         .pc-expand-btn {
             background: #222; border: 1px solid #333; color: #888;
             width: 26px; height: 26px; border-radius: 6px;
@@ -129,7 +139,10 @@
             transition: all 0.2s ease;
         }
         .pc-expand-btn:hover { background: #333; color: #fff; }
-        .pc-expand-btn.expanded { background: #2d5016; border-color: #3d6b1e; color: #fff; }
+        .pc-expand-btn.expanded { background: rgba(115, 115, 125, 0.14); border-color: rgba(115, 115, 125, 0.4); color: #d1d5db; }
+        .pc-table tbody tr.gender-male .pc-expand-btn.expanded { background: rgba(74, 144, 226, 0.14); border-color: rgba(74, 144, 226, 0.45); color: #93c5fd; }
+        .pc-table tbody tr.gender-female .pc-expand-btn.expanded { background: rgba(217, 74, 138, 0.14); border-color: rgba(217, 74, 138, 0.45); color: #f9a8d4; }
+
         .pc-detail-row { display: none; }
         .pc-detail-row.visible { display: table-row; }
         .pc-detail-cell { background: #0f0f0f; padding: 16px 20px !important; }
@@ -144,8 +157,11 @@
             display: inline-flex; align-items: center; justify-content: center;
             width: 28px; height: 28px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
             text-decoration: none; color: #fff;
-            background: #2a5c8a; border: 1px solid #3a7cc0;
+            background: #3a3b43; border: 1px solid #555861;
         }
+        .ov-chart-run-box.gender-male { background: #2a5c8a; border-color: #3a7cc0; }
+        .ov-chart-run-box.gender-female { background: #8a2a63; border-color: #c04a8d; }
+        .ov-chart-run-box.gender-other { background: #3a3b43; border-color: #555861; color: #e5e7eb; }
         .ov-chart-run-box:hover { opacity: 0.85; }
         .ov-chart-run-box.peak-one { background: #7c5200; border-color: #c47f00; color: #ffd966; }
         .ov-chart-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
@@ -279,20 +295,23 @@
             <div><span class="pc-select-label-text">Targets:</span><span id="pcSelectionTargets">-</span></div>
         </div>
 
-        <div class="pc-table-wrap" th:if="${overviewTab == 'song'}">
-            <table class="pc-table js-sortable" id="pcTable">
+           <div class="pc-table-wrap"
+               id="pcOverviewContainer"
+               th:if="${overviewTab == 'song'}"
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+            <table class="pc-table" id="pcTable">
                 <thead>
                     <tr>
                         <th data-no-sort></th>
-                        <th class="center" data-type="number">Days</th>
-                        <th class="center" data-type="number">Peak</th>
-                        <th class="center" data-type="number">At Peak</th>
-                        <th class="center" data-type="date" data-default-sort="asc">Debut Date</th>
-                        <th class="center" data-type="number">Debut Position</th>
-                        <th class="center" data-type="date">Last Date</th>
-                        <th class="center" data-type="date">Peak Date</th>
-                        <th data-type="text">Song</th>
-                        <th data-type="text">Artist</th>
+                        <th class="center" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Peak</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">At Peak</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'debutDate'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='debutDate',dir=${selectedSort == 'debutDate' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Debut Date</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Debut Position</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peakDate'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='peakDate',dir=${selectedSort == 'peakDate' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Peak Date</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'lastDate'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='lastDate',dir=${selectedSort == 'lastDate' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Last Date</a></th>
+                        <th th:classappend="${selectedSort == 'song'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Song</a></th>
+                        <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th data-no-sort></th>
                     </tr>
                 </thead>
@@ -302,6 +321,9 @@
                         th:data-raw-artist="${entry.artistName}"
                         th:data-raw-song="${entry.songTitle}"
                         th:data-song-id="${entry.songId}"
+                        th:data-top1="${entry.daysAtTop1 != null ? entry.daysAtTop1 : 0}"
+                        th:data-top5="${entry.daysAtTop5 != null ? entry.daysAtTop5 : 0}"
+                        th:data-top10="${entry.daysAtTop10 != null ? entry.daysAtTop10 : 0}"
                         th:data-pc-idx="${iterStat.index}"
                         onclick="togglePcRow(this)"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
@@ -316,12 +338,12 @@
                             <span th:if="${entry.debutPosition != null}" th:text="${entry.debutPosition}">-</span>
                             <span th:if="${entry.debutPosition == null}" style="color:#666;">-</span>
                         </td>
-                        <td class="center" th:attr="data-value=${entry.lastWeek}">
-                            <a th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.lastWeek})}" class="pc-date-link" th:text="${entry.lastWeek}">-</a>
-                        </td>
                         <td class="center" th:attr="data-value=${entry.peakWeek}">
                             <a th:if="${entry.peakWeek != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.peakWeek})}" class="pc-date-link" th:text="${entry.peakWeek}">-</a>
                             <span th:if="${entry.peakWeek == null}" style="color:#666;">-</span>
+                        </td>
+                        <td class="center" th:attr="data-value=${entry.lastWeek}">
+                            <a th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.lastWeek})}" class="pc-date-link" th:text="${entry.lastWeek}">-</a>
                         </td>
                         <td th:attr="data-value=${entry.songTitle}">
                             <a th:if="${entry.songId != null}" th:href="@{/songs/{id}(id=${entry.songId})}" class="pc-song-link" th:text="${entry.songTitle}">Song</a>
@@ -334,27 +356,16 @@
                         <td>
                             <button th:if="${entry.songId == null}" class="pc-match-btn" onclick="openPcMatchModal(event, this)">Library</button>
                         </td>
-                    </tr>
-                    <tr class="detail-row pc-detail-row">
-                        <td colspan="11" class="pc-detail-cell">
-                            <div class="pc-run-stats">
-                                <div class="pc-run-stat">
-                                    <div class="pc-run-stat-label">#1</div>
-                                    <div class="pc-run-stat-value" th:text="${entry.daysAtTop1}">0</div>
-                                </div>
-                                <div class="pc-run-stat">
-                                    <div class="pc-run-stat-label">Top 5</div>
-                                    <div class="pc-run-stat-value" th:text="${entry.daysAtTop5}">0</div>
-                                </div>
-                                <div class="pc-run-stat">
-                                    <div class="pc-run-stat-label">Top 10</div>
-                                    <div class="pc-run-stat-value" th:text="${entry.daysAtTop10}">0</div>
-                                </div>
-                            </div>
-                            <div class="ov-chart-run-container" th:id="'pc-run-' + ${iterStat.index}"></div>
-                        </td>
-                    </tr>
-                    </th:block>
+                    </tr>                      <tr class="detail-row pc-detail-row">
+                          <td colspan="11" class="pc-detail-cell">
+                              <div class="pc-run-stats">
+                                  <div class="pc-run-stat"><div class="pc-run-stat-label">#1</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop1 != null ? entry.daysAtTop1 : 0}">0</div></div>
+                                  <div class="pc-run-stat"><div class="pc-run-stat-label">Top 5</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop5 != null ? entry.daysAtTop5 : 0}">0</div></div>
+                                  <div class="pc-run-stat"><div class="pc-run-stat-label">Top 10</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop10 != null ? entry.daysAtTop10 : 0}">0</div></div>
+                              </div>
+                              <div class="ov-chart-run-container" th:id="'pc-run-' + ${iterStat.index}"></div>
+                          </td>
+                      </tr>                    </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
                         <td colspan="11" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
                     </tr>
@@ -362,19 +373,22 @@
             </table>
         </div>
 
-        <div class="pc-table-wrap" th:if="${overviewTab == 'album'}">
-            <table class="pc-table js-sortable" id="pcAlbumOverviewTable">
+           <div class="pc-table-wrap"
+               id="pcOverviewContainer"
+               th:if="${overviewTab == 'album'}"
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+            <table class="pc-table" id="pcAlbumOverviewTable">
                 <thead>
                     <tr>
-                        <th data-type="text">Artist</th>
-                        <th data-type="text">Album Name</th>
-                        <th class="right" data-type="number">Songs Charted</th>
-                        <th class="right" data-type="number" data-default-sort="desc">Total Days</th>
-                        <th class="center" data-type="number">Highest Peak</th>
-                        <th class="right" data-type="number">#1 Songs</th>
-                        <th class="right" data-type="number">Days at #1</th>
-                        <th class="center" data-type="date">First Debut</th>
-                        <th class="center" data-type="date">Last Appearance</th>
+                        <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
+                        <th th:classappend="${selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Album Name</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Total Days</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Highest Peak</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'})}">#1 Songs</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days at #1</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'firstDebut'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='firstDebut',dir=${selectedSort == 'firstDebut' and selectedDir == 'asc' ? 'desc' : 'asc'})}">First Debut</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'lastAppearance'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='lastAppearance',dir=${selectedSort == 'lastAppearance' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Last Appearance</a></th>
                     </tr>
                 </thead>
                 <tbody id="pcAlbumTableBody">
@@ -414,18 +428,21 @@
             </table>
         </div>
 
-        <div class="pc-table-wrap" th:if="${overviewTab == 'artist'}">
-            <table class="pc-table js-sortable" id="pcArtistOverviewTable">
+           <div class="pc-table-wrap"
+               id="pcOverviewContainer"
+               th:if="${overviewTab == 'artist'}"
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+            <table class="pc-table" id="pcArtistOverviewTable">
                 <thead>
                     <tr>
-                        <th data-type="text">Artist</th>
-                        <th class="right" data-type="number">Songs Charted</th>
-                        <th class="right" data-type="number" data-default-sort="desc">Total Days</th>
-                        <th class="center" data-type="number">Highest Peak</th>
-                        <th class="right" data-type="number">#1 Songs</th>
-                        <th class="right" data-type="number">Days at #1</th>
-                        <th class="center" data-type="date">First Debut</th>
-                        <th class="center" data-type="date">Last Appearance</th>
+                        <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Total Days</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Highest Peak</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'})}">#1 Songs</a></th>
+                        <th class="right" th:classappend="${selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days at #1</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'firstDebut'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='firstDebut',dir=${selectedSort == 'firstDebut' and selectedDir == 'asc' ? 'desc' : 'asc'})}">First Debut</a></th>
+                        <th class="center" th:classappend="${selectedSort == 'lastAppearance'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='lastAppearance',dir=${selectedSort == 'lastAppearance' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Last Appearance</a></th>
                     </tr>
                 </thead>
                 <tbody id="pcArtistTableBody">
@@ -460,6 +477,9 @@
             </table>
         </div>
 
+        <div th:if="${activeTotalCount > pageSize}" id="pcInfiniteSentinel" style="height:1px;"></div>
+        <div th:if="${activeTotalCount > pageSize}" id="pcInfiniteLoading" class="pc-infinite-loading">Loading...</div>
+
     </div>
 
     <button th:if="${overviewTab == 'song'}" id="pcMergeBtn" class="pc-float-merge-btn" onclick="mergePcEntries()">Merge</button>
@@ -487,6 +507,8 @@
         let pcSearchTimer = null;
         let pcSourceRow = null;
         let pcTargetRows = [];
+        let pcOpenSourceRow = null;
+        let pcRowIndexCounter = 0;
 
         function showPageBusyOverlay(title, subtitle) {
             const titleEl = document.getElementById('pcOverlayTitle');
@@ -498,6 +520,12 @@
 
         function hidePageBusyOverlay() {
             document.body.classList.remove('page-busy');
+        }
+
+        function getPcOverviewBody(overviewTab) {
+            if (overviewTab === 'album') return document.getElementById('pcAlbumTableBody');
+            if (overviewTab === 'artist') return document.getElementById('pcArtistTableBody');
+            return document.getElementById('pcTableBody');
         }
 
         function filterPcTable() {
@@ -512,6 +540,9 @@
                     detailRow.classList.toggle('pc-hidden', !matches);
                 }
             });
+            if (pcOpenSourceRow && pcOpenSourceRow.classList.contains('pc-hidden')) {
+                resetPcExpandState();
+            }
             document.querySelectorAll('#pcAlbumTableBody tr[data-album-name]').forEach(row => {
                 const artist = (row.dataset.artistName || '').toLowerCase();
                 const album = (row.dataset.albumName || '').toLowerCase();
@@ -525,7 +556,8 @@
             });
         }
 
-        function renderOvChartRun(entries, chartType) {
+        function renderOvChartRun(entries, chartType, toneClass) {
+            const resolvedToneClass = toneClass || 'gender-other';
             if (!entries || entries.length === 0) {
                 return '<div class="ov-chart-run-empty">No chart entries found.</div>';
             }
@@ -557,7 +589,7 @@
                 if (entry.on_chart) {
                     const pos = entry.position;
                     const date = entry.chart_date;
-                    let cls = 'ov-chart-run-box';
+                    let cls = 'ov-chart-run-box ' + resolvedToneClass;
                     if (pos === 1) cls += ' peak-one';
                     let recapUrl = '#';
                     if (chartType === 'trl') recapUrl = '/misc/trl/recaps?date=' + encodeURIComponent(date);
@@ -571,38 +603,60 @@
             return '<div class="ov-chart-run-label">Chart-run</div><div class="ov-chart-run-boxes">' + boxesHtml + '</div>';
         }
 
+        function getPcRunToneClass(row) {
+            if (row.classList.contains('gender-female')) return 'gender-female';
+            if (row.classList.contains('gender-male')) return 'gender-male';
+            return 'gender-other';
+        }
+
+        function resetPcExpandState() {
+            pcOpenSourceRow = null;
+        }
+
         async function togglePcExpand(btn) {
             var row = btn.closest('tr');
             var detailRow = row.nextElementSibling;
             if (!detailRow || !detailRow.classList.contains('pc-detail-row')) return;
             var isVisible = detailRow.classList.contains('visible');
-            if (!isVisible) {
-                var idx = row.dataset.pcIdx;
-                var container = document.getElementById('pc-run-' + idx);
-                if (container && !container.dataset.loaded) {
-                    container.innerHTML = '<div class="ov-chart-run-loading">Loading...</div>';
-                    try {
-                        var songId = row.dataset.songId;
-                        var url;
-                        if (songId) {
-                            url = '/misc/vatos-cuntdown/chart-run?songId=' + encodeURIComponent(songId);
-                        } else {
-                            var artist = row.dataset.rawArtist;
-                            var song = row.dataset.rawSong;
-                            url = '/misc/vatos-cuntdown/chart-run?artist=' + encodeURIComponent(artist) + '&song=' + encodeURIComponent(song);
-                        }
-                        const resp = await fetch(url);
-                        const data = await resp.json();
-                        container.innerHTML = renderOvChartRun(data, 'pc');
-                        container.dataset.loaded = '1';
-                    } catch(e) {
-                        container.innerHTML = '<div class="ov-chart-run-error">Failed to load</div>';
-                    }
-                }
-            }
             detailRow.classList.toggle('visible', !isVisible);
             btn.classList.toggle('expanded', !isVisible);
             btn.textContent = isVisible ? '+' : '-';
+
+            if (isVisible) {
+                return;
+            }
+
+            var idx = row.dataset.pcIdx;
+            var container = document.getElementById('pc-run-' + idx);
+            if (!container || container.dataset.loaded || container.dataset.loading) {
+                return;
+            }
+
+            container.dataset.loading = '1';
+            container.innerHTML = '<div class="ov-chart-run-loading">Loading chart run...</div>';
+
+            requestAnimationFrame(async function() {
+                try {
+                    var songId = row.dataset.songId;
+                    var url;
+                    if (songId) {
+                        url = '/misc/vatos-cuntdown/chart-run?songId=' + encodeURIComponent(songId);
+                    } else {
+                        var rawArtist = row.dataset.rawArtist;
+                        var rawSong = row.dataset.rawSong;
+                        url = '/misc/vatos-cuntdown/chart-run?song=' + encodeURIComponent(rawSong) + '&artist=' + encodeURIComponent(rawArtist);
+                    }
+                    const resp = await fetch(url);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    const data = await resp.json();
+                    container.innerHTML = renderOvChartRun(data, 'pc', getPcRunToneClass(row));
+                    container.dataset.loaded = '1';
+                } catch (err) {
+                    console.error("Failed to load PC chart run:", err);
+                    container.innerHTML = '<div class="ov-chart-run-error">Error loading chart run.</div>';
+                    container.dataset.loading = '';
+                }
+            });
         }
 
         function togglePcRow(row) {
@@ -839,6 +893,184 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function renderPcDateCell(dateValue) {
+            if (!dateValue) {
+                return '<span style="color:#666;">-</span>';
+            }
+            return '<a href="/misc/vatos-cuntdown/recaps?date=' + encodeURIComponent(dateValue) + '" class="pc-date-link">' + escapePcHtml(dateValue) + '</a>';
+        }
+
+        function renderPcSongRows(entries) {
+            return entries.map(entry => {
+                const idx = pcRowIndexCounter++;
+                const genderClass = entry.genderClass ? ' ' + entry.genderClass : '';
+                const songCell = entry.songId != null
+                    ? '<a href="/songs/' + entry.songId + '" class="pc-song-link">' + escapePcHtml(entry.songTitle) + '</a>'
+                    : '<span class="pc-no-link-song">' + escapePcHtml(entry.songTitle) + '</span>';
+                const artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="pc-artist-link">' + escapePcHtml(entry.artistName) + '</a>'
+                    : '<span class="pc-no-link-artist">' + escapePcHtml(entry.artistName) + '</span>';
+                const libraryButton = entry.songId == null
+                    ? '<button class="pc-match-btn" onclick="openPcMatchModal(event, this)">Library</button>'
+                    : '';
+                return ''
+                    + '<tr data-raw-artist="' + escapePcHtml(entry.artistName) + '"'
+                    + ' data-raw-song="' + escapePcHtml(entry.songTitle) + '"'
+                    + ' data-song-id="' + (entry.songId != null ? entry.songId : '') + '"'
+                    + ' data-top1="' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '"'
+                    + ' data-top5="' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '"'
+                    + ' data-top10="' + (entry.daysAtTop10 != null ? entry.daysAtTop10 : 0) + '"'
+                    + ' data-pc-idx="' + idx + '"'
+                    + ' onclick="togglePcRow(this)"'
+                    + ' class="' + genderClass.trim() + '">'
+                    + '<td class="center"><button class="pc-expand-btn" onclick="event.stopPropagation(); togglePcExpand(this)" title="Show chart tier stats">+</button></td>'
+                    + '<td class="center" data-value="' + entry.daysOnCountdown + '">' + entry.daysOnCountdown + '</td>'
+                    + '<td class="center" data-value="' + entry.peakPosition + '">' + entry.peakPosition + '</td>'
+                    + '<td class="center" data-value="' + entry.daysAtPeak + '">' + entry.daysAtPeak + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.firstWeek || '') + '">' + renderPcDateCell(entry.firstWeek) + '</td>'
+                    + '<td class="center" data-value="' + (entry.debutPosition != null ? entry.debutPosition : 999) + '">' + (entry.debutPosition != null ? entry.debutPosition : '<span style="color:#666;">-</span>') + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.peakWeek || '') + '">' + renderPcDateCell(entry.peakWeek) + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.lastWeek || '') + '">' + renderPcDateCell(entry.lastWeek) + '</td>'
+                    + '<td data-value="' + escapePcHtml(entry.songTitle) + '">' + songCell + '</td>'
+                    + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td>' + libraryButton + '</td>'
+                    + '</tr>'
+                    + '<tr class="detail-row pc-detail-row">'
+                    + '<td colspan="11" class="pc-detail-cell">'
+                    + '<div class="pc-run-stats">'
+                    + '<div class="pc-run-stat"><div class="pc-run-stat-label">#1</div><div class="pc-run-stat-value">' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '</div></div>'
+                    + '<div class="pc-run-stat"><div class="pc-run-stat-label">Top 5</div><div class="pc-run-stat-value">' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '</div></div>'
+                    + '<div class="pc-run-stat"><div class="pc-run-stat-label">Top 10</div><div class="pc-run-stat-value">' + (entry.daysAtTop10 != null ? entry.daysAtTop10 : 0) + '</div></div>'
+                    + '</div>'
+                    + '<div class="ov-chart-run-container" id="pc-run-' + idx + '"></div>'
+                    + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderPcAlbumRows(entries) {
+            return entries.map(entry => {
+                const genderClass = entry.genderClass ? ' class="' + escapePcHtml(entry.genderClass) + '"' : '';
+                const artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="pc-artist-link">' + escapePcHtml(entry.artistName) + '</a>'
+                    : '<span class="pc-no-link-artist">' + escapePcHtml(entry.artistName) + '</span>';
+                const albumCell = entry.albumId != null
+                    ? '<a href="/albums/' + entry.albumId + '" class="pc-song-link">' + escapePcHtml(entry.albumName) + '</a>'
+                    : '<span class="pc-no-link-song">' + escapePcHtml(entry.albumName) + '</span>';
+                return ''
+                    + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '" data-album-name="' + escapePcHtml(entry.albumName) + '"' + genderClass + '>'
+                    + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td data-value="' + escapePcHtml(entry.albumName) + '">' + albumCell + '</td>'
+                    + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
+                    + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '<span style="color:#666;">-</span>') + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.firstDebutDate || '') + '">' + renderPcDateCell(entry.firstDebutDate) + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.lastAppearanceDate || '') + '">' + renderPcDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderPcArtistRows(entries) {
+            return entries.map(entry => {
+                const genderClass = entry.genderClass ? ' class="' + escapePcHtml(entry.genderClass) + '"' : '';
+                const artistCell = entry.resolvedArtistId != null
+                    ? '<a href="/artists/' + entry.resolvedArtistId + '" class="pc-artist-link">' + escapePcHtml(entry.artistName) + '</a>'
+                    : '<span class="pc-no-link-artist">' + escapePcHtml(entry.artistName) + '</span>';
+                return ''
+                    + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '"' + genderClass + '>'
+                    + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
+                    + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
+                    + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '<span style="color:#666;">-</span>') + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.firstDebutDate || '') + '">' + renderPcDateCell(entry.firstDebutDate) + '</td>'
+                    + '<td class="center" data-value="' + escapePcHtml(entry.lastAppearanceDate || '') + '">' + renderPcDateCell(entry.lastAppearanceDate) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function setupPcInfiniteScroll() {
+            const container = document.getElementById('pcOverviewContainer');
+            if (!container || !window.IntersectionObserver) return;
+
+            const totalCount = parseInt(container.dataset.total || '0', 10);
+            const pageSize = parseInt(container.dataset.pageSize || '0', 10);
+            const overviewTab = container.dataset.overviewTab || 'song';
+            const tbody = getPcOverviewBody(overviewTab);
+            const sentinel = document.getElementById('pcInfiniteSentinel');
+            const loadingEl = document.getElementById('pcInfiniteLoading');
+
+            if (!tbody || !sentinel || !pageSize) return;
+
+            pcRowIndexCounter = document.querySelectorAll('#pcTableBody tr[data-raw-song]').length;
+
+            const initialRows = overviewTab === 'song'
+                ? tbody.querySelectorAll('tr[data-raw-song]').length
+                : tbody.querySelectorAll('tr').length;
+            if (initialRows >= totalCount) return;
+
+            let nextPage = 2;
+            let loadedCount = initialRows;
+            let isLoading = false;
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMore();
+                }
+            }, { rootMargin: '300px' });
+
+            observer.observe(sentinel);
+
+            async function loadMore() {
+                if (isLoading || loadedCount >= totalCount) {
+                    if (loadedCount >= totalCount) observer.disconnect();
+                    return;
+                }
+
+                isLoading = true;
+                if (loadingEl) loadingEl.classList.add('visible');
+
+                try {
+                    const url = new URL('/misc/vatos-cuntdown/data', window.location.origin);
+                    url.searchParams.set('overviewTab', overviewTab);
+                    url.searchParams.set('page', String(nextPage));
+                    url.searchParams.set('size', String(pageSize));
+                    url.searchParams.set('sort', container.dataset.sort || 'days');
+                    url.searchParams.set('dir', container.dataset.dir || 'desc');
+                    const response = await fetch(url.toString());
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const data = await response.json();
+                    const entries = Array.isArray(data.entries) ? data.entries : [];
+                    if (!entries.length) {
+                        loadedCount = totalCount;
+                        observer.disconnect();
+                        return;
+                    }
+
+                    const html = overviewTab === 'album'
+                        ? renderPcAlbumRows(entries)
+                        : overviewTab === 'artist'
+                        ? renderPcArtistRows(entries)
+                        : renderPcSongRows(entries);
+                    tbody.insertAdjacentHTML('beforeend', html);
+                    loadedCount += entries.length;
+                    nextPage = data.nextPage || (nextPage + 1);
+                    filterPcTable();
+
+                    if (!data.hasMore || loadedCount >= totalCount) {
+                        observer.disconnect();
+                    }
+                } catch (error) {
+                    console.error('Failed to load more Vato\'s Cuntdown rows:', error);
+                } finally {
+                    isLoading = false;
+                    if (loadingEl) loadingEl.classList.remove('visible');
+                }
+            }
+        }
+
         document.getElementById('pcMatchModal').addEventListener('click', function (event) {
             if (event.target === this) {
                 closePcMatchModal();
@@ -861,6 +1093,7 @@
         }
 
         window.addEventListener('load', function() {
+            setupPcInfiniteScroll();
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

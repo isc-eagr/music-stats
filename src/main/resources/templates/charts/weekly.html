@@ -448,9 +448,19 @@
         }
         
         .expand-btn.expanded {
-            background: #2d5016;
-            border-color: #3d6b1e;
-            color: #fff;
+            background: rgba(115, 115, 125, 0.14);
+            border-color: rgba(115, 115, 125, 0.4);
+            color: #d1d5db;
+        }
+        .charts-table tbody tr[data-gender="2"] .expand-btn.expanded {
+            background: rgba(74, 144, 226, 0.14);
+            border-color: rgba(74, 144, 226, 0.45);
+            color: #93c5fd;
+        }
+        .charts-table tbody tr[data-gender="1"] .expand-btn.expanded {
+            background: rgba(217, 74, 138, 0.14);
+            border-color: rgba(217, 74, 138, 0.45);
+            color: #f9a8d4;
         }
         
         /* Chart run detail row */
@@ -464,107 +474,98 @@
         
         .chart-run-cell {
             background: #0f0f0f;
-            padding: 20px !important;
+            padding: 16px 20px !important;
         }
-        
-        .chart-run-header {
-            font-size: 1rem;
-            color: #fff;
-            margin-bottom: 15px;
+        .chart-run-content {
+            display: grid;
+            gap: 16px;
         }
-        
-        .chart-run-header a {
-            color: #22c55e;
-            text-decoration: none;
+        .chart-run-wrap {
+            display: grid;
+            gap: 8px;
         }
-        
-        .chart-run-header a:hover {
-            text-decoration: underline;
+        .chart-run-label {
+            font-size: 0.74rem;
+            color: #8c8f9a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        
         .chart-run-boxes {
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
-            margin-bottom: 15px;
-            max-width: 100%;
-            overflow-x: auto;
         }
-        
         .chart-run-box {
-            width: 32px;
-            height: 32px;
-            display: flex;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 7px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
-            font-weight: 600;
-            border-radius: 4px;
-            background: #1a1a1a;
-            color: #888;
-            border: 1px solid #333;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border-radius: 8px;
+            background: #25262d;
+            color: #d9dde7;
+            border: 1px solid #3b3d46;
             text-decoration: none;
-            cursor: pointer;
         }
-        
         .chart-run-box:hover {
-            text-decoration: none;
-        }
-        
-        .chart-run-box.on-chart {
-            background: #1a1a2e;
-            color: #e5e7eb;
-            border-color: #333;
-        }
-        
-        .chart-run-box.on-chart.peak-one {
-            background: #3d3012;
-            color: #fbbf24;
-            border-color: #6b5c1f;
-            box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
-        }
-        
-        .chart-run-box.current {
-            background: #2d5016;
+            border-color: rgba(96, 165, 250, 0.34);
             color: #fff;
-            border-color: #22c55e;
         }
-        
+        .chart-run-box.gender-male {
+            background: #2a5c8a;
+            border-color: #3a7cc0;
+            color: #fff;
+        }
+        .chart-run-box.gender-female {
+            background: #8a2a63;
+            border-color: #c04a8d;
+            color: #fff;
+        }
+        .chart-run-box.gender-other {
+            background: #3a3b43;
+            border-color: #555861;
+            color: #e5e7eb;
+        }
+        .chart-run-box.peak-one {
+            background: rgba(245, 158, 11, 0.18);
+            border-color: rgba(251, 191, 36, 0.45);
+            color: #fcd34d;
+        }
+        .chart-run-box.current {
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
         .chart-run-box.absent {
-            color: #555;
-        }
-        
-        .chart-run-box.absent.consolidated {
-            background: #2a2a2a;
-            color: #888;
-            font-size: 11px;
-            padding: 4px 8px;
+            background: #111218;
+            border-color: #262831;
+            color: #636773;
             cursor: default;
         }
-        
         .chart-run-stats {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             flex-wrap: wrap;
         }
-        
         .chart-run-stat {
             background: #1a1a1a;
             border: 1px solid #2a2a2a;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 10px 14px;
             text-align: center;
+            min-width: 70px;
         }
-        
         .chart-run-stat-label {
-            font-size: 0.75rem;
-            color: #888;
-            margin-bottom: 4px;
+            font-size: 0.74rem;
+            color: #8c8f9a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
         }
-        
         .chart-run-stat-value {
-            font-size: 1.2rem;
-            font-weight: bold;
+            font-size: 1.15rem;
+            font-weight: 700;
             color: #fff;
         }
         
@@ -933,6 +934,59 @@
                 </table>
                     </div>
                 </div>
+                <div th:if="${!isPreview && fallOffEntries != null && !fallOffEntries.isEmpty()}" style="margin-top: 20px;">
+                    <div class="chart-section-header">
+                        <span class="chart-section-icon">&#8600;</span>
+                        <h2 class="chart-section-title">Fall-offs From Last Available Chart</h2>
+                    </div>
+                    <div class="charts-table-container">
+                        <div class="charts-table-wrapper">
+                            <table class="charts-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-position">Last Pos</th>
+                                        <th class="col-title">Title</th>
+                                        <th class="col-artist">Artist</th>
+                                        <th class="col-genre">Genre</th>
+                                        <th class="col-plays">Plays</th>
+                                        <th class="col-peak">Peak</th>
+                                        <th class="col-weeks">Weeks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${fallOffEntries}"
+                                        th:attr="data-gender=${entry.genderId}"
+                                        th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                                        <td class="col-position" th:text="${entry.position}">1</td>
+                                        <td class="col-title">
+                                            <a th:href="@{/songs/{id}(id=${entry.songId})}"
+                                               class="chart-link chart-link-primary"
+                                               th:text="${entry.songName}">Song Name</a>
+                                        </td>
+                                        <td class="col-artist">
+                                            <a th:href="@{/artists/{id}(id=${entry.artistId})}"
+                                               class="chart-link chart-link-secondary"
+                                               th:text="${entry.artistName}">Artist Name</a>
+                                        </td>
+                                        <td class="col-genre" th:text="${entry.genreName}"></td>
+                                        <td class="col-plays">
+                                            <div class="plays-cell">
+                                                <span class="plays-count" th:text="${entry.playCount}">10</span>
+                                            </div>
+                                        </td>
+                                        <td class="col-peak">
+                                            <div class="peak-cell">
+                                                <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition}">1</span>
+                                                <span class="peak-times" th:text="${entry.timesAtPeak} + 'x'">1x</span>
+                                            </div>
+                                        </td>
+                                        <td class="col-weeks" th:text="${entry.weeksOnChart}">5</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Top 10 Albums Section -->
@@ -1098,7 +1152,7 @@
             } else {
                 // Load data if not cached
                 if (!chartRunCache[songId]) {
-                    await loadChartRun(songId);
+                    await loadChartRun(songId, button.closest('tr'));
                 }
                 detailRow.classList.add('visible');
                 button.classList.add('expanded');
@@ -1107,7 +1161,7 @@
         }
         
         // Load chart run data via AJAX
-        async function loadChartRun(songId) {
+        async function loadChartRun(songId, row) {
             try {
                 const response = await fetch(`/charts/weekly/${currentPeriodKey}/song/${songId}/run`);
                 if (!response.ok) throw new Error('Failed to load chart run');
@@ -1117,7 +1171,7 @@
                 
                 // Render the chart run content
                 const container = document.getElementById(`chart-run-${songId}`);
-                container.innerHTML = renderChartRun(data);
+                container.innerHTML = renderChartRun(data, getWeeklyChartToneClass(row));
             } catch (error) {
                 console.error('Error loading chart run:', error);
                 const container = document.getElementById(`chart-run-${songId}`);
@@ -1125,62 +1179,73 @@
             }
         }
         
+        function getWeeklyChartToneClass(row) {
+            const genderId = row?.dataset?.gender;
+            if (genderId === '2') {
+                return 'gender-male';
+            }
+            if (genderId === '1') {
+                return 'gender-female';
+            }
+            return 'gender-other';
+        }
+
+        function trimChartRunAbsentWeeks(weeks) {
+            let trimStart = 0;
+            while (trimStart < weeks.length && !weeks[trimStart].onChart) {
+                trimStart++;
+            }
+            let trimEnd = weeks.length - 1;
+            while (trimEnd >= trimStart && !weeks[trimEnd].onChart) {
+                trimEnd--;
+            }
+            return trimStart > trimEnd ? [] : weeks.slice(trimStart, trimEnd + 1);
+        }
+
         // Helper to consolidate consecutive absent weeks into a single box
-        function consolidateAbsentWeeks(weeks, currentPeriodKey) {
+        function consolidateAbsentWeeks(weeks) {
+            const trimmedWeeks = trimChartRunAbsentWeeks(weeks || []);
             const result = [];
             let i = 0;
-            while (i < weeks.length) {
-                if (weeks[i].onChart) {
-                    result.push(weeks[i]);
+            while (i < trimmedWeeks.length) {
+                if (trimmedWeeks[i].onChart) {
+                    result.push(trimmedWeeks[i]);
                     i++;
                 } else {
-                    // Count consecutive absent weeks
                     let count = 0;
-                    let startIdx = i;
-                    let hasCurrent = false;
-                    while (i < weeks.length && !weeks[i].onChart) {
-                        if (weeks[i].current) hasCurrent = true;
+                    while (i < trimmedWeeks.length && !trimmedWeeks[i].onChart) {
                         count++;
                         i++;
                     }
-                    // Create a consolidated absent entry
                     result.push({
                         onChart: false,
-                        consolidated: true,
-                        count: count,
-                        periodKey: weeks[startIdx].periodKey,
-                        current: hasCurrent
+                        count: count
                     });
                 }
             }
             return result;
         }
-        
-        // Render chart run HTML
-        function renderChartRun(data) {
-            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks, currentPeriodKey);
-            let boxesHtml = consolidatedWeeks.map(week => {
-                let classes = 'chart-run-box';
+
+        function renderChartRunBoxes(weeks, toneClass) {
+            return weeks.map(week => {
                 if (week.onChart) {
-                    classes += ' on-chart';
-                    if (week.position === 1) classes += ' peak-one';
-                    if (week.current) classes += ' current';
+                    const classes = week.position === 1
+                        ? 'chart-run-box peak-one'
+                        : `chart-run-box ${toneClass}`;
                     const tooltip = week.dateRange || week.periodKey;
                     return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${tooltip}">${week.display}</a>`;
-                } else {
-                    classes += ' absent consolidated';
-                    if (week.current) classes += ' current';
-                    return `<span class="${classes}" title="${week.count} weeks off chart">${week.count}×</span>`;
                 }
+
+                return `<span class="chart-run-box absent" title="${week.count} weeks off chart">${week.count}x</span>`;
             }).join('');
+        }
+        
+        // Render chart run HTML
+        function renderChartRun(data, toneClass) {
+            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks || []);
+            const boxesHtml = renderChartRunBoxes(consolidatedWeeks, toneClass);
             
             return `
-                <div class="chart-run-header">
-                    Chart-run
-                </div>
-                <div class="chart-run-boxes">
-                    ${boxesHtml}
-                </div>
                 <div class="chart-run-stats">
                     <div class="chart-run-stat">
                         <div class="chart-run-stat-label">Top 1</div>
@@ -1198,6 +1263,10 @@
                         <div class="chart-run-stat-label">Top 20</div>
                         <div class="chart-run-stat-value">${data.weeksAtTop20}</div>
                     </div>
+                </div>
+                <div class="chart-run-wrap">
+                    <div class="chart-run-label">Chart-run</div>
+                    <div class="chart-run-boxes">${boxesHtml}</div>
                 </div>
             `;
         }
@@ -1217,7 +1286,7 @@
             } else {
                 // Load data if not cached
                 if (!albumChartRunCache[albumId]) {
-                    await loadAlbumChartRun(albumId);
+                    await loadAlbumChartRun(albumId, button.closest('tr'));
                 }
                 detailRow.classList.add('visible');
                 button.classList.add('expanded');
@@ -1226,7 +1295,7 @@
         }
         
         // Load album chart run data via AJAX
-        async function loadAlbumChartRun(albumId) {
+        async function loadAlbumChartRun(albumId, row) {
             try {
                 const response = await fetch(`/charts/weekly/${currentPeriodKey}/album/${albumId}/run`);
                 if (!response.ok) throw new Error('Failed to load chart run');
@@ -1236,7 +1305,7 @@
                 
                 // Render the chart run content
                 const container = document.getElementById(`album-chart-run-${albumId}`);
-                container.innerHTML = renderAlbumChartRun(data);
+                container.innerHTML = renderAlbumChartRun(data, getWeeklyChartToneClass(row));
             } catch (error) {
                 console.error('Error loading album chart run:', error);
                 const container = document.getElementById(`album-chart-run-${albumId}`);
@@ -1245,30 +1314,11 @@
         }
         
         // Render album chart run HTML
-        function renderAlbumChartRun(data) {
-            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks, currentPeriodKey);
-            let boxesHtml = consolidatedWeeks.map(week => {
-                let classes = 'chart-run-box';
-                if (week.onChart) {
-                    classes += ' on-chart';
-                    if (week.position === 1) classes += ' peak-one';
-                    if (week.current) classes += ' current';
-                    const tooltip = week.dateRange || week.periodKey;
-                    return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${tooltip}">${week.display}</a>`;
-                } else {
-                    classes += ' absent consolidated';
-                    if (week.current) classes += ' current';
-                    return `<span class="${classes}" title="${week.count} weeks off chart">${week.count}×</span>`;
-                }
-            }).join('');
+        function renderAlbumChartRun(data, toneClass) {
+            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks || []);
+            const boxesHtml = renderChartRunBoxes(consolidatedWeeks, toneClass);
             
             return `
-                <div class="chart-run-header">
-                    Chart-run
-                </div>
-                <div class="chart-run-boxes">
-                    ${boxesHtml}
-                </div>
                 <div class="chart-run-stats">
                     <div class="chart-run-stat">
                         <div class="chart-run-stat-label">Top 1</div>
@@ -1282,6 +1332,10 @@
                         <div class="chart-run-stat-label">Top 10</div>
                         <div class="chart-run-stat-value">${data.weeksAtTop10}</div>
                     </div>
+                </div>
+                <div class="chart-run-wrap">
+                    <div class="chart-run-label">Chart-run</div>
+                    <div class="chart-run-boxes">${boxesHtml}</div>
                 </div>
             `;
         }

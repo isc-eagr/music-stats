@@ -13,6 +13,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 public class ChartService {
@@ -376,6 +377,23 @@ public class ChartService {
         
         return result;
     }
+
+    public List<ChartEntryDTO> getWeeklyChartFallOffs(String periodKey, List<ChartEntryDTO> currentEntries) {
+        Optional<Chart> prevChartOpt = chartRepository.findPreviousChart("song", periodKey);
+        if (prevChartOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Integer> currentSongIds = currentEntries.stream()
+            .map(ChartEntryDTO::getSongId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        return getWeeklyChartWithStats(prevChartOpt.get().getPeriodKey()).stream()
+            .filter(entry -> entry.getSongId() != null)
+            .filter(entry -> !currentSongIds.contains(entry.getSongId()))
+            .toList();
+    }
     
     /**
      * Get weekly album chart with full statistics for display.
@@ -467,7 +485,7 @@ public class ChartService {
                 COUNT(*) as play_count,
                 MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
                 MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
-                (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(s.override_genre_id, MAX(al.override_genre_id), ar.genre_id)) as genre_name
+                (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id)) as genre_name
             FROM Play p
             INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
@@ -2938,15 +2956,23 @@ public class ChartService {
         return "\n";
     }
 
+    /**
+     * Resolves genderId to CSS gender class for styling.
+     * IMPORTANT: This application's gender_id mapping is:
+     *   - genderId 1 = FEMALE artists (pink/magenta color)
+     *   - genderId 2 = MALE artists (blue color)
+     * This is NOT intuitive order but matches the original schema.
+     * All gender-aware styling cascades from this method.
+     */
     private String resolveGenderClass(Integer genderId) {
         if (genderId == null) {
             return null;
         }
         if (genderId == 1) {
-            return "gender-male";
+            return "gender-female";
         }
         if (genderId == 2) {
-            return "gender-female";
+            return "gender-male";
         }
         return null;
     }
@@ -4378,5 +4404,76 @@ public class ChartService {
         } catch (Exception e) {
             return isoDate;
         }
+    }
+
+    /**
+     * Returns ALL songs for an album with their weekly chart stats.
+     * Uncharted songs have charted=false and null chart fields.
+     * Sorted by track_number ASC.
+     */
+    public List<Map<String, Object>> getAlbumAllSongsWithWeeklyStats(int albumId) {
+        String allSongsSql =
+            "SELECT s.id, s.name, s.track_number, " +
+            "       COALESCE(s.release_date, a.release_date) AS release_date " +
+            "FROM Song s " +
+            "JOIN Album a ON s.album_id = a.id " +
+            "WHERE s.album_id = ? " +
+            "ORDER BY s.track_number ASC, s.name ASC";
+
+        String chartedSql =
+            "SELECT s.id AS song_id, MIN(ce.position) AS peak_position, COUNT(ce.id) AS total_weeks " +
+            "FROM ChartEntry ce " +
+            "JOIN Chart c ON ce.chart_id = c.id " +
+            "JOIN Song s ON ce.song_id = s.id " +
+            "WHERE s.album_id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly' " +
+            "GROUP BY s.id";
+
+        List<Map<String, Object>> allSongs = jdbcTemplate.queryForList(allSongsSql, albumId);
+        List<Map<String, Object>> chartedStats = jdbcTemplate.queryForList(chartedSql, albumId);
+
+        Map<Integer, Map<String, Object>> chartedBySongId = new HashMap<>();
+        for (Map<String, Object> row : chartedStats) {
+            int songId = ((Number) row.get("song_id")).intValue();
+            chartedBySongId.put(songId, row);
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> song : allSongs) {
+            int songId = ((Number) song.get("id")).intValue();
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", songId);
+            entry.put("name", song.get("name"));
+            entry.put("trackNumber", song.get("track_number"));
+            entry.put("releaseDate", getReleaseDate(songId, "song"));
+
+            Map<String, Object> chartStat = chartedBySongId.get(songId);
+            if (chartStat != null) {
+                int peak = ((Number) chartStat.get("peak_position")).intValue();
+                int totalWeeks = ((Number) chartStat.get("total_weeks")).intValue();
+                int weeksAtPeak = countWeeksAtPosition(songId, peak, "song") != null
+                    ? countWeeksAtPosition(songId, peak, "song") : 0;
+                entry.put("charted", true);
+                entry.put("peakPosition", peak);
+                entry.put("weeksAtPeak", weeksAtPeak);
+                entry.put("totalWeeks", totalWeeks);
+                entry.put("peakDate", getFirstPeakDate(songId, peak, "song"));
+                entry.put("debutDate", getDebutDate(songId, "song"));
+                entry.put("peakWeek", getFirstPeakWeek(songId, peak, "song"));
+                entry.put("debutWeek", getDebutWeek(songId, "song"));
+                entry.put("peakNumberOne", peak == 1);
+            } else {
+                entry.put("charted", false);
+                entry.put("peakPosition", null);
+                entry.put("weeksAtPeak", null);
+                entry.put("totalWeeks", null);
+                entry.put("peakDate", null);
+                entry.put("debutDate", null);
+                entry.put("peakWeek", null);
+                entry.put("debutWeek", null);
+                entry.put("peakNumberOne", false);
+            }
+            result.add(entry);
+        }
+        return result;
     }
 }

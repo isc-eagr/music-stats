@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PcService {
@@ -59,14 +60,18 @@ public class PcService {
         if (songId == null) return null;
         String sql =
             "WITH cs AS ( " +
-            "    SELECT MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days " +
+            "    SELECT MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
+            "           MIN(ce.chart_date) AS debut_date " +
             "    FROM vatos_cuntdown_entry ce " +
             "    WHERE ce.song_id = ? AND ce.is_close_call = 0 " +
             ") " +
-            "SELECT cs.actual_days AS days_on_countdown, cs.peak_position, cs.actual_days, " +
+            "SELECT cs.actual_days AS days_on_countdown, cs.peak_position, cs.actual_days, cs.debut_date, " +
             "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM vatos_cuntdown_entry ce2 " +
             "     WHERE ce2.song_id = ? AND ce2.position = cs.peak_position AND ce2.is_close_call = 0 " +
-            "    ) AS days_at_peak " +
+            "    ) AS days_at_peak, " +
+            "    (SELECT MIN(ce3.chart_date) FROM vatos_cuntdown_entry ce3 " +
+            "     WHERE ce3.song_id = ? AND ce3.position = cs.peak_position AND ce3.is_close_call = 0 " +
+            "    ) AS peak_date " +
             "FROM cs WHERE cs.actual_days > 0";
         try {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
@@ -78,8 +83,12 @@ public class PcService {
                 if (!rs.wasNull()) m.put("actualDays", actualDays);
                 int daysAtPeak = rs.getInt("days_at_peak");
                 if (!rs.wasNull()) m.put("daysAtPeak", daysAtPeak);
+                String debutDate = rs.getString("debut_date");
+                if (debutDate != null) m.put("debutDate", debutDate);
+                String peakDate = rs.getString("peak_date");
+                if (peakDate != null) m.put("peakDate", peakDate);
                 return m;
-            }, songId, songId);
+            }, songId, songId, songId);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return null;
         }
@@ -309,6 +318,8 @@ public class PcService {
         row.setPeakPosition(rs.getInt("peak_position"));
         row.setDaysAtPeak(rs.getInt("days_at_peak"));
         row.setRawVariantCount(rs.getInt("raw_variant_count"));
+        // Map gender name to CSS class: female->pink (genderId 1), male->blue (genderId 2)
+        // IMPORTANT: genderId 1 = female, genderId 2 = male (not intuitive but matches original schema)
         String genderName = rs.getString("gender_name");
         if (genderName != null) {
             if (genderName.contains("female")) {
@@ -823,6 +834,27 @@ public class PcService {
         }, chartDate, chartDate, chartDate, chartDate);
     }
 
+    public List<Map<String, Object>> getFallOffsForDate(String chartDate) {
+        String prevDate = getPrevChartDate(chartDate);
+        if (prevDate == null) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> previousEntries = getCountdownForDate(prevDate).stream()
+            .filter(entry -> !Boolean.TRUE.equals(entry.get("isClosecall")))
+            .toList();
+        List<Map<String, Object>> currentEntries = getCountdownForDate(chartDate).stream()
+            .filter(entry -> !Boolean.TRUE.equals(entry.get("isClosecall")))
+            .toList();
+        Set<String> currentKeys = currentEntries.stream()
+            .map(this::buildRecapIdentityKey)
+            .collect(Collectors.toSet());
+
+        return previousEntries.stream()
+            .filter(entry -> !currentKeys.contains(buildRecapIdentityKey(entry)))
+            .toList();
+    }
+
     public String findClosestChartDate(String date) {
         try {
             return jdbcTemplate.queryForObject(
@@ -857,5 +889,59 @@ public class PcService {
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return null;
         }
+    }
+
+    private String buildRecapIdentityKey(Map<String, Object> entry) {
+        Object songId = entry.get("songId");
+        if (songId != null) {
+            return "song:" + songId;
+        }
+        return "raw:" + normalizeIdentityPart(entry.get("artistName")) + "||" + normalizeIdentityPart(entry.get("songTitle"));
+    }
+
+    public List<Map<String, Object>> getChartedSongsByAlbumId(int albumId) {
+        String sql =
+            "WITH stats AS ( " +
+            "    SELECT s.id AS song_id, s.name AS song_name, s.track_number, " +
+            "           MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
+            "           MIN(ce.chart_date) AS debut_date, " +
+            "           (SELECT MIN(ce2.chart_date) FROM vatos_cuntdown_entry ce2 WHERE ce2.song_id = s.id AND ce2.position = MIN(ce.position) AND ce2.is_close_call = 0) AS peak_date " +
+            "    FROM vatos_cuntdown_entry ce " +
+            "    JOIN song s ON ce.song_id = s.id " +
+            "    WHERE s.album_id = ? AND ce.is_close_call = 0 " +
+            "    GROUP BY s.id, s.name, s.track_number " +
+            ") " +
+            "SELECT song_id, song_name, track_number, actual_days AS days_on_countdown, peak_position, debut_date, peak_date, " +
+            "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM vatos_cuntdown_entry ce2 " +
+            "     WHERE ce2.song_id = stats.song_id AND ce2.position = stats.peak_position AND ce2.is_close_call = 0 " +
+            "    ) AS days_at_peak " +
+            "FROM stats WHERE actual_days > 0 " +
+            "ORDER BY peak_position ASC, days_at_peak DESC, track_number ASC";
+        return jdbcTemplate.queryForList(sql, albumId);
+    }
+
+    public List<Map<String, Object>> getChartedSongsByArtistId(int artistId) {
+        String sql =
+            "WITH stats AS ( " +
+            "    SELECT s.id AS song_id, s.name AS song_name, " +
+            "           MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
+            "           MIN(ce.chart_date) AS debut_date, " +
+            "           (SELECT MIN(ce2.chart_date) FROM vatos_cuntdown_entry ce2 WHERE ce2.song_id = s.id AND ce2.position = MIN(ce.position) AND ce2.is_close_call = 0) AS peak_date " +
+            "    FROM vatos_cuntdown_entry ce " +
+            "    JOIN song s ON ce.song_id = s.id " +
+            "    WHERE s.artist_id = ? AND ce.is_close_call = 0 " +
+            "    GROUP BY s.id, s.name " +
+            ") " +
+            "SELECT song_id, song_name, actual_days AS days_on_countdown, peak_position, debut_date, peak_date, " +
+            "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM vatos_cuntdown_entry ce2 " +
+            "     WHERE ce2.song_id = stats.song_id AND ce2.position = stats.peak_position AND ce2.is_close_call = 0 " +
+            "    ) AS days_at_peak " +
+            "FROM stats WHERE actual_days > 0 " +
+            "ORDER BY peak_position ASC, days_at_peak DESC, song_name ASC";
+        return jdbcTemplate.queryForList(sql, artistId);
+    }
+
+    private String normalizeIdentityPart(Object value) {
+        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
     }
 }

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TrlService {
@@ -103,6 +104,8 @@ public class TrlService {
             if (!rs.wasNull()) d.setActualDays(actualDays);
             int artistId = rs.getInt("resolved_artist_id");
             if (!rs.wasNull()) d.setResolvedArtistId(artistId);
+            // Map gender name to CSS class: female->pink (genderId 1), male->blue (genderId 2)
+            // IMPORTANT: genderId 1 = female, genderId 2 = male (not intuitive but matches original schema)
             String genderName = rs.getString("gender_name");
             if (genderName != null) {
                 if (genderName.contains("female")) {
@@ -226,15 +229,20 @@ public class TrlService {
         if (songId == null) return null;
         String sql =
             "WITH cs AS ( " +
-            "    SELECT MIN(position) AS peak_position, COUNT(DISTINCT chart_date) AS actual_days " +
+            "    SELECT MIN(position) AS peak_position, COUNT(DISTINCT chart_date) AS actual_days, " +
+            "           MIN(ce.chart_date) AS debut_date " +
             "    FROM trl_chart_entry ce " +
             "    JOIN trl_debut t ON ce.debut_id = t.id AND t.song_id = ? " +
             ") " +
-            "SELECT t.days_on_countdown, cs.peak_position, cs.actual_days, " +
+            "SELECT t.days_on_countdown, cs.peak_position, cs.actual_days, cs.debut_date, " +
             "    (SELECT COUNT(*) FROM trl_chart_entry ce2 " +
             "     JOIN trl_debut t2 ON ce2.debut_id = t2.id AND t2.song_id = ? " +
             "     WHERE ce2.position = cs.peak_position " +
-            "    ) AS days_at_peak " +
+            "    ) AS days_at_peak, " +
+            "    (SELECT MIN(ce3.chart_date) FROM trl_chart_entry ce3 " +
+            "     JOIN trl_debut t3 ON ce3.debut_id = t3.id AND t3.song_id = ? " +
+            "     WHERE ce3.position = cs.peak_position " +
+            "    ) AS peak_date " +
             "FROM trl_debut t, cs " +
             "WHERE t.song_id = ? " +
             "LIMIT 1";
@@ -248,8 +256,12 @@ public class TrlService {
                 if (!rs.wasNull()) m.put("actualDays", actualDays);
                 int daysAtPeak = rs.getInt("days_at_peak");
                 if (!rs.wasNull()) m.put("daysAtPeak", daysAtPeak);
+                String debutDate = rs.getString("debut_date");
+                if (debutDate != null) m.put("debutDate", debutDate);
+                String peakDate = rs.getString("peak_date");
+                if (peakDate != null) m.put("peakDate", peakDate);
                 return m;
-            }, songId, songId, songId);
+            }, songId, songId, songId, songId);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             // No chart data yet — fall back to just the stored days
             try {
@@ -557,6 +569,23 @@ public class TrlService {
         }, chartDate, chartDate, chartDate, chartDate);
     }
 
+    public List<Map<String, Object>> getFallOffsForDate(String chartDate) {
+        String prevDate = getPrevChartDate(chartDate);
+        if (prevDate == null) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> previousEntries = getCountdownForDate(prevDate);
+        List<Map<String, Object>> currentEntries = getCountdownForDate(chartDate);
+        Set<String> currentKeys = currentEntries.stream()
+            .map(this::buildRecapIdentityKey)
+            .collect(Collectors.toSet());
+
+        return previousEntries.stream()
+            .filter(entry -> !currentKeys.contains(buildRecapIdentityKey(entry)))
+            .toList();
+    }
+
     /**
      * Find the closest available chart date on or before the given date.
      * Returns null if no chart date exists before/on the given date.
@@ -629,6 +658,22 @@ public class TrlService {
             );
         }, orderedSongIds.toArray());
         return result;
+    }
+
+    private String buildRecapIdentityKey(Map<String, Object> entry) {
+        Object debutId = entry.get("debutId");
+        if (debutId != null) {
+            return "debut:" + debutId;
+        }
+        Object songId = entry.get("songId");
+        if (songId != null) {
+            return "song:" + songId;
+        }
+        return "raw:" + normalizeIdentityPart(entry.get("artistName")) + "||" + normalizeIdentityPart(entry.get("songTitle"));
+    }
+
+    private String normalizeIdentityPart(Object value) {
+        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
     }
 
     private int getChartSpan(TrlDebut debut) {
@@ -777,6 +822,62 @@ public class TrlService {
         private ChartArtistOverviewRowDTO toRow() {
             return row;
         }
+    }
+
+    public List<Map<String, Object>> getChartRunBySongId(int songId) {
+        try {
+            Integer debutId = jdbcTemplate.queryForObject(
+                "SELECT id FROM trl_debut WHERE song_id = ? LIMIT 1",
+                Integer.class, songId);
+            if (debutId == null) return java.util.Collections.emptyList();
+            return getChartRunForDebut(debutId);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    public List<Map<String, Object>> getChartedSongsByAlbumId(int albumId) {
+        String sql =
+            "WITH stats AS ( " +
+            "    SELECT t.song_id, s.name AS song_name, s.track_number, t.days_on_countdown, " +
+            "           MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
+            "           MIN(ce.chart_date) AS debut_date, " +
+            "           (SELECT MIN(ce2.chart_date) FROM trl_chart_entry ce2 JOIN trl_debut t2 ON ce2.debut_id = t2.id WHERE t2.song_id = t.song_id AND ce2.position = MIN(ce.position)) AS peak_date " +
+            "    FROM trl_debut t " +
+            "    JOIN song s ON t.song_id = s.id " +
+            "    LEFT JOIN trl_chart_entry ce ON ce.debut_id = t.id " +
+            "    WHERE s.album_id = ? " +
+            "    GROUP BY t.song_id, s.name, s.track_number, t.days_on_countdown " +
+            ") " +
+            "SELECT song_id, song_name, track_number, days_on_countdown, peak_position, actual_days, debut_date, peak_date, " +
+            "       (SELECT COUNT(*) FROM trl_chart_entry ce2 " +
+            "        JOIN trl_debut t2 ON ce2.debut_id = t2.id " +
+            "        WHERE t2.song_id = stats.song_id AND ce2.position = stats.peak_position) AS days_at_peak " +
+            "FROM stats WHERE days_on_countdown > 0 " +
+            "ORDER BY CASE WHEN peak_position IS NULL THEN 999999 ELSE peak_position END ASC, days_at_peak DESC, track_number ASC";
+        return jdbcTemplate.queryForList(sql, albumId);
+    }
+
+    public List<Map<String, Object>> getChartedSongsByArtistId(int artistId) {
+        String sql =
+            "WITH stats AS ( " +
+            "    SELECT t.song_id, s.name AS song_name, t.days_on_countdown, " +
+            "           MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
+            "           MIN(ce.chart_date) AS debut_date, " +
+            "           (SELECT MIN(ce2.chart_date) FROM trl_chart_entry ce2 JOIN trl_debut t2 ON ce2.debut_id = t2.id WHERE t2.song_id = t.song_id AND ce2.position = MIN(ce.position)) AS peak_date " +
+            "    FROM trl_debut t " +
+            "    JOIN song s ON t.song_id = s.id " +
+            "    LEFT JOIN trl_chart_entry ce ON ce.debut_id = t.id " +
+            "    WHERE s.artist_id = ? " +
+            "    GROUP BY t.song_id, s.name, t.days_on_countdown " +
+            ") " +
+            "SELECT song_id, song_name, days_on_countdown, peak_position, actual_days, debut_date, peak_date, " +
+            "       (SELECT COUNT(*) FROM trl_chart_entry ce2 " +
+            "        JOIN trl_debut t2 ON ce2.debut_id = t2.id " +
+            "        WHERE t2.song_id = stats.song_id AND ce2.position = stats.peak_position) AS days_at_peak " +
+            "FROM stats WHERE days_on_countdown > 0 " +
+            "ORDER BY CASE WHEN peak_position IS NULL THEN 999999 ELSE peak_position END ASC, days_at_peak DESC, song_name ASC";
+        return jdbcTemplate.queryForList(sql, artistId);
     }
 
     private record AlbumSongInfo(Integer albumId, String albumName) {

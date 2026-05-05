@@ -8,7 +8,8 @@ BEGIN TRANSACTION;
 DELETE FROM vatos_cuntdown_entry WHERE chart_date IN (
   '2003-05-26','2003-03-20','2003-03-03','2003-02-05','2003-02-25','2003-02-19','2003-02-21','2003-02-23',
   '2003-05-06','2003-05-15','2003-05-16','2003-05-20','2003-05-22','2003-06-07','2003-06-09','2003-06-10',
-  '2003-06-16','2003-06-19'
+  '2003-06-16','2003-06-19','2003-08-09',
+  '2003-07-15','2003-07-23','2003-07-25','2003-08-02','2003-08-04','2003-08-13'
 );
 
 -- 2003-05-26
@@ -229,6 +230,96 @@ INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title,
 INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-06-19', 3, 'Sixpence None the Richer', 'Breathe Your Name', 0, NULL);
 INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-06-19', 2, 'Ashanti', 'Rock Wit U (Awww Baby)', 0, NULL);
 INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-06-19', 1, 'Mandy Moore', 'Cry', 0, NULL);
+
+-- 2003-08-09
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 0, '*****', 'White Flag', 1, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 0, 'Tarkan', 'Dudu', 1, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 0, 'Tamia', 'Officially Missing You', 1, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 10, 'Junior Senior', 'Rhythm Bandits', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 9, 'Ingrid', 'Tu Es Foutu', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 8, '50 Cent ft Snoop Dogg', 'P.I.M.P. Remix', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 7, 'Madonna', 'Hollywood', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 6, 'Dream ft Loon', 'Krazy', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 5, 'Iio', 'At The End', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 4, 'Audioslave', 'Show me How to Live', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 3, 'QBO', 'No Mas', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 2, 'Sean Paul', 'Like Glue', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-09', 1, 'Frou Frou', 'Must be Dreaming', 0, NULL);
+
+-- 2003-07-15
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 10, 'The Roots', 'The Seed 2.0', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 9, 'Maroon 5', 'Harder to Breathe', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 8, 'Justin Timberlake', 'Take it From Here', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 7, 'Sixpence None the Richer', 'Don''t Dream It''s Over', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 6, 'Mya', 'My Love Is Like Woah', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 5, 'Jessica Simpson', 'The Sweetest Sin', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 4, 'Metallica', 'St. Anger', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 3, 'Ashanti', 'Rock Wit U', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 2, 'Nick Lachey', 'Shut Up', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-15', 1, 'Beyonce ft Jay Z', 'Crazy in Love', 0, NULL);
+
+-- 2003-07-23
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 10, 'Lumidee', 'Never Leave You', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 9, 'Tamia', 'Officially Missing You', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 8, 'Good Charlotte', 'Girls & Boys', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 7, 'Jennifer Lopez', 'I''m Glad', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 6, 'Sean Paul', 'Like Glue', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 5, 'Sixpence None the Richer', 'Breathe Your Name', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 4, 'Beyonce ft Jay Z', 'Crazy In Love', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 3, 'Mya', 'My Love is Like Woah', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 2, 'Moloko', 'Familiar Feeling', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-23', 1, 'Stacie Orrico', '(There''s Gotta be) More to Life', 0, NULL);
+
+-- 2003-07-25
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 10, 'Kabah', 'Fue Lo Que Sera', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 9, 'Craig David ft Katie Holmes', 'What''s Changed', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 8, 'Sixpence None the Richer', 'Don''t Dream It''s Over', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 7, 'Jennifer Lopez', 'I''m Glad', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 6, 'Moloko', 'Familiar Feeling', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 5, 'Metallica', 'St. Anger', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 4, 'Good Charlotte', 'Girls & Boys', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 3, 'Stacie Orrico', '(There''s Gotta be) More to Life', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 2, 'Sean Paul', 'Like Glue', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-07-25', 1, 'Mya', 'My Love Is Like Woah', 0, NULL);
+
+-- 2003-08-02
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 0, 'Kabah', 'Fue lo que Sera', 1, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 0, 'Beyonce ft Jay Z', 'Crazy in Love', 1, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 0, 'Good Charlotte', 'Girls & Boys', 1, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 10, 'Sixpence None the Richer', 'Don''t Dream It''s Over', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 9, 'Frou Frou', 'Must be Dreaming', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 8, 'Craig David ft Katie Holmes', 'What''s Changed', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 7, 'Jennifer Lopez', 'I''m Glad', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 6, 'Stacie Orrico', '(There''s Gotta be) More to Life', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 5, '50 Cent ft Snoop Dogg', 'P.I.M.P. (Remix)', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 4, 'Tamia', 'Officially Missing You', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 3, 'Mya', 'My Love Is Like...Woah', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 2, 'Sean Paul', 'Like Glue', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-02', 1, 'Iio', 'At The End', 0, NULL);
+
+-- 2003-08-04
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 10, 'Craig David ft Katie Holmes', 'What''s Changed', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 9, 'Fischerspooner', 'Emerge', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 8, 'Scooter', 'Weekend', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 7, 'Justin Timberlake', 'Let''s Take a Ride', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 6, 'Good Charlotte', 'Girls & Boys', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 5, 'Iio', 'At The End', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 4, 'Tamia', 'Officially Missing You', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 3, 'Beyonce ft Jay Z', 'Crazy In Love', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 2, 'Stacie Orrico', '(There''s Gotta be) More to Life', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-04', 1, 'Sean Paul', 'Like Glue', 0, NULL);
+
+-- 2003-08-13
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 10, 'Craig David ft Katie Holmes', 'What''s Changed', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 9, 'Robbie Williams', 'Something Beautiful', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 8, 'Nick Lachey', 'Shut Up', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 7, 'Sean Paul', 'Like Glue', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 6, '50 Cent', 'P.I.M.P. (Remix)', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 5, 'Lumidee', 'Never Leave You', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 4, 'Beyonce ft Jay Z', 'Crazy In Love', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 3, 'Iio', 'At The End', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 2, 'Stacie Orrico', '(There''s Gotta be) More to Life', 0, NULL);
+INSERT INTO vatos_cuntdown_entry (chart_date, position, artist_name, song_title, is_close_call, song_id) VALUES ('2003-08-13', 1, 'Dream ft Loon', 'Krazy', 0, NULL);
 
 COMMIT;
 

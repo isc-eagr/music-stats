@@ -10,7 +10,10 @@ import library.dto.ChartSongOverviewRowDTO;
 import library.dto.MostHitsEntryDTO;
 import library.dto.MostWeeksEntryDTO;
 import library.entity.Chart;
+import library.service.BillboardHot100Service;
 import library.service.ChartService;
+import library.service.PcService;
+import library.service.TrlService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,9 +40,16 @@ public class ChartsController {
     private static final int WEEKLY_OVERVIEW_PAGE_SIZE = 100;
     
     private final ChartService chartService;
+    private final BillboardHot100Service billboardHot100Service;
+    private final PcService pcService;
+    private final TrlService trlService;
     
-    public ChartsController(ChartService chartService) {
+    public ChartsController(ChartService chartService, BillboardHot100Service billboardHot100Service,
+                             PcService pcService, TrlService trlService) {
         this.chartService = chartService;
+        this.billboardHot100Service = billboardHot100Service;
+        this.pcService = pcService;
+        this.trlService = trlService;
     }
     
     /**
@@ -120,6 +131,7 @@ public class ChartsController {
         Chart chart = chartOpt.get();
         List<ChartEntryDTO> entries = chartService.getWeeklyChartWithStats(periodKey);
         List<ChartEntryDTO> albumEntries = chartService.getWeeklyAlbumChartWithStats(periodKey);
+        List<ChartEntryDTO> fallOffEntries = chartService.getWeeklyChartFallOffs(periodKey, entries);
         
         // Navigation
         Optional<Chart> prevChart = chartService.getPreviousChart("song", periodKey);
@@ -150,6 +162,7 @@ public class ChartsController {
         model.addAttribute("chart", chart);
         model.addAttribute("entries", entries);
         model.addAttribute("albumEntries", albumEntries);
+        model.addAttribute("fallOffEntries", fallOffEntries);
         model.addAttribute("periodKey", periodKey);
         model.addAttribute("formattedPeriod", chart.getFormattedPeriod());
         model.addAttribute("prevPeriodKey", prevChart.map(Chart::getPeriodKey).orElse(null));
@@ -233,7 +246,87 @@ public class ChartsController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
+    /**
+     * API: Get Billboard Hot 100 chart run for a song.
+     * Used in detail pages for expandable chart run rows.
+     */
+    @GetMapping("/bb/song/{songId}/run")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getBillboardSongChartRun(@PathVariable Integer songId) {
+        try {
+            List<Map<String, Object>> rawRun = billboardHot100Service.getChartRunBySongId(songId);
+            return ResponseEntity.ok(buildChartRunResponse(rawRun, "week"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * API: Get Vato's Cuntdown chart run for a song.
+     * Used in detail pages for expandable chart run rows.
+     */
+    @GetMapping("/pc/song/{songId}/run")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getPcSongChartRun(@PathVariable Integer songId) {
+        try {
+            List<Map<String, Object>> rawRun = pcService.getChartRunBySongId(songId);
+            return ResponseEntity.ok(buildChartRunResponse(rawRun, "day"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * API: Get TRL chart run for a song.
+     * Used in detail pages for expandable chart run rows.
+     */
+    @GetMapping("/trl/song/{songId}/run")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getTrlSongChartRun(@PathVariable Integer songId) {
+        try {
+            List<Map<String, Object>> rawRun = trlService.getChartRunBySongId(songId);
+            return ResponseEntity.ok(buildChartRunResponse(rawRun, "day"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Transforms a raw chart run list (chart_date, on_chart, position) into
+     * the standard JSON response format used by detail page chart run renderers.
+     */
+    private Map<String, Object> buildChartRunResponse(List<Map<String, Object>> rawRun, String unit) {
+        List<Map<String, Object>> weeks = new ArrayList<>();
+        int top1 = 0, top5 = 0, top10 = 0, top20 = 0;
+        for (Map<String, Object> entry : rawRun) {
+            int onChart = entry.get("on_chart") != null ? ((Number) entry.get("on_chart")).intValue() : 0;
+            Integer position = entry.get("position") != null ? ((Number) entry.get("position")).intValue() : null;
+            String date = (String) entry.get("chart_date");
+            Map<String, Object> week = new LinkedHashMap<>();
+            week.put("onChart", onChart == 1);
+            week.put("position", position);
+            week.put("periodKey", date);
+            week.put("display", position != null ? String.valueOf(position) : "");
+            week.put("dateRange", date);
+            weeks.add(week);
+            if (onChart == 1 && position != null) {
+                if (position <= 1) top1++;
+                if (position <= 5) top5++;
+                if (position <= 10) top10++;
+                if (position <= 20) top20++;
+            }
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("weeks", weeks);
+        response.put("weeksAtTop1", top1);
+        response.put("weeksAtTop5", top5);
+        response.put("weeksAtTop10", top10);
+        response.put("weeksAtTop20", top20);
+        response.put("unit", unit);
+        return response;
+    }
+
     /**
      * API: Generate chart for a specific week (both songs and albums).
      */

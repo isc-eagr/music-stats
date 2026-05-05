@@ -2020,6 +2020,41 @@
             document.getElementById('createArtistForm').reset();
         }
         
+        function openCreateArtistExternalFetch() {
+            const name = document.getElementById('createName').value.trim();
+            if (!name) {
+                showWarningToast('Please enter an artist name first');
+                return;
+            }
+            openArtistFetchModal(name, null, function(artistData) {
+                function mbToForm(isoStr) {
+                    if (!isoStr) return '';
+                    const p = isoStr.split('-');
+                    return p.length === 3 ? p[2].padStart(2, '0') + '/' + p[1].padStart(2, '0') + '/' + p[0] : '';
+                }
+                const birthField = document.getElementById('createBirthDate');
+                const deathField = document.getElementById('createDeathDate');
+                if (artistData.birthDate) {
+                    const dateVal = mbToForm(artistData.birthDate);
+                    birthField.value = dateVal;
+                    if (birthField._flatpickr) birthField._flatpickr.setDate(dateVal, false, 'd/m/Y');
+                }
+                if (artistData.deathDate) {
+                    const dateVal = mbToForm(artistData.deathDate);
+                    deathField.value = dateVal;
+                    if (deathField._flatpickr) deathField._flatpickr.setDate(dateVal, false, 'd/m/Y');
+                }
+                if (artistData.type === 'Group' || artistData.type === 'Orchestra' || artistData.type === 'Choir') {
+                    document.getElementById('createIsBand').checked = true;
+                }
+                if (artistData.country) {
+                    const sel = document.getElementById('createCountry');
+                    const opt = Array.from(sel.options).find(o => o.value.toLowerCase() === artistData.country.toLowerCase() || o.text.toLowerCase() === artistData.country.toLowerCase());
+                    if (opt) sel.value = opt.value;
+                }
+            });
+        }
+
         function submitCreateArtist(event) {
             event.preventDefault();
             const form = event.target;
@@ -2128,6 +2163,7 @@
     
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
+    <th:block th:replace="~{fragments/artist-fetch-modal :: artist-fetch-modal}"></th:block>
     
     <!-- Create Artist Modal -->
     <div id="createArtistModal" class="modal">
@@ -2221,6 +2257,7 @@
                 </div>
                 
                 <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="openCreateArtistExternalFetch()">External</button>
                     <button type="submit" class="btn-action">Create</button>
                     <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
                 </div>

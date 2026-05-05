@@ -396,7 +396,8 @@
                     <h3 style="color: #fff; margin-bottom: 12px;">Create Song</h3>
                     <p style="color: #888; font-size: 13px; margin-bottom: 12px;">
                         Artist: <strong id="selectedArtistDisplay2" style="color: #fff;"></strong><br>
-                        Album: <strong id="selectedAlbumDisplay" style="color: #fff;"></strong>
+                        Album: <strong id="selectedAlbumDisplay" style="color: #fff;"></strong><br>
+                        <span id="selectedAlbumReleaseDateRow" style="display: none;">Album Release: <strong id="selectedAlbumReleaseDateDisplay" style="color: #fff;"></strong></span>
                     </p>
                     <div class="form-group">
                         <label>Song Name *</label>
@@ -1090,6 +1091,8 @@
                 } else {
                     releaseDateLabel.textContent = '*';
                 }
+
+                updateWizardAlbumReleaseDateDisplay();
                 
                 // Clear song fields when entering step 3
                 document.getElementById('wizardSongReleaseDate').value = '';
@@ -1116,6 +1119,7 @@
                         const option = document.createElement('option');
                         option.value = album.id;
                         option.textContent = album.name;
+                        option.dataset.releaseDate = album.releaseDate || '';
                         select.appendChild(option);
                     });
                     
@@ -1141,6 +1145,7 @@
                         const option = document.createElement('option');
                         option.value = album.id;
                         option.textContent = album.name;
+                        option.dataset.releaseDate = album.releaseDate || '';
                         select.appendChild(option);
                     });
                     
@@ -1157,6 +1162,31 @@
                     console.error('Error loading albums:', err);
                     if (callback) callback();
                 });
+        }
+
+        function updateWizardAlbumReleaseDateDisplay() {
+            const row = document.getElementById('selectedAlbumReleaseDateRow');
+            const value = document.getElementById('selectedAlbumReleaseDateDisplay');
+            if (!row || !value) {
+                return;
+            }
+
+            let releaseDate = '';
+            if (wizardState.isNewAlbum) {
+                releaseDate = document.getElementById('newAlbumReleaseDate').value.trim();
+            } else if (wizardState.selectedAlbumId) {
+                const select = document.getElementById('wizardAlbumSelect');
+                const option = select && select.selectedOptions.length > 0 ? select.selectedOptions[0] : null;
+                releaseDate = option ? (option.dataset.releaseDate || '') : '';
+            }
+
+            if (releaseDate) {
+                value.textContent = releaseDate;
+                row.style.display = '';
+            } else {
+                value.textContent = '';
+                row.style.display = 'none';
+            }
         }
         
         function toggleCreateNewAlbum() {

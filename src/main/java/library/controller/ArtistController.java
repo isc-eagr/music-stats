@@ -7,9 +7,12 @@ import library.dto.GenderCountDTO;
 import library.entity.Artist;
 import library.repository.LookupRepository;
 import library.service.ArtistService;
+import library.service.BillboardHot100Service;
 import library.service.ChartService;
 import library.service.ItunesService;
+import library.service.PcService;
 import library.service.ThemeService;
+import library.service.TrlService;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,13 +35,21 @@ public class ArtistController {
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
     private final ThemeService themeService;
+    private final BillboardHot100Service billboardHot100Service;
+    private final PcService pcService;
+    private final TrlService trlService;
 
-    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository, ItunesService itunesService, ThemeService themeService) {
+    public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository,
+                             ItunesService itunesService, ThemeService themeService,
+                             BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
         this.themeService = themeService;
+        this.billboardHot100Service = billboardHot100Service;
+        this.pcService = pcService;
+        this.trlService = trlService;
     }
     
     @InitBinder
@@ -788,6 +799,9 @@ public class ArtistController {
             model.addAttribute("yearlySongChartHistory", yearlySongHistory);
             model.addAttribute("seasonalAlbumChartHistory", seasonalAlbumHistory);
             model.addAttribute("yearlyAlbumChartHistory", yearlyAlbumHistory);
+            model.addAttribute("bbChartedSongs", billboardHot100Service.getChartedSongsByArtistId(id));
+            model.addAttribute("pcChartedSongs", pcService.getChartedSongsByArtistId(id));
+            model.addAttribute("trlChartedSongs", trlService.getChartedSongsByArtistId(id));
         }
         
         // Get gender name for bar color

@@ -1122,10 +1122,10 @@ public class AlbumService {
         return album;
     }
     
-    // Get albums by artist for API (id and name only)
+    // Get albums by artist for API
     public List<Map<String, Object>> getAlbumsByArtistForApi(Integer artistId) {
         String sql = """
-            SELECT a.id, a.name, 
+            SELECT a.id, a.name, a.release_date,
                    a.override_genre_id, g.name as override_genre_name,
                    a.override_subgenre_id, sg.name as override_subgenre_name,
                    a.override_language_id, l.name as override_language_name
@@ -1140,6 +1140,10 @@ public class AlbumService {
             Map<String, Object> album = new java.util.HashMap<>();
             album.put("id", rs.getInt("id"));
             album.put("name", rs.getString("name"));
+            java.sql.Date releaseDate = parseDate(rs.getString("release_date"));
+            album.put("releaseDate", releaseDate != null
+                ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(releaseDate)
+                : null);
             album.put("overrideGenreId", rs.getObject("override_genre_id"));
             album.put("overrideGenreName", rs.getString("override_genre_name"));
             album.put("overrideSubgenreId", rs.getObject("override_subgenre_id"));
