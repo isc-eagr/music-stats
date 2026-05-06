@@ -1085,8 +1085,32 @@
             <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
                  style="display: none !important;">
                  
+                <!-- Check if ANY chart data exists -->
+                <div th:if="${(songChartHistory == null or songChartHistory.isEmpty()) and
+                             (albumChartHistory == null or albumChartHistory.isEmpty()) and
+                             (seasonalSongHistory == null or seasonalSongHistory.isEmpty()) and
+                             (yearlySongHistory == null or yearlySongHistory.isEmpty()) and
+                             (seasonalAlbumHistory == null or seasonalAlbumHistory.isEmpty()) and
+                             (yearlyAlbumHistory == null or yearlyAlbumHistory.isEmpty()) and
+                             (bbChartedSongs == null or bbChartedSongs.isEmpty()) and
+                             (pcChartedSongs == null or pcChartedSongs.isEmpty()) and
+                             (trlChartedSongs == null or trlChartedSongs.isEmpty())}" class="detail-content-card">
+                    <div style="text-align: center; padding: 40px 20px; color: #9ca3af;">
+                        <p style="font-size: 16px; margin-bottom: 8px;">This artist has not charted.</p>
+                    </div>
+                </div>
+
                 <!-- Toggles for Weekly, Seasonal, Yearly -->
-                <div class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
+                <div th:unless="${(songChartHistory == null or songChartHistory.isEmpty()) and
+                                  (albumChartHistory == null or albumChartHistory.isEmpty()) and
+                                  (seasonalSongHistory == null or seasonalSongHistory.isEmpty()) and
+                                  (yearlySongHistory == null or yearlySongHistory.isEmpty()) and
+                                  (seasonalAlbumHistory == null or seasonalAlbumHistory.isEmpty()) and
+                                  (yearlyAlbumHistory == null or yearlyAlbumHistory.isEmpty()) and
+                                  (bbChartedSongs == null or bbChartedSongs.isEmpty()) and
+                                  (pcChartedSongs == null or pcChartedSongs.isEmpty()) and
+                                  (trlChartedSongs == null or trlChartedSongs.isEmpty())}" 
+                     class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
                     <style>
                         .ch-toggle-btn {
                             background-color: transparent;
@@ -1170,24 +1194,25 @@
                         .overview-chart-run-box.peak-one { background: #3d3012; color: #fbbf24; border-color: #6b5c1f; }
                         .overview-chart-run-box.absent { background: transparent; color: #555; border-color: transparent; font-size: 0.72rem; }
                     </style>
-                    <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
-                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
-                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
+                    <button th:if="${(songChartHistory != null and !songChartHistory.isEmpty()) or (albumChartHistory != null and !albumChartHistory.isEmpty())}" class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
+                    <button th:if="${(songChartHistory == null or songChartHistory.isEmpty()) and (albumChartHistory == null or albumChartHistory.isEmpty())}" class="ch-toggle-btn" onclick="switchChartHistoryType('weekly', this)" style="display: none;">Weekly</button>
+                    <button th:if="${(seasonalSongHistory != null and !seasonalSongHistory.isEmpty()) or (seasonalAlbumHistory != null and !seasonalAlbumHistory.isEmpty())}" class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
+                    <button th:if="${(yearlySongHistory != null and !yearlySongHistory.isEmpty()) or (yearlyAlbumHistory != null and !yearlyAlbumHistory.isEmpty())}" class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
                     <button class="ch-toggle-btn" th:if="${!bbChartedSongs.isEmpty()}" onclick="switchChartHistoryType('bb', this)">Billboard Hot 100</button>
                     <button class="ch-toggle-btn" th:if="${!pcChartedSongs.isEmpty()}" onclick="switchChartHistoryType('pc', this)">Vato's Cuntdown</button>
                     <button class="ch-toggle-btn" th:if="${!trlChartedSongs.isEmpty()}" onclick="switchChartHistoryType('trl', this)">TRL</button>
                 </div>
 
                 <!-- WEEKLY SECTION -->
-                <div id="ch-weekly-section" class="ch-section active">
+                <div id="ch-weekly-section" class="ch-section">
                     <!-- Albums Chart History -->
-                    <div class="detail-content-card">
+                    <div th:if="${albumChartHistory != null and !albumChartHistory.isEmpty()}" class="detail-content-card">
                         <h2 class="section-title">Albums 
                             <span class="item-count">(<span th:text="${albumChartHistory != null ? albumChartHistory.size() : 0}">0</span>)</span>
                         </h2>
                         
                         <div th:if="${albumChartHistory == null or albumChartHistory.isEmpty()}" class="no-items-message">
-                            <p>No albums have charted yet.</p>
+                            <p>No albums have charted in the weekly chart.</p>
                         </div>
                         
                         <div th:if="${albumChartHistory != null and !albumChartHistory.isEmpty()}" class="table-wrapper">
@@ -1248,13 +1273,13 @@
                     </div>
                     
                     <!-- Songs Chart History -->
-                    <div class="detail-content-card" style="margin-top: 20px;">
+                    <div th:if="${songChartHistory != null and !songChartHistory.isEmpty()}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">Songs 
                             <span class="item-count">(<span th:text="${songChartHistory != null ? songChartHistory.size() : 0}">0</span>)</span>
                         </h2>
                         
                         <div th:if="${songChartHistory == null or songChartHistory.isEmpty()}" class="no-items-message">
-                            <p>No songs have charted yet.</p>
+                            <p>No songs have charted in the weekly chart.</p>
                         </div>
                         
                         <div th:if="${songChartHistory != null and !songChartHistory.isEmpty()}" class="table-wrapper">
@@ -1492,7 +1517,7 @@
                 <!-- SEASONAL SECTION -->
                 <div id="ch-seasonal-section" class="ch-section">
                     <!-- Album Seasonal Charts -->
-                    <div th:if="${(seasonalAlbumChartHistory != null and !seasonalAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                    <div th:if="${(seasonalAlbumHistory != null and !seasonalAlbumHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">💿 Albums Seasonal Charts</h2>
                         <div class="table-wrapper">
                             <table class="table js-sortable">
@@ -1505,7 +1530,7 @@
                                 </thead>
                                 <tbody>
                                     <!-- Seasonal entries -->
-                                    <tr th:each="entry : ${seasonalAlbumChartHistory}"
+                                    <tr th:each="entry : ${seasonalAlbumHistory}"
                                         th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
                                         <td>
                                             <a th:href="@{/albums/{id}(id=${entry['albumId']})}" th:text="${entry['albumName']}">Album Name</a>
@@ -1534,7 +1559,7 @@
                     </div>
 
                     <!-- Songs Seasonal Charts -->
-                    <div th:if="${(seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                    <div th:if="${(seasonalSongHistory != null and !seasonalSongHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">🎵 Songs Seasonal Charts</h2>
                         <div class="table-wrapper">
                             <table class="table js-sortable">
@@ -1547,7 +1572,7 @@
                                 </thead>
                                 <tbody>
                                     <!-- Seasonal entries -->
-                                    <tr th:each="entry : ${seasonalSongChartHistory}"
+                                    <tr th:each="entry : ${seasonalSongHistory}"
                                         th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
                                         <td>
                                             <a th:href="@{/songs/{id}(id=${entry['songId']})}" th:text="${entry['songName']}">Song Name</a>
@@ -1583,7 +1608,7 @@
                 <!-- YEARLY SECTION -->
                 <div id="ch-yearly-section" class="ch-section">
                     <!-- Album Yearly Charts -->
-                    <div th:if="${(yearlyAlbumChartHistory != null and !yearlyAlbumChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                    <div th:if="${(yearlyAlbumHistory != null and !yearlyAlbumHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">💿 Albums Yearly Charts</h2>
                         <div class="table-wrapper">
                             <table class="table js-sortable">
@@ -1595,7 +1620,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="entry : ${yearlyAlbumChartHistory}"
+                                    <tr th:each="entry : ${yearlyAlbumHistory}"
                                         th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
                                         <td>
                                             <a th:href="@{/albums/{id}(id=${entry['albumId']})}" th:text="${entry['albumName']}">Album Name</a>
@@ -1620,7 +1645,7 @@
                     </div>
                     
                     <!-- Songs Yearly Charts -->
-                    <div th:if="${(yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
+                    <div th:if="${(yearlySongHistory != null and !yearlySongHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">🎵 Songs Yearly Charts</h2>
                         <div class="table-wrapper">
                             <table class="table js-sortable">
@@ -1632,7 +1657,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="entry : ${yearlySongChartHistory}"
+                                    <tr th:each="entry : ${yearlySongHistory}"
                                         th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
                                         <td>
                                             <a th:href="@{/songs/{id}(id=${entry['songId']})}" th:text="${entry['songName']}">Song Name</a>
@@ -1659,12 +1684,43 @@
                             </table>
                         </div>
                     </div>
-                </div> <!-- End of Yearly Section -->
+                </div> <!-- End of ch-yearly-section -->
             </div>
         </div>
     </div>
     
     <script>
+        // Initialize chart history with first available tab
+        function initChartHistory() {
+            const toggles = document.querySelectorAll('.chart-history-type-toggles .ch-toggle-btn:not([style*="display: none"])');
+            if (toggles.length === 0) return;
+            
+            const firstButton = toggles[0];
+            firstButton.classList.add('active');
+            
+            const firstType = firstButton.textContent.toLowerCase();
+            const typeMap = {
+                'weekly': 'weekly',
+                'seasonal': 'seasonal',
+                'yearly': 'yearly',
+                'billboard hot 100': 'bb',
+                "vato's cuntdown": 'pc',
+                'trl': 'trl'
+            };
+            
+            const firstSection = document.getElementById('ch-' + typeMap[firstType] + '-section');
+            if (firstSection) {
+                firstSection.classList.add('active');
+            }
+        }
+        
+        // Call on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChartHistory);
+        } else {
+            initChartHistory();
+        }
+        
         // Switch between Chart History types
         function switchChartHistoryType(type, btnElement) {
             // Update buttons
@@ -1673,6 +1729,13 @@
             });
             btnElement.classList.add('active');
             
+            // Update sections
+            document.querySelectorAll('.ch-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            const targetSection = document.getElementById('ch-' + type + '-section');
+            if (targetSection) targetSection.classList.add('active');
+        }
             // Update sections
             document.querySelectorAll('.ch-section').forEach(sec => {
                 sec.classList.remove('active');

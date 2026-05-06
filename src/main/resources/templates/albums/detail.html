@@ -815,8 +815,32 @@
             <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
                  style="display: none !important;">
 
+                <!-- Check if ANY chart data exists -->
+                <div th:if="${(chartHistory == null or chartHistory.isEmpty()) and
+                             (allSongsWeeklyStats == null or allSongsWeeklyStats.isEmpty()) and
+                             (seasonalChartHistory == null or seasonalChartHistory.isEmpty()) and
+                             (seasonalSongChartHistory == null or seasonalSongChartHistory.isEmpty()) and
+                             (yearlyChartHistory == null or yearlyChartHistory.isEmpty()) and
+                             (yearlySongChartHistory == null or yearlySongChartHistory.isEmpty()) and
+                             (bbChartedSongs == null or bbChartedSongs.isEmpty()) and
+                             (pcChartedSongs == null or pcChartedSongs.isEmpty()) and
+                             (trlChartedSongs == null or trlChartedSongs.isEmpty())}" class="detail-content-card">
+                    <div style="text-align: center; padding: 40px 20px; color: #9ca3af;">
+                        <p style="font-size: 16px; margin-bottom: 8px;">This album has not charted.</p>
+                    </div>
+                </div>
+
                 <!-- Toggles for Weekly, Seasonal, Yearly -->
-                <div class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
+                <div th:unless="${(chartHistory == null or chartHistory.isEmpty()) and
+                                  (allSongsWeeklyStats == null or allSongsWeeklyStats.isEmpty()) and
+                                  (seasonalChartHistory == null or seasonalChartHistory.isEmpty()) and
+                                  (seasonalSongChartHistory == null or seasonalSongChartHistory.isEmpty()) and
+                                  (yearlyChartHistory == null or yearlyChartHistory.isEmpty()) and
+                                  (yearlySongChartHistory == null or yearlySongChartHistory.isEmpty()) and
+                                  (bbChartedSongs == null or bbChartedSongs.isEmpty()) and
+                                  (pcChartedSongs == null or pcChartedSongs.isEmpty()) and
+                                  (trlChartedSongs == null or trlChartedSongs.isEmpty())}" 
+                     class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
                     <style>
                         .ch-toggle-btn {
                             background-color: transparent;
@@ -860,28 +884,23 @@
                             to { opacity: 1; }
                         }
                     </style>
-                    <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
-                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
-                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
+                    <button th:if="${(chartHistory != null and !chartHistory.isEmpty()) or (allSongsWeeklyStats != null and !allSongsWeeklyStats.isEmpty())}" class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
+                    <button th:if="${(chartHistory == null or chartHistory.isEmpty()) and (allSongsWeeklyStats == null or allSongsWeeklyStats.isEmpty())}" class="ch-toggle-btn" onclick="switchChartHistoryType('weekly', this)" style="display: none;">Weekly</button>
+                    <button th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (seasonalSongChartHistory != null and !seasonalSongChartHistory.isEmpty())}" class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
+                    <button th:if="${(yearlyChartHistory != null and !yearlyChartHistory.isEmpty()) or (yearlySongChartHistory != null and !yearlySongChartHistory.isEmpty())}" class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
                     <button class="ch-toggle-btn" th:if="${!bbChartedSongs.isEmpty()}" onclick="switchChartHistoryType('bb', this)">Billboard Hot 100</button>
                     <button class="ch-toggle-btn" th:if="${!pcChartedSongs.isEmpty()}" onclick="switchChartHistoryType('pc', this)">Vato's Cuntdown</button>
                     <button class="ch-toggle-btn" th:if="${!trlChartedSongs.isEmpty()}" onclick="switchChartHistoryType('trl', this)">TRL</button>
                 </div>
 
                 <!-- WEEKLY SECTION -->
-                <div id="ch-weekly-section" class="ch-section active">
+                <div id="ch-weekly-section" class="ch-section">
                 
                 <!-- Album Chart History -->
-                <div class="detail-content-card">
+                <div th:if="${chartHistory != null and !chartHistory.isEmpty()}" class="detail-content-card">
                     <h2 class="section-title">Album 
                         <span class="item-count">(<span th:text="${chartHistory != null ? chartHistory.size() : 0}">0</span>)</span>
                     </h2>
-                    
-                    <div th:if="${chartHistory == null or chartHistory.isEmpty()}" class="no-items-message">
-                        <p>This album has not charted yet.</p>
-                    </div>
-                    
-                    <div th:if="${chartHistory != null and !chartHistory.isEmpty()}">
                         <div class="table-wrapper">
                             <table class="table">
                                 <thead>
@@ -929,16 +948,12 @@
                 </div>
                 
                 <!-- Songs Chart History -->
-                <div class="detail-content-card" style="margin-top: 20px;">
+                <div th:if="${allSongsWeeklyStats != null and !allSongsWeeklyStats.isEmpty()}" class="detail-content-card" style="margin-top: 20px;">
                     <h2 class="section-title">Songs 
                         <span class="item-count">(<span th:text="${allSongsWeeklyStats != null ? allSongsWeeklyStats.size() : 0}">0</span>)</span>
                     </h2>
                     
-                    <div th:if="${allSongsWeeklyStats == null or allSongsWeeklyStats.isEmpty()}" class="no-items-message">
-                        <p>No songs found for this album.</p>
-                    </div>
-                    
-                    <div th:if="${allSongsWeeklyStats != null and !allSongsWeeklyStats.isEmpty()}" class="table-wrapper">
+                    <div class="table-wrapper">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -1149,8 +1164,6 @@
                     <!-- Album Seasonal Charts Section -->
                     <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">Album Seasonal Charts</h2>
-                        <div class="table-wrapper">
-                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Period</th>
@@ -1276,6 +1289,37 @@
     </div>
     
     <script>
+        // Initialize chart history with first available tab
+        function initChartHistory() {
+            const toggles = document.querySelectorAll('.chart-history-type-toggles .ch-toggle-btn:not([style*="display: none"])');
+            if (toggles.length === 0) return;
+            
+            const firstButton = toggles[0];
+            firstButton.classList.add('active');
+            
+            const firstType = firstButton.textContent.toLowerCase();
+            const typeMap = {
+                'weekly': 'weekly',
+                'seasonal': 'seasonal',
+                'yearly': 'yearly',
+                'billboard hot 100': 'bb',
+                "vato's cuntdown": 'pc',
+                'trl': 'trl'
+            };
+            
+            const firstSection = document.getElementById('ch-' + typeMap[firstType] + '-section');
+            if (firstSection) {
+                firstSection.classList.add('active');
+            }
+        }
+        
+        // Call on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChartHistory);
+        } else {
+            initChartHistory();
+        }
+        
         // Switch between Chart History types
         function switchChartHistoryType(type, btnElement) {
             // Update buttons

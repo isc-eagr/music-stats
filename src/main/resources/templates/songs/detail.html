@@ -941,8 +941,26 @@
             <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
                  style="display: none !important;">
 
+                <!-- Check if ANY chart data exists -->
+                <div th:if="${(chartHistory == null or chartHistory.isEmpty()) and
+                             (seasonalChartHistory == null or seasonalChartHistory.isEmpty()) and
+                             (yearlyChartHistory == null or yearlyChartHistory.isEmpty()) and
+                             (billboardHot100Stats == null) and
+                             (pcStats == null) and
+                             (trlStats == null)}" class="detail-content-card">
+                    <div style="text-align: center; padding: 40px 20px; color: #9ca3af;">
+                        <p style="font-size: 16px; margin-bottom: 8px;">This song has not charted.</p>
+                    </div>
+                </div>
+
                 <!-- Toggles for Weekly, Seasonal, Yearly -->
-                <div class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
+                <div th:unless="${(chartHistory == null or chartHistory.isEmpty()) and
+                                  (seasonalChartHistory == null or seasonalChartHistory.isEmpty()) and
+                                  (yearlyChartHistory == null or yearlyChartHistory.isEmpty()) and
+                                  (billboardHot100Stats == null) and
+                                  (pcStats == null) and
+                                  (trlStats == null)}" 
+                     class="chart-history-type-toggles" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 15px;">
                     <style>
                         .ch-toggle-btn {
                             background-color: transparent;
@@ -986,27 +1004,24 @@
                             to { opacity: 1; }
                         }
                     </style>
-                    <button class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
-                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
-                    <button class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
+                    <button th:if="${chartHistory != null and !chartHistory.isEmpty()}" class="ch-toggle-btn active" onclick="switchChartHistoryType('weekly', this)">Weekly</button>
+                    <button th:if="${chartHistory == null or chartHistory.isEmpty()}" class="ch-toggle-btn" onclick="switchChartHistoryType('weekly', this)" style="display: none;">Weekly</button>
+                    <button th:if="${seasonalChartHistory != null and !seasonalChartHistory.isEmpty()}" class="ch-toggle-btn" onclick="switchChartHistoryType('seasonal', this)">Seasonal</button>
+                    <button th:if="${yearlyChartHistory != null and !yearlyChartHistory.isEmpty()}" class="ch-toggle-btn" onclick="switchChartHistoryType('yearly', this)">Yearly</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('bb', this)" th:if="${billboardHot100Stats != null}">Billboard Hot 100</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('pc', this)" th:if="${pcStats != null}">Vato's Cuntdown</button>
                     <button class="ch-toggle-btn" onclick="switchChartHistoryType('trl', this)" th:if="${trlStats != null}">TRL</button>
                 </div>
 
                 <!-- WEEKLY SECTION -->
-                <div id="ch-weekly-section" class="ch-section active">
+                <div id="ch-weekly-section" class="ch-section">
 
-                <div class="detail-content-card">
+                <div th:if="${chartHistory != null and !chartHistory.isEmpty()}" class="detail-content-card">
                     <h2 class="section-title">Chart History 
                         <span class="item-count">(<span th:text="${chartHistory != null ? chartHistory.size() : 0}">0</span>)</span>
                     </h2>
                     
-                    <div th:if="${chartHistory == null or chartHistory.isEmpty()}" class="no-items-message">
-                        <p>This song has not charted yet.</p>
-                    </div>
-                    
-                    <div th:if="${chartHistory != null and !chartHistory.isEmpty()}" class="table-wrapper">
+                    <div class="table-wrapper">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -1242,6 +1257,37 @@
     </div>
     
     <script>
+        // Initialize chart history with first available tab
+        function initChartHistory() {
+            const toggles = document.querySelectorAll('.chart-history-type-toggles .ch-toggle-btn:not([style*="display: none"])');
+            if (toggles.length === 0) return;
+            
+            const firstButton = toggles[0];
+            firstButton.classList.add('active');
+            
+            const firstType = firstButton.textContent.toLowerCase();
+            const typeMap = {
+                'weekly': 'weekly',
+                'seasonal': 'seasonal',
+                'yearly': 'yearly',
+                'billboard hot 100': 'bb',
+                "vato's cuntdown": 'pc',
+                'trl': 'trl'
+            };
+            
+            const firstSection = document.getElementById('ch-' + typeMap[firstType] + '-section');
+            if (firstSection) {
+                firstSection.classList.add('active');
+            }
+        }
+        
+        // Call on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChartHistory);
+        } else {
+            initChartHistory();
+        }
+        
         // Switch between Chart History types
         function switchChartHistoryType(type, btnElement) {
             // Update buttons
