@@ -201,6 +201,7 @@
                  <li><a href="/artists" class="app-nav-link" th:classappend="${currentSection == 'artists'} ? 'active' : ''">Artists</a></li>
                  <li><a href="/albums" class="app-nav-link" th:classappend="${currentSection == 'albums'} ? 'active' : ''">Albums</a></li>
                  <li><a href="/songs" class="app-nav-link" th:classappend="${currentSection == 'songs'} ? 'active' : ''">Songs</a></li>
+                 <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">Graphs</a></li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
                         th:classappend="${currentSection == 'genders' or currentSection == 'genres' or currentSection == 'subgenres' or currentSection == 'ethnicities' or currentSection == 'languages' or currentSection == 'countries' or currentSection == 'listen-years' or currentSection == 'release-years'} ? 'active' : ''"
@@ -245,7 +246,6 @@
                          <li><a href="/charts/number-ones" class="app-nav-dropdown-link" th:classappend="${currentSection == 'number-ones-charts'} ? 'active' : ''">Weekly Number Ones</a></li>
                      </ul>
                  </li>
-                 <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">📊 Graphs</a></li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
                         th:classappend="${currentSection == 'reign'} ? 'active' : ''"

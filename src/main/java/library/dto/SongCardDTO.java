@@ -15,6 +15,7 @@ public class SongCardDTO {
     private String languageName;
     private Integer ethnicityId;
     private String ethnicityName;
+    private Integer genderId;
     private String releaseYear;
     private String releaseDate;
     private String firstListenedDate;
@@ -169,6 +170,14 @@ public class SongCardDTO {
 
     public void setEthnicityName(String ethnicityName) {
         this.ethnicityName = ethnicityName;
+    }
+
+    public Integer getGenderId() {
+        return genderId;
+    }
+
+    public void setGenderId(Integer genderId) {
+        this.genderId = genderId;
     }
 
     public String getReleaseYear() {

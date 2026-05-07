@@ -12,6 +12,14 @@ let useRelativeScaling = false;
 // Store data for re-rendering when scaling mode changes
 let lastChartData = {};
 
+// Current view (card / list / graphs) - initialized here so it's always available
+let currentView = 'card';
+let listViewState = { page: 0, totalCount: 0, loading: false, allLoaded: false };
+let listViewObserver = null;
+let listViewScrollContainer = null;
+let listViewScrollHandler = null;
+let listViewRequestToken = 0;
+
 // Track which tabs have been loaded
 let loadedTabs = {
     general: false,
@@ -62,6 +70,111 @@ let topSortState = {
     artists: [{ column: 'plays', direction: 'desc' }],
     albums: [{ column: 'plays', direction: 'desc' }],
     songs: [{ column: 'plays', direction: 'desc' }]
+};
+
+const listViewSortParamMap = {
+    artists: {
+        name: 'name',
+        plays: 'plays',
+        primaryPlays: 'primary_plays',
+        legacyPlays: 'legacy_plays',
+        timeListened: 'time',
+        firstListened: 'first_listened',
+        lastListened: 'last_listened',
+        daysListened: 'days_listened',
+        weeksListened: 'weeks_listened',
+        monthsListened: 'months_listened',
+        yearsListened: 'years_listened',
+        age: 'age',
+        albumCount: 'albums',
+        avgLength: 'avg_length',
+        avgPlays: 'avg_plays',
+        avgPlaysAlbum: 'avg_plays_album',
+        birthDate: 'birth_date',
+        deathDate: 'death_date',
+        songCount: 'songs',
+        featuredOnCount: 'featured',
+        featuredArtistCount: 'featured_artist_count',
+        soloSongCount: 'solo_songs',
+        songsWithFeatCount: 'songs_with_features',
+        genre: 'genre',
+        subgenre: 'subgenre',
+        ethnicity: 'ethnicity',
+        country: 'country',
+        language: 'language'
+    },
+    albums: {
+        artistName: 'artist',
+        name: 'name',
+        plays: 'plays',
+        primaryPlays: 'primary_plays',
+        legacyPlays: 'legacy_plays',
+        length: 'album_length',
+        timeListened: 'time',
+        releaseDate: 'release_date',
+        firstListened: 'first_listened',
+        lastListened: 'last_listened',
+        daysListened: 'days_listened',
+        weeksListened: 'weeks_listened',
+        monthsListened: 'months_listened',
+        yearsListened: 'years_listened',
+        lastFullListen: 'last_full_listen',
+        ageAtRelease: 'age_at_release',
+        avgLength: 'avg_length',
+        avgPlays: 'avg_plays',
+        seasonalChartPeak: 'seasonal_chart_peak',
+        songCount: 'song_count',
+        featuredArtistCount: 'featured_artist_count',
+        soloSongCount: 'solo_songs',
+        songsWithFeatCount: 'songs_with_features',
+        weeklyChartPeak: 'weekly_chart_peak',
+        weeklyChartWeeks: 'weekly_chart_weeks',
+        yearlyChartPeak: 'yearly_chart_peak',
+        genre: 'genre',
+        subgenre: 'subgenre',
+        ethnicity: 'ethnicity',
+        country: 'country',
+        language: 'language',
+        birthDate: 'birth_date',
+        deathDate: 'death_date'
+    },
+    songs: {
+        artistName: 'artist',
+        albumName: 'album',
+        name: 'name',
+        plays: 'plays',
+        primaryPlays: 'primary_plays',
+        legacyPlays: 'legacy_plays',
+        length: 'length',
+        timeListened: 'time',
+        releaseDate: 'release_date',
+        firstListened: 'first_listened',
+        lastListened: 'last_listened',
+        daysListened: 'days_listened',
+        weeksListened: 'weeks_listened',
+        monthsListened: 'months_listened',
+        yearsListened: 'years_listened',
+        trackNumber: 'track_number',
+        ageAtRelease: 'age_at_release',
+        featuredArtistCount: 'featured_artist_count',
+        seasonalChartPeak: 'seasonal_chart_peak',
+        weeklyChartPeak: 'weekly_chart_peak',
+        weeklyChartWeeks: 'weekly_chart_weeks',
+        trlPeak: 'trl_peak',
+        trlDays: 'trl_days',
+        vatosCuntdownPeak: 'vatos_cuntdown_peak',
+        vatosCuntdownDays: 'vatos_cuntdown_days',
+        billboardPeak: 'billboard_peak',
+        billboardWeeks: 'billboard_weeks',
+        yearlyChartPeak: 'yearly_chart_peak',
+        genre: 'genre',
+        subgenre: 'subgenre',
+        ethnicity: 'ethnicity',
+        country: 'country',
+        language: 'language',
+        birthDate: 'birth_date',
+        deathDate: 'death_date'
+    }
 };
 
 // Column visibility configuration for top tables
@@ -194,8 +307,8 @@ function getArtistIncludeFeatured() {
     return toggle ? toggle.checked : false;
 }
 
-// Register datalabels plugin if Chart.js is available
-if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+// Register datalabels plugin if Chart.js v3+ is available
+if (typeof Chart !== 'undefined' && typeof Chart.register === 'function' && typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
@@ -847,12 +960,10 @@ function loadTabData(tabName, forceReload = false) {
         params.set('includeFeatured', 'true');
     }
     
-    // Add top limit only for top tab (always) or other tabs if their "Apply Limit" checkbox is checked
+    // Add limit - for top tab fetch all data, for other tabs apply limit only if checkbox is checked
     if (tabName === 'top') {
-        // For infinite scroll, fetch all data - the UI will progressively render rows as user scrolls
         params.set('limit', 999999);
     } else {
-        // For non-top tabs, only apply limit if checkbox is checked
         const checkboxId = 'applyLimit' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
         const checkbox = document.getElementById(checkboxId);
         if (checkbox && checkbox.checked) {
@@ -918,6 +1029,10 @@ function getFilterParams() {
  */
 function renderTabCharts(tabName, data) {
     switch (tabName) {
+        case 'top':
+            renderTopTables(data);
+            break;
+
         case 'general':
             createCombinedBarChart('generalCombinedChartContainer', 'generalCombinedChart', {
                 artists: [{ name: 'Overall', male: data.artistsByGender?.male || 0, female: data.artistsByGender?.female || 0, other: data.artistsByGender?.other || 0 }],
@@ -928,10 +1043,6 @@ function renderTabCharts(tabName, data) {
             });
             break;
         
-        case 'top':
-            renderTopTables(data);
-            break;
-            
         case 'genre':
             renderStatsTables('genre', data, true);
             createCombinedBarChart('genreCombinedChartContainer', 'genreCombinedChart', {
@@ -1177,9 +1288,9 @@ function createDynamicStackedBarChart(containerId, canvasId, categoryData, isLis
     
     // Create canvas element
     container.innerHTML = '';
+    container.style.height = calculatedHeight + 'px';
     const canvas = document.createElement('canvas');
     canvas.id = canvasId;
-    canvas.style.height = calculatedHeight + 'px';
     container.appendChild(canvas);
     
     const ctx = canvas.getContext('2d');
@@ -1359,15 +1470,15 @@ function createCombinedBarChart(containerId, canvasId, allData) {
     const listeningTimeLookup = createLookup(allData.listeningTime);
     
     // Calculate dynamic height - more space per category since we have 5 bars per category
-    const itemHeight = 120; // Height per category group
+    const itemHeight = 160; // Height per category group
     const baseHeight = 150;
     const calculatedHeight = categories.length * itemHeight + baseHeight;
     
     // Create canvas element
     container.innerHTML = '';
+    container.style.height = calculatedHeight + 'px';
     const canvas = document.createElement('canvas');
     canvas.id = canvasId;
-    canvas.style.height = calculatedHeight + 'px';
     container.appendChild(canvas);
     
     const ctx = canvas.getContext('2d');
@@ -1691,7 +1802,12 @@ function toggleRelativeScaling() {
     const btn = document.getElementById('scalingToggleBtn');
     if (btn) {
         btn.classList.toggle('active', useRelativeScaling);
-        btn.textContent = useRelativeScaling ? '📊 Relative Scaling (ON)' : '📊 Relative Scaling (OFF)';
+        btn.textContent = useRelativeScaling ? 'Relative Scaling (ON)' : 'Relative Scaling (OFF)';
+    }
+
+    const checkbox = document.getElementById('relativeScalingToggle');
+    if (checkbox) {
+        checkbox.checked = useRelativeScaling;
     }
     
     // Re-render all charts that have been loaded with cached data
@@ -1746,6 +1862,7 @@ function resetChartsLoaded() {
         subgenre: false,
         ethnicity: false,
         language: false,
+        country: false,
         releaseYear: false,
         listenYear: false
     };
@@ -2458,6 +2575,14 @@ function updateSortIndicators(tableId, sortState) {
  * Sets up click handlers for table header sorting
  */
 function setupTopTableSorting() {
+    function rerenderOrReload(stateKey, renderFn) {
+        if (currentView === 'list' && stateKey === getCurrentEntityType()) {
+            reloadListViewData(stateKey);
+            return;
+        }
+        renderFn();
+    }
+
     function bindTableSort(tableId, stateKey, renderFn) {
         document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
             th.title = 'Click to sort by this column. Shift+click to add a secondary or tertiary sort.';
@@ -2496,12 +2621,12 @@ function setupTopTableSorting() {
                             direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
                         }];
                     }
-                    renderFn();
+                    rerenderOrReload(stateKey, renderFn);
                     return;
                 }
 
                 topSortState[stateKey] = currentSorts;
-                renderFn();
+                rerenderOrReload(stateKey, renderFn);
             };
         });
     }
@@ -2522,8 +2647,29 @@ function reloadTopData() {
  * Gets the current top limit value
  */
 function getTopLimit() {
-    const input = document.getElementById('topLimitInput');
+    const activeInput = document.querySelector('.tab-content.active .chart-limit-input');
+    const input = activeInput || document.querySelector('.chart-limit-input') || document.getElementById('topLimitInput');
     return input ? parseInt(input.value) || 50 : 50;
+}
+
+function syncChartLimitInputs(sourceInput) {
+    if (!sourceInput) {
+        return;
+    }
+
+    const normalizedValue = Math.max(1, Math.min(999, parseInt(sourceInput.value, 10) || 50));
+    sourceInput.value = normalizedValue;
+
+    document.querySelectorAll('.chart-limit-input').forEach(input => {
+        if (input !== sourceInput) {
+            input.value = normalizedValue;
+        }
+    });
+}
+
+function onChartLimitChanged(tabName, input) {
+    syncChartLimitInputs(input);
+    reloadAllCharts();
 }
 
 /**
@@ -2817,3 +2963,368 @@ document.addEventListener('DOMContentLoaded', function() {
     // Note: includeGroups and includeFeatured toggles are now handled as regular form inputs
     // They get their checked state from th:checked in the HTML and are submitted with the form
 });
+
+// ============================================================
+// VIEW SWITCHING (Card / List / Graphs)
+// ============================================================
+
+// (currentView, listViewState, listViewObserver declared at top of file)
+
+/**
+ * Switch between card, list, and graphs views on a list page.
+ * @param {string} viewName - 'card', 'list', or 'graphs'
+ */
+function switchView(viewName) {
+    if (currentView === viewName) return;
+    currentView = viewName;
+
+    const cardView = document.getElementById('cardView');
+    const listView = document.getElementById('listView');
+    const graphsView = document.getElementById('graphsView');
+
+    // Hide all
+    if (cardView) cardView.style.display = 'none';
+    if (listView) listView.style.display = 'none';
+    if (graphsView) graphsView.style.display = 'none';
+
+    // Update button active states
+    ['card', 'list', 'graphs'].forEach(v => {
+        const btn = document.getElementById('viewBtn-' + v);
+        if (btn) btn.classList.toggle('active', v === viewName);
+    });
+
+    if (viewName === 'card') {
+        if (cardView) cardView.style.display = '';
+    } else if (viewName === 'list') {
+        if (listView) listView.style.display = '';
+        // Load first page if not yet loaded
+        if (listViewState.page === 0 && !listViewState.loading && !listViewState.allLoaded) {
+            fetchListPage(0);
+        }
+        setupListViewInfiniteScroll();
+    } else if (viewName === 'graphs') {
+        if (graphsView) graphsView.style.display = '';
+        // Auto-load general tab
+        if (!loadedTabs.general) {
+            loadTabData('general');
+        }
+    }
+}
+
+/**
+ * Determine the entity type for the current page based on URL.
+ */
+function getCurrentEntityType() {
+    const path = window.location.pathname;
+    if (path.startsWith('/artists')) return 'artists';
+    if (path.startsWith('/albums')) return 'albums';
+    if (path.startsWith('/songs')) return 'songs';
+    return 'songs';
+}
+
+function getListViewTableContainer(entityType = getCurrentEntityType()) {
+    const suffix = entityType.charAt(0).toUpperCase() + entityType.slice(1);
+    return document.getElementById('top' + suffix + 'TableContainer');
+}
+
+function getListViewTableBody(entityType = getCurrentEntityType()) {
+    const suffix = entityType.charAt(0).toUpperCase() + entityType.slice(1);
+    return document.querySelector('#top' + suffix + 'Table tbody');
+}
+
+function camelToSnakeCase(value) {
+    return value.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+}
+
+function getListViewSortParam(column, entityType) {
+    return listViewSortParamMap[entityType]?.[column] || camelToSnakeCase(column);
+}
+
+function applyListViewSortParams(params, entityType) {
+    ['sortby', 'sortdir', 'sortby2', 'sortdir2', 'sortby3', 'sortdir3'].forEach(key => params.delete(key));
+
+    const sorts = normalizeTopSortState(topSortState[entityType] || [{ column: 'plays', direction: 'desc' }]);
+    sorts.slice(0, 3).forEach((sort, index) => {
+        const suffix = index === 0 ? '' : String(index + 1);
+        params.set('sortby' + suffix, getListViewSortParam(sort.column, entityType));
+        params.set('sortdir' + suffix, sort.direction);
+    });
+}
+
+function reloadListViewData(entityType = getCurrentEntityType()) {
+    listViewRequestToken += 1;
+    listViewState.page = 0;
+    listViewState.totalCount = 0;
+    listViewState.loading = false;
+    listViewState.allLoaded = false;
+
+    topTabData[entityType] = [];
+    topSortedData[entityType] = [];
+    topSortedCache[entityType] = { dataRef: null, sortKey: '', sorted: [] };
+    topInfiniteScrollState[entityType] = { displayedRows: 999999, batchSize: 50 };
+
+    const tbody = getListViewTableBody(entityType);
+    if (tbody) tbody.innerHTML = '';
+
+    const podium = document.getElementById(entityType + 'Podium');
+    if (podium) podium.innerHTML = '';
+
+    const endEl = document.getElementById('listViewEnd');
+    if (endEl) endEl.hidden = true;
+
+    setListViewLoadingIndicator(false);
+
+    const container = getListViewTableContainer(entityType);
+    if (container) container.scrollTop = 0;
+
+    fetchListPage(0);
+}
+
+function maybeLoadMoreListRows() {
+    if (currentView !== 'list' || listViewState.loading || listViewState.allLoaded) return;
+
+    const container = getListViewTableContainer();
+    if (!container) return;
+
+    const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 120;
+    if (nearBottom) {
+        fetchListPage(listViewState.page);
+    }
+}
+
+function getOrCreateListViewLoader() {
+    const listView = document.getElementById('listView');
+    if (!listView) return null;
+
+    let loader = document.getElementById('listViewLoader');
+    if (loader) return loader;
+
+    loader = document.createElement('div');
+    loader.id = 'listViewLoader';
+    loader.hidden = true;
+    loader.style.cssText = 'text-align:center;padding:18px 0;color:#888;font-size:0.85rem;letter-spacing:0.4px;';
+    loader.textContent = 'Loading records...';
+
+    const endEl = document.getElementById('listViewEnd');
+    if (endEl && endEl.parentElement === listView) {
+        listView.insertBefore(loader, endEl);
+    } else {
+        listView.appendChild(loader);
+    }
+
+    return loader;
+}
+
+function setListViewLoadingIndicator(isLoading) {
+    const loader = getOrCreateListViewLoader();
+    if (loader) loader.hidden = !isLoading;
+}
+
+/**
+ * Fetch a page of list data from the entity's /api endpoint.
+ * Uses the same top-table infrastructure as the Graphs Top tab.
+ * @param {number} pageNum - 0-based page number
+ */
+function fetchListPage(pageNum) {
+    if (listViewState.loading) return;
+    listViewState.loading = true;
+    setListViewLoadingIndicator(true);
+
+    const entityType = getCurrentEntityType();
+    const params = getListFilterParams();
+    params.set('page', pageNum);
+    params.set('perpage', 100);
+    applyListViewSortParams(params, entityType);
+
+    const requestToken = ++listViewRequestToken;
+
+    fetch('/' + entityType + '/api?' + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            if (requestToken !== listViewRequestToken) return;
+            listViewState.loading = false;
+            setListViewLoadingIndicator(false);
+            listViewState.totalCount = data.totalCount;
+
+            const items = (data.items || []).map(item => normalizeListItem(item, entityType));
+
+            if (pageNum === 0) {
+                // Full init: replace data, init column toggles, render, setup sorting
+                topTabData[entityType] = items;
+                topSortedCache[entityType] = { dataRef: null, sortKey: '', sorted: [] };
+                topInfiniteScrollState[entityType] = { displayedRows: 999999, batchSize: 50 };
+
+                initColumnToggles();
+                if (entityType === 'artists') renderTopArtistsTable();
+                else if (entityType === 'albums') renderTopAlbumsTable();
+                else renderTopSongsTable();
+                setupTopTableSorting();
+
+                listViewState.page = 1;
+                listViewState.allLoaded = items.length >= data.totalCount;
+            } else {
+                // Append: add items to existing data and append rows to table
+                const startRank = topTabData[entityType].length;
+                topTabData[entityType].push(...items);
+                topSortedCache[entityType] = { dataRef: null, sortKey: '', sorted: [] };
+                topInfiniteScrollState[entityType].displayedRows = 999999;
+
+                if (entityType === 'artists') appendTopArtistsRows(items, startRank);
+                else if (entityType === 'albums') appendTopAlbumsRows(items, startRank);
+                else appendTopSongsRows(items, startRank);
+
+                listViewState.page = pageNum + 1;
+                listViewState.allLoaded = topTabData[entityType].length >= data.totalCount;
+            }
+
+            const endEl = document.getElementById('listViewEnd');
+            if (endEl) endEl.hidden = !listViewState.allLoaded;
+
+            requestAnimationFrame(() => {
+                maybeLoadMoreListRows();
+            });
+        })
+        .catch(err => {
+            if (requestToken !== listViewRequestToken) return;
+            listViewState.loading = false;
+            setListViewLoadingIndicator(false);
+            console.error('Error loading list view data:', err);
+        });
+}
+
+
+/**
+ * Get filter params from the current URL (preserving all filter params, removing pagination/sort).
+ */
+function getListFilterParams() {
+    const currentUrl = new URL(window.location.href);
+    const params = new URLSearchParams(currentUrl.search);
+    params.delete('page');
+    params.delete('perpage');
+    params.delete('sortby');
+    params.delete('sortdir');
+    params.delete('sortby2');
+    params.delete('sortdir2');
+    params.delete('sortby3');
+    params.delete('sortdir3');
+    return params;
+}
+
+/**
+ * Normalize field names from CardDTO to match topColumnConfig/buildRow field names.
+ */
+function normalizeListItem(item, entityType) {
+    // Common play count mappings
+    item.plays = item.playCount;
+    item.primaryPlays = item.vatitoPlayCount;
+    item.legacyPlays = item.robertloverPlayCount;
+
+    if (entityType === 'artists') {
+        item.firstListened = item.firstListenedDate;
+        item.lastListened = item.lastListenedDate;
+        item.genre = item.genreName;
+        item.subgenre = item.subgenreName;
+        item.language = item.languageName;
+        item.ethnicity = item.ethnicityName;
+        item.avgPlaysAlbum = item.avgPlaysPerAlbum;
+        item.featuredOnCount = item.featuredSongCount;
+        // Age from birthDate
+        if (item.birthDate) {
+            const birth = new Date(item.birthDate);
+            const end = item.deathDate ? new Date(item.deathDate) : new Date();
+            item.age = Math.floor((end - birth) / (365.25 * 24 * 3600 * 1000));
+        }
+    } else if (entityType === 'albums') {
+        item.firstListened = item.firstListenedDate;
+        item.lastListened = item.lastListenedDate;
+        item.lastFullListen = item.lastFullListenDate;
+        item.genre = item.genreName;
+        item.subgenre = item.subgenreName;
+        item.language = item.languageName;
+        item.ethnicity = item.ethnicityName;
+        item.lengthFormatted = item.albumLengthFormatted || formatAlbumLength(item.albumLength);
+    } else if (entityType === 'songs') {
+        item.firstListened = item.firstListenedDate;
+        item.lastListened = item.lastListenedDate;
+        item.genre = item.genreName;
+        item.subgenre = item.subgenreName;
+        item.language = item.languageName;
+        item.ethnicity = item.ethnicityName;
+        item.lengthFormatted = item.lengthFormatted || formatSongLength(item.lengthSeconds);
+    }
+
+    return item;
+}
+
+/**
+ * Format album length in seconds to mm:ss or hh:mm:ss
+ */
+function formatAlbumLength(totalSeconds) {
+    if (!totalSeconds) return '';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    return m + ':' + String(s).padStart(2, '0');
+}
+
+/**
+ * Format song length in seconds to mm:ss
+ */
+function formatSongLength(totalSeconds) {
+    if (!totalSeconds) return '';
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return m + ':' + String(s).padStart(2, '0');
+}
+
+/**
+ * Setup intersection observer for list view infinite scroll.
+ * Watches listViewEnd marker and fetches more pages from server when visible.
+ */
+function setupListViewInfiniteScroll() {
+    const container = getListViewTableContainer();
+    if (!container) return;
+
+    if (listViewObserver) {
+        listViewObserver.disconnect();
+        listViewObserver = null;
+    }
+
+    if (listViewScrollContainer && listViewScrollHandler && listViewScrollContainer !== container) {
+        listViewScrollContainer.removeEventListener('scroll', listViewScrollHandler);
+    }
+
+    if (listViewScrollContainer !== container || !listViewScrollHandler) {
+        listViewScrollContainer = container;
+        listViewScrollHandler = () => {
+            maybeLoadMoreListRows();
+        };
+        container.addEventListener('scroll', listViewScrollHandler, { passive: true });
+    }
+
+    requestAnimationFrame(() => {
+        maybeLoadMoreListRows();
+    });
+}
+
+/**
+ * Reload all chart tabs (force-reload).
+ */
+function reloadAllCharts() {
+    // Reset loaded state for all tabs
+    Object.keys(loadedTabs).forEach(tab => { loadedTabs[tab] = false; });
+    // Destroy existing chart instances
+    Object.keys(chartInstances).forEach(key => {
+        if (chartInstances[key]) {
+            chartInstances[key].destroy();
+            delete chartInstances[key];
+        }
+    });
+    // Reload currently active tab
+    const activeBtn = document.querySelector('.charts-tab-btn.active');
+    if (activeBtn && activeBtn.dataset.tab) {
+        loadTabData(activeBtn.dataset.tab);
+    }
+}
+

@@ -1449,9 +1449,9 @@
     
     <div class="charts-page">
         <div class="charts-header">
-            <h1>📊 Graphs</h1>
+            <h1>Graphs</h1>
             <div style="display: flex; gap: 10px;">
-                <button type="button" class="top-playlist-btn" id="headerPlaylistBtn" onclick="openTopSongsPlaylistGenerator()" style="display: none;">🎵 Generate Playlist</button>
+                <button type="button" class="top-playlist-btn" id="headerPlaylistBtn" onclick="openTopSongsPlaylistGenerator()" style="display: none;">Generate Playlist</button>
                 <button class="filter-toggle" onclick="toggleFilters()">Edit Filters</button>
             </div>
         </div>
@@ -1460,7 +1460,7 @@
         <div class="filters" id="filterPanel" style="display: none;">
             <div class="filter-header">
                 <h3>Edit Filters</h3>
-                <button class="filter-close" onclick="toggleFilters()">×</button>
+                <button class="filter-close" onclick="toggleFilters()">├ù</button>
             </div>
             
             <div class="filter-content">
@@ -1484,7 +1484,7 @@
                                     <div class="multi-select-chips" id="accountChips">
                                         <span class="multi-select-chip" th:each="accountName : ${selectedAccounts}" th:attr="data-value=${accountName}">
                                             <span th:text="${accountName == 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)'}"></span>
-                                            <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${accountName}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${accountName}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedAccounts == null || selectedAccounts.isEmpty()}">Select...</span>
@@ -1732,7 +1732,7 @@
                                     <div class="multi-select-chips" id="countryChips">
                                         <span class="multi-select-chip" th:each="countryName : ${selectedCountries}" th:attr="data-value=${countryName}">
                                             <span th:text="${countryName}"></span>
-                                            <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${countryName}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${countryName}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedCountries == null || selectedCountries.isEmpty()}">Select...</span>
@@ -1813,7 +1813,7 @@
                                     <div class="multi-select-chips" id="ethnicityChips">
                                         <span class="multi-select-chip" th:each="ethnicityId : ${selectedEthnicities}">
                                             <span th:text="${ethnicities.get(ethnicityId)}"></span>
-                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'ethnicity\', ' + ${ethnicityId} + ')'" th:attr="data-value=${ethnicityId}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'ethnicity\', ' + ${ethnicityId} + ')'" th:attr="data-value=${ethnicityId}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedEthnicities == null || selectedEthnicities.isEmpty()}">Select...</span>
@@ -1845,8 +1845,8 @@
                             <div class="filter-group">
                                 <select name="inItunes" id="inItunesSelect">
                                     <option value="">All</option>
-                                    <option value="true" th:selected="${selectedInItunes == 'true'}">✅ In iTunes</option>
-                                    <option value="false" th:selected="${selectedInItunes == 'false'}">❌ Not in iTunes</option>
+                                    <option value="true" th:selected="${selectedInItunes == 'true'}">In iTunes</option>
+                                    <option value="false" th:selected="${selectedInItunes == 'false'}">Not in iTunes</option>
                                 </select>
                             </div>
                         </div>
@@ -1914,7 +1914,7 @@
                                     <div class="multi-select-chips" id="genderChips">
                                         <span class="multi-select-chip" th:each="genderId : ${selectedGenders}">
                                             <span th:text="${genders.get(genderId)}"></span>
-                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'gender\', ' + ${genderId} + ')'" th:attr="data-value=${genderId}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'gender\', ' + ${genderId} + ')'" th:attr="data-value=${genderId}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedGenders == null || selectedGenders.isEmpty()}">Select...</span>
@@ -1955,7 +1955,7 @@
                                     <div class="multi-select-chips" id="genreChips">
                                         <span class="multi-select-chip" th:each="genreId : ${selectedGenres}">
                                             <span th:text="${genres.get(genreId)}"></span>
-                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'genre\', ' + ${genreId} + ')'" th:attr="data-value=${genreId}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'genre\', ' + ${genreId} + ')'" th:attr="data-value=${genreId}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedGenres == null || selectedGenres.isEmpty()}">Select...</span>
@@ -2053,7 +2053,7 @@
                                     <div class="multi-select-chips" id="languageChips">
                                         <span class="multi-select-chip" th:each="languageId : ${selectedLanguages}">
                                             <span th:text="${languages.get(languageId)}"></span>
-                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'language\', ' + ${languageId} + ')'" th:attr="data-value=${languageId}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'language\', ' + ${languageId} + ')'" th:attr="data-value=${languageId}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedLanguages == null || selectedLanguages.isEmpty()}">Select...</span>
@@ -2422,7 +2422,7 @@
                                     <div class="multi-select-chips" id="subgenreChips">
                                         <span class="multi-select-chip" th:each="subgenreId : ${selectedSubgenres}">
                                             <span th:text="${subgenres.get(subgenreId)}"></span>
-                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'subgenre\', ' + ${subgenreId} + ')'" th:attr="data-value=${subgenreId}">×</button>
+                                            <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'subgenre\', ' + ${subgenreId} + ')'" th:attr="data-value=${subgenreId}">├ù</button>
                                         </span>
                                     </div>
                                     <span class="multi-select-label" th:if="${selectedSubgenres == null || selectedSubgenres.isEmpty()}">Select...</span>
@@ -2515,7 +2515,7 @@
                         <!-- Albums Seasonal Chart filter chip -->
                         <span class="filter-chip" data-remove-params="albumsSeasonalChartPeak,albumsSeasonalChartSeasons" th:if="${albumsSeasonalChartPeak != null or albumsSeasonalChartSeasons != null}">
                             <span class="filter-chip-label">
-                                🍂 Albums Seasonal Chart:
+                                Albums Seasonal Chart:
                                 <span th:if="${albumsSeasonalChartPeak != null}">Peak ≤ <span th:text="${albumsSeasonalChartPeak}"></span></span>
                                 <span th:if="${albumsSeasonalChartPeak != null and albumsSeasonalChartSeasons != null}">, </span>
                                 <span th:if="${albumsSeasonalChartSeasons != null}">Seasons ≥ <span th:text="${albumsSeasonalChartSeasons}"></span></span>
@@ -2525,7 +2525,7 @@
                         <!-- Albums Weekly Chart filter chip -->
                         <span class="filter-chip" data-remove-params="albumsWeeklyChartPeak,albumsWeeklyChartWeeks" th:if="${albumsWeeklyChartPeak != null or albumsWeeklyChartWeeks != null}">
                             <span class="filter-chip-label">
-                                📊 Albums Weekly Chart:
+                                Albums Weekly Chart:
                                 <span th:if="${albumsWeeklyChartPeak != null}">Peak ≤ <span th:text="${albumsWeeklyChartPeak}"></span></span>
                                 <span th:if="${albumsWeeklyChartPeak != null and albumsWeeklyChartWeeks != null}">, </span>
                                 <span th:if="${albumsWeeklyChartWeeks != null}">Weeks ≥ <span th:text="${albumsWeeklyChartWeeks}"></span></span>
@@ -2535,7 +2535,7 @@
                         <!-- Albums Yearly Chart filter chip -->
                         <span class="filter-chip" data-remove-params="albumsYearlyChartPeak,albumsYearlyChartYears" th:if="${albumsYearlyChartPeak != null or albumsYearlyChartYears != null}">
                             <span class="filter-chip-label">
-                                📅 Albums Yearly Chart:
+                                Albums Yearly Chart:
                                 <span th:if="${albumsYearlyChartPeak != null}">Peak ≤ <span th:text="${albumsYearlyChartPeak}"></span></span>
                                 <span th:if="${albumsYearlyChartPeak != null and albumsYearlyChartYears != null}">, </span>
                                 <span th:if="${albumsYearlyChartYears != null}">Years ≥ <span th:text="${albumsYearlyChartYears}"></span></span>
@@ -2765,7 +2765,7 @@
                         <!-- Songs Seasonal Chart filter chip -->
                         <span class="filter-chip" data-remove-params="songsSeasonalChartPeak,songsSeasonalChartSeasons" th:if="${songsSeasonalChartPeak != null or songsSeasonalChartSeasons != null}">
                             <span class="filter-chip-label">
-                                🍂 Songs Seasonal Chart:
+                                Songs Seasonal Chart:
                                 <span th:if="${songsSeasonalChartPeak != null}">Peak ≤ <span th:text="${songsSeasonalChartPeak}"></span></span>
                                 <span th:if="${songsSeasonalChartPeak != null and songsSeasonalChartSeasons != null}">, </span>
                                 <span th:if="${songsSeasonalChartSeasons != null}">Seasons ≥ <span th:text="${songsSeasonalChartSeasons}"></span></span>
@@ -2775,7 +2775,7 @@
                         <!-- Songs Weekly Chart filter chip -->
                         <span class="filter-chip" data-remove-params="songsWeeklyChartPeak,songsWeeklyChartWeeks" th:if="${songsWeeklyChartPeak != null or songsWeeklyChartWeeks != null}">
                             <span class="filter-chip-label">
-                                📊 Songs Weekly Chart:
+                                Songs Weekly Chart:
                                 <span th:if="${songsWeeklyChartPeak != null}">Peak ≤ <span th:text="${songsWeeklyChartPeak}"></span></span>
                                 <span th:if="${songsWeeklyChartPeak != null and songsWeeklyChartWeeks != null}">, </span>
                                 <span th:if="${songsWeeklyChartWeeks != null}">Weeks ≥ <span th:text="${songsWeeklyChartWeeks}"></span></span>
@@ -2785,7 +2785,7 @@
                         <!-- Songs TRL filter chip -->
                         <span class="filter-chip" data-remove-params="songsTrlPeak,songsTrlDays" th:if="${songsTrlPeak != null or songsTrlDays != null}">
                             <span class="filter-chip-label">
-                                📺 Songs TRL:
+                                Songs TRL:
                                 <span th:if="${songsTrlPeak != null}">Peak ≤ <span th:text="${songsTrlPeak}"></span></span>
                                 <span th:if="${songsTrlPeak != null and songsTrlDays != null}">, </span>
                                 <span th:if="${songsTrlDays != null}">Days ≥ <span th:text="${songsTrlDays}"></span></span>
@@ -2795,7 +2795,7 @@
                         <!-- Songs Vato's Cuntdown filter chip -->
                         <span class="filter-chip" data-remove-params="songsVatosCuntdownPeak,songsVatosCuntdownDays" th:if="${songsVatosCuntdownPeak != null or songsVatosCuntdownDays != null}">
                             <span class="filter-chip-label">
-                                🗓 Songs Vato's Cuntdown:
+                                Songs Vato's Cuntdown:
                                 <span th:if="${songsVatosCuntdownPeak != null}">Peak ≤ <span th:text="${songsVatosCuntdownPeak}"></span></span>
                                 <span th:if="${songsVatosCuntdownPeak != null and songsVatosCuntdownDays != null}">, </span>
                                 <span th:if="${songsVatosCuntdownDays != null}">Days ≥ <span th:text="${songsVatosCuntdownDays}"></span></span>
@@ -2805,7 +2805,7 @@
                         <!-- Songs Billboard filter chip -->
                         <span class="filter-chip" data-remove-params="songsBillboardPeak,songsBillboardWeeks" th:if="${songsBillboardPeak != null or songsBillboardWeeks != null}">
                             <span class="filter-chip-label">
-                                🎵 Songs Billboard:
+                                Songs Billboard:
                                 <span th:if="${songsBillboardPeak != null}">Peak ≤ <span th:text="${songsBillboardPeak}"></span></span>
                                 <span th:if="${songsBillboardPeak != null and songsBillboardWeeks != null}">, </span>
                                 <span th:if="${songsBillboardWeeks != null}">Weeks ≥ <span th:text="${songsBillboardWeeks}"></span></span>
@@ -2815,7 +2815,7 @@
                         <!-- Songs Yearly Chart filter chip -->
                         <span class="filter-chip" data-remove-params="songsYearlyChartPeak,songsYearlyChartYears" th:if="${songsYearlyChartPeak != null or songsYearlyChartYears != null}">
                             <span class="filter-chip-label">
-                                📅 Songs Yearly Chart:
+                                Songs Yearly Chart:
                                 <span th:if="${songsYearlyChartPeak != null}">Peak ≤ <span th:text="${songsYearlyChartPeak}"></span></span>
                                 <span th:if="${songsYearlyChartPeak != null and songsYearlyChartYears != null}">, </span>
                                 <span th:if="${songsYearlyChartYears != null}">Years ≥ <span th:text="${songsYearlyChartYears}"></span></span>
@@ -2832,7 +2832,7 @@
                         <button type="button" class="clear-filters-btn" id="clearAllFiltersBtn" 
                                 onclick="window.location.href='/graphs'" 
                                 style="display: none; margin-left: 8px; padding: 4px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; color: #fca5a5; font-size: 12px; cursor: pointer; transition: all 0.2s;">
-                            Clear All ×
+                            Clear All ├ù
                         </button>
                     </div>
                     <div class="charts-sort-controls" style="display: flex; align-items: center; gap: 8px;">
@@ -2852,7 +2852,7 @@
                     </div>
                     <button id="scalingToggleBtn" class="scaling-toggle-btn" onclick="toggleRelativeScaling()" 
                             title="Toggle between percentage (M/F distribution within each category) and relative scaling (compare totals across categories)">
-                        📊 Relative Scaling (OFF)
+                        Relative Scaling (OFF)
                     </button>
                 </div>
                 
@@ -3107,7 +3107,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-genre" onchange="setStatsGlobalSort('genre', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3159,7 +3159,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-subgenre" onchange="setStatsGlobalSort('subgenre', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3211,7 +3211,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-ethnicity" onchange="setStatsGlobalSort('ethnicity', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3263,7 +3263,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-language" onchange="setStatsGlobalSort('language', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3315,7 +3315,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-country" onchange="setStatsGlobalSort('country', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3367,7 +3367,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-releaseYear" onchange="setStatsGlobalSort('releaseYear', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3419,7 +3419,7 @@
                                     </label>
                                     <label>
                                         <input type="checkbox" id="globalSortMalePercent-listenYear" onchange="setStatsGlobalSort('listenYear', 'malePercent')">
-                                        <span>Sort all by ♂ %</span>
+                                        <span>Sort all by %</span>
                                     </label>
                                 </div>
                             </div>
@@ -3860,7 +3860,7 @@
                 const chip = document.createElement('span');
                 chip.className = 'multi-select-chip';
                 chip.setAttribute('data-value', value);
-                chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">×</button>`;
+                chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">├ù</button>`;
                 chipsContainer.appendChild(chip);
                 // Hide selected option from dropdown
                 if (optionElement) optionElement.style.display = 'none';
@@ -3913,7 +3913,7 @@
                 const chip = document.createElement('span');
                 chip.className = 'multi-select-chip';
                 chip.setAttribute('data-value', value);
-                chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>`;
+                chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">├ù</button>`;
                 chipsContainer.appendChild(chip);
                 // Hide selected option from dropdown
                 if (optionElement) optionElement.style.display = 'none';
@@ -3969,7 +3969,7 @@
                 chip.setAttribute('data-value', value);
                 chip.innerHTML = `
                     <span>${displayText}</span>
-                    <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">×</button>
+                    <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">├ù</button>
                 `;
                 chipsContainer.appendChild(chip);
                 // Hide selected option from dropdown

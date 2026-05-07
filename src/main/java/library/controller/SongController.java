@@ -426,6 +426,161 @@ public class SongController {
         
         return "songs/list";
     }
+
+    @GetMapping("/api")
+    @ResponseBody
+    public Map<String, Object> listSongsApi(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) String album,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo,
+            @RequestParam(required = false) String organized,
+            @RequestParam(required = false) Integer imageCountMin,
+            @RequestParam(required = false) Integer imageCountMax,
+            @RequestParam(required = false) String hasFeaturedArtists,
+            @RequestParam(required = false) String isBand,
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) String inItunes,
+            @RequestParam(required = false) Integer playCountMin,
+            @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) Integer trackNumber,
+            @RequestParam(required = false) String trackNumberMode,
+            @RequestParam(required = false) Integer lengthMin,
+            @RequestParam(required = false) Integer lengthMax,
+            @RequestParam(required = false) String lengthMode,
+            @RequestParam(required = false) Integer weeklyChartPeak,
+            @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer trlPeak,
+            @RequestParam(required = false) Integer trlDays,
+            @RequestParam(required = false) Integer vatosCuntdownPeak,
+            @RequestParam(required = false) Integer vatosCuntdownDays,
+            @RequestParam(required = false) Integer billboardPeak,
+            @RequestParam(required = false) Integer billboardWeeks,
+            @RequestParam(required = false) Integer seasonalChartPeak,
+            @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) Integer yearlyChartPeak,
+            @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(defaultValue = "plays") String sortby,
+            @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) String sortby2,
+            @RequestParam(required = false) String sortdir2,
+            @RequestParam(required = false) String sortby3,
+            @RequestParam(required = false) String sortdir3,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int perpage) {
+
+        String releaseDateConverted = DateFormatUtils.convertToIsoFormat(releaseDate);
+        String releaseDateFromConverted = DateFormatUtils.convertToIsoFormat(releaseDateFrom);
+        String releaseDateToConverted = DateFormatUtils.convertToIsoFormat(releaseDateTo);
+        String firstListenedDateConverted = DateFormatUtils.convertToIsoFormat(firstListenedDate);
+        String firstListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateTo);
+        String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
+        String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
+        String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
+        String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
+        String birthDateFromConverted = DateFormatUtils.convertToIsoFormat(birthDateFrom);
+        String birthDateToConverted = DateFormatUtils.convertToIsoFormat(birthDateTo);
+        String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
+        String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
+        String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+
+        String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
+
+        List<SongCardDTO> songs = songService.getSongs(
+                q, artist, album, genre, genreMode,
+                subgenre, subgenreMode, language, languageMode, gender, genderMode,
+                ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                itunesIdsJson, inItunes,
+                playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
+        );
+
+        long totalCount = songService.countSongs(q, artist, album,
+                genre, genreMode, subgenre, subgenreMode, language, languageMode,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode, ageAtReleaseMin, ageAtReleaseMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                itunesIdsJson, inItunes,
+                playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("items", songs);
+        result.put("totalCount", totalCount);
+        result.put("page", page);
+        result.put("perPage", perpage);
+        return result;
+    }
     
     @GetMapping("/{id}")
     public String viewSong(@PathVariable Integer id, 
@@ -1662,6 +1817,113 @@ public class SongController {
         }
     }
     
+    // API endpoint for Top tab data (artists, albums, songs tables)
+    @GetMapping("/api/charts/top")
+    @ResponseBody
+    public Map<String, Object> getTopChartData(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> album,
+            @RequestParam(required = false) List<Integer> song,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) String releaseDate,
+            @RequestParam(required = false) String releaseDateFrom,
+            @RequestParam(required = false) String releaseDateTo,
+            @RequestParam(required = false) String releaseDateMode,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String firstListenedDateEntity,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String lastListenedDateEntity,
+            @RequestParam(required = false) String lastFullListenDate,
+            @RequestParam(required = false) String lastFullListenDateFrom,
+            @RequestParam(required = false) String lastFullListenDateTo,
+            @RequestParam(required = false) String lastFullListenDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo,
+            @RequestParam(required = false) Integer playCountMin,
+            @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) String playCountEntity,
+            @RequestParam(required = false) String hasFeaturedArtists,
+            @RequestParam(required = false) String isBand,
+            @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) String inItunes,
+            @RequestParam(required = false) Integer itunesPresenceMin,
+            @RequestParam(required = false) Integer itunesPresenceMax,
+            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
+            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
+            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer albumsYearlyChartPeak,
+            @RequestParam(required = false) Integer albumsYearlyChartYears,
+            @RequestParam(required = false) Integer songsWeeklyChartPeak,
+            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
+            @RequestParam(required = false) Integer songsSeasonalChartPeak,
+            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
+            @RequestParam(required = false) Integer songsYearlyChartPeak,
+            @RequestParam(required = false) Integer songsYearlyChartYears,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        ChartFilterDTO filter = buildChartFilter(
+            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
+            language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
+            country, countryMode, account, accountMode,
+            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+            firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
+            lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
+            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
+            listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
+            hasFeaturedArtists, isBand, isSingle, inItunes, itunesPresenceMin, itunesPresenceMax, limit,
+            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
+            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
+            albumsYearlyChartPeak, albumsYearlyChartYears,
+            songsWeeklyChartPeak, songsWeeklyChartWeeks,
+            songsSeasonalChartPeak, songsSeasonalChartSeasons,
+            songsYearlyChartPeak, songsYearlyChartYears,
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDate, birthDateFrom, birthDateTo, birthDateMode,
+            deathDate, deathDateFrom, deathDateTo, deathDateMode);
+
+        filter.setIncludeGroups(includeGroups);
+        filter.setIncludeFeatured(includeFeatured);
+
+        return songService.getTopChartData(filter);
+    }
+
     // API endpoint for General tab chart data (pie charts)
     @GetMapping("/api/charts/general")
     @ResponseBody
@@ -2496,114 +2758,6 @@ public class SongController {
         filter.setIncludeGroups(includeGroups);
         filter.setIncludeFeatured(includeFeatured);
         return songService.getListenYearChartData(filter);
-    }
-    
-    // API endpoint for Top tab data (artists, albums, songs tables)
-    @GetMapping("/api/charts/top")
-    @ResponseBody
-    public Map<String, Object> getTopChartData(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) List<Integer> artist,
-            @RequestParam(required = false) List<Integer> album,
-            @RequestParam(required = false) List<Integer> song,
-            @RequestParam(required = false) List<Integer> genre,
-            @RequestParam(required = false) String genreMode,
-            @RequestParam(required = false) List<Integer> subgenre,
-            @RequestParam(required = false) String subgenreMode,
-            @RequestParam(required = false) List<Integer> language,
-            @RequestParam(required = false) String languageMode,
-            @RequestParam(required = false) List<Integer> gender,
-            @RequestParam(required = false) String genderMode,
-            @RequestParam(required = false) List<Integer> ethnicity,
-            @RequestParam(required = false) String ethnicityMode,
-            @RequestParam(required = false) List<String> country,
-            @RequestParam(required = false) String countryMode,
-            @RequestParam(required = false) List<String> account,
-            @RequestParam(required = false) String accountMode,
-            @RequestParam(required = false) String releaseDate,
-            @RequestParam(required = false) String releaseDateFrom,
-            @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode,
-            @RequestParam(required = false) String firstListenedDate,
-            @RequestParam(required = false) String firstListenedDateFrom,
-            @RequestParam(required = false) String firstListenedDateTo,
-            @RequestParam(required = false) String firstListenedDateMode,
-            @RequestParam(required = false) String firstListenedDateEntity,
-            @RequestParam(required = false) String lastListenedDate,
-            @RequestParam(required = false) String lastListenedDateFrom,
-            @RequestParam(required = false) String lastListenedDateTo,
-            @RequestParam(required = false) String lastListenedDateMode,
-            @RequestParam(required = false) String lastListenedDateEntity,
-            @RequestParam(required = false) String lastFullListenDate,
-            @RequestParam(required = false) String lastFullListenDateFrom,
-            @RequestParam(required = false) String lastFullListenDateTo,
-            @RequestParam(required = false) String lastFullListenDateMode,
-            @RequestParam(required = false) String listenedDateFrom,
-            @RequestParam(required = false) String listenedDateTo,
-            @RequestParam(required = false) Integer playCountMin,
-            @RequestParam(required = false) Integer playCountMax,
-            @RequestParam(required = false) String playCountEntity,
-            @RequestParam(required = false) String hasFeaturedArtists,
-            @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle,
-            @RequestParam(required = false) String inItunes,
-            @RequestParam(required = false) Integer itunesPresenceMin,
-            @RequestParam(required = false) Integer itunesPresenceMax,
-            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
-            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
-            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
-            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
-            @RequestParam(required = false) Integer albumsYearlyChartPeak,
-            @RequestParam(required = false) Integer albumsYearlyChartYears,
-            @RequestParam(required = false) Integer songsWeeklyChartPeak,
-            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
-            @RequestParam(required = false) Integer songsSeasonalChartPeak,
-            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
-            @RequestParam(required = false) Integer songsYearlyChartPeak,
-            @RequestParam(required = false) Integer songsYearlyChartYears,
-            @RequestParam(required = false) Integer ageMin,
-            @RequestParam(required = false) Integer ageMax,
-            @RequestParam(required = false) String ageMode,
-            @RequestParam(required = false) Integer ageAtReleaseMin,
-            @RequestParam(required = false) Integer ageAtReleaseMax,
-            @RequestParam(required = false) String birthDate,
-            @RequestParam(required = false) String birthDateFrom,
-            @RequestParam(required = false) String birthDateTo,
-            @RequestParam(required = false) String birthDateMode,
-            @RequestParam(required = false) String deathDate,
-            @RequestParam(required = false) String deathDateFrom,
-            @RequestParam(required = false) String deathDateTo,
-            @RequestParam(required = false) String deathDateMode,
-            @RequestParam(defaultValue = "false") boolean includeGroups,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam(defaultValue = "10") int limit) {
-        
-        ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
-            language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-            country, countryMode, account, accountMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
-            lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
-            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
-            listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, itunesPresenceMin, itunesPresenceMax, limit,
-            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
-            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
-            albumsYearlyChartPeak, albumsYearlyChartYears,
-            songsWeeklyChartPeak, songsWeeklyChartWeeks,
-            songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears,
-            ageMin, ageMax, ageMode,
-            ageAtReleaseMin, ageAtReleaseMax,
-            birthDate, birthDateFrom, birthDateTo, birthDateMode,
-            deathDate, deathDateFrom, deathDateTo, deathDateMode);
-        
-        // Set include toggles for top artists
-        filter.setIncludeGroups(includeGroups);
-        filter.setIncludeFeatured(includeFeatured);
-        
-        return songService.getTopChartData(filter);
     }
     
     // Legacy API endpoint for filtered gender breakdown chart data (kept for backwards compatibility)

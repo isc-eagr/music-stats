@@ -9,10 +9,16 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/songs.css}">
+    <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <link rel="stylesheet" th:href="@{/css/graphs-view.css}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
+    <!-- Chart.js for Graphs view -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script th:src="@{/js/graphs.js}"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -21,9 +27,13 @@
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1 style="margin: 0;">Songs</h1>
-                <div style="display: flex; gap: 10px;">
-                    <button type="button" class="btn-action btn-playlist" onclick="openSongsPlaylistGenerator()">🎵 Generate Playlist</button>
-                    <a id="chartsLink" href="/graphs" target="_blank" class="charts-toggle" style="text-decoration: none;">📊 Graphs</a>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" class="btn-action btn-playlist" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
+                    <div class="view-toggle" id="viewToggle">
+                        <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
+                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchView('list')">List</button>
+                        <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
+                    </div>
                     <button type="button" class="btn-action" onclick="openCreateModal()">New Song</button>
                 </div>
             </div>
@@ -1526,6 +1536,7 @@
         </div>
         
         <!-- Song cards grid -->
+        <div id="cardView">
         <div class="song-grid" id="songGrid"
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="song, iterStat : ${songs}" 
@@ -1843,6 +1854,70 @@
             <div id="scrollSentinel" style="height:1px;"></div>
             <div id="scrollLoader" hidden style="text-align:center;padding:28px 0;color:#666;font-size:0.9rem;letter-spacing:0.5px;">Loading...</div>
             <div id="scrollEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All songs loaded</div>
+        </div>
+        </div><!-- end cardView -->
+
+        <!-- List view container (table) -->
+        <div id="listView" style="display:none;">
+            <div class="top-sort-hint" style="margin:16px 0 0 0;">Sorting tip: Click a column header for primary sort. Shift + click adds secondary and tertiary sorts.</div>
+            <div class="podium-section" id="songsPodium"></div>
+            <div class="column-toggle-panel" id="songColumnTogglePanel">
+                <div class="column-toggle-header" onclick="toggleColumnPanel('song')">
+                    <span class="toggle-arrow" id="songToggleArrow">&#9654;</span>
+                    <span>Show/Hide Columns</span>
+                </div>
+                <div class="column-toggle-grid" id="songColumnToggles"></div>
+            </div>
+            <div class="top-table-container" id="topSongsTableContainer">
+                <table class="top-table" id="topSongsTable">
+                    <thead>
+                        <tr>
+                            <th class="rank-col">#</th>
+                            <th class="cover-col"></th>
+                            <th data-sort="artistName" data-col="artistName" class="hide-mobile">Artist Name</th>
+                            <th data-sort="albumName" data-col="albumName" class="hide-mobile">Album Name</th>
+                            <th data-sort="name" data-col="name">Song Name</th>
+                            <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
+                            <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
+                            <th data-sort="legacyPlays" data-col="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>
+                            <th data-sort="length" data-col="length" style="text-align:right;" class="hide-mobile">Length</th>
+                            <th data-sort="timeListened" data-col="timeListened" style="text-align:right;" class="hide-mobile">Time Listened</th>
+                            <th data-sort="releaseDate" data-col="releaseDate" class="hide-mobile">Release Date</th>
+                            <th data-sort="firstListened" data-col="firstListened" class="hide-mobile">First Listened</th>
+                            <th data-sort="lastListened" data-col="lastListened" class="hide-mobile">Last Listened</th>
+                            <th data-sort="daysListened" data-col="daysListened" style="text-align:right;display:none;">Days Listened</th>
+                            <th data-sort="weeksListened" data-col="weeksListened" style="text-align:right;display:none;">Weeks Listened</th>
+                            <th data-sort="monthsListened" data-col="monthsListened" style="text-align:right;display:none;">Months Listened</th>
+                            <th data-sort="yearsListened" data-col="yearsListened" style="text-align:right;display:none;">Years Listened</th>
+                            <th data-sort="trackNumber" data-col="trackNumber" style="text-align:right;display:none;">Track #</th>
+                            <th data-sort="ageAtRelease" data-col="ageAtRelease" style="text-align:right;display:none;">Age at Release</th>
+                            <th data-sort="featuredArtistCount" data-col="featuredArtistCount" style="text-align:right;display:none;">Featured Artist Count</th>
+                            <th data-sort="seasonalChartPeak" data-col="seasonalChartPeak" style="text-align:right;display:none;">Seasonal Peak</th>
+                            <th data-sort="weeklyChartPeak" data-col="weeklyChartPeak" style="text-align:right;display:none;">Weekly Peak</th>
+                            <th data-sort="weeklyChartWeeks" data-col="weeklyChartWeeks" style="text-align:right;display:none;">Weekly Weeks</th>
+                            <th data-sort="trlPeak" data-col="trlPeak" style="text-align:right;display:none;">TRL Peak</th>
+                            <th data-sort="trlDays" data-col="trlDays" style="text-align:right;display:none;">TRL Days</th>
+                            <th data-sort="vatosCuntdownPeak" data-col="vatosCuntdownPeak" style="text-align:right;display:none;">Vato's Peak</th>
+                            <th data-sort="vatosCuntdownDays" data-col="vatosCuntdownDays" style="text-align:right;display:none;">Vato's Days</th>
+                            <th data-sort="billboardPeak" data-col="billboardPeak" style="text-align:right;display:none;">Billboard Peak</th>
+                            <th data-sort="billboardWeeks" data-col="billboardWeeks" style="text-align:right;display:none;">Billboard Weeks</th>
+                            <th data-sort="yearlyChartPeak" data-col="yearlyChartPeak" style="text-align:right;display:none;">Yearly Peak</th>
+                            <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
+                            <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>
+                            <th data-sort="ethnicity" data-col="ethnicity" style="display:none;">Ethnicity</th>
+                            <th data-sort="country" data-col="country" style="display:none;">Country</th>
+                            <th data-sort="language" data-col="language" style="display:none;">Language</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="listViewEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All songs loaded</div>
+        </div>
+
+        <!-- Graphs view container -->
+        <div id="graphsView" style="display:none;">
+            <th:block th:replace="~{fragments/graphs-view :: graphs-view('songs')}"></th:block>
         </div>
     </div>
     
@@ -2563,34 +2638,6 @@
             });
         }
         
-        // Update Charts link to preserve current filters
-        document.addEventListener('DOMContentLoaded', function() {
-            const chartsLink = document.getElementById('chartsLink');
-            if (chartsLink) {
-                const currentUrl = new URL(window.location.href);
-                const chartsUrl = new URL('/graphs', window.location.origin);
-                // Copy relevant filter params to charts URL
-                currentUrl.searchParams.forEach((value, key) => {
-                    if (key !== 'page' && key !== 'perPage' && key !== 'sortBy' && key !== 'sortDir') {
-                        chartsUrl.searchParams.append(key, value);
-                    }
-                });
-                // Add entity type for date/count filters (we're coming from songs list)
-                if (currentUrl.searchParams.has('firstListenedDate') || currentUrl.searchParams.has('firstListenedDateFrom')) {
-                    chartsUrl.searchParams.set('firstListenedDateEntity', 'song');
-                }
-                if (currentUrl.searchParams.has('lastListenedDate') || currentUrl.searchParams.has('lastListenedDateFrom')) {
-                    chartsUrl.searchParams.set('lastListenedDateEntity', 'song');
-                }
-                if (currentUrl.searchParams.has('playCountMin') || currentUrl.searchParams.has('playCountMax')) {
-                    chartsUrl.searchParams.set('playCountEntity', 'song');
-                }
-                if (currentUrl.searchParams.has('lengthMin') || currentUrl.searchParams.has('lengthMax') || currentUrl.searchParams.has('lengthMode')) {
-                    chartsUrl.searchParams.set('lengthEntity', 'song');
-                }
-                chartsLink.href = chartsUrl.toString();
-            }
-        });
     </script>
     
     <!-- Image Modal -->
@@ -3110,5 +3157,6 @@
             }
         })();
     </script>
+    <script>window.graphsEntityType = 'songs';</script>
 </body>
 </html>

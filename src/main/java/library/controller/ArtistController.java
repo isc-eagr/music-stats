@@ -14,6 +14,7 @@ import library.service.PcService;
 import library.service.ThemeService;
 import library.service.TrlService;
 import library.util.DateFormatUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -357,6 +359,126 @@ public class ArtistController {
         model.addAttribute("activeTheme", themeService.getActiveTheme().orElse(null));
         
         return "artists/list";
+    }
+
+    @GetMapping("/api")
+    @ResponseBody
+    public Map<String, Object> listArtistsApi(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<Integer> gender,
+            @RequestParam(required = false) String genderMode,
+            @RequestParam(required = false) List<Integer> ethnicity,
+            @RequestParam(required = false) String ethnicityMode,
+            @RequestParam(required = false) List<Integer> genre,
+            @RequestParam(required = false) String genreMode,
+            @RequestParam(required = false) List<Integer> subgenre,
+            @RequestParam(required = false) String subgenreMode,
+            @RequestParam(required = false) List<Integer> language,
+            @RequestParam(required = false) String languageMode,
+            @RequestParam(required = false) List<String> country,
+            @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
+            @RequestParam(required = false) List<String> account,
+            @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) String organized,
+            @RequestParam(required = false) Integer imageCountMin,
+            @RequestParam(required = false) Integer imageCountMax,
+            @RequestParam(required = false) Integer imageTheme,
+            @RequestParam(required = false) String imageThemeMode,
+            @RequestParam(required = false) String isBand,
+            @RequestParam(required = false) String inItunes,
+            @RequestParam(required = false) String firstListenedDate,
+            @RequestParam(required = false) String firstListenedDateFrom,
+            @RequestParam(required = false) String firstListenedDateTo,
+            @RequestParam(required = false) String firstListenedDateMode,
+            @RequestParam(required = false) String lastListenedDate,
+            @RequestParam(required = false) String lastListenedDateFrom,
+            @RequestParam(required = false) String lastListenedDateTo,
+            @RequestParam(required = false) String lastListenedDateMode,
+            @RequestParam(required = false) String listenedDateFrom,
+            @RequestParam(required = false) String listenedDateTo,
+            @RequestParam(required = false) Integer playCountMin,
+            @RequestParam(required = false) Integer playCountMax,
+            @RequestParam(required = false) Integer albumCountMin,
+            @RequestParam(required = false) Integer albumCountMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) Integer songCountMin,
+            @RequestParam(required = false) Integer songCountMax,
+            @RequestParam(required = false) Integer itunesPresenceMin,
+            @RequestParam(required = false) Integer itunesPresenceMax,
+            @RequestParam(defaultValue = "plays") String sortby,
+            @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) String sortby2,
+            @RequestParam(required = false) String sortdir2,
+            @RequestParam(required = false) String sortby3,
+            @RequestParam(required = false) String sortdir3,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int perpage) {
+
+        String firstListenedDateConverted = DateFormatUtils.convertToIsoFormat(firstListenedDate);
+        String firstListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateFrom);
+        String firstListenedDateToConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateTo);
+        String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
+        String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
+        String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
+        String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
+        String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
+        String birthDateFromConverted = DateFormatUtils.convertToIsoFormat(birthDateFrom);
+        String birthDateToConverted = DateFormatUtils.convertToIsoFormat(birthDateTo);
+        String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
+        String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
+        String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+
+        String itunesIdsJson = artistService.getItunesArtistIdsJson(inItunes);
+
+        List<ArtistCardDTO> artists = artistService.getArtists(
+                q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode,
+                subgenre, subgenreMode, language, languageMode, country, countryMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                account, accountMode, ageMin, ageMax, ageMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, itunesIdsJson, inItunes,
+                playCountMin, playCountMax,
+                albumCountMin, albumCountMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax,
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
+        );
+
+        long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity,
+                ethnicityMode, genre, genreMode, subgenre, subgenreMode, language,
+                languageMode, country, countryMode,
+                deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+                account, accountMode, ageMin, ageMax, ageMode,
+                firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
+                lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
+                listenedDateFromConverted, listenedDateToConverted,
+                organized, imageCountMin, imageCountMax, imageTheme, imageThemeMode, isBand, itunesIdsJson, inItunes,
+                playCountMin, playCountMax,
+                albumCountMin, albumCountMax,
+                birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+                songCountMin, songCountMax,
+                itunesPresenceMin, itunesPresenceMax);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("items", artists);
+        result.put("totalCount", totalCount);
+        result.put("page", page);
+        result.put("perPage", perpage);
+        return result;
     }
     
     @GetMapping("/{id}")

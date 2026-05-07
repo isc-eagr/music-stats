@@ -1,0 +1,540 @@
+/* Styles for the graphs-view fragment (used on list pages and graphs page) */
+
+.graphs-view-content {
+    background: #0a0a0a;
+    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.charts-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px 12px;
+    flex-wrap: wrap;
+    background: #0a0a0a;
+    border-bottom: 1px solid #161616;
+}
+
+.charts-sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.charts-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #2a2a2a;
+    overflow-x: auto;
+}
+
+.charts-body {
+    padding: 24px;
+}
+
+/* Tab visibility */
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+
+.charts-controls-label {
+    color: #999;
+    font-size: 13px;
+}
+
+.tab-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.tab-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #2a2a2a;
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: graphs-view-spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes graphs-view-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.tab-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #ef4444;
+}
+
+.tab-error button {
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: #2d5016;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.tab-error button:hover {
+    background: #3d6b1e;
+}
+
+.chart-sort-btn {
+    padding: 4px 10px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    color: #999;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-sort-btn:hover {
+    background: #3a3a3a;
+    color: #e5e7eb;
+}
+
+.chart-sort-btn.active {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+    color: #e5e7eb;
+    font-weight: 600;
+}
+
+.scaling-toggle-btn {
+    padding: 8px 16px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e5e7eb;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.scaling-toggle-btn:hover {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+}
+
+.scaling-toggle-btn.active {
+    background: #4f46e5;
+    border-color: #6366f1;
+    color: white;
+}
+
+/* Charts tab buttons */
+.charts-tab-btn {
+    padding: 14px 24px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #999;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.charts-tab-btn:hover {
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.05);
+}
+.charts-tab-btn.active {
+    color: #e5e7eb;
+    border-bottom-color: #e5e7eb;
+}
+
+/* Combined chart container */
+.combined-chart-container {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.chart-scroll-container {
+    overflow-x: auto;
+}
+
+.chart-container-wide {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #2a2a2a;
+    margin-bottom: 24px;
+}
+
+.chart-container-wide h3 {
+    margin: 0 0 16px 0;
+    color: #e5e7eb;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.top-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+
+.top-controls label {
+    color: #e5e7eb;
+    font-weight: 500;
+}
+
+.chart-limit-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-limit-input {
+    width: 64px;
+    padding: 4px 6px;
+    background: #0f0f0f;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    color: #e5e7eb;
+}
+
+.stats-tables-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* Stats Tables Section */
+.stats-tables-section {
+    margin-bottom: 24px;
+}
+
+.stats-tables-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #e5e7eb;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    width: fit-content;
+}
+.stats-tables-toggle:hover {
+    background: #252525;
+    border-color: #3a3a3a;
+}
+.stats-tables-toggle .toggle-icon {
+    font-size: 16px;
+    font-weight: 700;
+    width: 20px;
+    text-align: center;
+    color: #22c55e;
+}
+
+.stats-tables-content {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+.stats-tables-content.expanded {
+    display: block;
+}
+
+.stats-tables-row {
+    display: flex;
+    gap: 12px;
+    min-width: fit-content;
+}
+
+.stats-table-wrapper {
+    flex: 1;
+    min-width: 200px;
+}
+.stats-table-wrapper h4 {
+    margin: 0 0 8px 0;
+    color: #e5e7eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+.stats-table th {
+    background: #252525;
+    color: #9ca3af;
+    font-weight: 600;
+    text-align: right;
+    padding: 6px 8px;
+    border-bottom: 1px solid #2a2a2a;
+    white-space: nowrap;
+    font-size: 10px;
+}
+.stats-table th.position-col {
+    text-align: center;
+    width: 28px;
+    min-width: 28px;
+}
+.stats-table th:nth-child(2) {
+    text-align: left;
+}
+.stats-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #1f1f1f;
+    color: #d1d5db;
+    text-align: right;
+    white-space: nowrap;
+}
+.stats-table .position-col {
+    width: 28px;
+    min-width: 28px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 10px;
+}
+.stats-table td:nth-child(2) {
+    text-align: left;
+    color: #e5e7eb;
+    font-weight: 500;
+    max-width: 75px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.stats-table tr:last-child td {
+    border-bottom: none;
+    font-weight: 600;
+    color: #e5e7eb;
+    background: #252525;
+}
+.stats-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+.stats-table tr:last-child:hover td {
+    background: #252525;
+}
+.stats-table tr.cross-hover-highlight td {
+    background: rgba(34, 197, 94, 0.15);
+}
+.stats-table .male-col {
+    color: #60a5fa;
+}
+.stats-table .female-col {
+    color: #f472b6;
+}
+
+/* Sortable header */
+.stats-table th.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+.stats-table th.sortable-header:hover {
+    background: #353535;
+}
+.stats-table th.sortable-header.sorted-desc::after {
+    content: ' ▼';
+    font-size: 8px;
+    color: #22c55e;
+}
+.stats-table th.sortable-header.sorted-asc::after {
+    content: ' ▲';
+    font-size: 8px;
+    color: #22c55e;
+}
+
+/* Highlighted table */
+.stats-table-wrapper.stats-table-highlighted {
+    background: rgba(34, 197, 94, 0.08);
+    border-radius: 6px;
+    padding: 8px;
+    margin: -8px;
+    margin-right: 4px;
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.stats-table-wrapper.stats-table-highlighted h4 {
+    color: #22c55e;
+}
+
+/* Comparison toggle (hidden until tables expanded) */
+.stats-comparison-toggle {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    font-size: 12px;
+    color: #9ca3af;
+}
+.stats-tables-section:has(.stats-tables-content.expanded) .stats-comparison-toggle {
+    display: flex;
+}
+.stats-comparison-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.stats-comparison-toggle input[type="checkbox"] {
+    accent-color: #22c55e;
+}
+
+/* Global sort controls */
+.stats-global-sort {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: #9ca3af;
+}
+.stats-global-sort.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+.stats-tables-section:has(.stats-tables-content.expanded) .stats-global-sort {
+    display: flex;
+}
+.stats-global-sort label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.stats-global-sort input[type="checkbox"] {
+    accent-color: #f59e0b;
+}
+
+@media (max-width: 768px) {
+    .charts-controls-bar {
+        padding: 14px 16px 10px;
+    }
+
+    .charts-tabs {
+        padding: 0 12px;
+    }
+
+    .charts-body {
+        padding: 16px;
+    }
+
+    .charts-sort-controls {
+        width: 100%;
+    }
+
+    .chart-container-wide {
+        padding: 16px;
+    }
+
+    .stats-tables-row {
+        flex-direction: column;
+        min-width: auto;
+        gap: 16px;
+    }
+
+    .stats-table-wrapper {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .stats-table {
+        font-size: 11px;
+    }
+
+    .stats-table td:nth-child(2) {
+        max-width: 50px;
+    }
+
+    .stats-table th,
+    .stats-table td {
+        padding: 4px 6px;
+    }
+
+    .stats-tables-toggle {
+        width: 100%;
+    }
+
+    .stats-comparison-toggle,
+    .stats-global-sort {
+        margin-top: 8px;
+        margin-left: 0;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .charts-tabs {
+        padding: 0 8px;
+    }
+
+    .charts-tab-btn {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .charts-body {
+        padding: 12px;
+    }
+
+    .chart-sort-btn {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .chart-container-wide {
+        padding: 12px;
+    }
+
+    .stats-table-wrapper h4 {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+
+    .stats-table {
+        font-size: 10px;
+    }
+
+    .top-controls {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px;
+    }
+}

@@ -63,10 +63,14 @@
 }
 
 .top-table .rank-col {
-    width: 40px;
+    width: 58px;
+    min-width: 58px;
+    max-width: 58px;
     text-align: center;
     color: #666;
     font-weight: 500;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .top-table th.rank-col {
@@ -194,9 +198,23 @@
     word-break: break-word !important;
 }
 
+/* Keep rank column stable even when the rest of the table can wrap */
+#topArtistsTable th:nth-child(1),
+#topArtistsTable td:nth-child(1),
+#topAlbumsTable th:nth-child(1),
+#topAlbumsTable td:nth-child(1),
+#topSongsTable th:nth-child(1),
+#topSongsTable td:nth-child(1) {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
 /* Artists Table Column Widths */
 #topArtistsTable th:nth-child(1),
-#topArtistsTable td:nth-child(1) { width: 40px; } /* Rank */
+#topArtistsTable td:nth-child(1) { width: 76px; min-width: 76px; max-width: 76px; } /* Rank */
 
 #topArtistsTable th:nth-child(2),
 #topArtistsTable td:nth-child(2) { width: 60px; } /* Cover */
@@ -218,7 +236,7 @@
 
 /* Albums Table Column Widths */
 #topAlbumsTable th:nth-child(1),
-#topAlbumsTable td:nth-child(1) { width: 40px; } /* Rank */
+#topAlbumsTable td:nth-child(1) { width: 76px; min-width: 76px; max-width: 76px; } /* Rank */
 
 #topAlbumsTable th:nth-child(2),
 #topAlbumsTable td:nth-child(2) { width: 60px; } /* Cover */
@@ -246,7 +264,7 @@
 
 /* Songs Table Column Widths */
 #topSongsTable th:nth-child(1),
-#topSongsTable td:nth-child(1) { width: 40px; } /* Rank */
+#topSongsTable td:nth-child(1) { width: 76px; min-width: 76px; max-width: 76px; } /* Rank */
 
 #topSongsTable th:nth-child(2),
 #topSongsTable td:nth-child(2) { width: 60px; } /* Cover */
@@ -297,7 +315,9 @@
     }
     
     .top-table .rank-col {
-        width: 30px;
+        width: 52px;
+        min-width: 52px;
+        max-width: 52px;
     }
     
     /* Hide less important columns on mobile */
@@ -321,4 +341,448 @@
         width: 32px;
         height: 32px;
     }
+}
+
+/* ============================================================================
+   PODIUM SECTION - Top 3 cards with gold/silver/bronze styling
+   ============================================================================ */
+
+.podium-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 24px 20px 20px;
+    margin-bottom: 20px;
+}
+
+.podium-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    transition: transform 0.2s, box-shadow 0.2s;
+    min-width: 180px;
+    max-width: 220px;
+}
+
+.podium-card:hover {
+    transform: translateY(-4px);
+    text-decoration: none;
+}
+
+/* Gold - 1st place */
+.podium-card.podium-gold {
+    order: 1;
+    border-color: rgba(255, 215, 0, 0.7);
+    border-width: 2px;
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.25) 0%, #1a1a1a 100%);
+}
+.podium-card.podium-gold:hover {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.5), 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+.podium-card.podium-gold .podium-rank {
+    color: #ffed4e;
+    text-shadow: 0 0 20px rgba(255, 237, 78, 1), 0 0 40px rgba(255, 215, 0, 0.8);
+}
+
+/* Silver - 2nd place */
+.podium-card.podium-silver {
+    order: 2;
+    border-color: rgba(220, 220, 220, 0.7);
+    border-width: 2px;
+    background: linear-gradient(180deg, rgba(220, 220, 220, 0.18) 0%, #1a1a1a 100%);
+}
+.podium-card.podium-silver:hover {
+    box-shadow: 0 0 35px rgba(220, 220, 220, 0.4), 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+.podium-card.podium-silver .podium-rank {
+    color: #e8e8e8;
+    text-shadow: 0 0 16px rgba(232, 232, 232, 1), 0 0 32px rgba(220, 220, 220, 0.8);
+}
+
+/* Bronze - 3rd place */
+.podium-card.podium-bronze {
+    order: 3;
+    border-color: rgba(255, 165, 0, 0.7);
+    border-width: 2px;
+    background: linear-gradient(180deg, rgba(255, 165, 0, 0.18) 0%, #1a1a1a 100%);
+}
+.podium-card.podium-bronze:hover {
+    box-shadow: 0 0 35px rgba(255, 165, 0, 0.4), 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+.podium-card.podium-bronze .podium-rank {
+    color: #ff9f43;
+    text-shadow: 0 0 16px rgba(255, 159, 67, 1), 0 0 32px rgba(255, 165, 0, 0.8);
+}
+
+.podium-rank {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.podium-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 10px;
+    background: #2a2a2a;
+}
+
+.podium-image.artist {
+    width: 70px;
+    height: 105px;
+    border-radius: 6px;
+}
+
+.podium-name {
+    color: #e5e7eb;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.podium-artist {
+    color: #9ca3af;
+    font-size: 12px;
+    margin-bottom: 6px;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.podium-plays {
+    color: #22c55e;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.podium-plays-gold {
+    color: #ffed4e !important;
+    text-shadow: 0 0 10px rgba(255, 237, 78, 0.8);
+}
+
+.podium-plays-silver {
+    color: #e8e8e8 !important;
+    text-shadow: 0 0 8px rgba(232, 232, 232, 0.8);
+}
+
+.podium-plays-bronze {
+    color: #ff9f43 !important;
+    text-shadow: 0 0 8px rgba(255, 159, 67, 0.8);
+}
+
+.podium-no-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    background: #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.podium-no-image.artist {
+    width: 70px;
+    height: 105px;
+    border-radius: 6px;
+}
+
+/* Mobile responsive for podium */
+@media (max-width: 768px) {
+    .podium-section {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 12px;
+    }
+
+    .podium-card {
+        min-width: unset;
+        max-width: unset;
+        width: 100%;
+        flex-direction: row;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .podium-card.podium-gold { order: 0; }
+    .podium-card.podium-silver { order: 1; }
+    .podium-card.podium-bronze { order: 2; }
+
+    .podium-rank {
+        font-size: 22px;
+        margin-bottom: 0;
+        min-width: 32px;
+    }
+
+    .podium-image {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .podium-image.artist {
+        width: 45px;
+        height: 68px;
+    }
+
+    .podium-no-image {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 0;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .podium-no-image.artist {
+        width: 45px;
+        height: 68px;
+    }
+
+    .podium-name {
+        font-size: 13px;
+        max-width: none;
+        text-align: left;
+    }
+
+    .podium-artist {
+        font-size: 11px;
+        max-width: none;
+        text-align: left;
+    }
+
+    .podium-plays {
+        font-size: 12px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .podium-card {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .podium-rank {
+        font-size: 18px;
+        min-width: 28px;
+    }
+
+    .podium-image {
+        width: 40px;
+        height: 40px;
+    }
+
+    .podium-image.artist {
+        width: 36px;
+        height: 54px;
+    }
+
+    .podium-no-image {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .podium-no-image.artist {
+        width: 36px;
+        height: 54px;
+    }
+
+    .podium-name {
+        font-size: 12px;
+    }
+
+    .podium-artist {
+        font-size: 10px;
+    }
+
+    .podium-plays {
+        font-size: 11px;
+    }
+}
+
+/* ============================================================================
+   COLUMN TOGGLE PANEL
+   ============================================================================ */
+
+.column-toggle-panel {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+}
+
+.column-toggle-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #9ca3af;
+    font-size: 12px;
+    user-select: none;
+    padding: 2px 0;
+}
+
+.column-toggle-header:hover {
+    color: #e5e7eb;
+}
+
+.column-toggle-header .toggle-arrow {
+    transition: transform 0.2s;
+    font-size: 10px;
+}
+
+.column-toggle-header .toggle-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.column-toggle-grid {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 4px 12px;
+    padding: 8px 0 4px 0;
+}
+
+.column-toggle-grid.expanded {
+    display: grid;
+}
+
+.column-toggle-grid label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 0;
+    white-space: nowrap;
+}
+
+.column-toggle-grid label:hover {
+    color: #e5e7eb;
+}
+
+.column-toggle-grid input[type="checkbox"] {
+    accent-color: #3b82f6;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.column-toggle-grid input[type="checkbox"]:checked + span {
+    color: #e5e7eb;
+}
+
+.column-toggle-all-row {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    padding: 2px 0 6px 0;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 4px;
+}
+
+.column-toggle-all-row a {
+    color: #3b82f6;
+    text-decoration: none;
+}
+
+.column-toggle-all-row a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================================================
+   LIST VIEW MISC STYLES
+   ============================================================================ */
+
+.top-sort-hint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    border-left: 3px solid #2a2a2a;
+}
+
+/* High play count gold highlight */
+.high-plays {
+    color: #fbbf24 !important;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+    font-weight: 600;
+}
+
+/* Featured song row highlighting */
+.featured-song-row {
+    background: rgba(28, 170, 170, 0.14) !important;
+}
+
+.featured-song-row:hover {
+    background: rgba(28, 170, 170, 0.26) !important;
+}
+
+.featured-artist-label {
+    font-size: 11px;
+    color: #45cfc9;
+    font-style: italic;
+    margin-left: 6px;
+}
+
+.featured-artist-label a {
+    color: #45cfc9;
+}
+
+.featured-artist-label a:hover {
+    color: #7fe6e0;
+}
+
+/* Group item row highlighting */
+.group-item-row {
+    background: rgba(50, 110, 120, 0.12) !important;
+}
+
+.group-item-row:hover {
+    background: rgba(50, 110, 120, 0.20) !important;
+}
+
+.featured-song-row.group-item-row {
+    background: rgba(20, 130, 130, 0.12) !important;
+}
+
+.featured-song-row.group-item-row:hover {
+    background: rgba(20, 130, 130, 0.20) !important;
+}
+
+.group-artist-label {
+    font-size: 11px;
+    color: #5d9ca5;
+    font-style: italic;
+    margin-left: 6px;
+}
+
+.group-artist-label a {
+    color: #5d9ca5;
+}
+
+.group-artist-label a:hover {
+    color: #8fc4cc;
 }

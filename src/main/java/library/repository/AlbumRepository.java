@@ -149,6 +149,7 @@ public class AlbumRepository {
                 COALESCE(song_stats.album_length, 0) as album_length,
                 CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
+                ar.gender_id as gender_id,
                 COALESCE(play_stats.play_count, 0) as play_count,
                 COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
                 COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
@@ -816,7 +817,7 @@ public class AlbumRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[50];
+            Object[] row = new Object[51];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -835,38 +836,39 @@ public class AlbumRepository {
             row[15] = rs.getLong("album_length");
             row[16] = rs.getInt("has_image");
             row[17] = rs.getString("gender_name");
-            row[18] = rs.getInt("play_count");
-            row[19] = rs.getInt("vatito_play_count");
-            row[20] = rs.getInt("robertlover_play_count");
-            row[21] = rs.getLong("time_listened");
-            row[22] = rs.getString("first_listened");
-            row[23] = rs.getString("last_listened");
-            row[24] = rs.getInt("days_listened");
-            row[25] = rs.getInt("weeks_listened");
-            row[26] = rs.getInt("months_listened");
-            row[27] = rs.getInt("years_listened");
-            row[28] = rs.getString("country");
-            row[29] = rs.getObject("organized");
-            row[30] = rs.getString("birth_date");
-            row[31] = rs.getString("death_date");
-            row[32] = rs.getInt("image_count");
-            row[33] = rs.getObject("seasonal_chart_peak");
-            row[34] = rs.getObject("weekly_chart_peak");
-            row[35] = rs.getObject("weekly_chart_weeks");
-            row[36] = rs.getObject("yearly_chart_peak");
-            row[37] = rs.getString("weekly_chart_peak_start_date");
-            row[38] = rs.getString("seasonal_chart_peak_period");
-            row[39] = rs.getString("yearly_chart_peak_period");
-            row[40] = rs.getString("seasonal_chart_peak_start_date");
-            row[41] = rs.getInt("featured_artist_count");
-            row[42] = rs.getInt("solo_song_count");
-            row[43] = rs.getInt("songs_with_feat_count");
-            row[44] = rs.getObject("age_at_release");
-            row[45] = rs.getObject("weekly_chart_peak_weeks");
-            row[46] = rs.getObject("seasonal_chart_peak_seasons");
-            row[47] = rs.getObject("yearly_chart_peak_years");
-            row[48] = rs.getString("last_full_listen_date");
-            row[49] = rs.getObject("itunes_presence_ratio");
+            row[18] = rs.getObject("gender_id");
+            row[19] = rs.getInt("play_count");
+            row[20] = rs.getInt("vatito_play_count");
+            row[21] = rs.getInt("robertlover_play_count");
+            row[22] = rs.getLong("time_listened");
+            row[23] = rs.getString("first_listened");
+            row[24] = rs.getString("last_listened");
+            row[25] = rs.getInt("days_listened");
+            row[26] = rs.getInt("weeks_listened");
+            row[27] = rs.getInt("months_listened");
+            row[28] = rs.getInt("years_listened");
+            row[29] = rs.getString("country");
+            row[30] = rs.getObject("organized");
+            row[31] = rs.getString("birth_date");
+            row[32] = rs.getString("death_date");
+            row[33] = rs.getInt("image_count");
+            row[34] = rs.getObject("seasonal_chart_peak");
+            row[35] = rs.getObject("weekly_chart_peak");
+            row[36] = rs.getObject("weekly_chart_weeks");
+            row[37] = rs.getObject("yearly_chart_peak");
+            row[38] = rs.getString("weekly_chart_peak_start_date");
+            row[39] = rs.getString("seasonal_chart_peak_period");
+            row[40] = rs.getString("yearly_chart_peak_period");
+            row[41] = rs.getString("seasonal_chart_peak_start_date");
+            row[42] = rs.getInt("featured_artist_count");
+            row[43] = rs.getInt("solo_song_count");
+            row[44] = rs.getInt("songs_with_feat_count");
+            row[45] = rs.getObject("age_at_release");
+            row[46] = rs.getObject("weekly_chart_peak_weeks");
+            row[47] = rs.getObject("seasonal_chart_peak_seasons");
+            row[48] = rs.getObject("yearly_chart_peak_years");
+            row[49] = rs.getString("last_full_listen_date");
+            row[50] = rs.getObject("itunes_presence_ratio");
             return row;
         }, params.toArray());
     }

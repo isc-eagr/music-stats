@@ -106,11 +106,11 @@ public class SongRepository {
                 s.length_seconds,
                 CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image,
                 gender.name as gender_name,
+                COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
                 COALESCE(play_stats.play_count, 0) as play_count,
                 COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count,
                 COALESCE(play_stats.robertlover_play_count, 0) as robertlover_play_count,
                 COALESCE(s.length_seconds * play_stats.play_count, 0) as time_listened,
-                s.track_number,
                 play_stats.first_listened,
                 play_stats.last_listened,
                 COALESCE(play_stats.days_listened, 0) as days_listened,
@@ -142,7 +142,8 @@ public class SongRepository {
                 (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal')) as seasonal_chart_peak_seasons,
                 (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'yearly')) as yearly_chart_peak_years,
                 COALESCE(fac.featured_artist_count, 0) as featured_artist_count,
-                CASE WHEN ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL THEN CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release
+                CASE WHEN ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL THEN CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release,
+                s.track_number
             FROM Song s
             LEFT JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Gender gender ON COALESCE(s.override_gender_id, ar.gender_id) = gender.id
@@ -695,7 +696,7 @@ public class SongRepository {
         params.add(offset);
         
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[56];
+            Object[] row = new Object[57];
             row[0] = rs.getInt("id");
             row[1] = rs.getString("name");
             row[2] = rs.getString("artist_name");
@@ -715,43 +716,44 @@ public class SongRepository {
             row[16] = rs.getObject("length_seconds");
             row[17] = rs.getInt("has_image");
             row[18] = rs.getString("gender_name");
-            row[19] = rs.getInt("play_count");
-            row[20] = rs.getInt("vatito_play_count");
-            row[21] = rs.getInt("robertlover_play_count");
-            row[22] = rs.getLong("time_listened");
-            row[23] = rs.getString("first_listened");
-            row[24] = rs.getString("last_listened");
-            row[25] = rs.getInt("days_listened");
-            row[26] = rs.getInt("weeks_listened");
-            row[27] = rs.getInt("months_listened");
-            row[28] = rs.getInt("years_listened");
-            row[29] = rs.getString("country");
-            row[30] = rs.getObject("organized");
-            row[31] = rs.getInt("album_has_image");
-            row[32] = rs.getInt("is_single");
-            row[33] = rs.getString("birth_date");
-            row[34] = rs.getString("death_date");
-            row[35] = rs.getInt("image_count");
-            row[36] = rs.getObject("billboard_peak");
-            row[37] = rs.getObject("billboard_weeks");
-            row[38] = rs.getObject("seasonal_chart_peak");
-            row[39] = rs.getObject("trl_days");
-            row[40] = rs.getObject("trl_peak");
-            row[41] = rs.getObject("vatos_cuntdown_days");
-            row[42] = rs.getObject("vatos_cuntdown_peak");
-            row[43] = rs.getObject("weekly_chart_peak");
-            row[44] = rs.getObject("weekly_chart_weeks");
-            row[45] = rs.getObject("yearly_chart_peak");
-            row[46] = rs.getString("weekly_chart_peak_start_date");
-            row[47] = rs.getString("seasonal_chart_peak_period");
-            row[48] = rs.getString("yearly_chart_peak_period");
-            row[49] = rs.getString("seasonal_chart_peak_start_date");
-            row[50] = rs.getInt("featured_artist_count");
-            row[51] = rs.getObject("age_at_release");
-            row[52] = rs.getObject("weekly_chart_peak_weeks");
-            row[53] = rs.getObject("seasonal_chart_peak_seasons");
-            row[54] = rs.getObject("yearly_chart_peak_years");
-            row[55] = rs.getObject("track_number");
+            row[19] = rs.getObject("gender_id");
+            row[20] = rs.getInt("play_count");
+            row[21] = rs.getInt("vatito_play_count");
+            row[22] = rs.getInt("robertlover_play_count");
+            row[23] = rs.getLong("time_listened");
+            row[24] = rs.getString("first_listened");
+            row[25] = rs.getString("last_listened");
+            row[26] = rs.getInt("days_listened");
+            row[27] = rs.getInt("weeks_listened");
+            row[28] = rs.getInt("months_listened");
+            row[29] = rs.getInt("years_listened");
+            row[30] = rs.getString("country");
+            row[31] = rs.getObject("organized");
+            row[32] = rs.getInt("album_has_image");
+            row[33] = rs.getInt("is_single");
+            row[34] = rs.getString("birth_date");
+            row[35] = rs.getString("death_date");
+            row[36] = rs.getInt("image_count");
+            row[37] = rs.getObject("billboard_peak");
+            row[38] = rs.getObject("billboard_weeks");
+            row[39] = rs.getObject("seasonal_chart_peak");
+            row[40] = rs.getObject("trl_days");
+            row[41] = rs.getObject("trl_peak");
+            row[42] = rs.getObject("vatos_cuntdown_days");
+            row[43] = rs.getObject("vatos_cuntdown_peak");
+            row[44] = rs.getObject("weekly_chart_peak");
+            row[45] = rs.getObject("weekly_chart_weeks");
+            row[46] = rs.getObject("yearly_chart_peak");
+            row[47] = rs.getString("weekly_chart_peak_start_date");
+            row[48] = rs.getString("seasonal_chart_peak_period");
+            row[49] = rs.getString("yearly_chart_peak_period");
+            row[50] = rs.getString("seasonal_chart_peak_start_date");
+            row[51] = rs.getInt("featured_artist_count");
+            row[52] = rs.getObject("age_at_release");
+            row[53] = rs.getObject("weekly_chart_peak_weeks");
+            row[54] = rs.getObject("seasonal_chart_peak_seasons");
+            row[55] = rs.getObject("yearly_chart_peak_years");
+            row[56] = rs.getObject("track_number");
             return row;
         }, params.toArray());
     }

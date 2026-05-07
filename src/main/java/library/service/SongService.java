@@ -144,66 +144,67 @@ public class SongService {
             dto.setLengthSeconds(row[16] != null ? ((Number) row[16]).intValue() : null);
             dto.setHasImage(row[17] != null && ((Number) row[17]).intValue() == 1);
             dto.setGenderName((String) row[18]);
-            dto.setPlayCount(row[19] != null ? ((Number) row[19]).intValue() : 0);
-            dto.setVatitoPlayCount(row[20] != null ? ((Number) row[20]).intValue() : 0);
-            dto.setRobertloverPlayCount(row[21] != null ? ((Number) row[21]).intValue() : 0);
+            dto.setGenderId(row[19] != null ? ((Number) row[19]).intValue() : null);
+            dto.setPlayCount(row[20] != null ? ((Number) row[20]).intValue() : 0);
+            dto.setVatitoPlayCount(row[21] != null ? ((Number) row[21]).intValue() : 0);
+            dto.setRobertloverPlayCount(row[22] != null ? ((Number) row[22]).intValue() : 0);
             
             // Set time listened and format it
-            long timeListened = row[22] != null ? ((Number) row[22]).longValue() : 0L;
+            long timeListened = row[23] != null ? ((Number) row[23]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
-            // Set first and last listened dates (indices 23 and 24)
-            dto.setFirstListenedDate(row[23] != null ? formatDate((String) row[23]) : null);
-            dto.setLastListenedDate(row[24] != null ? formatDate((String) row[24]) : null);
-            dto.setDaysListened(row[25] != null ? ((Number) row[25]).intValue() : 0);
-            dto.setWeeksListened(row[26] != null ? ((Number) row[26]).intValue() : 0);
-            dto.setMonthsListened(row[27] != null ? ((Number) row[27]).intValue() : 0);
-            dto.setYearsListened(row[28] != null ? ((Number) row[28]).intValue() : 0);
-            dto.setTrackNumber(row[55] != null ? ((Number) row[55]).intValue() : null);
+            // Set first and last listened dates (indices 24 and 25)
+            dto.setFirstListenedDate(row[24] != null ? formatDate((String) row[24]) : null);
+            dto.setLastListenedDate(row[25] != null ? formatDate((String) row[25]) : null);
+            dto.setDaysListened(row[26] != null ? ((Number) row[26]).intValue() : 0);
+            dto.setWeeksListened(row[27] != null ? ((Number) row[27]).intValue() : 0);
+            dto.setMonthsListened(row[28] != null ? ((Number) row[28]).intValue() : 0);
+            dto.setYearsListened(row[29] != null ? ((Number) row[29]).intValue() : 0);
+            dto.setTrackNumber(row[56] != null ? ((Number) row[56]).intValue() : null);
             
-            // Set country (inherited from artist, index 29)
-            dto.setCountry((String) row[29]);
+            // Set country (inherited from artist, index 30)
+            dto.setCountry((String) row[30]);
             
-            // Set organized (index 30)
-            dto.setOrganized(row[30] != null && ((Number) row[30]).intValue() == 1);
+            // Set organized (index 31)
+            dto.setOrganized(row[31] != null && ((Number) row[31]).intValue() == 1);
             
-            // Set album has image (index 31)
-            dto.setAlbumHasImage(row[31] != null && ((Number) row[31]).intValue() == 1);
+            // Set album has image (index 32)
+            dto.setAlbumHasImage(row[32] != null && ((Number) row[32]).intValue() == 1);
             
-            // Set isSingle (index 32)
-            dto.setIsSingle(row[32] != null && ((Number) row[32]).intValue() == 1);
+            // Set isSingle (index 33)
+            dto.setIsSingle(row[33] != null && ((Number) row[33]).intValue() == 1);
             
-            // Set birth date (index 33) and death date (index 34)
-            dto.setBirthDate(row[33] != null ? formatDate((String) row[33]) : null);
-            dto.setDeathDate(row[34] != null ? formatDate((String) row[34]) : null);
+            // Set birth date (index 34) and death date (index 35)
+            dto.setBirthDate(row[34] != null ? formatDate((String) row[34]) : null);
+            dto.setDeathDate(row[35] != null ? formatDate((String) row[35]) : null);
             
-            // Set image count (index 35)
-            dto.setImageCount(row[35] != null ? ((Number) row[35]).intValue() : 0);
+            // Set image count (index 36)
+            dto.setImageCount(row[36] != null ? ((Number) row[36]).intValue() : 0);
             
-            // Set chart stats (indices 36-49)
-            dto.setBillboardPeak(row[36] != null ? ((Number) row[36]).intValue() : null);
-            dto.setBillboardWeeks(row[37] != null ? ((Number) row[37]).intValue() : null);
-            dto.setSeasonalChartPeak(row[38] != null ? ((Number) row[38]).intValue() : null);
-            dto.setTrlDays(row[39] != null ? ((Number) row[39]).intValue() : null);
-            dto.setTrlPeak(row[40] != null ? ((Number) row[40]).intValue() : null);
-            dto.setVatosCuntdownDays(row[41] != null ? ((Number) row[41]).intValue() : null);
-            dto.setVatosCuntdownPeak(row[42] != null ? ((Number) row[42]).intValue() : null);
-            dto.setWeeklyChartPeak(row[43] != null ? ((Number) row[43]).intValue() : null);
-            dto.setWeeklyChartWeeks(row[44] != null ? ((Number) row[44]).intValue() : 0);
-            dto.setYearlyChartPeak(row[45] != null ? ((Number) row[45]).intValue() : null);
-            dto.setWeeklyChartPeakStartDate(row[46] != null ? formatDate((String) row[46]) : null);
-            dto.setSeasonalChartPeakPeriod((String) row[47]);
-            dto.setYearlyChartPeakPeriod((String) row[48]);
+            // Set chart stats (indices 37-50)
+            dto.setBillboardPeak(row[37] != null ? ((Number) row[37]).intValue() : null);
+            dto.setBillboardWeeks(row[38] != null ? ((Number) row[38]).intValue() : null);
+            dto.setSeasonalChartPeak(row[39] != null ? ((Number) row[39]).intValue() : null);
+            dto.setTrlDays(row[40] != null ? ((Number) row[40]).intValue() : null);
+            dto.setTrlPeak(row[41] != null ? ((Number) row[41]).intValue() : null);
+            dto.setVatosCuntdownDays(row[42] != null ? ((Number) row[42]).intValue() : null);
+            dto.setVatosCuntdownPeak(row[43] != null ? ((Number) row[43]).intValue() : null);
+            dto.setWeeklyChartPeak(row[44] != null ? ((Number) row[44]).intValue() : null);
+            dto.setWeeklyChartWeeks(row[45] != null ? ((Number) row[45]).intValue() : 0);
+            dto.setYearlyChartPeak(row[46] != null ? ((Number) row[46]).intValue() : null);
+            dto.setWeeklyChartPeakStartDate(row[47] != null ? formatDate((String) row[47]) : null);
+            dto.setSeasonalChartPeakPeriod((String) row[48]);
+            dto.setYearlyChartPeakPeriod((String) row[49]);
             
-            // Set featured artist count (index 50) and age at release (index 51)
-            dto.setFeaturedArtistCount(row[50] != null ? ((Number) row[50]).intValue() : 0);
-            dto.setAgeAtRelease(row[51] != null ? ((Number) row[51]).intValue() : null);
+            // Set featured artist count (index 51) and age at release (index 52)
+            dto.setFeaturedArtistCount(row[51] != null ? ((Number) row[51]).intValue() : 0);
+            dto.setAgeAtRelease(row[52] != null ? ((Number) row[52]).intValue() : null);
             
-            // Set peak durations (indices 52-54)
-            dto.setWeeklyChartPeakWeeks(row[52] != null ? ((Number) row[52]).intValue() : null);
-            dto.setSeasonalChartPeakSeasons(row[53] != null ? ((Number) row[53]).intValue() : null);
-            dto.setYearlyChartPeakYears(row[54] != null ? ((Number) row[54]).intValue() : null);
+            // Set peak durations (indices 53-55)
+            dto.setWeeklyChartPeakWeeks(row[53] != null ? ((Number) row[53]).intValue() : null);
+            dto.setSeasonalChartPeakSeasons(row[54] != null ? ((Number) row[54]).intValue() : null);
+            dto.setYearlyChartPeakYears(row[55] != null ? ((Number) row[55]).intValue() : null);
 
             // Format length
             if (dto.getLengthSeconds() != null) {

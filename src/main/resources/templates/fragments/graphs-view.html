@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="graphs-view(entityType)" class="graphs-view-content">
+    <div class="charts-controls-bar">
+        <div class="charts-sort-controls">
+            <span class="charts-controls-label">Sort by:</span>
+            <button class="chart-sort-btn" data-metric="artists" onclick="changeChartSortMetric('artists')">Artists</button>
+            <button class="chart-sort-btn" data-metric="albums" onclick="changeChartSortMetric('albums')">Albums</button>
+            <button class="chart-sort-btn" data-metric="songs" onclick="changeChartSortMetric('songs')">Songs</button>
+            <button class="chart-sort-btn active" data-metric="plays" onclick="changeChartSortMetric('plays')">Plays</button>
+            <button class="chart-sort-btn" data-metric="listeningTime" onclick="changeChartSortMetric('listeningTime')">Time</button>
+        </div>
+        <button id="scalingToggleBtn" class="scaling-toggle-btn" onclick="toggleRelativeScaling()"
+                title="Toggle between percentage (M/F distribution within each category) and relative scaling (compare totals across categories)">
+            Relative Scaling (OFF)
+        </button>
+    </div>
+
+    <div class="charts-tabs">
+        <button type="button" class="charts-tab-btn active" data-tab="general" onclick="switchTab('general')">General</button>
+        <button type="button" class="charts-tab-btn" data-tab="genre" onclick="switchTab('genre')">Genre</button>
+        <button type="button" class="charts-tab-btn" data-tab="subgenre" onclick="switchTab('subgenre')">Subgenre</button>
+        <button type="button" class="charts-tab-btn" data-tab="ethnicity" onclick="switchTab('ethnicity')">Ethnicity</button>
+        <button type="button" class="charts-tab-btn" data-tab="language" onclick="switchTab('language')">Language</button>
+        <button type="button" class="charts-tab-btn" data-tab="country" onclick="switchTab('country')">Country</button>
+        <button type="button" class="charts-tab-btn" data-tab="releaseYear" onclick="switchTab('releaseYear')">Release Year</button>
+        <button type="button" class="charts-tab-btn" data-tab="listenYear" onclick="switchTab('listenYear')">Listen Year</button>
+    </div>
+
+    <div class="charts-body">
+        <div id="tab-general" class="tab-content active">
+            <div class="tab-loading" id="loading-general" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-general" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('general', true)">Retry</button>
+            </div>
+            <div id="content-general" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitGeneral" onchange="onApplyLimitChanged('general')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" id="topLimitInput" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('general', this)">
+                    </label>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>Overall Gender Breakdown</h3>
+                    <div class="chart-scroll-container" id="generalCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-genre" class="tab-content">
+            <div class="tab-loading" id="loading-genre" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-genre" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('genre', true)">Retry</button>
+            </div>
+            <div id="content-genre" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitGenre" onchange="onApplyLimitChanged('genre')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('genre', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-genre">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('genre')">
+                            <span class="toggle-icon" id="statsToggleIcon-genre">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-genre" onchange="toggleStatsComparisonMode('genre')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-genre">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-genre" onchange="setStatsGlobalSort('genre', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-genre" onchange="setStatsGlobalSort('genre', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-genre">
+                        <div class="stats-tables-row" id="statsTablesRow-genre"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Genre</h3>
+                    <div class="chart-scroll-container" id="genreCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-subgenre" class="tab-content">
+            <div class="tab-loading" id="loading-subgenre" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-subgenre" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('subgenre', true)">Retry</button>
+            </div>
+            <div id="content-subgenre" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitSubgenre" onchange="onApplyLimitChanged('subgenre')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('subgenre', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-subgenre">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('subgenre')">
+                            <span class="toggle-icon" id="statsToggleIcon-subgenre">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-subgenre" onchange="toggleStatsComparisonMode('subgenre')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-subgenre">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-subgenre" onchange="setStatsGlobalSort('subgenre', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-subgenre" onchange="setStatsGlobalSort('subgenre', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-subgenre">
+                        <div class="stats-tables-row" id="statsTablesRow-subgenre"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Subgenre</h3>
+                    <div class="chart-scroll-container" id="subgenreCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-ethnicity" class="tab-content">
+            <div class="tab-loading" id="loading-ethnicity" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-ethnicity" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('ethnicity', true)">Retry</button>
+            </div>
+            <div id="content-ethnicity" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitEthnicity" onchange="onApplyLimitChanged('ethnicity')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('ethnicity', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-ethnicity">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('ethnicity')">
+                            <span class="toggle-icon" id="statsToggleIcon-ethnicity">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-ethnicity" onchange="toggleStatsComparisonMode('ethnicity')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-ethnicity">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-ethnicity" onchange="setStatsGlobalSort('ethnicity', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-ethnicity" onchange="setStatsGlobalSort('ethnicity', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-ethnicity">
+                        <div class="stats-tables-row" id="statsTablesRow-ethnicity"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Ethnicity</h3>
+                    <div class="chart-scroll-container" id="ethnicityCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-language" class="tab-content">
+            <div class="tab-loading" id="loading-language" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-language" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('language', true)">Retry</button>
+            </div>
+            <div id="content-language" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitLanguage" onchange="onApplyLimitChanged('language')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('language', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-language">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('language')">
+                            <span class="toggle-icon" id="statsToggleIcon-language">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-language" onchange="toggleStatsComparisonMode('language')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-language">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-language" onchange="setStatsGlobalSort('language', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-language" onchange="setStatsGlobalSort('language', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-language">
+                        <div class="stats-tables-row" id="statsTablesRow-language"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Language</h3>
+                    <div class="chart-scroll-container" id="languageCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-country" class="tab-content">
+            <div class="tab-loading" id="loading-country" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-country" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('country', true)">Retry</button>
+            </div>
+            <div id="content-country" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitCountry" onchange="onApplyLimitChanged('country')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('country', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-country">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('country')">
+                            <span class="toggle-icon" id="statsToggleIcon-country">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-country" onchange="toggleStatsComparisonMode('country')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-country">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-country" onchange="setStatsGlobalSort('country', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-country" onchange="setStatsGlobalSort('country', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-country">
+                        <div class="stats-tables-row" id="statsTablesRow-country"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Country</h3>
+                    <div class="chart-scroll-container" id="countryCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-releaseYear" class="tab-content">
+            <div class="tab-loading" id="loading-releaseYear" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-releaseYear" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('releaseYear', true)">Retry</button>
+            </div>
+            <div id="content-releaseYear" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitReleaseYear" onchange="onApplyLimitChanged('releaseYear')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('releaseYear', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-releaseYear">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('releaseYear')">
+                            <span class="toggle-icon" id="statsToggleIcon-releaseYear">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-releaseYear" onchange="toggleStatsComparisonMode('releaseYear')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-releaseYear">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-releaseYear" onchange="setStatsGlobalSort('releaseYear', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-releaseYear" onchange="setStatsGlobalSort('releaseYear', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-releaseYear">
+                        <div class="stats-tables-row" id="statsTablesRow-releaseYear"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Release Year</h3>
+                    <div class="chart-scroll-container" id="releaseYearCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-listenYear" class="tab-content">
+            <div class="tab-loading" id="loading-listenYear" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading charts...</span>
+            </div>
+            <div class="tab-error" id="error-listenYear" style="display: none;">
+                <span>Failed to load chart data</span>
+                <button onclick="loadTabData('listenYear', true)">Retry</button>
+            </div>
+            <div id="content-listenYear" style="display: none;">
+                <div class="top-controls">
+                    <label>
+                        <input type="checkbox" autocomplete="off" id="applyLimitListenYear" onchange="onApplyLimitChanged('listenYear')">
+                        <span>Apply Limit</span>
+                    </label>
+                    <label class="chart-limit-control">
+                        <span>Limit:</span>
+                        <input type="number" class="chart-limit-input" value="50" min="1" max="999" onchange="onChartLimitChanged('listenYear', this)">
+                    </label>
+                </div>
+                <div class="stats-tables-section" id="statsTablesSection-listenYear">
+                    <div class="stats-tables-toolbar">
+                        <div class="stats-tables-toggle" onclick="toggleStatsTables('listenYear')">
+                            <span class="toggle-icon" id="statsToggleIcon-listenYear">+</span>
+                            <span>Show Breakdown Tables</span>
+                        </div>
+                        <div class="stats-comparison-toggle">
+                            <label>
+                                <input type="checkbox" id="comparisonMode-listenYear" onchange="toggleStatsComparisonMode('listenYear')">
+                                <span>Compare side-by-side</span>
+                            </label>
+                        </div>
+                        <div class="stats-global-sort" id="globalSort-listenYear">
+                            <label>
+                                <input type="checkbox" id="globalSortCount-listenYear" onchange="setStatsGlobalSort('listenYear', 'count')" checked>
+                                <span>Sort all by Count</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="globalSortMalePercent-listenYear" onchange="setStatsGlobalSort('listenYear', 'malePercent')">
+                                <span>Sort all by %</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-tables-content" id="statsTablesContent-listenYear">
+                        <div class="stats-tables-row" id="statsTablesRow-listenYear"></div>
+                    </div>
+                </div>
+                <div class="chart-container-wide">
+                    <h3>All Metrics by Listen Year</h3>
+                    <div class="chart-scroll-container" id="listenYearCombinedChartContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
