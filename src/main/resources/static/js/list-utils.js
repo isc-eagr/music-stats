@@ -492,15 +492,15 @@ function debounce(func, wait) {
 }
 
 /**
- * Navigate to the graphs page with a filter applied.
+ * Navigate to the songs list page with graph view and a filter applied.
  * Used by catalog cards (genres, ethnicities, languages, subgenres).
  * @param {HTMLElement} element - The element containing data-id and data-name attributes
  * @param {string} filterType - The type of filter (genre, ethnicity, language, subgenre)
  */
 function navigateToGraph(element, filterType) {
     const id = element.dataset.id;
-    const name = encodeURIComponent(element.dataset.name);
-    window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + id + '&filterName=' + name;
+    const tab = ['genre', 'subgenre', 'ethnicity', 'language', 'country'].includes(filterType) ? filterType : 'general';
+    window.location.href = '/songs?' + filterType + '=' + encodeURIComponent(id) + '&' + filterType + 'Mode=includes&view=graphs&tab=' + tab;
 }
 
 document.addEventListener('DOMContentLoaded', function() {

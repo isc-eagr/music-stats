@@ -1222,12 +1222,6 @@ public class SongService {
         return songRepository.getListenYearChartData(filter);
     }
     
-    // Get Top tab data (top artists, albums, songs by play count)
-    public Map<String, Object> getTopChartData(ChartFilterDTO filter) {
-        applyItunesFilter(filter);
-        return songRepository.getTopChartData(filter);
-    }
-    
     // Get plays for a song with pagination
     public List<PlayDTO> getPlaysForSong(int songId, int page, int pageSize) {
         int offset = page * pageSize;

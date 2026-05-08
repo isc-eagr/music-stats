@@ -1485,8 +1485,8 @@
                         <span>💿</span>
                     </div>
 
-                    <a th:if="${album.country != null and @countryCodeMapper.getCode(album.country) != null}"
-                       th:href="@{/graphs(filterType='country',filterName=${album.country})}"
+                          <a th:if="${album.country != null and @countryCodeMapper.getCode(album.country) != null}"
+                              th:href="@{/albums(country=${album.country},countryMode='includes',view='graphs',tab='country')}"
                        class="flag-overlay"
                        th:title="${album.country}">
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(album.country)})}"
@@ -1517,16 +1517,16 @@
                     <!-- Attribute chips -->
                     <div class="winning-chips">
                         <a th:if="${album.genreName != null and !#strings.isEmpty(album.genreName)}" 
-                           th:href="@{/graphs(filterType='genre',filterId=${album.genreId},filterName=${album.genreName})}"
+                                    th:href="@{/albums(genre=${album.genreId},genreMode='includes',view='graphs',tab='genre')}"
                            class="winning-chip genre" th:text="${album.genreName}" title="Genre"></a>
                         <a th:if="${album.subgenreName != null and !#strings.isEmpty(album.subgenreName)}" 
-                           th:href="@{/graphs(filterType='subgenre',filterId=${album.subgenreId},filterName=${album.subgenreName})}"
+                                    th:href="@{/albums(subgenre=${album.subgenreId},subgenreMode='includes',view='graphs',tab='subgenre')}"
                            class="winning-chip subgenre" th:text="${album.subgenreName}" title="Subgenre"></a>
                         <a th:if="${album.ethnicityName != null and !#strings.isEmpty(album.ethnicityName)}" 
-                           th:href="@{/graphs(filterType='ethnicity',filterId=${album.ethnicityId},filterName=${album.ethnicityName})}"
+                                    th:href="@{/albums(ethnicity=${album.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
                            class="winning-chip ethnicity" th:text="${album.ethnicityName}" title="Ethnicity"></a>
                         <a th:if="${album.languageName != null and !#strings.isEmpty(album.languageName)}" 
-                           th:href="@{/graphs(filterType='language',filterId=${album.languageId},filterName=${album.languageName})}"
+                                    th:href="@{/albums(language=${album.languageId},languageMode='includes',view='graphs',tab='language')}"
                            class="winning-chip language" th:text="${album.languageName}" title="Language"></a>
                     </div>
 

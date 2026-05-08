@@ -769,14 +769,14 @@
         const albumAlreadyFinalized = [[${albumChartFinalized}]];
         const displayName = [[${displayName}]];
         
-        // Open graphs page with year date range
+        // Open songs graphs view with year date range
         function openGraphsPage(event) {
             event.preventDefault();
             const year = periodKey;
             const dateFrom = year + '-01-01';
             const dateTo = year + '-12-31';
             const encodedLabel = encodeURIComponent(displayName);
-            window.open('/graphs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel, '_blank');
+            window.open('/songs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel + '&view=graphs', '_blank');
         }
         
         let songSearchTimeout = null;

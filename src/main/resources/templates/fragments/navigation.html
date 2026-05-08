@@ -201,7 +201,6 @@
                  <li><a href="/artists" class="app-nav-link" th:classappend="${currentSection == 'artists'} ? 'active' : ''">Artists</a></li>
                  <li><a href="/albums" class="app-nav-link" th:classappend="${currentSection == 'albums'} ? 'active' : ''">Albums</a></li>
                  <li><a href="/songs" class="app-nav-link" th:classappend="${currentSection == 'songs'} ? 'active' : ''">Songs</a></li>
-                 <li><a href="/graphs" class="app-nav-link" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">Graphs</a></li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
                         th:classappend="${currentSection == 'genders' or currentSection == 'genres' or currentSection == 'subgenres' or currentSection == 'ethnicities' or currentSection == 'languages' or currentSection == 'countries' or currentSection == 'listen-years' or currentSection == 'release-years'} ? 'active' : ''"
@@ -303,10 +302,6 @@
             <a th:href="@{/songs}" class="mobile-bottom-nav-item" th:classappend="${currentSection == 'songs'} ? 'active' : ''">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                 <span>Songs</span>
-            </a>
-            <a th:href="@{/graphs}" class="mobile-bottom-nav-item" th:classappend="${currentSection == 'graphs'} ? 'active' : ''">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                <span>Graphs</span>
             </a>
             <button class="mobile-bottom-nav-item" onclick="toggleMobileNav()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>

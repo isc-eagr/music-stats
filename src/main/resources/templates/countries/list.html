@@ -346,7 +346,8 @@
         
         function navigateToGraphByName(element, filterType) {
             const name = encodeURIComponent(element.getAttribute('data-name'));
-            window.location.href = '/graphs?filterType=' + filterType + '&filterId=' + name + '&filterName=' + name;
+            const tab = filterType === 'country' ? 'country' : 'general';
+            window.location.href = '/songs?' + filterType + '=' + name + '&' + filterType + 'Mode=includes&view=graphs&tab=' + tab;
         }
 
         // Auto-focus search input if there's a search query

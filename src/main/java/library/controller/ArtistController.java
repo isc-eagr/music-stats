@@ -2,18 +2,22 @@ package library.controller;
 
 import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
+import library.dto.ChartFilterDTO;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
 import library.entity.Artist;
 import library.repository.LookupRepository;
 import library.service.ArtistService;
 import library.service.BillboardHot100Service;
+import library.service.CatalogChartService;
 import library.service.ChartService;
+import library.service.ChartFilterRequestFactory;
 import library.service.ItunesService;
 import library.service.PcService;
 import library.service.ThemeService;
 import library.service.TrlService;
 import library.util.DateFormatUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,10 +44,13 @@ public class ArtistController {
     private final BillboardHot100Service billboardHot100Service;
     private final PcService pcService;
     private final TrlService trlService;
+    private final CatalogChartService catalogChartService;
+    private final ChartFilterRequestFactory chartFilterRequestFactory;
 
     public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository,
                              ItunesService itunesService, ThemeService themeService,
-                             BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService) {
+                             BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
+                             CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
@@ -52,6 +59,8 @@ public class ArtistController {
         this.billboardHot100Service = billboardHot100Service;
         this.pcService = pcService;
         this.trlService = trlService;
+        this.catalogChartService = catalogChartService;
+        this.chartFilterRequestFactory = chartFilterRequestFactory;
     }
     
     @InitBinder
@@ -479,6 +488,31 @@ public class ArtistController {
         result.put("page", page);
         result.put("perPage", perpage);
         return result;
+    }
+
+    @GetMapping("/api/charts/{tab}")
+    @ResponseBody
+    public Map<String, Object> artistChartsData(
+            @PathVariable String tab,
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam(defaultValue = "0") int limit,
+            @RequestParam(required = false) String limitEntity) {
+
+        ChartFilterDTO filter = chartFilterRequestFactory.build(request, includeGroups, includeFeatured, limit, limitEntity);
+
+        return switch (tab) {
+            case "general" -> catalogChartService.getGeneralChartData(filter);
+            case "genre" -> catalogChartService.getGenreChartData(filter);
+            case "subgenre" -> catalogChartService.getSubgenreChartData(filter);
+            case "ethnicity" -> catalogChartService.getEthnicityChartData(filter);
+            case "language" -> catalogChartService.getLanguageChartData(filter);
+            case "country" -> catalogChartService.getCountryChartData(filter);
+            case "releaseYear" -> catalogChartService.getReleaseYearChartData(filter);
+            case "listenYear" -> catalogChartService.getListenYearChartData(filter);
+            default -> throw new IllegalArgumentException("Unknown charts tab: " + tab);
+        };
     }
     
     @GetMapping("/{id}")

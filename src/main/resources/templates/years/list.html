@@ -93,12 +93,12 @@
                 <div class="catalog-info">
                     <h3 class="catalog-name">
                         <a th:if="${yearType == 'listen'}"
-                           th:href="@{/graphs(accountMode='includes', listenedDateFrom=${year.year + '-01-01'}, listenedDateTo=${year.year + '-12-31'})}"
+                                    th:href="@{/songs(accountMode='includes', listenedDateFrom=${year.year + '-01-01'}, listenedDateTo=${year.year + '-12-31'}, view='graphs', tab='listenYear')}"
                            th:text="${year.year}"
                            class="year-link"
                            title="View graphs for this listen year">2024</a>
                         <a th:if="${yearType == 'release'}"
-                           th:href="@{/graphs(releaseDateMode='between', releaseDateFrom=${'01/01/' + year.year}, releaseDateTo=${'31/12/' + year.year})}"
+                                    th:href="@{/songs(releaseDateMode='between', releaseDateFrom=${'01/01/' + year.year}, releaseDateTo=${'31/12/' + year.year}, view='graphs', tab='releaseYear')}"
                            th:text="${year.year}"
                            class="year-link"
                            title="View graphs for this release year">2024</a>

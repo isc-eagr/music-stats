@@ -6226,67 +6226,6 @@ public class SongRepository {
         }, params.toArray());
     }
 
-    // Get Top chart data (top artists, albums, songs by play count)
-    public java.util.Map<String, Object> getTopChartData(ChartFilterDTO filter) {
-        int limit = filter.getTopLimit() != null ? filter.getTopLimit() : 10;
-        
-        // Build filter clause for songs (used by getTopSongsFiltered)
-        StringBuilder filterClause = new StringBuilder();
-        java.util.List<Object> filterParams = new java.util.ArrayList<>();
-
-        buildFilterClause(filterClause, filterParams, filter);
-        
-        // Build early play filter for performance (filters on p.song_id before expensive joins)
-        StringBuilder playEarlyFilter = new StringBuilder();
-        java.util.List<Object> playEarlyParams = new java.util.ArrayList<>();
-        buildplayEarlyFilter(playEarlyFilter, playEarlyParams, filter);
-        
-        // Combined filter for play-based queries
-        String combinedFilter = playEarlyFilter.toString() + " " + filterClause.toString();
-        java.util.List<Object> combinedParams = new java.util.ArrayList<>();
-        combinedParams.addAll(playEarlyParams);
-        combinedParams.addAll(filterParams);
-
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        // Use full filter for all entity types - filter based on songs that match, then aggregate
-        java.util.List<java.util.Map<String, Object>> topArtists = getTopArtistsFilteredByDTO(filter, limit);
-        java.util.List<java.util.Map<String, Object>> topAlbums = getTopAlbumsFilteredByDTO(filter, limit);
-        
-        // Enrich with iTunes presence ratio if itunesSongIdsJson is available
-        String itunesSongIdsJson = filter.getItunesSongIdsJson();
-        if (itunesSongIdsJson != null && !itunesSongIdsJson.isEmpty() && !"[]".equals(itunesSongIdsJson)) {
-            enrichWithItunesPresenceByArtist(topArtists, itunesSongIdsJson);
-            enrichWithItunesPresenceByAlbum(topAlbums, itunesSongIdsJson);
-        }
-        
-        // Filter by itunesPresenceMin/Max after enrichment
-        Integer itunesPresenceMin = filter.getItunesPresenceMin();
-        Integer itunesPresenceMax = filter.getItunesPresenceMax();
-        if (itunesPresenceMin != null || itunesPresenceMax != null) {
-            topArtists = topArtists.stream().filter(row -> {
-                Double ratio = (Double) row.get("itunesPresence");
-                if (ratio == null) return false;
-                if (itunesPresenceMin != null && ratio < itunesPresenceMin) return false;
-                if (itunesPresenceMax != null && ratio > itunesPresenceMax) return false;
-                return true;
-            }).collect(java.util.stream.Collectors.toList());
-            topAlbums = topAlbums.stream().filter(row -> {
-                Double ratio = (Double) row.get("itunesPresence");
-                if (ratio == null) return false;
-                if (itunesPresenceMin != null && ratio < itunesPresenceMin) return false;
-                if (itunesPresenceMax != null && ratio > itunesPresenceMax) return false;
-                return true;
-            }).collect(java.util.stream.Collectors.toList());
-        }
-        
-        result.put("topArtists", topArtists);
-        result.put("topAlbums", topAlbums);
-        // Use DTO-based song query to support featured/group indicators
-        result.put("topSongs", getTopSongsFilteredByDTO(filter, limit));
-
-        return result;
-    }
-    
     /**
      * Builds a filter clause for direct artist queries (no song/album override logic).
      */

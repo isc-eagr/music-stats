@@ -912,7 +912,7 @@
         const albumAlreadyFinalized = [[${albumChartFinalized}]];
         const displayName = [[${displayName}]];
         
-        // Open graphs page with season date range
+        // Open songs graphs view with season date range
         function openGraphsPage(event) {
             event.preventDefault();
             const parts = periodKey.split('-');
@@ -945,7 +945,7 @@
             }
             
             const encodedLabel = encodeURIComponent(displayName);
-            window.open('/graphs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel, '_blank');
+            window.open('/songs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel + '&view=graphs', '_blank');
         }
         
         let songSearchTimeout = null;

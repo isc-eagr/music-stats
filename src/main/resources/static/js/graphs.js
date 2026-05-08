@@ -20,10 +20,11 @@ let listViewScrollContainer = null;
 let listViewScrollHandler = null;
 let listViewRequestToken = 0;
 
+const validGraphsTabs = new Set(['general', 'genre', 'subgenre', 'ethnicity', 'language', 'country', 'releaseYear', 'listenYear']);
+
 // Track which tabs have been loaded
 let loadedTabs = {
     general: false,
-    top: false,
     genre: false,
     subgenre: false,
     ethnicity: false,
@@ -61,9 +62,6 @@ let topSortedCache = {
     albums: { dataRef: null, sortKey: '', sorted: [] },
     songs: { dataRef: null, sortKey: '', sorted: [] }
 };
-
-// Whether infinite scroll is enabled
-let infiniteScrollEnabled = true;
 
 // Current sort state for each table
 let topSortState = {
@@ -729,180 +727,6 @@ function getGenderRowStyle(genderId) {
 }
 
 /**
- * Opens the charts modal and loads chart data
- */
-function openChartsModal() {
-    // Clear any previous date range
-    chartsDateRange.from = null;
-    chartsDateRange.to = null;
-    
-    // Clear any previous entity filter
-    chartsEntityFilter.type = null;
-    chartsEntityFilter.id = null;
-    chartsEntityFilter.name = null;
-    
-    // Reset tabs so they reload with cleared date filter
-    resetChartsLoaded();
-    
-    document.getElementById('chartsModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    updateChartsFiltersDisplay();
-    
-    // Always default to Top tab
-    switchTab('top');
-}
-
-// Store date range for charts modal when opened from timeframe cards
-let chartsDateRange = { from: null, to: null };
-
-// Store entity filter for charts modal when opened from genre/subgenre/ethnicity/language cards
-let chartsEntityFilter = { type: null, id: null, name: null };
-
-/**
- * Opens the charts modal with a specific entity filter
- * Called from genre/subgenre/ethnicity/language cards
- * @param {string} filterType - The filter type: 'genre', 'subgenre', 'ethnicity', or 'language'
- * @param {number} filterId - The ID of the entity to filter by
- * @param {string} filterName - The display name of the entity (for showing in filter display)
- */
-function openChartsModalWithFilter(filterType, filterId, filterName) {
-    // Clear any previous filters
-    chartsDateRange.from = null;
-    chartsDateRange.to = null;
-    
-    // Store the entity filter
-    chartsEntityFilter.type = filterType;
-    chartsEntityFilter.id = filterId;
-    chartsEntityFilter.name = filterName;
-    
-    // Reset all tabs so they reload with new filter
-    resetChartsLoaded();
-    
-    // Open the modal
-    document.getElementById('chartsModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    
-    // Update filter display to show the entity filter
-    updateChartsFiltersDisplayWithEntity(filterType, filterName);
-    
-    // Always default to Top tab
-    switchTab('top');
-}
-
-/**
- * Updates the filter display in charts modal to show entity filter
- */
-function updateChartsFiltersDisplayWithEntity(filterType, filterName) {
-    const container = document.getElementById('chartsFiltersDisplay');
-    const noFiltersMsg = document.getElementById('noFiltersMsg');
-    
-    if (!container) return;
-    
-    // Remove existing filter chips from charts modal
-    container.querySelectorAll('.filter-chip').forEach(el => el.remove());
-    
-    // Hide no filters message
-    if (noFiltersMsg) noFiltersMsg.style.display = 'none';
-    
-    // Create a filter chip for the entity
-    const chip = document.createElement('span');
-    chip.className = 'filter-chip';
-    
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'filter-chip-label';
-    // Capitalize the filter type for display
-    const displayType = filterType.charAt(0).toUpperCase() + filterType.slice(1) + ':';
-    labelSpan.textContent = displayType;
-    chip.appendChild(labelSpan);
-    
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'filter-chip-value filter-value-highlight';
-    valueSpan.textContent = filterName;
-    chip.appendChild(valueSpan);
-    
-    container.appendChild(chip);
-}
-
-/**
- * Opens the charts modal with specific date range filter
- * Called from timeframe cards to filter charts by listened date
- * @param {string} listenedDateFrom - Start date in yyyy-MM-dd format
- * @param {string} listenedDateTo - End date in yyyy-MM-dd format  
- * @param {string} periodLabel - Display label for the time period (optional)
- */
-function openChartsModalWithDates(listenedDateFrom, listenedDateTo, periodLabel) {
-    // Clear any previous entity filter
-    chartsEntityFilter.type = null;
-    chartsEntityFilter.id = null;
-    chartsEntityFilter.name = null;
-    // Store the date range for use in API calls
-    chartsDateRange.from = listenedDateFrom;
-    chartsDateRange.to = listenedDateTo;
-    
-    // Reset all tabs so they reload with new date filter
-    resetChartsLoaded();
-    
-    // Open the modal
-    document.getElementById('chartsModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    
-    // Update filter display to show the date range
-    updateChartsFiltersDisplayWithDates(listenedDateFrom, listenedDateTo, periodLabel);
-    
-    // Always default to Top tab
-    switchTab('top');
-}
-
-/**
- * Updates the filter display in charts modal to show date range
- */
-function updateChartsFiltersDisplayWithDates(listenedDateFrom, listenedDateTo, periodLabel) {
-    const container = document.getElementById('chartsFiltersDisplay');
-    const noFiltersMsg = document.getElementById('noFiltersMsg');
-    
-    if (!container) return;
-    
-    // Remove existing filter chips from charts modal
-    container.querySelectorAll('.filter-chip').forEach(el => el.remove());
-    
-    // Hide no filters message
-    if (noFiltersMsg) noFiltersMsg.style.display = 'none';
-    
-    // Create a filter chip for the date range
-    const chip = document.createElement('span');
-    chip.className = 'filter-chip';
-    
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'filter-chip-label';
-    labelSpan.textContent = 'Period:';
-    chip.appendChild(labelSpan);
-    
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'filter-chip-value filter-value-highlight';
-    valueSpan.textContent = periodLabel || (listenedDateFrom + ' to ' + listenedDateTo);
-    chip.appendChild(valueSpan);
-    
-    container.appendChild(chip);
-}
-
-/**
- * Closes the charts modal
- */
-function closeChartsModal() {
-    document.getElementById('chartsModal').classList.remove('show');
-    document.body.style.overflow = '';
-    
-    // Clear date range when closing modal
-    chartsDateRange.from = null;
-    chartsDateRange.to = null;
-    
-    // Clear entity filter when closing modal
-    chartsEntityFilter.type = null;
-    chartsEntityFilter.id = null;
-    chartsEntityFilter.name = null;
-}
-
-/**
  * Switches to a specific tab and loads its data if not already loaded
  */
 function switchTab(tabName) {
@@ -916,15 +740,7 @@ function switchTab(tabName) {
         content.classList.remove('active');
     });
     document.getElementById('tab-' + tabName).classList.add('active');
-    
-    // Show/hide the Generate Playlist button based on tab and sub-tab
-    const headerPlaylistBtn = document.getElementById('headerPlaylistBtn');
-    if (headerPlaylistBtn) {
-        // Show only if on Top tab AND Songs sub-tab is active
-        const isTopTab = tabName === 'top';
-        const songsSubTabActive = document.querySelector('.top-subtabs .charts-tab-btn[data-subtab="songs"].active') !== null;
-        headerPlaylistBtn.style.display = (isTopTab && songsSubTabActive) ? '' : 'none';
-    }
+    syncGraphsViewUrl(currentView, tabName);
     
     // Load data if not already loaded
     if (!loadedTabs[tabName]) {
@@ -960,18 +776,13 @@ function loadTabData(tabName, forceReload = false) {
         params.set('includeFeatured', 'true');
     }
     
-    // Add limit - for top tab fetch all data, for other tabs apply limit only if checkbox is checked
-    if (tabName === 'top') {
-        params.set('limit', 999999);
-    } else {
-        const checkboxId = 'applyLimit' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
-        const checkbox = document.getElementById(checkboxId);
-        if (checkbox && checkbox.checked) {
-            params.set('limit', getTopLimit());
-        }
+    const checkboxId = 'applyLimit' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+    const checkbox = document.getElementById(checkboxId);
+    if (checkbox && checkbox.checked) {
+        params.set('limit', getTopLimit());
     }
     
-    const apiUrl = '/songs/api/charts/' + tabName + '?' + params.toString();
+    const apiUrl = getChartsApiBase() + '/' + tabName + '?' + params.toString();
     
     fetch(apiUrl)
         .then(response => {
@@ -997,7 +808,7 @@ function loadTabData(tabName, forceReload = false) {
 }
 
 /**
- * Gets filter parameters from current URL and includes any date range or entity filter set
+ * Gets filter parameters from current URL.
  */
 function getFilterParams() {
     const currentUrl = new URL(window.location.href);
@@ -1009,18 +820,6 @@ function getFilterParams() {
     params.delete('sortby');
     params.delete('sortdir');
     
-    // Add date range if set (from timeframe cards)
-    if (chartsDateRange.from && chartsDateRange.to) {
-        params.set('listenedDateFrom', chartsDateRange.from);
-        params.set('listenedDateTo', chartsDateRange.to);
-    }
-    
-    // Add entity filter if set (from genre/subgenre/ethnicity/language cards)
-    if (chartsEntityFilter.type && chartsEntityFilter.id) {
-        params.set(chartsEntityFilter.type, chartsEntityFilter.id);
-        params.set(chartsEntityFilter.type + 'Mode', 'includes');
-    }
-    
     return params;
 }
 
@@ -1029,10 +828,6 @@ function getFilterParams() {
  */
 function renderTabCharts(tabName, data) {
     switch (tabName) {
-        case 'top':
-            renderTopTables(data);
-            break;
-
         case 'general':
             createCombinedBarChart('generalCombinedChartContainer', 'generalCombinedChart', {
                 artists: [{ name: 'Overall', male: data.artistsByGender?.male || 0, female: data.artistsByGender?.female || 0, other: data.artistsByGender?.other || 0 }],
@@ -1509,10 +1304,6 @@ function createCombinedBarChart(containerId, canvasId, allData) {
             other:  'rgba(170, 170, 170, 0.9)'   // lightest gray
         };
 
-        // Store raw values for tooltips and totals
-    const rawValues = {};
-    const totalsByMetric = {}; // Store totals for each metric per category
-
     // Calculate global max totals for each metric (used in relative scaling mode)
     const globalMaxByMetric = {};
     // Calculate sum of all totals across all categories for each metric (for global percentage)
@@ -1538,9 +1329,7 @@ function createCombinedBarChart(containerId, canvasId, allData) {
         const femaleData = categories.map(cat => metric.lookup[cat]?.female || 0);
         const otherData = categories.map(cat => metric.lookup[cat]?.other || 0);
         
-        // Calculate total for each category
         const totals = categories.map((cat, i) => maleData[i] + femaleData[i] + otherData[i]);
-        totalsByMetric[metric.key] = totals;
         
         // Get global sum for this metric
         const globalTotal = globalSumByMetric[metric.key] || 0;
@@ -1574,9 +1363,6 @@ function createCombinedBarChart(containerId, canvasId, allData) {
                 return total > 0 ? (otherData[i] / total) * 100 : 0;
             }
         });
-        
-        // Store raw values for tooltips
-        rawValues[metric.key] = { male: maleData, female: femaleData, other: otherData, totals: totals, isTime: metric.isTime };
         
         // When relative scaling is active, only the sort metric keeps its colors; others go gray
         const isActiveMetric = !useRelativeScaling || metric.key === chartSortMetric;
@@ -1851,61 +1637,6 @@ function changeChartSortMetric(metric) {
 }
 
 /**
- * Resets the charts loaded flags so charts will reload on next open
- * Call this when filters change
- */
-function resetChartsLoaded() {
-    loadedTabs = {
-        general: false,
-        top: false,
-        genre: false,
-        subgenre: false,
-        ethnicity: false,
-        language: false,
-        country: false,
-        releaseYear: false,
-        listenYear: false
-    };
-    // Also clear cached stats tables data and sort state
-    lastStatsTablesData = {};
-    statsTableSortState = {};
-    statsComparisonMode = false;
-    statsGlobalSortColumn = 'count';
-}
-
-/**
- * Renders the Top tables with artist, album, and song data
- */
-function renderTopTables(data) {
-    // Reset infinite scroll state
-    resetInfiniteScrollState();
-    
-    // Store data for client-side sorting
-    topTabData.artists = data.topArtists || [];
-    topTabData.albums = data.topAlbums || [];
-    topTabData.songs = data.topSongs || [];
-
-    // Invalidate sorted cache when source arrays are replaced
-    topSortedCache.artists = { dataRef: null, sortKey: '', sorted: [] };
-    topSortedCache.albums = { dataRef: null, sortKey: '', sorted: [] };
-    topSortedCache.songs = { dataRef: null, sortKey: '', sorted: [] };
-    
-    // Initialize column toggles
-    initColumnToggles();
-    
-    // Render each table
-    renderTopArtistsTable();
-    renderTopAlbumsTable();
-    renderTopSongsTable();
-    
-    // Setup infinite scroll listeners
-    setupInfiniteScroll();
-    
-    // Setup sorting handlers
-    setupTopTableSorting();
-}
-
-/**
  * Initialize column toggle checkboxes for all top sub-tabs
  */
 function initColumnToggles() {
@@ -2110,7 +1841,6 @@ function cellVal(val, fallback) {
  * Builds a single artist row for the top table
  */
 function buildArtistRow(artist, rank) {
-    const d = (col) => `style="${col === 'right' ? 'text-align:right;' : ''}${getColDisplay('artists', '') === 'none' ? '' : ''}"`;
     const vis = (col) => getColDisplay('artists', col);
     return `
         <tr style="${getGenderRowStyle(artist.genderId)}">
@@ -2171,11 +1901,7 @@ function renderTopArtistsTable() {
         return;
     }
     
-    // If infinite scroll is disabled, render based on top limit input
-    // If enabled, render initial batch for progressive loading
-    const rowsToRender = infiniteScrollEnabled ? 
-        data.slice(0, topInfiniteScrollState.artists.displayedRows) : 
-        data.slice(0, getTopLimit());
+    const rowsToRender = data.slice(0, topInfiniteScrollState.artists.displayedRows);
     
     tbody.innerHTML = rowsToRender.map((artist, index) => buildArtistRow(artist, index + 1)).join('');
 
@@ -2249,11 +1975,7 @@ function renderTopAlbumsTable() {
         return;
     }
     
-    // If infinite scroll is disabled, render based on top limit input
-    // If enabled, render initial batch for progressive loading
-    const rowsToRender = infiniteScrollEnabled ? 
-        data.slice(0, topInfiniteScrollState.albums.displayedRows) : 
-        data.slice(0, getTopLimit());
+    const rowsToRender = data.slice(0, topInfiniteScrollState.albums.displayedRows);
     
     tbody.innerHTML = rowsToRender.map((album, index) => buildAlbumRow(album, index + 1)).join('');
 
@@ -2352,11 +2074,7 @@ function renderTopSongsTable() {
         return;
     }
     
-    // If infinite scroll is disabled, render based on top limit input
-    // If enabled, render initial batch for progressive loading
-    const rowsToRender = infiniteScrollEnabled ? 
-        data.slice(0, topInfiniteScrollState.songs.displayedRows) : 
-        data.slice(0, getTopLimit());
+    const rowsToRender = data.slice(0, topInfiniteScrollState.songs.displayedRows);
     
     tbody.innerHTML = rowsToRender.map((song, index) => buildSongRow(song, index + 1)).join('');
     
@@ -2636,14 +2354,6 @@ function setupTopTableSorting() {
 }
 
 /**
- * Reloads top data when the limit changes
- */
-function reloadTopData() {
-    loadedTabs.top = false;
-    loadTabData('top', true);
-}
-
-/**
  * Gets the current top limit value
  */
 function getTopLimit() {
@@ -2681,38 +2391,6 @@ function onApplyLimitChanged(tabName) {
 }
 
 /**
- * Switches between Artists, Albums, and Songs sub-tabs in the Top tab
- */
-function switchTopSubTab(subtab) {
-    // Update button states
-    const buttons = document.querySelectorAll('.top-subtabs .charts-tab-btn');
-    buttons.forEach(btn => {
-        if (btn.getAttribute('data-subtab') === subtab) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-    
-    // Show/hide content sections
-    const sections = document.querySelectorAll('.top-subtab-content');
-    sections.forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    const activeSection = document.getElementById('top-subtab-' + subtab);
-    if (activeSection) {
-        activeSection.style.display = 'block';
-    }
-    
-    // Show/hide the Generate Playlist button in the header based on sub-tab
-    const headerPlaylistBtn = document.getElementById('headerPlaylistBtn');
-    if (headerPlaylistBtn) {
-        headerPlaylistBtn.style.display = (subtab === 'songs') ? '' : 'none';
-    }
-}
-
-/**
  * Escapes HTML special characters
  */
 function escapeHtml(text) {
@@ -2723,169 +2401,43 @@ function escapeHtml(text) {
 }
 
 // Gallery-aware image modal functions for graphs page
-function openArtistImageModalFromGraphs(artistId) {
-    fetch(`/artists/${artistId}/images`)
+function openEntityImageModalFromGraphs(entityType, entityId) {
+    const imagePath = `/${entityType}/${entityId}/image`;
+
+    fetch(`/${entityType}/${entityId}/images`)
         .then(response => response.json())
         .then(data => {
-            const imageIds = data.map(img => img.id);
-            const hasDefaultImage = true;
-            
-            let artistGalleryImages = hasDefaultImage ? [0, ...imageIds] : (imageIds.length > 0 ? imageIds : [0]);
-            
-            if (artistGalleryImages.length > 1) {
-                const galleryContext = {
-                    images: artistGalleryImages,
-                    entityType: 'artists',
-                    entityId: artistId,
+            const imageIds = Array.isArray(data) ? data.map(img => img.id) : [];
+            const galleryImages = [0, ...imageIds];
+
+            if (galleryImages.length > 1) {
+                openImageModal(imagePath, {
+                    images: galleryImages,
+                    entityType,
+                    entityId,
                     currentIndex: 0
-                };
-                openImageModal(`/artists/${artistId}/image`, galleryContext);
-            } else {
-                openImageModal(`/artists/${artistId}/image`);
+                });
+                return;
             }
+
+            openImageModal(imagePath);
         })
         .catch(error => {
-            console.error('Error loading artist gallery:', error);
-            openImageModal(`/artists/${artistId}/image`);
+            console.error(`Error loading ${entityType.slice(0, -1)} gallery:`, error);
+            openImageModal(imagePath);
         });
+}
+
+function openArtistImageModalFromGraphs(artistId) {
+    openEntityImageModalFromGraphs('artists', artistId);
 }
 
 function openAlbumImageModalFromGraphs(albumId) {
-    fetch(`/albums/${albumId}/images`)
-        .then(response => response.json())
-        .then(data => {
-            const imageIds = data.map(img => img.id);
-            const hasDefaultImage = true;
-            
-            let albumGalleryImages = hasDefaultImage ? [0, ...imageIds] : (imageIds.length > 0 ? imageIds : [0]);
-            
-            if (albumGalleryImages.length > 1) {
-                const galleryContext = {
-                    images: albumGalleryImages,
-                    entityType: 'albums',
-                    entityId: albumId,
-                    currentIndex: 0
-                };
-                openImageModal(`/albums/${albumId}/image`, galleryContext);
-            } else {
-                openImageModal(`/albums/${albumId}/image`);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading album gallery:', error);
-            openImageModal(`/albums/${albumId}/image`);
-        });
+    openEntityImageModalFromGraphs('albums', albumId);
 }
 
 function openSongImageModalFromGraphs(songId) {
-    fetch(`/songs/${songId}/images`)
-        .then(response => response.json())
-        .then(data => {
-            const imageIds = data.map(img => img.id);
-            const hasDefaultImage = true;
-            
-            let songGalleryImages = hasDefaultImage ? [0, ...imageIds] : (imageIds.length > 0 ? imageIds : [0]);
-            
-            if (songGalleryImages.length > 1) {
-                const galleryContext = {
-                    images: songGalleryImages,
-                    entityType: 'songs',
-                    entityId: songId,
-                    currentIndex: 0
-                };
-                openImageModal(`/songs/${songId}/image`, galleryContext);
-            } else {
-                openImageModal(`/songs/${songId}/image`);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading song gallery:', error);
-            openImageModal(`/songs/${songId}/image`);
-        });
-}
-
-/**
- * Setup infinite scroll for top tables
- */
-function setupInfiniteScroll() {
-    const containers = {
-        artists: document.getElementById('topArtistsTableContainer'),
-        albums: document.getElementById('topAlbumsTableContainer'),
-        songs: document.getElementById('topSongsTableContainer')
-    };
-    
-    Object.entries(containers).forEach(([type, container]) => {
-        if (!container) {
-            return;
-        }
-        
-        // Remove any existing scroll listeners first
-        const oldListener = container._scrollListener;
-        if (oldListener) {
-            container.removeEventListener('scroll', oldListener);
-        }
-        
-        // Create new listener
-        const scrollListener = function() {
-            // Only trigger if infinite scroll is enabled
-            if (!infiniteScrollEnabled) return;
-            
-            // Check if near bottom (within 200px)
-            const scrollPosition = container.scrollTop + container.clientHeight;
-            const scrollHeight = container.scrollHeight;
-            
-            if (scrollPosition >= scrollHeight - 200) {
-                loadMoreTopData(type);
-            }
-        };
-        
-        // Store reference and add listener
-        container._scrollListener = scrollListener;
-        container.addEventListener('scroll', scrollListener);
-    });
-}
-
-/**
- * Toggle infinite scroll on/off
- */
-function toggleInfiniteScroll() {
-    const toggle = document.getElementById('infiniteScrollToggle');
-    infiniteScrollEnabled = toggle.checked;
-    
-    // Re-render tables to apply the new mode
-    renderTopArtistsTable();
-    renderTopAlbumsTable();
-    renderTopSongsTable();
-}
-
-/**
- * Load more data for a specific top table (from already-loaded data)
- */
-function loadMoreTopData(type) {
-    const state = topInfiniteScrollState[type];
-    // Use cached sorted data so appended rows continue in the same sort order
-    const allData = topSortedData[type].length > 0 ? topSortedData[type] : topTabData[type];
-    
-    // Check if there's more data to show
-    if (state.displayedRows >= allData.length) {
-        return;
-    }
-    
-    // Calculate how many more rows to add
-    const newDisplayedRows = Math.min(state.displayedRows + state.batchSize, allData.length);
-    const newRows = allData.slice(state.displayedRows, newDisplayedRows);
-    
-    // Update displayed count
-    state.displayedRows = newDisplayedRows;
-    
-    // Append rows
-    if (type === 'artists') {
-        appendTopArtistsRows(newRows, state.displayedRows - newRows.length);
-    } else if (type === 'albums') {
-        appendTopAlbumsRows(newRows, state.displayedRows - newRows.length);
-    } else if (type === 'songs') {
-        appendTopSongsRows(newRows, state.displayedRows - newRows.length);
-    }
+    openEntityImageModalFromGraphs('songs', songId);
 }
 
 /**
@@ -2939,29 +2491,21 @@ function appendTopSongsRows(data, startRank) {
     });
 }
 
-/**
- * Reset infinite scroll state when filters change or sort changes
- */
-function resetInfiniteScrollState() {
-    topInfiniteScrollState = {
-        artists: { displayedRows: 100, batchSize: 50 },
-        albums: { displayedRows: 100, batchSize: 50 },
-        songs: { displayedRows: 100, batchSize: 50 }
-    };
-}
-
-// Initialize modal close on click outside and read URL params for toggles
+// Read URL params for initial embedded graphs state.
 document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('chartsModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeChartsModal();
-            }
-        });
-    }
     // Note: includeGroups and includeFeatured toggles are now handled as regular form inputs
     // They get their checked state from th:checked in the HTML and are submitted with the form
+
+    const requestedView = getRequestedViewFromUrl();
+    if (requestedView && document.getElementById('viewToggle')) {
+        currentView = '__uninitialized__';
+        switchView(requestedView);
+
+        const requestedTab = getRequestedGraphsTabFromUrl();
+        if (requestedView === 'graphs' && requestedTab && requestedTab !== 'general') {
+            switchTab(requestedTab);
+        }
+    }
 });
 
 // ============================================================
@@ -3009,6 +2553,51 @@ function switchView(viewName) {
             loadTabData('general');
         }
     }
+
+    syncGraphsViewUrl(viewName, getActiveGraphsTab());
+}
+
+function getChartsApiBase() {
+    return '/' + getCurrentEntityType() + '/api/charts';
+}
+
+function getRequestedViewFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const requestedView = params.get('view');
+    return ['card', 'list', 'graphs'].includes(requestedView) ? requestedView : null;
+}
+
+function getRequestedGraphsTabFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get('tab');
+    return validGraphsTabs.has(requestedTab) ? requestedTab : null;
+}
+
+function getActiveGraphsTab() {
+    const activeTab = document.querySelector('.charts-tab-btn.active[data-tab]');
+    return activeTab ? activeTab.dataset.tab : 'general';
+}
+
+function syncGraphsViewUrl(viewName, tabName) {
+    if (!document.getElementById('viewToggle')) {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (viewName && viewName !== 'card') {
+        url.searchParams.set('view', viewName);
+    } else {
+        url.searchParams.delete('view');
+    }
+
+    if (viewName === 'graphs' && tabName && validGraphsTabs.has(tabName)) {
+        url.searchParams.set('tab', tabName);
+    } else {
+        url.searchParams.delete('tab');
+    }
+
+    window.history.replaceState({}, '', url.toString());
 }
 
 /**
