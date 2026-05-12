@@ -484,7 +484,7 @@ public class ChartService {
                 g.id as gender_id,
                 COUNT(*) as play_count,
                 MAX(CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
-                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
+                MAX(CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END) as album_has_image,
                 (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id)) as genre_name
             FROM Play p
             INNER JOIN Song s ON p.song_id = s.id
@@ -540,7 +540,7 @@ public class ChartService {
                 ar.name as artist_name,
                 g.id as gender_id,
                 COUNT(*) as play_count,
-                MAX(CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
+                MAX(CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END) as has_image,
                 (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(al.override_genre_id, ar.genre_id)) as genre_name
             FROM Play p
             INNER JOIN Song s ON p.song_id = s.id
@@ -1053,14 +1053,20 @@ public class ChartService {
         }
         
         String sql = """
-            SELECT s.single_cover
+            SELECT COALESCE(
+                al.image,
+                (SELECT ai.image FROM AlbumImage ai WHERE ai.album_id = al.id ORDER BY ai.display_order ASC LIMIT 1),
+                s.single_cover,
+                (SELECT si.image FROM SongImage si WHERE si.song_id = s.id ORDER BY si.display_order ASC LIMIT 1)
+            ) as image
             FROM ChartEntry ce
             INNER JOIN Song s ON ce.song_id = s.id
+            LEFT JOIN Album al ON s.album_id = al.id
             WHERE ce.chart_id = ? AND ce.position = 1
             """;
         
         try {
-            return jdbcTemplate.queryForObject(sql, byte[].class, chartOpt.get().getId());
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("image"), chartOpt.get().getId());
         } catch (Exception e) {
             return null;
         }

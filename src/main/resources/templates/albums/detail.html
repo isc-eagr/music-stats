@@ -945,7 +945,6 @@
                             </table>
                         </div>
                     </div>
-                </div>
                 
                 <!-- Songs Chart History -->
                 <div th:if="${allSongsWeeklyStats != null and !allSongsWeeklyStats.isEmpty()}" class="detail-content-card" style="margin-top: 20px;">
@@ -1164,6 +1163,8 @@
                     <!-- Album Seasonal Charts Section -->
                     <div th:if="${(seasonalChartHistory != null and !seasonalChartHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">Album Seasonal Charts</h2>
+                        <div class="table-wrapper">
+                            <table class="table js-sortable">
                                 <thead>
                                     <tr>
                                         <th>Period</th>

@@ -202,6 +202,19 @@ public class TrlService {
             debutId);
     }
 
+    public List<Map<String, Object>> getChartRunByNames(String artistName, String songTitle) {
+        return jdbcTemplate.queryForList(
+            "SELECT d.chart_date, " +
+            "       CASE WHEN ce.artist_name IS NOT NULL THEN 1 ELSE 0 END AS on_chart, " +
+            "       ce.position " +
+            "FROM (SELECT DISTINCT chart_date FROM trl_chart_entry) d " +
+            "LEFT JOIN trl_chart_entry ce ON ce.chart_date = d.chart_date " +
+            "    AND LOWER(TRIM(ce.artist_name)) = LOWER(TRIM(?)) " +
+            "    AND LOWER(TRIM(ce.song_title)) = LOWER(TRIM(?)) " +
+            "ORDER BY d.chart_date ASC",
+            artistName, songTitle);
+    }
+
     public Map<String, Object> getSummary() {
         Integer total = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM trl_debut", Integer.class);
@@ -570,14 +583,18 @@ public class TrlService {
     }
 
     public List<Map<String, Object>> getFallOffsForDate(String chartDate) {
+        return getFallOffsForDate(chartDate, null);
+    }
+
+    public List<Map<String, Object>> getFallOffsForDate(String chartDate, List<Map<String, Object>> currentEntries) {
         String prevDate = getPrevChartDate(chartDate);
         if (prevDate == null) {
             return List.of();
         }
 
         List<Map<String, Object>> previousEntries = getCountdownForDate(prevDate);
-        List<Map<String, Object>> currentEntries = getCountdownForDate(chartDate);
-        Set<String> currentKeys = currentEntries.stream()
+        List<Map<String, Object>> effectiveCurrentEntries = currentEntries != null ? currentEntries : getCountdownForDate(chartDate);
+        Set<String> currentKeys = effectiveCurrentEntries.stream()
             .map(this::buildRecapIdentityKey)
             .collect(Collectors.toSet());
 

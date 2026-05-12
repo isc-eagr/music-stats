@@ -697,6 +697,10 @@ public class BillboardHot100Service {
     }
 
     public List<Map<String, Object>> getFallOffsForDate(String chartDate) {
+        return getFallOffsForDate(chartDate, null);
+    }
+
+    public List<Map<String, Object>> getFallOffsForDate(String chartDate, List<Map<String, Object>> currentEntries) {
         if (chartDate == null || !tableExists()) {
             return List.of();
         }
@@ -707,8 +711,8 @@ public class BillboardHot100Service {
         }
 
         List<Map<String, Object>> previousEntries = getCountdownForDate(prevDate);
-        List<Map<String, Object>> currentEntries = getCountdownForDate(chartDate);
-        Set<String> currentKeys = currentEntries.stream()
+        List<Map<String, Object>> effectiveCurrentEntries = currentEntries != null ? currentEntries : getCountdownForDate(chartDate);
+        Set<String> currentKeys = effectiveCurrentEntries.stream()
             .map(this::buildRecapIdentityKey)
             .collect(Collectors.toSet());
 

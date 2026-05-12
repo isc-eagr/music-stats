@@ -511,7 +511,14 @@ public class AlbumService {
     }
     
     public byte[] getAlbumImage(Integer id) {
-        String sql = "SELECT image FROM Album WHERE id = ?";
+        String sql = """
+            SELECT COALESCE(
+                a.image,
+                (SELECT ai.image FROM AlbumImage ai WHERE ai.album_id = a.id ORDER BY ai.display_order ASC LIMIT 1)
+            ) as image
+            FROM Album a
+            WHERE a.id = ?
+            """;
         try {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> rs.getBytes("image"), id);
         } catch (Exception e) {

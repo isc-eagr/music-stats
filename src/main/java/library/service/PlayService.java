@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -309,6 +310,15 @@ public class PlayService {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, account);
         return count != null ? count : 0;
     }
+
+    /**
+     * Gets the total unmatched play count for an account.
+     */
+    public int getUnmatchedPlayCountByAccount(String account) {
+        String sql = "SELECT COUNT(*) FROM play WHERE song_id IS NULL AND COALESCE(account, '') = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, account != null ? account : "");
+        return count != null ? count : 0;
+    }
     
     /**
      * Fetches the playcount from Last.fm user.getinfo API.
@@ -322,6 +332,7 @@ public class PlayService {
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(url))
+            .timeout(Duration.ofSeconds(30))
             .GET()
             .build();
         
@@ -585,6 +596,7 @@ public class PlayService {
             // Fetch from the API
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(30))
                 .GET()
                 .build();
             
@@ -729,6 +741,14 @@ public class PlayService {
     public int deleteRecentPlays(int days) {
         String sql = "DELETE FROM play WHERE play_date > date('now', '-' || ? || ' days')";
         return jdbcTemplate.update(sql, days);
+    }
+
+    /**
+     * Deletes recent plays only for the requested account.
+     */
+    public int deleteRecentPlays(String account, int days) {
+        String sql = "DELETE FROM play WHERE play_date > date('now', '-' || ? || ' days') AND COALESCE(account, '') = ?";
+        return jdbcTemplate.update(sql, days, account != null ? account : "");
     }
     
     /**

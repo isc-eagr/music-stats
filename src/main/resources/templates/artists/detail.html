@@ -1736,13 +1736,6 @@
             const targetSection = document.getElementById('ch-' + type + '-section');
             if (targetSection) targetSection.classList.add('active');
         }
-            // Update sections
-            document.querySelectorAll('.ch-section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-            const targetSection = document.getElementById('ch-' + type + '-section');
-            if (targetSection) targetSection.classList.add('active');
-        }
 
         function toggleDetailRun(button) {
             const row = button.closest('tr');

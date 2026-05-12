@@ -206,13 +206,16 @@ public class TrlController {
         List<String> availableDates = trlService.getAvailableChartDates();
         model.addAttribute("availableDates", availableDates);
 
-        String effectiveDate = null;
-        if (date != null && !date.isBlank()) {
-            effectiveDate = trlService.findClosestChartDate(date);
+        String effectiveDate = date;
+        if ((effectiveDate == null || effectiveDate.isBlank()) && !availableDates.isEmpty()) {
+            effectiveDate = availableDates.get(availableDates.size() - 1);
+        } else if (effectiveDate != null && !effectiveDate.isBlank()) {
+            effectiveDate = trlService.findClosestChartDate(effectiveDate);
         }
         if (effectiveDate != null) {
-            model.addAttribute("countdown", trlService.getCountdownForDate(effectiveDate));
-            model.addAttribute("fallOffs", trlService.getFallOffsForDate(effectiveDate));
+            List<Map<String, Object>> countdown = trlService.getCountdownForDate(effectiveDate);
+            model.addAttribute("countdown", countdown);
+            model.addAttribute("fallOffs", trlService.getFallOffsForDate(effectiveDate, countdown));
             model.addAttribute("selectedDate", effectiveDate);
         }
         model.addAttribute("currentSection", "trl-recaps");
@@ -226,10 +229,11 @@ public class TrlController {
         if (effectiveDate == null) {
             return ResponseEntity.ok(Map.of("entries", List.of()));
         }
+        List<Map<String, Object>> countdown = trlService.getCountdownForDate(effectiveDate);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("date", effectiveDate);
-        result.put("entries", trlService.getCountdownForDate(effectiveDate));
-        result.put("fallOffs", trlService.getFallOffsForDate(effectiveDate));
+        result.put("entries", countdown);
+        result.put("fallOffs", trlService.getFallOffsForDate(effectiveDate, countdown));
         result.put("prevDate", trlService.getPrevChartDate(effectiveDate));
         result.put("nextDate", trlService.getNextChartDate(effectiveDate));
         return ResponseEntity.ok(result);
@@ -239,6 +243,21 @@ public class TrlController {
     @ResponseBody
     public List<Map<String, Object>> getChartRun(@PathVariable int id) {
         return trlService.getChartRunForDebut(id);
+    }
+
+    @GetMapping("/chart-run")
+    @ResponseBody
+    public List<Map<String, Object>> getRecapChartRun(
+            @RequestParam(required = false) Integer songId,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false) String song) {
+        if (songId != null) {
+            return trlService.getChartRunBySongId(songId);
+        }
+        if (artist != null && song != null) {
+            return trlService.getChartRunByNames(artist, song);
+        }
+        return List.of();
     }
 
     private String normalizeOverviewTab(String overviewTab) {

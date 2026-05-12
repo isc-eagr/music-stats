@@ -74,7 +74,7 @@ public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer>
             "a.id as artist_id, " +
             "(SELECT al.name FROM Album al WHERE al.id = s.album_id) as album_name, " +
             "a.gender_id, " +
-            "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = s.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image, " +
+            "CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = s.album_id AND (al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id))) THEN 1 ELSE 0 END as album_has_image, " +
             "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(s.override_genre_id, (SELECT al2.override_genre_id FROM Album al2 WHERE al2.id = s.album_id), a.genre_id)) as genre_name " +
             "FROM ChartEntry ce " +
             "INNER JOIN Song s ON ce.song_id = s.id " +
@@ -88,7 +88,7 @@ public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer>
      */
     @Query(value = "SELECT ce.id, ce.chart_id, ce.position, ce.song_id, ce.album_id, ce.play_count, " +
             "al.name as album_name, a.name as artist_name, " +
-            "CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image, " +
+            "CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END as has_image, " +
             "a.id as artist_id, " +
             "a.gender_id, " +
             "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(al.override_genre_id, a.genre_id)) as genre_name " +

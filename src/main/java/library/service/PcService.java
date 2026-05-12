@@ -835,6 +835,10 @@ public class PcService {
     }
 
     public List<Map<String, Object>> getFallOffsForDate(String chartDate) {
+        return getFallOffsForDate(chartDate, null);
+    }
+
+    public List<Map<String, Object>> getFallOffsForDate(String chartDate, List<Map<String, Object>> currentEntries) {
         String prevDate = getPrevChartDate(chartDate);
         if (prevDate == null) {
             return List.of();
@@ -843,10 +847,10 @@ public class PcService {
         List<Map<String, Object>> previousEntries = getCountdownForDate(prevDate).stream()
             .filter(entry -> !Boolean.TRUE.equals(entry.get("isClosecall")))
             .toList();
-        List<Map<String, Object>> currentEntries = getCountdownForDate(chartDate).stream()
+        List<Map<String, Object>> effectiveCurrentEntries = (currentEntries != null ? currentEntries : getCountdownForDate(chartDate)).stream()
             .filter(entry -> !Boolean.TRUE.equals(entry.get("isClosecall")))
             .toList();
-        Set<String> currentKeys = currentEntries.stream()
+        Set<String> currentKeys = effectiveCurrentEntries.stream()
             .map(this::buildRecapIdentityKey)
             .collect(Collectors.toSet());
 

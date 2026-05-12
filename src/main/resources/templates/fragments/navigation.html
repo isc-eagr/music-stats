@@ -105,6 +105,87 @@
           </script>
           <!-- Toast Notification System -->
           <style>
+            .automation-banner-stack {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin: 12px 20px 0;
+            }
+            .automation-banner {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 14px 16px;
+                border-radius: 14px;
+                border: 1px solid rgba(255,255,255,0.12);
+                box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+                text-decoration: none;
+            }
+            .automation-banner-unmatched {
+                background: linear-gradient(135deg, rgba(167, 48, 48, 0.92), rgba(117, 24, 24, 0.94));
+                color: #fff3ef;
+            }
+            .automation-banner-imported {
+                background: linear-gradient(135deg, rgba(17, 94, 89, 0.92), rgba(6, 78, 59, 0.94));
+                color: #eafff7;
+            }
+            .automation-banner-warning {
+                background: linear-gradient(135deg, rgba(146, 64, 14, 0.94), rgba(120, 53, 15, 0.96));
+                color: #fff5e8;
+            }
+            .automation-banner-copy {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                min-width: 0;
+            }
+            .automation-banner-eyebrow {
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                opacity: 0.75;
+                text-transform: uppercase;
+            }
+            .automation-banner-title {
+                font-size: 18px;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+            .automation-banner-message {
+                font-size: 13px;
+                line-height: 1.4;
+                opacity: 0.9;
+            }
+            .automation-banner-cta {
+                flex-shrink: 0;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 8px 12px;
+                border-radius: 999px;
+                border: 1px solid rgba(255,255,255,0.18);
+                background: rgba(255,255,255,0.08);
+                color: inherit;
+                font-size: 12px;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            .automation-banner-close {
+                flex-shrink: 0;
+                width: 34px;
+                height: 34px;
+                border: 1px solid rgba(255,255,255,0.16);
+                border-radius: 999px;
+                background: rgba(255,255,255,0.08);
+                color: inherit;
+                font-size: 18px;
+                line-height: 1;
+                cursor: pointer;
+            }
+            .automation-banner-close:hover {
+                background: rgba(255,255,255,0.16);
+            }
             .toast-container {
                 position: fixed;
                 top: 80px;
@@ -141,6 +222,22 @@
             .toast-close:hover { background: rgba(255, 255, 255, 0.25); }
             @keyframes toastSlideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
             @keyframes toastSlideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+            @media (max-width: 900px) {
+                .automation-banner-stack {
+                    margin: 10px 12px 0;
+                }
+                .automation-banner {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .automation-banner-title {
+                    font-size: 16px;
+                }
+                .automation-banner-cta,
+                .automation-banner-close {
+                    align-self: flex-end;
+                }
+            }
             @media (max-width: 480px) { .toast-container { left: 10px; right: 10px; top: 70px; } .toast { min-width: auto; max-width: none; } }
           </style>
           <script>
@@ -182,6 +279,23 @@
                 window.showWarningToast = function(message, duration) { return showToast(message, 'warning', duration || 5000); };
                 window.showSuccessToast = function(message, duration) { return showToast(message, 'success', duration || 4000); };
                 window.showInfoToast = function(message, duration) { return showToast(message, 'info', duration || 5000); };
+                window.dismissPlayAutomationBanner = async function(kind) {
+                    const endpoint = kind === 'imported'
+                        ? '/plays/api/automation/dismiss-imported-banner'
+                        : '/plays/api/automation/dismiss-sync-issue-banner';
+                    try {
+                        const response = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        if (!response.ok) {
+                            throw new Error('Banner dismiss failed');
+                        }
+                        window.location.reload();
+                    } catch (error) {
+                        showErrorToast(error.message || 'Banner dismiss failed.');
+                    }
+                };
             })();
           </script>
          <!-- Mobile overhaul stylesheet - loaded on all pages via this fragment -->
@@ -285,6 +399,36 @@
              <a href="/itunes/changes" class="app-nav-link-discreet" th:classappend="${currentSection == 'itunes-changes'} ? 'active' : ''">iTunes Changes</a>
              <a href="/themes" class="app-nav-link-discreet" th:classappend="${currentSection == 'themes'} ? 'active' : ''">Themes</a>
          </div>
+        </div>
+        <div class="automation-banner-stack" th:if="${playAutomationBannerState != null}">
+            <a class="automation-banner automation-banner-unmatched"
+               th:if="${playAutomationBannerState.unmatchedBanner != null}"
+               th:href="${playAutomationBannerState.unmatchedBanner.href}">
+                <div class="automation-banner-copy">
+                    <span class="automation-banner-eyebrow">Vatito Import Alert</span>
+                    <span class="automation-banner-title"><span th:text="${playAutomationBannerState.unmatchedBanner.count}">0</span> Unmatched plays, fix them now</span>
+                    <span class="automation-banner-message">The automatic import found unmatched vatito plays that still need to be assigned.</span>
+                </div>
+                <span class="automation-banner-cta">Open unmatched plays</span>
+            </a>
+            <div class="automation-banner automation-banner-imported"
+                 th:if="${playAutomationBannerState.importedBanner != null}">
+                <div class="automation-banner-copy">
+                    <span class="automation-banner-eyebrow">New Plays Imported</span>
+                    <span class="automation-banner-title"><span th:text="${playAutomationBannerState.importedBanner.count}">0</span> plays imported since your last visit</span>
+                    <span class="automation-banner-message">Close this banner when you've seen the latest automated imports.</span>
+                </div>
+                <button type="button" class="automation-banner-close" onclick="dismissPlayAutomationBanner('imported')" aria-label="Dismiss imported plays banner">x</button>
+            </div>
+            <div class="automation-banner automation-banner-warning"
+                 th:if="${playAutomationBannerState.syncIssueBanner != null}">
+                <div class="automation-banner-copy">
+                    <span class="automation-banner-eyebrow">Automated Import Warning</span>
+                    <span class="automation-banner-title">Last.fm import needs attention</span>
+                    <span class="automation-banner-message" th:text="${playAutomationBannerState.syncIssueBanner.message}">Automated import warning details.</span>
+                </div>
+                <button type="button" class="automation-banner-close" onclick="dismissPlayAutomationBanner('sync-issue')" aria-label="Dismiss automated import warning">x</button>
+            </div>
         </div>
         <!-- Mobile nav overlay -->
         <div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="toggleMobileNav()"></div>

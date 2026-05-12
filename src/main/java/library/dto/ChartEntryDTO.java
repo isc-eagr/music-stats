@@ -157,6 +157,14 @@ public class ChartEntryDTO {
     public void setTimesAtPeak(Integer timesAtPeak) {
         this.timesAtPeak = timesAtPeak;
     }
+
+    public Integer getWeeksAtPeak() {
+        return timesAtPeak;
+    }
+
+    public void setWeeksAtPeak(Integer weeksAtPeak) {
+        this.timesAtPeak = weeksAtPeak;
+    }
     
     public Integer getWeeksOnChart() {
         return weeksOnChart;
@@ -222,5 +230,47 @@ public class ChartEntryDTO {
         if (change > 0) return "position-up";
         if (change < 0) return "position-down";
         return "position-same";
+    }
+
+    public String getMovementDisplay() {
+        if (isNewEntry()) {
+            return "NEW";
+        }
+        if (isReEntry()) {
+            return "RE";
+        }
+
+        Integer change = getPositionChange();
+        if (change == null) {
+            return "-";
+        }
+        if (change > 0) {
+            return "+" + change;
+        }
+        if (change < 0) {
+            return String.valueOf(change);
+        }
+        return "=";
+    }
+
+    public String getMovementClass() {
+        if (isNewEntry()) {
+            return "mvmt-new";
+        }
+        if (isReEntry()) {
+            return "mvmt-re";
+        }
+
+        Integer change = getPositionChange();
+        if (change == null) {
+            return "";
+        }
+        if (change > 0) {
+            return "mvmt-up";
+        }
+        if (change < 0) {
+            return "mvmt-down";
+        }
+        return "mvmt-same";
     }
 }

@@ -161,13 +161,16 @@ public class PcController {
         List<String> availableDates = pcService.getAvailableChartDates();
         model.addAttribute("availableDates", availableDates);
 
-        String effectiveDate = null;
-        if (date != null && !date.isBlank()) {
-            effectiveDate = pcService.findClosestChartDate(date);
+        String effectiveDate = date;
+        if ((effectiveDate == null || effectiveDate.isBlank()) && !availableDates.isEmpty()) {
+            effectiveDate = availableDates.get(availableDates.size() - 1);
+        } else if (effectiveDate != null && !effectiveDate.isBlank()) {
+            effectiveDate = pcService.findClosestChartDate(effectiveDate);
         }
         if (effectiveDate != null) {
-            model.addAttribute("countdown", pcService.getCountdownForDate(effectiveDate));
-            model.addAttribute("fallOffs", pcService.getFallOffsForDate(effectiveDate));
+            List<Map<String, Object>> countdown = pcService.getCountdownForDate(effectiveDate);
+            model.addAttribute("countdown", countdown);
+            model.addAttribute("fallOffs", pcService.getFallOffsForDate(effectiveDate, countdown));
             model.addAttribute("selectedDate", effectiveDate);
         }
         model.addAttribute("currentSection", "pc-recaps");
@@ -181,10 +184,11 @@ public class PcController {
         if (effectiveDate == null) {
             return ResponseEntity.ok(Map.of("entries", List.of()));
         }
+        List<Map<String, Object>> countdown = pcService.getCountdownForDate(effectiveDate);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("date", effectiveDate);
-        result.put("entries", pcService.getCountdownForDate(effectiveDate));
-        result.put("fallOffs", pcService.getFallOffsForDate(effectiveDate));
+        result.put("entries", countdown);
+        result.put("fallOffs", pcService.getFallOffsForDate(effectiveDate, countdown));
         result.put("prevDate", pcService.getPrevChartDate(effectiveDate));
         result.put("nextDate", pcService.getNextChartDate(effectiveDate));
         return ResponseEntity.ok(result);

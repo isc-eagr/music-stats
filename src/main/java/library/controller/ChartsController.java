@@ -56,17 +56,20 @@ public class ChartsController {
      * Weekly charts landing page - redirects to latest chart or shows empty state.
      */
     @GetMapping("/weekly")
-    public String weeklyCharts(Model model) {
+    public String weeklyCharts(@RequestParam(required = false) String view, Model model) {
         Optional<Chart> latestChart = chartService.getLatestWeeklyChart("song");
+        String selectedView = normalizeWeeklyView(view);
         
         if (latestChart.isPresent()) {
-            return "redirect:/charts/weekly/" + latestChart.get().getPeriodKey();
+            return "redirect:/charts/weekly/" + latestChart.get().getPeriodKey()
+                    + ("albums".equals(selectedView) ? "?view=albums" : "");
         }
         
         // No charts exist yet - show empty state
         model.addAttribute("currentSection", "weekly-charts");
         model.addAttribute("hasChart", false);
         model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
+        model.addAttribute("selectedView", selectedView);
         
         return "charts/weekly";
     }
@@ -77,7 +80,9 @@ public class ChartsController {
     @GetMapping("/weekly/{periodKey}")
     public String weeklyChart(@PathVariable String periodKey,
                               @RequestParam(required = false) Boolean preview,
+                              @RequestParam(required = false) String view,
                               Model model) {
+        String selectedView = normalizeWeeklyView(view);
         Optional<Chart> chartOpt = chartService.getChart("song", periodKey);
         
         if (chartOpt.isEmpty()) {
@@ -106,6 +111,7 @@ public class ChartsController {
                 model.addAttribute("prevPeriodKey", prevChart.map(Chart::getPeriodKey).orElse(null));
                 model.addAttribute("nextPeriodKey", null); // No next from preview (already at current week)
                 model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
+                model.addAttribute("selectedView", selectedView);
 
                 // Get #1 for display
                 if (!entries.isEmpty()) {
@@ -125,6 +131,7 @@ public class ChartsController {
             model.addAttribute("periodKey", periodKey);
             model.addAttribute("weekComplete", weekComplete);
             model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
+            model.addAttribute("selectedView", selectedView);
             return "charts/weekly";
         }
         
@@ -169,6 +176,7 @@ public class ChartsController {
         model.addAttribute("nextPeriodKey", nextPeriodKey);
         model.addAttribute("nextIsPreview", nextIsPreview);
         model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
+        model.addAttribute("selectedView", selectedView);
         
         // Get #1 song info for the header image
         if (!entries.isEmpty()) {
@@ -454,11 +462,13 @@ public class ChartsController {
      * - Week N: Starts from first Monday + (N-1)*7 days
      */
     @GetMapping("/weekly/by-date")
-    public String weeklyChartByDate(@RequestParam String date) {
+    public String weeklyChartByDate(@RequestParam String date,
+                                    @RequestParam(required = false) String view) {
         // Convert date to week period key (YYYY-WXX format) matching SQLite's %W
         try {
             java.time.LocalDate localDate = java.time.LocalDate.parse(date);
             int year = localDate.getYear();
+            String selectedView = normalizeWeeklyView(view);
             
             // Find the first Monday of the year (SQLite's %W week 01)
             java.time.LocalDate jan1 = java.time.LocalDate.of(year, 1, 1);
@@ -475,10 +485,14 @@ public class ChartsController {
             }
             
             String periodKey = String.format("%d-W%02d", year, week);
-            return "redirect:/charts/weekly/" + periodKey;
+            return "redirect:/charts/weekly/" + periodKey + ("albums".equals(selectedView) ? "?view=albums" : "");
         } catch (Exception e) {
-            return "redirect:/charts/weekly";
+            return "redirect:/charts/weekly" + ("albums".equals(normalizeWeeklyView(view)) ? "?view=albums" : "");
         }
+    }
+
+    private String normalizeWeeklyView(String view) {
+        return "albums".equalsIgnoreCase(view) ? "albums" : "songs";
     }
     
     // ========== SEASONAL CHARTS ==========

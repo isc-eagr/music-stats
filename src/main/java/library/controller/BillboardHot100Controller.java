@@ -158,8 +158,9 @@ public class BillboardHot100Controller {
         }
 
         if (effectiveDate != null) {
-            model.addAttribute("countdown", billboardHot100Service.getCountdownForDate(effectiveDate));
-            model.addAttribute("fallOffs", billboardHot100Service.getFallOffsForDate(effectiveDate));
+            List<Map<String, Object>> countdown = billboardHot100Service.getCountdownForDate(effectiveDate);
+            model.addAttribute("countdown", countdown);
+            model.addAttribute("fallOffs", billboardHot100Service.getFallOffsForDate(effectiveDate, countdown));
         }
 
         model.addAttribute("availableDates", availableDates);
@@ -173,11 +174,12 @@ public class BillboardHot100Controller {
     public ResponseEntity<Map<String, Object>> recapsData(@RequestParam String date) {
         String effectiveDate = billboardHot100Service.findClosestChartDate(date);
         Map<String, Object> result = new LinkedHashMap<>();
+        List<Map<String, Object>> countdown = effectiveDate != null ? billboardHot100Service.getCountdownForDate(effectiveDate) : List.of();
         result.put("date", effectiveDate);
         result.put("prevDate", effectiveDate != null ? billboardHot100Service.getPrevChartDate(effectiveDate) : null);
         result.put("nextDate", effectiveDate != null ? billboardHot100Service.getNextChartDate(effectiveDate) : null);
-        result.put("entries", effectiveDate != null ? billboardHot100Service.getCountdownForDate(effectiveDate) : List.of());
-        result.put("fallOffs", effectiveDate != null ? billboardHot100Service.getFallOffsForDate(effectiveDate) : List.of());
+        result.put("entries", countdown);
+        result.put("fallOffs", effectiveDate != null ? billboardHot100Service.getFallOffsForDate(effectiveDate, countdown) : List.of());
         return ResponseEntity.ok(result);
     }
 

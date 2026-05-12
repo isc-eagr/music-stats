@@ -3,7 +3,9 @@ package library.controller;
 import library.service.PlayService;
 import library.service.ArtistService;
 import library.service.AlbumService;
+import library.service.PlayAutomationStateService;
 import library.service.SongService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,13 +24,24 @@ public class PlayController {
     private final ArtistService artistService;
     private final AlbumService albumService;
     private final SongService songService;
+    private final String defaultLastfmApiKey;
+    private final PlayAutomationStateService automationStateService;
+    private final String automationAccount;
     
     public PlayController(PlayService playService,
-                              ArtistService artistService, AlbumService albumService, SongService songService) {
+                              ArtistService artistService,
+                              AlbumService albumService,
+                              SongService songService,
+                              PlayAutomationStateService automationStateService,
+                              @Value("${musicstats.play-import.automation.api-key:e01f90c03b0b1ec2273cd5d46e5628f6}") String defaultLastfmApiKey,
+                              @Value("${musicstats.play-import.automation.account:vatito}") String automationAccount) {
         this.playService = playService;
         this.artistService = artistService;
         this.albumService = albumService;
         this.songService = songService;
+        this.automationStateService = automationStateService;
+        this.defaultLastfmApiKey = defaultLastfmApiKey;
+        this.automationAccount = automationAccount;
     }
     
     // File upload UI
@@ -36,6 +49,9 @@ public class PlayController {
     public String showUploadForm(Model model) {
         model.addAttribute("accounts", List.of("vatito", "robertlover"));
         model.addAttribute("maxLastfmIds", playService.getMaxLastfmIdByAccount());
+        model.addAttribute("defaultLastfmApiKey", defaultLastfmApiKey);
+        model.addAttribute("automationAccount", automationAccount);
+        model.addAttribute("automationImportState", automationStateService.getImportPageState());
         return "insertPlaysForm";
     }
 
