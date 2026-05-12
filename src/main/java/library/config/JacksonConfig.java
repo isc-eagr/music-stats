@@ -1,15 +1,13 @@
 package library.config;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JacksonModule;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
-import java.io.IOException;
 import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -20,39 +18,40 @@ import java.text.SimpleDateFormat;
  */
 @Configuration
 public class JacksonConfig {
-    
+
     @Bean
-    public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
-        ObjectMapper mapper = builder.build();
-        
+    public JacksonModule sqlDateModule() {
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Date.class, new SqlDateDeserializer());
-        mapper.registerModule(module);
-        
-        return mapper;
+        return module;
     }
-    
+
     /**
      * Custom deserializer for java.sql.Date that handles multiple date formats.
      */
-    public static class SqlDateDeserializer extends JsonDeserializer<Date> {
-        
+    public static class SqlDateDeserializer extends ValueDeserializer<Date> {
+
         private static final SimpleDateFormat[] FORMATS = {
             new SimpleDateFormat("dd/MM/yyyy"),
             new SimpleDateFormat("yyyy-MM-dd"),
             new SimpleDateFormat("dd-MM-yyyy"),
             new SimpleDateFormat("dd MMM yyyy")
         };
-        
+
         @Override
-        public Date deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            String text = p.getText();
+        public Date deserialize(JsonParser p, DeserializationContext ctxt) {
+            String text;
+            try {
+                text = p.getText();
+            } catch (Exception e) {
+                return null;
+            }
             if (text == null || text.trim().isEmpty()) {
                 return null;
             }
-            
+
             text = text.trim();
-            
+
             // Try each format in order
             for (SimpleDateFormat format : FORMATS) {
                 try {
@@ -64,9 +63,9 @@ public class JacksonConfig {
                     // Try next format
                 }
             }
-            
+
             // If no format worked, throw an error with helpful message
-            throw new IOException("Cannot parse date '" + text + 
+            throw new IllegalArgumentException("Cannot parse date '" + text +
                 "'. Supported formats: dd/MM/yyyy, yyyy-MM-dd, dd-MM-yyyy, dd MMM yyyy");
         }
     }

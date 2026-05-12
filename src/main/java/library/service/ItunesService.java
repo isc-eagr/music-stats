@@ -795,8 +795,8 @@ public class ItunesService {
         params.add(idsJson);
 
         Map<Integer, Double> ratios = new HashMap<>();
-        jdbcTemplate.query(sql, params.toArray(), (RowCallbackHandler) rs ->
-            ratios.put(rs.getInt("entity_id"), rs.getDouble("itunes_presence_ratio")));
+        jdbcTemplate.query(sql, (RowCallbackHandler) rs ->
+            ratios.put(rs.getInt("entity_id"), rs.getDouble("itunes_presence_ratio")), params.toArray());
         return ratios;
     }
 
@@ -837,8 +837,8 @@ public class ItunesService {
         params.add(idsJson);
 
         Map<Integer, Double> ratios = new HashMap<>();
-        jdbcTemplate.query(sql, params.toArray(), (RowCallbackHandler) rs ->
-            ratios.put(rs.getInt("entity_id"), rs.getDouble("itunes_presence_ratio")));
+        jdbcTemplate.query(sql, (RowCallbackHandler) rs ->
+            ratios.put(rs.getInt("entity_id"), rs.getDouble("itunes_presence_ratio")), params.toArray());
         return ratios;
     }
 }
