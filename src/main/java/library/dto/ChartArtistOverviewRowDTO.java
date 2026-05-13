@@ -5,6 +5,7 @@ public class ChartArtistOverviewRowDTO {
     private boolean matched;
     private Integer resolvedArtistId;
     private String artistName;
+    private boolean hasImage;
     private int chartedSongsCount;
     private int totalChartSpan;
     private Integer highestPeak;
@@ -16,6 +17,15 @@ public class ChartArtistOverviewRowDTO {
     private String lastAppearanceDate;
     private String lastAppearanceKey;
     private String lastAppearanceSortValue;
+    private int chartedAlbumsCount;
+    private int albumTotalChartSpan;
+    private Integer albumHighestPeak;
+    private int numberOneAlbumsCount;
+    private int albumTotalSpanAtNumberOne;
+    private int[] topSongCounts;
+    private int[] topSongWeeks;
+    private int[] topAlbumCounts;
+    private int[] topAlbumWeeks;
     private String genderClass;
 
     public boolean isMatched() {
@@ -40,6 +50,14 @@ public class ChartArtistOverviewRowDTO {
 
     public void setArtistName(String artistName) {
         this.artistName = artistName;
+    }
+
+    public boolean isHasImage() {
+        return hasImage;
+    }
+
+    public void setHasImage(boolean hasImage) {
+        this.hasImage = hasImage;
     }
 
     public int getChartedSongsCount() {
@@ -128,6 +146,78 @@ public class ChartArtistOverviewRowDTO {
 
     public void setLastAppearanceSortValue(String lastAppearanceSortValue) {
         this.lastAppearanceSortValue = lastAppearanceSortValue;
+    }
+
+    public int getChartedAlbumsCount() {
+        return chartedAlbumsCount;
+    }
+
+    public void setChartedAlbumsCount(int chartedAlbumsCount) {
+        this.chartedAlbumsCount = chartedAlbumsCount;
+    }
+
+    public int getAlbumTotalChartSpan() {
+        return albumTotalChartSpan;
+    }
+
+    public void setAlbumTotalChartSpan(int albumTotalChartSpan) {
+        this.albumTotalChartSpan = albumTotalChartSpan;
+    }
+
+    public Integer getAlbumHighestPeak() {
+        return albumHighestPeak;
+    }
+
+    public void setAlbumHighestPeak(Integer albumHighestPeak) {
+        this.albumHighestPeak = albumHighestPeak;
+    }
+
+    public int getNumberOneAlbumsCount() {
+        return numberOneAlbumsCount;
+    }
+
+    public void setNumberOneAlbumsCount(int numberOneAlbumsCount) {
+        this.numberOneAlbumsCount = numberOneAlbumsCount;
+    }
+
+    public int getAlbumTotalSpanAtNumberOne() {
+        return albumTotalSpanAtNumberOne;
+    }
+
+    public void setAlbumTotalSpanAtNumberOne(int albumTotalSpanAtNumberOne) {
+        this.albumTotalSpanAtNumberOne = albumTotalSpanAtNumberOne;
+    }
+
+    public int[] getTopSongCounts() {
+        return topSongCounts;
+    }
+
+    public void setTopSongCounts(int[] topSongCounts) {
+        this.topSongCounts = topSongCounts;
+    }
+
+    public int[] getTopSongWeeks() {
+        return topSongWeeks;
+    }
+
+    public void setTopSongWeeks(int[] topSongWeeks) {
+        this.topSongWeeks = topSongWeeks;
+    }
+
+    public int[] getTopAlbumCounts() {
+        return topAlbumCounts;
+    }
+
+    public void setTopAlbumCounts(int[] topAlbumCounts) {
+        this.topAlbumCounts = topAlbumCounts;
+    }
+
+    public int[] getTopAlbumWeeks() {
+        return topAlbumWeeks;
+    }
+
+    public void setTopAlbumWeeks(int[] topAlbumWeeks) {
+        this.topAlbumWeeks = topAlbumWeeks;
     }
 
     public String getGenderClass() {

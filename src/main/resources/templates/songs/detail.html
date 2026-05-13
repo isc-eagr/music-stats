@@ -302,7 +302,7 @@
                     
                     <!-- Gender Rank -->
                           <a th:if="${rankByGender != null and artist != null and artist.genderId != null}" 
-                              th:href="@{/songs(gender=${artist.genderId},genderMode='includes',view='graphs',tab='general')}"
+                              th:href="@{/songs(gender=${artist.genderId},genderMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip gender"
                        th:classappend="${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'female' : (${genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male')} ? 'male' : '')"
@@ -311,7 +311,7 @@
                     
                     <!-- Genre Rank -->
                           <a th:if="${rankByGenre != null and (song.overrideGenreId != null or (album != null and album.overrideGenreId != null) or (artist != null and artist.genreId != null))}" 
-                              th:href="@{/songs(genre=${song.overrideGenreId != null ? song.overrideGenreId : (album != null and album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)},genreMode='includes',view='graphs',tab='genre')}"
+                              th:href="@{/songs(genre=${song.overrideGenreId != null ? song.overrideGenreId : (album != null and album.overrideGenreId != null ? album.overrideGenreId : artist.genreId)},genreMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip genre" 
                        th:text="'#' + ${rankByGenre} + ' ' + ${genres.get(song.overrideGenreId != null ? song.overrideGenreId : (album != null and album.overrideGenreId != null ? album.overrideGenreId : artist.genreId))}" 
@@ -319,7 +319,7 @@
                     
                     <!-- Subgenre Rank -->
                           <a th:if="${rankBySubgenre != null and (song.overrideSubgenreId != null or (album != null and album.overrideSubgenreId != null) or (artist != null and artist.subgenreId != null))}" 
-                              th:href="@{/songs(subgenre=${song.overrideSubgenreId != null ? song.overrideSubgenreId : (album != null and album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)},subgenreMode='includes',view='graphs',tab='subgenre')}"
+                              th:href="@{/songs(subgenre=${song.overrideSubgenreId != null ? song.overrideSubgenreId : (album != null and album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId)},subgenreMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip subgenre" 
                        th:text="'#' + ${rankBySubgenre} + ' ' + ${subgenres.get(song.overrideSubgenreId != null ? song.overrideSubgenreId : (album != null and album.overrideSubgenreId != null ? album.overrideSubgenreId : artist.subgenreId))}" 
@@ -327,7 +327,7 @@
                     
                     <!-- Ethnicity Rank -->
                           <a th:if="${rankByEthnicity != null and artist != null and artist.ethnicityId != null}" 
-                              th:href="@{/songs(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
+                              th:href="@{/songs(ethnicity=${artist.ethnicityId},ethnicityMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip ethnicity" 
                        th:text="'#' + ${rankByEthnicity} + ' ' + ${ethnicities.get(artist.ethnicityId)}" 
@@ -335,7 +335,7 @@
                     
                     <!-- Language Rank -->
                           <a th:if="${rankByLanguage != null and (song.overrideLanguageId != null or (album != null and album.overrideLanguageId != null) or (artist != null and artist.languageId != null))}" 
-                              th:href="@{/songs(language=${song.overrideLanguageId != null ? song.overrideLanguageId : (album != null and album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)},languageMode='includes',view='graphs',tab='language')}"
+                              th:href="@{/songs(language=${song.overrideLanguageId != null ? song.overrideLanguageId : (album != null and album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId)},languageMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip language" 
                        th:text="'#' + ${rankByLanguage} + ' ' + ${languages.get(song.overrideLanguageId != null ? song.overrideLanguageId : (album != null and album.overrideLanguageId != null ? album.overrideLanguageId : artist.languageId))}" 
@@ -343,7 +343,7 @@
                     
                     <!-- Spanish Rap Rank (special combination) -->
                           <a th:if="${rankBySpanishRap != null}"
-                              th:href="@{/songs(genre=${rapGenreId},genreMode='includes',language=${spanishLanguageId},languageMode='includes',view='graphs',tab='genre')}"
+                              th:href="@{/songs(genre=${rapGenreId},genreMode='includes',language=${spanishLanguageId},languageMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip spanish-rap"
                        th:text="'#' + ${rankBySpanishRap} + ' Spanish Rap'"
@@ -351,7 +351,7 @@
 
                     <!-- Country Rank -->
                           <a th:if="${rankByCountry != null and artist != null and artist.country != null}" 
-                              th:href="@{/songs(country=${artist.country},countryMode='includes',view='graphs',tab='country')}"
+                              th:href="@{/songs(country=${artist.country},countryMode='includes')}"
                        target="_blank"
                        class="winning-chip rank-chip country" 
                        th:text="'#' + ${rankByCountry} + ' ' + ${artist.country}" 
@@ -362,7 +362,7 @@
                     
                     <!-- Position by Release Year -->
                           <a th:if="${rankByReleaseYear != null and releaseYear != null}"
-                              th:href="@{/songs(releaseDateMode='between',releaseDateFrom=${releaseYear + '-01-01'},releaseDateTo=${releaseYear + '-12-31'},view='graphs',tab='releaseYear')}"
+                              th:href="@{/songs(releaseDateMode='between',releaseDateFrom=${releaseYear + '-01-01'},releaseDateTo=${releaseYear + '-12-31'})}"
                        target="_blank"
                        class="winning-chip rank-chip release-year"
                        th:text="'#' + ${rankByReleaseYear} + ' released in ' + ${releaseYear}"
@@ -371,7 +371,7 @@
                     <!-- Year Ranks (only if <= 100) -->
                           <a th:each="yearEntry : ${ranksByYear}" 
                               th:if="${yearEntry.value != null and yearEntry.value <= 100}"
-                              th:href="@{/songs(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31',view='graphs',tab='listenYear')}"
+                              th:href="@{/songs(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31')}"
                        target="_blank"
                        class="winning-chip rank-chip year-rank" 
                        th:text="'#' + ${yearEntry.value} + ' most listened in ' + ${yearEntry.key}" 

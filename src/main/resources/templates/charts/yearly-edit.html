@@ -575,7 +575,6 @@
                 <span th:if="${nextPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">Next →</span>
             </div>
             <div class="chart-actions">
-                <a th:href="@{/charts/yearly/overview}" class="btn btn-primary" style="text-decoration: none;">Overview</a>
                 <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
                 <button th:if="${songChartFinalized and albumChartFinalized}" class="btn btn-warning" onclick="unfinalizeAll()">Edit Charts</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
@@ -769,14 +768,19 @@
         const albumAlreadyFinalized = [[${albumChartFinalized}]];
         const displayName = [[${displayName}]];
         
-        // Open songs graphs view with year date range
+        // Open the songs list with the year date range
         function openGraphsPage(event) {
             event.preventDefault();
             const year = periodKey;
             const dateFrom = year + '-01-01';
             const dateTo = year + '-12-31';
-            const encodedLabel = encodeURIComponent(displayName);
-            window.open('/songs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel + '&view=graphs', '_blank');
+            const params = new URLSearchParams({
+                listenedDateFrom: dateFrom,
+                listenedDateTo: dateTo,
+                periodLabel: displayName,
+                view: 'list'
+            });
+            window.open('/songs?' + params.toString(), '_blank');
         }
         
         let songSearchTimeout = null;

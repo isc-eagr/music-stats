@@ -57,267 +57,73 @@ public class ChartService {
     }
     
     /**
-     * Get the latest weekly chart (period_type IS NULL).
+     * Get the latest weekly chart for a given type.
      */
     public Optional<Chart> getLatestWeeklyChart(String chartType) {
         return chartRepository.findLatestWeeklyChart(chartType);
     }
-    
+
     /**
-     * Get the latest finalized weekly chart.
-     */
-    public Optional<Chart> getLatestFinalizedWeeklyChart(String chartType) {
-        return chartRepository.findLatestFinalizedWeeklyChart(chartType);
-    }
-    
-    /**
-     * Get a chart by type and period key.
+     * Get a weekly chart by type and period key.
      */
     public Optional<Chart> getChart(String chartType, String periodKey) {
         return chartRepository.findByChartTypeAndPeriodKey(chartType, periodKey);
     }
-    
+
     /**
-     * Get the previous chart (for navigation).
+     * Get the previous weekly chart for navigation.
      */
     public Optional<Chart> getPreviousChart(String chartType, String periodKey) {
         return chartRepository.findPreviousChart(chartType, periodKey);
     }
-    
+
     /**
-     * Get the next chart (for navigation).
+     * Get the next weekly chart for navigation.
      */
     public Optional<Chart> getNextChart(String chartType, String periodKey) {
         return chartRepository.findNextChart(chartType, periodKey);
     }
-    
-    /**
-     * Check if a week has completely passed (i.e., we are past the end date).
-     * Charts should only be generated for weeks that have fully ended.
-     */
-    public boolean isWeekComplete(String periodKey) {
-        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
-        LocalDate endDate = dateRange[1];
-        LocalDate today = LocalDate.now();
-        return today.isAfter(endDate);
-    }
-    
-    /**
-     * Get the current incomplete week's period key.
-     * Returns the period key for the week that contains today's date.
-     * If we're before the first Monday of the year (W00 days), returns the last week of the previous year.
-     */
-    public String getCurrentWeekPeriodKey() {
-        LocalDate today = LocalDate.now();
-        int year = today.getYear();
-
-        // Find the first Monday of the year (matches SQLite's %W week 01)
-        LocalDate jan1 = LocalDate.of(year, 1, 1);
-        LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
-
-        // Check if we're before the first Monday (would be week 00)
-        // In this case, we should return the last week of the previous year since W00 is merged into it
-        if (today.isBefore(firstMonday)) {
-            return getLastWeekOfPreviousYear(year);
-        }
-
-        // Calculate week number: (days since first Monday / 7) + 1
-        long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, today);
-        int weekNumber = (int)(daysSinceFirstMonday / 7) + 1;
-
-        return String.format("%d-W%02d", year, weekNumber);
-    }
 
     /**
-     * Get the last week's period key of the previous year.
-     * Used when current date falls in "W00" territory.
-     */
-    private String getLastWeekOfPreviousYear(int currentYear) {
-        int prevYear = currentYear - 1;
-        LocalDate dec31 = LocalDate.of(prevYear, 12, 31);
-        LocalDate jan1PrevYear = LocalDate.of(prevYear, 1, 1);
-        LocalDate firstMondayPrevYear = jan1PrevYear.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
-
-        long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMondayPrevYear, dec31);
-        int lastWeekNum = (int) (daysSinceFirstMonday / 7) + 1;
-
-        return String.format("%d-W%02d", prevYear, lastWeekNum);
-    }
-
-    /**
-     * Get the next week's period key from a given period key.
-     * If the next week would be W00, returns the last week of the previous year (which already covers those dates).
-     */
-    public String getNextWeekPeriodKey(String periodKey) {
-        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
-        LocalDate endDate = dateRange[1];
-        // Start of next week is end date + 1 day
-        LocalDate nextWeekStart = endDate.plusDays(1);
-
-        int year = nextWeekStart.getYear();
-        LocalDate jan1 = LocalDate.of(year, 1, 1);
-        LocalDate firstMonday = jan1.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
-
-        // Check if we're before the first Monday (would be week 00)
-        // W00 dates are covered by the last week of the previous year, so return that instead
-        if (nextWeekStart.isBefore(firstMonday)) {
-            return getLastWeekOfPreviousYear(year);
-        }
-
-        // Calculate week number
-        long daysSinceFirstMonday = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, nextWeekStart);
-        int weekNumber = (int)(daysSinceFirstMonday / 7) + 1;
-
-        return String.format("%d-W%02d", year, weekNumber);
-    }
-
-    /**
-     * Format a period key for display (e.g., "2024-W48" -> "Nov 25 - Dec 1, 2024").
+     * Format a weekly period key into its display date range.
      */
     public String formatPeriodKey(String periodKey) {
         LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
-        LocalDate start = dateRange[0];
-        LocalDate end = dateRange[1];
-        java.time.format.DateTimeFormatter monthDay = java.time.format.DateTimeFormatter.ofPattern("MMM d");
-        java.time.format.DateTimeFormatter full = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy");
-
-        if (start.getYear() == end.getYear()) {
-            return start.format(monthDay) + " - " + end.format(full);
-        } else {
-            return start.format(full) + " - " + end.format(full);
-        }
+        return formatDateRange(dateRange[0].toString(), dateRange[1].toString());
     }
 
     /**
-     * Generate a weekly song chart for a specific period.
+     * Returns true only after the weekly period has fully passed.
      */
-    @Transactional
-    public Chart generateWeeklySongChart(String periodKey) {
-        // Check if chart already exists
-        Optional<Chart> existing = chartRepository.findByChartTypeAndPeriodKey("song", periodKey);
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-        
-        // Parse period key to get date range
+    public boolean isWeekComplete(String periodKey) {
         LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
-        LocalDate startDate = dateRange[0];
-        LocalDate endDate = dateRange[1];
-        
-        // Create the chart record
-        Chart chart = new Chart("song", periodKey, startDate, endDate);
-        chart = chartRepository.save(chart);
-        
-        // Query top 20 songs for this period
-        // Tie-breaker: if same play count, the song that reached it first (earlier last play) wins
-        String sql = """
-            SELECT s.id as song_id, COUNT(*) as play_count, MAX(p.play_date) as last_play
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
-              AND p.song_id IS NOT NULL
-            GROUP BY s.id
-            ORDER BY play_count DESC, last_play ASC
-            LIMIT ?
-            """;
-        
-        Integer chartId = chart.getId();
-        List<ChartEntry> entries = jdbcTemplate.query(sql, 
-            (rs, rowNum) -> {
-                int position = rowNum + 1;
-                return ChartEntry.forSong(chartId, position, rs.getInt("song_id"), rs.getInt("play_count"));
-            },
-            startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
-        
-        // Save all entries
-        chartEntryRepository.saveAll(entries);
-        
-        return chart;
+        return dateRange[1].isBefore(LocalDate.now());
     }
-    
+
     /**
-     * Generate a weekly album chart for a specific period.
+     * Get the next weekly period key after the provided one.
      */
-    @Transactional
-    public Chart generateWeeklyAlbumChart(String periodKey) {
-        // Check if chart already exists
-        Optional<Chart> existing = chartRepository.findByChartTypeAndPeriodKey("album", periodKey);
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-        
-        // Parse period key to get date range
-        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
-        LocalDate startDate = dateRange[0];
-        LocalDate endDate = dateRange[1];
-        
-        // Create the chart record
-        Chart chart = new Chart("album", periodKey, startDate, endDate);
-        chart = chartRepository.save(chart);
-        
-        // Query top 10 albums for this period
-        // Tie-breaker: if same play count, the album that reached it first (earlier last play) wins
-        String sql = """
-            SELECT s.album_id as album_id, COUNT(*) as play_count, MAX(p.play_date) as last_play
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
-              AND p.song_id IS NOT NULL
-              AND s.album_id IS NOT NULL
-            GROUP BY s.album_id
-            ORDER BY play_count DESC, last_play ASC
-            LIMIT ?
-            """;
-        
-        Integer chartId = chart.getId();
-        List<ChartEntry> entries = jdbcTemplate.query(sql, 
-            (rs, rowNum) -> {
-                int position = rowNum + 1;
-                return ChartEntry.forAlbum(chartId, position, rs.getInt("album_id"), rs.getInt("play_count"));
-            },
-            startDate.toString(), endDate.toString(), TOP_ALBUMS_COUNT);
-        
-        // Save all entries
-        chartEntryRepository.saveAll(entries);
-        
-        return chart;
+    public String getNextWeekPeriodKey(String periodKey) {
+        LocalDate nextWeekStart = parsePeriodKeyToDateRange(periodKey)[0].plusWeeks(1);
+        return jdbcTemplate.queryForObject("SELECT strftime('%Y-W%W', ?)", String.class, nextWeekStart.toString());
     }
-    
+
     /**
-     * Generate both song and album charts for a specific period.
-     * @throws IllegalArgumentException if the week has not yet completed
-     */
-    @Transactional
-    public void generateWeeklyCharts(String periodKey) {
-        if (!isWeekComplete(periodKey)) {
-            LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
-            throw new IllegalArgumentException(
-                "Cannot generate chart for week " + periodKey + ": week has not ended yet. " +
-                "The week ends on " + dateRange[1] + ". Please wait until after that date.");
-        }
-        generateWeeklySongChart(periodKey);
-        generateWeeklyAlbumChart(periodKey);
-    }
-    
-    /**
-     * Get weekly chart with full statistics for display.
+     * Get weekly song chart with full statistics for display.
      */
     public List<ChartEntryDTO> getWeeklyChartWithStats(String periodKey) {
         Optional<Chart> chartOpt = chartRepository.findByChartTypeAndPeriodKey("song", periodKey);
         if (chartOpt.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         Chart chart = chartOpt.get();
-        
-        // Get chart entries with song details
         List<Object[]> rawEntries = chartEntryRepository.findEntriesWithSongDetailsRaw(chart.getId());
-        
-        // Get previous chart for last week comparison
+
         Optional<Chart> prevChartOpt = chartRepository.findPreviousChart("song", periodKey);
         Map<Integer, Integer> lastWeekPositions = new HashMap<>();
         Map<Integer, Integer> lastWeekPlayCounts = new HashMap<>();
-        
+
         if (prevChartOpt.isPresent()) {
             List<Object[]> prevEntries = chartEntryRepository.findEntriesWithSongDetailsRaw(prevChartOpt.get().getId());
             for (Object[] row : prevEntries) {
@@ -328,54 +134,106 @@ public class ChartService {
                 lastWeekPlayCounts.put(songId, playCount);
             }
         }
-        
-        // Get all charts for calculating peak, weeks on chart, etc.
-        List<Chart> allCharts = chartRepository.findAllByChartTypeOrderByPeriodStartDateAsc("song");
-        Map<String, Integer> chartIdToPeriodIndex = new HashMap<>();
-        for (int i = 0; i < allCharts.size(); i++) {
-            chartIdToPeriodIndex.put(allCharts.get(i).getPeriodKey(), i);
-        }
-        int currentChartIndex = chartIdToPeriodIndex.getOrDefault(periodKey, -1);
-        
+
         List<ChartEntryDTO> result = new ArrayList<>();
-        
-        for (Object[] row : rawEntries) {
+        for (int currentChartIndex = 0; currentChartIndex < rawEntries.size(); currentChartIndex++) {
+            Object[] row = rawEntries.get(currentChartIndex);
+
             ChartEntryDTO dto = new ChartEntryDTO();
             dto.setPosition((Integer) row[2]);
             dto.setSongId((Integer) row[3]);
-            dto.setAlbumId((Integer) row[4]);
+            dto.setAlbumId(row[4] != null ? (Integer) row[4] : null);
             dto.setPlayCount((Integer) row[5]);
             dto.setSongName((String) row[6]);
             dto.setArtistName((String) row[7]);
             dto.setHasImage(((Number) row[8]).intValue() == 1);
             dto.setArtistId((Integer) row[9]);
-            dto.setAlbumName((String) row[10]); // Album name for playlist export
+            dto.setAlbumName((String) row[10]);
             dto.setGenderId(row[11] != null ? ((Number) row[11]).intValue() : null);
-            dto.setAlbumHasImage(row[12] != null && ((Number) row[12]).intValue() == 1);
+            dto.setAlbumHasImage(((Number) row[12]).intValue() == 1);
             dto.setGenreName(row[13] != null ? (String) row[13] : null);
 
             Integer songId = dto.getSongId();
-            
-            // Last week position
             if (lastWeekPositions.containsKey(songId)) {
                 dto.setLastWeekPosition(lastWeekPositions.get(songId));
                 dto.setLastWeekPlayCount(lastWeekPlayCounts.get(songId));
             } else {
-                // Check if this is a re-entry (was on any previous chart but not last week)
                 boolean wasOnPreviousChart = checkIfSongWasOnPreviousChart(songId, periodKey, prevChartOpt.map(Chart::getPeriodKey).orElse(null));
                 if (wasOnPreviousChart) {
-                    dto.setLastWeekPosition(-1); // -1 indicates re-entry
+                    dto.setLastWeekPosition(-1);
                 }
-                // else null = new entry
             }
-            
-            // Calculate peak, times at peak, and weeks on chart
+
             calculateChartRunStats(dto, songId, periodKey, currentChartIndex);
-            
             result.add(dto);
         }
-        
+
         return result;
+    }
+
+    /**
+     * Generate both weekly song and album charts for a period.
+     */
+    @Transactional
+    public void generateWeeklyCharts(String periodKey) {
+        generateWeeklySongChart(periodKey);
+        generateWeeklyAlbumChart(periodKey);
+    }
+
+    /**
+     * Generate or replace the weekly song chart for a period.
+     */
+    @Transactional
+    public void generateWeeklySongChart(String periodKey) {
+        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
+        Chart chart = chartRepository.findByChartTypeAndPeriodKey("song", periodKey)
+            .orElseGet(() -> chartRepository.save(new Chart("song", periodKey, dateRange[0], dateRange[1])));
+
+        chart.setPeriodStartDate(dateRange[0].toString());
+        chart.setPeriodEndDate(dateRange[1].toString());
+        chart.setPeriodType("weekly");
+        chart.setIsFinalized(true);
+        chart = chartRepository.save(chart);
+        Integer chartId = chart.getId();
+
+        chartEntryRepository.deleteByChartId(chartId);
+
+        List<ChartEntry> entries = getWeeklySongChartPreview(periodKey).stream()
+            .filter(entry -> entry.getSongId() != null)
+            .map(entry -> ChartEntry.forSong(chartId, entry.getPosition(), entry.getSongId(), entry.getPlayCount()))
+            .toList();
+
+        if (!entries.isEmpty()) {
+            chartEntryRepository.saveAll(entries);
+        }
+    }
+
+    /**
+     * Generate or replace the weekly album chart for a period.
+     */
+    @Transactional
+    public void generateWeeklyAlbumChart(String periodKey) {
+        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
+        Chart chart = chartRepository.findByChartTypeAndPeriodKey("album", periodKey)
+            .orElseGet(() -> chartRepository.save(new Chart("album", periodKey, dateRange[0], dateRange[1])));
+
+        chart.setPeriodStartDate(dateRange[0].toString());
+        chart.setPeriodEndDate(dateRange[1].toString());
+        chart.setPeriodType("weekly");
+        chart.setIsFinalized(true);
+        chart = chartRepository.save(chart);
+        Integer chartId = chart.getId();
+
+        chartEntryRepository.deleteByChartId(chartId);
+
+        List<ChartEntry> entries = getWeeklyAlbumChartPreview(periodKey).stream()
+            .filter(entry -> entry.getAlbumId() != null)
+            .map(entry -> ChartEntry.forAlbum(chartId, entry.getPosition(), entry.getAlbumId(), entry.getPlayCount()))
+            .toList();
+
+        if (!entries.isEmpty()) {
+            chartEntryRepository.saveAll(entries);
+        }
     }
 
     public List<ChartEntryDTO> getWeeklyChartFallOffs(String periodKey, List<ChartEntryDTO> currentEntries) {
@@ -2799,32 +2657,12 @@ public class ChartService {
         });
     }
     
-    /**
-     * Get all years that have weekly chart data (for "Most Weeks at Position" page).
-     */
-    public List<Map<String, Object>> getChartYearsForMostWeeks() {
-        String sql = """
-            SELECT DISTINCT strftime('%Y', c.period_start_date) as year
-            FROM Chart c
-            WHERE c.period_type = 'weekly'
-            ORDER BY year DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            String year = rs.getString("year");
-            Map<String, Object> map = new HashMap<>();
-            map.put("year", year);
-            map.put("displayName", year);
-            return map;
-        });
-    }
-
     public List<ChartSongOverviewRowDTO> getChartOverviewSongRows(String periodType) {
         return buildChartOverviewSongRows(periodType);
     }
 
     public List<ChartAlbumOverviewRowDTO> getChartOverviewAlbumRows(String periodType) {
-        return buildChartOverviewAlbumRows(buildChartOverviewSongRows(periodType));
+        return buildChartOverviewAlbumRows(periodType);
     }
 
     public List<ChartAlbumOverviewRowDTO> getChartOverviewAlbumRows(List<ChartSongOverviewRowDTO> songRows) {
@@ -2832,11 +2670,17 @@ public class ChartService {
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType) {
-        return buildChartOverviewArtistRows(buildChartOverviewSongRows(periodType));
+        List<ChartSongOverviewRowDTO> songRows = buildChartOverviewSongRows(periodType);
+        List<ChartAlbumOverviewRowDTO> albumRows = buildChartOverviewAlbumRows(periodType);
+        return buildChartOverviewArtistRows(songRows, albumRows);
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows) {
         return buildChartOverviewArtistRows(songRows);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows, List<ChartAlbumOverviewRowDTO> albumRows) {
+        return buildChartOverviewArtistRows(songRows, albumRows);
     }
 
     private List<ChartSongOverviewRowDTO> buildChartOverviewSongRows(String periodType) {
@@ -2848,6 +2692,9 @@ public class ChartService {
                    ar.id as artist_id,
                    ar.name as artist_name,
                    ar.gender_id,
+                   CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END as has_image,
+                   CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END as album_has_image,
+                   CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as artist_has_image,
                    ce.position,
                    c.period_key,
                    c.period_start_date
@@ -2871,6 +2718,9 @@ public class ChartService {
             rs.getInt("artist_id"),
             rs.getString("artist_name"),
             rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null,
+            rs.getInt("has_image") == 1,
+            rs.getInt("album_has_image") == 1,
+            rs.getInt("artist_has_image") == 1,
             rs.getInt("position"),
             rs.getString("period_key"),
             rs.getString("period_start_date")
@@ -2892,6 +2742,61 @@ public class ChartService {
             .thenComparing(ChartSongOverviewRowDTO::getSpanAtPeak, Comparator.reverseOrder())
             .thenComparing(ChartSongOverviewRowDTO::getFirstAppearanceSortValue, Comparator.nullsLast(String::compareTo))
             .thenComparing(ChartSongOverviewRowDTO::getSongTitle, String.CASE_INSENSITIVE_ORDER));
+        return rows;
+    }
+
+    private List<ChartAlbumOverviewRowDTO> buildChartOverviewAlbumRows(String periodType) {
+        String sql = """
+            SELECT ce.album_id,
+                   al.name as album_name,
+                   ar.id as artist_id,
+                   ar.name as artist_name,
+                   ar.gender_id,
+                   CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END as has_image,
+                   CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as artist_has_image,
+                   ce.position,
+                   c.period_key,
+                   c.period_start_date
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            INNER JOIN Album al ON ce.album_id = al.id
+            INNER JOIN Artist ar ON al.artist_id = ar.id
+            WHERE c.chart_type = 'album'
+              AND c.period_type = ?
+              AND c.is_finalized = 1
+            """ + getChartOverviewAlbumPositionClause(periodType) + """
+            ORDER BY c.period_start_date ASC, ce.position ASC, ce.id ASC
+            """;
+
+        List<ChartOverviewAlbumAppearanceRow> appearances = jdbcTemplate.query(sql, (rs, rowNum) -> new ChartOverviewAlbumAppearanceRow(
+            rs.getInt("album_id"),
+            rs.getString("album_name"),
+            rs.getInt("artist_id"),
+            rs.getString("artist_name"),
+            rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null,
+            rs.getInt("has_image") == 1,
+            rs.getInt("artist_has_image") == 1,
+            rs.getInt("position"),
+            rs.getString("period_key"),
+            rs.getString("period_start_date")
+        ), periodType);
+
+        Map<Integer, ChartOverviewAlbumChartAccumulator> accumulators = new LinkedHashMap<>();
+        for (ChartOverviewAlbumAppearanceRow appearance : appearances) {
+            accumulators.computeIfAbsent(appearance.albumId(), ignored -> new ChartOverviewAlbumChartAccumulator(appearance))
+                .addAppearance(appearance);
+        }
+
+        List<ChartAlbumOverviewRowDTO> rows = new ArrayList<>();
+        for (ChartOverviewAlbumChartAccumulator accumulator : accumulators.values()) {
+            rows.add(accumulator.toDto(periodType));
+        }
+
+        rows.sort(Comparator.comparing(ChartAlbumOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo))
+            .thenComparing(ChartAlbumOverviewRowDTO::getTotalChartSpan, Comparator.reverseOrder())
+            .thenComparing(ChartAlbumOverviewRowDTO::getSpanAtPeak, Comparator.reverseOrder())
+            .thenComparing(ChartAlbumOverviewRowDTO::getFirstDebutSortValue, Comparator.nullsLast(String::compareTo))
+            .thenComparing(ChartAlbumOverviewRowDTO::getAlbumName, String.CASE_INSENSITIVE_ORDER));
         return rows;
     }
 
@@ -2920,11 +2825,20 @@ public class ChartService {
     }
 
     private List<ChartArtistOverviewRowDTO> buildChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows) {
+        return buildChartOverviewArtistRows(songRows, List.of());
+    }
+
+    private List<ChartArtistOverviewRowDTO> buildChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows, List<ChartAlbumOverviewRowDTO> albumRows) {
         Map<Integer, ChartOverviewArtistAccumulator> accumulators = new LinkedHashMap<>();
 
         for (ChartSongOverviewRowDTO row : songRows) {
             accumulators.computeIfAbsent(row.getArtistId(), ignored -> new ChartOverviewArtistAccumulator(row))
                 .addSong(row);
+        }
+
+        for (ChartAlbumOverviewRowDTO row : albumRows) {
+            accumulators.computeIfAbsent(row.getResolvedArtistId(), ignored -> new ChartOverviewArtistAccumulator(row))
+                .addAlbum(row);
         }
 
         List<ChartArtistOverviewRowDTO> rows = new ArrayList<>();
@@ -2934,7 +2848,9 @@ public class ChartService {
 
         rows.sort(Comparator.comparing(ChartArtistOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo))
             .thenComparing(ChartArtistOverviewRowDTO::getTotalChartSpan, Comparator.reverseOrder())
+            .thenComparing(ChartArtistOverviewRowDTO::getAlbumTotalChartSpan, Comparator.reverseOrder())
             .thenComparing(ChartArtistOverviewRowDTO::getNumberOneSongsCount, Comparator.reverseOrder())
+            .thenComparing(ChartArtistOverviewRowDTO::getNumberOneAlbumsCount, Comparator.reverseOrder())
             .thenComparing(ChartArtistOverviewRowDTO::getFirstDebutSortValue, Comparator.nullsLast(String::compareTo))
             .thenComparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER));
         return rows;
@@ -2960,6 +2876,36 @@ public class ChartService {
             return " AND ce.position <= " + SEASONAL_YEARLY_SONGS_COUNT + "\n";
         }
         return "\n";
+    }
+
+    private String getChartOverviewAlbumPositionClause(String periodType) {
+        if ("seasonal".equals(periodType)) {
+            return " AND ce.position <= " + SEASONAL_ALBUMS_COUNT + "\n";
+        }
+        if ("yearly".equals(periodType)) {
+            return " AND ce.position <= " + YEARLY_ALBUMS_COUNT + "\n";
+        }
+        return " AND ce.position <= " + TOP_ALBUMS_COUNT + "\n";
+    }
+
+    private int getMaxSongOverviewThreshold(String periodType) {
+        if ("seasonal".equals(periodType)) {
+            return 35;
+        }
+        if ("yearly".equals(periodType)) {
+            return SEASONAL_YEARLY_SONGS_COUNT;
+        }
+        return TOP_SONGS_COUNT;
+    }
+
+    private int getMaxAlbumOverviewThreshold(String periodType) {
+        if ("seasonal".equals(periodType)) {
+            return SEASONAL_ALBUMS_COUNT;
+        }
+        if ("yearly".equals(periodType)) {
+            return YEARLY_ALBUMS_COUNT;
+        }
+        return TOP_ALBUMS_COUNT;
     }
 
     /**
@@ -2991,6 +2937,23 @@ public class ChartService {
         Integer artistId,
         String artistName,
         Integer genderId,
+        boolean hasImage,
+        boolean albumHasImage,
+        boolean artistHasImage,
+        int position,
+        String periodKey,
+        String periodStartDate
+    ) {
+    }
+
+    private record ChartOverviewAlbumAppearanceRow(
+        Integer albumId,
+        String albumName,
+        Integer artistId,
+        String artistName,
+        Integer genderId,
+        boolean hasImage,
+        boolean artistHasImage,
         int position,
         String periodKey,
         String periodStartDate
@@ -3006,12 +2969,16 @@ public class ChartService {
         private final String albumName;
         private final String artistName;
         private final Integer genderId;
+        private final boolean hasImage;
+        private final boolean albumHasImage;
+        private final boolean artistHasImage;
         private int totalChartSpan;
         private int peakPosition;
         private int spanAtPeak;
         private int spanAtTop1;
         private int spanAtTop5;
         private int spanAtTop10;
+        private final List<Integer> appearancePositions = new ArrayList<>();
         private Integer debutPosition;
         private String firstAppearanceKey;
         private String firstAppearanceSortValue;
@@ -3028,11 +2995,15 @@ public class ChartService {
             this.albumName = appearance.albumName();
             this.artistName = appearance.artistName();
             this.genderId = appearance.genderId();
+            this.hasImage = appearance.hasImage();
+            this.albumHasImage = appearance.albumHasImage();
+            this.artistHasImage = appearance.artistHasImage();
             this.peakPosition = Integer.MAX_VALUE;
         }
 
         private void addAppearance(ChartOverviewAppearanceRow appearance) {
             totalChartSpan++;
+            appearancePositions.add(appearance.position());
 
             if (firstAppearanceSortValue == null || appearance.periodStartDate().compareTo(firstAppearanceSortValue) < 0) {
                 firstAppearanceKey = appearance.periodKey();
@@ -3066,6 +3037,18 @@ public class ChartService {
         }
 
         private ChartSongOverviewRowDTO toDto(String periodType) {
+            int maxThreshold = getMaxSongOverviewThreshold(periodType);
+            int[] spanAtTopThresholds = new int[maxThreshold + 1];
+            for (Integer position : appearancePositions) {
+                if (position == null) {
+                    continue;
+                }
+                int safePosition = Math.max(1, Math.min(position, maxThreshold));
+                for (int threshold = safePosition; threshold <= maxThreshold; threshold++) {
+                    spanAtTopThresholds[threshold]++;
+                }
+            }
+
             ChartSongOverviewRowDTO dto = new ChartSongOverviewRowDTO();
             dto.setSongId(songId);
             dto.setAlbumId(albumId);
@@ -3073,6 +3056,9 @@ public class ChartService {
             dto.setSongTitle(songTitle);
             dto.setAlbumName(albumName);
             dto.setArtistName(artistName);
+            dto.setHasImage(hasImage);
+            dto.setAlbumHasImage(albumHasImage);
+            dto.setArtistHasImage(artistHasImage);
             dto.setFirstAppearanceKey(firstAppearanceKey);
             dto.setFirstAppearanceLabel(formatOverviewPeriodLabel(periodType, firstAppearanceKey));
             dto.setFirstAppearanceSortValue(firstAppearanceSortValue);
@@ -3089,6 +3075,7 @@ public class ChartService {
             dto.setSpanAtTop1(spanAtTop1);
             dto.setSpanAtTop5(spanAtTop5);
             dto.setSpanAtTop10(spanAtTop10);
+            dto.setSpanAtTopThresholds(spanAtTopThresholds);
             dto.setGenderClass(resolveGenderClass(genderId));
             return dto;
         }
@@ -3101,6 +3088,8 @@ public class ChartService {
         private final String albumName;
         private final String artistName;
         private final String genderClass;
+        private final boolean hasImage;
+        private final boolean artistHasImage;
         private int chartedSongsCount;
         private int totalChartSpan;
         private Integer highestPeak;
@@ -3119,6 +3108,8 @@ public class ChartService {
             this.albumName = row.getAlbumName();
             this.artistName = row.getArtistName();
             this.genderClass = row.getGenderClass();
+            this.hasImage = row.isAlbumHasImage();
+            this.artistHasImage = row.isArtistHasImage();
         }
 
         private void addSong(ChartSongOverviewRowDTO row) {
@@ -3152,6 +3143,8 @@ public class ChartService {
             dto.setResolvedArtistId(resolvedArtistId);
             dto.setAlbumName(albumName);
             dto.setArtistName(artistName);
+            dto.setHasImage(hasImage);
+            dto.setArtistHasImage(artistHasImage);
             dto.setChartedSongsCount(chartedSongsCount);
             dto.setTotalChartSpan(totalChartSpan);
             dto.setHighestPeak(highestPeak);
@@ -3168,11 +3161,107 @@ public class ChartService {
         }
     }
 
+    private final class ChartOverviewAlbumChartAccumulator {
+
+        private final Integer albumId;
+        private final Integer resolvedArtistId;
+        private final String albumName;
+        private final String artistName;
+        private final Integer genderId;
+        private final boolean hasImage;
+        private final boolean artistHasImage;
+        private int totalChartSpan;
+        private Integer highestPeak;
+        private int spanAtPeak;
+        private Integer debutPosition;
+        private String firstDebutKey;
+        private String firstDebutSortValue;
+        private String lastAppearanceKey;
+        private String lastAppearanceSortValue;
+        private String peakAppearanceKey;
+        private String peakAppearanceSortValue;
+        private final List<Integer> appearancePositions = new ArrayList<>();
+
+        private ChartOverviewAlbumChartAccumulator(ChartOverviewAlbumAppearanceRow appearance) {
+            this.albumId = appearance.albumId();
+            this.resolvedArtistId = appearance.artistId();
+            this.albumName = appearance.albumName();
+            this.artistName = appearance.artistName();
+            this.genderId = appearance.genderId();
+            this.hasImage = appearance.hasImage();
+            this.artistHasImage = appearance.artistHasImage();
+        }
+
+        private void addAppearance(ChartOverviewAlbumAppearanceRow appearance) {
+            totalChartSpan++;
+            appearancePositions.add(appearance.position());
+
+            if (firstDebutSortValue == null || appearance.periodStartDate().compareTo(firstDebutSortValue) < 0) {
+                firstDebutKey = appearance.periodKey();
+                firstDebutSortValue = appearance.periodStartDate();
+                debutPosition = appearance.position();
+            }
+
+            if (lastAppearanceSortValue == null || appearance.periodStartDate().compareTo(lastAppearanceSortValue) > 0) {
+                lastAppearanceKey = appearance.periodKey();
+                lastAppearanceSortValue = appearance.periodStartDate();
+            }
+
+            if (highestPeak == null || appearance.position() < highestPeak) {
+                highestPeak = appearance.position();
+                spanAtPeak = 1;
+                peakAppearanceKey = appearance.periodKey();
+                peakAppearanceSortValue = appearance.periodStartDate();
+            } else if (appearance.position() == highestPeak) {
+                spanAtPeak++;
+            }
+        }
+
+        private ChartAlbumOverviewRowDTO toDto(String periodType) {
+            int maxThreshold = getMaxAlbumOverviewThreshold(periodType);
+            int[] spanAtTopThresholds = new int[maxThreshold + 1];
+            for (Integer position : appearancePositions) {
+                if (position == null) {
+                    continue;
+                }
+                int safePosition = Math.max(1, Math.min(position, maxThreshold));
+                for (int threshold = safePosition; threshold <= maxThreshold; threshold++) {
+                    spanAtTopThresholds[threshold]++;
+                }
+            }
+
+            ChartAlbumOverviewRowDTO dto = new ChartAlbumOverviewRowDTO();
+            dto.setAlbumId(albumId);
+            dto.setResolvedArtistId(resolvedArtistId);
+            dto.setAlbumName(albumName);
+            dto.setArtistName(artistName);
+            dto.setHasImage(hasImage);
+            dto.setArtistHasImage(artistHasImage);
+            dto.setTotalChartSpan(totalChartSpan);
+            dto.setHighestPeak(highestPeak);
+            dto.setSpanAtPeak(spanAtPeak);
+            dto.setFirstDebutKey(firstDebutKey);
+            dto.setFirstDebutDate(formatOverviewPeriodLabel(periodType, firstDebutKey));
+            dto.setFirstDebutSortValue(firstDebutSortValue);
+            dto.setDebutPosition(debutPosition);
+            dto.setPeakAppearanceKey(peakAppearanceKey);
+            dto.setPeakAppearanceDate(formatOverviewPeriodLabel(periodType, peakAppearanceKey));
+            dto.setPeakAppearanceSortValue(peakAppearanceSortValue);
+            dto.setLastAppearanceKey(lastAppearanceKey);
+            dto.setLastAppearanceDate(formatOverviewPeriodLabel(periodType, lastAppearanceKey));
+            dto.setLastAppearanceSortValue(lastAppearanceSortValue);
+            dto.setSpanAtTopThresholds(spanAtTopThresholds);
+            dto.setGenderClass(resolveGenderClass(genderId));
+            return dto;
+        }
+    }
+
     private static final class ChartOverviewArtistAccumulator {
 
         private final Integer resolvedArtistId;
         private final String artistName;
         private final String genderClass;
+        private boolean hasImage;
         private int chartedSongsCount;
         private int totalChartSpan;
         private Integer highestPeak;
@@ -3184,14 +3273,32 @@ public class ChartService {
         private String lastAppearanceDate;
         private String lastAppearanceKey;
         private String lastAppearanceSortValue;
+        private int chartedAlbumsCount;
+        private int albumTotalChartSpan;
+        private Integer albumHighestPeak;
+        private int numberOneAlbumsCount;
+        private int albumTotalSpanAtNumberOne;
+        private int[] topSongCounts = new int[0];
+        private int[] topSongWeeks = new int[0];
+        private int[] topAlbumCounts = new int[0];
+        private int[] topAlbumWeeks = new int[0];
 
         private ChartOverviewArtistAccumulator(ChartSongOverviewRowDTO row) {
             this.resolvedArtistId = row.getArtistId();
             this.artistName = row.getArtistName();
             this.genderClass = row.getGenderClass();
+            this.hasImage = row.isArtistHasImage();
+        }
+
+        private ChartOverviewArtistAccumulator(ChartAlbumOverviewRowDTO row) {
+            this.resolvedArtistId = row.getResolvedArtistId();
+            this.artistName = row.getArtistName();
+            this.genderClass = row.getGenderClass();
+            this.hasImage = row.isArtistHasImage();
         }
 
         private void addSong(ChartSongOverviewRowDTO row) {
+            hasImage = hasImage || row.isArtistHasImage();
             chartedSongsCount++;
             totalChartSpan += row.getTotalChartSpan();
             totalSpanAtNumberOne += row.getSpanAtTop1();
@@ -3214,6 +3321,49 @@ public class ChartService {
                 lastAppearanceKey = row.getLastAppearanceKey();
                 lastAppearanceSortValue = row.getLastAppearanceSortValue();
             }
+
+            int[] thresholdSpans = row.getSpanAtTopThresholds();
+            if (thresholdSpans != null && thresholdSpans.length > 0) {
+                topSongCounts = ensureCapacity(topSongCounts, thresholdSpans.length);
+                topSongWeeks = ensureCapacity(topSongWeeks, thresholdSpans.length);
+                int peak = Math.max(1, row.getPeakPosition());
+                for (int threshold = peak; threshold < thresholdSpans.length; threshold++) {
+                    topSongCounts[threshold]++;
+                    topSongWeeks[threshold] += thresholdSpans[threshold];
+                }
+            }
+        }
+
+        private void addAlbum(ChartAlbumOverviewRowDTO row) {
+            hasImage = hasImage || row.isArtistHasImage();
+            chartedAlbumsCount++;
+            albumTotalChartSpan += row.getTotalChartSpan();
+            albumTotalSpanAtNumberOne += row.getHighestPeak() != null && row.getHighestPeak() == 1 ? row.getSpanAtPeak() : 0;
+
+            if (albumHighestPeak == null || (row.getHighestPeak() != null && row.getHighestPeak() < albumHighestPeak)) {
+                albumHighestPeak = row.getHighestPeak();
+            }
+            if (row.getHighestPeak() != null && row.getHighestPeak() == 1) {
+                numberOneAlbumsCount++;
+            }
+
+            int[] thresholdSpans = row.getSpanAtTopThresholds();
+            if (thresholdSpans != null && thresholdSpans.length > 0 && row.getHighestPeak() != null) {
+                topAlbumCounts = ensureCapacity(topAlbumCounts, thresholdSpans.length);
+                topAlbumWeeks = ensureCapacity(topAlbumWeeks, thresholdSpans.length);
+                int peak = Math.max(1, row.getHighestPeak());
+                for (int threshold = peak; threshold < thresholdSpans.length; threshold++) {
+                    topAlbumCounts[threshold]++;
+                    topAlbumWeeks[threshold] += thresholdSpans[threshold];
+                }
+            }
+        }
+
+        private int[] ensureCapacity(int[] source, int requiredLength) {
+            if (source.length >= requiredLength) {
+                return source;
+            }
+            return Arrays.copyOf(source, requiredLength);
         }
 
         private ChartArtistOverviewRowDTO toDto() {
@@ -3221,6 +3371,7 @@ public class ChartService {
             dto.setMatched(true);
             dto.setResolvedArtistId(resolvedArtistId);
             dto.setArtistName(artistName);
+            dto.setHasImage(hasImage);
             dto.setChartedSongsCount(chartedSongsCount);
             dto.setTotalChartSpan(totalChartSpan);
             dto.setHighestPeak(highestPeak);
@@ -3232,6 +3383,15 @@ public class ChartService {
             dto.setLastAppearanceDate(lastAppearanceDate);
             dto.setLastAppearanceKey(lastAppearanceKey);
             dto.setLastAppearanceSortValue(lastAppearanceSortValue);
+            dto.setChartedAlbumsCount(chartedAlbumsCount);
+            dto.setAlbumTotalChartSpan(albumTotalChartSpan);
+            dto.setAlbumHighestPeak(albumHighestPeak);
+            dto.setNumberOneAlbumsCount(numberOneAlbumsCount);
+            dto.setAlbumTotalSpanAtNumberOne(albumTotalSpanAtNumberOne);
+            dto.setTopSongCounts(topSongCounts);
+            dto.setTopSongWeeks(topSongWeeks);
+            dto.setTopAlbumCounts(topAlbumCounts);
+            dto.setTopAlbumWeeks(topAlbumWeeks);
             dto.setGenderClass(genderClass);
             return dto;
         }
@@ -3248,316 +3408,6 @@ public class ChartService {
             return -1;
         }
         return left.compareTo(right);
-    }
-    
-    /**
-     * Get songs or albums with the most weeks at a given position threshold (paginated).
-     *
-     * @param type "song" or "album"
-     * @param maxPosition The maximum position to count
-     * @param year Optional year filter
-     * @param page 0-based page index
-     * @param pageSize Number of results per page
-     * @return Page of entries sorted by weeks count descending, then by earliest appearance.
-     */
-    public List<MostWeeksEntryDTO> getMostWeeksAtPosition(String type, int maxPosition, Integer year, int page, int pageSize, String sortBy, String sortDir) {
-        int offset = page * pageSize;
-        List<MostWeeksEntryDTO> results = new ArrayList<>();
-
-        if ("song".equals(type)) {
-            results = getMostWeeksSongs(maxPosition, year, pageSize, offset, sortBy, sortDir);
-        } else if ("album".equals(type)) {
-            results = getMostWeeksAlbums(maxPosition, year, pageSize, offset, sortBy, sortDir);
-        }
-
-        // Assign ranks starting from the correct offset
-        int startRank = offset + 1;
-        for (MostWeeksEntryDTO entry : results) {
-            entry.setRank(startRank++);
-        }
-
-        return results;
-    }
-
-    /**
-     * Count total distinct songs/albums that appear in the most-weeks ranking.
-     */
-    public int getMostWeeksCount(String type, int maxPosition, Integer year) {
-        if ("song".equals(type)) {
-            return getMostWeeksSongsCount(maxPosition, year);
-        } else if ("album".equals(type)) {
-            return getMostWeeksAlbumsCount(maxPosition, year);
-        }
-        return 0;
-    }
-
-    private int getMostWeeksSongsCount(int maxPosition, Integer year) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("""
-            SELECT COUNT(DISTINCT ce.song_id)
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            WHERE c.chart_type = 'song'
-              AND c.period_type = 'weekly'
-              AND ce.position <= ?
-            """);
-        List<Object> params = new ArrayList<>();
-        params.add(maxPosition);
-        if (year != null) {
-            sql.append(" AND strftime('%Y', c.period_start_date) = ?");
-            params.add(String.valueOf(year));
-        }
-        Integer count = jdbcTemplate.queryForObject(sql.toString(), Integer.class, params.toArray());
-        return count != null ? count : 0;
-    }
-
-    private int getMostWeeksAlbumsCount(int maxPosition, Integer year) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("""
-            SELECT COUNT(DISTINCT ce.album_id)
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            WHERE c.chart_type = 'album'
-              AND c.period_type = 'weekly'
-              AND ce.position <= ?
-            """);
-        List<Object> params = new ArrayList<>();
-        params.add(maxPosition);
-        if (year != null) {
-            sql.append(" AND strftime('%Y', c.period_start_date) = ?");
-            params.add(String.valueOf(year));
-        }
-        Integer count = jdbcTemplate.queryForObject(sql.toString(), Integer.class, params.toArray());
-        return count != null ? count : 0;
-    }
-    
-    /**
-     * Get songs with the most weeks at a given position threshold (paginated).
-     */
-    private List<MostWeeksEntryDTO> getMostWeeksSongs(int maxPosition, Integer year, int limit, int offset, String sortBy, String sortDir) {
-        Map<String, String> songSortCols = Map.of("weeks", "weeks_count", "name", "s.name", "artist", "ar.name", "peak", "peak_position");
-        String songSortCol = songSortCols.getOrDefault(sortBy, "weeks_count");
-        String songSortDirection = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
-        String songOrderBy = "weeks_count".equals(songSortCol)
-            ? "weeks_count " + songSortDirection + ", first_appearance ASC"
-            : songSortCol + " " + songSortDirection + ", weeks_count DESC, first_appearance ASC";
-
-        StringBuilder sql = new StringBuilder();
-        sql.append("WITH weekly_song_charts AS (\n");
-        sql.append("    SELECT id, period_start_date FROM Chart\n");
-        sql.append("    WHERE chart_type = 'song' AND period_type = 'weekly'\n");
-        sql.append("),\n");
-        sql.append("song_agg AS (\n");
-        sql.append("    SELECT ce.song_id,\n");
-        sql.append("           COUNT(*) as weeks_count,\n");
-        sql.append("           MIN(ce.position) as peak_position,\n");
-        sql.append("           MIN(wsc.period_start_date) as first_appearance\n");
-        sql.append("    FROM ChartEntry ce\n");
-        sql.append("    INNER JOIN weekly_song_charts wsc ON ce.chart_id = wsc.id\n");
-        sql.append("    WHERE ce.position <= ?\n");
-
-        List<Object> params = new ArrayList<>();
-        params.add(maxPosition);
-
-        if (year != null) {
-            sql.append("    AND strftime('%Y', wsc.period_start_date) = ?\n");
-            params.add(String.valueOf(year));
-        }
-
-        sql.append("    GROUP BY ce.song_id\n");
-        sql.append(")\n");
-        sql.append("SELECT s.id, s.name, ar.name as artist_name, ar.id as artist_id, ar.gender_id,\n");
-        sql.append("       sa.weeks_count, sa.peak_position, sa.first_appearance,\n");
-        sql.append("       CASE WHEN s.single_cover IS NOT NULL\n");
-        sql.append("            OR EXISTS(SELECT 1 FROM SongImage WHERE song_id = s.id)\n");
-        sql.append("            THEN 1 ELSE 0 END as has_image,\n");
-        sql.append("       s.album_id,\n");
-        sql.append("       CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as album_has_image\n");
-        sql.append("FROM song_agg sa\n");
-        sql.append("INNER JOIN Song s ON sa.song_id = s.id\n");
-        sql.append("INNER JOIN Artist ar ON s.artist_id = ar.id\n");
-        sql.append("LEFT JOIN Album al ON s.album_id = al.id\n");
-        sql.append("ORDER BY ").append(songOrderBy).append("\n");
-        sql.append("LIMIT ? OFFSET ?");
-        params.add(limit);
-        params.add(offset);
-
-        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            MostWeeksEntryDTO dto = new MostWeeksEntryDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setArtistName(rs.getString("artist_name"));
-            dto.setArtistId(rs.getInt("artist_id"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setWeeksCount(rs.getInt("weeks_count"));
-            dto.setPeakPosition(rs.getInt("peak_position"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setType("song");
-            dto.setAlbumId(rs.getObject("album_id") != null ? rs.getInt("album_id") : null);
-            dto.setAlbumHasImage(rs.getInt("album_has_image") == 1);
-            return dto;
-        }, params.toArray());
-    }
-
-    /**
-     * Get albums with the most weeks at a given position threshold (paginated).
-     */
-    private List<MostWeeksEntryDTO> getMostWeeksAlbums(int maxPosition, Integer year, int limit, int offset, String sortBy, String sortDir) {
-        Map<String, String> albumSortCols = Map.of("weeks", "weeks_count", "name", "al.name", "artist", "ar.name", "peak", "peak_position");
-        String albumSortCol = albumSortCols.getOrDefault(sortBy, "weeks_count");
-        String albumSortDirection = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
-        String albumOrderBy = "weeks_count".equals(albumSortCol)
-            ? "weeks_count " + albumSortDirection + ", first_appearance ASC"
-            : albumSortCol + " " + albumSortDirection + ", weeks_count DESC, first_appearance ASC";
-
-        StringBuilder sql = new StringBuilder();
-        sql.append("WITH weekly_album_charts AS (\n");
-        sql.append("    SELECT id, period_start_date FROM Chart\n");
-        sql.append("    WHERE chart_type = 'album' AND period_type = 'weekly'\n");
-        sql.append("),\n");
-        sql.append("album_agg AS (\n");
-        sql.append("    SELECT ce.album_id,\n");
-        sql.append("           COUNT(*) as weeks_count,\n");
-        sql.append("           MIN(ce.position) as peak_position,\n");
-        sql.append("           MIN(wac.period_start_date) as first_appearance\n");
-        sql.append("    FROM ChartEntry ce\n");
-        sql.append("    INNER JOIN weekly_album_charts wac ON ce.chart_id = wac.id\n");
-        sql.append("    WHERE ce.position <= ?\n");
-
-        List<Object> params = new ArrayList<>();
-        params.add(maxPosition);
-
-        if (year != null) {
-            sql.append("    AND strftime('%Y', wac.period_start_date) = ?\n");
-            params.add(String.valueOf(year));
-        }
-
-        sql.append("    GROUP BY ce.album_id\n");
-        sql.append(")\n");
-        sql.append("SELECT al.id, al.name, ar.name as artist_name, ar.id as artist_id, ar.gender_id,\n");
-        sql.append("       aa.weeks_count, aa.peak_position, aa.first_appearance,\n");
-        sql.append("       CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image\n");
-        sql.append("FROM album_agg aa\n");
-        sql.append("INNER JOIN Album al ON aa.album_id = al.id\n");
-        sql.append("INNER JOIN Artist ar ON al.artist_id = ar.id\n");
-        sql.append("ORDER BY ").append(albumOrderBy).append("\n");
-        sql.append("LIMIT ? OFFSET ?");
-        params.add(limit);
-        params.add(offset);
-
-        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            MostWeeksEntryDTO dto = new MostWeeksEntryDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setArtistName(rs.getString("artist_name"));
-            dto.setArtistId(rs.getInt("artist_id"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setWeeksCount(rs.getInt("weeks_count"));
-            dto.setPeakPosition(rs.getInt("peak_position"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setType("album");
-            return dto;
-        }, params.toArray());
-    }
-    
-    /**
-     * Get artists with the most songs (hits) that reached a given position threshold.
-     * Only considers weekly song charts.
-     * 
-     * @param maxPosition The maximum position to count (1 = #1, 5 = top 5, etc.)
-     * @param year Optional year filter. If null, returns all-time stats.
-     * @return List of artists sorted by songs count descending, then by total weeks.
-     */
-    public List<MostHitsEntryDTO> getMostHits(int maxPosition, Integer year, int page, int pageSize, String sortBy, String sortDir) {
-        Map<String, String> sortCols = Map.of("songs", "songs_count", "weeks", "total_weeks", "artist", "artist_name");
-        String sortCol = sortCols.getOrDefault(sortBy, "songs_count");
-        String sortDirection = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
-        String orderBy = "songs_count".equals(sortCol)
-            ? "songs_count " + sortDirection + ", total_weeks DESC"
-            : "total_weeks".equals(sortCol)
-            ? "total_weeks " + sortDirection + ", songs_count DESC"
-            : "artist_name " + sortDirection + ", songs_count DESC";
-
-        int offset = page * pageSize;
-
-        StringBuilder sql = new StringBuilder();
-        sql.append("WITH weekly_song_charts AS (\n");
-        sql.append("    SELECT id, period_start_date FROM Chart\n");
-        sql.append("    WHERE chart_type = 'song' AND period_type = 'weekly'\n");
-        sql.append("),\n");
-        sql.append("ce_agg AS (\n");
-        sql.append("    SELECT ce.song_id, COUNT(*) as week_count\n");
-        sql.append("    FROM ChartEntry ce\n");
-        sql.append("    INNER JOIN weekly_song_charts wsc ON ce.chart_id = wsc.id\n");
-        sql.append("    WHERE ce.position <= ?\n");
-
-        List<Object> params = new ArrayList<>();
-        params.add(maxPosition);
-
-        if (year != null) {
-            sql.append("    AND strftime('%Y', wsc.period_start_date) = ?\n");
-            params.add(String.valueOf(year));
-        }
-
-        sql.append("    GROUP BY ce.song_id\n");
-        sql.append("),\n");
-        sql.append("artist_agg AS (\n");
-        sql.append("    SELECT s.artist_id,\n");
-        sql.append("           COUNT(DISTINCT ca.song_id) as songs_count,\n");
-        sql.append("           SUM(ca.week_count) as total_weeks\n");
-        sql.append("    FROM ce_agg ca\n");
-        sql.append("    INNER JOIN Song s ON ca.song_id = s.id\n");
-        sql.append("    GROUP BY s.artist_id\n");
-        sql.append(")\n");
-        sql.append("SELECT ar.id as artist_id, ar.name as artist_name, ar.gender_id,\n");
-        sql.append("       aa.songs_count, aa.total_weeks,\n");
-        sql.append("       CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image\n");
-        sql.append("FROM artist_agg aa\n");
-        sql.append("INNER JOIN Artist ar ON aa.artist_id = ar.id\n");
-        sql.append("ORDER BY ").append(orderBy).append("\n");
-        sql.append("LIMIT ? OFFSET ?");
-        params.add(pageSize);
-        params.add(offset);
-
-        List<MostHitsEntryDTO> results = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            MostHitsEntryDTO dto = new MostHitsEntryDTO();
-            dto.setArtistId(rs.getInt("artist_id"));
-            dto.setArtistName(rs.getString("artist_name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setSongsCount(rs.getInt("songs_count"));
-            dto.setTotalWeeks(rs.getInt("total_weeks"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            return dto;
-        }, params.toArray());
-
-        int startRank = offset + 1;
-        for (MostHitsEntryDTO entry : results) {
-            entry.setRank(startRank++);
-        }
-
-        return results;
-    }
-
-    public int getMostHitsCount(int maxPosition, Integer year) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT COUNT(DISTINCT s.artist_id)\n");
-        sql.append("FROM ChartEntry ce\n");
-        sql.append("INNER JOIN Chart c ON ce.chart_id = c.id\n");
-        sql.append("INNER JOIN Song s ON ce.song_id = s.id\n");
-        sql.append("WHERE c.chart_type = 'song'\n");
-        sql.append("  AND c.period_type = 'weekly'\n");
-        sql.append("  AND ce.position <= ?\n");
-
-        List<Object> params = new ArrayList<>();
-        params.add(maxPosition);
-
-        if (year != null) {
-            sql.append("  AND strftime('%Y', c.period_start_date) = ?\n");
-            params.add(String.valueOf(year));
-        }
-
-        Integer count = jdbcTemplate.queryForObject(sql.toString(), Integer.class, params.toArray());
-        return count != null ? count : 0;
     }
     
     /**

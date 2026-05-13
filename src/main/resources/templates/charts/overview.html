@@ -120,10 +120,12 @@
             margin-bottom: 16px;
         }
         .overview-tabs {
-            margin-bottom: 14px;
+            margin-bottom: 18px;
+            gap: 0;
+            padding: 0 8px;
+            border-bottom: 1px solid #2b2d35;
         }
         .period-link,
-        .overview-tab-link,
         .overview-action-link {
             display: inline-flex;
             align-items: center;
@@ -139,19 +141,50 @@
             letter-spacing: 0.03em;
             transition: all 0.15s ease;
         }
+        .period-switch {
+            display: inline-flex;
+            padding: 6px;
+            border-radius: 999px;
+            border: 1px solid #2a2c34;
+            background: linear-gradient(180deg, #14161b, #101216);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        .overview-tab-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px 11px;
+            margin-bottom: -1px;
+            border: none;
+            border-bottom: 3px solid transparent;
+            background: transparent;
+            color: #8f929d;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
         .period-link:hover,
-        .overview-tab-link:hover,
         .overview-action-link:hover {
             border-color: var(--accent-border);
             color: #fff;
             background: rgba(255, 255, 255, 0.04);
         }
-        .period-link.active,
-        .overview-tab-link.active {
+        .overview-tab-link:hover {
+            color: #f3f4f8;
+            background: rgba(255,255,255,0.02);
+        }
+        .period-link.active {
             border-color: var(--accent-border);
             background: linear-gradient(135deg, var(--accent), var(--accent-strong));
             color: #071018;
             box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+        }
+        .overview-tab-link.active {
+            color: #f8fafc;
+            border-bottom-color: var(--accent-strong);
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
         }
         .overview-action-link {
             border-radius: 12px;
@@ -159,8 +192,27 @@
             background: #121217;
         }
         .overview-toolbar {
-            justify-content: space-between;
+            display: grid;
+            gap: 12px;
             margin-bottom: 16px;
+            padding: 16px 18px;
+            border: 1px solid #282830;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(20, 21, 26, 0.96), rgba(13, 14, 18, 0.96));
+        }
+        .overview-toolbar-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .overview-toolbar-primary,
+        .overview-toolbar-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
         .overview-search {
             width: min(360px, 100%);
@@ -179,6 +231,67 @@
         .overview-results-copy {
             color: #8e8e98;
             font-size: 0.83rem;
+        }
+        .overview-toolbar-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .overview-results-count {
+            color: #d5d7de;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+        .overview-control-btn {
+            border: 1px solid #343641;
+            border-radius: 999px;
+            padding: 9px 14px;
+            background: #14161b;
+            color: #ececf1;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+        }
+        .overview-control-btn:hover {
+            border-color: var(--accent-border);
+            background: #1a1d25;
+            transform: translateY(-1px);
+        }
+        .overview-control-btn.active {
+            border-color: var(--accent-border);
+            background: rgba(46, 204, 113, 0.16);
+            color: #f4fffa;
+        }
+        .overview-artist-thresholds {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .overview-artist-threshold-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #bfc1c8;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .overview-artist-threshold-select {
+            min-width: 118px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid #333640;
+            background: #101115;
+            color: #ececf1;
+            font-size: 0.86rem;
+        }
+        .overview-artist-threshold-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+            outline: none;
         }
         .overview-table-wrap {
             overflow: auto;
@@ -246,6 +359,90 @@
             color: var(--accent-strong);
             font-size: 0.72rem;
         }
+        .overview-table th[data-sort-priority]::before {
+            content: attr(data-sort-priority) '. ';
+            color: var(--accent-strong);
+        }
+        .overview-filter-head th {
+            position: sticky;
+            top: 38px;
+            z-index: 1;
+            background: #15161b;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        .overview-column-filter {
+            width: 100%;
+            min-width: 72px;
+            padding: 7px 8px;
+            border-radius: 8px;
+            border: 1px solid #30323a;
+            background: #0d0e12;
+            color: #ececf1;
+            font-size: 0.78rem;
+            outline: none;
+        }
+        .overview-column-filter:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+        .overview-image-cell {
+            width: 56px;
+            min-width: 56px;
+            text-align: center;
+        }
+        .overview-item-image,
+        .hover-image-container {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+        }
+        .overview-item-image {
+            display: block;
+            object-fit: cover;
+            margin: 0 auto;
+            background: #0d0e12;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+        }
+        .hover-image-container {
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+        }
+        .hover-image-container .album-image-default,
+        .hover-image-container .song-image-hover {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.18s ease;
+        }
+        .hover-image-container .song-image-hover {
+            opacity: 0;
+        }
+        .hover-image-container:hover .album-image-default {
+            opacity: 0;
+        }
+        .hover-image-container:hover .song-image-hover {
+            opacity: 1;
+        }
+        .overview-item-placeholder {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #20232b, #14161b);
+            border: 1px solid #2f3340;
+            color: #9ea2af;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
         .overview-table th.center,
         .overview-table td.center {
             text-align: center;
@@ -273,6 +470,19 @@
         .overview-link-secondary,
         .overview-period-link {
             text-decoration: none;
+        }
+        .overview-metric-link {
+            color: #dbe8ff;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .overview-metric-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        .period-yearly #artistOverviewTable .artist-song-number-one-span-col,
+        .period-yearly #artistOverviewTable .artist-album-number-one-span-col {
+            display: none;
         }
         .overview-link-primary {
             color: #f3f4f6;
@@ -457,6 +667,55 @@
         .overview-loading.visible {
             display: block;
         }
+        .page-load-overlay {
+            display: none;
+        }
+        html.js body.page-loading .page-load-overlay,
+        html.js body.page-busy .page-load-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, color-mix(in srgb, var(--accent-strong) 18%, transparent), rgba(7, 7, 9, 0.94) 58%);
+            backdrop-filter: blur(6px);
+            z-index: 3000;
+        }
+        .page-load-card {
+            min-width: 230px;
+            width: min(420px, calc(100vw - 28px));
+            padding: 22px 26px;
+            border-radius: 18px;
+            border: 1px solid color-mix(in srgb, var(--accent-strong) 28%, transparent);
+            background: color-mix(in srgb, var(--accent-soft) 32%, rgba(10, 18, 24, 0.94));
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 42px color-mix(in srgb, var(--accent-strong) 18%, transparent);
+            text-align: center;
+        }
+        .page-load-spinner {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.12);
+            border-top-color: var(--accent-strong);
+            animation: overviewSpin 0.9s linear infinite;
+        }
+        .page-load-title {
+            color: color-mix(in srgb, var(--accent-strong) 55%, white);
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .page-load-subtitle {
+            margin-top: 8px;
+            color: color-mix(in srgb, var(--accent-strong) 50%, #8e98aa);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        @keyframes overviewSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
         @media (max-width: 980px) {
             .overview-hero {
                 grid-template-columns: 1fr;
@@ -464,13 +723,30 @@
             .overview-toolbar {
                 align-items: stretch;
             }
+            .overview-toolbar-controls {
+                align-items: stretch;
+                justify-content: stretch;
+            }
+            .overview-toolbar-primary,
+            .overview-toolbar-actions,
+            .overview-toolbar-meta {
+                align-items: stretch;
+                flex-direction: column;
+            }
             .overview-search {
                 width: 100%;
             }
         }
     </style>
 </head>
-<body th:classappend="${periodType == 'weekly'} ? 'period-weekly' : (${periodType == 'seasonal'} ? 'period-seasonal' : 'period-yearly')">
+<body class="page-loading" th:classappend="${periodType == 'weekly'} ? 'period-weekly' : (${periodType == 'seasonal'} ? 'period-seasonal' : 'period-yearly')">
+    <div class="page-load-overlay" aria-hidden="true">
+        <div class="page-load-card">
+            <div class="page-load-spinner"></div>
+            <div class="page-load-title" id="overviewOverlayTitle">Loading overview</div>
+            <div class="page-load-subtitle" id="overviewOverlaySubtitle">Preparing chart overview rows and controls...</div>
+        </div>
+    </div>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <div class="overview-shell">
@@ -510,75 +786,130 @@
         <div class="overview-tabs" role="tablist" aria-label="Overview type">
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'song'} ? ' active' : ''"
-               th:href="${weeklyInfiniteScrollEnabled} ? @{/charts/weekly/overview(overviewTab='song',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=song|}"
+                    th:href="${serverInfiniteScrollEnabled and periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='song',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : (${serverInfiniteScrollEnabled and periodType == 'seasonal'} ? @{/charts/seasonal/overview(overviewTab='song',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=song|})"
                onclick="persistOverviewSearch()">Song Overview</a>
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'album'} ? ' active' : ''"
-               th:href="${weeklyInfiniteScrollEnabled} ? @{/charts/weekly/overview(overviewTab='album',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=album|}"
+                    th:href="${serverInfiniteScrollEnabled and periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='album',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : (${serverInfiniteScrollEnabled and periodType == 'seasonal'} ? @{/charts/seasonal/overview(overviewTab='album',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=album|})"
                onclick="persistOverviewSearch()">Album Overview</a>
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'artist'} ? ' active' : ''"
-               th:href="${weeklyInfiniteScrollEnabled} ? @{/charts/weekly/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=artist|}"
+                    th:href="${serverInfiniteScrollEnabled and periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : (${serverInfiniteScrollEnabled and periodType == 'seasonal'} ? @{/charts/seasonal/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=artist|})"
                onclick="persistOverviewSearch()">Artist Overview</a>
         </div>
 
         <div class="overview-toolbar">
-            <input type="text" id="overviewSearchInput" class="overview-search" placeholder="Filter the current overview..." autocomplete="off" th:value="${searchQuery}">
+            <div class="overview-toolbar-controls">
+                <div class="overview-toolbar-actions">
+                    <button type="button" id="overviewResetFilters" class="overview-control-btn">Reset</button>
+                    <button type="button" class="overview-control-btn" th:if="${overviewTab == 'song'}" onclick="openOverviewSongsPlaylistGenerator()">Generate Playlist</button>
+                    <div class="overview-artist-thresholds" th:if="${overviewTab == 'artist'}">
+                        <label class="overview-artist-threshold-label" for="artistTopSongFilter">
+                            Top X Songs
+                            <select id="artistTopSongFilter" class="overview-artist-threshold-select">
+                                <option value="">All Songs</option>
+                            </select>
+                        </label>
+                        <label class="overview-artist-threshold-label" for="artistTopAlbumFilter">
+                            Top X Albums
+                            <select id="artistTopAlbumFilter" class="overview-artist-threshold-select">
+                                <option value="">All Albums</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="overview-toolbar-meta">
+                <div id="overviewVisibleCount" class="overview-results-count"></div>
+                <div class="overview-results-copy">Shift-click headers to sort by up to 3 columns. Numeric filters support values like <code>&gt;=5</code> or <code>5-10</code>.</div>
+            </div>
         </div>
 
         <section th:if="${overviewTab == 'song'}">
             <div class="overview-table-wrap"
                  th:if="${!songRows.isEmpty()}"
-                 th:attr="data-total=${weeklyInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${weeklyInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
-                <table class="overview-table" th:classappend="${!weeklyInfiniteScrollEnabled} ? ' js-sortable' : ''" id="songOverviewTable">
+                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
+                <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="songOverviewTable">
                     <thead>
                         <tr>
+                            <th data-no-sort class="overview-image-cell"></th>
                             <th data-no-sort th:if="${periodType == 'weekly'}"></th>
-                            <th data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Artist</span>
+                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Artist</span>
                             </th>
-                            <th data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'song'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Song</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Song</span>
+                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'song'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Song</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Song</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Song</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}" th:text="${unitLabel}">Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel}">Weeks</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Peak</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Peak</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}" th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span>
                             </th>
-                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Debut Date</span>
+                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Date</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Debut Position</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Position</span>
                             </th>
-                            <th class="center" data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'peakPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Peak Date</span>
+                            <th class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peakPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Peak Date</span>
                             </th>
-                            <th class="center" data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Last Date</span>
+                            <th class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='song',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Last Date</span>
                             </th>
+                        </tr>
+                        <tr class="overview-filter-head">
+                            <th></th>
+                            <th th:if="${periodType == 'weekly'}"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="Filter"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="Filter"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="=5, >=5, 5-10"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="=5, >=5, 5-10"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="=5, >=5, 5-10"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="Filter"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="=5, >=5, 5-10"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="Filter"></th>
+                            <th><input type="text" class="overview-column-filter" placeholder="Filter"></th>
                         </tr>
                     </thead>
                     <tbody id="songOverviewBody">
                         <tr class="overview-filter-row"
                             th:each="entry : ${songRows}"
                             th:classappend="${entry.genderClass != null ? entry.genderClass : ''}"
-                            th:attr="data-song-id=${entry.songId},data-top1=${entry.spanAtTop1},data-top5=${entry.spanAtTop5},data-top10=${entry.spanAtTop10}">
+                            th:attr="data-song-id=${entry.songId},data-top1=${entry.spanAtTop1},data-top5=${entry.spanAtTop5},data-top10=${entry.spanAtTop10},data-song-title=${entry.songTitle},data-artist-name=${entry.artistName},data-album-name=${entry.albumName}">
+                                <td class="overview-image-cell">
+                                    <div th:if="${entry.hasImage and entry.albumHasImage}" class="hover-image-container">
+                                        <img th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="album-image-default overview-item-image">
+                                        <img th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" class="song-image-hover overview-item-image">
+                                    </div>
+                                    <img th:if="${entry.hasImage and !entry.albumHasImage}" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" class="overview-item-image">
+                                    <img th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="overview-item-image">
+                                    <div th:if="${!entry.hasImage and !entry.albumHasImage}" class="overview-item-placeholder">SONG</div>
+                                </td>
                                 <td class="center" th:if="${periodType == 'weekly'}">
-                                    <button type="button" class="overview-expand-btn" data-colspan="10" onclick="toggleOverviewDetail(this)">+</button>
+                                    <button type="button" class="overview-expand-btn" data-colspan="11" onclick="toggleOverviewDetail(this)">+</button>
                                 </td>
                                 <td>
                                     <a class="overview-link-secondary" th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist</a>
@@ -603,71 +934,87 @@
                     </tbody>
                 </table>
             </div>
-            <div th:if="${weeklyInfiniteScrollEnabled and !songRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
-            <div th:if="${weeklyInfiniteScrollEnabled and !songRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
+            <div th:if="${serverInfiniteScrollEnabled and !songRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
+            <div th:if="${serverInfiniteScrollEnabled and !songRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
             <div class="overview-empty" th:if="${songRows.isEmpty()}">No finalized song chart history exists for this overview yet.</div>
         </section>
 
         <section th:if="${overviewTab == 'album'}">
             <div class="overview-table-wrap"
                  th:if="${!albumRows.isEmpty()}"
-                 th:attr="data-total=${weeklyInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${weeklyInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
-                <table class="overview-table" th:classappend="${!weeklyInfiniteScrollEnabled} ? ' js-sortable' : ''" id="albumOverviewTable">
+                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
+                <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="albumOverviewTable">
                     <thead>
                         <tr>
-                            <th data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Artist</span>
+                            <th data-no-sort class="overview-image-cell"></th>
+                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Artist</span>
                             </th>
-                            <th data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Album</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Album</span>
+                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Album</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Album</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Album</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Songs Charted</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel}">Weeks</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Total ' + ${unitLabel}">Total Weeks</span></a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}" th:text="'Total ' + ${unitLabel}">Total Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Peak</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Highest Peak</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Highest Peak</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">#1 Songs</span>
+                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Date</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">At #1</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">At #1</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Position</span>
                             </th>
-                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Debut Date</span>
+                            <th class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peakPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Peak Date</span>
                             </th>
-                            <th class="center" data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Last Date</span>
+                            <th class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='album',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Last Date</span>
                             </th>
                         </tr>
                     </thead>
                     <tbody id="albumOverviewBody">
                         <tr class="overview-filter-row" th:each="entry : ${albumRows}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                            <td class="overview-image-cell">
+                                <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="overview-item-image">
+                                <div th:unless="${entry.hasImage}" class="overview-item-placeholder">ALB</div>
+                            </td>
                             <td>
                                 <a class="overview-link-secondary" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" th:text="${entry.artistName}">Artist</a>
                             </td>
                             <td>
                                 <a class="overview-link-primary" th:href="@{/albums/{id}(id=${entry.albumId})}" th:text="${entry.albumName}">Album</a>
                             </td>
-                            <td class="center" th:attr="data-value=${entry.chartedSongsCount}" th:text="${entry.chartedSongsCount}">0</td>
                             <td class="center" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
                             <td class="center" th:attr="data-value=${entry.highestPeak != null ? entry.highestPeak : 999}" th:text="${entry.highestPeak}">0</td>
-                            <td class="center" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
-                            <td class="center" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
+                            <td class="center" th:attr="data-value=${entry.spanAtPeak}" th:text="${entry.spanAtPeak}">0</td>
                             <td class="center" th:attr="data-value=${entry.firstDebutSortValue}">
                                 <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.firstDebutKey}|}" th:text="${entry.firstDebutDate != null and entry.firstDebutDate.contains(' - ') ? entry.firstDebutDate.substring(entry.firstDebutDate.indexOf(' - ') + 3) : entry.firstDebutDate}">Period</a>
+                            </td>
+                            <td class="center" th:attr="data-value=${entry.debutPosition != null ? entry.debutPosition : 999}" th:text="${entry.debutPosition}">0</td>
+                            <td class="center" th:attr="data-value=${entry.peakAppearanceSortValue}">
+                                <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.peakAppearanceKey}|}" th:text="${entry.peakAppearanceDate != null and entry.peakAppearanceDate.contains(' - ') ? entry.peakAppearanceDate.substring(entry.peakAppearanceDate.indexOf(' - ') + 3) : entry.peakAppearanceDate}">Period</a>
                             </td>
                             <td class="center" th:attr="data-value=${entry.lastAppearanceSortValue}">
                                 <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.lastAppearanceKey}|}" th:text="${entry.lastAppearanceDate != null and entry.lastAppearanceDate.contains(' - ') ? entry.lastAppearanceDate.substring(entry.lastAppearanceDate.indexOf(' - ') + 3) : entry.lastAppearanceDate}">Period</a>
@@ -676,167 +1023,325 @@
                     </tbody>
                 </table>
             </div>
-            <div th:if="${weeklyInfiniteScrollEnabled and !albumRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
-            <div th:if="${weeklyInfiniteScrollEnabled and !albumRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
-            <div class="overview-empty" th:if="${albumRows.isEmpty()}">No linked albums have charted songs for this overview yet.</div>
+            <div th:if="${serverInfiniteScrollEnabled and !albumRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
+            <div th:if="${serverInfiniteScrollEnabled and !albumRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
+            <div class="overview-empty" th:if="${albumRows.isEmpty()}">No finalized album chart history exists for this overview yet.</div>
         </section>
 
         <section th:if="${overviewTab == 'artist'}">
             <div class="overview-table-wrap"
                  th:if="${!artistRows.isEmpty()}"
-                 th:attr="data-total=${weeklyInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${weeklyInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
-                <table class="overview-table" th:classappend="${!weeklyInfiniteScrollEnabled} ? ' js-sortable' : ''" id="artistOverviewTable">
+                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
+                <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="artistOverviewTable">
                     <thead>
                         <tr>
-                            <th data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Artist</span>
+                            <th data-no-sort class="overview-image-cell"></th>
+                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Artist</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Songs Charted</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Songs Charted</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Total ' + ${unitLabel}">Total Weeks</span></a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}" th:text="'Total ' + ${unitLabel}">Total Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Song ' + ${unitLabel}">Song Weeks</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Song ' + ${unitLabel}">Song Weeks</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="'Song ' + ${unitLabel}">Song Weeks</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Highest Peak</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Highest Peak</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">#1 Songs</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">#1 Songs</span>
+                            <th class="center artist-song-number-one-span-col" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at #1'">Weeks at #1</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at #1'">Weeks at #1</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel} + ' at #1'">Weeks at #1</span>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">At #1</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">At #1</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albums'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albums',dir=${selectedSort == 'albums' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Albums Charted</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='albums',dir=${selectedSort == 'albums' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Albums Charted</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">Albums Charted</span>
                             </th>
-                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Debut Date</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albumWeeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albumWeeks',dir=${selectedSort == 'albumWeeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel}">Album Weeks</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='albumWeeks',dir=${selectedSort == 'albumWeeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel}">Album Weeks</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="'Album ' + ${unitLabel}">Album Weeks</span>
                             </th>
-                            <th class="center" data-type="text" th:classappend="${weeklyInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${weeklyInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
-                                <span th:unless="${weeklyInfiniteScrollEnabled}">Last Date</span>
+                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albumNumberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albumNumberOnes',dir=${selectedSort == 'albumNumberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Albums</a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='albumNumberOnes',dir=${selectedSort == 'albumNumberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Albums</a>
+                                <span th:unless="${serverInfiniteScrollEnabled}">#1 Albums</span>
+                            </th>
+                            <th class="center artist-album-number-one-span-col" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albumAtNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albumAtNumberOne',dir=${selectedSort == 'albumAtNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span></a>
+                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'seasonal'}" class="sort-link" th:href="@{/charts/seasonal/overview(overviewTab='artist',sort='albumAtNumberOne',dir=${selectedSort == 'albumAtNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span></a>
+                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span>
                             </th>
                         </tr>
                     </thead>
                     <tbody id="artistOverviewBody">
-                        <tr class="overview-filter-row" th:each="entry : ${artistRows}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <tr class="overview-filter-row"
+                            th:each="entry : ${artistRows}"
+                            th:classappend="${entry.genderClass != null ? entry.genderClass : ''}"
+                            th:with="songPeakFilterName=${periodType == 'weekly' ? 'weeklyChartPeak' : (periodType == 'seasonal' ? 'seasonalChartPeak' : 'yearlyChartPeak')}, albumPeakFilterName=${songPeakFilterName}, songChartedPeakValue=${periodType == 'weekly' ? 20 : (periodType == 'seasonal' ? 35 : 30)}, albumChartedPeakValue=${periodType == 'weekly' ? 10 : (periodType == 'seasonal' ? 5 : 10)}"
+                            th:attr="data-artist-id=${entry.resolvedArtistId}">
+                            <td class="overview-image-cell">
+                                <img th:if="${entry.hasImage}" th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId})}" alt="" class="overview-item-image">
+                                <div th:unless="${entry.hasImage}" class="overview-item-placeholder">ART</div>
+                            </td>
                             <td>
                                 <a class="overview-link-primary" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" th:text="${entry.artistName}">Artist</a>
                             </td>
-                            <td class="center" th:attr="data-value=${entry.chartedSongsCount}" th:text="${entry.chartedSongsCount}">0</td>
+                            <td class="center" th:attr="data-value=${entry.chartedSongsCount}">
+                                <a class="overview-metric-link" th:if="${entry.chartedSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=' + songChartedPeakValue}" th:text="${entry.chartedSongsCount}">0</a>
+                                <span th:unless="${entry.chartedSongsCount > 0}" th:text="${entry.chartedSongsCount}">0</span>
+                            </td>
                             <td class="center" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
-                            <td class="center" th:attr="data-value=${entry.highestPeak != null ? entry.highestPeak : 999}" th:text="${entry.highestPeak}">0</td>
-                            <td class="center" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
-                            <td class="center" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
-                            <td class="center" th:attr="data-value=${entry.firstDebutSortValue}">
-                                <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.firstDebutKey}|}" th:text="${entry.firstDebutDate != null and entry.firstDebutDate.contains(' - ') ? entry.firstDebutDate.substring(entry.firstDebutDate.indexOf(' - ') + 3) : entry.firstDebutDate}">Period</a>
+                            <td class="center" th:attr="data-value=${entry.numberOneSongsCount}">
+                                <a class="overview-metric-link" th:if="${entry.numberOneSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=1'}" th:text="${entry.numberOneSongsCount}">0</a>
+                                <span th:unless="${entry.numberOneSongsCount > 0}" th:text="${entry.numberOneSongsCount}">0</span>
                             </td>
-                            <td class="center" th:attr="data-value=${entry.lastAppearanceSortValue}">
-                                <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.lastAppearanceKey}|}" th:text="${entry.lastAppearanceDate != null and entry.lastAppearanceDate.contains(' - ') ? entry.lastAppearanceDate.substring(entry.lastAppearanceDate.indexOf(' - ') + 3) : entry.lastAppearanceDate}">Period</a>
+                            <td class="center artist-song-number-one-span-col" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
+                            <td class="center" th:attr="data-value=${entry.chartedAlbumsCount}">
+                                <a class="overview-metric-link" th:if="${entry.chartedAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=' + albumChartedPeakValue}" th:text="${entry.chartedAlbumsCount}">0</a>
+                                <span th:unless="${entry.chartedAlbumsCount > 0}" th:text="${entry.chartedAlbumsCount}">0</span>
                             </td>
+                            <td class="center" th:attr="data-value=${entry.albumTotalChartSpan}" th:text="${entry.albumTotalChartSpan}">0</td>
+                            <td class="center" th:attr="data-value=${entry.numberOneAlbumsCount}">
+                                <a class="overview-metric-link" th:if="${entry.numberOneAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=1'}" th:text="${entry.numberOneAlbumsCount}">0</a>
+                                <span th:unless="${entry.numberOneAlbumsCount > 0}" th:text="${entry.numberOneAlbumsCount}">0</span>
+                            </td>
+                            <td class="center artist-album-number-one-span-col" th:attr="data-value=${entry.albumTotalSpanAtNumberOne}" th:text="${entry.albumTotalSpanAtNumberOne}">0</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div th:if="${weeklyInfiniteScrollEnabled and !artistRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
-            <div th:if="${weeklyInfiniteScrollEnabled and !artistRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
-            <div class="overview-empty" th:if="${artistRows.isEmpty()}">No artists have charted songs for this overview yet.</div>
+            <div th:if="${serverInfiniteScrollEnabled and !artistRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
+            <div th:if="${serverInfiniteScrollEnabled and !artistRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
+            <div class="overview-empty" th:if="${artistRows.isEmpty()}">No artists have charted songs or albums for this overview yet.</div>
         </section>
     </div>
 
+    <th:block th:if="${overviewTab == 'song'}" th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+
     <script th:inline="javascript">
-        const chartOverviewStorageKey = 'chartOverviewSearch';
+        const chartOverviewArtistThresholdStateKey = 'chartOverviewArtistThresholdState';
+        const overviewTab = /*[[${overviewTab}]]*/ 'song';
+        const overviewPeriodType = /*[[${periodType}]]*/ 'weekly';
+        const overviewPageTitle = /*[[${pageTitle}]]*/ 'Chart Overview';
+        const isServerInfiniteScroll = /*[[${serverInfiniteScrollEnabled}]]*/ false;
         const isWeeklyInfiniteScroll = /*[[${weeklyInfiniteScrollEnabled}]]*/ false;
+        const overviewDataPath = /*[[${overviewDataPath}]]*/ '/charts/weekly/overview/data';
         const weeklyOverviewSort = /*[[${selectedSort}]]*/ '';
         const weeklyOverviewDir = /*[[${selectedDir}]]*/ '';
-        const weeklyOverviewQuery = /*[[${searchQuery}]]*/ '';
-        let weeklyOverviewSearchTimer = null;
+        const overviewArtistMetrics = /*[[${overviewTab == 'artist' ? artistRows : null}]]*/ null;
+        const artistMetricColumns = {
+            image: 0,
+            artist: 1,
+            songs: 2,
+            songWeeks: 3,
+            numberOnes: 4,
+            songAtNumberOne: 5,
+            albums: 6,
+            albumWeeks: 7,
+            albumNumberOnes: 8,
+            albumAtNumberOne: 9
+        };
+        const artistMetricsById = new Map();
+        let weeklyOverviewReloadRequestId = 0;
+
+        function cacheArtistMetrics(entries) {
+            if (!Array.isArray(entries)) {
+                return;
+            }
+            entries.forEach((entry) => {
+                if (entry && entry.resolvedArtistId != null) {
+                    artistMetricsById.set(String(entry.resolvedArtistId), entry);
+                }
+            });
+        }
+
+        cacheArtistMetrics(Array.isArray(overviewArtistMetrics) ? overviewArtistMetrics : []);
+
+        function getSongOverviewPeakParamName() {
+            if (overviewPeriodType === 'seasonal') {
+                return 'seasonalChartPeak';
+            }
+            if (overviewPeriodType === 'yearly') {
+                return 'yearlyChartPeak';
+            }
+            return 'weeklyChartPeak';
+        }
+
+        function getDefaultSongChartPeakValue() {
+            return overviewPeriodType === 'seasonal' ? 35 : overviewPeriodType === 'yearly' ? 30 : 20;
+        }
+
+        function getDefaultAlbumChartPeakValue() {
+            return overviewPeriodType === 'seasonal' ? 5 : 10;
+        }
+
+        function buildArtistMetricUrl(type, artistId, peakValue) {
+            const params = new URLSearchParams({
+                sortby: 'plays',
+                sortdir: 'desc',
+                sortdir2: 'asc',
+                sortdir3: 'asc',
+                perpage: '100',
+                artist: String(artistId),
+                [getSongOverviewPeakParamName()]: String(peakValue)
+            });
+            return `/${type}?${params.toString()}`;
+        }
+
+        function buildOverviewMetricLink(url, value) {
+            if (!value) {
+                return String(value ?? 0);
+            }
+            return `<a class="overview-metric-link" href="${url}">${value}</a>`;
+        }
+
+        function getWeeklySortStateFromLocation() {
+            const params = new URLSearchParams(window.location.search);
+            const sorts = [];
+            for (let index = 1; index <= 3; index++) {
+                const sortKey = params.get(index === 1 ? 'sort' : `sort${index}`);
+                if (!sortKey) {
+                    continue;
+                }
+                sorts.push({
+                    sort: sortKey,
+                    dir: params.get(index === 1 ? 'dir' : `dir${index}`) === 'asc' ? 'asc' : 'desc'
+                });
+            }
+            if (!sorts.length && weeklyOverviewSort) {
+                sorts.push({ sort: weeklyOverviewSort, dir: weeklyOverviewDir === 'asc' ? 'asc' : 'desc' });
+            }
+            return sorts;
+        }
+
+        function buildWeeklySortUrl(sortState) {
+            const url = new URL(window.location.href);
+            ['sort', 'dir', 'sort2', 'dir2', 'sort3', 'dir3'].forEach((key) => url.searchParams.delete(key));
+            sortState.slice(0, 3).forEach((sortEntry, index) => {
+                const sortKey = index === 0 ? 'sort' : `sort${index + 1}`;
+                const dirKey = index === 0 ? 'dir' : `dir${index + 1}`;
+                url.searchParams.set(sortKey, sortEntry.sort);
+                url.searchParams.set(dirKey, sortEntry.dir);
+            });
+            return url.toString();
+        }
+
+        function showPageBusyOverlay(title, subtitle) {
+            const titleEl = document.getElementById('overviewOverlayTitle');
+            const subtitleEl = document.getElementById('overviewOverlaySubtitle');
+            if (titleEl && title) {
+                titleEl.textContent = title;
+            }
+            if (subtitleEl && subtitle) {
+                subtitleEl.textContent = subtitle;
+            }
+            document.body.classList.add('page-busy');
+        }
+
+        function hidePageBusyOverlay() {
+            document.body.classList.remove('page-busy');
+        }
+
+        function getActiveOverviewTable() {
+            if (overviewTab === 'album') {
+                return document.getElementById('albumOverviewTable');
+            }
+            if (overviewTab === 'artist') {
+                return document.getElementById('artistOverviewTable');
+            }
+            return document.getElementById('songOverviewTable');
+        }
 
         function getActiveOverviewBody() {
-            const overviewTab = /*[[${overviewTab}]]*/ 'song';
-            if (overviewTab === 'album') {
-                return document.getElementById('albumOverviewBody');
-            }
-            if (overviewTab === 'artist') {
-                return document.getElementById('artistOverviewBody');
-            }
-            return document.getElementById('songOverviewBody');
+            return getActiveOverviewTable()?.tBodies?.[0] || null;
         }
 
-        function getWeeklyOverviewContainer() {
-            const overviewTab = /*[[${overviewTab}]]*/ 'song';
-            if (overviewTab === 'album') {
-                return document.querySelector('#albumOverviewTable')?.closest('.overview-table-wrap') || null;
-            }
-            if (overviewTab === 'artist') {
-                return document.querySelector('#artistOverviewTable')?.closest('.overview-table-wrap') || null;
-            }
-            return document.querySelector('#songOverviewTable')?.closest('.overview-table-wrap') || null;
+        function getActiveOverviewContainer() {
+            return getActiveOverviewTable()?.closest('.overview-table-wrap') || null;
         }
 
-        function buildWeeklyOverviewUrl(query) {
-            const overviewTab = /*[[${overviewTab}]]*/ 'song';
-            const params = new URLSearchParams({
-                overviewTab,
-                sort: weeklyOverviewSort,
-                dir: weeklyOverviewDir
-            });
-            if (query) {
-                params.set('q', query);
+        function getOverviewThresholdMax(type) {
+            if (type === 'song') {
+                if (overviewPeriodType === 'seasonal') {
+                    return 35;
+                }
+                if (overviewPeriodType === 'yearly') {
+                    return 30;
+                }
+                return 20;
             }
-            return `/charts/weekly/overview?${params.toString()}`;
+            if (overviewPeriodType === 'seasonal') {
+                return 5;
+            }
+            return 10;
         }
 
-        function handleOverviewSearchInput() {
-            const input = document.getElementById('overviewSearchInput');
-            if (!input) {
-                return;
-            }
-
-            if (isWeeklyInfiniteScroll) {
-                const query = input.value.trim();
-                window.clearTimeout(weeklyOverviewSearchTimer);
-                weeklyOverviewSearchTimer = window.setTimeout(() => {
-                    window.location.href = buildWeeklyOverviewUrl(query);
-                }, 300);
-                return;
-            }
-
-            filterOverviewTable();
+        function escapeWeeklyOverviewHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
         }
 
-        /**
-         * Extract end date from period label.
-         * Period labels are like "Jun 10 - Jun 16, 2019"
-         * This extracts just the end date: "Jun 16, 2019"
-         */
         function extractPeriodEndDate(label) {
-            if (!label) return '';
-            // Look for format: "Mon, Jun 10 - Mon, Jun 16, 2019" or "Jun 10 - Jun 16, 2019"
-            // Extract everything after the " - "
+            if (!label) {
+                return '';
+            }
             const dashIndex = label.indexOf(' - ');
             if (dashIndex === -1) {
                 return label;
             }
             const afterDash = label.substring(dashIndex + 3).trim();
-            // If after-dash part starts with day name (3 letters + comma), extract date part
             const dayMatch = afterDash.match(/^[A-Za-z]{3},\s+(.+)$/);
-            if (dayMatch) {
-                return dayMatch[1];
+            return dayMatch ? dayMatch[1] : afterDash;
+        }
+
+        function buildSongOverviewImageHtml(entry) {
+            if (entry.hasImage && entry.albumHasImage && entry.albumId != null) {
+                return `<div class="hover-image-container">`
+                    + `<img src="/albums/${entry.albumId}/image" alt="" class="album-image-default overview-item-image">`
+                    + `<img src="/songs/${entry.songId}/image" alt="" class="song-image-hover overview-item-image">`
+                    + `</div>`;
             }
-            return afterDash;
+            if (entry.hasImage) {
+                return `<img src="/songs/${entry.songId}/image" alt="" class="overview-item-image">`;
+            }
+            if (entry.albumHasImage && entry.albumId != null) {
+                return `<img src="/albums/${entry.albumId}/image" alt="" class="overview-item-image">`;
+            }
+            return `<div class="overview-item-placeholder">SONG</div>`;
+        }
+
+        function buildAlbumOverviewImageHtml(entry) {
+            return entry.hasImage
+                ? `<img src="/albums/${entry.albumId}/image" alt="" class="overview-item-image">`
+                : `<div class="overview-item-placeholder">ALB</div>`;
+        }
+
+        function buildArtistOverviewImageHtml(entry) {
+            return entry.hasImage
+                ? `<img src="/artists/${entry.resolvedArtistId}/image" alt="" class="overview-item-image">`
+                : `<div class="overview-item-placeholder">ART</div>`;
         }
 
         function renderWeeklySongRows(entries) {
             return entries.map((entry) => {
                 const genderClass = entry.genderClass ? ` ${entry.genderClass}` : '';
                 return `
-                    <tr class="overview-filter-row${genderClass}" data-song-id="${entry.songId}" data-top1="${entry.spanAtTop1}" data-top5="${entry.spanAtTop5}" data-top10="${entry.spanAtTop10}">
-                        <td class="center"><button type="button" class="overview-expand-btn" data-colspan="10" onclick="toggleOverviewDetail(this)">+</button></td>
+                    <tr class="overview-filter-row${genderClass}" data-song-id="${entry.songId}" data-top1="${entry.spanAtTop1}" data-top5="${entry.spanAtTop5}" data-top10="${entry.spanAtTop10}" data-song-title="${escapeWeeklyOverviewHtml(entry.songTitle)}" data-artist-name="${escapeWeeklyOverviewHtml(entry.artistName)}" data-album-name="${escapeWeeklyOverviewHtml(entry.albumName)}">
+                        <td class="overview-image-cell">${buildSongOverviewImageHtml(entry)}</td>
+                        <td class="center"><button type="button" class="overview-expand-btn" data-colspan="11" onclick="toggleOverviewDetail(this)">+</button></td>
                         <td><a class="overview-link-secondary" href="/artists/${entry.artistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
                         <td><a class="overview-link-primary" href="/songs/${entry.songId}">${escapeWeeklyOverviewHtml(entry.songTitle)}</a></td>
                         <td class="center" data-value="${entry.totalChartSpan}">${entry.totalChartSpan}</td>
@@ -856,15 +1361,16 @@
                 const genderClass = entry.genderClass ? ` ${entry.genderClass}` : '';
                 return `
                     <tr class="overview-filter-row${genderClass}">
+                        <td class="overview-image-cell">${buildAlbumOverviewImageHtml(entry)}</td>
                         <td><a class="overview-link-secondary" href="/artists/${entry.resolvedArtistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
                         <td><a class="overview-link-primary" href="/albums/${entry.albumId}">${escapeWeeklyOverviewHtml(entry.albumName)}</a></td>
-                        <td class="center" data-value="${entry.chartedSongsCount}">${entry.chartedSongsCount}</td>
                         <td class="center" data-value="${entry.totalChartSpan}">${entry.totalChartSpan}</td>
                         <td class="center" data-value="${entry.highestPeak ?? 999}">${entry.highestPeak ?? ''}</td>
-                        <td class="center" data-value="${entry.numberOneSongsCount}">${entry.numberOneSongsCount}</td>
-                        <td class="center" data-value="${entry.totalSpanAtNumberOne}">${entry.totalSpanAtNumberOne}</td>
-                        <td class="center" data-value="${entry.firstDebutSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.firstDebutKey}">${escapeWeeklyOverviewHtml(entry.firstDebutDate)}</a></td>
-                        <td class="center" data-value="${entry.lastAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.lastAppearanceKey}">${escapeWeeklyOverviewHtml(entry.lastAppearanceDate)}</a></td>
+                        <td class="center" data-value="${entry.spanAtPeak}">${entry.spanAtPeak}</td>
+                        <td class="center" data-value="${entry.firstDebutSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.firstDebutKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.firstDebutDate))}</a></td>
+                        <td class="center" data-value="${entry.debutPosition ?? 999}">${entry.debutPosition ?? ''}</td>
+                        <td class="center" data-value="${entry.peakAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.peakAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.peakAppearanceDate))}</a></td>
+                        <td class="center" data-value="${entry.lastAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.lastAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.lastAppearanceDate))}</a></td>
                     </tr>
                 `;
             }).join('');
@@ -873,27 +1379,25 @@
         function renderWeeklyArtistRows(entries) {
             return entries.map((entry) => {
                 const genderClass = entry.genderClass ? ` ${entry.genderClass}` : '';
+                const songChartedUrl = buildArtistMetricUrl('songs', entry.resolvedArtistId, getDefaultSongChartPeakValue());
+                const songNumberOneUrl = buildArtistMetricUrl('songs', entry.resolvedArtistId, 1);
+                const albumChartedUrl = buildArtistMetricUrl('albums', entry.resolvedArtistId, getDefaultAlbumChartPeakValue());
+                const albumNumberOneUrl = buildArtistMetricUrl('albums', entry.resolvedArtistId, 1);
                 return `
-                    <tr class="overview-filter-row${genderClass}">
+                    <tr class="overview-filter-row${genderClass}" data-artist-id="${entry.resolvedArtistId}">
+                        <td class="overview-image-cell">${buildArtistOverviewImageHtml(entry)}</td>
                         <td><a class="overview-link-primary" href="/artists/${entry.resolvedArtistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
-                        <td class="center" data-value="${entry.chartedSongsCount}">${entry.chartedSongsCount}</td>
+                        <td class="center" data-value="${entry.chartedSongsCount}">${buildOverviewMetricLink(songChartedUrl, entry.chartedSongsCount)}</td>
                         <td class="center" data-value="${entry.totalChartSpan}">${entry.totalChartSpan}</td>
-                        <td class="center" data-value="${entry.highestPeak ?? 999}">${entry.highestPeak ?? ''}</td>
-                        <td class="center" data-value="${entry.numberOneSongsCount}">${entry.numberOneSongsCount}</td>
-                        <td class="center" data-value="${entry.totalSpanAtNumberOne}">${entry.totalSpanAtNumberOne}</td>
-                        <td class="center" data-value="${entry.firstDebutSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.firstDebutKey}">${escapeWeeklyOverviewHtml(entry.firstDebutDate)}</a></td>
-                        <td class="center" data-value="${entry.lastAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/weekly/${entry.lastAppearanceKey}">${escapeWeeklyOverviewHtml(entry.lastAppearanceDate)}</a></td>
+                        <td class="center" data-value="${entry.numberOneSongsCount}">${buildOverviewMetricLink(songNumberOneUrl, entry.numberOneSongsCount)}</td>
+                        <td class="center artist-song-number-one-span-col" data-value="${entry.totalSpanAtNumberOne}">${entry.totalSpanAtNumberOne}</td>
+                        <td class="center" data-value="${entry.chartedAlbumsCount}">${buildOverviewMetricLink(albumChartedUrl, entry.chartedAlbumsCount)}</td>
+                        <td class="center" data-value="${entry.albumTotalChartSpan}">${entry.albumTotalChartSpan}</td>
+                        <td class="center" data-value="${entry.numberOneAlbumsCount}">${buildOverviewMetricLink(albumNumberOneUrl, entry.numberOneAlbumsCount)}</td>
+                        <td class="center artist-album-number-one-span-col" data-value="${entry.albumTotalSpanAtNumberOne}">${entry.albumTotalSpanAtNumberOne}</td>
                     </tr>
                 `;
             }).join('');
-        }
-
-        function escapeWeeklyOverviewHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
         }
 
         function getWeeklyOverviewToneClass(row) {
@@ -928,7 +1432,6 @@
                     index++;
                     continue;
                 }
-
                 let count = 0;
                 while (index < trimmedWeeks.length && !trimmedWeeks[index].onChart) {
                     count++;
@@ -946,7 +1449,6 @@
                 if (!week.onChart) {
                     return `<span class="overview-chart-run-box absent" title="${week.count} weeks off chart">${week.count}x</span>`;
                 }
-
                 const boxClass = week.position === 1
                     ? 'overview-chart-run-box peak-one'
                     : `overview-chart-run-box ${toneClass}`;
@@ -976,52 +1478,638 @@
             return `
                 <div class="overview-detail-stack">
                     <div class="overview-detail-grid">
-                        <div class="overview-detail-stat">
-                            <div class="overview-detail-label">At #1</div>
-                            <div class="overview-detail-value">${row.dataset.top1 || '0'}</div>
-                        </div>
-                        <div class="overview-detail-stat">
-                            <div class="overview-detail-label">Top 5</div>
-                            <div class="overview-detail-value">${row.dataset.top5 || '0'}</div>
-                        </div>
-                        <div class="overview-detail-stat">
-                            <div class="overview-detail-label">Top 10</div>
-                            <div class="overview-detail-value">${row.dataset.top10 || '0'}</div>
-                        </div>
-                        <div class="overview-detail-stat">
-                            <div class="overview-detail-label">Top 20</div>
-                            <div class="overview-detail-value">${top20Value}</div>
-                        </div>
+                        <div class="overview-detail-stat"><div class="overview-detail-label">At #1</div><div class="overview-detail-value">${row.dataset.top1 || '0'}</div></div>
+                        <div class="overview-detail-stat"><div class="overview-detail-label">Top 5</div><div class="overview-detail-value">${row.dataset.top5 || '0'}</div></div>
+                        <div class="overview-detail-stat"><div class="overview-detail-label">Top 10</div><div class="overview-detail-value">${row.dataset.top10 || '0'}</div></div>
+                        <div class="overview-detail-stat"><div class="overview-detail-label">Top 20</div><div class="overview-detail-value">${top20Value}</div></div>
                     </div>
                     ${chartRunHtml}
                 </div>
             `;
         }
 
+        function persistOverviewSearch() {
+            const songSelect = document.getElementById('artistTopSongFilter');
+            const albumSelect = document.getElementById('artistTopAlbumFilter');
+            sessionStorage.setItem(chartOverviewArtistThresholdStateKey, JSON.stringify({
+                topSong: songSelect?.value || '',
+                topAlbum: albumSelect?.value || ''
+            }));
+        }
+
+        function bindOverviewColumnFilterInput(input, type) {
+            if (!input || input.dataset.filterBound === 'true') {
+                return;
+            }
+            input.placeholder = type === 'number' ? '=5, >=5, 5-10' : 'Filter';
+            input.dataset.filterBound = 'true';
+            input.addEventListener('input', () => {
+                void filterOverviewTable({ showOverlay: true, overlayTitle: 'Filtering overview', overlaySubtitle: 'Applying your column filters...' });
+            });
+        }
+
+        function createColumnFilterInput(type) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'overview-column-filter';
+            bindOverviewColumnFilterInput(input, type);
+            return input;
+        }
+
+        function wireOverviewColumnFilters(table, filterRow, headerRow) {
+            if (!table || !filterRow || !headerRow) {
+                return;
+            }
+            Array.from(filterRow.cells).forEach((cell, index) => {
+                const header = headerRow.cells[index];
+                if (!header) {
+                    return;
+                }
+                const type = header.getAttribute('data-type') || 'text';
+                let input = cell.querySelector('.overview-column-filter');
+                if (!header.hasAttribute('data-no-sort')) {
+                    if (!input) {
+                        input = createColumnFilterInput(type);
+                        cell.appendChild(input);
+                    }
+                    bindOverviewColumnFilterInput(input, type);
+                }
+            });
+        }
+
+        function setupOverviewColumnFilters() {
+            const table = getActiveOverviewTable();
+            if (!table) {
+                return;
+            }
+            const thead = table.tHead;
+            const headerRow = thead?.rows?.[0];
+            if (!thead || !headerRow) {
+                return;
+            }
+            let filterRow = thead.querySelector('.overview-filter-head');
+            if (!filterRow) {
+                filterRow = document.createElement('tr');
+                filterRow.className = 'overview-filter-head';
+                Array.from(headerRow.cells).forEach((header) => {
+                    const cell = document.createElement('th');
+                    if (!header.hasAttribute('data-no-sort')) {
+                        cell.appendChild(createColumnFilterInput(header.getAttribute('data-type') || 'text'));
+                    }
+                    filterRow.appendChild(cell);
+                });
+                thead.appendChild(filterRow);
+            }
+            wireOverviewColumnFilters(table, filterRow, headerRow);
+        }
+
+        function renderWeeklyOverviewRows(entries) {
+            if (overviewTab === 'album') {
+                return renderWeeklyAlbumRows(entries || []);
+            }
+            if (overviewTab === 'artist') {
+                return renderWeeklyArtistRows(entries || []);
+            }
+            return renderWeeklySongRows(entries || []);
+        }
+
+        function hydrateWeeklyOverviewRows(entries) {
+            if (overviewTab !== 'artist') {
+                return;
+            }
+            cacheArtistMetrics(entries || []);
+            initializeArtistOverviewRows();
+        }
+
+        function hasActiveOverviewColumnFilters() {
+            return getColumnFilterValues().some((value) => value !== '');
+        }
+
+        function shouldUseWeeklyServerFiltering() {
+            if (!isServerInfiniteScroll) {
+                return false;
+            }
+            const container = getActiveOverviewContainer();
+            return hasActiveOverviewColumnFilters() || container?.dataset.serverFiltered === 'true';
+        }
+
+        function appendWeeklyOverviewRequestParams(url, page, size) {
+            url.searchParams.set('overviewTab', overviewTab);
+            url.searchParams.set('page', String(page));
+            url.searchParams.set('size', String(size));
+            getWeeklySortStateFromLocation().forEach((sortEntry, index) => {
+                const sortKey = index === 0 ? 'sort' : `sort${index + 1}`;
+                const dirKey = index === 0 ? 'dir' : `dir${index + 1}`;
+                url.searchParams.set(sortKey, sortEntry.sort);
+                url.searchParams.set(dirKey, sortEntry.dir);
+            });
+            getColumnFilterValues().forEach((filterValue) => {
+                url.searchParams.append('filter', filterValue);
+            });
+            if (overviewTab === 'artist') {
+                const songThreshold = getArtistTopThresholdValue('artistTopSongFilter');
+                const albumThreshold = getArtistTopThresholdValue('artistTopAlbumFilter');
+                if (songThreshold != null) {
+                    url.searchParams.set('topSong', String(songThreshold));
+                }
+                if (albumThreshold != null) {
+                    url.searchParams.set('topAlbum', String(albumThreshold));
+                }
+            }
+        }
+
+        async function reloadWeeklyOverviewRowsFromServer() {
+            const container = getActiveOverviewContainer();
+            const body = getActiveOverviewBody();
+            const loadingEl = document.getElementById('weeklyOverviewLoading');
+            if (!container || !body) {
+                return;
+            }
+            const pageSize = parseInt(container.dataset.pageSize || '0', 10) || 100;
+            const requestId = ++weeklyOverviewReloadRequestId;
+            container._weeklyOverviewObserver?.disconnect();
+            loadingEl?.classList.add('visible');
+
+            try {
+                const url = new URL(overviewDataPath, window.location.origin);
+                appendWeeklyOverviewRequestParams(url, 0, pageSize);
+                const response = await fetch(url.toString());
+                if (!response.ok) {
+                    throw new Error('Failed to reload weekly overview rows');
+                }
+                const data = await response.json();
+                if (requestId !== weeklyOverviewReloadRequestId) {
+                    return;
+                }
+                body.innerHTML = renderWeeklyOverviewRows(data.entries || []);
+                hydrateWeeklyOverviewRows(data.entries || []);
+                container.dataset.total = String(data.totalCount || 0);
+                container.dataset.serverFiltered = hasActiveOverviewColumnFilters() ? 'true' : 'false';
+                await filterOverviewTable({ skipWeeklyServerReload: true });
+                setupWeeklyInfiniteScroll();
+            } finally {
+                if (requestId === weeklyOverviewReloadRequestId) {
+                    loadingEl?.classList.remove('visible');
+                }
+            }
+        }
+
+        function setupWeeklySortLinks() {
+            if (!isServerInfiniteScroll) {
+                return;
+            }
+            const table = getActiveOverviewTable();
+            const headerRow = table?.tHead?.rows?.[0];
+            if (!table || !headerRow) {
+                return;
+            }
+
+            const currentSorts = getWeeklySortStateFromLocation();
+            Array.from(headerRow.cells).forEach((header) => {
+                const link = header.querySelector('a.sort-link');
+                if (!link) {
+                    return;
+                }
+                const linkUrl = new URL(link.href, window.location.origin);
+                const sortKey = linkUrl.searchParams.get('sort');
+                if (!sortKey) {
+                    return;
+                }
+
+                header.removeAttribute('data-sort-dir');
+                header.removeAttribute('data-sort-priority');
+                header.classList.remove('sorted-asc', 'sorted-desc', 'sort-asc', 'sort-desc');
+
+                const activeIndex = currentSorts.findIndex((sortEntry) => sortEntry.sort === sortKey);
+                if (activeIndex >= 0) {
+                    const activeSort = currentSorts[activeIndex];
+                    header.setAttribute('data-sort-dir', activeSort.dir);
+                    header.setAttribute('data-sort-priority', String(activeIndex + 1));
+                    header.classList.add(activeSort.dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                    header.classList.add(activeSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+
+                if (link.dataset.weeklyShiftSortBound === 'true') {
+                    return;
+                }
+                link.dataset.weeklyShiftSortBound = 'true';
+                link.addEventListener('click', (event) => {
+                    if (!event.shiftKey) {
+                        showPageBusyOverlay('Sorting overview', 'Reordering the full overview dataset...');
+                    }
+                });
+                link.addEventListener('click', (event) => {
+                    if (!event.shiftKey) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const sortState = getWeeklySortStateFromLocation();
+                    const existingIndex = sortState.findIndex((sortEntry) => sortEntry.sort === sortKey);
+                    const existingSort = existingIndex >= 0 ? sortState[existingIndex] : null;
+                    const nextDir = existingSort && existingSort.dir === 'asc' ? 'desc' : 'asc';
+                    let nextSorts;
+
+                    if (existingIndex >= 0) {
+                        nextSorts = [...sortState];
+                        nextSorts[existingIndex] = { sort: sortKey, dir: nextDir };
+                    } else if (sortState.length < 3) {
+                        nextSorts = [...sortState, { sort: sortKey, dir: 'desc' }];
+                    } else {
+                        nextSorts = sortState;
+                    }
+
+                    showPageBusyOverlay('Sorting overview', 'Reordering the full overview dataset...');
+                    window.location.assign(buildWeeklySortUrl(nextSorts));
+                });
+            });
+        }
+
+        function populateArtistThresholdOptions() {
+            if (overviewTab !== 'artist') {
+                return;
+            }
+            const songSelect = document.getElementById('artistTopSongFilter');
+            const albumSelect = document.getElementById('artistTopAlbumFilter');
+            if (!songSelect || !albumSelect) {
+                return;
+            }
+            const songMax = getOverviewThresholdMax('song');
+            const albumMax = getOverviewThresholdMax('album');
+            for (let value = 1; value <= songMax; value++) {
+                const option = document.createElement('option');
+                option.value = String(value);
+                option.textContent = String(value);
+                songSelect.appendChild(option);
+            }
+            for (let value = 1; value <= albumMax; value++) {
+                const option = document.createElement('option');
+                option.value = String(value);
+                option.textContent = String(value);
+                albumSelect.appendChild(option);
+            }
+
+            const savedState = sessionStorage.getItem(chartOverviewArtistThresholdStateKey);
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    if (parsed.topSong) {
+                        songSelect.value = parsed.topSong;
+                    }
+                    if (parsed.topAlbum) {
+                        albumSelect.value = parsed.topAlbum;
+                    }
+                } catch (error) {
+                    console.warn('Failed to restore artist threshold state:', error);
+                }
+            }
+
+            songSelect.addEventListener('change', () => {
+                persistOverviewSearch();
+                void filterOverviewTable();
+            });
+            albumSelect.addEventListener('change', () => {
+                persistOverviewSearch();
+                void filterOverviewTable();
+            });
+        }
+
+        function initializeArtistOverviewRows() {
+            if (overviewTab !== 'artist') {
+                return;
+            }
+            const body = getActiveOverviewBody();
+            if (!body) {
+                return;
+            }
+            Array.from(body.querySelectorAll('.overview-filter-row')).forEach((row) => {
+                if (row._baseCellState) {
+                    return;
+                }
+                row._baseCellState = Array.from(row.cells).map((cell) => ({
+                    html: cell.innerHTML,
+                    dataValue: cell.getAttribute('data-value') || ''
+                }));
+            });
+        }
+
+        function getArtistTopThresholdValue(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select || !select.value) {
+                return null;
+            }
+            const parsed = parseInt(select.value, 10);
+            return Number.isNaN(parsed) ? null : parsed;
+        }
+
+        function getThresholdArrayValue(values, threshold) {
+            if (!Array.isArray(values) || threshold == null || threshold < 1 || threshold >= values.length) {
+                return 0;
+            }
+            return values[threshold] ?? 0;
+        }
+
+        function restoreArtistOverviewRow(row) {
+            if (!row?._baseCellState) {
+                return;
+            }
+            row._baseCellState.forEach((state, index) => {
+                const cell = row.cells[index];
+                if (!cell) {
+                    return;
+                }
+                cell.innerHTML = state.html;
+                if (state.dataValue === '') {
+                    cell.removeAttribute('data-value');
+                } else {
+                    cell.setAttribute('data-value', state.dataValue);
+                }
+            });
+        }
+
+        function setArtistMetricCell(row, columnIndex, value, url) {
+            const cell = row.cells[columnIndex];
+            if (!cell) {
+                return;
+            }
+            cell.innerHTML = url ? buildOverviewMetricLink(url, value) : String(value);
+            cell.setAttribute('data-value', value);
+        }
+
+        function resortWeeklyArtistRows() {
+            if (!isWeeklyInfiniteScroll || overviewTab !== 'artist') {
+                return;
+            }
+            const body = getActiveOverviewBody();
+            if (!body) {
+                return;
+            }
+            const sortColumn = {
+                artist: artistMetricColumns.artist,
+                songs: artistMetricColumns.songs,
+                weeks: artistMetricColumns.songWeeks,
+                numberOnes: artistMetricColumns.numberOnes,
+                atNumberOne: artistMetricColumns.songAtNumberOne,
+                albums: artistMetricColumns.albums,
+                albumWeeks: artistMetricColumns.albumWeeks,
+                albumNumberOnes: artistMetricColumns.albumNumberOnes,
+                albumAtNumberOne: artistMetricColumns.albumAtNumberOne
+            }[weeklyOverviewSort] ?? artistMetricColumns.songs;
+            const isNumeric = sortColumn !== artistMetricColumns.artist;
+            const rows = Array.from(body.querySelectorAll('.overview-filter-row'));
+            rows.sort((leftRow, rightRow) => {
+                const leftCell = leftRow.cells[sortColumn];
+                const rightCell = rightRow.cells[sortColumn];
+                const leftValue = leftCell?.getAttribute('data-value') ?? leftCell?.textContent?.trim() ?? '';
+                const rightValue = rightCell?.getAttribute('data-value') ?? rightCell?.textContent?.trim() ?? '';
+                if (isNumeric) {
+                    const leftNumber = Number(leftValue || 0);
+                    const rightNumber = Number(rightValue || 0);
+                    return weeklyOverviewDir === 'asc' ? leftNumber - rightNumber : rightNumber - leftNumber;
+                }
+                return weeklyOverviewDir === 'asc'
+                    ? String(leftValue).localeCompare(String(rightValue), undefined, { sensitivity: 'base' })
+                    : String(rightValue).localeCompare(String(leftValue), undefined, { sensitivity: 'base' });
+            });
+            const fragment = document.createDocumentFragment();
+            rows.forEach((row) => fragment.appendChild(row));
+            body.appendChild(fragment);
+        }
+
+        function updateArtistOverviewColumnVisibility(songThreshold, albumThreshold) {
+            if (overviewTab !== 'artist') {
+                return;
+            }
+            const table = getActiveOverviewTable();
+            if (!table) {
+                return;
+            }
+            const visible = new Set([artistMetricColumns.image, artistMetricColumns.artist]);
+            if (songThreshold != null) {
+                visible.add(artistMetricColumns.songs);
+                visible.add(artistMetricColumns.songWeeks);
+            }
+            if (albumThreshold != null) {
+                visible.add(artistMetricColumns.albums);
+                visible.add(artistMetricColumns.albumWeeks);
+            }
+            if (songThreshold == null && albumThreshold == null) {
+                Object.values(artistMetricColumns).forEach((index) => visible.add(index));
+            }
+            if (overviewPeriodType === 'yearly') {
+                visible.delete(artistMetricColumns.songAtNumberOne);
+                visible.delete(artistMetricColumns.albumAtNumberOne);
+            }
+            Array.from(table.tHead.rows).forEach((row) => {
+                Array.from(row.cells).forEach((cell, index) => {
+                    cell.style.display = visible.has(index) ? '' : 'none';
+                });
+            });
+            Array.from(table.tBodies[0].rows).forEach((row) => {
+                Array.from(row.cells).forEach((cell, index) => {
+                    cell.style.display = visible.has(index) ? '' : 'none';
+                });
+            });
+        }
+
+        function applyArtistTopThresholds() {
+            if (overviewTab !== 'artist') {
+                return;
+            }
+            const songThreshold = getArtistTopThresholdValue('artistTopSongFilter');
+            const albumThreshold = getArtistTopThresholdValue('artistTopAlbumFilter');
+            const body = getActiveOverviewBody();
+            if (!body) {
+                return;
+            }
+            Array.from(body.querySelectorAll('.overview-filter-row')).forEach((row) => {
+                restoreArtistOverviewRow(row);
+                const artistId = String(row.dataset.artistId || '');
+                const metrics = artistMetricsById.get(artistId);
+                if (!metrics) {
+                    return;
+                }
+                if (songThreshold != null) {
+                    setArtistMetricCell(row, artistMetricColumns.songs, getThresholdArrayValue(metrics.topSongCounts, songThreshold), buildArtistMetricUrl('songs', artistId, songThreshold));
+                    setArtistMetricCell(row, artistMetricColumns.songWeeks, getThresholdArrayValue(metrics.topSongWeeks, songThreshold));
+                }
+                if (albumThreshold != null) {
+                    setArtistMetricCell(row, artistMetricColumns.albums, getThresholdArrayValue(metrics.topAlbumCounts, albumThreshold), buildArtistMetricUrl('albums', artistId, albumThreshold));
+                    setArtistMetricCell(row, artistMetricColumns.albumWeeks, getThresholdArrayValue(metrics.topAlbumWeeks, albumThreshold));
+                }
+            });
+            updateArtistOverviewColumnVisibility(songThreshold, albumThreshold);
+            const table = getActiveOverviewTable();
+            if (table?.classList.contains('js-sortable') && window.TableSort && typeof window.TableSort.resortTable === 'function') {
+                window.TableSort.resortTable(table);
+            } else {
+                resortWeeklyArtistRows();
+            }
+        }
+
+        function getColumnFilterValues() {
+            const table = getActiveOverviewTable();
+            const filterRow = table?.tHead?.querySelector('.overview-filter-head');
+            if (!filterRow) {
+                return [];
+            }
+            return Array.from(filterRow.cells).map((cell) => cell.querySelector('.overview-column-filter')?.value.trim() || '');
+        }
+
+        function matchesNumericOverviewFilter(rawValue, query) {
+            const value = Number(rawValue);
+            if (Number.isNaN(value)) {
+                return false;
+            }
+            const rangeMatch = query.match(/^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/);
+            if (rangeMatch) {
+                const min = Number(rangeMatch[1]);
+                const max = Number(rangeMatch[2]);
+                return value >= min && value <= max;
+            }
+            const compareMatch = query.match(/^(<=|>=|=|<|>)?\s*(-?\d+(?:\.\d+)?)$/);
+            if (!compareMatch) {
+                return false;
+            }
+            const operator = compareMatch[1] || '=';
+            const target = Number(compareMatch[2]);
+            switch (operator) {
+                case '<': return value < target;
+                case '<=': return value <= target;
+                case '>': return value > target;
+                case '>=': return value >= target;
+                default: return value === target;
+            }
+        }
+
+        function matchesOverviewColumnFilter(cell, query, type) {
+            if (!query) {
+                return true;
+            }
+            const rawValue = cell.getAttribute('data-value');
+            if (type === 'number') {
+                return matchesNumericOverviewFilter(rawValue ?? cell.textContent.trim(), query);
+            }
+            const normalizedQuery = query.toLowerCase();
+            const text = (cell.textContent || '').trim().toLowerCase();
+            const dataValueText = (rawValue || '').toLowerCase();
+            return text.includes(normalizedQuery) || dataValueText.includes(normalizedQuery);
+        }
+
+        function updateOverviewResultsCount() {
+            const body = getActiveOverviewBody();
+            const counter = document.getElementById('overviewVisibleCount');
+            const container = getActiveOverviewContainer();
+            if (!body || !counter) {
+                return;
+            }
+            const loaded = body.querySelectorAll('.overview-filter-row').length;
+            const visible = body.querySelectorAll('.overview-filter-row:not(.overview-hidden)').length;
+            const total = Number(container?.dataset?.total || loaded);
+            if (isServerInfiniteScroll && total > loaded) {
+                counter.textContent = `Showing ${visible} of ${loaded} loaded rows (${total} total)`;
+                return;
+            }
+            counter.textContent = `Showing ${visible} row${visible === 1 ? '' : 's'}`;
+        }
+
+        async function filterOverviewTable(options = {}) {
+            const table = getActiveOverviewTable();
+            const body = getActiveOverviewBody();
+            if (!table || !body) {
+                return;
+            }
+
+            if (options.showOverlay) {
+                showPageBusyOverlay(options.overlayTitle || 'Filtering overview', options.overlaySubtitle || 'Applying your changes...');
+            }
+
+            try {
+                if (!options.skipWeeklyServerReload && shouldUseWeeklyServerFiltering()) {
+                    await reloadWeeklyOverviewRowsFromServer();
+                    return;
+                }
+
+                applyArtistTopThresholds();
+                const columnFilters = getColumnFilterValues();
+                Array.from(body.querySelectorAll('.overview-filter-row')).forEach((row) => {
+                    const matchesColumns = Array.from(row.cells).every((cell, index) => {
+                        if (window.getComputedStyle(cell).display === 'none') {
+                            return true;
+                        }
+                        const filterValue = columnFilters[index] || '';
+                        if (!filterValue) {
+                            return true;
+                        }
+                        const header = table.tHead?.rows?.[0]?.cells?.[index];
+                        const type = header?.getAttribute('data-type') || 'text';
+                        return matchesOverviewColumnFilter(cell, filterValue, type);
+                    });
+                    const matches = matchesColumns;
+                    row.classList.toggle('overview-hidden', !matches);
+                    const generatedDetailRow = row.nextElementSibling;
+                    if (!matches && generatedDetailRow && generatedDetailRow.classList.contains('generated-detail-row')) {
+                        generatedDetailRow.remove();
+                        const button = row.querySelector('.overview-expand-btn');
+                        if (button) {
+                            button.classList.remove('expanded');
+                            button.textContent = '+';
+                        }
+                    }
+                });
+                updateOverviewResultsCount();
+            } finally {
+                if (options.showOverlay) {
+                    hidePageBusyOverlay();
+                }
+            }
+        }
+
+        function resetOverviewControls() {
+            const filterInputs = document.querySelectorAll('.overview-column-filter');
+            filterInputs.forEach((filterInput) => {
+                filterInput.value = '';
+            });
+            const songSelect = document.getElementById('artistTopSongFilter');
+            const albumSelect = document.getElementById('artistTopAlbumFilter');
+            if (songSelect) {
+                songSelect.value = '';
+            }
+            if (albumSelect) {
+                albumSelect.value = '';
+            }
+            persistOverviewSearch();
+            void filterOverviewTable({ showOverlay: true, overlayTitle: 'Resetting overview', overlaySubtitle: 'Clearing filters and refreshing the rows...' });
+        }
+
         function setupWeeklyInfiniteScroll() {
-            const container = getWeeklyOverviewContainer();
-            if (!container) {
+            if (!isServerInfiniteScroll) {
                 return;
             }
-
-            const totalCount = parseInt(container.dataset.total || '0', 10);
-            const pageSize = parseInt(container.dataset.pageSize || '0', 10);
-            const overviewTab = container.dataset.overviewTab || 'song';
-            const sort = container.dataset.sort || 'weeks';
-            const dir = container.dataset.dir || 'desc';
-            const query = container.dataset.q || '';
-            const initialRows = getActiveOverviewBody()?.querySelectorAll('.overview-filter-row').length || 0;
-
-            if (!pageSize || initialRows >= totalCount) {
-                return;
-            }
-
+            const container = getActiveOverviewContainer();
             const tbody = getActiveOverviewBody();
             const loadingEl = document.getElementById('weeklyOverviewLoading');
             const sentinel = document.getElementById('weeklyOverviewSentinel');
+            if (!container || !tbody || !sentinel) {
+                return;
+            }
+            const totalCount = parseInt(container.dataset.total || '0', 10);
+            const pageSize = parseInt(container.dataset.pageSize || '0', 10);
+            const sort = container.dataset.sort || weeklyOverviewSort || 'debutPeriod';
+            const dir = container.dataset.dir || weeklyOverviewDir || 'desc';
+            const initialRows = tbody.querySelectorAll('.overview-filter-row').length;
+            if (!pageSize || initialRows >= totalCount) {
+                updateOverviewResultsCount();
+                return;
+            }
             let currentPage = 1;
             let loadedCount = initialRows;
             let isLoading = false;
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMore();
+                }
+            }, { rootMargin: '280px' });
+            container._weeklyOverviewObserver = observer;
 
             async function loadMore() {
                 if (isLoading || loadedCount >= totalCount) {
@@ -1029,28 +2117,22 @@
                 }
                 isLoading = true;
                 loadingEl?.classList.add('visible');
-
                 try {
-                    const url = new URL('/charts/weekly/overview/data', window.location.origin);
-                    url.searchParams.set('overviewTab', overviewTab);
-                    url.searchParams.set('page', currentPage.toString());
-                    url.searchParams.set('size', pageSize.toString());
-                    url.searchParams.set('sort', sort);
-                    url.searchParams.set('dir', dir);
-                    if (query) {
-                        url.searchParams.set('q', query);
-                    }
-
+                    const url = new URL(overviewDataPath, window.location.origin);
+                    appendWeeklyOverviewRequestParams(url, currentPage, pageSize);
                     const response = await fetch(url.toString());
+                    if (!response.ok) {
+                        throw new Error('Failed to load overview rows');
+                    }
                     const data = await response.json();
-                    const rowsHtml = overviewTab === 'album'
-                        ? renderWeeklyAlbumRows(data.entries)
-                        : overviewTab === 'artist'
-                        ? renderWeeklyArtistRows(data.entries)
-                        : renderWeeklySongRows(data.entries);
-                    tbody.insertAdjacentHTML('beforeend', rowsHtml);
-                    loadedCount += data.entries.length;
-                    currentPage++;
+                    tbody.insertAdjacentHTML('beforeend', renderWeeklyOverviewRows(data.entries || []));
+                    hydrateWeeklyOverviewRows(data.entries || []);
+                    loadedCount += (data.entries || []).length;
+                    currentPage = data.nextPage ?? (currentPage + 1);
+                    await filterOverviewTable({ skipWeeklyServerReload: true });
+                    if (!data.hasMore || loadedCount >= totalCount) {
+                        observer.disconnect();
+                    }
                 } catch (error) {
                     console.error('Error loading more weekly overview rows:', error);
                 } finally {
@@ -1059,55 +2141,112 @@
                 }
             }
 
-            new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting) {
-                    loadMore();
-                }
-            }, { rootMargin: '300px' }).observe(sentinel);
+            observer.observe(sentinel);
         }
 
-        function persistOverviewSearch() {
-            if (isWeeklyInfiniteScroll) {
-                return;
+        function buildSongOverviewExportCells(entry) {
+            const cells = [{ raw: '', text: '', type: 'text' }];
+            if (overviewPeriodType === 'weekly') {
+                cells.push({ raw: '', text: '', type: 'text' });
             }
-            const input = document.getElementById('overviewSearchInput');
-            if (input) {
-                sessionStorage.setItem(chartOverviewStorageKey, input.value || '');
-            }
+            cells.push({ raw: entry.artistName || '', text: entry.artistName || '', type: 'text' });
+            cells.push({ raw: entry.songTitle || '', text: entry.songTitle || '', type: 'text' });
+            cells.push({ raw: String(entry.totalChartSpan ?? ''), text: String(entry.totalChartSpan ?? ''), type: 'number' });
+            cells.push({ raw: String(entry.peakPosition ?? ''), text: String(entry.peakPosition ?? ''), type: 'number' });
+            cells.push({ raw: String(entry.spanAtPeak ?? ''), text: String(entry.spanAtPeak ?? ''), type: 'number' });
+            cells.push({ raw: entry.firstAppearanceSortValue || '', text: extractPeriodEndDate(entry.firstAppearanceLabel || ''), type: 'text' });
+            cells.push({ raw: String(entry.debutPosition ?? ''), text: String(entry.debutPosition ?? ''), type: 'number' });
+            cells.push({ raw: entry.peakAppearanceSortValue || '', text: extractPeriodEndDate(entry.peakAppearanceLabel || ''), type: 'text' });
+            cells.push({ raw: entry.lastAppearanceSortValue || '', text: extractPeriodEndDate(entry.lastAppearanceLabel || ''), type: 'text' });
+            return cells;
         }
 
-        function filterOverviewTable() {
-            const input = document.getElementById('overviewSearchInput');
-            const body = getActiveOverviewBody();
-            if (!input || !body) {
-                return;
-            }
-
-            const query = input.value.trim().toLowerCase();
-            persistOverviewSearch();
-
-            Array.from(body.querySelectorAll('.overview-filter-row')).forEach((row) => {
-                const matches = !query || row.textContent.toLowerCase().includes(query);
-                row.classList.toggle('overview-hidden', !matches);
-
-                const detailId = row.dataset.detailId;
-                if (detailId) {
-                    const detailRow = document.getElementById(detailId);
-                    if (detailRow && !matches) {
-                        detailRow.classList.remove('visible');
-                    }
+        function matchesSongOverviewExportEntry(entry) {
+            const table = getActiveOverviewTable();
+            const columnFilters = getColumnFilterValues();
+            const exportCells = buildSongOverviewExportCells(entry);
+            return exportCells.every((cell, index) => {
+                const filterValue = columnFilters[index] || '';
+                if (!filterValue) {
+                    return true;
                 }
-
-                const generatedDetailRow = row.nextElementSibling;
-                if (!matches && generatedDetailRow && generatedDetailRow.classList.contains('generated-detail-row')) {
-                    generatedDetailRow.remove();
-                    const button = row.querySelector('.overview-expand-btn');
-                    if (button) {
-                        button.classList.remove('expanded');
-                        button.textContent = '+';
-                    }
+                const header = table?.tHead?.rows?.[0]?.cells?.[index];
+                const type = header?.getAttribute('data-type') || cell.type || 'text';
+                if (type === 'number') {
+                    return matchesNumericOverviewFilter(cell.raw, filterValue);
                 }
+                const normalizedQuery = filterValue.toLowerCase();
+                return String(cell.text || '').toLowerCase().includes(normalizedQuery)
+                    || String(cell.raw || '').toLowerCase().includes(normalizedQuery);
             });
+        }
+
+        async function openOverviewSongsPlaylistGenerator() {
+            if (overviewTab !== 'song') {
+                return;
+            }
+            const body = getActiveOverviewBody();
+            if (!body) {
+                return;
+            }
+            let songs;
+            const container = getActiveOverviewContainer();
+            const loadedRows = body.querySelectorAll('.overview-filter-row').length;
+            const totalRows = Number(container?.dataset?.total || loadedRows);
+
+            if (isServerInfiniteScroll && totalRows > loadedRows) {
+                try {
+                    const url = new URL(`/charts/${overviewPeriodType}/overview/song-export`, window.location.origin);
+                    getWeeklySortStateFromLocation().forEach((sortEntry, index) => {
+                        const sortKey = index === 0 ? 'sort' : `sort${index + 1}`;
+                        const dirKey = index === 0 ? 'dir' : `dir${index + 1}`;
+                        url.searchParams.set(sortKey, sortEntry.sort);
+                        url.searchParams.set(dirKey, sortEntry.dir);
+                    });
+                    const response = await fetch(url.toString());
+                    if (!response.ok) {
+                        throw new Error('Failed to load full song overview export');
+                    }
+                    const entries = await response.json();
+                    songs = (entries || [])
+                        .filter(matchesSongOverviewExportEntry)
+                        .map((entry) => ({
+                            id: Number(entry.songId),
+                            name: entry.songTitle || '',
+                            artist: entry.artistName || '',
+                            album: entry.albumName || ''
+                        }))
+                        .filter((song) => !Number.isNaN(song.id));
+                } catch (error) {
+                    console.error('Failed to load the full overview song export:', error);
+                    if (typeof showErrorToast === 'function') {
+                        showErrorToast('Failed to load the full overview for playlist export');
+                    }
+                    return;
+                }
+            } else {
+                songs = Array.from(body.querySelectorAll('.overview-filter-row:not(.overview-hidden)')).map((row) => ({
+                    id: parseInt(row.dataset.songId, 10),
+                    name: row.dataset.songTitle || '',
+                    artist: row.dataset.artistName || '',
+                    album: row.dataset.albumName || ''
+                })).filter((song) => !Number.isNaN(song.id));
+            }
+
+            if (!songs.length) {
+                if (typeof showWarningToast === 'function') {
+                    showWarningToast('No songs are currently displayed');
+                }
+                return;
+            }
+
+            if (typeof openPlaylistGeneratorModal !== 'function') {
+                console.error('Playlist generator modal is not available on this page.');
+                return;
+            }
+
+            const defaultName = `${overviewPageTitle.replace('Chart Overview', 'Song Overview')} (${songs.length} tracks)`;
+            openPlaylistGeneratorModal(songs, defaultName);
         }
 
         function toggleOverviewDetail(button) {
@@ -1115,22 +2254,18 @@
             if (!row) {
                 return;
             }
-
             const songId = row.dataset.songId;
             if (!songId) {
                 return;
             }
-
             let detailRow = row.nextElementSibling;
             if (!detailRow || !detailRow.classList.contains('generated-detail-row')) {
                 detailRow = document.createElement('tr');
                 detailRow.className = 'overview-detail-row detail-row generated-detail-row';
-
                 const detailCell = document.createElement('td');
                 detailCell.className = 'overview-detail-cell';
-                detailCell.colSpan = Number(button.getAttribute('data-colspan') || '10');
+                detailCell.colSpan = Number(button.getAttribute('data-colspan') || '11');
                 detailCell.innerHTML = renderWeeklyOverviewDetailContent(row, {}, true);
-
                 detailRow.appendChild(detailCell);
                 row.insertAdjacentElement('afterend', detailRow);
             }
@@ -1160,18 +2295,9 @@
                     detailCell.innerHTML = `
                         <div class="overview-detail-stack">
                             <div class="overview-detail-grid">
-                                <div class="overview-detail-stat">
-                                    <div class="overview-detail-label">At #1</div>
-                                    <div class="overview-detail-value">${row.dataset.top1 || '0'}</div>
-                                </div>
-                                <div class="overview-detail-stat">
-                                    <div class="overview-detail-label">Top 5</div>
-                                    <div class="overview-detail-value">${row.dataset.top5 || '0'}</div>
-                                </div>
-                                <div class="overview-detail-stat">
-                                    <div class="overview-detail-label">Top 10</div>
-                                    <div class="overview-detail-value">${row.dataset.top10 || '0'}</div>
-                                </div>
+                                <div class="overview-detail-stat"><div class="overview-detail-label">At #1</div><div class="overview-detail-value">${row.dataset.top1 || '0'}</div></div>
+                                <div class="overview-detail-stat"><div class="overview-detail-label">Top 5</div><div class="overview-detail-value">${row.dataset.top5 || '0'}</div></div>
+                                <div class="overview-detail-stat"><div class="overview-detail-label">Top 10</div><div class="overview-detail-value">${row.dataset.top10 || '0'}</div></div>
                             </div>
                             <div class="overview-detail-error">Failed to load chart run.</div>
                         </div>
@@ -1182,24 +2308,30 @@
             });
         }
 
-        window.addEventListener('load', () => {
-            const input = document.getElementById('overviewSearchInput');
-            if (input) {
-                input.addEventListener('input', handleOverviewSearchInput);
+        window.addEventListener('load', async () => {
+            const resetButton = document.getElementById('overviewResetFilters');
+            resetButton?.addEventListener('click', resetOverviewControls);
+            setupOverviewColumnFilters();
+            setupWeeklySortLinks();
+            populateArtistThresholdOptions();
+            initializeArtistOverviewRows();
+            await filterOverviewTable();
+            setupWeeklyInfiniteScroll();
+            if (!isServerInfiniteScroll) {
+                const table = getActiveOverviewTable();
+                const headerRow = table?.tHead?.rows?.[0];
+                Array.from(headerRow?.cells || []).forEach((header) => {
+                    if (header.hasAttribute('data-no-sort')) {
+                        return;
+                    }
+                    header.addEventListener('click', () => {
+                        showPageBusyOverlay('Sorting overview', 'Reordering the overview rows...');
+                        requestAnimationFrame(() => requestAnimationFrame(hidePageBusyOverlay));
+                    });
+                });
             }
-
-            if (isWeeklyInfiniteScroll) {
-                setupWeeklyInfiniteScroll();
-                return;
-            }
-
-            const savedQuery = sessionStorage.getItem(chartOverviewStorageKey);
-            if (savedQuery) {
-                if (input) {
-                    input.value = savedQuery;
-                }
-            }
-            filterOverviewTable();
+            document.body.classList.remove('page-loading');
+            hidePageBusyOverlay();
         });
     </script>
 </body>

@@ -242,7 +242,7 @@
         
         function navigateToGraph(element, filterType) {
             const id = element.getAttribute('data-id');
-            window.location.href = '/songs?' + filterType + '=' + encodeURIComponent(id) + '&' + filterType + 'Mode=includes&view=graphs&tab=general';
+            window.location.href = '/songs?' + filterType + '=' + encodeURIComponent(id) + '&' + filterType + 'Mode=includes';
         }
 
         // Auto-focus search input if there's a search query

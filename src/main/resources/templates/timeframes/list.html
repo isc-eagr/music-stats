@@ -1194,13 +1194,18 @@
         const periodType = /*[[${periodType}]]*/ 'days';
         /*]]>*/
         
-        // Handler for timeframe card clicks - navigates to songs graphs view with date range in new tab
+        // Handler for timeframe card clicks - navigates to the songs list with date range in a new tab
         function handleTimeframeCardClick(card) {
             const dateFrom = card.getAttribute('data-date-from');
             const dateTo = card.getAttribute('data-date-to');
             const periodLabel = card.getAttribute('data-period-label');
-            const encodedLabel = encodeURIComponent(periodLabel || '');
-            window.open('/songs?listenedDateFrom=' + dateFrom + '&listenedDateTo=' + dateTo + '&periodLabel=' + encodedLabel + '&view=graphs', '_blank');
+            const params = new URLSearchParams({
+                listenedDateFrom: dateFrom,
+                listenedDateTo: dateTo,
+                periodLabel: periodLabel || '',
+                view: 'list'
+            });
+            window.open('/songs?' + params.toString(), '_blank');
         }
         
         // Handler for chart generation from badge click

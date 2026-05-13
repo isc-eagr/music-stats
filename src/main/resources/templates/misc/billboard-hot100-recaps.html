@@ -366,13 +366,13 @@
                         <thead>
                             <tr>
                                 <th></th>
+                                <th class="center" title="Movement vs previous week">Move</th>
                                 <th class="center" style="width:60px;">#</th>
                                 <th>Song</th>
                                 <th>Artist</th>
                                 <th class="center stat-col" title="Weeks on chart up to this week">Weeks</th>
                                 <th class="center stat-col" title="Peak position">Peak</th>
                                 <th class="center stat-col" title="Weeks at peak">@ Peak</th>
-                                <th class="center" title="Movement vs previous week">Move</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -381,6 +381,12 @@
                                     th:attr="data-song-id=${e.songId},data-raw-artist=${e.artistName},data-raw-song=${e.songTitle},data-detail-id=${'bb-recap-run-' + stat.index}">
                                     <td class="center">
                                         <button class="recap-expand-btn" onclick="toggleRecapExpand(this, 'bb')" title="Show chart run">+</button>
+                                    </td>
+                                    <td class="center">
+                                        <span th:if="${e.movement != null}"
+                                              th:classappend="'mvmt ' + ${e.movementClass}"
+                                              th:text="${e.movement}"></span>
+                                        <span th:if="${e.movement == null}" style="color:#555;">-</span>
                                     </td>
                                     <td class="center">
                                         <span class="pos-badge" th:text="${e.position}"></span>
@@ -403,12 +409,6 @@
                                         </span>
                                     </td>
                                     <td class="center" th:text="${e.weeksAtPeak != null ? 'x' + e.weeksAtPeak : '-'}"></td>
-                                    <td class="center">
-                                        <span th:if="${e.movement != null}"
-                                              th:classappend="'mvmt ' + ${e.movementClass}"
-                                              th:text="${e.movement}"></span>
-                                        <span th:if="${e.movement == null}" style="color:#555;">-</span>
-                                    </td>
                                 </tr>
                                 <tr class="recap-detail-row">
                                     <td colspan="8" class="recap-detail-cell">
@@ -560,11 +560,10 @@
                     syncNavButtons(data);
 
                     let html = '<div class="recap-table-wrap"><table class="recap-table"><thead><tr>';
-                    html += '<th></th><th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
+                    html += '<th></th><th class="center" title="Movement vs previous week">Move</th><th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
                     html += '<th class="center stat-col" title="Weeks on chart up to this week">Weeks</th>';
                     html += '<th class="center stat-col" title="Peak position">Peak</th>';
                     html += '<th class="center stat-col" title="Weeks at peak">@ Peak</th>';
-                    html += '<th class="center" title="Movement vs previous week">Move</th>';
                     html += '</tr></thead><tbody>';
 
                     data.entries.forEach(function(entry) {
@@ -576,6 +575,12 @@
                             + ' data-raw-song="' + escHtml(entry.songTitle) + '"'
                             + ' data-detail-id="' + detailId + '">';
                         html += '<td class="center"><button class="recap-expand-btn" onclick="toggleRecapExpand(this, \'bb\')" title="Show chart run">+</button></td>';
+                        if (entry.movement != null) {
+                            html += '<td class="center"><span class="mvmt ' + (entry.movementClass || '') + '">' + escHtml(String(entry.movement)) + '</span></td>';
+                        } else {
+                            html += '<td class="center"><span style="color:#555;">-</span></td>';
+                        }
+
                         html += '<td class="center"><span class="pos-badge">' + entry.position + '</span></td>';
 
                         if (entry.songId) {
@@ -593,12 +598,6 @@
                         html += '<td class="center">' + (entry.weeks != null ? entry.weeks : '-') + '</td>';
                         html += '<td class="center">' + renderPeakCell(entry) + '</td>';
                         html += '<td class="center">' + formatPeakCount(entry.weeksAtPeak) + '</td>';
-
-                        if (entry.movement != null) {
-                            html += '<td class="center"><span class="mvmt ' + (entry.movementClass || '') + '">' + escHtml(String(entry.movement)) + '</span></td>';
-                        } else {
-                            html += '<td class="center"><span style="color:#555;">-</span></td>';
-                        }
 
                         html += '</tr>';
                         html += '<tr class="recap-detail-row"><td colspan="8" class="recap-detail-cell"><div class="recap-run-loading" id="' + detailId + '">Expand to load chart run...</div></td></tr>';

@@ -127,8 +127,8 @@
   }
 
   function makeSortable(table){
-    // Find header cells (thead th or first row th)
-    let headerCells = Array.from(table.querySelectorAll('thead th'));
+    // Find header cells from the first thead row only.
+    let headerCells = Array.from(table.tHead?.rows?.[0]?.cells || []);
     if(headerCells.length === 0){
       const firstRow = table.rows && table.rows[0];
       if(firstRow){
@@ -137,9 +137,7 @@
     }
     if(headerCells.length === 0) return; // nothing to do
 
-    // Track current sort state
-    let currentSortCol = null;
-    let currentSortDir = null;
+    table._sortState = Array.isArray(table._sortState) ? table._sortState : [];
 
     headerCells.forEach((th, idx)=>{
       // Skip non-sortable columns (those without 'sortable' class if explicitly marked)
@@ -153,8 +151,8 @@
       th.classList.add('sortable');
       th.style.cursor = 'pointer';
       
-      th.addEventListener('click', ()=>{
-        sortByColumn(table, idx, th, headerCells);
+      th.addEventListener('click', (event)=>{
+        sortByColumn(table, idx, th, headerCells, { shiftKey: !!event.shiftKey });
       });
     });
 
@@ -167,25 +165,52 @@
       // Hide tbody to prevent visible re-sort flash on page load
       const tbody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
       if(tbody) tbody.style.visibility = 'hidden';
-      sortByColumn(table, idx, defaultSortTh, headerCells);
+      sortByColumn(table, idx, defaultSortTh, headerCells, { shiftKey: false });
       if(tbody) requestAnimationFrame(function(){ tbody.style.visibility = 'visible'; });
     }
   }
 
-  function sortByColumn(table, colIndex, th, allHeaders){
-    // Toggle sort direction
-    const currentDir = th.getAttribute('data-sort-dir');
-    const dir = currentDir === 'asc' ? 'desc' : 'asc';
-    const dataType = th.getAttribute('data-type') || null;
+  function sortByColumn(table, colIndex, th, allHeaders, options){
+    const shiftKey = !!(options && options.shiftKey);
+    const currentSorts = Array.isArray(table._sortState) ? [...table._sortState] : [];
+    const existingIndex = currentSorts.findIndex(sort => sort.colIndex === colIndex);
+    const existingSort = existingIndex >= 0 ? currentSorts[existingIndex] : null;
+    const dir = existingSort && existingSort.dir === 'asc' ? 'desc' : 'asc';
+    let nextSorts;
 
-    // Clear other headers state
-    allHeaders.forEach(h=>{
-      h.removeAttribute('data-sort-dir');
-      h.classList.remove('sorted-asc','sorted-desc','sort-asc','sort-desc');
+    if (shiftKey) {
+      if (existingIndex >= 0) {
+        nextSorts = [...currentSorts];
+        nextSorts[existingIndex] = { colIndex, dir };
+      } else if (currentSorts.length < 3) {
+        nextSorts = [...currentSorts, { colIndex, dir }];
+      } else {
+        nextSorts = currentSorts;
+      }
+    } else {
+      nextSorts = [{ colIndex, dir }];
+    }
+
+    table._sortState = nextSorts;
+    applySortState(table, allHeaders, nextSorts);
+  }
+
+  function applySortState(table, allHeaders, nextSorts){
+    if(!Array.isArray(allHeaders) || allHeaders.length === 0) return;
+
+    allHeaders.forEach((header, headerIndex)=>{
+      header.removeAttribute('data-sort-dir');
+      header.removeAttribute('data-sort-priority');
+      header.classList.remove('sorted-asc','sorted-desc','sort-asc','sort-desc');
+      const activeSortIndex = nextSorts.findIndex(sort => sort.colIndex === headerIndex);
+      if(activeSortIndex >= 0){
+        const activeSort = nextSorts[activeSortIndex];
+        header.setAttribute('data-sort-dir', activeSort.dir);
+        header.setAttribute('data-sort-priority', String(activeSortIndex + 1));
+        header.classList.add(activeSort.dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        header.classList.add(activeSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
     });
-    th.setAttribute('data-sort-dir', dir);
-    th.classList.add(dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
-    th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
 
     // Collect rows: if there's a tbody, take all its rows; otherwise skip header row
     const tbody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
@@ -215,46 +240,64 @@
         rowGroups.push(group);
       }
     }
-    const sortableGroups = rowGroups.map(group => ({
-      group,
-      rawParsed: getCellValue(group.main.cells[colIndex] || {}, null)
-    }));
+    const normalizedSorts = nextSorts.map(sort => {
+      const header = allHeaders[sort.colIndex];
+      const dataType = header ? (header.getAttribute('data-type') || null) : null;
+      return {
+        ...sort,
+        dataType,
+        sampleType: dataType || 'string'
+      };
+    });
 
-    // Determine type by sampling if not explicitly provided
-    let sampleType = dataType || 'string';
-    if(!dataType){
+    const sortableGroups = rowGroups.map(group => {
+      const parsedByColumn = new Map();
+      normalizedSorts.forEach(sort => {
+        parsedByColumn.set(sort.colIndex, getCellValue(group.main.cells[sort.colIndex] || {}, sort.dataType));
+      });
+      return { group, parsedByColumn };
+    });
+
+    normalizedSorts.forEach(sort => {
+      if(sort.dataType){
+        return;
+      }
       for(const sortableGroup of sortableGroups){
-        const parsed = sortableGroup.rawParsed;
-        if(parsed.value !== '' && parsed.type !== 'string'){
-          sampleType = parsed.type;
+        const parsed = sortableGroup.parsedByColumn.get(sort.colIndex);
+        if(parsed && parsed.value !== '' && parsed.type !== 'string'){
+          sort.sampleType = parsed.type;
           break;
         }
       }
-    }
-
-    sortableGroups.forEach(sortableGroup => {
-      sortableGroup.parsed = dataType ? getCellValue(sortableGroup.group.main.cells[colIndex] || {}, dataType) : sortableGroup.rawParsed;
     });
 
     sortableGroups.sort((a,b)=>{
-      const pa = a.parsed;
-      const pb = b.parsed;
+      for(const sort of normalizedSorts){
+        const pa = a.parsedByColumn.get(sort.colIndex) || { type: 'string', value: '' };
+        const pb = b.parsedByColumn.get(sort.colIndex) || { type: 'string', value: '' };
 
-      // Handle empty values - sort to end
-      const aEmpty = pa.value === '' || pa.value === 0;
-      const bEmpty = pb.value === '' || pb.value === 0;
-      if(aEmpty && !bEmpty) return 1;
-      if(!aEmpty && bEmpty) return -1;
+        const aEmpty = pa.value === '' || pa.value == null;
+        const bEmpty = pb.value === '' || pb.value == null;
+        if(aEmpty && !bEmpty) return 1;
+        if(!aEmpty && bEmpty) return -1;
 
-      if(sampleType === 'number' || sampleType === 'date'){
-        const va = (pa.type==='number' || pa.type==='date') ? pa.value : 0;
-        const vb = (pb.type==='number' || pb.type==='date') ? pb.value : 0;
-        return dir === 'asc' ? (va - vb) : (vb - va);
+        if(sort.sampleType === 'number' || sort.sampleType === 'date'){
+          const va = (pa.type==='number' || pa.type==='date') ? pa.value : Number(pa.value || 0);
+          const vb = (pb.type==='number' || pb.type==='date') ? pb.value : Number(pb.value || 0);
+          if(va !== vb){
+            return sort.dir === 'asc' ? (va - vb) : (vb - va);
+          }
+          continue;
+        }
+
+        const va = (pa.type==='string') ? pa.value : String(pa.value);
+        const vb = (pb.type==='string') ? pb.value : String(pb.value);
+        const comparison = sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        if(comparison !== 0){
+          return comparison;
+        }
       }
-      // string compare
-      const va = (pa.type==='string') ? pa.value : String(pa.value);
-      const vb = (pb.type==='string') ? pb.value : String(pb.value);
-      return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      return 0;
     });
 
     // Re-append in sorted order using a fragment so large resort operations do not
@@ -270,6 +313,21 @@
     
     // Update row numbers after sorting
     updateRowNumbers(table);
+  }
+
+  function resortTable(table){
+    if(!table) return;
+    let headerCells = Array.from(table.tHead?.rows?.[0]?.cells || []);
+    if(headerCells.length === 0){
+      const firstRow = table.rows && table.rows[0];
+      if(firstRow){
+        headerCells = Array.from(firstRow.querySelectorAll('th'));
+      }
+    }
+    if(headerCells.length === 0) return;
+    const currentSorts = Array.isArray(table._sortState) ? [...table._sortState] : [];
+    if(currentSorts.length === 0) return;
+    applySortState(table, headerCells, currentSorts);
   }
   
   function updateRowNumbers(table) {
@@ -293,6 +351,7 @@
     parseTimeToSeconds: parseTimeToSeconds,
     makeSortable: makeSortable,
     sortByColumn: sortByColumn,
+    resortTable: resortTable,
     updateRowNumbers: updateRowNumbers
   };
 

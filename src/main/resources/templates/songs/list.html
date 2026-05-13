@@ -1580,7 +1580,7 @@
                     </div>
 
                           <a th:if="${song.country != null and @countryCodeMapper.getCode(song.country) != null}"
-                              th:href="@{/songs(country=${song.country},countryMode='includes',view='graphs',tab='country')}"
+                              th:href="@{/songs(country=${song.country},countryMode='includes')}"
                        class="flag-overlay"
                        th:title="${song.country}">
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(song.country)})}"
@@ -1620,17 +1620,17 @@
                     
                     <!-- Attribute chips -->
                     <div class="winning-chips">
-                        <a th:if="${song.genreName != null and !#strings.isEmpty(song.genreName)}" 
-                                    th:href="@{/songs(genre=${song.genreId},genreMode='includes',view='graphs',tab='genre')}"
+                                <a th:if="${song.genreName != null and !#strings.isEmpty(song.genreName)}" 
+                                                th:href="@{/songs(genre=${song.genreId},genreMode='includes')}"
                            class="winning-chip genre" th:text="${song.genreName}" title="Genre"></a>
-                        <a th:if="${song.subgenreName != null and !#strings.isEmpty(song.subgenreName)}" 
-                                    th:href="@{/songs(subgenre=${song.subgenreId},subgenreMode='includes',view='graphs',tab='subgenre')}"
+                                <a th:if="${song.subgenreName != null and !#strings.isEmpty(song.subgenreName)}" 
+                                                th:href="@{/songs(subgenre=${song.subgenreId},subgenreMode='includes')}"
                            class="winning-chip subgenre" th:text="${song.subgenreName}" title="Subgenre"></a>
-                        <a th:if="${song.ethnicityName != null and !#strings.isEmpty(song.ethnicityName)}" 
-                                    th:href="@{/songs(ethnicity=${song.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
+                                <a th:if="${song.ethnicityName != null and !#strings.isEmpty(song.ethnicityName)}" 
+                                                th:href="@{/songs(ethnicity=${song.ethnicityId},ethnicityMode='includes')}"
                            class="winning-chip ethnicity" th:text="${song.ethnicityName}" title="Ethnicity"></a>
-                        <a th:if="${song.languageName != null and !#strings.isEmpty(song.languageName)}" 
-                                    th:href="@{/songs(language=${song.languageId},languageMode='includes',view='graphs',tab='language')}"
+                                <a th:if="${song.languageName != null and !#strings.isEmpty(song.languageName)}" 
+                                                th:href="@{/songs(language=${song.languageId},languageMode='includes')}"
                            class="winning-chip language" th:text="${song.languageName}" title="Language"></a>
                     </div>
 

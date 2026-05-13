@@ -6,17 +6,25 @@ public class ChartAlbumOverviewRowDTO {
     private Integer resolvedArtistId;
     private String albumName;
     private String artistName;
+    private boolean hasImage;
+    private boolean artistHasImage;
     private int chartedSongsCount;
     private int totalChartSpan;
     private Integer highestPeak;
     private int numberOneSongsCount;
     private int totalSpanAtNumberOne;
+    private int spanAtPeak;
     private String firstDebutDate;
     private String firstDebutKey;
     private String firstDebutSortValue;
+    private Integer debutPosition;
+    private String peakAppearanceDate;
+    private String peakAppearanceKey;
+    private String peakAppearanceSortValue;
     private String lastAppearanceDate;
     private String lastAppearanceKey;
     private String lastAppearanceSortValue;
+    private int[] spanAtTopThresholds;
     private String genderClass;
 
     public Integer getAlbumId() {
@@ -49,6 +57,22 @@ public class ChartAlbumOverviewRowDTO {
 
     public void setArtistName(String artistName) {
         this.artistName = artistName;
+    }
+
+    public boolean isHasImage() {
+        return hasImage;
+    }
+
+    public void setHasImage(boolean hasImage) {
+        this.hasImage = hasImage;
+    }
+
+    public boolean isArtistHasImage() {
+        return artistHasImage;
+    }
+
+    public void setArtistHasImage(boolean artistHasImage) {
+        this.artistHasImage = artistHasImage;
     }
 
     public int getChartedSongsCount() {
@@ -91,6 +115,14 @@ public class ChartAlbumOverviewRowDTO {
         this.totalSpanAtNumberOne = totalSpanAtNumberOne;
     }
 
+    public int getSpanAtPeak() {
+        return spanAtPeak;
+    }
+
+    public void setSpanAtPeak(int spanAtPeak) {
+        this.spanAtPeak = spanAtPeak;
+    }
+
     public String getFirstDebutDate() {
         return firstDebutDate;
     }
@@ -115,6 +147,38 @@ public class ChartAlbumOverviewRowDTO {
         this.firstDebutSortValue = firstDebutSortValue;
     }
 
+    public Integer getDebutPosition() {
+        return debutPosition;
+    }
+
+    public void setDebutPosition(Integer debutPosition) {
+        this.debutPosition = debutPosition;
+    }
+
+    public String getPeakAppearanceDate() {
+        return peakAppearanceDate;
+    }
+
+    public void setPeakAppearanceDate(String peakAppearanceDate) {
+        this.peakAppearanceDate = peakAppearanceDate;
+    }
+
+    public String getPeakAppearanceKey() {
+        return peakAppearanceKey;
+    }
+
+    public void setPeakAppearanceKey(String peakAppearanceKey) {
+        this.peakAppearanceKey = peakAppearanceKey;
+    }
+
+    public String getPeakAppearanceSortValue() {
+        return peakAppearanceSortValue;
+    }
+
+    public void setPeakAppearanceSortValue(String peakAppearanceSortValue) {
+        this.peakAppearanceSortValue = peakAppearanceSortValue;
+    }
+
     public String getLastAppearanceDate() {
         return lastAppearanceDate;
     }
@@ -137,6 +201,14 @@ public class ChartAlbumOverviewRowDTO {
 
     public void setLastAppearanceSortValue(String lastAppearanceSortValue) {
         this.lastAppearanceSortValue = lastAppearanceSortValue;
+    }
+
+    public int[] getSpanAtTopThresholds() {
+        return spanAtTopThresholds;
+    }
+
+    public void setSpanAtTopThresholds(int[] spanAtTopThresholds) {
+        this.spanAtTopThresholds = spanAtTopThresholds;
     }
 
     public String getGenderClass() {

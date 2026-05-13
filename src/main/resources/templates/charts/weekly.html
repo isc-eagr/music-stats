@@ -352,9 +352,15 @@
         .col-position { width: 80px; text-align: center; }
         .col-title { min-width: 200px; }
         .col-artist { min-width: 150px; }
+        .col-plays { width: 110px; text-align: center; }
         .col-movement { width: 96px; text-align: center; }
         .col-peak { width: 80px; text-align: center; }
         .col-weeks { width: 80px; text-align: center; }
+
+        .charts-table th.col-plays,
+        .charts-table td.col-plays {
+            text-align: center;
+        }
         
         /* Position cell */
         .position-cell {
@@ -435,15 +441,17 @@
         
         /* Plays cell */
         .plays-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
+            display: block;
+            width: 100%;
+            text-align: center;
         }
         
         .plays-count {
             font-size: 1.1rem;
             font-weight: 600;
             color: #fff;
+            text-align: center;
+            width: 100%;
         }
         
         .plays-lw {
@@ -961,13 +969,14 @@
                             <thead>
                                 <tr>
                                     <th class="col-expand"></th>
+                                    <th class="col-movement">Movement</th>
                                     <th class="col-position sortable" onclick="sortTable(this,'number')">Position</th>
                                     <th class="col-title sortable" onclick="sortTable(this,'text')">Song</th>
                                     <th class="col-artist sortable" onclick="sortTable(this,'text')">Artist</th>
+                                    <th class="col-plays sortable" onclick="sortTable(this,'number')">Plays</th>
                                     <th class="col-weeks sortable" onclick="sortTable(this,'number')">Weeks</th>
                                     <th class="col-peak sortable" onclick="sortTable(this,'number')">Peak</th>
                                     <th class="col-weeks sortable" onclick="sortTable(this,'number')">Weeks @ Peak</th>
-                                    <th class="col-movement">Movement</th>
                                 </tr>
                         </thead>
                     <tbody>
@@ -980,6 +989,13 @@
                                     <button class="expand-btn" 
                                             th:data-song-id="${entry.songId}"
                                             onclick="toggleChartRun(this)">+</button>
+                                </td>
+                                <td class="col-movement">
+                                    <span th:if="${entry.movementDisplay != '-'}"
+                                          class="mvmt"
+                                          th:classappend="' ' + ${entry.movementClass}"
+                                          th:text="${entry.movementDisplay}">NEW</span>
+                                    <span th:if="${entry.movementDisplay == '-'}" style="color:#555;">-</span>
                                 </td>
                                 <td class="col-position" th:attr="data-sort-val=${entry.position}">
                                     <div class="position-cell">
@@ -1007,6 +1023,12 @@
                                        class="chart-link chart-link-secondary"
                                        th:text="${entry.artistName}">Artist Name</a>
                                 </td>
+                                <td class="col-plays" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
+                                    <div class="plays-cell">
+                                        <span class="plays-count"
+                                              th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
+                                    </div>
+                                </td>
                                 <td class="col-weeks" th:attr="data-sort-val=${entry.weeksOnChart != null ? entry.weeksOnChart : -1}"
                                     th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
                                 <td class="col-peak" th:attr="data-sort-val=${entry.peakPosition != null ? entry.peakPosition : 9999}">
@@ -1019,17 +1041,10 @@
                                 </td>
                                 <td class="col-weeks" th:attr="data-sort-val=${entry.weeksAtPeak != null ? entry.weeksAtPeak : -1}"
                                     th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                                <td class="col-movement">
-                                    <span th:if="${entry.movementDisplay != '-'}"
-                                          class="mvmt"
-                                          th:classappend="' ' + ${entry.movementClass}"
-                                          th:text="${entry.movementDisplay}">NEW</span>
-                                    <span th:if="${entry.movementDisplay == '-'}" style="color:#555;">-</span>
-                                </td>
                             </tr>
                             <!-- Chart run detail row (hidden by default) -->
                             <tr class="chart-run-row" th:data-song-id="${entry.songId}">
-                                <td colspan="8" class="chart-run-cell">
+                                <td colspan="9" class="chart-run-cell">
                                     <div class="chart-run-content" th:id="'chart-run-' + ${entry.songId}">
                                         <!-- Content loaded via AJAX -->
                                         <div style="text-align: center; color: #888;">Loading chart run...</div>
@@ -1051,19 +1066,21 @@
                             <table class="charts-table">
                                 <thead>
                                     <tr>
+                                        <th class="col-movement">Movement</th>
                                         <th class="col-position">Last Pos</th>
                                         <th class="col-title">Song</th>
                                         <th class="col-artist">Artist</th>
+                                        <th class="col-plays">Plays</th>
                                         <th class="col-weeks">Weeks</th>
                                         <th class="col-peak">Peak</th>
                                         <th class="col-weeks">Weeks @ Peak</th>
-                                        <th class="col-movement">Movement</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${fallOffEntries}"
                                         th:attr="data-gender=${entry.genderId}"
                                         th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                                        <td class="col-movement"><span class="mvmt mvmt-down">OFF</span></td>
                                         <td class="col-position" th:text="${entry.position}">1</td>
                                         <td class="col-title">
                                             <div class="title-cell">
@@ -1086,6 +1103,12 @@
                                                class="chart-link chart-link-secondary"
                                                th:text="${entry.artistName}">Artist Name</a>
                                         </td>
+                                        <td class="col-plays">
+                                            <div class="plays-cell">
+                                                <span class="plays-count"
+                                                      th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
+                                            </div>
+                                        </td>
                                         <td class="col-weeks" th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
                                         <td class="col-peak">
                                             <div class="peak-cell">
@@ -1093,7 +1116,6 @@
                                             </div>
                                         </td>
                                         <td class="col-weeks" th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                                        <td class="col-movement"><span class="mvmt mvmt-down">OFF</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1128,13 +1150,14 @@
                             <thead>
                                 <tr>
                                     <th class="col-expand"></th>
+                                    <th class="col-movement">Movement</th>
                                     <th class="col-position sortable" onclick="sortTable(this,'number')">Position</th>
                                     <th class="col-title sortable" onclick="sortTable(this,'text')">Album</th>
                                     <th class="col-artist sortable" onclick="sortTable(this,'text')">Artist</th>
+                                    <th class="col-plays sortable" onclick="sortTable(this,'number')">Plays</th>
                                     <th class="col-weeks sortable" onclick="sortTable(this,'number')">Weeks</th>
                                     <th class="col-peak sortable" onclick="sortTable(this,'number')">Peak</th>
                                     <th class="col-weeks sortable" onclick="sortTable(this,'number')">Weeks @ Peak</th>
-                                    <th class="col-movement">Movement</th>
                                 </tr>
                             </thead>
                         <tbody>
@@ -1147,6 +1170,13 @@
                                         <button class="expand-btn" 
                                                 th:data-album-id="${entry.albumId}"
                                                 onclick="toggleAlbumChartRun(this)">+</button>
+                                    </td>
+                                    <td class="col-movement">
+                                        <span th:if="${entry.movementDisplay != '-'}"
+                                              class="mvmt"
+                                              th:classappend="' ' + ${entry.movementClass}"
+                                              th:text="${entry.movementDisplay}">NEW</span>
+                                        <span th:if="${entry.movementDisplay == '-'}" style="color:#555;">-</span>
                                     </td>
                                     <td class="col-position" th:attr="data-sort-val=${entry.position}">
                                         <div class="position-cell">
@@ -1171,6 +1201,12 @@
                                            class="chart-link chart-link-secondary"
                                            th:text="${entry.artistName}">Artist Name</a>
                                     </td>
+                                    <td class="col-plays" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
+                                        <div class="plays-cell">
+                                            <span class="plays-count"
+                                                  th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
+                                        </div>
+                                    </td>
                                     <td class="col-weeks" th:attr="data-sort-val=${entry.weeksOnChart != null ? entry.weeksOnChart : -1}"
                                         th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
                                     <td class="col-peak" th:attr="data-sort-val=${entry.peakPosition != null ? entry.peakPosition : 9999}">
@@ -1183,17 +1219,10 @@
                                     </td>
                                     <td class="col-weeks" th:attr="data-sort-val=${entry.weeksAtPeak != null ? entry.weeksAtPeak : -1}"
                                         th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                                    <td class="col-movement">
-                                        <span th:if="${entry.movementDisplay != '-'}"
-                                              class="mvmt"
-                                              th:classappend="' ' + ${entry.movementClass}"
-                                              th:text="${entry.movementDisplay}">NEW</span>
-                                        <span th:if="${entry.movementDisplay == '-'}" style="color:#555;">-</span>
-                                    </td>
                                 </tr>
                                 <!-- Chart run detail row (hidden by default) -->
                                 <tr class="chart-run-row album-chart-run-row" th:data-album-id="${entry.albumId}">
-                                    <td colspan="8" class="chart-run-cell">
+                                    <td colspan="9" class="chart-run-cell">
                                         <div class="chart-run-content" th:id="'album-chart-run-' + ${entry.albumId}">
                                             <!-- Content loaded via AJAX -->
                                             <div style="text-align: center; color: #888;">Loading chart run...</div>

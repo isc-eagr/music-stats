@@ -8,6 +8,9 @@ public class ChartSongOverviewRowDTO {
     private String songTitle;
     private String albumName;
     private String artistName;
+    private boolean hasImage;
+    private boolean albumHasImage;
+    private boolean artistHasImage;
     private String firstAppearanceLabel;
     private String firstAppearanceKey;
     private String firstAppearanceSortValue;
@@ -24,6 +27,7 @@ public class ChartSongOverviewRowDTO {
     private int spanAtTop1;
     private int spanAtTop5;
     private int spanAtTop10;
+    private int[] spanAtTopThresholds;
     private String genderClass;
 
     public Integer getSongId() {
@@ -72,6 +76,30 @@ public class ChartSongOverviewRowDTO {
 
     public void setArtistName(String artistName) {
         this.artistName = artistName;
+    }
+
+    public boolean isHasImage() {
+        return hasImage;
+    }
+
+    public void setHasImage(boolean hasImage) {
+        this.hasImage = hasImage;
+    }
+
+    public boolean isAlbumHasImage() {
+        return albumHasImage;
+    }
+
+    public void setAlbumHasImage(boolean albumHasImage) {
+        this.albumHasImage = albumHasImage;
+    }
+
+    public boolean isArtistHasImage() {
+        return artistHasImage;
+    }
+
+    public void setArtistHasImage(boolean artistHasImage) {
+        this.artistHasImage = artistHasImage;
     }
 
     public String getFirstAppearanceLabel() {
@@ -200,6 +228,14 @@ public class ChartSongOverviewRowDTO {
 
     public void setSpanAtTop10(int spanAtTop10) {
         this.spanAtTop10 = spanAtTop10;
+    }
+
+    public int[] getSpanAtTopThresholds() {
+        return spanAtTopThresholds;
+    }
+
+    public void setSpanAtTopThresholds(int[] spanAtTopThresholds) {
+        this.spanAtTopThresholds = spanAtTopThresholds;
     }
 
     public String getGenderClass() {
