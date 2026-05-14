@@ -20,7 +20,7 @@ public class YearService {
      * Get listen year statistics - organized by the year when plays occurred.
      * Includes empty cards for years with no listens within the range.
      */
-    public List<YearCardDTO> getListenYears(String sortBy, String sortDir, int page, int perPage) {
+    public List<YearCardDTO> getListenYears(String sortBy, String sortDir) {
         // First, get the min and max years from play data
         String minMaxSql = "SELECT MIN(CAST(strftime('%Y', play_date) AS INTEGER)) as min_year, " +
                           "MAX(CAST(strftime('%Y', play_date) AS INTEGER)) as max_year " +
@@ -219,14 +219,7 @@ public class YearService {
 
         allYearDtos.sort(comparator);
 
-        // Apply pagination
-        int offset = page * perPage;
-        int toIndex = Math.min(offset + perPage, allYearDtos.size());
-        if (offset >= allYearDtos.size()) {
-            return List.of();
-        }
-
-        List<YearCardDTO> years = allYearDtos.subList(offset, toIndex);
+        List<YearCardDTO> years = allYearDtos;
 
         // Populate top items only for years with data
         List<YearCardDTO> yearsWithData = years.stream()
@@ -243,8 +236,7 @@ public class YearService {
      * Get release year statistics - organized by the release year of songs/albums.
      * Uses song's release_date if available, otherwise falls back to album's release_date.
      */
-    public List<YearCardDTO> getReleaseYears(String sortBy, String sortDir, int page, int perPage) {
-        int offset = page * perPage;
+    public List<YearCardDTO> getReleaseYears(String sortBy, String sortDir) {
 
         String sortColumn = "year";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -314,8 +306,7 @@ public class YearService {
             "LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id " +
             "WHERE COALESCE(s.release_date, al.release_date) IS NOT NULL " +
             "GROUP BY year " +
-            "ORDER BY " + sortColumn + " " + sortDirection + nullsHandling + " " +
-            "LIMIT ? OFFSET ?";
+            "ORDER BY " + sortColumn + " " + sortDirection + nullsHandling;
 
         List<YearCardDTO> years = jdbcTemplate.query(sql, (rs, rowNum) -> {
             YearCardDTO dto = new YearCardDTO();
@@ -345,7 +336,7 @@ public class YearService {
             dto.setFemaleTimeListened(rs.getLong("female_time_listened"));
             dto.setOtherTimeListened(rs.getLong("other_time_listened"));
             return dto;
-        }, perPage, offset);
+        });
 
         if (!years.isEmpty()) {
             populateTopItemsForReleaseYears(years);

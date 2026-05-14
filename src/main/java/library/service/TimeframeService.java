@@ -347,9 +347,7 @@ public class TimeframeService {
             LEFT JOIN winning_ethnicity weth ON fp.period_key = weth.period_key AND weth.rn = 1
             LEFT JOIN winning_language wlang ON fp.period_key = wlang.period_key AND wlang.rn = 1
             LEFT JOIN winning_country wcty ON fp.period_key = wcty.period_key AND wcty.rn = 1
-            ORDER BY %s %s
-            """, periodKeyExpr, periodKeyExpr,
-                sortColumn.replace("ps.", "fp."), sortDirection
+            """, periodKeyExpr, periodKeyExpr
             ));
         }
         
@@ -361,6 +359,7 @@ public class TimeframeService {
                 winningEthnicity, winningEthnicityMode,
                 winningLanguage, winningLanguageMode,
                 winningCountry, winningCountryMode);
+            sql.append(" ORDER BY ").append(sortColumn.replace("ps.", "fp.")).append(" ").append(sortDirection);
         }
         
         long t1 = System.currentTimeMillis();
@@ -1219,10 +1218,13 @@ public class TimeframeService {
             malePlayPctMin, malePlayPctMax,
             maleTimePctMin, maleTimePctMax);
         
-        sql.append("\n            )");
+        boolean anyWinningNeeded = needWinningGender || needWinningGenre || needWinningEthnicity || needWinningLanguage || needWinningCountry;
+        sql.append(anyWinningNeeded ? "\n            )," : "\n            )");
         
         // Only add winning CTEs if needed for filtering
+        boolean addedWinning = false;
         if (needWinningGender) {
+            addedWinning = true;
             sql.append("""
                 winning_gender AS (
                     SELECT 
@@ -1240,6 +1242,8 @@ public class TimeframeService {
         }
         
         if (needWinningGenre) {
+            if (addedWinning) sql.append(",");
+            addedWinning = true;
             sql.append("""
                 winning_genre AS (
                     SELECT 
@@ -1258,6 +1262,8 @@ public class TimeframeService {
         }
         
         if (needWinningEthnicity) {
+            if (addedWinning) sql.append(",");
+            addedWinning = true;
             sql.append("""
                 winning_ethnicity AS (
                     SELECT 
@@ -1275,6 +1281,8 @@ public class TimeframeService {
         }
         
         if (needWinningLanguage) {
+            if (addedWinning) sql.append(",");
+            addedWinning = true;
             sql.append("""
                 winning_language AS (
                     SELECT 
@@ -1293,6 +1301,7 @@ public class TimeframeService {
         }
         
         if (needWinningCountry) {
+            if (addedWinning) sql.append(",");
             sql.append("""
                 winning_country AS (
                     SELECT 
@@ -2188,10 +2197,10 @@ public class TimeframeService {
         if (winningGenderMode != null && winningGender != null && !winningGender.isEmpty()) {
             String placeholders = String.join(",", winningGender.stream().map(id -> "?").toList());
             if ("includes".equals(winningGenderMode)) {
-                sql.append(" WHERE winning_gender_id IN (").append(placeholders).append(")");
+                sql.append(" WHERE wgn.gender_id IN (").append(placeholders).append(")");
                 params.addAll(winningGender);
             } else if ("excludes".equals(winningGenderMode)) {
-                sql.append(" WHERE (winning_gender_id NOT IN (").append(placeholders).append(") OR winning_gender_id IS NULL)");
+                sql.append(" WHERE (wgn.gender_id NOT IN (").append(placeholders).append(") OR wgn.gender_id IS NULL)");
                 params.addAll(winningGender);
             }
         }
@@ -2201,10 +2210,10 @@ public class TimeframeService {
             String placeholders = String.join(",", winningGenre.stream().map(id -> "?").toList());
             String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningGenreMode)) {
-                sql.append(connector).append("winning_genre_id IN (").append(placeholders).append(")");
+                sql.append(connector).append("wgr.genre_id IN (").append(placeholders).append(")");
                 params.addAll(winningGenre);
             } else if ("excludes".equals(winningGenreMode)) {
-                sql.append(connector).append("(winning_genre_id NOT IN (").append(placeholders).append(") OR winning_genre_id IS NULL)");
+                sql.append(connector).append("(wgr.genre_id NOT IN (").append(placeholders).append(") OR wgr.genre_id IS NULL)");
                 params.addAll(winningGenre);
             }
         }
@@ -2214,10 +2223,10 @@ public class TimeframeService {
             String placeholders = String.join(",", winningEthnicity.stream().map(id -> "?").toList());
             String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningEthnicityMode)) {
-                sql.append(connector).append("winning_ethnicity_id IN (").append(placeholders).append(")");
+                sql.append(connector).append("weth.ethnicity_id IN (").append(placeholders).append(")");
                 params.addAll(winningEthnicity);
             } else if ("excludes".equals(winningEthnicityMode)) {
-                sql.append(connector).append("(winning_ethnicity_id NOT IN (").append(placeholders).append(") OR winning_ethnicity_id IS NULL)");
+                sql.append(connector).append("(weth.ethnicity_id NOT IN (").append(placeholders).append(") OR weth.ethnicity_id IS NULL)");
                 params.addAll(winningEthnicity);
             }
         }
@@ -2227,10 +2236,10 @@ public class TimeframeService {
             String placeholders = String.join(",", winningLanguage.stream().map(id -> "?").toList());
             String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningLanguageMode)) {
-                sql.append(connector).append("winning_language_id IN (").append(placeholders).append(")");
+                sql.append(connector).append("wlang.language_id IN (").append(placeholders).append(")");
                 params.addAll(winningLanguage);
             } else if ("excludes".equals(winningLanguageMode)) {
-                sql.append(connector).append("(winning_language_id NOT IN (").append(placeholders).append(") OR winning_language_id IS NULL)");
+                sql.append(connector).append("(wlang.language_id NOT IN (").append(placeholders).append(") OR wlang.language_id IS NULL)");
                 params.addAll(winningLanguage);
             }
         }
@@ -2240,10 +2249,10 @@ public class TimeframeService {
             String placeholders = String.join(",", winningCountry.stream().map(c -> "?").toList());
             String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningCountryMode)) {
-                sql.append(connector).append("winning_country IN (").append(placeholders).append(")");
+                sql.append(connector).append("wcty.country IN (").append(placeholders).append(")");
                 params.addAll(winningCountry);
             } else if ("excludes".equals(winningCountryMode)) {
-                sql.append(connector).append("(winning_country NOT IN (").append(placeholders).append(") OR winning_country IS NULL)");
+                sql.append(connector).append("(wcty.country NOT IN (").append(placeholders).append(") OR wcty.country IS NULL)");
                 params.addAll(winningCountry);
             }
         }

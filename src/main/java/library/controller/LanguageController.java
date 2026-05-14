@@ -27,26 +27,19 @@ public class LanguageController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "name") String sortby,
             @RequestParam(defaultValue = "asc") String sortdir,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "40") int perpage,
             Model model) {
         
         // Get filtered and sorted languages
-        List<LanguageCardDTO> languages = languageService.getLanguages(q, sortby, sortdir, page, perpage);
-        
-        // Get total count for pagination
+        List<LanguageCardDTO> languages = languageService.getLanguages(q, sortby, sortdir);
+
         long totalCount = languageService.countLanguages(q);
-        int totalPages = (int) Math.ceil((double) totalCount / perpage);
         
         // Add data to model
         model.addAttribute("currentSection", "languages");
         model.addAttribute("languages", languages);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("perPage", perpage);
-        model.addAttribute("startIndex", (page * perpage) + 1);
-        model.addAttribute("endIndex", Math.min((page + 1) * perpage, totalCount));
+        model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);
+        model.addAttribute("endIndex", totalCount);
         
         // Add filter values to maintain state
         model.addAttribute("searchQuery", q);

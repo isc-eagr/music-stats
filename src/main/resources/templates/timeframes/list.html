@@ -192,18 +192,29 @@
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     <div class="container">
-        <!-- Header with search and filters -->
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1 style="margin: 0;" th:text="${periodTypeDisplay}">Years</h1>
+        <!-- Toolbar with search and filters -->
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title" th:text="${periodTypeDisplay}">Years</h1>
+                </div>
             </div>
-            <div class="controls" style="justify-content: flex-end;">
-                <div class="filter-section">
-                    <button class="filter-toggle" onclick="toggleFilters()">Edit Filter</button>
-                    
-                    <!-- Sort By Dropdown -->
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+
+            <div class="controls catalog-toolbar-controls">
+                <div class="catalog-toolbar-search-row">
+                    <div class="search-bar">
+                    <input type="text" th:value="${searchQuery}" placeholder="Search..." autocomplete="off" id="searchInput"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
+                    <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
+                </div>
+                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                </div>
+
+                <div class="toolbar-sort-panel">
+                        <div class="toolbar-sort-heading">Sort</div>
+                        <div class="toolbar-sort-list">
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect" class="toolbar-sort-label">1</label>
                         <select id="sortBySelect" onchange="changeSortBy(this.value)">
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
                             <option value="artists" th:selected="${sortBy == 'artists'}">Artist Count</option>
@@ -225,12 +236,11 @@
                         </button>
                     </div>
                     
-                    <div class="page-size-section">
-                        <label for="pageSizeInput">Per Page:</label>
-                        <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
-                               style="width: 70px;" onchange="changePageSize(this.value)">
                     </div>
-                    
+                        </div>
+                </div>
+                
+                <div class="catalog-toolbar-control-actions">
                     <!-- Filter Panel -->
                     <div class="filters" id="filterPanel">
                         <div class="filter-header">
@@ -240,6 +250,7 @@
                         
                         <div class="filter-content">
                             <form method="get" th:action="@{'/' + ${periodType}}" id="filterForm">
+                                <input type="hidden" autocomplete="off" name="q" th:value="${searchQuery}">
                                 <input type="hidden" autocomplete="off" name="sortby" th:value="${sortBy}">
                                 <input type="hidden" autocomplete="off" name="sortdir" th:value="${sortDir}">
                                 <input type="hidden" autocomplete="off" name="perpage" th:value="${perPage}">
@@ -703,6 +714,7 @@
             </div>
         </div>
         
+        <div class="catalog-content-shell">
         <!-- Active Filters Chips -->
         <div class="active-filters" id="activeFilters">
             <!-- Winning Genre -->
@@ -1187,6 +1199,7 @@
             <div id="scrollSentinel" style="height:1px;"></div>
             <div id="scrollEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All timeframes loaded</div>
         </div>
+        </div>
     </div>
     
     <script th:inline="javascript">
@@ -1395,13 +1408,6 @@
             const url = new URL(window.location);
             const currentDir = url.searchParams.get('sortdir') || 'desc';
             url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
-            url.searchParams.set('page', '0');
-            window.location.href = url.toString();
-        }
-        
-        function changePageSize(newSize) {
-            const url = new URL(window.location);
-            url.searchParams.set('perpage', newSize);
             url.searchParams.set('page', '0');
             window.location.href = url.toString();
         }

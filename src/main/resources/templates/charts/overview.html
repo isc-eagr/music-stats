@@ -1129,10 +1129,10 @@
     <th:block th:if="${overviewTab == 'song'}" th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
 
     <script th:inline="javascript">
-        const chartOverviewArtistThresholdStateKey = 'chartOverviewArtistThresholdState';
         const overviewTab = /*[[${overviewTab}]]*/ 'song';
         const overviewPeriodType = /*[[${periodType}]]*/ 'weekly';
         const overviewPageTitle = /*[[${pageTitle}]]*/ 'Chart Overview';
+        const chartOverviewStateKey = `chartOverviewState:${overviewPeriodType}:${overviewTab}`;
         const isServerInfiniteScroll = /*[[${serverInfiniteScrollEnabled}]]*/ false;
         const isWeeklyInfiniteScroll = /*[[${weeklyInfiniteScrollEnabled}]]*/ false;
         const overviewDataPath = /*[[${overviewDataPath}]]*/ '/charts/weekly/overview/data';
@@ -1488,13 +1488,54 @@
             `;
         }
 
+        function readOverviewState() {
+            const rawState = sessionStorage.getItem(chartOverviewStateKey);
+            if (!rawState) {
+                return null;
+            }
+            try {
+                const parsedState = JSON.parse(rawState);
+                return parsedState && typeof parsedState === 'object' ? parsedState : null;
+            } catch (error) {
+                console.warn('Failed to restore overview state:', error);
+                return null;
+            }
+        }
+
         function persistOverviewSearch() {
             const songSelect = document.getElementById('artistTopSongFilter');
             const albumSelect = document.getElementById('artistTopAlbumFilter');
-            sessionStorage.setItem(chartOverviewArtistThresholdStateKey, JSON.stringify({
+            sessionStorage.setItem(chartOverviewStateKey, JSON.stringify({
+                columnFilters: getColumnFilterValues(),
                 topSong: songSelect?.value || '',
                 topAlbum: albumSelect?.value || ''
             }));
+        }
+
+        function restoreOverviewSearch() {
+            const savedState = readOverviewState();
+            if (!savedState) {
+                return;
+            }
+
+            const table = getActiveOverviewTable();
+            const filterRow = table?.tHead?.querySelector('.overview-filter-head');
+            const savedColumnFilters = Array.isArray(savedState.columnFilters) ? savedState.columnFilters : [];
+            Array.from(filterRow?.cells || []).forEach((cell, index) => {
+                const input = cell.querySelector('.overview-column-filter');
+                if (input) {
+                    input.value = savedColumnFilters[index] || '';
+                }
+            });
+
+            const songSelect = document.getElementById('artistTopSongFilter');
+            const albumSelect = document.getElementById('artistTopAlbumFilter');
+            if (songSelect) {
+                songSelect.value = savedState.topSong || '';
+            }
+            if (albumSelect) {
+                albumSelect.value = savedState.topAlbum || '';
+            }
         }
 
         function bindOverviewColumnFilterInput(input, type) {
@@ -1504,6 +1545,7 @@
             input.placeholder = type === 'number' ? '=5, >=5, 5-10' : 'Filter';
             input.dataset.filterBound = 'true';
             input.addEventListener('input', () => {
+                persistOverviewSearch();
                 void filterOverviewTable({ showOverlay: true, overlayTitle: 'Filtering overview', overlaySubtitle: 'Applying your column filters...' });
             });
         }
@@ -1694,6 +1736,7 @@
                 }
                 link.dataset.weeklyShiftSortBound = 'true';
                 link.addEventListener('click', (event) => {
+                    persistOverviewSearch();
                     if (!event.shiftKey) {
                         showPageBusyOverlay('Sorting overview', 'Reordering the full overview dataset...');
                     }
@@ -1746,21 +1789,6 @@
                 option.value = String(value);
                 option.textContent = String(value);
                 albumSelect.appendChild(option);
-            }
-
-            const savedState = sessionStorage.getItem(chartOverviewArtistThresholdStateKey);
-            if (savedState) {
-                try {
-                    const parsed = JSON.parse(savedState);
-                    if (parsed.topSong) {
-                        songSelect.value = parsed.topSong;
-                    }
-                    if (parsed.topAlbum) {
-                        albumSelect.value = parsed.topAlbum;
-                    }
-                } catch (error) {
-                    console.warn('Failed to restore artist threshold state:', error);
-                }
             }
 
             songSelect.addEventListener('change', () => {
@@ -2312,8 +2340,9 @@
             const resetButton = document.getElementById('overviewResetFilters');
             resetButton?.addEventListener('click', resetOverviewControls);
             setupOverviewColumnFilters();
-            setupWeeklySortLinks();
             populateArtistThresholdOptions();
+            restoreOverviewSearch();
+            setupWeeklySortLinks();
             initializeArtistOverviewRows();
             await filterOverviewTable();
             setupWeeklyInfiniteScroll();

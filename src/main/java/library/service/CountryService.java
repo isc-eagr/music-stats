@@ -17,9 +17,8 @@ public class CountryService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    public List<CountryCardDTO> getCountries(String name, String sortBy, String sortDir, int page, int perPage) {
-        int offset = page * perPage;
-        
+    public List<CountryCardDTO> getCountries(String name, String sortBy, String sortDir) {
+
         // Determine sort direction
         String sortColumn = "country";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -116,7 +115,7 @@ public class CountryService {
             WHERE ar.country IS NOT NULL AND ar.country != ''
                 AND (? IS NULL OR ar.country LIKE '%' || ? || '%')
             GROUP BY ar.country
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling;
 
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[23];
@@ -144,7 +143,7 @@ public class CountryService {
             row[21] = rs.getLong("female_time_listened");
             row[22] = rs.getLong("other_time_listened");
             return row;
-        }, name, name, perPage, offset);
+        }, name, name);
         
         List<CountryCardDTO> countries = new ArrayList<>();
         for (Object[] row : results) {

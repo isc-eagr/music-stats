@@ -2222,6 +2222,7 @@ public class SongRepository {
      * Delegates to the existing method for basic filters and adds new entity-aware filters.
      */
     private void buildFilterClause(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        String catalogType = normalizeCatalogType(filter.getCatalogType());
         boolean includeGroups = filter.isIncludeGroups();
         boolean includeFeatured = filter.isIncludeFeatured();
         java.util.List<Integer> artistIds = filter.getArtistIds();
@@ -2235,7 +2236,7 @@ public class SongRepository {
         // Delegate basic filters to existing method
         // Note: release date is handled separately with entity-awareness below, so pass nulls here
         buildFilterClause(sql, params,
-            filter.getName(), artistIdsForBasicFilter, filter.getAlbumIds(), filter.getSongIds(),
+            null, artistIdsForBasicFilter, filter.getAlbumIds(), filter.getSongIds(),
             filter.getGenreIds(), filter.getGenreMode(),
             filter.getSubgenreIds(), filter.getSubgenreMode(),
             filter.getLanguageIds(), filter.getLanguageMode(),
@@ -2244,6 +2245,8 @@ public class SongRepository {
             filter.getCountries(), filter.getCountryMode(),
             null, null, null, null, // release date handled with entity awareness below
             filter.getListenedDateFrom(), filter.getListenedDateTo());
+
+        appendCatalogSearchFilter(sql, params, filter.getName(), catalogType);
         
         // Handle artist filter with includeGroups/includeFeatured expansion
         if (hasArtistFilter && (includeGroups || includeFeatured)) {
@@ -2298,11 +2301,7 @@ public class SongRepository {
         // Handle hasFeaturedArtists filter
         String hasFeaturedArtists = filter.getHasFeaturedArtists();
         if (hasFeaturedArtists != null) {
-            if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
-                sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id)");
-            } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
-                sql.append(" AND NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id)");
-            }
+            appendHasFeaturedArtistsFilter(sql, hasFeaturedArtists, catalogType);
         }
         
         // Handle isSingle filter
@@ -2314,16 +2313,19 @@ public class SongRepository {
                 sql.append(" AND s.is_single = 0");
             }
         }
+
+        appendCatalogSpecificFilters(sql, params, filter, catalogType);
         
         // Note: inItunes filter is NOT handled here - it's done in memory via ItunesService
-        // because iTunes status is determined by checking against an in-memory map from iTunes XML
+        // because iTunes status is determined by checking against an in-memory map from iTunes XML.
+        appendItunesPresenceFilter(sql, params, filter, catalogType);
         
         // Handle entity-aware filters: First/Last Listened Date, Play Count
         // These use subqueries to aggregate play data by the selected entity type
         
         // First Listened Date filter
         String firstListenedEntity = filter.getFirstListenedDateEntity();
-        if (firstListenedEntity == null || firstListenedEntity.isEmpty()) firstListenedEntity = "song";
+        if (firstListenedEntity == null || firstListenedEntity.isEmpty()) firstListenedEntity = catalogType;
         String firstListenedMode = filter.getFirstListenedDateMode();
         
         if (firstListenedMode != null) {
@@ -2360,7 +2362,7 @@ public class SongRepository {
         
         // Last Listened Date filter
         String lastListenedEntity = filter.getLastListenedDateEntity();
-        if (lastListenedEntity == null || lastListenedEntity.isEmpty()) lastListenedEntity = "song";
+        if (lastListenedEntity == null || lastListenedEntity.isEmpty()) lastListenedEntity = catalogType;
         String lastListenedMode = filter.getLastListenedDateMode();
         
         if (lastListenedMode != null) {
@@ -2397,7 +2399,7 @@ public class SongRepository {
         
         // Play Count filter
         String playCountEntity = filter.getPlayCountEntity();
-        if (playCountEntity == null || playCountEntity.isEmpty()) playCountEntity = "song";
+        if (playCountEntity == null || playCountEntity.isEmpty()) playCountEntity = catalogType;
         Integer playCountMin = filter.getPlayCountMin();
         Integer playCountMax = filter.getPlayCountMax();
         
@@ -2418,7 +2420,7 @@ public class SongRepository {
         String releaseDateMode = filter.getReleaseDateMode();
         
         if (releaseDateMode != null) {
-            String dateExpr = "COALESCE(s.release_date, alb.release_date)";
+            String dateExpr = buildReleaseDateExpression(catalogType);
             
             String releaseDate = filter.getReleaseDate();
             if (releaseDate != null && !releaseDate.trim().isEmpty()) {
@@ -2608,13 +2610,13 @@ public class SongRepository {
         Integer ageAtReleaseMin = filter.getAgeAtReleaseMin();
         Integer ageAtReleaseMax = filter.getAgeAtReleaseMax();
         if (ageAtReleaseMin != null || ageAtReleaseMax != null) {
-            String ageAtReleaseExpr = "CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
+            String ageAtReleaseExpr = "CAST((julianday(" + buildReleaseDateExpression(catalogType) + ") - julianday(ar.birth_date)) / 365.25 AS INTEGER)";
             if (ageAtReleaseMin != null) {
-                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ?");
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(buildReleaseDateExpression(catalogType)).append(" IS NOT NULL AND ").append(ageAtReleaseExpr).append(" >= ?");
                 params.add(ageAtReleaseMin);
             }
             if (ageAtReleaseMax != null) {
-                sql.append(" AND ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ?");
+                sql.append(" AND ar.birth_date IS NOT NULL AND ").append(buildReleaseDateExpression(catalogType)).append(" IS NOT NULL AND ").append(ageAtReleaseExpr).append(" <= ?");
                 params.add(ageAtReleaseMax);
             }
         }
@@ -2697,6 +2699,252 @@ public class SongRepository {
                     }
                 }
             }
+        }
+    }
+
+    private String normalizeCatalogType(String catalogType) {
+        if (catalogType == null || catalogType.isBlank()) {
+            return "song";
+        }
+
+        return switch (catalogType.trim().toLowerCase()) {
+            case "artists", "artist" -> "artist";
+            case "albums", "album" -> "album";
+            default -> "song";
+        };
+    }
+
+    private String buildReleaseDateExpression(String catalogType) {
+        return "album".equals(catalogType) ? "alb.release_date" : "COALESCE(s.release_date, alb.release_date)";
+    }
+
+    private void appendCatalogSearchFilter(StringBuilder sql, java.util.List<Object> params, String name, String catalogType) {
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+
+        String column = switch (catalogType) {
+            case "artist" -> library.util.StringNormalizer.sqlNormalizeColumn("ar.name");
+            case "album" -> library.util.StringNormalizer.sqlNormalizeColumn("alb.name");
+            default -> library.util.StringNormalizer.sqlNormalizeColumn("s.name");
+        };
+
+        sql.append(" AND ").append(column).append(" LIKE ?");
+        params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
+    }
+
+    private void appendHasFeaturedArtistsFilter(StringBuilder sql, String hasFeaturedArtists, String catalogType) {
+        String existsClause = switch (catalogType) {
+            case "artist" -> "EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song sf ON sfa.song_id = sf.id WHERE sf.artist_id = ar.id)";
+            case "album" -> "EXISTS (SELECT 1 FROM SongFeaturedArtist sfa JOIN Song sf ON sfa.song_id = sf.id WHERE sf.album_id = alb.id)";
+            default -> "EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id)";
+        };
+
+        if ("true".equalsIgnoreCase(hasFeaturedArtists)) {
+            sql.append(" AND ").append(existsClause);
+        } else if ("false".equalsIgnoreCase(hasFeaturedArtists)) {
+            sql.append(" AND NOT ").append(existsClause);
+        }
+    }
+
+    private void appendCatalogSpecificFilters(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter, String catalogType) {
+        appendOrganizedFilter(sql, filter.getOrganized(), catalogType);
+        appendImageCountFilter(sql, params, filter, catalogType);
+
+        if ("artist".equals(catalogType)) {
+            appendImageThemeFilter(sql, params, filter);
+            appendArtistCountFilters(sql, params, filter);
+            return;
+        }
+
+        if ("album".equals(catalogType)) {
+            appendAlbumCountFilters(sql, params, filter);
+            appendLengthFilter(sql, params, filter, false);
+            return;
+        }
+
+        appendSongAlbumNameFilter(sql, params, filter.getAlbumName());
+        appendTrackNumberFilter(sql, params, filter);
+        appendLengthFilter(sql, params, filter, true);
+    }
+
+    private void appendSongAlbumNameFilter(StringBuilder sql, java.util.List<Object> params, String albumName) {
+        if (albumName == null || albumName.trim().isEmpty()) {
+            return;
+        }
+
+        String normalizedAlbum = library.util.StringNormalizer.normalizeForSearch(albumName);
+        sql.append(" AND ")
+                .append(library.util.StringNormalizer.sqlNormalizeColumn("alb.name"))
+                .append(" LIKE ?");
+        params.add("%" + normalizedAlbum + "%");
+    }
+
+    private void appendOrganizedFilter(StringBuilder sql, String organized, String catalogType) {
+        if (organized == null || organized.isBlank()) {
+            return;
+        }
+
+        String column = switch (catalogType) {
+            case "artist" -> "ar.organized";
+            case "album" -> "alb.organized";
+            default -> "s.organized";
+        };
+
+        if ("true".equalsIgnoreCase(organized)) {
+            sql.append(" AND ").append(column).append(" = 1");
+        } else if ("false".equalsIgnoreCase(organized)) {
+            sql.append(" AND (").append(column).append(" = 0 OR ").append(column).append(" IS NULL)");
+        }
+    }
+
+    private void appendImageCountFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter, String catalogType) {
+        String expr = switch (catalogType) {
+            case "artist" -> "((CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = ar.id))";
+            case "album" -> "((CASE WHEN alb.image IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM AlbumImage WHERE album_id = alb.id))";
+            default -> "((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id))";
+        };
+
+        if (filter.getImageCountMin() != null) {
+            sql.append(" AND ").append(expr).append(" >= ?");
+            params.add(filter.getImageCountMin());
+        }
+        if (filter.getImageCountMax() != null) {
+            sql.append(" AND ").append(expr).append(" <= ?");
+            params.add(filter.getImageCountMax());
+        }
+    }
+
+    private void appendImageThemeFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        Integer imageTheme = filter.getImageTheme();
+        String imageThemeMode = filter.getImageThemeMode();
+        if (imageTheme == null) {
+            return;
+        }
+
+        if ("has".equalsIgnoreCase(imageThemeMode)) {
+            sql.append(" AND EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = ar.id AND theme_id = ?)");
+            params.add(imageTheme);
+        } else if ("doesntHave".equalsIgnoreCase(imageThemeMode)) {
+            sql.append(" AND NOT EXISTS (SELECT 1 FROM ArtistImageTheme WHERE artist_id = ar.id AND theme_id = ?)");
+            params.add(imageTheme);
+        }
+    }
+
+    private void appendArtistCountFilters(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        if (filter.getAlbumCountMin() != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Album alb_count WHERE alb_count.artist_id = ar.id) >= ?");
+            params.add(filter.getAlbumCountMin());
+        }
+        if (filter.getAlbumCountMax() != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Album alb_count WHERE alb_count.artist_id = ar.id) <= ?");
+            params.add(filter.getAlbumCountMax());
+        }
+        if (filter.getSongCountMin() != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song song_count WHERE song_count.artist_id = ar.id) >= ?");
+            params.add(filter.getSongCountMin());
+        }
+        if (filter.getSongCountMax() != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song song_count WHERE song_count.artist_id = ar.id) <= ?");
+            params.add(filter.getSongCountMax());
+        }
+    }
+
+    private void appendAlbumCountFilters(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        if (filter.getSongCountMin() != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song song_count WHERE song_count.album_id = alb.id) >= ?");
+            params.add(filter.getSongCountMin());
+        }
+        if (filter.getSongCountMax() != null) {
+            sql.append(" AND (SELECT COUNT(*) FROM Song song_count WHERE song_count.album_id = alb.id) <= ?");
+            params.add(filter.getSongCountMax());
+        }
+    }
+
+    private void appendTrackNumberFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        String trackNumberMode = filter.getTrackNumberMode();
+        Integer trackNumber = filter.getTrackNumber();
+        if (trackNumberMode != null && !trackNumberMode.isEmpty()) {
+            if ("isnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NULL");
+            } else if ("isnotnull".equalsIgnoreCase(trackNumberMode)) {
+                sql.append(" AND s.track_number IS NOT NULL");
+            } else if (trackNumber != null) {
+                sql.append(" AND s.track_number = ?");
+                params.add(trackNumber);
+            }
+        } else if (trackNumber != null) {
+            sql.append(" AND s.track_number = ?");
+            params.add(trackNumber);
+        }
+    }
+
+    private void appendLengthFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter, boolean songCatalog) {
+        String lengthMode = filter.getLengthMode();
+        Integer lengthMin = filter.getLengthMin();
+        Integer lengthMax = filter.getLengthMax();
+        if (lengthMode == null || lengthMode.isEmpty()) {
+            if (lengthMin != null) {
+                sql.append(" AND ").append(songCatalog ? "COALESCE(s.length_seconds, 0)" : "COALESCE((SELECT SUM(song_len.length_seconds) FROM Song song_len WHERE song_len.album_id = alb.id), 0)").append(" >= ?");
+                params.add(lengthMin);
+            }
+            if (lengthMax != null) {
+                sql.append(" AND ").append(songCatalog ? "COALESCE(s.length_seconds, 0)" : "COALESCE((SELECT SUM(song_len.length_seconds) FROM Song song_len WHERE song_len.album_id = alb.id), 0)").append(" <= ?");
+                params.add(lengthMax);
+            }
+            return;
+        }
+
+        String expr = songCatalog
+                ? "COALESCE(s.length_seconds, 0)"
+                : "COALESCE((SELECT SUM(song_len.length_seconds) FROM Song song_len WHERE song_len.album_id = alb.id), 0)";
+
+        if ("null".equalsIgnoreCase(lengthMode) || "zero".equalsIgnoreCase(lengthMode)) {
+            sql.append(" AND ").append(expr).append(" = 0");
+        } else if ("notnull".equalsIgnoreCase(lengthMode) || "nonzero".equalsIgnoreCase(lengthMode)) {
+            sql.append(" AND ").append(expr).append(" > 0");
+        } else if ("lt".equalsIgnoreCase(lengthMode) && lengthMax != null) {
+            sql.append(" AND ").append(expr).append(" < ?");
+            params.add(lengthMax);
+        } else if ("gt".equalsIgnoreCase(lengthMode) && lengthMin != null) {
+            sql.append(" AND ").append(expr).append(" > ?");
+            params.add(lengthMin);
+        } else {
+            if (lengthMin != null) {
+                sql.append(" AND ").append(expr).append(" >= ?");
+                params.add(lengthMin);
+            }
+            if (lengthMax != null) {
+                sql.append(" AND ").append(expr).append(" <= ?");
+                params.add(lengthMax);
+            }
+        }
+    }
+
+    private void appendItunesPresenceFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter, String catalogType) {
+        if ((filter.getItunesPresenceMin() == null && filter.getItunesPresenceMax() == null) || filter.getItunesSongIdsJson() == null || filter.getItunesSongIdsJson().isBlank()) {
+            return;
+        }
+
+        String expr = switch (catalogType) {
+            case "artist" -> "CAST(COALESCE((SELECT COUNT(*) FROM Song it_song WHERE it_song.artist_id = ar.id AND it_song.id IN (SELECT value FROM json_each(?))), 0) AS REAL) * 100.0 / NULLIF(COALESCE((SELECT COUNT(*) FROM Song song_total WHERE song_total.artist_id = ar.id), 0), 0)";
+            case "album" -> "CAST(COALESCE((SELECT COUNT(*) FROM Song it_song WHERE it_song.album_id = alb.id AND it_song.id IN (SELECT value FROM json_each(?))), 0) AS REAL) * 100.0 / NULLIF(COALESCE((SELECT COUNT(*) FROM Song song_total WHERE song_total.album_id = alb.id), 0), 0)";
+            default -> null;
+        };
+
+        if (expr == null) {
+            return;
+        }
+
+        if (filter.getItunesPresenceMin() != null) {
+            sql.append(" AND ").append(expr).append(" >= ?");
+            params.add(filter.getItunesSongIdsJson());
+            params.add(filter.getItunesPresenceMin());
+        }
+        if (filter.getItunesPresenceMax() != null) {
+            sql.append(" AND ").append(expr).append(" <= ?");
+            params.add(filter.getItunesSongIdsJson());
+            params.add(filter.getItunesPresenceMax());
         }
     }
 

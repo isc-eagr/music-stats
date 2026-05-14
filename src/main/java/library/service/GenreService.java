@@ -26,9 +26,8 @@ public class GenreService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    public List<GenreCardDTO> getGenres(String name, String sortBy, String sortDir, int page, int perPage) {
-        int offset = page * perPage;
-        
+    public List<GenreCardDTO> getGenres(String name, String sortBy, String sortDir) {
+
         // Determine sort direction
         String sortColumn = "g.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -171,7 +170,7 @@ public class GenreService {
                 GROUP BY effective_genre_id
             ) album_stats ON g.id = album_stats.effective_genre_id
             WHERE (? IS NULL OR g.name LIKE '%' || ? || '%')
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling;
 
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[25];
@@ -201,7 +200,7 @@ public class GenreService {
             row[23] = rs.getLong("female_time_listened");
             row[24] = rs.getLong("other_time_listened");
             return row;
-        }, name, name, perPage, offset);
+        }, name, name);
         
         List<GenreCardDTO> genres = new ArrayList<>();
         for (Object[] row : results) {

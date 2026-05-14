@@ -11,9 +11,11 @@ import java.util.List;
 @Component
 public class ChartFilterRequestFactory {
 
-    public ChartFilterDTO build(HttpServletRequest request, boolean includeGroups, boolean includeFeatured, Integer limit, String limitEntity) {
+    public ChartFilterDTO build(HttpServletRequest request, boolean includeGroups, boolean includeFeatured, Integer limit, String limitEntity, String catalogType) {
+        String normalizedCatalogType = normalizeCatalogType(catalogType);
         return ChartFilterDTO.builder()
             .setName(request.getParameter("q"))
+            .setCatalogType(normalizedCatalogType)
             .setArtistIds(parseIntegerList(request, "artist"))
             .setAlbumIds(parseIntegerList(request, "album"))
             .setSongIds(parseIntegerList(request, "song"))
@@ -39,12 +41,12 @@ public class ChartFilterRequestFactory {
             .setFirstListenedDateFrom(toIso(request.getParameter("firstListenedDateFrom")))
             .setFirstListenedDateTo(toIso(request.getParameter("firstListenedDateTo")))
             .setFirstListenedDateMode(request.getParameter("firstListenedDateMode"))
-            .setFirstListenedDateEntity(request.getParameter("firstListenedDateEntity"))
+            .setFirstListenedDateEntity(defaultEntityParam(request.getParameter("firstListenedDateEntity"), normalizedCatalogType))
             .setLastListenedDate(toIso(request.getParameter("lastListenedDate")))
             .setLastListenedDateFrom(toIso(request.getParameter("lastListenedDateFrom")))
             .setLastListenedDateTo(toIso(request.getParameter("lastListenedDateTo")))
             .setLastListenedDateMode(request.getParameter("lastListenedDateMode"))
-            .setLastListenedDateEntity(request.getParameter("lastListenedDateEntity"))
+            .setLastListenedDateEntity(defaultEntityParam(request.getParameter("lastListenedDateEntity"), normalizedCatalogType))
             .setLastFullListenDate(toIso(request.getParameter("lastFullListenDate")))
             .setLastFullListenDateFrom(toIso(request.getParameter("lastFullListenDateFrom")))
             .setLastFullListenDateTo(toIso(request.getParameter("lastFullListenDateTo")))
@@ -53,11 +55,25 @@ public class ChartFilterRequestFactory {
             .setListenedDateTo(toIso(request.getParameter("listenedDateTo")))
             .setPlayCountMin(parseInteger(request, "playCountMin"))
             .setPlayCountMax(parseInteger(request, "playCountMax"))
-            .setPlayCountEntity(request.getParameter("playCountEntity"))
+            .setPlayCountEntity(defaultEntityParam(request.getParameter("playCountEntity"), normalizedCatalogType))
             .setHasFeaturedArtists(request.getParameter("hasFeaturedArtists"))
             .setIsBand(request.getParameter("isBand"))
             .setIsSingle(request.getParameter("isSingle"))
             .setInItunes(request.getParameter("inItunes"))
+            .setOrganized(request.getParameter("organized"))
+            .setImageCountMin(parseInteger(request, "imageCountMin"))
+            .setImageCountMax(parseInteger(request, "imageCountMax"))
+            .setImageTheme(parseInteger(request, "imageTheme"))
+            .setImageThemeMode(request.getParameter("imageThemeMode"))
+            .setAlbumCountMin(parseInteger(request, "albumCountMin"))
+            .setAlbumCountMax(parseInteger(request, "albumCountMax"))
+            .setSongCountMin(parseInteger(request, "songCountMin"))
+            .setSongCountMax(parseInteger(request, "songCountMax"))
+            .setTrackNumber(parseInteger(request, "trackNumber"))
+            .setTrackNumberMode(request.getParameter("trackNumberMode"))
+            .setLengthMin(parseInteger(request, "lengthMin"))
+            .setLengthMax(parseInteger(request, "lengthMax"))
+            .setLengthMode(request.getParameter("lengthMode"))
             .setItunesPresenceMin(parseInteger(request, "itunesPresenceMin"))
             .setItunesPresenceMax(parseInteger(request, "itunesPresenceMax"))
             .setAgeMin(parseInteger(request, "ageMin"))
@@ -73,28 +89,57 @@ public class ChartFilterRequestFactory {
             .setDeathDateFrom(toIso(request.getParameter("deathDateFrom")))
             .setDeathDateTo(toIso(request.getParameter("deathDateTo")))
             .setDeathDateMode(request.getParameter("deathDateMode"))
-            .setAlbumsWeeklyChartPeak(parseInteger(request, "albumsWeeklyChartPeak"))
-            .setAlbumsWeeklyChartWeeks(parseInteger(request, "albumsWeeklyChartWeeks"))
-            .setAlbumsSeasonalChartPeak(parseInteger(request, "albumsSeasonalChartPeak"))
-            .setAlbumsSeasonalChartSeasons(parseInteger(request, "albumsSeasonalChartSeasons"))
-            .setAlbumsYearlyChartPeak(parseInteger(request, "albumsYearlyChartPeak"))
-            .setAlbumsYearlyChartYears(parseInteger(request, "albumsYearlyChartYears"))
-            .setSongsWeeklyChartPeak(parseInteger(request, "songsWeeklyChartPeak"))
-            .setSongsWeeklyChartWeeks(parseInteger(request, "songsWeeklyChartWeeks"))
-            .setSongsTrlPeak(parseInteger(request, "songsTrlPeak"))
-            .setSongsTrlDays(parseInteger(request, "songsTrlDays"))
-            .setSongsVatosCuntdownPeak(parseInteger(request, "songsVatosCuntdownPeak"))
-            .setSongsVatosCuntdownDays(parseInteger(request, "songsVatosCuntdownDays"))
-            .setSongsBillboardPeak(parseInteger(request, "songsBillboardPeak"))
-            .setSongsBillboardWeeks(parseInteger(request, "songsBillboardWeeks"))
-            .setSongsSeasonalChartPeak(parseInteger(request, "songsSeasonalChartPeak"))
-            .setSongsSeasonalChartSeasons(parseInteger(request, "songsSeasonalChartSeasons"))
-            .setSongsYearlyChartPeak(parseInteger(request, "songsYearlyChartPeak"))
-            .setSongsYearlyChartYears(parseInteger(request, "songsYearlyChartYears"))
+            .setAlbumsWeeklyChartPeak(resolveChartMetric(request, normalizedCatalogType, "album", "albumsWeeklyChartPeak", "weeklyChartPeak"))
+            .setAlbumsWeeklyChartWeeks(resolveChartMetric(request, normalizedCatalogType, "album", "albumsWeeklyChartWeeks", "weeklyChartWeeks"))
+            .setAlbumsSeasonalChartPeak(resolveChartMetric(request, normalizedCatalogType, "album", "albumsSeasonalChartPeak", "seasonalChartPeak"))
+            .setAlbumsSeasonalChartSeasons(resolveChartMetric(request, normalizedCatalogType, "album", "albumsSeasonalChartSeasons", "seasonalChartSeasons"))
+            .setAlbumsYearlyChartPeak(resolveChartMetric(request, normalizedCatalogType, "album", "albumsYearlyChartPeak", "yearlyChartPeak"))
+            .setAlbumsYearlyChartYears(resolveChartMetric(request, normalizedCatalogType, "album", "albumsYearlyChartYears", "yearlyChartYears"))
+            .setSongsWeeklyChartPeak(resolveChartMetric(request, normalizedCatalogType, "song", "songsWeeklyChartPeak", "weeklyChartPeak"))
+            .setSongsWeeklyChartWeeks(resolveChartMetric(request, normalizedCatalogType, "song", "songsWeeklyChartWeeks", "weeklyChartWeeks"))
+            .setSongsTrlPeak(resolveChartMetric(request, normalizedCatalogType, "song", "songsTrlPeak", "trlPeak"))
+            .setSongsTrlDays(resolveChartMetric(request, normalizedCatalogType, "song", "songsTrlDays", "trlDays"))
+            .setSongsVatosCuntdownPeak(resolveChartMetric(request, normalizedCatalogType, "song", "songsVatosCuntdownPeak", "vatosCuntdownPeak"))
+            .setSongsVatosCuntdownDays(resolveChartMetric(request, normalizedCatalogType, "song", "songsVatosCuntdownDays", "vatosCuntdownDays"))
+            .setSongsBillboardPeak(resolveChartMetric(request, normalizedCatalogType, "song", "songsBillboardPeak", "billboardPeak"))
+            .setSongsBillboardWeeks(resolveChartMetric(request, normalizedCatalogType, "song", "songsBillboardWeeks", "billboardWeeks"))
+            .setSongsSeasonalChartPeak(resolveChartMetric(request, normalizedCatalogType, "song", "songsSeasonalChartPeak", "seasonalChartPeak"))
+            .setSongsSeasonalChartSeasons(resolveChartMetric(request, normalizedCatalogType, "song", "songsSeasonalChartSeasons", "seasonalChartSeasons"))
+            .setSongsYearlyChartPeak(resolveChartMetric(request, normalizedCatalogType, "song", "songsYearlyChartPeak", "yearlyChartPeak"))
+            .setSongsYearlyChartYears(resolveChartMetric(request, normalizedCatalogType, "song", "songsYearlyChartYears", "yearlyChartYears"))
             .setTopLimit(limit)
             .setLimitEntity(limitEntity)
             .setIncludeGroups(includeGroups)
             .setIncludeFeatured(includeFeatured);
+    }
+
+    private String normalizeCatalogType(String catalogType) {
+        if (catalogType == null || catalogType.isBlank()) {
+            return "song";
+        }
+        return switch (catalogType.trim().toLowerCase()) {
+            case "artists", "artist" -> "artist";
+            case "albums", "album" -> "album";
+            default -> "song";
+        };
+    }
+
+    private String defaultEntityParam(String explicitValue, String catalogType) {
+        if (explicitValue != null && !explicitValue.isBlank()) {
+            return explicitValue;
+        }
+        return catalogType;
+    }
+
+    private Integer resolveChartMetric(HttpServletRequest request, String catalogType, String targetCatalogType, String explicitParam, String fallbackParam) {
+        Integer explicitValue = parseInteger(request, explicitParam);
+        if (explicitValue != null) {
+            return explicitValue;
+        }
+        if (catalogType.equals(targetCatalogType)) {
+            return parseInteger(request, fallbackParam);
+        }
+        return null;
     }
 
     private String toIso(String value) {

@@ -90,6 +90,13 @@ public class TimeframeController {
         if (!VALID_PERIOD_TYPES.contains(periodType)) {
             return "redirect:/years";
         }
+
+        // If a winning filter has selected values but no mode, default to includes.
+        winningGenderMode = normalizeWinningMode(winningGenderMode, winningGender);
+        winningGenreMode = normalizeWinningMode(winningGenreMode, winningGenre);
+        winningEthnicityMode = normalizeWinningMode(winningEthnicityMode, winningEthnicity);
+        winningLanguageMode = normalizeWinningMode(winningLanguageMode, winningLanguage);
+        winningCountryMode = normalizeWinningMode(winningCountryMode, winningCountry);
         
         // If perfectMale filter is enabled, set all male percentage mins to 100
         Double effectiveMaleArtistPctMin = maleArtistPctMin;
@@ -313,5 +320,12 @@ public class TimeframeController {
             return "";
         }
         return periodType.substring(0, 1).toUpperCase() + periodType.substring(1);
+    }
+
+    private <T> String normalizeWinningMode(String mode, List<T> selectedValues) {
+        if ((mode == null || mode.isBlank()) && selectedValues != null && !selectedValues.isEmpty()) {
+            return "includes";
+        }
+        return mode;
     }
 }

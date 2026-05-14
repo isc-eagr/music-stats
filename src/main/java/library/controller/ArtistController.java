@@ -500,7 +500,7 @@ public class ArtistController {
             @RequestParam(defaultValue = "0") int limit,
             @RequestParam(required = false) String limitEntity) {
 
-        ChartFilterDTO filter = chartFilterRequestFactory.build(request, includeGroups, includeFeatured, limit, limitEntity);
+        ChartFilterDTO filter = chartFilterRequestFactory.build(request, includeGroups, includeFeatured, limit, limitEntity, "artist");
 
         return switch (tab) {
             case "general" -> catalogChartService.getGeneralChartData(filter);

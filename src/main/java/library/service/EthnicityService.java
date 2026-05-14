@@ -26,9 +26,8 @@ public class EthnicityService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    public List<EthnicityCardDTO> getEthnicities(String name, String sortBy, String sortDir, int page, int perPage) {
-        int offset = page * perPage;
-        
+    public List<EthnicityCardDTO> getEthnicities(String name, String sortBy, String sortDir) {
+
         // Determine sort direction
         String sortColumn = "e.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -154,7 +153,7 @@ public class EthnicityService {
                 GROUP BY effective_ethnicity_id
             ) stats ON e.id = stats.effective_ethnicity_id
             WHERE (? IS NULL OR e.name LIKE '%' || ? || '%')
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling;
 
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[25];
@@ -184,7 +183,7 @@ public class EthnicityService {
             row[23] = rs.getLong("female_time_listened");
             row[24] = rs.getLong("other_time_listened");
             return row;
-        }, name, name, perPage, offset);
+        }, name, name);
         
         List<EthnicityCardDTO> ethnicities = new ArrayList<>();
         for (Object[] row : results) {

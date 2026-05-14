@@ -1114,6 +1114,7 @@ public class SongService {
      */
     private void applyItunesFilter(ChartFilterDTO filter) {
         String inItunes = filter.getInItunes();
+        String catalogType = normalizeCatalogType(filter.getCatalogType());
         
         // Populate itunesSongIdsJson if needed for presence ratio filtering
         if (filter.getItunesSongIdsJson() == null && 
@@ -1126,47 +1127,107 @@ public class SongService {
         }
         
         boolean wantInItunes = "true".equalsIgnoreCase(inItunes);
-        
-        // Query all songs with their artist and album names for matching
-        String sql = """
-            SELECT s.id, ar.name as artist_name, COALESCE(alb.name, '') as album_name, s.name as song_name
-            FROM Song s
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album alb ON s.album_id = alb.id
-            """;
-        
-        List<Integer> matchingIds = new ArrayList<>();
-        
-        List<Map<String, Object>> allSongs = jdbcTemplate.queryForList(sql);
-        for (Map<String, Object> row : allSongs) {
-            Integer songId = (Integer) row.get("id");
-            String artistName = (String) row.get("artist_name");
-            String albumName = (String) row.get("album_name");
-            String songName = (String) row.get("song_name");
-            
-            boolean existsInItunes = itunesService.songExistsInItunes(artistName, albumName, songName);
-            if (existsInItunes == wantInItunes) {
-                matchingIds.add(songId);
-            }
-        }
-        
-        // If no songs match, add an impossible ID so queries return empty results
-        if (matchingIds.isEmpty()) {
-            matchingIds.add(-1);
-        }
-        
-        // Merge with existing songIds filter (if any)
-        List<Integer> existingSongIds = filter.getSongIds();
-        if (existingSongIds != null && !existingSongIds.isEmpty()) {
-            // Intersection: keep only IDs that are in both lists
-            matchingIds.retainAll(existingSongIds);
-            if (matchingIds.isEmpty()) {
-                matchingIds.add(-1);
-            }
-        }
-        
-        filter.setSongIds(matchingIds);
+
+                if ("artist".equals(catalogType)) {
+                    applyArtistItunesFilter(filter, wantInItunes);
+                    return;
+                }
+
+                if ("album".equals(catalogType)) {
+                    applyAlbumItunesFilter(filter, wantInItunes);
+                    return;
+                }
+
+                applySongItunesFilter(filter, wantInItunes);
     }
+
+            private void applyArtistItunesFilter(ChartFilterDTO filter, boolean wantInItunes) {
+                String sql = "SELECT id, name FROM Artist";
+                List<Integer> matchingIds = new ArrayList<>();
+
+                for (Map<String, Object> row : jdbcTemplate.queryForList(sql)) {
+                    Integer artistId = (Integer) row.get("id");
+                    String artistName = (String) row.get("name");
+                    boolean existsInItunes = itunesService.artistExistsInItunes(artistName);
+                    if (existsInItunes == wantInItunes) {
+                        matchingIds.add(artistId);
+                    }
+                }
+
+                filter.setArtistIds(intersectIds(matchingIds, filter.getArtistIds()));
+            }
+
+            private void applyAlbumItunesFilter(ChartFilterDTO filter, boolean wantInItunes) {
+                String sql = """
+                    SELECT alb.id, alb.name AS album_name, ar.name AS artist_name
+                    FROM Album alb
+                    INNER JOIN Artist ar ON alb.artist_id = ar.id
+                    """;
+                List<Integer> matchingIds = new ArrayList<>();
+
+                for (Map<String, Object> row : jdbcTemplate.queryForList(sql)) {
+                    Integer albumId = (Integer) row.get("id");
+                    String artistName = (String) row.get("artist_name");
+                    String albumName = (String) row.get("album_name");
+                    boolean existsInItunes = itunesService.albumExistsInItunes(artistName, albumName);
+                    if (existsInItunes == wantInItunes) {
+                        matchingIds.add(albumId);
+                    }
+                }
+
+                filter.setAlbumIds(intersectIds(matchingIds, filter.getAlbumIds()));
+            }
+
+            private void applySongItunesFilter(ChartFilterDTO filter, boolean wantInItunes) {
+                String sql = """
+                    SELECT s.id, ar.name as artist_name, COALESCE(alb.name, '') as album_name, s.name as song_name
+                    FROM Song s
+                    INNER JOIN Artist ar ON s.artist_id = ar.id
+                    LEFT JOIN Album alb ON s.album_id = alb.id
+                    """;
+
+                List<Integer> matchingIds = new ArrayList<>();
+
+                for (Map<String, Object> row : jdbcTemplate.queryForList(sql)) {
+                    Integer songId = (Integer) row.get("id");
+                    String artistName = (String) row.get("artist_name");
+                    String albumName = (String) row.get("album_name");
+                    String songName = (String) row.get("song_name");
+
+                    boolean existsInItunes = itunesService.songExistsInItunes(artistName, albumName, songName);
+                    if (existsInItunes == wantInItunes) {
+                        matchingIds.add(songId);
+                    }
+                }
+
+                filter.setSongIds(intersectIds(matchingIds, filter.getSongIds()));
+            }
+
+            private List<Integer> intersectIds(List<Integer> matchingIds, List<Integer> existingIds) {
+                if (matchingIds.isEmpty()) {
+                    return new ArrayList<>(List.of(-1));
+                }
+
+                if (existingIds != null && !existingIds.isEmpty()) {
+                    matchingIds.retainAll(existingIds);
+                    if (matchingIds.isEmpty()) {
+                        return new ArrayList<>(List.of(-1));
+                    }
+                }
+
+                return matchingIds;
+            }
+
+            private String normalizeCatalogType(String catalogType) {
+                if (catalogType == null || catalogType.isBlank()) {
+                    return "song";
+                }
+                return switch (catalogType.trim().toLowerCase()) {
+                    case "artists", "artist" -> "artist";
+                    case "albums", "album" -> "album";
+                    default -> "song";
+                };
+            }
     
     // Get filtered chart data for gender breakdown (using ChartFilterDTO)
     public Map<String, Object> getFilteredChartData(ChartFilterDTO filter) {

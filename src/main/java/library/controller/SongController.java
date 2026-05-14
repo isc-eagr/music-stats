@@ -1713,6 +1713,7 @@ public class SongController {
         
         ChartFilterDTO filter = ChartFilterDTO.builder()
             .setName(q)
+            .setCatalogType("song")
             .setArtistIds(artist)
             .setAlbumIds(album)
             .setSongIds(song)
@@ -1738,17 +1739,17 @@ public class SongController {
             .setFirstListenedDateFrom(DateFormatUtils.convertToIsoFormat(firstListenedDateFrom))
             .setFirstListenedDateTo(DateFormatUtils.convertToIsoFormat(firstListenedDateTo))
             .setFirstListenedDateMode(firstListenedDateMode)
-            .setFirstListenedDateEntity(firstListenedDateEntity)
+            .setFirstListenedDateEntity((firstListenedDateEntity != null && !firstListenedDateEntity.isBlank()) ? firstListenedDateEntity : "song")
             .setLastListenedDate(DateFormatUtils.convertToIsoFormat(lastListenedDate))
             .setLastListenedDateFrom(DateFormatUtils.convertToIsoFormat(lastListenedDateFrom))
             .setLastListenedDateTo(DateFormatUtils.convertToIsoFormat(lastListenedDateTo))
             .setLastListenedDateMode(lastListenedDateMode)
-            .setLastListenedDateEntity(lastListenedDateEntity)
+            .setLastListenedDateEntity((lastListenedDateEntity != null && !lastListenedDateEntity.isBlank()) ? lastListenedDateEntity : "song")
             .setListenedDateFrom(DateFormatUtils.convertToIsoFormat(listenedDateFrom))
             .setListenedDateTo(DateFormatUtils.convertToIsoFormat(listenedDateTo))
             .setPlayCountMin(playCountMin)
             .setPlayCountMax(playCountMax)
-            .setPlayCountEntity(playCountEntity)
+            .setPlayCountEntity((playCountEntity != null && !playCountEntity.isBlank()) ? playCountEntity : "song")
             .setHasFeaturedArtists(hasFeaturedArtists)
             .setIsBand(isBand)
             .setIsSingle(isSingle)
@@ -1785,23 +1786,64 @@ public class SongController {
             .setDeathDateTo(DateFormatUtils.convertToIsoFormat(deathDateTo))
             .setDeathDateMode(deathDateMode);
 
-        applySongsCountdownFilters(filter);
+        applyRequestBackedChartFilters(filter);
         return filter;
     }
 
-    private void applySongsCountdownFilters(ChartFilterDTO filter) {
+    private void applyRequestBackedChartFilters(ChartFilterDTO filter) {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             return;
         }
 
         jakarta.servlet.http.HttpServletRequest request = attributes.getRequest();
-        filter.setSongsTrlPeak(parseIntegerParam(request, "songsTrlPeak"));
-        filter.setSongsTrlDays(parseIntegerParam(request, "songsTrlDays"));
-        filter.setSongsVatosCuntdownPeak(parseIntegerParam(request, "songsVatosCuntdownPeak"));
-        filter.setSongsVatosCuntdownDays(parseIntegerParam(request, "songsVatosCuntdownDays"));
-        filter.setSongsBillboardPeak(parseIntegerParam(request, "songsBillboardPeak"));
-        filter.setSongsBillboardWeeks(parseIntegerParam(request, "songsBillboardWeeks"));
+        filter.setOrganized(blankToNull(request.getParameter("organized")));
+        filter.setAlbumName(blankToNull(request.getParameter("album")));
+        filter.setImageCountMin(parseIntegerParam(request, "imageCountMin"));
+        filter.setImageCountMax(parseIntegerParam(request, "imageCountMax"));
+        filter.setTrackNumber(parseIntegerParam(request, "trackNumber"));
+        filter.setTrackNumberMode(blankToNull(request.getParameter("trackNumberMode")));
+        filter.setLengthMin(parseIntegerParam(request, "lengthMin"));
+        filter.setLengthMax(parseIntegerParam(request, "lengthMax"));
+        filter.setLengthMode(blankToNull(request.getParameter("lengthMode")));
+
+        if (filter.getSongsWeeklyChartPeak() == null) {
+            filter.setSongsWeeklyChartPeak(parseIntegerParam(request, "weeklyChartPeak"));
+        }
+        if (filter.getSongsWeeklyChartWeeks() == null) {
+            filter.setSongsWeeklyChartWeeks(parseIntegerParam(request, "weeklyChartWeeks"));
+        }
+        if (filter.getSongsSeasonalChartPeak() == null) {
+            filter.setSongsSeasonalChartPeak(parseIntegerParam(request, "seasonalChartPeak"));
+        }
+        if (filter.getSongsSeasonalChartSeasons() == null) {
+            filter.setSongsSeasonalChartSeasons(parseIntegerParam(request, "seasonalChartSeasons"));
+        }
+        if (filter.getSongsYearlyChartPeak() == null) {
+            filter.setSongsYearlyChartPeak(parseIntegerParam(request, "yearlyChartPeak"));
+        }
+        if (filter.getSongsYearlyChartYears() == null) {
+            filter.setSongsYearlyChartYears(parseIntegerParam(request, "yearlyChartYears"));
+        }
+
+        if (filter.getSongsTrlPeak() == null) {
+            filter.setSongsTrlPeak(firstNonNull(parseIntegerParam(request, "songsTrlPeak"), parseIntegerParam(request, "trlPeak")));
+        }
+        if (filter.getSongsTrlDays() == null) {
+            filter.setSongsTrlDays(firstNonNull(parseIntegerParam(request, "songsTrlDays"), parseIntegerParam(request, "trlDays")));
+        }
+        if (filter.getSongsVatosCuntdownPeak() == null) {
+            filter.setSongsVatosCuntdownPeak(firstNonNull(parseIntegerParam(request, "songsVatosCuntdownPeak"), parseIntegerParam(request, "vatosCuntdownPeak")));
+        }
+        if (filter.getSongsVatosCuntdownDays() == null) {
+            filter.setSongsVatosCuntdownDays(firstNonNull(parseIntegerParam(request, "songsVatosCuntdownDays"), parseIntegerParam(request, "vatosCuntdownDays")));
+        }
+        if (filter.getSongsBillboardPeak() == null) {
+            filter.setSongsBillboardPeak(firstNonNull(parseIntegerParam(request, "songsBillboardPeak"), parseIntegerParam(request, "billboardPeak")));
+        }
+        if (filter.getSongsBillboardWeeks() == null) {
+            filter.setSongsBillboardWeeks(firstNonNull(parseIntegerParam(request, "songsBillboardWeeks"), parseIntegerParam(request, "billboardWeeks")));
+        }
     }
 
     private Integer parseIntegerParam(jakarta.servlet.http.HttpServletRequest request, String paramName) {
@@ -1815,6 +1857,17 @@ public class SongController {
         } catch (NumberFormatException ex) {
             return null;
         }
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
+    }
+
+    private Integer firstNonNull(Integer primary, Integer fallback) {
+        return primary != null ? primary : fallback;
     }
     
     // API endpoint for General tab chart data (pie charts)
@@ -2848,6 +2901,19 @@ public class SongController {
             @RequestParam(required = false) String countryMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String ageMode,
+            @RequestParam(required = false) Integer ageAtReleaseMin,
+            @RequestParam(required = false) Integer ageAtReleaseMax,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String birthDateFrom,
+            @RequestParam(required = false) String birthDateTo,
+            @RequestParam(required = false) String birthDateMode,
+            @RequestParam(required = false) String deathDate,
+            @RequestParam(required = false) String deathDateFrom,
+            @RequestParam(required = false) String deathDateTo,
+            @RequestParam(required = false) String deathDateMode,
             @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String releaseDateFrom,
             @RequestParam(required = false) String releaseDateTo,
@@ -2868,12 +2934,32 @@ public class SongController {
             @RequestParam(required = false) String hasFeaturedArtists,
             @RequestParam(required = false) String isBand,
             @RequestParam(required = false) String isSingle,
+            @RequestParam(required = false) String inItunes,
             @RequestParam(required = false) Integer playCountMin,
             @RequestParam(required = false) Integer playCountMax,
             @RequestParam(required = false) Integer trackNumber,
             @RequestParam(required = false) String trackNumberMode,
+            @RequestParam(required = false) Integer lengthMin,
+            @RequestParam(required = false) Integer lengthMax,
+            @RequestParam(required = false) String lengthMode,
+            @RequestParam(required = false) Integer weeklyChartPeak,
+            @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer trlPeak,
+            @RequestParam(required = false) Integer trlDays,
+            @RequestParam(required = false) Integer vatosCuntdownPeak,
+            @RequestParam(required = false) Integer vatosCuntdownDays,
+            @RequestParam(required = false) Integer billboardPeak,
+            @RequestParam(required = false) Integer billboardWeeks,
+            @RequestParam(required = false) Integer seasonalChartPeak,
+            @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) Integer yearlyChartPeak,
+            @RequestParam(required = false) Integer yearlyChartYears,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) String sortby2,
+            @RequestParam(required = false) String sortdir2,
+            @RequestParam(required = false) String sortby3,
+            @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "10000") int limit) {
         
         // Convert date formats
@@ -2888,6 +2974,13 @@ public class SongController {
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
         String listenedDateFromConverted = DateFormatUtils.convertToIsoFormat(listenedDateFrom);
         String listenedDateToConverted = DateFormatUtils.convertToIsoFormat(listenedDateTo);
+        String birthDateConverted = DateFormatUtils.convertToIsoFormat(birthDate);
+        String birthDateFromConverted = DateFormatUtils.convertToIsoFormat(birthDateFrom);
+        String birthDateToConverted = DateFormatUtils.convertToIsoFormat(birthDateTo);
+        String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
+        String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
+        String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
         
         // Get all songs matching filters (using a large limit instead of pagination)
         List<SongCardDTO> songs = songService.getSongs(
@@ -2899,21 +2992,21 @@ public class SongController {
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
                 listenedDateFromConverted, listenedDateToConverted,
                 organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
-                null, null, null,           // ageMin, ageMax, ageMode (not used in export)
-                null, null,                 // ageAtReleaseMin, ageAtReleaseMax (not used in export)
-                null, null, null, null,     // birthDate, birthDateFrom, birthDateTo, birthDateMode (not used in export)
-                null, null, null, null,     // deathDate, deathDateFrom, deathDateTo, deathDateMode (not used in export)
-                null, null,                 // itunesIdsJson, inItunes (not used in export)
+            ageMin, ageMax, ageMode,
+            ageAtReleaseMin, ageAtReleaseMax,
+            birthDateConverted, birthDateFromConverted, birthDateToConverted, birthDateMode,
+            deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
+            itunesIdsJson, inItunes,
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
-                null, null, null,           // lengthMin, lengthMax, lengthMode (not used in export)
-                null, null,                 // weeklyChartPeak, weeklyChartWeeks (not used in export)
-                null, null,                 // trlPeak, trlDays (not used in export)
-                null, null,                 // vatosCuntdownPeak, vatosCuntdownDays (not used in export)
-                null, null,                 // billboardPeak, billboardWeeks (not used in export)
-                null, null,                 // seasonalChartPeak, seasonalChartSeasons (not used in export)
-                null, null,                 // yearlyChartPeak, yearlyChartYears (not used in export)
-                sortby, sortdir, null, null, null, null, 0, limit
+            lengthMin, lengthMax, lengthMode,
+            weeklyChartPeak, weeklyChartWeeks,
+            trlPeak, trlDays,
+            vatosCuntdownPeak, vatosCuntdownDays,
+            billboardPeak, billboardWeeks,
+            seasonalChartPeak, seasonalChartSeasons,
+            yearlyChartPeak, yearlyChartYears,
+            sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, 0, limit
         );
         
         // Convert to minimal export format

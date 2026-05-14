@@ -22,13 +22,10 @@ public class YearController {
     public String listListenYears(
             @RequestParam(required = false, defaultValue = "year") String sortby,
             @RequestParam(required = false, defaultValue = "desc") String sortdir,
-            @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "50") int perpage,
             Model model) {
 
-        List<YearCardDTO> years = yearService.getListenYears(sortby, sortdir, page, perpage);
+        List<YearCardDTO> years = yearService.getListenYears(sortby, sortdir);
         long totalCount = yearService.countListenYears();
-        int totalPages = (int) Math.ceil((double) totalCount / perpage);
 
         model.addAttribute("years", years);
         model.addAttribute("yearType", "listen");
@@ -37,12 +34,9 @@ public class YearController {
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
         model.addAttribute("defaultSortBy", "year");
-        model.addAttribute("currentPage", page);
-        model.addAttribute("perPage", perpage);
-        model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("startIndex", page * perpage + 1);
-        model.addAttribute("endIndex", Math.min((page + 1) * perpage, totalCount));
+        model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);
+        model.addAttribute("endIndex", totalCount);
 
         return "years/list";
     }
@@ -51,13 +45,10 @@ public class YearController {
     public String listReleaseYears(
             @RequestParam(required = false, defaultValue = "year") String sortby,
             @RequestParam(required = false, defaultValue = "desc") String sortdir,
-            @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "50") int perpage,
             Model model) {
 
-        List<YearCardDTO> years = yearService.getReleaseYears(sortby, sortdir, page, perpage);
+        List<YearCardDTO> years = yearService.getReleaseYears(sortby, sortdir);
         long totalCount = yearService.countReleaseYears();
-        int totalPages = (int) Math.ceil((double) totalCount / perpage);
 
         model.addAttribute("years", years);
         model.addAttribute("yearType", "release");
@@ -66,12 +57,9 @@ public class YearController {
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
         model.addAttribute("defaultSortBy", "year");
-        model.addAttribute("currentPage", page);
-        model.addAttribute("perPage", perpage);
-        model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("startIndex", page * perpage + 1);
-        model.addAttribute("endIndex", Math.min((page + 1) * perpage, totalCount));
+        model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);
+        model.addAttribute("endIndex", totalCount);
 
         return "years/list";
     }

@@ -21,9 +21,8 @@ public class GenderService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    public List<GenderCardDTO> getGenders(String name, String sortBy, String sortDir, int page, int perPage) {
-        int offset = page * perPage;
-        
+    public List<GenderCardDTO> getGenders(String name, String sortBy, String sortDir) {
+
         // Determine sort direction
         String sortColumn = "g.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -80,7 +79,7 @@ public class GenderService {
                 GROUP BY effective_gender_id
             ) stats ON g.id = stats.effective_gender_id
             WHERE (? IS NULL OR g.name LIKE '%' || ? || '%')
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + " LIMIT ? OFFSET ?";
+            ORDER BY """ + " " + sortColumn + " " + sortDirection;
         
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[9];
@@ -94,7 +93,7 @@ public class GenderService {
             row[7] = rs.getInt("album_count");
             row[8] = rs.getInt("song_count");
             return row;
-        }, name, name, perPage, offset);
+        }, name, name);
         
         List<GenderCardDTO> genders = new ArrayList<>();
         for (Object[] row : results) {

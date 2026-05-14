@@ -23,33 +23,38 @@
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     <div class="container">
-        <!-- Header with search and filters -->
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1 style="margin: 0;">Songs</h1>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button type="button" class="btn-action btn-playlist" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
-                    <div class="view-toggle" id="viewToggle">
+        <!-- Toolbar with search and filters -->
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title">Songs</h1>
+                    <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Song views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-list" onclick="switchView('list')">List</button>
                         <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
                     </div>
-                    <button type="button" class="btn-action" onclick="openCreateModal()">New Song</button>
+                </div>
+                <div class="catalog-toolbar-actions">
+                    <button type="button" class="btn-playlist toolbar-btn toolbar-btn-soft" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
+                    <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Song</button>
                 </div>
             </div>
-            <div class="controls">
-                <div class="search-bar">
+
+            <div class="controls catalog-toolbar-controls">
+                <div class="catalog-toolbar-search-row">
+                    <div class="search-bar">
                     <input type="text" th:value="${searchQuery}" placeholder="Search songs..." autocomplete="off" id="searchInput"
                            onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
                     <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
-                
-                <div class="filter-section">
-                    <button class="filter-toggle" onclick="toggleFilters()">Edit Filter</button>
-                    
-                    <!-- Sort By Dropdown -->
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                </div>
+
+                <div class="toolbar-sort-panel">
+                        <div class="toolbar-sort-heading">Sort</div>
+                        <div class="toolbar-sort-list">
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect" class="toolbar-sort-label">1</label>
                         <select id="sortBySelect" onchange="changeSortBy(1, this.value)">
                             <option value="age_at_release" th:selected="${sortBy == 'age_at_release'}">Age at Release</option>
                             <option value="album" th:selected="${sortBy == 'album'}">Album</option>
@@ -95,8 +100,8 @@
                         </button>
                     </div>
 
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect2" style="margin-right: 5px; font-weight: bold;">Then By:</label>
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect2" class="toolbar-sort-label">2</label>
                         <select id="sortBySelect2" th:attr="data-selected-sort=${sortBy2}" onchange="changeSortBy(2, this.value)"></select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn2" onclick="toggleSortDirection(2)"
                                 th:title="${sortDir2 == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
@@ -105,8 +110,8 @@
                         </button>
                     </div>
 
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect3" style="margin-right: 5px; font-weight: bold;">Then By:</label>
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect3" class="toolbar-sort-label">3</label>
                         <select id="sortBySelect3" th:attr="data-selected-sort=${sortBy3}" onchange="changeSortBy(3, this.value)"></select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn3" onclick="toggleSortDirection(3)"
                                 th:title="${sortDir3 == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
@@ -114,7 +119,10 @@
                             <span th:if="${sortDir3 != 'desc'}">↑</span>
                         </button>
                     </div>
-                    
+                        </div>
+                </div>
+                
+                <div class="catalog-toolbar-control-actions">
                     <div class="filters" id="filterPanel">
                         <div class="filter-header">
                             <h3>Edit Filter</h3>
@@ -145,7 +153,7 @@
                                             <button type="button" class="filter-modifier" th:classappend="${accountMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="account">includes</button>
                                             <button type="button" class="filter-modifier" th:classappend="${accountMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="account">excludes</button>
                                         </div>
-                                        <input type="hidden" autocomplete="off" name="accountMode" th:value="${accountMode}" id="accountMode">
+                                        <input type="hidden" name="accountMode" th:value="${accountMode}" id="accountMode">
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('account')">
                                                 <div class="multi-select-chips" id="accountChips">
@@ -1522,12 +1530,6 @@
                class="page-btn">»</a>
         </div>
         
-            <!-- Per Page selector (right-aligned) -->
-            <div class="per-page-container">
-                <label for="pageSizeInput">Per Page:</label>
-                <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
-                       onchange="changePageSize(this.value)">
-            </div>
         </div> <!-- Close pagination-and-counters-wrapper -->
         
         <!-- Pagination info -->
@@ -1673,7 +1675,7 @@
                             <th:block th:case="'trl_peak'" th:text="${song.trlPeak != null ? '#' + song.trlPeak : 'N/A'}"></th:block>
                             <th:block th:case="'vatos_cuntdown_days'" th:text="${song.vatosCuntdownDays != null ? song.vatosCuntdownDays + (song.vatosCuntdownDays == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
                             <th:block th:case="'vatos_cuntdown_peak'" th:text="${song.vatosCuntdownPeak != null ? '#' + song.vatosCuntdownPeak : 'N/A'}"></th:block>
-                            <th:block th:case="'age_at_release'" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}"></th:block>
+                            <th:block th:case="'age_at_release'" th:text="${song.ageAtRelease != null ? song.ageAtRelease : 'N/A'}"></th:block>
                             <th:block th:case="'birth_date'" th:text="${song.birthDate != null ? song.birthDate : 'N/A'}"></th:block>
                             <th:block th:case="'days_listened'" th:text="${song.daysListened + (song.daysListened == 1 ? ' day' : ' days')}"></th:block>
                             <th:block th:case="'death_date'" th:text="${song.deathDate != null ? song.deathDate : 'N/A'}"></th:block>
@@ -2231,13 +2233,6 @@
         function goToPage(pageNum) {
             const url = new URL(window.location);
             url.searchParams.set('page', pageNum);
-            window.location.href = url.toString();
-        }
-        
-        function changePageSize(newSize) {
-            const url = new URL(window.location);
-            url.searchParams.set('perpage', newSize);
-            url.searchParams.set('page', '0'); // Reset to first page when changing page size
             window.location.href = url.toString();
         }
         

@@ -26,9 +26,8 @@ public class SubGenreService {
         this.jdbcTemplate = jdbcTemplate;
     }
     
-    public List<SubGenreCardDTO> getSubGenres(String name, Integer parentGenreId, String sortBy, String sortDir, int page, int perPage) {
-        int offset = page * perPage;
-        
+    public List<SubGenreCardDTO> getSubGenres(String name, Integer parentGenreId, String sortBy, String sortDir) {
+
         // Determine sort direction
         String sortColumn = "sg.name";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -162,7 +161,7 @@ public class SubGenreService {
             ) stats ON sg.id = stats.effective_subgenre_id
             WHERE (? IS NULL OR sg.name LIKE '%' || ? || '%')
               AND (? IS NULL OR sg.parent_genre_id = ?)
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling + " LIMIT ? OFFSET ?";
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling;
 
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[27];
@@ -194,7 +193,7 @@ public class SubGenreService {
             row[25] = rs.getLong("female_time_listened");
             row[26] = rs.getLong("other_time_listened");
             return row;
-        }, name, name, parentGenreId, parentGenreId, perPage, offset);
+        }, name, name, parentGenreId, parentGenreId);
         
         List<SubGenreCardDTO> subGenres = new ArrayList<>();
         for (Object[] row : results) {

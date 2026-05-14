@@ -23,32 +23,37 @@
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     <div class="container">
-        <!-- Header with search and filters -->
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1 style="margin: 0;">Artists</h1>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <div class="view-toggle" id="viewToggle">
+        <!-- Toolbar with search and filters -->
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title">Artists</h1>
+                    <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Artist views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-list" onclick="switchView('list')">List</button>
                         <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
                     </div>
-                    <button type="button" class="btn-action" onclick="openCreateModal()">New Artist</button>
+                </div>
+                <div class="catalog-toolbar-actions">
+                    <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Artist</button>
                 </div>
             </div>
-            <div class="controls">
-                <div class="search-bar">
+
+            <div class="controls catalog-toolbar-controls">
+                <div class="catalog-toolbar-search-row">
+                    <div class="search-bar">
                     <input type="text" th:value="${searchQuery}" placeholder="Search artists..." autocomplete="off" id="searchInput"
                            onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
                     <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
-                
-                <div class="filter-section">
-                    <button class="filter-toggle" onclick="toggleFilters()">Edit Filter</button>
-                    
-                    <!-- Sort By Dropdown -->
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect" style="margin-right: 5px; font-weight: bold;">Sort By:</label>
+                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                </div>
+
+                <div class="toolbar-sort-panel">
+                        <div class="toolbar-sort-heading">Sort</div>
+                        <div class="toolbar-sort-list">
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect" class="toolbar-sort-label">1</label>
                         <select id="sortBySelect" onchange="changeSortBy(1, this.value)">
                             <option value="age" th:selected="${sortBy == 'age'}">Age</option>
                             <option value="albums" th:selected="${sortBy == 'albums'}">Album Count</option>
@@ -88,8 +93,8 @@
                         </button>
                     </div>
 
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect2" style="margin-right: 5px; font-weight: bold;">Then By:</label>
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect2" class="toolbar-sort-label">2</label>
                         <select id="sortBySelect2" th:attr="data-selected-sort=${sortBy2}" onchange="changeSortBy(2, this.value)"></select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn2" onclick="toggleSortDirection(2)"
                                 th:title="${sortDir2 == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
@@ -98,8 +103,8 @@
                         </button>
                     </div>
 
-                    <div class="sort-by-section" style="display: inline-block; margin-left: 10px;">
-                        <label for="sortBySelect3" style="margin-right: 5px; font-weight: bold;">Then By:</label>
+                            <div class="sort-by-section toolbar-sort-row">
+                                <label for="sortBySelect3" class="toolbar-sort-label">3</label>
                         <select id="sortBySelect3" th:attr="data-selected-sort=${sortBy3}" onchange="changeSortBy(3, this.value)"></select>
                         <button type="button" class="sort-dir-btn" id="sortDirBtn3" onclick="toggleSortDirection(3)"
                                 th:title="${sortDir3 == 'desc' ? 'Descending (click to change)' : 'Ascending (click to change)'}">
@@ -107,7 +112,10 @@
                             <span th:if="${sortDir3 != 'desc'}">↑</span>
                         </button>
                     </div>
-                    
+                        </div>
+                </div>
+                
+                <div class="catalog-toolbar-control-actions">
                     <div class="filters" id="filterPanel">
                         <div class="filter-header">
                             <h3>Edit Filter</h3>
@@ -1188,12 +1196,7 @@
                class="page-btn">»</a>
         </div>
         
-            <!-- Per Page selector (right-aligned) -->
-            <div class="per-page-container">
-                <label for="pageSizeInput">Per Page:</label>
-                <input type="number" autocomplete="off" id="pageSizeInput" th:value="${perPage}" min="1" max="500" 
-                       onchange="changePageSize(this.value)">
-            </div>
+
         </div> <!-- Close pagination-and-counters-wrapper -->
         
         <!-- Pagination info -->
@@ -1865,13 +1868,6 @@
         
         function toggleSortDirection(level) {
             toggleListSortDirection(level);
-        }
-        
-        function changePageSize(newSize) {
-            const url = new URL(window.location);
-            url.searchParams.set('perpage', newSize);
-            url.searchParams.set('page', '0'); // Reset to first page when changing page size
-            window.location.href = url.toString();
         }
         
         function clearFilters() {

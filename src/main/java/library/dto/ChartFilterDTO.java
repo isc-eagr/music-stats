@@ -10,8 +10,10 @@ public class ChartFilterDTO {
     
     // Text search filters
     private String name;
+    private String catalogType;
     private List<Integer> artistIds;
     private List<Integer> albumIds;
+    private String albumName;
     private List<Integer> songIds;
     
     // Account filter
@@ -82,6 +84,20 @@ public class ChartFilterDTO {
     private String isBand; // "true", "false", or null
     private String isSingle; // "true", "false", or null
     private String inItunes; // "true", "false", or null
+    private String organized; // "true", "false", or null
+    private Integer imageCountMin;
+    private Integer imageCountMax;
+    private Integer imageTheme;
+    private String imageThemeMode;
+    private Integer albumCountMin;
+    private Integer albumCountMax;
+    private Integer songCountMin;
+    private Integer songCountMax;
+    private Integer trackNumber;
+    private String trackNumberMode;
+    private Integer lengthMin;
+    private Integer lengthMax;
+    private String lengthMode;
     private Integer itunesPresenceMin;
     private Integer itunesPresenceMax;
     private String itunesSongIdsJson;
@@ -148,12 +164,18 @@ public class ChartFilterDTO {
     // Getters and setters
     public String getName() { return name; }
     public ChartFilterDTO setName(String name) { this.name = name; return this; }
+
+    public String getCatalogType() { return catalogType; }
+    public ChartFilterDTO setCatalogType(String catalogType) { this.catalogType = catalogType; return this; }
     
     public List<Integer> getArtistIds() { return artistIds; }
     public ChartFilterDTO setArtistIds(List<Integer> artistIds) { this.artistIds = artistIds; return this; }
     
     public List<Integer> getAlbumIds() { return albumIds; }
     public ChartFilterDTO setAlbumIds(List<Integer> albumIds) { this.albumIds = albumIds; return this; }
+
+    public String getAlbumName() { return albumName; }
+    public ChartFilterDTO setAlbumName(String albumName) { this.albumName = albumName; return this; }
     
     public List<Integer> getSongIds() { return songIds; }
     public ChartFilterDTO setSongIds(List<Integer> songIds) { this.songIds = songIds; return this; }
@@ -280,6 +302,48 @@ public class ChartFilterDTO {
     
     public String getInItunes() { return inItunes; }
     public ChartFilterDTO setInItunes(String inItunes) { this.inItunes = inItunes; return this; }
+
+    public String getOrganized() { return organized; }
+    public ChartFilterDTO setOrganized(String organized) { this.organized = organized; return this; }
+
+    public Integer getImageCountMin() { return imageCountMin; }
+    public ChartFilterDTO setImageCountMin(Integer imageCountMin) { this.imageCountMin = imageCountMin; return this; }
+
+    public Integer getImageCountMax() { return imageCountMax; }
+    public ChartFilterDTO setImageCountMax(Integer imageCountMax) { this.imageCountMax = imageCountMax; return this; }
+
+    public Integer getImageTheme() { return imageTheme; }
+    public ChartFilterDTO setImageTheme(Integer imageTheme) { this.imageTheme = imageTheme; return this; }
+
+    public String getImageThemeMode() { return imageThemeMode; }
+    public ChartFilterDTO setImageThemeMode(String imageThemeMode) { this.imageThemeMode = imageThemeMode; return this; }
+
+    public Integer getAlbumCountMin() { return albumCountMin; }
+    public ChartFilterDTO setAlbumCountMin(Integer albumCountMin) { this.albumCountMin = albumCountMin; return this; }
+
+    public Integer getAlbumCountMax() { return albumCountMax; }
+    public ChartFilterDTO setAlbumCountMax(Integer albumCountMax) { this.albumCountMax = albumCountMax; return this; }
+
+    public Integer getSongCountMin() { return songCountMin; }
+    public ChartFilterDTO setSongCountMin(Integer songCountMin) { this.songCountMin = songCountMin; return this; }
+
+    public Integer getSongCountMax() { return songCountMax; }
+    public ChartFilterDTO setSongCountMax(Integer songCountMax) { this.songCountMax = songCountMax; return this; }
+
+    public Integer getTrackNumber() { return trackNumber; }
+    public ChartFilterDTO setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; return this; }
+
+    public String getTrackNumberMode() { return trackNumberMode; }
+    public ChartFilterDTO setTrackNumberMode(String trackNumberMode) { this.trackNumberMode = trackNumberMode; return this; }
+
+    public Integer getLengthMin() { return lengthMin; }
+    public ChartFilterDTO setLengthMin(Integer lengthMin) { this.lengthMin = lengthMin; return this; }
+
+    public Integer getLengthMax() { return lengthMax; }
+    public ChartFilterDTO setLengthMax(Integer lengthMax) { this.lengthMax = lengthMax; return this; }
+
+    public String getLengthMode() { return lengthMode; }
+    public ChartFilterDTO setLengthMode(String lengthMode) { this.lengthMode = lengthMode; return this; }
     
     public Integer getItunesPresenceMin() { return itunesPresenceMin; }
     public ChartFilterDTO setItunesPresenceMin(Integer itunesPresenceMin) { this.itunesPresenceMin = itunesPresenceMin; return this; }
@@ -404,6 +468,7 @@ public class ChartFilterDTO {
         return (name != null && !name.isEmpty()) ||
                (artistIds != null && !artistIds.isEmpty()) ||
                (albumIds != null && !albumIds.isEmpty()) ||
+               (albumName != null && !albumName.isEmpty()) ||
                (songIds != null && !songIds.isEmpty()) ||
                (accounts != null && !accounts.isEmpty()) ||
                (genreIds != null && !genreIds.isEmpty()) || genreMode != null ||
@@ -421,10 +486,21 @@ public class ChartFilterDTO {
                (lastListenedDate != null && !lastListenedDate.isEmpty()) ||
                (lastListenedDateFrom != null && !lastListenedDateFrom.isEmpty()) ||
                (lastListenedDateTo != null && !lastListenedDateTo.isEmpty()) ||
+               (lastFullListenDate != null && !lastFullListenDate.isEmpty()) ||
+               (lastFullListenDateFrom != null && !lastFullListenDateFrom.isEmpty()) ||
+               (lastFullListenDateTo != null && !lastFullListenDateTo.isEmpty()) ||
                (listenedDateFrom != null && !listenedDateFrom.isEmpty()) ||
                (listenedDateTo != null && !listenedDateTo.isEmpty()) ||
                playCountMin != null || playCountMax != null ||
                hasFeaturedArtists != null || isBand != null || isSingle != null ||
+               inItunes != null || organized != null ||
+               imageCountMin != null || imageCountMax != null ||
+               imageTheme != null ||
+               albumCountMin != null || albumCountMax != null ||
+               songCountMin != null || songCountMax != null ||
+               trackNumber != null || (trackNumberMode != null && !trackNumberMode.isEmpty()) ||
+               lengthMin != null || lengthMax != null || (lengthMode != null && !lengthMode.isEmpty()) ||
+               itunesPresenceMin != null || itunesPresenceMax != null ||
                // Age filters
                ageMin != null || ageMax != null ||
                ageAtReleaseMin != null || ageAtReleaseMax != null ||

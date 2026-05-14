@@ -1,7 +1,5 @@
 package library.util;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.core.json.JsonFactory;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
@@ -62,6 +60,12 @@ public final class BillboardHot100ImportSupport {
             List<NameIssueSample> samples
     ) {
     }
+
+        private record ParsedChart(String chartDate, List<ParsedEntry> entries) {
+        }
+
+        private record ParsedEntry(String artistName, String songTitle, int position, int peakPosition, int weeksOnChart) {
+        }
 
     public static void ensureSchema(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
@@ -613,8 +617,6 @@ public final class BillboardHot100ImportSupport {
         int chartCount = 0;
         int entryCount = 0;
         int preservedLinks = 0;
-        ObjectMapper objectMapper = new ObjectMapper();
-
         try (PreparedStatement insert = connection.prepareStatement(insertSql);
              InputStream inputStream = openAllChartsStream();
              JsonParser parser = new JsonFactory().createParser(inputStream)) {
@@ -624,14 +626,13 @@ public final class BillboardHot100ImportSupport {
             }
 
             while (parser.nextToken() != JsonToken.END_ARRAY) {
-                JsonNode chartNode = objectMapper.readTree(parser);
-                if (chartNode == null || chartNode.isMissingNode()) {
+                ParsedChart chart = parseChart(parser);
+                if (chart == null) {
                     continue;
                 }
 
-                String chartDate = chartNode.path("date").asText(null);
-                JsonNode dataNode = chartNode.path("data");
-                if (chartDate == null || !dataNode.isArray()) {
+                String chartDate = chart.chartDate();
+                if (chartDate == null) {
                     continue;
                 }
 
@@ -640,12 +641,12 @@ public final class BillboardHot100ImportSupport {
                 }
 
                 chartCount++;
-                for (JsonNode entryNode : dataNode) {
-                    String artistName = entryNode.path("artist").asText(null);
-                    String songTitle = entryNode.path("song").asText(null);
-                    int position = entryNode.path("this_week").asInt(0);
-                    int peakPosition = entryNode.path("peak_position").asInt(0);
-                    int weeksOnChart = entryNode.path("weeks_on_chart").asInt(0);
+                for (ParsedEntry entry : chart.entries()) {
+                    String artistName = entry.artistName();
+                    String songTitle = entry.songTitle();
+                    int position = entry.position();
+                    int peakPosition = entry.peakPosition();
+                    int weeksOnChart = entry.weeksOnChart();
 
                     if (artistName == null || songTitle == null || position <= 0 || peakPosition <= 0 || weeksOnChart <= 0) {
                         continue;
@@ -680,6 +681,77 @@ public final class BillboardHot100ImportSupport {
         }
 
         return new ImportReport(chartCount, entryCount, preservedLinks);
+    }
+
+    private static ParsedChart parseChart(JsonParser parser) throws IOException {
+        if (parser.currentToken() != JsonToken.START_OBJECT) {
+            parser.skipChildren();
+            return null;
+        }
+
+        String chartDate = null;
+        List<ParsedEntry> entries = new ArrayList<>();
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+            String fieldName = parser.currentName();
+            JsonToken valueToken = parser.nextToken();
+            if (fieldName == null) {
+                parser.skipChildren();
+                continue;
+            }
+
+            switch (fieldName) {
+                case "date" -> chartDate = parser.getValueAsString();
+                case "data" -> {
+                    if (valueToken != JsonToken.START_ARRAY) {
+                        parser.skipChildren();
+                        break;
+                    }
+                    while (parser.nextToken() != JsonToken.END_ARRAY) {
+                        ParsedEntry entry = parseEntry(parser);
+                        if (entry != null) {
+                            entries.add(entry);
+                        }
+                    }
+                }
+                default -> parser.skipChildren();
+            }
+        }
+
+        return new ParsedChart(chartDate, entries);
+    }
+
+    private static ParsedEntry parseEntry(JsonParser parser) throws IOException {
+        if (parser.currentToken() != JsonToken.START_OBJECT) {
+            parser.skipChildren();
+            return null;
+        }
+
+        String artistName = null;
+        String songTitle = null;
+        int position = 0;
+        int peakPosition = 0;
+        int weeksOnChart = 0;
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+            String fieldName = parser.currentName();
+            parser.nextToken();
+            if (fieldName == null) {
+                parser.skipChildren();
+                continue;
+            }
+
+            switch (fieldName) {
+                case "artist" -> artistName = parser.getValueAsString();
+                case "song" -> songTitle = parser.getValueAsString();
+                case "this_week" -> position = parser.getValueAsInt(0);
+                case "peak_position" -> peakPosition = parser.getValueAsInt(0);
+                case "weeks_on_chart" -> weeksOnChart = parser.getValueAsInt(0);
+                default -> parser.skipChildren();
+            }
+        }
+
+        return new ParsedEntry(artistName, songTitle, position, peakPosition, weeksOnChart);
     }
 
     private static boolean shouldSkipChart(String chartDate, String latestExistingChartDate, Set<String> existingChartDates) {
