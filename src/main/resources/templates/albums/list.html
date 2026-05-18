@@ -1487,6 +1487,29 @@
                     <div class="album-artist" th:if="${album.artistName != null}">
                         <a th:href="@{'/artists/' + ${album.artistId}}" th:text="${album.artistName}" class="artist-link"></a>
                     </div>
+
+                    <div class="card-summary-stats album-summary-stats">
+                        <div class="album-stats">
+                            <div class="stat" th:classappend="${sortBy == 'song_count' ? 'sort-highlight' : ''}">
+                                <span class="stat-icon">🎵</span>
+                                <span class="stat-value" th:text="${album.songCount}">0</span>
+                            </div>
+                        </div>
+                        <div class="album-stats album-stats-plays">
+                            <div class="stat" title="Total plays">
+                                <span class="stat-icon total-plays">⏵</span>
+                                <span class="stat-value" th:text="${album.playCount}">0</span>
+                            </div>
+                            <div class="stat" title="Primary plays">
+                                <span class="stat-icon primary-plays">⏵</span>
+                                <span class="stat-value" th:text="${album.vatitoPlayCount}">0</span>
+                            </div>
+                            <div class="stat" title="Legacy plays">
+                                <span class="stat-icon legacy-plays">⏵</span>
+                                <span class="stat-value" th:text="${album.robertloverPlayCount}">0</span>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Attribute chips -->
                     <div class="winning-chips">
@@ -1552,26 +1575,6 @@
                         </span>
                     </div>
                     
-                    <div class="album-stats">
-                        <div class="stat" th:classappend="${sortBy == 'song_count' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎵</span>
-                            <span class="stat-value" th:text="${album.songCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="album-stats album-stats-plays">
-                        <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${album.playCount}">0</span>
-                        </div>
-                        <div class="stat" title="Primary plays">
-                            <span class="stat-icon primary-plays">⏵</span>
-                            <span class="stat-value" th:text="${album.vatitoPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Legacy plays">
-                            <span class="stat-icon legacy-plays">⏵</span>
-                            <span class="stat-value" th:text="${album.robertloverPlayCount}">0</span>
-                        </div>
-                    </div>
                     <div class="album-stats album-stats-row2">
                         <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>

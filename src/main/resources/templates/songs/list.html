@@ -1620,6 +1620,23 @@
                            class="metadata-link"></a>
                         <span th:if="${song.albumId == null}" th:text="${song.albumName}" th:title="${song.albumName}"></span>
                     </div>
+
+                    <div class="card-summary-stats song-summary-stats">
+                        <div class="song-stats song-stats-plays">
+                            <div class="stat" title="Total plays">
+                                <span class="stat-icon total-plays">⏵</span>
+                                <span class="stat-value" th:text="${song.playCount}">0</span>
+                            </div>
+                            <div class="stat" title="Primary plays">
+                                <span class="stat-icon primary-plays">⏵</span>
+                                <span class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
+                            </div>
+                            <div class="stat" title="Legacy plays">
+                                <span class="stat-icon legacy-plays">⏵</span>
+                                <span class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Attribute chips -->
                     <div class="winning-chips">
@@ -1691,20 +1708,6 @@
                         </span>
                     </div>
                     
-                    <div class="song-stats song-stats-plays">
-                        <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${song.playCount}">0</span>
-                        </div>
-                        <div class="stat" title="Primary plays">
-                            <span class="stat-icon primary-plays">⏵</span>
-                            <span class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Legacy plays">
-                            <span class="stat-icon legacy-plays">⏵</span>
-                            <span class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
-                        </div>
-                    </div>
                     <div class="song-stats song-stats-row2">
                         <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
