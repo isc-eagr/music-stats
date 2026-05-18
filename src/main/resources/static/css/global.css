@@ -4487,7 +4487,7 @@ input.flatpickr-input:focus {
         padding: 4px;
     }
     
-    .top-table .cover-col img,
+    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
     .top-table .cover-col .cover-placeholder {
         width: 36px;
         height: 36px;
@@ -4803,7 +4803,7 @@ input.flatpickr-input:focus {
         padding: 6px 4px;
     }
     
-    .top-table .cover-col img,
+    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
     .top-table .cover-col .cover-placeholder {
         width: 32px;
         height: 32px;

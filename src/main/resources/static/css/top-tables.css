@@ -87,12 +87,12 @@
 }
 
 .top-table .cover-col {
-    width: 60px;
+    width: 66px;
     padding: 4px 8px;
 }
 
 /* Square cover for albums and songs */
-.top-table .cover-col img {
+.top-table .cover-col img, .top-table .cover-col .hover-image-container {
     width: 50px;
     height: 50px;
     object-fit: cover;
@@ -308,7 +308,7 @@
         padding: 3px 6px;
     }
     
-    .top-table .cover-col img,
+    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
     .top-table .cover-col .cover-placeholder {
         width: 38px;
         height: 38px;
@@ -336,7 +336,7 @@
         padding: 5px 6px;
     }
     
-    .top-table .cover-col img,
+    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
     .top-table .cover-col .cover-placeholder {
         width: 32px;
         height: 32px;

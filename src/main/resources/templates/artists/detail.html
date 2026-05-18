@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -697,8 +697,8 @@
                                 <td class="row-num-col" th:text="${iter.count}">1</td>
                                 <td class="cover-col">
                                     <div style="cursor:pointer;" th:onclick="|openAlbumImageModalFromArtist(${album.id})|" th:title="${album.name}">
-                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                                        <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">💿</div>
+                                        <img th:src="@{'/albums/' + ${album.id} + '/image'}" th:alt="${album.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" >
+                                        <div class="cover-placeholder" style="display:none;">💿</div>
                                     </div>
                                 </td>
                                 <td>
@@ -785,17 +785,17 @@
                                 <td class="cover-col">
                                     <div th:title="${song.name}" style="cursor: pointer;">
                                         <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
-                                        <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container" style="width:50px;height:50px;">
+                                        <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container" >
                                             <img th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
                                                  th:alt="${song.name}"
                                                  th:onclick="|openSongImageModalFromArtist(${song.id})|"
                                                  class="album-image-default clickable-image"
-                                                 style="border-radius:4px;">
+                                                 >
                                             <img th:src="@{'/songs/' + ${song.id} + '/image'}" 
                                                  th:alt="${song.name}"
                                                  th:onclick="|openSongImageModalFromArtist(${song.id})|"
                                                  class="song-image-hover clickable-image"
-                                                 style="border-radius:4px;">
+                                                 >
                                         </div>
                                         <!-- Case 2: Song has image but album doesn't - just show song image -->
                                         <img th:if="${song.hasImage and !song.albumHasImage}" 
@@ -803,7 +803,7 @@
                                              th:alt="${song.name}" 
                                              th:onclick="|openSongImageModalFromArtist(${song.id})|"
                                              class="clickable-image"
-                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                             >
                                         <!-- Case 3: Song doesn't have image but album does - show album image with opacity -->
                                         <img th:if="${!song.hasImage and song.albumId != null}" 
                                              th:src="@{'/albums/' + ${song.albumId} + '/image'}" 
@@ -811,9 +811,9 @@
                                              th:onclick="|openAlbumImageModalFromArtist(${song.albumId})|"
                                              class="inherited-cover clickable-image"
                                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                                        <div th:if="${!song.hasImage and song.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
-                                        <div th:if="${!song.hasImage and song.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">🎵</div>
+                                             >
+                                        <div th:if="${!song.hasImage and song.albumId == null}" class="cover-placeholder" >🎵</div>
+                                        <div th:if="${!song.hasImage and song.albumId != null}" class="cover-placeholder" style="display:none;">🎵</div>
                                     </div>
                                 </td>
                                 <td class="song-name-col">
@@ -1253,8 +1253,8 @@
                                         <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div style="cursor:pointer;" th:onclick="|openAlbumImageModalFromArtist(${entry.id})| " th:title="${entry.name}">
-                                                <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                                                <div class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">-</div>
+                                                <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" >
+                                                <div class="cover-placeholder" style="display:none;">-</div>
                                             </div>
                                         </td>
                                         <td>
@@ -1327,7 +1327,7 @@
                                         <td class="cover-col">
                                             <div th:title="${entry.name}" style="cursor: pointer;">
                                                 <!-- If song has image - show it -->
-                                                <div th:if="${entry.hasImage}" class="hover-image-container" style="width:50px;height:50px;">
+                                                <div th:if="${entry.hasImage}" class="hover-image-container" >
                                                     <!-- Show album by default if it exists -->
                                                     <img th:if="${entry.albumId != null}"
                                                          th:src="@{'/albums/' + ${entry.albumId} + '/image'}" 
@@ -1335,13 +1335,13 @@
                                                          th:onclick="|openSongImageModalFromArtist(${entry.id})|"
                                                          class="album-image-default clickable-image"
                                                          onerror="this.style.display='none';"
-                                                         style="border-radius:4px;">
+                                                         >
                                                     <!-- Show song image on hover or if no album -->
                                                     <img th:src="@{'/songs/' + ${entry.id} + '/image'}" 
                                                          th:alt="${entry.name}"
                                                          th:onclick="|openSongImageModalFromArtist(${entry.id})|"
                                                          th:class="${entry.albumId != null} ? 'song-image-hover clickable-image' : 'clickable-image'"
-                                                         style="border-radius:4px;">
+                                                         >
                                                 </div>
                                                 <!-- If song doesn't have image but has album - show album image -->
                                                 <img th:if="${!entry.hasImage and entry.albumId != null}" 
@@ -1350,10 +1350,10 @@
                                                      th:onclick="|openAlbumImageModalFromArtist(${entry.albumId})|"
                                                      class="inherited-cover clickable-image"
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                                     style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                                     >
                                                 <!-- Placeholder if no images -->
-                                                <div th:if="${!entry.hasImage and entry.albumId == null}" class="cover-placeholder" style="width:50px;height:50px;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">-</div>
-                                                <div th:if="${!entry.hasImage and entry.albumId != null}" class="cover-placeholder" style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:18px;">-</div>
+                                                <div th:if="${!entry.hasImage and entry.albumId == null}" class="cover-placeholder" >-</div>
+                                                <div th:if="${!entry.hasImage and entry.albumId != null}" class="cover-placeholder" style="display:none;">-</div>
                                             </div>
                                         </td>
                                         <td>
