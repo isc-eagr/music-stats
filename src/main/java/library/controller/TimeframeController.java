@@ -4,6 +4,7 @@ import library.dto.TimeframeCardDTO;
 import library.dto.ChartTopEntryDTO;
 import library.dto.TimeframeResultDTO;
 import library.repository.LookupRepository;
+import library.service.AppConfigService;
 import library.service.ChartService;
 import library.service.TimeframeService;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,12 +27,14 @@ public class TimeframeController {
     private final ChartService chartService;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final AppConfigService appConfigService;
     
-    public TimeframeController(TimeframeService timeframeService, ChartService chartService, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public TimeframeController(TimeframeService timeframeService, ChartService chartService, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate, AppConfigService appConfigService) {
         this.timeframeService = timeframeService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.appConfigService = appConfigService;
     }
     
     @GetMapping("/{periodType}")
@@ -82,7 +85,7 @@ public class TimeframeController {
             @RequestParam(defaultValue = "period") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int perpage,
+            @RequestParam(required = false) Integer perpage,
             HttpServletRequest request,
             Model model) {
         
@@ -112,6 +115,7 @@ public class TimeframeController {
             effectiveMalePlayPctMin = 100.0;
             effectiveMaleTimePctMin = 100.0;
         }
+        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getTimeframesListPageSize());
         
         // Get timeframe cards with count in a single pass
         TimeframeResultDTO result = timeframeService.getTimeframeCardsWithCount(
@@ -133,12 +137,12 @@ public class TimeframeController {
             effectiveMaleTimePctMin, maleTimePctMax,
             dateFrom, dateTo,
             maleDaysMin, maleDaysMax,
-            sortby, sortdir, page, perpage
+            sortby, sortdir, page, effectivePerPage
         );
         
         List<TimeframeCardDTO> timeframes = result.getTimeframes();
         long totalCount = result.getTotalCount();
-        int totalPages = (int) Math.ceil((double) totalCount / perpage);
+        int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Add core data to model
         model.addAttribute("currentSection", periodType);
@@ -241,9 +245,9 @@ public class TimeframeController {
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("perPage", perpage);
-        model.addAttribute("startIndex", totalCount > 0 ? (page * perpage) + 1 : 0);
-        model.addAttribute("endIndex", Math.min((page + 1) * perpage, totalCount));
+        model.addAttribute("perPage", effectivePerPage);
+        model.addAttribute("startIndex", totalCount > 0 ? (page * effectivePerPage) + 1 : 0);
+        model.addAttribute("endIndex", Math.min((page + 1) * effectivePerPage, totalCount));
         
         // Sorting
         model.addAttribute("sortBy", sortby);

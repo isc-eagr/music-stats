@@ -36,6 +36,9 @@
         .automation-meta-item { background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; }
         .automation-meta-item .meta-label { display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
         .automation-meta-item .meta-value { display: block; color: var(--text); font-size: 15px; font-weight: 700; }
+        .automation-config-summary { padding: 16px 18px; border-radius: 12px; background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06); }
+        .automation-config-summary .summary-value { display: block; color: var(--text); font-size: 18px; font-weight: 700; }
+        .automation-config-summary .summary-copy { display: block; color: var(--text-muted); font-size: 13px; line-height: 1.55; margin-top: 8px; }
         .automation-log-card { overflow: hidden; }
         .automation-log-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
         .automation-log-table { width: 100%; border-collapse: collapse; min-width: 940px; }
@@ -59,14 +62,18 @@
 
         <div class="form-card" th:if="${automationImportState != null}">
             <p class="section-title">Automation Control</p>
-            <p class="hint">Vatito automation runs only between 7:00 AM and 11:59 PM server time. Change the interval here and review the latest run history below, carnal.</p>
+            <p class="hint">Automation settings now live on the Config page. Use this screen to monitor recent runs and handle manual imports without touching hardcoded values.</p>
 
             <div class="automation-grid">
                 <div>
-                    <label for="automationIntervalMinutes">Run every N minutes</label>
-                    <input type="number" autocomplete="off" id="automationIntervalMinutes" min="1" max="180" th:value="${automationImportState.runIntervalMinutes}" />
+                    <label>Configured automation</label>
+                    <div class="automation-config-summary">
+                        <span class="summary-value" th:text="${automationConfig.enabled ? 'Enabled' : 'Disabled'}">Enabled</span>
+                        <span class="summary-copy" th:text="${automationImportState.runIntervalMinutes + ' min cadence for ' + (#strings.isEmpty(automationAccount) ? 'no account configured' : automationAccount)}">10 min cadence for vatito</span>
+                        <span class="summary-copy" th:text="${'Allowed window: ' + automationConfig.startHour + ':00 - ' + automationConfig.endHour + ':59'}">Allowed window: 7:00 - 23:59</span>
+                    </div>
                     <div class="actions">
-                        <button class="btn btn-action" type="button" onclick="saveAutomationInterval()">Save Interval</button>
+                        <a class="btn btn-action" th:href="@{/config}">Open Config Page</a>
                     </div>
                 </div>
                 <div class="automation-meta">
@@ -92,7 +99,7 @@
 
         <div class="form-card automation-log-card" th:if="${automationImportState != null}">
             <p class="section-title">Automation Run Log</p>
-            <p class="hint">Latest automated cycles for vatito. Each row records when the scheduler ran, what happened, and whether play counts matched.</p>
+            <p class="hint">Latest automated cycles for the configured account. Each row records when the scheduler ran, what happened, and whether play counts matched.</p>
 
             <div th:if="${automationImportState.recentLogs == null or #lists.isEmpty(automationImportState.recentLogs)}">
                 <p class="hint" style="margin-bottom: 0;">No automated runs have been logged yet.</p>
@@ -289,35 +296,6 @@
         // Store unmatched plays from fetch
         let unmatchedFromFetch = [];
 
-        async function saveAutomationInterval() {
-            const intervalInput = document.getElementById('automationIntervalMinutes');
-            const runIntervalMinutes = Number(intervalInput.value);
-
-            if (!Number.isInteger(runIntervalMinutes) || runIntervalMinutes < 1 || runIntervalMinutes > 180) {
-                showErrorToast('Run interval must be between 1 and 180 minutes.');
-                intervalInput.focus();
-                return;
-            }
-
-            try {
-                const response = await fetch('/plays/api/automation/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ runIntervalMinutes })
-                });
-
-                const data = await response.json();
-                if (!response.ok || !data.success) {
-                    throw new Error(data.error || 'Failed to update automation interval.');
-                }
-
-                showSuccessToast(`Automation will now run every ${data.runIntervalMinutes} minutes.`);
-                window.setTimeout(() => window.location.reload(), 500);
-            } catch (error) {
-                showErrorToast(error.message || 'Failed to update automation interval.');
-            }
-        }
-        
         async function fetchFromLastfm() {
             const account = document.getElementById('fetchAccount').value;
             const apiKey = document.getElementById('apiKey').value;

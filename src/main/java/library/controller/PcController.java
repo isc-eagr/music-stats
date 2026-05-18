@@ -3,6 +3,7 @@ package library.controller;
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.PcOverviewRowDTO;
+import library.service.AppConfigService;
 import library.service.PcService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -18,11 +19,11 @@ import java.util.Map;
 @RequestMapping({"/misc/vatos-cuntdown", "/misc/pc"})
 public class PcController {
 
-    private static final int OVERVIEW_PAGE_SIZE = 100;
-
+    private final AppConfigService appConfigService;
     private final PcService pcService;
 
-    public PcController(PcService pcService) {
+    public PcController(AppConfigService appConfigService, PcService pcService) {
+        this.appConfigService = appConfigService;
         this.pcService = pcService;
     }
 
@@ -30,7 +31,7 @@ public class PcController {
     public String pcList(
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
             Model model) {
@@ -78,7 +79,7 @@ public class PcController {
     public ResponseEntity<Map<String, Object>> pcData(
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(defaultValue = "2") int page,
-            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
@@ -318,8 +319,8 @@ public class PcController {
         return "asc".equals(dir) ? comparator : comparator.reversed();
     }
 
-    private int normalizeSize(int size) {
-        return Math.min(Math.max(size, 25), 200);
+    private int normalizeSize(Integer size) {
+        return appConfigService.normalizePageSize(size, appConfigService.getPcOverviewPageSize(), 25, 200);
     }
 
     private <T> List<T> paginateRows(List<T> rows, int page, int size) {

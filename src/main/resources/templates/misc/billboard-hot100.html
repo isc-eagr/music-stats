@@ -274,6 +274,7 @@
             <div class="bb-search-status" th:if="${q != null and !q.isBlank()}" th:text="|Searching Billboard ${overviewTab} overview for '${q}' (${resultTotal} matches)|">Searching Billboard rows</div>
             <div class="bb-page-size">
                 <span>Rows:</span>
+                <a th:if="${size != 100 and size != 250 and size != 500}" th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=${size},sort=${sort},dir=${dir},q=${q})}" class="active" th:text="${size}">175</a>
                 <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=100,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 100} ? 'active' : ''">100</a>
                 <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=250,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 250} ? 'active' : ''">250</a>
                 <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=500,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 500} ? 'active' : ''">500</a>

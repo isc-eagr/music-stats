@@ -1098,22 +1098,22 @@
                                 <a class="overview-link-primary" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" th:text="${entry.artistName}">Artist</a>
                             </td>
                             <td class="center" th:attr="data-value=${entry.chartedSongsCount}">
-                                <a class="overview-metric-link" th:if="${entry.chartedSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=' + songChartedPeakValue}" th:text="${entry.chartedSongsCount}">0</a>
+                                <a class="overview-metric-link" th:if="${entry.chartedSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.songsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=' + songChartedPeakValue}" th:text="${entry.chartedSongsCount}">0</a>
                                 <span th:unless="${entry.chartedSongsCount > 0}" th:text="${entry.chartedSongsCount}">0</span>
                             </td>
                             <td class="center" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
                             <td class="center" th:attr="data-value=${entry.numberOneSongsCount}">
-                                <a class="overview-metric-link" th:if="${entry.numberOneSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=1'}" th:text="${entry.numberOneSongsCount}">0</a>
+                                <a class="overview-metric-link" th:if="${entry.numberOneSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.songsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=1'}" th:text="${entry.numberOneSongsCount}">0</a>
                                 <span th:unless="${entry.numberOneSongsCount > 0}" th:text="${entry.numberOneSongsCount}">0</span>
                             </td>
                             <td class="center artist-song-number-one-span-col" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                             <td class="center" th:attr="data-value=${entry.chartedAlbumsCount}">
-                                <a class="overview-metric-link" th:if="${entry.chartedAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=' + albumChartedPeakValue}" th:text="${entry.chartedAlbumsCount}">0</a>
+                                <a class="overview-metric-link" th:if="${entry.chartedAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.albumsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=' + albumChartedPeakValue}" th:text="${entry.chartedAlbumsCount}">0</a>
                                 <span th:unless="${entry.chartedAlbumsCount > 0}" th:text="${entry.chartedAlbumsCount}">0</span>
                             </td>
                             <td class="center" th:attr="data-value=${entry.albumTotalChartSpan}" th:text="${entry.albumTotalChartSpan}">0</td>
                             <td class="center" th:attr="data-value=${entry.numberOneAlbumsCount}">
-                                <a class="overview-metric-link" th:if="${entry.numberOneAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=100&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=1'}" th:text="${entry.numberOneAlbumsCount}">0</a>
+                                <a class="overview-metric-link" th:if="${entry.numberOneAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.albumsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=1'}" th:text="${entry.numberOneAlbumsCount}">0</a>
                                 <span th:unless="${entry.numberOneAlbumsCount > 0}" th:text="${entry.numberOneAlbumsCount}">0</span>
                             </td>
                             <td class="center artist-album-number-one-span-col" th:attr="data-value=${entry.albumTotalSpanAtNumberOne}" th:text="${entry.albumTotalSpanAtNumberOne}">0</td>

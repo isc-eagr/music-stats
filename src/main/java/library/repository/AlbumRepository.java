@@ -1,5 +1,6 @@
 package library.repository;
 
+import library.service.AppConfigService;
 import library.util.SqlFilterHelper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -13,9 +14,11 @@ import java.util.Map;
 public class AlbumRepository {
     
     private final JdbcTemplate jdbcTemplate;
+    private final AppConfigService appConfigService;
     
-    public AlbumRepository(JdbcTemplate jdbcTemplate) {
+    public AlbumRepository(JdbcTemplate jdbcTemplate, AppConfigService appConfigService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.appConfigService = appConfigService;
     }
     
     public List<Object[]> findAlbumsWithStats(String name, List<Integer> artistName,
@@ -111,11 +114,7 @@ public class AlbumRepository {
                 ),
                 album_song_counts AS (
                     SELECT album_id,
-                           CASE WHEN COUNT(*) <= 6 THEN COUNT(*)
-                                WHEN COUNT(*) <= 10 THEN COUNT(*) - 2
-                                WHEN COUNT(*) <= 20 THEN COUNT(*) - 3
-                                ELSE COUNT(*) - 4
-                           END AS required_songs
+                           %s AS required_songs
                     FROM Song
                     WHERE album_id IS NOT NULL
                     GROUP BY album_id
@@ -127,7 +126,7 @@ public class AlbumRepository {
                     WHERE arc.songs_played >= sc.required_songs
                     GROUP BY arc.album_id
                 )
-                """);
+                """.formatted(buildRequiredSongsExpression("COUNT(*)")));
         }
         sql.append("""
             SELECT 
@@ -1146,11 +1145,7 @@ public class AlbumRepository {
                 ),
                 album_song_counts AS (
                     SELECT album_id,
-                           CASE WHEN COUNT(*) <= 6 THEN COUNT(*)
-                                WHEN COUNT(*) <= 10 THEN COUNT(*) - 2
-                                WHEN COUNT(*) <= 20 THEN COUNT(*) - 3
-                                ELSE COUNT(*) - 4
-                           END AS required_songs
+                           %s AS required_songs
                     FROM Song
                     WHERE album_id IS NOT NULL
                     GROUP BY album_id
@@ -1162,7 +1157,7 @@ public class AlbumRepository {
                     WHERE arc.songs_played >= sc.required_songs
                     GROUP BY arc.album_id
                 )
-                """;
+                """.formatted(buildRequiredSongsExpression("COUNT(*)"));
             String sqlStr = sql.toString();
             // Insert lfl LEFT JOIN before WHERE/AND 1=1
             String marker = "WHERE 1=1 ";
@@ -2143,5 +2138,13 @@ public class AlbumRepository {
         }, params.toArray());
         
         return result;
+    }
+
+    private String buildRequiredSongsExpression(String countExpression) {
+        AppConfigService.AlbumFullListenConfig fullListenConfig = appConfigService.getAlbumFullListenConfig();
+        return "CASE WHEN " + countExpression + " <= 6 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo6Tracks() + ", 1) "
+                + "WHEN " + countExpression + " <= 10 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo10Tracks() + ", 1) "
+                + "WHEN " + countExpression + " <= 20 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo20Tracks() + ", 1) "
+                + "ELSE MAX(" + countExpression + " - " + fullListenConfig.allowedMissingOver20Tracks() + ", 1) END";
     }
 }

@@ -2,10 +2,10 @@ package library.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
@@ -15,27 +15,25 @@ public class AutomatedPlayImportService {
 
     private final PlayService playService;
     private final PlayAutomationStateService automationStateService;
-    private final boolean automationEnabled;
-    private final String automationAccount;
-    private final String automationApiKey;
+    private final AppConfigService appConfigService;
     private final AtomicBoolean runInProgress = new AtomicBoolean(false);
 
     public AutomatedPlayImportService(
             PlayService playService,
             PlayAutomationStateService automationStateService,
-            @Value("${musicstats.play-import.automation.enabled:true}") boolean automationEnabled,
-            @Value("${musicstats.play-import.automation.account:vatito}") String automationAccount,
-            @Value("${musicstats.play-import.automation.api-key:}") String automationApiKey) {
+            AppConfigService appConfigService) {
         this.playService = playService;
         this.automationStateService = automationStateService;
-        this.automationEnabled = automationEnabled;
-        this.automationAccount = automationAccount;
-        this.automationApiKey = automationApiKey;
+        this.appConfigService = appConfigService;
     }
 
-    @Scheduled(cron = "0 * 7-23 * * *")
+    @Scheduled(cron = "0 * * * * *")
     public void runScheduledImport() {
-        if (!automationEnabled) {
+        AppConfigService.AutomationConfig automationConfig = appConfigService.getAutomationConfig();
+        if (!automationConfig.enabled()) {
+            return;
+        }
+        if (!isWithinAutomationWindow(automationConfig)) {
             return;
         }
         if (!runInProgress.compareAndSet(false, true)) {
@@ -43,28 +41,38 @@ public class AutomatedPlayImportService {
         }
 
         try {
-            if (!shouldRunNow()) {
+            if (!shouldRunNow(automationConfig)) {
                 return;
             }
-            executeImportCycle();
+            executeImportCycle(automationConfig);
         } finally {
             runInProgress.set(false);
         }
     }
 
-    private boolean shouldRunNow() {
+    private boolean shouldRunNow(AppConfigService.AutomationConfig automationConfig) {
         long lastAttemptEpochMillis = automationStateService.getLastAttemptEpochMillis();
         if (lastAttemptEpochMillis <= 0L) {
             return true;
         }
 
-        long intervalMillis = automationStateService.getRunIntervalMinutes() * 60_000L;
+        long intervalMillis = automationConfig.intervalMinutes() * 60_000L;
         long elapsedMillis = System.currentTimeMillis() - lastAttemptEpochMillis;
         return elapsedMillis >= intervalMillis;
     }
 
-    private void executeImportCycle() {
+    private boolean isWithinAutomationWindow(AppConfigService.AutomationConfig automationConfig) {
+        int startHour = Math.min(automationConfig.startHour(), automationConfig.endHour());
+        int endHour = Math.max(automationConfig.startHour(), automationConfig.endHour());
+        int currentHour = LocalTime.now().getHour();
+        return currentHour >= startHour && currentHour <= endHour;
+    }
+
+    private void executeImportCycle(AppConfigService.AutomationConfig automationConfig) {
         automationStateService.recordAttempt();
+
+        String automationAccount = automationConfig.account();
+        String automationApiKey = automationConfig.apiKey();
 
         if (automationApiKey == null || automationApiKey.isBlank()) {
             String message = "Automated play import is enabled, but no Last.fm API key is configured.";
@@ -75,7 +83,7 @@ public class AutomatedPlayImportService {
         }
 
         int startingPlayCount = playService.getPlayCountByAccount(automationAccount);
-        ImportCycleResult cycleResult = importWithRecovery();
+        ImportCycleResult cycleResult = importWithRecovery(automationConfig);
         if (cycleResult.failureMessage() != null) {
             String message = "Automated play import failed after 4 attempts: " + cycleResult.failureMessage();
             automationStateService.activateSyncIssue(message);
@@ -108,7 +116,8 @@ public class AutomatedPlayImportService {
         }
 
         String warningMessage = String.format(
-            "Vatito play import is still out of sync after automatic 5-day and 10-day recovery. Last.fm: %,d. Local: %,d. Check /plays/upload.",
+            "%s play import is still out of sync after automatic 5-day and 10-day recovery. Last.fm: %,d. Local: %,d. Check /plays/upload.",
+            automationAccount != null && !automationAccount.isBlank() ? automationAccount : "Configured",
             outcome.validation.lastfmPlaycount,
             outcome.validation.localPlayCount
         );
@@ -118,21 +127,22 @@ public class AutomatedPlayImportService {
         logger.warn("Automated play import for {} finished out of sync after recovery. imported={}, lastfmPlaycount={}, localPlayCount={}", automationAccount, importedSinceLastVisit, outcome.validation.lastfmPlaycount, outcome.validation.localPlayCount);
     }
 
-    private ImportCycleResult importWithRecovery() {
+    private ImportCycleResult importWithRecovery(AppConfigService.AutomationConfig automationConfig) {
+        String automationAccount = automationConfig.account();
         try {
-            AttemptOutcome initialAttempt = fetchWithRetries();
+            AttemptOutcome initialAttempt = fetchWithRetries(automationConfig);
             if (initialAttempt.validation.matches) {
                 return ImportCycleResult.completed(initialAttempt, "initial");
             }
 
             playService.deleteRecentPlays(automationAccount, 5);
-            AttemptOutcome fiveDayAttempt = fetchWithRetries();
+            AttemptOutcome fiveDayAttempt = fetchWithRetries(automationConfig);
             if (fiveDayAttempt.validation.matches) {
                 return ImportCycleResult.completed(fiveDayAttempt, "after-5-day-recovery");
             }
 
             playService.deleteRecentPlays(automationAccount, 10);
-            AttemptOutcome tenDayAttempt = fetchWithRetries();
+            AttemptOutcome tenDayAttempt = fetchWithRetries(automationConfig);
             return ImportCycleResult.completed(tenDayAttempt, "after-10-day-recovery");
         } catch (Exception ex) {
             String message = ex.getMessage() != null && !ex.getMessage().isBlank()
@@ -142,7 +152,9 @@ public class AutomatedPlayImportService {
         }
     }
 
-    private AttemptOutcome fetchWithRetries() throws Exception {
+    private AttemptOutcome fetchWithRetries(AppConfigService.AutomationConfig automationConfig) throws Exception {
+        String automationAccount = automationConfig.account();
+        String automationApiKey = automationConfig.apiKey();
         Exception lastFailure = null;
         for (int attempt = 1; attempt <= 4; attempt++) {
             try {

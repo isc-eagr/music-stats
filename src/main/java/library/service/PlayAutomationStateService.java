@@ -1,7 +1,6 @@
 package library.service;
 
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -18,20 +17,18 @@ public class PlayAutomationStateService {
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private final JdbcTemplate jdbcTemplate;
-    private final String automationAccount;
-    private final int defaultRunIntervalMinutes;
+    private final AppConfigService appConfigService;
 
     public PlayAutomationStateService(
             JdbcTemplate jdbcTemplate,
-            @Value("${musicstats.play-import.automation.account:vatito}") String automationAccount,
-            @Value("${musicstats.play-import.automation.interval-minutes:10}") int defaultRunIntervalMinutes) {
+            AppConfigService appConfigService) {
         this.jdbcTemplate = jdbcTemplate;
-        this.automationAccount = automationAccount;
-        this.defaultRunIntervalMinutes = Math.max(1, defaultRunIntervalMinutes);
+        this.appConfigService = appConfigService;
     }
 
     @PostConstruct
     public void initializeStateTable() {
+        int configuredIntervalMinutes = appConfigService.getAutomationConfig().intervalMinutes();
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS play_import_automation_state (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -49,10 +46,10 @@ public class PlayAutomationStateService {
                 """);
         ensureColumnExists("play_import_automation_state", "run_interval_minutes", "run_interval_minutes INTEGER NOT NULL DEFAULT 10");
         ensureColumnExists("play_import_automation_state", "last_attempt_epoch_millis", "last_attempt_epoch_millis INTEGER NOT NULL DEFAULT 0");
-        jdbcTemplate.update("INSERT OR IGNORE INTO play_import_automation_state (id, run_interval_minutes) VALUES (1, ?)", defaultRunIntervalMinutes);
+            jdbcTemplate.update("INSERT OR IGNORE INTO play_import_automation_state (id, run_interval_minutes) VALUES (1, ?)", configuredIntervalMinutes);
         jdbcTemplate.update(
                 "UPDATE play_import_automation_state SET run_interval_minutes = ? WHERE id = 1 AND (run_interval_minutes IS NULL OR run_interval_minutes < 1)",
-                defaultRunIntervalMinutes
+                configuredIntervalMinutes
         );
 
         jdbcTemplate.execute("""
@@ -140,8 +137,7 @@ public class PlayAutomationStateService {
     }
 
     public int getRunIntervalMinutes() {
-        int stored = loadStateRow().runIntervalMinutes();
-        return stored > 0 ? stored : defaultRunIntervalMinutes;
+        return appConfigService.getAutomationConfig().intervalMinutes();
     }
 
     public long getLastAttemptEpochMillis() {
@@ -150,9 +146,20 @@ public class PlayAutomationStateService {
     }
 
     public void updateRunIntervalMinutes(int runIntervalMinutes) {
+        AppConfigService.AutomationConfig automationConfig = appConfigService.getAutomationConfig();
+        int safeRunIntervalMinutes = Math.max(AppConfigService.MIN_AUTOMATION_INTERVAL_MINUTES,
+            Math.min(AppConfigService.MAX_AUTOMATION_INTERVAL_MINUTES, runIntervalMinutes));
+        appConfigService.updateAutomationConfig(new AppConfigService.AutomationConfig(
+            automationConfig.enabled(),
+            automationConfig.account(),
+            automationConfig.apiKey(),
+            safeRunIntervalMinutes,
+            automationConfig.startHour(),
+            automationConfig.endHour()
+        ));
         jdbcTemplate.update(
                 "UPDATE play_import_automation_state SET run_interval_minutes = ? WHERE id = 1",
-                Math.max(1, runIntervalMinutes)
+            safeRunIntervalMinutes
         );
     }
 
@@ -176,6 +183,7 @@ public class PlayAutomationStateService {
         refreshUnmatchedBanner();
 
         StateRow row = loadStateRow();
+        String automationAccount = appConfigService.getAutomationConfig().account();
         UnmatchedBanner unmatchedBanner = row.unmatchedBannerActive() && row.unmatchedCount() > 0
                 ? new UnmatchedBanner(row.unmatchedCount(), "/plays/unmatched?account=" + automationAccount)
                 : null;
@@ -236,6 +244,7 @@ public class PlayAutomationStateService {
     }
 
     private int getCurrentUnmatchedCount() {
+        String automationAccount = appConfigService.getAutomationConfig().account();
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM play WHERE song_id IS NULL AND COALESCE(account, '') = ?",
                 Integer.class,

@@ -8,6 +8,7 @@ import library.entity.Album;
 import library.entity.Artist;
 import library.entity.Song;
 import library.repository.LookupRepository;
+import library.service.AppConfigService;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
@@ -56,6 +57,7 @@ public class SongController {
     private final iTunesLibraryService iTunesLibraryService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
+    private final AppConfigService appConfigService;
     private final TrlService trlService;
     private final PcService pcService;
     private final BillboardHot100Service billboardHot100Service;
@@ -65,6 +67,7 @@ public class SongController {
 
     public SongController(SongService songService, ChartService chartService, ArtistService artistService,
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
+                         AppConfigService appConfigService,
                          ItunesService itunesService, TrlService trlService, PcService pcService,
                          BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate) {
         this.songService = songService;
@@ -73,6 +76,7 @@ public class SongController {
         this.albumService = albumService;
         this.iTunesLibraryService = iTunesLibraryService;
         this.lookupRepository = lookupRepository;
+        this.appConfigService = appConfigService;
         this.itunesService = itunesService;
         this.trlService = trlService;
         this.pcService = pcService;
@@ -200,7 +204,7 @@ public class SongController {
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "100") int perpage,
+            @RequestParam(required = false) Integer perpage,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -221,6 +225,7 @@ public class SongController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
         
         // Pre-compute iTunes song IDs once for all 3 queries (getSongs, countSongs, countSongsByGender)
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
@@ -247,7 +252,7 @@ public class SongController {
                 vatosCuntdownPeak, vatosCuntdownDays,
                 billboardPeak, billboardWeeks,
                 seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
         );
         
         // Get total count for pagination
@@ -271,7 +276,7 @@ public class SongController {
                 vatosCuntdownPeak, vatosCuntdownDays,
                 billboardPeak, billboardWeeks,
                 seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
-        int totalPages = (int) Math.ceil((double) totalCount / perpage);
+        int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
         GenderCountDTO genderCounts = songService.countSongsByGender(q, artist, album,
@@ -302,9 +307,9 @@ public class SongController {
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("perPage", perpage);
-        model.addAttribute("startIndex", (page * perpage) + 1);
-        model.addAttribute("endIndex", Math.min((page + 1) * perpage, totalCount));
+        model.addAttribute("perPage", effectivePerPage);
+        model.addAttribute("startIndex", (page * effectivePerPage) + 1);
+        model.addAttribute("endIndex", Math.min((page + 1) * effectivePerPage, totalCount));
         
         // Add filter values to maintain state
         model.addAttribute("searchQuery", q);
@@ -507,7 +512,7 @@ public class SongController {
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "100") int perpage) {
+            @RequestParam(required = false) Integer perpage) {
 
         String releaseDateConverted = DateFormatUtils.convertToIsoFormat(releaseDate);
         String releaseDateFromConverted = DateFormatUtils.convertToIsoFormat(releaseDateFrom);
@@ -526,6 +531,7 @@ public class SongController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
 
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
 
@@ -550,7 +556,7 @@ public class SongController {
                 vatosCuntdownPeak, vatosCuntdownDays,
                 billboardPeak, billboardWeeks,
                 seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
         );
 
         long totalCount = songService.countSongs(q, artist, album,
@@ -578,7 +584,7 @@ public class SongController {
         result.put("items", songs);
         result.put("totalCount", totalCount);
         result.put("page", page);
-        result.put("perPage", perpage);
+        result.put("perPage", effectivePerPage);
         return result;
     }
     
@@ -725,7 +731,7 @@ public class SongController {
         model.addAttribute("featuredArtistCards", songService.getFeaturedArtistCardsForSong(id));
         
         // Always load plays data (eager loading for all tabs)
-        int pageSize = 100;
+        int pageSize = appConfigService.getSongDetailPlaysPageSize();
         model.addAttribute("plays", songService.getPlaysForSong(id, playsPage, pageSize));
         model.addAttribute("playsTotalCount", songService.countPlaysForSong(id));
         model.addAttribute("playsPage", playsPage);

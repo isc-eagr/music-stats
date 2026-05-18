@@ -6,6 +6,7 @@ import library.dto.GenderCountDTO;
 import library.entity.Album;
 import library.entity.Artist;
 import library.repository.LookupRepository;
+import library.service.AppConfigService;
 import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.BillboardHot100Service;
@@ -39,6 +40,7 @@ public class AlbumController {
     private final ArtistService artistService;
     private final LookupRepository lookupRepository;
     private final ItunesService itunesService;
+    private final AppConfigService appConfigService;
     private final BillboardHot100Service billboardHot100Service;
     private final PcService pcService;
     private final TrlService trlService;
@@ -46,7 +48,7 @@ public class AlbumController {
     private final ChartFilterRequestFactory chartFilterRequestFactory;
 
     public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService,
-                           LookupRepository lookupRepository, ItunesService itunesService,
+                           LookupRepository lookupRepository, ItunesService itunesService, AppConfigService appConfigService,
                            BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
                            CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory) {
         this.albumService = albumService;
@@ -54,6 +56,7 @@ public class AlbumController {
         this.artistService = artistService;
         this.lookupRepository = lookupRepository;
         this.itunesService = itunesService;
+        this.appConfigService = appConfigService;
         this.billboardHot100Service = billboardHot100Service;
         this.pcService = pcService;
         this.trlService = trlService;
@@ -179,7 +182,7 @@ public class AlbumController {
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "100") int perpage,
+            @RequestParam(required = false) Integer perpage,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -203,6 +206,7 @@ public class AlbumController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
         
         // Pre-compute iTunes album IDs once for all 3 queries
         String itunesIdsJson = albumService.getItunesAlbumIdsJson(inItunes);
@@ -226,7 +230,7 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
         );
         
         // Get total count for pagination
@@ -247,7 +251,7 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax);
-        int totalPages = (int) Math.ceil((double) totalCount / perpage);
+        int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
         GenderCountDTO genderCounts = albumService.countAlbumsByGender(q, artist, genre, 
@@ -275,9 +279,9 @@ public class AlbumController {
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("perPage", perpage);
-        model.addAttribute("startIndex", (page * perpage) + 1);
-        model.addAttribute("endIndex", Math.min((page + 1) * perpage, totalCount));
+        model.addAttribute("perPage", effectivePerPage);
+        model.addAttribute("startIndex", (page * effectivePerPage) + 1);
+        model.addAttribute("endIndex", Math.min((page + 1) * effectivePerPage, totalCount));
         
         // Add filter values to maintain state
         model.addAttribute("searchQuery", q);
@@ -478,7 +482,7 @@ public class AlbumController {
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "100") int perpage) {
+            @RequestParam(required = false) Integer perpage) {
 
         String releaseDateConverted = DateFormatUtils.convertToIsoFormat(releaseDate);
         String releaseDateFromConverted = DateFormatUtils.convertToIsoFormat(releaseDateFrom);
@@ -500,6 +504,7 @@ public class AlbumController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
 
         String itunesIdsJson = albumService.getItunesAlbumIdsJson(inItunes);
 
@@ -521,7 +526,7 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, perpage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
         );
 
         long totalCount = albumService.countAlbums(q, artist, genre,
@@ -546,7 +551,7 @@ public class AlbumController {
         result.put("items", albums);
         result.put("totalCount", totalCount);
         result.put("page", page);
-        result.put("perPage", perpage);
+        result.put("perPage", effectivePerPage);
         return result;
     }
 
@@ -717,7 +722,7 @@ public class AlbumController {
         model.addAttribute("featuredArtistCards", albumService.getFeaturedArtistCardsForAlbum(id));
         
         // Always load plays data (eager loading for all tabs)
-        int pageSize = 100;
+        int pageSize = appConfigService.getAlbumDetailPlaysPageSize();
         model.addAttribute("plays", albumService.getPlaysForAlbum(id, playsPage, pageSize));
         model.addAttribute("playsTotalCount", albumService.countPlaysForAlbum(id));
         model.addAttribute("playsPage", playsPage);

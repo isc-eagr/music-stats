@@ -8,6 +8,7 @@ import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.ChartRunDTO;
 import library.dto.ChartSongOverviewRowDTO;
 import library.entity.Chart;
+import library.service.AppConfigService;
 import library.service.BillboardHot100Service;
 import library.service.ChartService;
 import library.service.PcService;
@@ -45,13 +46,15 @@ public class ChartsController {
     private record OverviewSortSpec(String sort, String dir) {}
     
     private final ChartService chartService;
+    private final AppConfigService appConfigService;
     private final BillboardHot100Service billboardHot100Service;
     private final PcService pcService;
     private final TrlService trlService;
     
-    public ChartsController(ChartService chartService, BillboardHot100Service billboardHot100Service,
+    public ChartsController(ChartService chartService, AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
                              PcService pcService, TrlService trlService) {
         this.chartService = chartService;
+        this.appConfigService = appConfigService;
         this.billboardHot100Service = billboardHot100Service;
         this.pcService = pcService;
         this.trlService = trlService;
@@ -907,6 +910,7 @@ public class ChartsController {
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedSort = sortSpecs.get(0).sort();
         String normalizedDir = sortSpecs.get(0).dir();
+        int pageSize = appConfigService.getWeeklyOverviewPageSize();
 
         List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
         List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows("weekly");
@@ -922,19 +926,19 @@ public class ChartsController {
                 activeTotalCount = weeklyAlbumRows.size();
                 List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(weeklyAlbumRows);
                 sortedRows.sort(buildAlbumOverviewComparator(sortSpecs));
-                pagedAlbumRows = paginateRows(sortedRows, 0, WEEKLY_OVERVIEW_PAGE_SIZE);
+                pagedAlbumRows = paginateRows(sortedRows, 0, pageSize);
             }
             case "artist" -> {
                 activeTotalCount = weeklyArtistRows.size();
                 List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(weeklyArtistRows);
                 sortedRows.sort(buildArtistOverviewComparator(sortSpecs));
-                pagedArtistRows = paginateRows(sortedRows, 0, WEEKLY_OVERVIEW_PAGE_SIZE);
+                pagedArtistRows = paginateRows(sortedRows, 0, pageSize);
             }
             default -> {
                 activeTotalCount = weeklySongRows.size();
                 List<ChartSongOverviewRowDTO> sortedRows = new ArrayList<>(weeklySongRows);
                 sortedRows.sort(buildSongOverviewComparator(sortSpecs));
-                pagedSongRows = paginateRows(sortedRows, 0, WEEKLY_OVERVIEW_PAGE_SIZE);
+                pagedSongRows = paginateRows(sortedRows, 0, pageSize);
             }
         }
 
@@ -955,11 +959,12 @@ public class ChartsController {
         model.addAttribute("weeklyInfiniteScrollEnabled", true);
         model.addAttribute("serverInfiniteScrollEnabled", true);
         model.addAttribute("overviewDataPath", "/charts/weekly/overview/data");
-        model.addAttribute("pageSize", WEEKLY_OVERVIEW_PAGE_SIZE);
+        model.addAttribute("pageSize", pageSize);
         model.addAttribute("activeTotalCount", activeTotalCount);
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
+        model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
 
         return "charts/overview";
     }
@@ -979,12 +984,12 @@ public class ChartsController {
             @RequestParam(required = false) Integer topSong,
             @RequestParam(required = false) Integer topAlbum,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "100") int size) {
+            @RequestParam(required = false) Integer size) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedQuery = normalizeOverviewQuery(q);
         List<String> normalizedFilters = normalizeOverviewColumnFilters(columnFilters);
-        int safeSize = Math.min(Math.max(size, 1), 250);
+        int safeSize = appConfigService.normalizePageSize(size, appConfigService.getWeeklyOverviewPageSize(), 1, 250);
 
         Map<String, Object> result = new HashMap<>();
 
@@ -1087,13 +1092,13 @@ public class ChartsController {
             @RequestParam(required = false) Integer topSong,
             @RequestParam(required = false) Integer topAlbum,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "100") int size) {
+            @RequestParam(required = false) Integer size) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
 
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedQuery = normalizeOverviewQuery(q);
         List<String> normalizedFilters = normalizeOverviewColumnFilters(columnFilters);
-        int safeSize = Math.min(Math.max(size, 1), 250);
+        int safeSize = appConfigService.normalizePageSize(size, appConfigService.getSeasonalOverviewPageSize(), 1, 250);
 
         Map<String, Object> result = new HashMap<>();
 
@@ -1213,6 +1218,7 @@ public class ChartsController {
         model.addAttribute("pageSize", 0);
         model.addAttribute("serverInfiniteScrollEnabled", false);
         model.addAttribute("overviewDataPath", "/charts/weekly/overview/data");
+        model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
         return "charts/overview";
     }
 
@@ -1232,6 +1238,7 @@ public class ChartsController {
         String normalizedSort = sortSpecs.get(0).sort();
         String normalizedDir = sortSpecs.get(0).dir();
         String normalizedQuery = normalizeOverviewQuery(q);
+        int pageSize = appConfigService.getSeasonalOverviewPageSize();
 
         List<ChartSongOverviewRowDTO> pagedSongRows = List.of();
         List<ChartAlbumOverviewRowDTO> pagedAlbumRows = List.of();
@@ -1243,19 +1250,19 @@ public class ChartsController {
                 activeTotalCount = seasonalAlbumRows.size();
                 List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(seasonalAlbumRows);
                 sortedRows.sort(buildAlbumOverviewComparator(sortSpecs));
-                pagedAlbumRows = paginateRows(sortedRows, 0, SEASONAL_SONG_OVERVIEW_PAGE_SIZE);
+                pagedAlbumRows = paginateRows(sortedRows, 0, pageSize);
             }
             case "artist" -> {
                 activeTotalCount = seasonalArtistRows.size();
                 List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(seasonalArtistRows);
                 sortedRows.sort(buildArtistOverviewComparator(sortSpecs));
-                pagedArtistRows = paginateRows(sortedRows, 0, SEASONAL_SONG_OVERVIEW_PAGE_SIZE);
+                pagedArtistRows = paginateRows(sortedRows, 0, pageSize);
             }
             default -> {
                 activeTotalCount = seasonalSongRows.size();
                 List<ChartSongOverviewRowDTO> sortedRows = new ArrayList<>(seasonalSongRows);
                 sortedRows.sort(buildSongOverviewComparator(sortSpecs));
-                pagedSongRows = paginateRows(sortedRows, 0, SEASONAL_SONG_OVERVIEW_PAGE_SIZE);
+                pagedSongRows = paginateRows(sortedRows, 0, pageSize);
             }
         }
 
@@ -1276,11 +1283,12 @@ public class ChartsController {
         model.addAttribute("weeklyInfiniteScrollEnabled", false);
         model.addAttribute("serverInfiniteScrollEnabled", true);
         model.addAttribute("overviewDataPath", "/charts/seasonal/overview/data");
-        model.addAttribute("pageSize", SEASONAL_SONG_OVERVIEW_PAGE_SIZE);
+        model.addAttribute("pageSize", pageSize);
         model.addAttribute("activeTotalCount", activeTotalCount);
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
+        model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
         return "charts/overview";
     }
 

@@ -2,6 +2,7 @@ package library.controller;
 
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
+import library.service.AppConfigService;
 import library.service.BillboardHot100Service;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,16 +21,18 @@ import java.util.Map;
 @RequestMapping("/misc/billboard-hot-100")
 public class BillboardHot100Controller {
 
+    private final AppConfigService appConfigService;
     private final BillboardHot100Service billboardHot100Service;
 
-    public BillboardHot100Controller(BillboardHot100Service billboardHot100Service) {
+    public BillboardHot100Controller(AppConfigService appConfigService, BillboardHot100Service billboardHot100Service) {
+        this.appConfigService = appConfigService;
         this.billboardHot100Service = billboardHot100Service;
     }
 
     @GetMapping
     public String overview(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "250") int size,
+            @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "firstWeek") String sort,
             @RequestParam(defaultValue = "desc") String dir,
             @RequestParam(required = false) String q,
@@ -79,7 +82,7 @@ public class BillboardHot100Controller {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> overviewData(
             @RequestParam(defaultValue = "2") int page,
-            @RequestParam(defaultValue = "250") int size,
+            @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "firstWeek") String sort,
             @RequestParam(defaultValue = "desc") String dir,
             @RequestParam(required = false) String q,
@@ -198,10 +201,8 @@ public class BillboardHot100Controller {
         return List.of();
     }
 
-    private int normalizeSize(int size) {
-        if (size <= 100) return 100;
-        if (size <= 250) return 250;
-        return 500;
+    private int normalizeSize(Integer size) {
+        return appConfigService.normalizePageSize(size, appConfigService.getBillboardOverviewPageSize(), 100, 500);
     }
 
     private String normalizeSort(String overviewTab, String sort) {

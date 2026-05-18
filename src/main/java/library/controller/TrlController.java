@@ -4,6 +4,7 @@ import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
+import library.service.AppConfigService;
 import library.service.TrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,11 +20,11 @@ import java.util.Map;
 @RequestMapping("/misc/trl")
 public class TrlController {
 
-    private static final int OVERVIEW_PAGE_SIZE = 100;
-
+    private final AppConfigService appConfigService;
     private final TrlService trlService;
 
-    public TrlController(TrlService trlService) {
+    public TrlController(AppConfigService appConfigService, TrlService trlService) {
+        this.appConfigService = appConfigService;
         this.trlService = trlService;
     }
 
@@ -31,7 +32,7 @@ public class TrlController {
     public String trlList(
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
             Model model) {
@@ -78,7 +79,7 @@ public class TrlController {
     public ResponseEntity<Map<String, Object>> trlData(
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(defaultValue = "2") int page,
-            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
@@ -370,8 +371,8 @@ public class TrlController {
         return "asc".equals(dir) ? comparator : comparator.reversed();
     }
 
-    private int normalizeSize(int size) {
-        return Math.min(Math.max(size, 25), 200);
+    private int normalizeSize(Integer size) {
+        return appConfigService.normalizePageSize(size, appConfigService.getTrlOverviewPageSize(), 25, 200);
     }
 
     private <T> List<T> paginateRows(List<T> rows, int page, int size) {

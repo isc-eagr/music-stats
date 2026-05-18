@@ -1,5 +1,6 @@
 package library.controller;
 
+import library.service.AppConfigService;
 import library.service.PlayAutomationStateService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,7 +38,9 @@ public class PlayAutomationController {
                 ? number.intValue()
                 : null;
 
-        if (runIntervalMinutes == null || runIntervalMinutes < 1 || runIntervalMinutes > 180) {
+        if (runIntervalMinutes == null
+            || runIntervalMinutes < AppConfigService.MIN_AUTOMATION_INTERVAL_MINUTES
+            || runIntervalMinutes > AppConfigService.MAX_AUTOMATION_INTERVAL_MINUTES) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "error", "Run interval must be between 1 and 180 minutes."

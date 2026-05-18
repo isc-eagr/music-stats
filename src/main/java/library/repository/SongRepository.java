@@ -1,6 +1,7 @@
 package library.repository;
 
 import library.dto.ChartFilterDTO;
+import library.service.AppConfigService;
 import library.util.TimeFormatUtils;
 import library.util.SqlFilterHelper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,9 +16,11 @@ import java.util.Map;
 public class SongRepository {
     
     private final JdbcTemplate jdbcTemplate;
+    private final AppConfigService appConfigService;
     
-    public SongRepository(JdbcTemplate jdbcTemplate) {
+    public SongRepository(JdbcTemplate jdbcTemplate, AppConfigService appConfigService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.appConfigService = appConfigService;
     }
     
     public List<Object[]> findSongsWithStats(String name, List<Integer> artistName, String albumName,
@@ -7174,11 +7177,12 @@ public class SongRepository {
                  ) arc
                  WHERE arc.album_id = alb.id
                    AND arc.songs_played >= (
-                     SELECT CASE WHEN cnt <= 6 THEN cnt WHEN cnt <= 10 THEN cnt - 2 WHEN cnt <= 20 THEN cnt - 3 ELSE cnt - 4 END
+                                         SELECT %s
                      FROM (SELECT COUNT(*) AS cnt FROM Song WHERE album_id = alb.id)
                    )
                 ) AS last_full_listen_date
-            FROM Album alb
+                        FROM Album alb
+                        """.formatted(buildRequiredSongsExpression("cnt")) + """
             LEFT JOIN Artist ar ON alb.artist_id = ar.id
             LEFT JOIN Genre gen ON COALESCE(alb.override_genre_id, ar.genre_id) = gen.id
             LEFT JOIN SubGenre sg ON COALESCE(alb.override_subgenre_id, ar.subgenre_id) = sg.id
@@ -7990,5 +7994,13 @@ public class SongRepository {
         } catch (Exception e) {
             return dateTimeString;
         }
+    }
+
+    private String buildRequiredSongsExpression(String countExpression) {
+        AppConfigService.AlbumFullListenConfig fullListenConfig = appConfigService.getAlbumFullListenConfig();
+        return "CASE WHEN " + countExpression + " <= 6 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo6Tracks() + ", 1) "
+                + "WHEN " + countExpression + " <= 10 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo10Tracks() + ", 1) "
+                + "WHEN " + countExpression + " <= 20 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo20Tracks() + ", 1) "
+                + "ELSE MAX(" + countExpression + " - " + fullListenConfig.allowedMissingOver20Tracks() + ", 1) END";
     }
 }
