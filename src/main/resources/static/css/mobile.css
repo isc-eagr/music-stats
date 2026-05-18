@@ -358,17 +358,37 @@
         word-break: break-word;
     }
 
+    /* Prevent parent containers from expanding and breaking scroll */
+    .plays-tab-content,
+    .chart-history-content,
+    .detail-content-section,
+    .detail-content-card,
+    .ch-section {
+        min-width: 0 !important;
+        max-width: 100vw !important;
+    }
+
     /* Related items tables - ensure horizontal scroll */
     .detail-content-card .table-container,
     .detail-content-card .top-table-container,
-    .detail-content-card .table-wrapper {
+    .detail-content-card .table-wrapper,
+    .detail-content-section .table-container,
+    .detail-content-section .top-table-container,
+    .detail-content-section .table-wrapper {
+        min-width: 0 !important;
+        display: block !important;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        width: 100%;
+        max-width: 100vw;
     }
 
     .detail-content-card .table td,
-    .detail-content-card .table th {
-        word-break: break-word;
+    .detail-content-card .table th,
+    .detail-content-section .top-table td,
+    .detail-content-section .top-table th {
+        word-break: normal;
+        white-space: nowrap;
     }
 
     /* Attributes grid - ensure single column */
@@ -402,12 +422,72 @@
         gap: 0 !important;
     }
 
-    /* Toggles container - remove negative margins */
+    /* Toggles container - redesigned as filter chips under tabs on mobile */
+    .detail-tabs {
+        flex-wrap: wrap !important;
+        padding-bottom: 8px !important;
+        height: auto !important; /* Allow height to expand for chips line */
+    }
+
     .toggles-container {
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        padding-left: 12px !important;
-        padding-right: 12px !important;
+        width: 100% !important;
+        order: 10 !important; /* Move entirely below the individual tabs */
+        display: flex !important;
+        gap: 8px !important;
+        margin: 8px 0 0 0 !important;
+        padding: 8px 0 !important;
+        border-top: 1px solid rgba(255,255,255,0.08) !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start !important;
+    }
+    
+    .toggles-container .include-groups-toggle {
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Transform toggles into toggleable chips completely hiding original sliders */
+    .toggles-container .toggle-label {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        padding: 6px 14px;
+        display: flex;
+        font-size: 13px;
+        color: #a0a0a0;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    
+    .toggles-container .toggle-slider {
+        display: none !important;
+    }
+    
+    .toggles-container .toggle-text {
+        font-size: 13px !important;
+        letter-spacing: 0.02em;
+        margin: 0 !important;
+    }
+
+    /* Active state for chips */
+    .toggles-container .toggle-label:has(input:checked) {
+        background: rgba(96, 165, 250, 0.15);
+        border-color: rgba(96, 165, 250, 0.4);
+        color: #93c5fd;
+    }
+    
+    body.gender-female .toggles-container .toggle-label:has(input:checked) {
+        background: rgba(244, 114, 182, 0.15);
+        border-color: rgba(244, 114, 182, 0.4);
+        color: #f9a8d4;
+    }
+
+    body.gender-male .toggles-container .toggle-label:has(input:checked) {
+        background: rgba(96, 165, 250, 0.15);
+        border-color: rgba(96, 165, 250, 0.4);
+        color: #93c5fd;
     }
 
     /* Chart history grid with table overflow handling */
@@ -975,24 +1055,19 @@
         pointer-events: none;
     }
 
-    /* Top tables - sticky first columns */
-    .top-table-container {
+    /* Top tables - NO sticky columns on mobile to prevent overlapping */
+    .top-table-container, .table-wrapper, .table-responsive {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
+        max-width: 100vw;
     }
 
     .top-table th:first-child,
     .top-table td:first-child,
     .top-table th:nth-child(2),
-    .top-table td:nth-child(2) {
-        position: sticky;
-        z-index: 2;
-        background: inherit;
-    }
-
-    .top-table th:first-child,
-    .top-table td:first-child {
-        left: 0;
+    .top-table td:nth-child(2),
+    .table thead th {
+        position: static !important; /* Force remove sticky behavior */
     }
 
     /* Column toggle - 2 columns for mobile */
@@ -1138,5 +1213,36 @@
     .catalog-grid {
         grid-template-columns: 1fr !important;
         gap: 10px !important;
+    }
+}
+
+/* =============================================
+   11. DETAIL PAGE LAYOUT GRID ENFORCEMENT
+   ============================================= */
+@media (max-width: 900px) {
+    /* Explicitly override desktop CSS to force vertical stacking */
+    .detail-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 20px !important;
+    }
+    
+    .detail-sidebar {
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto 16px auto !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .detail-right-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
     }
 }
