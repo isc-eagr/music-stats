@@ -22,7 +22,7 @@
     display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .mobile-bottom-nav {
         display: flex;
         position: fixed;
@@ -102,7 +102,7 @@
    2. TOP NAVIGATION - SLIM ON MOBILE
    ============================================= */
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .app-nav {
         margin-bottom: 8px !important;
     }
@@ -117,10 +117,9 @@
         padding: 10px 0 !important;
     }
 
-    /* Smaller hamburger */
+    /* Bottom nav handles mobile menu access on phones, so hide the top trigger. */
     .mobile-menu-toggle {
-        font-size: 20px !important;
-        padding: 6px !important;
+        display: none !important;
     }
 }
 

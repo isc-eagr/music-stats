@@ -297,6 +297,16 @@
     .top-table {
         font-size: 12px;
     }
+
+    .artist-detail #songsTable.mobile-compact-table {
+        table-layout: auto;
+    }
+
+    .artist-detail #songsTable.mobile-compact-table th.song-name-col,
+    .artist-detail #songsTable.mobile-compact-table td.song-name-col {
+        width: auto;
+        max-width: none;
+    }
     
     .top-table th,
     .top-table td {

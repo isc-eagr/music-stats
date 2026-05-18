@@ -626,12 +626,13 @@
                   th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <h2 class="section-title">Songs</h2>
                 <div class="top-table-container">
-                    <table class="top-table" id="songsTable">
+                    <table class="top-table mobile-compact-table" id="songsTable">
                         <thead>
                             <tr>
-                                <th class="row-num-col" data-no-sort>#</th>
-                                <th data-sort="tracknumber" style="text-align:right;" class="hide-mobile">Track #</th>
-                                <th data-sort="name">Song Name</th>
+                                <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                <th class="row-num-col hide-mobile" data-no-sort>#</th>
+                                <th data-sort="tracknumber" style="text-align:right;">Track #</th>
+                                <th data-sort="name" class="mobile-name-col">Song Name</th>
                                 <th data-sort="totalplays" style="text-align:right;">Total</th>
                                 <th data-sort="primaryplays" style="text-align:right;" class="hide-mobile">Primary</th>
                                 <th data-sort="legacyplays" style="text-align:right;" class="hide-mobile">Legacy</th>
@@ -653,10 +654,21 @@
                                         data-primaryplays=${song.vatitoPlays},
                                         data-legacyplays=${song.robertloverPlays},
                                         data-totalplays=${song.totalPlays},
-                                        data-timelistened=${song.totalListeningTimeSeconds}">
-                                <td class="row-num-col" th:text="${iter.count}">1</td>
-                                <td class="hide-mobile" style="text-align:right; color: #888;" th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</td>
-                                <td>
+                                        data-timelistened=${song.totalListeningTimeSeconds},
+                                        data-mobile-track-number=${song.trackNumber != null ? song.trackNumber : '-'},
+                                        data-mobile-primary=${song.vatitoPlays != null ? song.vatitoPlays : 0},
+                                        data-mobile-legacy=${song.robertloverPlays != null ? song.robertloverPlays : 0},
+                                        data-mobile-length=${song.lengthFormatted != null ? song.lengthFormatted : '-'},
+                                        data-mobile-release-date=${song.releaseDate != null ? song.releaseDate : '-'},
+                                        data-mobile-first-listened=${song.firstListenedDate != null ? song.firstListenedDate : '-'},
+                                        data-mobile-last-listened=${song.lastListenedDate != null ? song.lastListenedDate : '-'},
+                                        data-mobile-time-listened=${song.totalListeningTime != null ? song.totalListeningTime : '-'}">
+                                <td class="mobile-expand-col show-mobile-only">
+                                    <button type="button" class="mobile-row-expand-btn" onclick="toggleMobileTableRow(this)" aria-label="Show song details" aria-expanded="false">+</button>
+                                </td>
+                                <td class="row-num-col hide-mobile" th:text="${iter.count}">1</td>
+                                <td style="text-align:right; color: #888;" th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</td>
+                                <td class="mobile-name-col">
                                     <a th:href="@{'/songs/' + ${song.id}}">
                                         <span th:if="${song.inItunes != null}"
                                               th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
@@ -2964,6 +2976,62 @@
                 generalTabSections.forEach(section => section.style.cssText = 'display: block !important;');
                 document.getElementById('generalTab').classList.add('active');
             }
+        }
+
+        function toggleMobileTableRow(button) {
+            const mainRow = button.closest('tr');
+            if (!mainRow) return;
+
+            let detailRow = mainRow.nextElementSibling;
+            if (!detailRow || !detailRow.classList.contains('mobile-table-detail-row')) {
+                detailRow = document.createElement('tr');
+                detailRow.className = 'detail-row mobile-table-detail-row';
+
+                const detailCell = document.createElement('td');
+                detailCell.className = 'mobile-table-detail-cell';
+                detailCell.colSpan = mainRow.cells.length;
+                detailCell.innerHTML = renderAlbumMobileTableDetails(mainRow);
+
+                detailRow.appendChild(detailCell);
+                mainRow.insertAdjacentElement('afterend', detailRow);
+            }
+
+            const isVisible = detailRow.classList.contains('visible');
+            detailRow.classList.toggle('visible', !isVisible);
+            button.classList.toggle('expanded', !isVisible);
+            button.textContent = isVisible ? '+' : '-';
+            button.setAttribute('aria-expanded', String(!isVisible));
+        }
+
+        function renderAlbumMobileTableDetails(row) {
+            const detailFields = [
+                ['Primary', row.dataset.mobilePrimary],
+                ['Legacy', row.dataset.mobileLegacy],
+                ['Length', row.dataset.mobileLength],
+                ['Release Date', row.dataset.mobileReleaseDate],
+                ['First Listened', row.dataset.mobileFirstListened],
+                ['Last Listened', row.dataset.mobileLastListened],
+                ['Time Listened', row.dataset.mobileTimeListened]
+            ];
+
+            return `<div class="mobile-table-detail-grid">${detailFields.map(([label, value]) => `
+                <div class="mobile-table-detail-item">
+                    <span class="mobile-table-detail-label">${escapeMobileDetailHtml(label)}</span>
+                    <span class="mobile-table-detail-value">${escapeMobileDetailHtml(value || '-')}</span>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        function escapeMobileDetailHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function(char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[char];
+            });
         }
         /*]]>*/
     </script>
