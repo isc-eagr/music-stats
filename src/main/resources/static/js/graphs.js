@@ -12,7 +12,7 @@ let useRelativeScaling = false;
 // Store data for re-rendering when scaling mode changes
 let lastChartData = {};
 
-// Current view (card / list / graphs) - initialized here so it's always available
+// Current view (card / table / graphs) - initialized here so it's always available
 let currentView = 'card';
 let listViewState = { page: 0, totalCount: 0, loading: false, allLoaded: false };
 let listViewObserver = null;
@@ -2296,7 +2296,7 @@ function updateSortIndicators(tableId, sortState) {
  */
 function setupTopTableSorting() {
     function rerenderOrReload(stateKey, renderFn) {
-        if (currentView === 'list' && stateKey === getCurrentEntityType()) {
+        if (currentView === 'table' && stateKey === getCurrentEntityType()) {
             reloadListViewData(stateKey);
             return;
         }
@@ -2511,38 +2511,39 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================
-// VIEW SWITCHING (Card / List / Graphs)
+// VIEW SWITCHING (Card / Table / Graphs)
 // ============================================================
 
 // (currentView, listViewState, listViewObserver declared at top of file)
 
 /**
- * Switch between card, list, and graphs views on a list page.
- * @param {string} viewName - 'card', 'list', or 'graphs'
+ * Switch between card, table, and graphs views on a list page.
+ * @param {string} viewName - 'card', 'table', or 'graphs'
  */
 function switchView(viewName) {
-    if (currentView === viewName) return;
-    currentView = viewName;
+    const normalizedView = viewName === 'list' ? 'table' : viewName;
+    if (currentView === normalizedView) return;
+    currentView = normalizedView;
 
     const cardView = document.getElementById('cardView');
-    const listView = document.getElementById('listView');
+    const tableView = document.getElementById('tableView');
     const graphsView = document.getElementById('graphsView');
 
     // Hide all
     if (cardView) cardView.style.display = 'none';
-    if (listView) listView.style.display = 'none';
+    if (tableView) tableView.style.display = 'none';
     if (graphsView) graphsView.style.display = 'none';
 
     // Update button active states
-    ['card', 'list', 'graphs'].forEach(v => {
+    ['card', 'table', 'graphs'].forEach(v => {
         const btn = document.getElementById('viewBtn-' + v);
-        if (btn) btn.classList.toggle('active', v === viewName);
+        if (btn) btn.classList.toggle('active', v === normalizedView);
     });
 
-    if (viewName === 'card') {
+    if (normalizedView === 'card') {
         if (cardView) cardView.style.display = '';
-    } else if (viewName === 'list') {
-        if (listView) listView.style.display = '';
+    } else if (normalizedView === 'table') {
+        if (tableView) tableView.style.display = '';
         // Load first page if not yet loaded
         if (listViewState.page === 0 && !listViewState.loading && !listViewState.allLoaded) {
             fetchListPage(0);
@@ -2550,7 +2551,7 @@ function switchView(viewName) {
             updateListViewPaginationInfo();
         }
         setupListViewInfiniteScroll();
-    } else if (viewName === 'graphs') {
+    } else if (normalizedView === 'graphs') {
         if (graphsView) graphsView.style.display = '';
         // Auto-load general tab
         if (!loadedTabs.general) {
@@ -2558,7 +2559,7 @@ function switchView(viewName) {
         }
     }
 
-    syncGraphsViewUrl(viewName, getActiveGraphsTab());
+    syncGraphsViewUrl(normalizedView, getActiveGraphsTab());
     window.refreshPageLoadAllButtonState?.();
 }
 
@@ -2569,7 +2570,7 @@ function getChartsApiBase() {
 function getRequestedViewFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const requestedView = params.get('view');
-    return ['card', 'list', 'graphs'].includes(requestedView) ? requestedView : null;
+    return ['card', 'table', 'graphs'].includes(requestedView) ? requestedView : null;
 }
 
 function getRequestedGraphsTabFromUrl() {
@@ -2664,7 +2665,7 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
     const podium = document.getElementById(entityType + 'Podium');
     if (podium) podium.innerHTML = '';
 
-    const endEl = document.getElementById('listViewEnd');
+    const endEl = document.getElementById('tableViewEnd');
     if (endEl) endEl.hidden = true;
 
     setListViewLoadingIndicator(false);
@@ -2676,7 +2677,7 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
 }
 
 function maybeLoadMoreListRows() {
-    if (currentView !== 'list' || listViewState.loading || listViewState.allLoaded) return;
+    if (currentView !== 'table' || listViewState.loading || listViewState.allLoaded) return;
     if (!listViewUserHasScrolled && !listViewLoadAllInProgress) return;
 
     const container = getListViewTableContainer();
@@ -2723,23 +2724,23 @@ function updateListViewPaginationInfo() {
 }
 
 function getOrCreateListViewLoader() {
-    const listView = document.getElementById('listView');
-    if (!listView) return null;
+    const tableView = document.getElementById('tableView');
+    if (!tableView) return null;
 
-    let loader = document.getElementById('listViewLoader');
+    let loader = document.getElementById('tableViewLoader');
     if (loader) return loader;
 
     loader = document.createElement('div');
-    loader.id = 'listViewLoader';
+    loader.id = 'tableViewLoader';
     loader.hidden = true;
     loader.style.cssText = 'text-align:center;padding:18px 0;color:#888;font-size:0.85rem;letter-spacing:0.4px;';
     loader.textContent = 'Loading records...';
 
-    const endEl = document.getElementById('listViewEnd');
-    if (endEl && endEl.parentElement === listView) {
-        listView.insertBefore(loader, endEl);
+    const endEl = document.getElementById('tableViewEnd');
+    if (endEl && endEl.parentElement === tableView) {
+        tableView.insertBefore(loader, endEl);
     } else {
-        listView.appendChild(loader);
+        tableView.appendChild(loader);
     }
 
     return loader;
@@ -2811,7 +2812,7 @@ function fetchListPage(pageNum) {
                 listViewState.allLoaded = topTabData[entityType].length >= data.totalCount;
             }
 
-            const endEl = document.getElementById('listViewEnd');
+            const endEl = document.getElementById('tableViewEnd');
             if (endEl) endEl.hidden = !listViewState.allLoaded;
             updateListViewPaginationInfo();
             window.refreshPageLoadAllButtonState?.();
@@ -2829,7 +2830,7 @@ window.isListViewLoadAllInProgress = function() {
     return listViewLoadAllInProgress;
 };
 
-window.loadAllListViewResults = async function() {
+window.loadAllTableViewResults = async function() {
     if (listViewLoadAllInProgress || listViewState.loading || listViewState.allLoaded) {
         return;
     }
@@ -2851,7 +2852,7 @@ window.loadAllListViewResults = async function() {
     }
 };
 
-window.getListViewProgressState = function() {
+window.getTableViewProgressState = function() {
     const loadedCount = getListViewLoadedCount();
     return {
         loadedCount,
@@ -2951,8 +2952,8 @@ function formatSongLength(totalSeconds) {
 }
 
 /**
- * Setup intersection observer for list view infinite scroll.
- * Watches listViewEnd marker and fetches more pages from server when visible.
+ * Setup intersection observer for table view infinite scroll.
+ * Watches tableViewEnd marker and fetches more pages from server when visible.
  */
 function setupListViewInfiniteScroll() {
     const container = getListViewTableContainer();

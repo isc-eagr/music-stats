@@ -30,7 +30,7 @@
                     <h1 class="catalog-toolbar-title">Songs</h1>
                     <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Song views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
-                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchView('list')">List</button>
+                        <button type="button" class="view-btn" id="viewBtn-table" onclick="switchView('table')">Table</button>
                         <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
                     </div>
                 </div>
@@ -1860,8 +1860,8 @@
         </div>
         </div><!-- end cardView -->
 
-        <!-- List view container (table) -->
-        <div id="listView" style="display:none;">
+        <!-- Table view container -->
+        <div id="tableView" style="display:none;">
             <div class="top-sort-hint" style="margin:16px 0 0 0;">Sorting tip: Click a column header for primary sort. Shift + click adds secondary and tertiary sorts.</div>
             <div class="podium-section" id="songsPodium"></div>
             <div class="column-toggle-panel" id="songColumnTogglePanel">
@@ -1915,7 +1915,7 @@
                     <tbody></tbody>
                 </table>
             </div>
-            <div id="listViewEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All songs loaded</div>
+            <div id="tableViewEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All songs loaded</div>
         </div>
 
         <!-- Graphs view container -->
@@ -3027,6 +3027,7 @@
                 let pendingSearchValue = null;
                 searchInput.addEventListener('input', function() {
                     clearTimeout(debounceTimer);
+                    cancelPendingSearchNavigation();
                     pendingSearchValue = searchInput.value;
                     debounceTimer = setTimeout(() => {
                         // Only navigate if the input value hasn't changed since we set the timer
@@ -3107,11 +3108,11 @@
             let loading = false;
             let loadAllInProgress = false;
             let cardLoadAllCompleted = false;
-            let listLoadAllCompleted = false;
+            let tableLoadAllCompleted = false;
 
-            function isListViewActive() {
-                const listView = document.getElementById('listView');
-                return listView && listView.style.display !== 'none';
+            function isTableViewActive() {
+                const tableView = document.getElementById('tableView');
+                return tableView && tableView.style.display !== 'none';
             }
 
             const observer = new IntersectionObserver(function(entries) {
@@ -3179,11 +3180,11 @@
                     return;
                 }
 
-                if (isListViewActive()) {
-                    const progress = typeof window.getListViewProgressState === 'function'
-                        ? window.getListViewProgressState()
+                if (isTableViewActive()) {
+                    const progress = typeof window.getTableViewProgressState === 'function'
+                        ? window.getTableViewProgressState()
                         : { loadedCount: 0, totalCount: 0, loading: false, loadAllInProgress: false, allLoaded: false };
-                    setLoadAllButtonVisibility(listLoadAllCompleted || progress.allLoaded);
+                    setLoadAllButtonVisibility(tableLoadAllCompleted || progress.allLoaded);
                     loadAllButton.disabled = progress.loading || progress.loadAllInProgress;
                     loadAllButton.textContent = progress.loadAllInProgress
                         ? formatLoadAllText(progress.loadedCount, progress.totalCount)
@@ -3210,12 +3211,12 @@
             function hideLoadAllButtonIfFinished() {
                 if (!loadAllButton) return;
 
-                if (isListViewActive()) {
-                    const progress = typeof window.getListViewProgressState === 'function'
-                        ? window.getListViewProgressState()
+                if (isTableViewActive()) {
+                    const progress = typeof window.getTableViewProgressState === 'function'
+                        ? window.getTableViewProgressState()
                         : null;
                     if (progress && progress.allLoaded) {
-                        listLoadAllCompleted = true;
+                        tableLoadAllCompleted = true;
                         setLoadAllButtonVisibility(true);
                     }
                     return;
@@ -3287,10 +3288,10 @@
             };
 
             window.loadAllVisibleResults = async function() {
-                if (isListViewActive()) {
-                    if (typeof window.loadAllListViewResults === 'function') {
-                        listLoadAllCompleted = false;
-                        await window.loadAllListViewResults();
+                if (isTableViewActive()) {
+                    if (typeof window.loadAllTableViewResults === 'function') {
+                        tableLoadAllCompleted = false;
+                        await window.loadAllTableViewResults();
                         hideLoadAllButtonIfFinished();
                     }
                     return;

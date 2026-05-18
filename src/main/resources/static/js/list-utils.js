@@ -3,6 +3,15 @@
  * Shared JavaScript functions for list pages (pagination, filters, etc.)
  */
 
+if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+    document.documentElement.classList.add('mobile-sort-init-pending');
+}
+
+function setMobileSortReadyState() {
+    document.documentElement.classList.remove('mobile-sort-init-pending');
+    document.documentElement.classList.add('mobile-sort-init-ready');
+}
+
 /**
  * Navigate to a specific page number.
  * Updates the 'page' URL parameter and reloads.
@@ -166,6 +175,256 @@ function initializeAdditionalSortSelects() {
         const dirParam = new URL(window.location.href).searchParams.get(getSortDirParamName(level)) || 'asc';
         updateSortButton(level, dirParam);
     });
+}
+
+function isCompactMobileSortViewport() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function getSortRows(panel) {
+    return Array.from(panel.querySelectorAll('.toolbar-sort-row'));
+}
+
+function getSortLevelFromRow(row, fallbackLevel) {
+    const select = row.querySelector('select[id^="sortBySelect"]');
+    if (select) {
+        const match = select.id.match(/sortBySelect(\d+)?$/);
+        if (match) {
+            return match[1] ? parseInt(match[1], 10) : 1;
+        }
+    }
+    return fallbackLevel;
+}
+
+function getSortDirectionForLevel(level) {
+    const currentUrl = new URL(window.location.href);
+    return currentUrl.searchParams.get(getSortDirParamName(level)) === 'desc' ? 'desc' : 'asc';
+}
+
+function getSortOptionText(select) {
+    if (!select) {
+        return '';
+    }
+
+    const selectedOption = select.options[select.selectedIndex];
+    return selectedOption ? selectedOption.textContent.trim() : '';
+}
+
+function buildMobileSortSummary(panel) {
+    const fragments = getSortRows(panel).map(function(row, index) {
+        const select = row.querySelector('select');
+        if (!select) {
+            return '';
+        }
+
+        if (index > 0 && !select.value) {
+            return '';
+        }
+
+        const optionText = getSortOptionText(select);
+        if (!optionText) {
+            return '';
+        }
+
+        const level = getSortLevelFromRow(row, index + 1);
+        const direction = getSortDirectionForLevel(level) === 'desc' ? '↓' : '↑';
+        return optionText + ' ' + direction;
+    }).filter(Boolean);
+
+    return fragments.length ? fragments.join(', ') : 'No sort';
+}
+
+function createMobileSortActionButton(text, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'toolbar-sort-mobile-add-btn';
+    button.textContent = text;
+    button.addEventListener('click', onClick);
+    return button;
+}
+
+function updateMobileSortPanel(panel) {
+    const summaryButton = panel.querySelector('.toolbar-sort-mobile-summary');
+    const summaryValue = panel.querySelector('.toolbar-sort-mobile-summary-value');
+    const additions = panel.querySelector('.toolbar-sort-mobile-additions');
+    const isExpanded = panel.dataset.mobileSortExpanded === 'true';
+    const rows = getSortRows(panel);
+
+    if (summaryButton) {
+        summaryButton.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    }
+    if (summaryValue) {
+        summaryValue.textContent = buildMobileSortSummary(panel);
+    }
+
+    rows.forEach(function(row, index) {
+        if (index === 0) {
+            row.classList.remove('mobile-sort-row-hidden');
+            return;
+        }
+
+        const select = row.querySelector('select');
+        const hasValue = Boolean(select && select.value);
+        const isRevealed = row.dataset.mobileSortRevealed === 'true';
+        row.classList.toggle('mobile-sort-row-hidden', !hasValue && !isRevealed);
+    });
+
+    if (!additions) {
+        return;
+    }
+
+    additions.innerHTML = '';
+
+    if (rows.length > 1) {
+        const secondaryRow = rows[1];
+        const secondarySelect = secondaryRow.querySelector('select');
+        const secondaryVisible = !secondaryRow.classList.contains('mobile-sort-row-hidden');
+        const secondaryHasValue = Boolean(secondarySelect && secondarySelect.value);
+
+        if (!secondaryVisible) {
+            additions.appendChild(createMobileSortActionButton('Add secondary sort', function() {
+                secondaryRow.dataset.mobileSortRevealed = 'true';
+                updateMobileSortPanel(panel);
+            }));
+        }
+
+        if (rows.length > 2) {
+            const tertiaryRow = rows[2];
+            const tertiaryVisible = !tertiaryRow.classList.contains('mobile-sort-row-hidden');
+
+            if (secondaryHasValue && !tertiaryVisible) {
+                additions.appendChild(createMobileSortActionButton('Add tertiary sort', function() {
+                    tertiaryRow.dataset.mobileSortRevealed = 'true';
+                    updateMobileSortPanel(panel);
+                }));
+            }
+        }
+    }
+
+    additions.hidden = additions.childElementCount === 0;
+}
+
+function initializeMobileSortPanels() {
+    document.querySelectorAll('.toolbar-sort-panel').forEach(function(panel) {
+        if (panel.dataset.mobileSortEnhanced === 'true') {
+            updateMobileSortPanel(panel);
+            return;
+        }
+
+        const sortList = panel.querySelector('.toolbar-sort-list');
+        if (!sortList) {
+            return;
+        }
+
+        const summaryButton = document.createElement('button');
+        summaryButton.type = 'button';
+        summaryButton.className = 'toolbar-sort-mobile-summary';
+        summaryButton.setAttribute('aria-expanded', 'false');
+        summaryButton.innerHTML = '<span class="toolbar-sort-mobile-summary-label">Sort</span>' +
+            '<span class="toolbar-sort-mobile-summary-value"></span>' +
+            '<span class="toolbar-sort-mobile-summary-chevron" aria-hidden="true"></span>';
+        summaryButton.addEventListener('click', function() {
+            if (!isCompactMobileSortViewport()) {
+                return;
+            }
+
+            panel.dataset.mobileSortExpanded = panel.dataset.mobileSortExpanded === 'true' ? 'false' : 'true';
+            panel.classList.toggle('mobile-sort-expanded', panel.dataset.mobileSortExpanded === 'true');
+            updateMobileSortPanel(panel);
+        });
+
+        panel.insertBefore(summaryButton, sortList);
+
+        const additions = document.createElement('div');
+        additions.className = 'toolbar-sort-mobile-additions';
+        panel.appendChild(additions);
+
+        getSortRows(panel).forEach(function(row, index) {
+            if (index === 0) {
+                row.dataset.mobileSortRevealed = 'true';
+                return;
+            }
+
+            const select = row.querySelector('select');
+            row.dataset.mobileSortRevealed = select && select.value ? 'true' : 'false';
+        });
+
+        panel.dataset.mobileSortEnhanced = 'true';
+        panel.classList.add('mobile-sort-enhanced');
+        panel.dataset.mobileSortExpanded = 'false';
+        panel.classList.remove('mobile-sort-expanded');
+        updateMobileSortPanel(panel);
+    });
+
+    setMobileSortReadyState();
+}
+
+function initializeMobileToolbarActions() {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const navContainer = document.querySelector('.app-nav-container');
+    let navActions = document.getElementById('mobilePageActions');
+
+    if (!navActions && navContainer) {
+        navActions = document.createElement('div');
+        navActions.id = 'mobilePageActions';
+        navActions.hidden = true;
+        navContainer.appendChild(navActions);
+    }
+
+    document.querySelectorAll('.catalog-toolbar').forEach(function(toolbar) {
+        const actions = toolbar.querySelector('.catalog-toolbar-actions');
+        const searchRow = toolbar.querySelector('.catalog-toolbar-search-row');
+        const filterButton = toolbar.querySelector('.filter-toggle');
+        const primaryAction = actions ? actions.querySelector('.toolbar-btn-primary') : null;
+
+        if (!actions) {
+            return;
+        }
+
+        let anchor = toolbar.querySelector('.mobile-filter-toggle-anchor');
+        if (filterButton && searchRow && !anchor) {
+            anchor = document.createElement('span');
+            anchor.className = 'mobile-filter-toggle-anchor';
+            anchor.hidden = true;
+            searchRow.insertBefore(anchor, filterButton);
+        }
+
+        let actionAnchor = toolbar.querySelector('.mobile-primary-action-anchor');
+        if (primaryAction && !actionAnchor) {
+            actionAnchor = document.createElement('span');
+            actionAnchor.className = 'mobile-primary-action-anchor';
+            actionAnchor.hidden = true;
+            actions.insertBefore(actionAnchor, primaryAction);
+        }
+
+        if (isMobile && navActions) {
+            if (filterButton && filterButton.parentElement !== navActions) {
+                navActions.appendChild(filterButton);
+            }
+
+            if (primaryAction && primaryAction.parentElement !== navActions) {
+                navActions.appendChild(primaryAction);
+            }
+
+            navActions.hidden = navActions.childElementCount === 0;
+            actions.classList.add('mobile-actions-stashed');
+            return;
+        }
+
+        actions.classList.remove('mobile-actions-stashed');
+
+        if (primaryAction && actionAnchor && (primaryAction.parentElement !== actions || primaryAction.previousElementSibling !== actionAnchor)) {
+            actionAnchor.insertAdjacentElement('afterend', primaryAction);
+        }
+
+        if (filterButton && searchRow && anchor && (filterButton.parentElement !== searchRow || filterButton.previousElementSibling !== anchor)) {
+            anchor.insertAdjacentElement('afterend', filterButton);
+        }
+    });
+
+    if (navActions && !isMobile) {
+        navActions.hidden = true;
+    }
 }
 
 function changeListSort(level, sortValue) {
@@ -503,21 +762,21 @@ function navigateToGraph(element, filterType) {
 }
 
 function switchCatalogView(viewName) {
-    const normalizedView = viewName === 'list' ? 'list' : 'card';
+    const normalizedView = viewName === 'table' ? 'table' : 'card';
     const cardView = document.getElementById('cardView');
-    const listView = document.getElementById('listView');
+    const tableView = document.getElementById('tableView');
 
     if (cardView) cardView.style.display = normalizedView === 'card' ? '' : 'none';
-    if (listView) listView.style.display = normalizedView === 'list' ? '' : 'none';
+    if (tableView) tableView.style.display = normalizedView === 'table' ? '' : 'none';
 
-    ['card', 'list'].forEach(function(view) {
+    ['card', 'table'].forEach(function(view) {
         const button = document.getElementById('viewBtn-' + view);
         if (button) button.classList.toggle('active', view === normalizedView);
     });
 
     const url = new URL(window.location.href);
-    if (normalizedView === 'list') {
-        url.searchParams.set('view', 'list');
+    if (normalizedView === 'table') {
+        url.searchParams.set('view', 'table');
     } else {
         url.searchParams.delete('view');
     }
@@ -535,7 +794,7 @@ function sortCatalogList(sortKey, defaultDir) {
     url.searchParams.set('sortby', sortKey);
     url.searchParams.set('sortdir', currentSort === sortKey ? (currentDir === 'asc' ? 'desc' : 'asc') : firstDir);
     url.searchParams.set('page', '0');
-    url.searchParams.set('view', 'list');
+    url.searchParams.set('view', 'table');
     window.location.href = url.toString();
 }
 
@@ -561,7 +820,7 @@ function initializeCatalogListView() {
     }
 
     const requestedView = new URLSearchParams(window.location.search).get('view');
-    switchCatalogView(requestedView === 'list' ? 'list' : 'card');
+    switchCatalogView(requestedView === 'table' ? 'table' : 'card');
 
     document.querySelectorAll('#catalogListTable th[data-sort-key]').forEach(function(header) {
         header.addEventListener('click', function() {
@@ -583,8 +842,15 @@ function initializeCatalogListView() {
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeAdditionalSortSelects();
+    initializeMobileToolbarActions();
+    initializeMobileSortPanels();
     initializeCatalogListView();
     preserveListStateOnFilterSubmit(document.getElementById('filterForm'));
+
+    window.addEventListener('resize', debounce(function() {
+        initializeMobileToolbarActions();
+        initializeMobileSortPanels();
+    }, 80));
 });
 
 /**
@@ -704,11 +970,25 @@ function initializeSearchFormWithFilters(formId) {
     });
 }
 
+function cancelPendingSearchNavigation() {
+    if (!window.__listSearchNavigationPending) {
+        return;
+    }
+
+    if (typeof window.stop === 'function') {
+        window.stop();
+    }
+
+    window.__listSearchNavigationPending = false;
+}
+
 /**
  * Perform search while preserving current URL filters.
  * @param {string} searchQuery - The search query string
  */
 function performSearchWithFilters(searchQuery) {
+    cancelPendingSearchNavigation();
+
     // Get current URL parameters
     const currentUrl = new URL(window.location);
     
@@ -723,6 +1003,7 @@ function performSearchWithFilters(searchQuery) {
     currentUrl.searchParams.set('page', '0');
     
     // Navigate with all preserved parameters
+    window.__listSearchNavigationPending = true;
     window.location.href = currentUrl.toString();
 }
 

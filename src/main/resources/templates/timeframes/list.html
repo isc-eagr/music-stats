@@ -331,7 +331,7 @@
                     <h1 class="catalog-toolbar-title" th:text="${periodTypeDisplay}">Years</h1>
                     <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Timeframe views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchTimeframeView('card')">Cards</button>
-                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchTimeframeView('list')">List</button>
+                        <button type="button" class="view-btn" id="viewBtn-table" onclick="switchTimeframeView('table')">Table</button>
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
@@ -1341,7 +1341,7 @@
         </div>
         </div>
 
-        <div id="listView" style="display:none;">
+        <div id="tableView" style="display:none;">
             <div class="top-sort-hint" style="margin:16px 0 8px 0;">Click a sortable column header to update the current timeframe sort.</div>
             <div class="top-table-container" id="topTimeframesTableContainer">
                 <table class="top-table timeframe-list-table" id="topTimeframesTable">
@@ -1449,7 +1449,7 @@
                 listenedDateFrom: dateFrom,
                 listenedDateTo: dateTo,
                 periodLabel: periodLabel || '',
-                view: 'list'
+                view: 'table'
             });
             window.open('/songs?' + params.toString(), '_blank');
         }
@@ -1459,21 +1459,21 @@
         }
 
         function switchTimeframeView(viewName) {
-            const normalizedView = viewName === 'list' ? 'list' : 'card';
+            const normalizedView = viewName === 'table' ? 'table' : 'card';
             const cardView = document.getElementById('cardView');
-            const listView = document.getElementById('listView');
+            const tableView = document.getElementById('tableView');
 
             if (cardView) cardView.style.display = normalizedView === 'card' ? '' : 'none';
-            if (listView) listView.style.display = normalizedView === 'list' ? '' : 'none';
+            if (tableView) tableView.style.display = normalizedView === 'table' ? '' : 'none';
 
-            ['card', 'list'].forEach(function(view) {
+            ['card', 'table'].forEach(function(view) {
                 const button = document.getElementById('viewBtn-' + view);
                 if (button) button.classList.toggle('active', view === normalizedView);
             });
 
             const url = new URL(window.location.href);
-            if (normalizedView === 'list') {
-                url.searchParams.set('view', 'list');
+            if (normalizedView === 'table') {
+                url.searchParams.set('view', 'table');
             } else {
                 url.searchParams.delete('view');
             }
@@ -1488,7 +1488,7 @@
             url.searchParams.set('sortby', sortKey);
             url.searchParams.set('sortdir', currentSort === sortKey && currentDir === 'desc' ? 'asc' : 'desc');
             url.searchParams.set('page', '0');
-            url.searchParams.set('view', 'list');
+            url.searchParams.set('view', 'table');
             window.location.href = url.toString();
         }
         
@@ -1724,7 +1724,7 @@
         // Handle filter modifier buttons
         document.addEventListener('DOMContentLoaded', function() {
             const requestedView = new URLSearchParams(window.location.search).get('view');
-            switchTimeframeView(requestedView === 'list' ? 'list' : 'card');
+            switchTimeframeView(requestedView === 'table' ? 'table' : 'card');
 
             document.querySelectorAll('#topTimeframesTable th[data-sort-key]').forEach(function(header) {
                 header.addEventListener('click', function() {
@@ -1805,15 +1805,15 @@
                 return !cardView || cardView.style.display !== 'none';
             }
 
-            function isListViewActive() {
-                const listView = document.getElementById('listView');
-                return listView && listView.style.display !== 'none';
+            function isTableViewActive() {
+                const tableView = document.getElementById('tableView');
+                return tableView && tableView.style.display !== 'none';
             }
 
             function updateLoadAllButton() {
                 if (!loadAllButton) return;
-                const activePage = isListViewActive() ? listCurrentPage : currentPage;
-                const shouldHide = isListViewActive()
+                const activePage = isTableViewActive() ? listCurrentPage : currentPage;
+                const shouldHide = isTableViewActive()
                     ? (listLoadAllCompleted || totalPages <= 1 || activePage >= totalPages - 1)
                     : (cardLoadAllCompleted || totalPages <= 1 || activePage >= totalPages - 1);
                 setLoadAllButtonVisibility(shouldHide);
@@ -1836,7 +1836,7 @@
             function hideLoadAllButtonIfFinished() {
                 if (!loadAllButton) return;
 
-                if (isListViewActive()) {
+                if (isTableViewActive()) {
                     if (listCurrentPage >= totalPages - 1) {
                         listLoadAllCompleted = true;
                         setLoadAllButtonVisibility(true);
@@ -1896,7 +1896,7 @@
             let listObserver = null;
             if (listBody && listSentinel) {
                 listObserver = new IntersectionObserver(function(entries) {
-                    if (entries[0].isIntersecting && !listLoading && isListViewActive() && (listUserHasScrolled || loadAllInProgress)) {
+                    if (entries[0].isIntersecting && !listLoading && isTableViewActive() && (listUserHasScrolled || loadAllInProgress)) {
                         loadNextListPage();
                     }
                 }, { rootMargin: '300px' });
@@ -1964,7 +1964,7 @@
                 try {
                     const url = new URL(window.location.href);
                     url.searchParams.set('page', listCurrentPage);
-                    url.searchParams.set('view', 'list');
+                    url.searchParams.set('view', 'table');
                     const resp = await fetch(url.toString());
                     if (!resp.ok) throw new Error('Network error');
                     const html = await resp.text();
@@ -1996,7 +1996,7 @@
                 }
 
                 loadAllInProgress = true;
-                if (isListViewActive()) {
+                if (isTableViewActive()) {
                     listLoadAllCompleted = false;
                 } else {
                     cardLoadAllCompleted = false;
@@ -2006,7 +2006,7 @@
                 updateLoadAllButton();
 
                 try {
-                    if (isListViewActive()) {
+                    if (isTableViewActive()) {
                         while (listCurrentPage < totalPages - 1) {
                             const advanced = await loadNextListPage();
                             if (!advanced) {

@@ -18,7 +18,7 @@
                     <h1 class="catalog-toolbar-title">Languages</h1>
                     <div class="view-toggle" id="catalogViewToggle" role="tablist" aria-label="Language views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchCatalogView('card')">Cards</button>
-                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchCatalogView('list')">List</button>
+                        <button type="button" class="view-btn" id="viewBtn-table" onclick="switchCatalogView('table')">Table</button>
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
@@ -266,7 +266,7 @@
         </div>
         </div>
 
-        <div id="listView" style="display:none;">
+        <div id="tableView" style="display:none;">
             <th:block th:replace="~{fragments/catalog-list-table :: metric-table(${languages}, 'languages', false, true, true, 'language', 'id', 'name', 'Language')}"></th:block>
         </div>
         

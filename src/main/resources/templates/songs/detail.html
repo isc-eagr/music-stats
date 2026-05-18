@@ -465,7 +465,7 @@
                         <div class="edit-button-container">
                             <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
                             <button type="button" class="btn-view-samples" id="btnViewSamples"
-                                    th:attr="data-artist=${artistName},data-song=${song.name},data-id=${song.id}"
+                                th:attr="data-artist=${artistName},data-song=${song.name},data-id=${song.id},data-whosampled-url=${whoSampledUrl},data-whosampled-search-url=${whoSampledSearchUrl}"
                                     onclick="viewSamples(this)">View Samples</button>
                             <button type="button" class="btn-negative" id="deleteBtn" 
                                     th:disabled="${songPlayCount > 0}"
@@ -2293,49 +2293,16 @@
         }
         
         function viewSamples(button) {
-            const songId = button.getAttribute('data-id');
-            const artist = button.getAttribute('data-artist');
-            const song = button.getAttribute('data-song');
-            
-            if (!songId) {
-                showErrorToast('Unable to fetch sampling data: missing song ID');
+            const directUrl = button.getAttribute('data-whosampled-url');
+            const searchUrl = button.getAttribute('data-whosampled-search-url');
+            const destination = directUrl || searchUrl;
+
+            if (!destination) {
+                showErrorToast('Unable to open WhoSampled for this song');
                 return;
             }
-            
-            // Show loading state
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Loading...';
-            
-            // Try to fetch WhoSampled data from backend
-            fetch(`/songs/${songId}/whosampled`)
-                .then(response => response.json())
-                .then(data => {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                    
-                    if (data.success && data.html) {
-                        showWhoSampledModal(data.html, data.url);
-                    } else if (data.blocked && data.url) {
-                        showErrorToast('WhoSampled blocked the server-side fetch. Opening the direct page instead.');
-                        window.open(data.url, '_blank');
-                    } else if (data.notFound && data.searchUrl) {
-                        window.open(data.searchUrl, '_blank');
-                    } else if (data.parseFailed && data.url) {
-                        showErrorToast('WhoSampled loaded but the page format did not match the parser. Opening the direct page instead.');
-                        window.open(data.url, '_blank');
-                    } else {
-                        showErrorToast(data.message || 'Failed to fetch sampling data');
-                    }
-                })
-                .catch(error => {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                    console.error('Error fetching WhoSampled data:', error);
-                    // Fall back to search on error
-                    const searchQuery = encodeURIComponent(`${artist} ${song}`);
-                    window.open(`https://www.whosampled.com/search/?q=${searchQuery}`, '_blank');
-                });
+
+            window.open(destination, '_blank', 'noopener');
         }
         
         function showWhoSampledModal(htmlContent, sourceUrl) {

@@ -609,6 +609,17 @@ public class SongController {
         String artistCountry = songService.getArtistCountry(song.get().getArtistId());
         String albumName = song.get().getAlbumId() != null ? 
                           songService.getAlbumName(song.get().getAlbumId()) : null;
+
+        String whoSampledUrl = null;
+        String whoSampledSearchUrl = null;
+        if (artistName != null && song.get().getName() != null) {
+            whoSampledUrl = "https://www.whosampled.com" + buildWhoSampledUrl(artistName, song.get().getName());
+            try {
+                whoSampledSearchUrl = buildWhoSampledSearchUrl(artistName, song.get().getName());
+            } catch (java.io.UnsupportedEncodingException e) {
+                System.out.println("Unable to build WhoSampled search URL for song " + id + ": " + e.getMessage());
+            }
+        }
         
         model.addAttribute("currentSection", "songs");
         model.addAttribute("song", song.get());
@@ -617,6 +628,8 @@ public class SongController {
         model.addAttribute("artistGender", artistGender);
         model.addAttribute("artistCountry", artistCountry);
         model.addAttribute("albumName", albumName);
+        model.addAttribute("whoSampledUrl", whoSampledUrl);
+        model.addAttribute("whoSampledSearchUrl", whoSampledSearchUrl);
         
         // Add artist and album entities for ranking chips
         Artist artist = artistService.findById(song.get().getArtistId());

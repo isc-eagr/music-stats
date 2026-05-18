@@ -8,6 +8,11 @@
    inline styles and page-specific CSS.
    ============================================= */
 
+.toolbar-sort-mobile-summary,
+.toolbar-sort-mobile-additions {
+     display: none;
+}
+
 
 /* =============================================
    1. BOTTOM NAVIGATION BAR
@@ -158,16 +163,24 @@
         padding: 4px 8px !important;
     }
 
-    /* Primary nav items - clean and prominent */
-    .app-nav-links > li > .app-nav-link:not(.app-nav-dropdown-toggle) {
+    /* Primary nav items - match desktop top-level hierarchy */
+    .app-nav-links > li > .app-nav-link,
+    .app-nav-links > li > .app-nav-dropdown-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
         font-size: 17px !important;
         font-weight: 600 !important;
         padding: 16px 20px !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
         color: var(--text) !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+        background: transparent !important;
     }
 
-    .app-nav-links > li > .app-nav-link:not(.app-nav-dropdown-toggle).active {
+    .app-nav-links > li > .app-nav-link.active,
+    .app-nav-links > li > .app-nav-dropdown-toggle.active {
         color: #22c55e !important;
     }
 
@@ -188,33 +201,29 @@
         display: block !important;
     }
 
-    /* Section header toggles - distinct group headers */
+    /* Top-level dropdown entries should read like primary menu items */
     .app-nav-dropdown-toggle {
-        display: flex !important;
-        align-items: center;
-        justify-content: space-between;
         width: 100%;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        letter-spacing: 1.5px !important;
-        text-transform: uppercase !important;
-        color: #555 !important;
-        padding: 24px 20px 10px !important;
-        border-bottom: none !important;
         position: relative;
     }
 
-    /* Chevron indicator for section toggles */
+    /* Chevron indicator for top-level dropdown entries */
     .app-nav-dropdown-toggle::after {
         content: '';
         width: 7px;
         height: 7px;
-        border-right: 2px solid #555;
-        border-bottom: 2px solid #555;
+        border-right: 2px solid rgba(229, 229, 229, 0.55);
+        border-bottom: 2px solid rgba(229, 229, 229, 0.55);
         transform: rotate(-45deg);
         transition: transform 0.2s ease;
         flex-shrink: 0;
         margin-right: 4px;
+    }
+
+    .app-nav-dropdown-toggle.active::after,
+    .app-nav-dropdown.touch-open .app-nav-dropdown-toggle::after {
+        border-right-color: rgba(229, 229, 229, 0.9);
+        border-bottom-color: rgba(229, 229, 229, 0.9);
     }
 
     .app-nav-dropdown.touch-open .app-nav-dropdown-toggle::after {
@@ -246,19 +255,32 @@
     .app-nav-utilities-mobile::before {
         content: 'TOOLS';
         display: block;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 700;
-        letter-spacing: 1.5px;
+        letter-spacing: 1.2px;
         color: #555;
-        padding: 24px 20px 10px;
+        padding: 18px 20px 8px;
     }
 
-    .app-nav-utilities-mobile .app-nav-link {
-        font-size: 15px !important;
-        color: var(--text-muted) !important;
-        padding: 14px 20px 14px 32px !important;
+    .app-nav-links > li.app-nav-utilities-mobile > .app-nav-link {
+        display: block !important;
+        font-size: 13px !important;
+        color: #767676 !important;
+        padding: 9px 20px 9px 28px !important;
         font-weight: 400 !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+        line-height: 1.25 !important;
+        min-height: 0 !important;
+        align-items: initial !important;
+        justify-content: initial !important;
+    }
+
+    .app-nav-links > li.app-nav-utilities-mobile > .app-nav-link:hover,
+    .app-nav-links > li.app-nav-utilities-mobile > .app-nav-link.active {
+        color: #a3a3a3 !important;
+        background-color: rgba(255, 255, 255, 0.03) !important;
     }
 }
 
@@ -538,9 +560,137 @@
    ============================================= */
 
 @media (max-width: 768px) {
+    .mobile-sort-init-pending .toolbar-sort-panel {
+        min-height: 52px;
+    }
+
+    .mobile-sort-init-pending .toolbar-sort-panel > * {
+        visibility: hidden;
+    }
+
     /* Search bar - prevent iOS zoom */
     .search-bar input[type="text"] {
         font-size: 16px !important;
+    }
+
+    .catalog-toolbar-header {
+        display: block;
+    }
+
+    .catalog-toolbar-heading {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center !important;
+        gap: 10px !important;
+        min-width: 0;
+    }
+
+    .catalog-toolbar-title {
+        min-width: 0;
+    }
+
+    .app-nav-container {
+        gap: 10px !important;
+    }
+
+    .app-nav-left {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .app-nav-brand {
+        margin-right: 8px !important;
+        white-space: nowrap;
+    }
+
+    #mobilePageActions {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        margin-left: auto;
+        flex: 0 0 auto;
+    }
+
+    #mobilePageActions[hidden] {
+        display: none !important;
+    }
+
+    #loadAllResultsButton,
+    .btn-playlist,
+    .search-btn {
+        display: none !important;
+    }
+
+    #mobilePageActions .toolbar-btn,
+    #mobilePageActions .filter-toggle {
+        min-height: 32px !important;
+        padding: 0 10px !important;
+        border-radius: 999px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        white-space: nowrap;
+        box-shadow: none !important;
+    }
+
+    #mobilePageActions .toolbar-btn-primary {
+        padding: 0 12px !important;
+    }
+
+    .catalog-toolbar-heading .view-toggle {
+        grid-column: auto;
+        width: auto;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 12px;
+        justify-self: end;
+    }
+
+    .catalog-toolbar-heading .view-btn {
+        min-width: 30px;
+        width: 30px;
+        min-height: 30px;
+        height: 30px;
+        padding: 0 !important;
+        border-radius: 9px;
+        font-size: 0;
+        flex: 0 0 auto;
+    }
+
+    .catalog-toolbar-heading .view-btn::before {
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    #viewBtn-card::before {
+        content: 'C';
+    }
+
+    #viewBtn-table::before {
+        content: 'T';
+    }
+
+    #viewBtn-graphs::before {
+        content: 'G';
+    }
+
+    .catalog-toolbar-actions.mobile-actions-stashed {
+        display: none !important;
+    }
+
+    .catalog-toolbar-controls {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .toolbar-sort-panel {
+        order: 1;
+    }
+
+    .catalog-toolbar-search-row {
+        order: 2;
     }
 
     /* Keep search row horizontal */
@@ -550,32 +700,150 @@
 
     /* Filter toggle button - full width with count indicator */
     .filter-toggle {
-        width: 100%;
-        min-height: 44px;
+        width: auto;
+        min-height: 32px;
         justify-content: center;
     }
 
-    /* Sort section - clean row */
-    .sort-by-section {
-        display: flex !important;
+    /* Sort section - compact mobile summary + tighter expanded controls */
+    .toolbar-sort-panel {
+        gap: 6px !important;
+        padding: 8px !important;
+        border-radius: 12px !important;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-heading {
+        display: none !important;
+    }
+
+    .toolbar-sort-mobile-summary {
+        width: 100%;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
         gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        text-align: left;
+    }
+
+    .toolbar-sort-mobile-summary-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .toolbar-sort-mobile-summary-value {
+        min-width: 0;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .toolbar-sort-mobile-summary-chevron {
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid rgba(229, 229, 229, 0.75);
+        border-bottom: 2px solid rgba(229, 229, 229, 0.75);
+        transform: rotate(45deg);
+        transition: transform 0.2s ease;
+        margin-right: 2px;
+    }
+
+    .toolbar-sort-panel.mobile-sort-expanded .toolbar-sort-mobile-summary-chevron {
+        transform: rotate(225deg);
+        margin-top: 4px;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-list,
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-mobile-additions {
+        display: none;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced.mobile-sort-expanded .toolbar-sort-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced.mobile-sort-expanded .toolbar-sort-mobile-additions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-row {
+        display: grid !important;
+        grid-template-columns: 22px minmax(0, 1fr) 34px;
+        gap: 6px;
         align-items: center;
         width: 100%;
     }
 
-    .sort-by-section select {
-        flex: 1;
-        min-width: 0;
-        min-height: 44px;
-        font-size: 14px !important;
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-row.mobile-sort-row-hidden {
+        display: none !important;
     }
 
-    .sort-dir-btn {
-        min-width: 44px;
-        min-height: 44px;
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-label {
+        grid-column: auto;
+        justify-self: center;
+        min-width: 22px;
+        width: 22px;
+        height: 22px;
+        font-size: 9px;
+        letter-spacing: 0.04em;
+        border-radius: 999px;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-row select {
+        width: 100%;
+        min-width: 0;
+        min-height: 34px;
+        height: 34px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-size: 13px !important;
+    }
+
+    .toolbar-sort-panel.mobile-sort-enhanced .toolbar-sort-row .sort-dir-btn {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        min-height: 34px;
+        border-radius: 10px;
+        font-size: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .toolbar-sort-mobile-add-btn {
+        min-height: 28px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .toolbar-sort-mobile-add-btn:hover,
+    .toolbar-sort-mobile-add-btn:active {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.06);
     }
 
     /* Active filters - horizontal scroll bar */
