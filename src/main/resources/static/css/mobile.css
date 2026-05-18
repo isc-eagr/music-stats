@@ -430,16 +430,19 @@
     }
 
     .toggles-container {
-        width: 100% !important;
-        order: 10 !important; /* Move entirely below the individual tabs */
+        position: fixed !important;
+        top: 10px !important;
+        right: 50px !important; /* Make room for hamburger menu */
+        width: auto !important;
+        height: auto !important;
+        z-index: 10000 !important; /* Above nav entirely */
         display: flex !important;
-        gap: 8px !important;
-        margin: 8px 0 0 0 !important;
-        padding: 8px 0 !important;
-        border-top: 1px solid rgba(255,255,255,0.08) !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-        justify-content: flex-start !important;
+        gap: 6px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        overflow: visible !important;
+        align-items: center !important;
     }
     
     .toggles-container .include-groups-toggle {
@@ -447,47 +450,51 @@
         flex-shrink: 0 !important;
     }
 
-    /* Transform toggles into toggleable chips completely hiding original sliders */
+    /* Transform toggles into top-bar toggle icons without cut-off text */
     .toggles-container .toggle-label {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 999px;
-        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        padding: 4px 8px !important;
         display: flex;
-        font-size: 13px;
-        color: #a0a0a0;
+        align-items: center;
+        gap: 6px !important;
+        font-size: 11px;
+        color: #ddd;
         white-space: nowrap;
         cursor: pointer;
-        transition: all 0.15s ease;
+        border-radius: 6px;
     }
     
-    .toggles-container .toggle-slider {
-        display: none !important;
-    }
-    
+    /* Show the text but make it small and concise */
     .toggles-container .toggle-text {
-        font-size: 13px !important;
-        letter-spacing: 0.02em;
+        display: block !important;
+        font-size: 10px !important;
+        line-height: 1;
         margin: 0 !important;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
     }
 
-    /* Active state for chips */
-    .toggles-container .toggle-label:has(input:checked) {
-        background: rgba(96, 165, 250, 0.15);
-        border-color: rgba(96, 165, 250, 0.4);
-        color: #93c5fd;
+    /* Repurpose slider to be a visible toggle/dot indicating status */
+    .toggles-container .toggle-slider {
+        display: flex !important;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4b5563; /* grey when off */
+        transition: all 0.2s;
+    }
+
+    /* Active state for chips/top bar toggles */
+    .toggles-container .toggle-label:has(input:checked) .toggle-slider {
+        background: #60a5fa !important;
+        box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
     }
     
-    body.gender-female .toggles-container .toggle-label:has(input:checked) {
-        background: rgba(244, 114, 182, 0.15);
-        border-color: rgba(244, 114, 182, 0.4);
-        color: #f9a8d4;
-    }
-
-    body.gender-male .toggles-container .toggle-label:has(input:checked) {
-        background: rgba(96, 165, 250, 0.15);
-        border-color: rgba(96, 165, 250, 0.4);
-        color: #93c5fd;
+    body.gender-female .toggles-container .toggle-label:has(input:checked) .toggle-slider {
+        background: #f472b6 !important;
+        box-shadow: 0 0 8px rgba(244, 114, 182, 0.6);
     }
 
     /* Chart history grid with table overflow handling */
@@ -1227,6 +1234,7 @@
         width: 100% !important;
         max-width: 100% !important;
         gap: 20px !important;
+        align-items: stretch !important; /* Force children to expand full width */
     }
     
     .detail-sidebar {
@@ -1236,6 +1244,7 @@
         margin: 0 auto 16px auto !important;
         display: flex;
         flex-direction: column;
+        align-items: stretch !important;
     }
 
     .detail-right-section {
@@ -1244,5 +1253,41 @@
         display: flex !important;
         flex-direction: column !important;
         gap: 20px !important;
+        align-items: stretch !important; /* Force children to stretch */
+    }
+}
+
+/* =============================================
+   12. FEATURED ARTIST HORIZONTAL MOBILE CARD
+   ============================================= */
+@media (max-width: 900px) {
+    .featured-artist-grid {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .featured-artist-card {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100% !important;
+        height: 75px !important; /* height adjusted for 2:3 ratio based on 50px width */
+        box-sizing: border-box !important;
+    }
+    .featured-artist-card .featured-artist-image {
+        width: 50px !important;
+        height: 75px !important;
+        aspect-ratio: 2/3 !important;
+        flex-shrink: 0;
+    }
+    .featured-artist-card .featured-artist-name {
+        display: flex;
+        align-items: center;
+        padding-left: 12px;
+        font-size: 14px;
+        flex-grow: 1;
+        justify-content: flex-start;
+        text-align: left;
     }
 }
