@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <script th:src="@{/js/list-utils.js}"></script>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -187,6 +188,137 @@
         .inf-load-spinner { width: 38px; height: 38px; margin: 0 auto 10px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.08); border-top-color: #FA8072; animation: inf-load-spin 0.8s linear infinite; }
         .inf-load-title { color: #f5e4e2; font-size: 13px; font-weight: 600; }
         @keyframes inf-load-spin { to { transform: rotate(360deg); } }
+        .timeframe-results-shell {
+            width: 100%;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 32px;
+            box-sizing: border-box;
+        }
+        .container > .timeframe-results-shell {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+        .timeframe-list-table {
+            table-layout: auto;
+            width: max-content;
+            min-width: 100%;
+        }
+        .timeframe-list-table th,
+        .timeframe-list-table td {
+            white-space: nowrap;
+            overflow-wrap: normal;
+            word-break: normal;
+            vertical-align: middle;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            line-height: 1.2;
+        }
+        .timeframe-list-table tbody td {
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        .timeframe-list-table .numeric-cell {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .timeframe-list-table th[data-sort-key] {
+            cursor: pointer;
+        }
+        .timeframe-list-table th[data-sort-key]:hover {
+            background: #303030;
+        }
+        .timeframe-list-table .period-cell {
+            font-weight: 700;
+            color: #f3f4f6;
+        }
+        .timeframe-list-row {
+            cursor: pointer;
+        }
+        .timeframe-list-row:hover .period-cell {
+            color: #ffffff;
+        }
+        .timeframe-list-chip {
+            display: inline-flex;
+            max-width: 100%;
+            padding: 3px 8px;
+            white-space: nowrap;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            color: #e5e7eb;
+            font-size: 12px;
+            line-height: 1.25;
+        }
+        .timeframe-list-chip.male {
+            border-color: rgba(56, 189, 248, 0.5);
+            background: rgba(56, 189, 248, 0.18);
+            color: #bae6fd;
+        }
+        .timeframe-list-chip.female {
+            border-color: rgba(244, 114, 182, 0.5);
+            background: rgba(244, 114, 182, 0.18);
+            color: #fbcfe8;
+        }
+        .timeframe-list-chip.genre {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.16);
+        }
+        .timeframe-list-chip.ethnicity {
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.14);
+        }
+        .timeframe-list-chip.language {
+            border-color: rgba(16, 185, 129, 0.45);
+            background: rgba(16, 185, 129, 0.14);
+        }
+        .timeframe-list-chip.country {
+            border-color: rgba(59, 130, 246, 0.45);
+            background: rgba(59, 130, 246, 0.14);
+        }
+        .timeframe-list-empty {
+            color: #666;
+        }
+        #topTimeframesTable th:nth-child(1),
+        #topTimeframesTable td:nth-child(1) { width: 58px; }
+        #topTimeframesTable th:nth-child(2),
+        #topTimeframesTable td:nth-child(2) { width: 170px; }
+        #topTimeframesTable th:nth-child(3),
+        #topTimeframesTable td:nth-child(3),
+        #topTimeframesTable th:nth-child(4),
+        #topTimeframesTable td:nth-child(4),
+        #topTimeframesTable th:nth-child(5),
+        #topTimeframesTable td:nth-child(5),
+        #topTimeframesTable th:nth-child(6),
+        #topTimeframesTable td:nth-child(6) { width: 86px; }
+        #topTimeframesTable th:nth-child(7),
+        #topTimeframesTable td:nth-child(7) { width: 118px; }
+        #topTimeframesTable th:nth-child(8),
+        #topTimeframesTable td:nth-child(8),
+        #topTimeframesTable th:nth-child(9),
+        #topTimeframesTable td:nth-child(9),
+        #topTimeframesTable th:nth-child(10),
+        #topTimeframesTable td:nth-child(10),
+        #topTimeframesTable th:nth-child(11),
+        #topTimeframesTable td:nth-child(11),
+        #topTimeframesTable th:nth-child(12),
+        #topTimeframesTable td:nth-child(12) { width: 98px; }
+        #topTimeframesTable th:nth-child(13),
+        #topTimeframesTable td:nth-child(13),
+        #topTimeframesTable th:nth-child(14),
+        #topTimeframesTable td:nth-child(14),
+        #topTimeframesTable th:nth-child(15),
+        #topTimeframesTable td:nth-child(15),
+        #topTimeframesTable th:nth-child(16),
+        #topTimeframesTable td:nth-child(16),
+        #topTimeframesTable th:nth-child(17),
+        #topTimeframesTable td:nth-child(17) { width: 140px; }
+        @media (max-width: 768px) {
+            .timeframe-list-table {
+                min-width: 1280px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -197,6 +329,13 @@
             <div class="catalog-toolbar-header">
                 <div class="catalog-toolbar-heading">
                     <h1 class="catalog-toolbar-title" th:text="${periodTypeDisplay}">Years</h1>
+                    <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Timeframe views">
+                        <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchTimeframeView('card')">Cards</button>
+                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchTimeframeView('list')">List</button>
+                    </div>
+                </div>
+                <div class="catalog-toolbar-actions">
+                    <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllInfiniteResults && window.loadAllInfiniteResults()">Load all</button>
                 </div>
             </div>
 
@@ -525,9 +664,9 @@
                                         <div class="filter-group multi-select-container">
                                             <div class="multi-select-display" onclick="toggleMultiSelectDropdown('winningCountry')">
                                                 <div class="multi-select-chips" id="winningCountryChips">
-                                                    <span class="multi-select-chip" th:each="country : ${winningCountry}">
+                                                    <span class="multi-select-chip" th:each="country : ${winningCountry}" th:attr="data-value=${country}">
                                                         <span th:text="${country}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeCountryChip(event, \'' + ${country} + '\')'" th:attr="data-value=${country}">×</button>
+                                                        <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, this.parentElement.getAttribute('data-value'))" th:attr="data-value=${country}">×</button>
                                                     </span>
                                                 </div>
                                                 <span class="multi-select-label" th:if="${winningCountry == null || winningCountry.isEmpty()}">Select...</span>
@@ -714,7 +853,7 @@
             </div>
         </div>
         
-        <div class="catalog-content-shell">
+        <div class="timeframe-results-shell">
         <!-- Active Filters Chips -->
         <div class="active-filters" id="activeFilters">
             <!-- Winning Genre -->
@@ -863,6 +1002,7 @@
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
         
+        <div id="cardView">
         <!-- Timeframe cards grid -->
         <div class="catalog-grid" id="tfGrid"
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
@@ -1032,7 +1172,7 @@
                     <div class="catalog-stats catalog-stats-row2">
                         <div class="stat" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
                             <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${tf.playCount}">0</span>
+                            <span class="stat-value" style="font-size: 1.08em;" th:text="${tf.playCount}">0</span>
                         </div>
                         <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
                             <span class="stat-icon">🕒</span>
@@ -1200,6 +1340,99 @@
             <div id="scrollEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All timeframes loaded</div>
         </div>
         </div>
+
+        <div id="listView" style="display:none;">
+            <div class="top-sort-hint" style="margin:16px 0 8px 0;">Click a sortable column header to update the current timeframe sort.</div>
+            <div class="top-table-container" id="topTimeframesTableContainer">
+                <table class="top-table timeframe-list-table" id="topTimeframesTable">
+                    <thead>
+                        <tr>
+                            <th class="rank-col">#</th>
+                            <th data-sort-key="period"
+                                th:classappend="${sortBy == 'period'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Period</th>
+                            <th data-sort-key="artists" class="numeric-cell"
+                                th:classappend="${sortBy == 'artists'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Artists</th>
+                            <th data-sort-key="albums" class="numeric-cell"
+                                th:classappend="${sortBy == 'albums'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Albums</th>
+                            <th data-sort-key="songs" class="numeric-cell"
+                                th:classappend="${sortBy == 'songs'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Songs</th>
+                            <th data-sort-key="plays" class="numeric-cell"
+                                th:classappend="${sortBy == 'plays'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Plays</th>
+                            <th data-sort-key="time" class="numeric-cell"
+                                th:classappend="${sortBy == 'time'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Time</th>
+                            <th data-sort-key="maleartistpct" class="numeric-cell"
+                                th:classappend="${sortBy == 'maleartistpct'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Male Artist %</th>
+                            <th data-sort-key="malealbumpct" class="numeric-cell"
+                                th:classappend="${sortBy == 'malealbumpct'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Male Album %</th>
+                            <th data-sort-key="malesongpct" class="numeric-cell"
+                                th:classappend="${sortBy == 'malesongpct'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Male Song %</th>
+                            <th data-sort-key="maleplaypct" class="numeric-cell"
+                                th:classappend="${sortBy == 'maleplaypct'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Male Play %</th>
+                            <th data-sort-key="maletimepct" class="numeric-cell"
+                                th:classappend="${sortBy == 'maletimepct'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Male Time %</th>
+                            <th th:if="${periodType != 'days'}" data-sort-key="maledays" class="numeric-cell"
+                                th:classappend="${sortBy == 'maledays'} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : ''">Male Days</th>
+                            <th>Winning Gender</th>
+                            <th>Winning Genre</th>
+                            <th>Winning Ethnicity</th>
+                            <th>Winning Language</th>
+                            <th>Winning Country</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${#lists.isEmpty(timeframes)}" class="no-data">
+                            <td th:colspan="${periodType != 'days' ? 18 : 17}">No timeframes found</td>
+                        </tr>
+                        <tr th:each="tf, iterStat : ${timeframes}"
+                            class="timeframe-list-row"
+                            th:data-date-from="${tf.listenedDateFrom}"
+                            th:data-date-to="${tf.listenedDateTo}"
+                            th:data-period-label="${tf.periodDisplayName}"
+                            onclick="handleTimeframeRowClick(this)">
+                            <td class="rank-col" th:text="${startIndex + iterStat.index}">1</td>
+                            <td class="period-cell" th:text="${tf.periodDisplayName}">Period</td>
+                            <td class="numeric-cell" th:text="${tf.artistCount}">0</td>
+                            <td class="numeric-cell" th:text="${tf.albumCount}">0</td>
+                            <td class="numeric-cell" th:text="${tf.songCount}">0</td>
+                            <td class="numeric-cell" th:text="${tf.playCount}">0</td>
+                            <td class="numeric-cell" th:text="${tf.timeListenedFormatted}">0m</td>
+                            <td class="numeric-cell" th:text="${tf.maleArtistPercentage != null ? #numbers.formatDecimal(tf.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleAlbumPercentage != null ? #numbers.formatDecimal(tf.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleSongPercentage != null ? #numbers.formatDecimal(tf.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.malePlayPercentage != null ? #numbers.formatDecimal(tf.malePlayPercentage, 1, 1) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleTimePercentage != null ? #numbers.formatDecimal(tf.maleTimePercentage, 1, 1) + '%' : '-'}">-</td>
+                            <td th:if="${periodType != 'days'}" class="numeric-cell" th:text="${tf.totalDays != null ? tf.maleDays + '/' + tf.totalDays : '-'}">-</td>
+                            <td>
+                                <span th:if="${tf.winningGenderName != null}"
+                                      class="timeframe-list-chip"
+                                      th:classappend="${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('female')} ? ' female' : (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('male')} ? ' male' : '')"
+                                      th:text="${tf.winningGenderName}">Gender</span>
+                                <span th:if="${tf.winningGenderName == null}" class="timeframe-list-empty">-</span>
+                            </td>
+                            <td>
+                                <span th:if="${tf.winningGenreName != null}" class="timeframe-list-chip genre" th:text="${tf.winningGenreName}">Genre</span>
+                                <span th:if="${tf.winningGenreName == null}" class="timeframe-list-empty">-</span>
+                            </td>
+                            <td>
+                                <span th:if="${tf.winningEthnicityName != null}" class="timeframe-list-chip ethnicity" th:text="${tf.winningEthnicityName}">Ethnicity</span>
+                                <span th:if="${tf.winningEthnicityName == null}" class="timeframe-list-empty">-</span>
+                            </td>
+                            <td>
+                                <span th:if="${tf.winningLanguageName != null}" class="timeframe-list-chip language" th:text="${tf.winningLanguageName}">Language</span>
+                                <span th:if="${tf.winningLanguageName == null}" class="timeframe-list-empty">-</span>
+                            </td>
+                            <td>
+                                <span th:if="${tf.winningCountry != null}" class="timeframe-list-chip country" th:text="${tf.winningCountry}">Country</span>
+                                <span th:if="${tf.winningCountry == null}" class="timeframe-list-empty">-</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="listScrollSentinel" style="height:1px;"></div>
+            <div id="listScrollEnd" class="scroll-end" hidden>All timeframes loaded</div>
+        </div>
+        </div>
     </div>
     
     <script th:inline="javascript">
@@ -1219,6 +1452,44 @@
                 view: 'list'
             });
             window.open('/songs?' + params.toString(), '_blank');
+        }
+
+        function handleTimeframeRowClick(row) {
+            handleTimeframeCardClick(row);
+        }
+
+        function switchTimeframeView(viewName) {
+            const normalizedView = viewName === 'list' ? 'list' : 'card';
+            const cardView = document.getElementById('cardView');
+            const listView = document.getElementById('listView');
+
+            if (cardView) cardView.style.display = normalizedView === 'card' ? '' : 'none';
+            if (listView) listView.style.display = normalizedView === 'list' ? '' : 'none';
+
+            ['card', 'list'].forEach(function(view) {
+                const button = document.getElementById('viewBtn-' + view);
+                if (button) button.classList.toggle('active', view === normalizedView);
+            });
+
+            const url = new URL(window.location.href);
+            if (normalizedView === 'list') {
+                url.searchParams.set('view', 'list');
+            } else {
+                url.searchParams.delete('view');
+            }
+            window.history.replaceState({}, '', url.toString());
+        }
+
+        function sortTimeframeList(sortKey) {
+            const url = new URL(window.location.href);
+            const currentSort = url.searchParams.get('sortby') || 'period';
+            const currentDir = url.searchParams.get('sortdir') || 'desc';
+
+            url.searchParams.set('sortby', sortKey);
+            url.searchParams.set('sortdir', currentSort === sortKey && currentDir === 'desc' ? 'asc' : 'desc');
+            url.searchParams.set('page', '0');
+            url.searchParams.set('view', 'list');
+            window.location.href = url.toString();
         }
         
         // Handler for chart generation from badge click
@@ -1367,7 +1638,18 @@
                 const chip = document.createElement('span');
                 chip.className = 'multi-select-chip';
                 chip.setAttribute('data-value', value);
-                chip.innerHTML = `<span>${text}</span><button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>`;
+                const chipText = document.createElement('span');
+                chipText.textContent = text;
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'multi-select-chip-remove';
+                removeButton.setAttribute('data-value', value);
+                removeButton.textContent = '×';
+                removeButton.addEventListener('click', function(event) {
+                    removeCountryChip(event, this.parentElement.getAttribute('data-value'));
+                });
+                chip.appendChild(chipText);
+                chip.appendChild(removeButton);
                 chipsContainer.appendChild(chip);
             } else {
                 const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
@@ -1441,6 +1723,15 @@
         
         // Handle filter modifier buttons
         document.addEventListener('DOMContentLoaded', function() {
+            const requestedView = new URLSearchParams(window.location.search).get('view');
+            switchTimeframeView(requestedView === 'list' ? 'list' : 'card');
+
+            document.querySelectorAll('#topTimeframesTable th[data-sort-key]').forEach(function(header) {
+                header.addEventListener('click', function() {
+                    sortTimeframeList(this.getAttribute('data-sort-key'));
+                });
+            });
+
             const modifierButtons = document.querySelectorAll('.filter-modifier');
             modifierButtons.forEach(button => {
                 button.addEventListener('click', function() {
@@ -1480,10 +1771,17 @@
             if (!grid) return;
 
             let currentPage = parseInt(grid.dataset.currentPage, 10);
+            let listCurrentPage = currentPage;
             const totalPages = parseInt(grid.dataset.totalPages, 10);
             const sentinel = document.getElementById('scrollSentinel');
+            const listSentinel = document.getElementById('listScrollSentinel');
             const overlay = document.getElementById('infLoadOverlay');
+            const overlayTitle = overlay ? overlay.querySelector('.inf-load-title') : null;
             const endMsg = document.getElementById('scrollEnd');
+            const listEndMsg = document.getElementById('listScrollEnd');
+            const listBody = document.querySelector('#topTimeframesTable tbody');
+            const listContainer = document.getElementById('topTimeframesTableContainer');
+            const loadAllButton = document.getElementById('loadAllResultsButton');
 
             if (currentPage === 0) {
                 document.querySelectorAll('.pagination').forEach(el => el.style.display = 'none');
@@ -1491,18 +1789,125 @@
 
             if (totalPages <= 1 || currentPage >= totalPages - 1) {
                 if (totalPages > 0) endMsg.hidden = false;
+                if (totalPages > 0 && listEndMsg) listEndMsg.hidden = false;
                 return;
             }
 
             let loading = false;
+            let listLoading = false;
+            let loadAllInProgress = false;
+            let listUserHasScrolled = false;
+            let cardLoadAllCompleted = false;
+            let listLoadAllCompleted = false;
+
+            function isCardViewActive() {
+                const cardView = document.getElementById('cardView');
+                return !cardView || cardView.style.display !== 'none';
+            }
+
+            function isListViewActive() {
+                const listView = document.getElementById('listView');
+                return listView && listView.style.display !== 'none';
+            }
+
+            function updateLoadAllButton() {
+                if (!loadAllButton) return;
+                const activePage = isListViewActive() ? listCurrentPage : currentPage;
+                const shouldHide = isListViewActive()
+                    ? (listLoadAllCompleted || totalPages <= 1 || activePage >= totalPages - 1)
+                    : (cardLoadAllCompleted || totalPages <= 1 || activePage >= totalPages - 1);
+                setLoadAllButtonVisibility(shouldHide);
+                loadAllButton.disabled = loading || listLoading || loadAllInProgress;
+                const progress = getVisibleResultCounts();
+                loadAllButton.textContent = loadAllInProgress
+                    ? formatLoadAllText(progress.loadedCount, progress.totalCount)
+                    : 'Load all';
+                loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
+                loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
+                updateOverlayTitle();
+            }
+
+            function setLoadAllButtonVisibility(hidden) {
+                if (!loadAllButton) return;
+                loadAllButton.hidden = hidden;
+                loadAllButton.style.display = hidden ? 'none' : '';
+            }
+
+            function hideLoadAllButtonIfFinished() {
+                if (!loadAllButton) return;
+
+                if (isListViewActive()) {
+                    if (listCurrentPage >= totalPages - 1) {
+                        listLoadAllCompleted = true;
+                        setLoadAllButtonVisibility(true);
+                    }
+                    return;
+                }
+
+                if (currentPage >= totalPages - 1) {
+                    cardLoadAllCompleted = true;
+                    setLoadAllButtonVisibility(true);
+                }
+            }
+
+            function getVisibleResultCounts() {
+                const infoEl = document.querySelector('.pagination-info span');
+                if (!infoEl) {
+                    return { loadedCount: 0, totalCount: 0 };
+                }
+
+                const match = infoEl.textContent.match(/(\d+)\s*-\s*(\d+)\s+of\s+(\d+)/i);
+                if (!match) {
+                    return { loadedCount: 0, totalCount: 0 };
+                }
+
+                return {
+                    loadedCount: parseInt(match[2], 10) || 0,
+                    totalCount: parseInt(match[3], 10) || 0
+                };
+            }
+
+            function formatLoadAllText(loadedCount, totalCount) {
+                return totalCount > 0
+                    ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
+                    : 'Loading all...';
+            }
+
+            function updateOverlayTitle() {
+                if (!overlayTitle) return;
+
+                if (loadAllInProgress) {
+                    const progress = getVisibleResultCounts();
+                    overlayTitle.textContent = formatLoadAllText(progress.loadedCount, progress.totalCount);
+                    return;
+                }
+
+                overlayTitle.textContent = 'Loading more...';
+            }
 
             const observer = new IntersectionObserver(function(entries) {
-                if (entries[0].isIntersecting && !loading) {
+                if (entries[0].isIntersecting && !loading && isCardViewActive()) {
                     loadNextPage();
                 }
             }, { rootMargin: '300px' });
 
             observer.observe(sentinel);
+
+            let listObserver = null;
+            if (listBody && listSentinel) {
+                listObserver = new IntersectionObserver(function(entries) {
+                    if (entries[0].isIntersecting && !listLoading && isListViewActive() && (listUserHasScrolled || loadAllInProgress)) {
+                        loadNextListPage();
+                    }
+                }, { rootMargin: '300px' });
+                listObserver.observe(listSentinel);
+            }
+
+            if (listContainer) {
+                listContainer.addEventListener('scroll', function() {
+                    listUserHasScrolled = true;
+                }, { passive: true });
+            }
 
             function updateCounterText(addedCount) {
                 const infoEl = document.querySelector('.pagination-info span');
@@ -1516,8 +1921,10 @@
 
             async function loadNextPage() {
                 loading = true;
+                updateLoadAllButton();
                 overlay.classList.add('active');
                 currentPage++;
+                let addedCount = 0;
 
                 try {
                     const url = new URL(window.location.href);
@@ -1527,9 +1934,10 @@
                     const html = await resp.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     const newCards = doc.querySelectorAll('#tfGrid .catalog-card');
-                    const addedCount = newCards.length;
+                    addedCount = newCards.length;
                     newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
                     updateCounterText(addedCount);
+                    updateLoadAllButton();
                 } catch (e) {
                     currentPage--;
                 }
@@ -1542,7 +1950,85 @@
                 }
 
                 loading = false;
+                updateLoadAllButton();
+                return addedCount > 0;
             }
+
+            async function loadNextListPage() {
+                listLoading = true;
+                updateLoadAllButton();
+                overlay.classList.add('active');
+                listCurrentPage++;
+                let addedCount = 0;
+
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', listCurrentPage);
+                    url.searchParams.set('view', 'list');
+                    const resp = await fetch(url.toString());
+                    if (!resp.ok) throw new Error('Network error');
+                    const html = await resp.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newRows = doc.querySelectorAll('#topTimeframesTable tbody .timeframe-list-row');
+                    addedCount = newRows.length;
+                    newRows.forEach(function(row) { listBody.appendChild(row); });
+                    updateCounterText(addedCount);
+                    updateLoadAllButton();
+                } catch (e) {
+                    listCurrentPage--;
+                }
+
+                overlay.classList.remove('active');
+
+                if (listCurrentPage >= totalPages - 1) {
+                    if (listObserver) listObserver.disconnect();
+                    if (listEndMsg) listEndMsg.hidden = false;
+                }
+
+                listLoading = false;
+                updateLoadAllButton();
+                return addedCount > 0;
+            }
+
+            window.loadAllInfiniteResults = async function() {
+                if (loadAllInProgress || loading || listLoading) {
+                    return;
+                }
+
+                loadAllInProgress = true;
+                if (isListViewActive()) {
+                    listLoadAllCompleted = false;
+                } else {
+                    cardLoadAllCompleted = false;
+                }
+                observer.disconnect();
+                if (listObserver) listObserver.disconnect();
+                updateLoadAllButton();
+
+                try {
+                    if (isListViewActive()) {
+                        while (listCurrentPage < totalPages - 1) {
+                            const advanced = await loadNextListPage();
+                            if (!advanced) {
+                                break;
+                            }
+                        }
+                    } else {
+                        while (currentPage < totalPages - 1) {
+                            const advanced = await loadNextPage();
+                            if (!advanced) {
+                                break;
+                            }
+                        }
+                    }
+                } finally {
+                    loadAllInProgress = false;
+                    updateLoadAllButton();
+                    hideLoadAllButtonIfFinished();
+                }
+            };
+
+            updateLoadAllButton();
         })();
     </script>
 </body>

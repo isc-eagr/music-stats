@@ -502,8 +502,88 @@ function navigateToGraph(element, filterType) {
     window.location.href = '/songs?' + filterType + '=' + encodeURIComponent(id) + '&' + filterType + 'Mode=includes';
 }
 
+function switchCatalogView(viewName) {
+    const normalizedView = viewName === 'list' ? 'list' : 'card';
+    const cardView = document.getElementById('cardView');
+    const listView = document.getElementById('listView');
+
+    if (cardView) cardView.style.display = normalizedView === 'card' ? '' : 'none';
+    if (listView) listView.style.display = normalizedView === 'list' ? '' : 'none';
+
+    ['card', 'list'].forEach(function(view) {
+        const button = document.getElementById('viewBtn-' + view);
+        if (button) button.classList.toggle('active', view === normalizedView);
+    });
+
+    const url = new URL(window.location.href);
+    if (normalizedView === 'list') {
+        url.searchParams.set('view', 'list');
+    } else {
+        url.searchParams.delete('view');
+    }
+    window.history.replaceState({}, '', url.toString());
+}
+
+function sortCatalogList(sortKey, defaultDir) {
+    if (!sortKey) return;
+
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sortby') || '';
+    const currentDir = url.searchParams.get('sortdir') || '';
+    const firstDir = defaultDir || (sortKey === 'name' || sortKey === 'genre' ? 'asc' : 'desc');
+
+    url.searchParams.set('sortby', sortKey);
+    url.searchParams.set('sortdir', currentSort === sortKey ? (currentDir === 'asc' ? 'desc' : 'asc') : firstDir);
+    url.searchParams.set('page', '0');
+    url.searchParams.set('view', 'list');
+    window.location.href = url.toString();
+}
+
+function navigateCatalogListRow(row) {
+    const directUrl = row.dataset.directUrl;
+    if (directUrl) {
+        window.location.href = directUrl;
+        return;
+    }
+
+    const filterType = row.dataset.filterType;
+    const filterValue = row.dataset.filterValue;
+    if (!filterType || !filterValue) return;
+
+    window.location.href = '/songs?'
+        + filterType + '=' + encodeURIComponent(filterValue)
+        + '&' + filterType + 'Mode=includes';
+}
+
+function initializeCatalogListView() {
+    if (!document.getElementById('catalogViewToggle')) {
+        return;
+    }
+
+    const requestedView = new URLSearchParams(window.location.search).get('view');
+    switchCatalogView(requestedView === 'list' ? 'list' : 'card');
+
+    document.querySelectorAll('#catalogListTable th[data-sort-key]').forEach(function(header) {
+        header.addEventListener('click', function() {
+            sortCatalogList(this.getAttribute('data-sort-key'), this.getAttribute('data-default-dir'));
+        });
+    });
+
+    const table = document.getElementById('catalogListTable');
+    if (table) {
+        table.addEventListener('click', function(event) {
+            if (event.target.closest('a, button, input, select, textarea')) {
+                return;
+            }
+            const row = event.target.closest('.catalog-list-row');
+            if (row) navigateCatalogListRow(row);
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeAdditionalSortSelects();
+    initializeCatalogListView();
     preserveListStateOnFilterSubmit(document.getElementById('filterForm'));
 });
 

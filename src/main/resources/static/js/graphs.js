@@ -19,6 +19,8 @@ let listViewObserver = null;
 let listViewScrollContainer = null;
 let listViewScrollHandler = null;
 let listViewRequestToken = 0;
+let listViewLoadAllInProgress = false;
+let listViewUserHasScrolled = false;
 
 const validGraphsTabs = new Set(['general', 'genre', 'subgenre', 'ethnicity', 'language', 'country', 'releaseYear', 'listenYear']);
 
@@ -2544,6 +2546,8 @@ function switchView(viewName) {
         // Load first page if not yet loaded
         if (listViewState.page === 0 && !listViewState.loading && !listViewState.allLoaded) {
             fetchListPage(0);
+        } else {
+            updateListViewPaginationInfo();
         }
         setupListViewInfiniteScroll();
     } else if (viewName === 'graphs') {
@@ -2555,6 +2559,7 @@ function switchView(viewName) {
     }
 
     syncGraphsViewUrl(viewName, getActiveGraphsTab());
+    window.refreshPageLoadAllButtonState?.();
 }
 
 function getChartsApiBase() {
@@ -2646,6 +2651,7 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
     listViewState.totalCount = 0;
     listViewState.loading = false;
     listViewState.allLoaded = false;
+    listViewUserHasScrolled = false;
 
     topTabData[entityType] = [];
     topSortedData[entityType] = [];
@@ -2671,6 +2677,7 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
 
 function maybeLoadMoreListRows() {
     if (currentView !== 'list' || listViewState.loading || listViewState.allLoaded) return;
+    if (!listViewUserHasScrolled && !listViewLoadAllInProgress) return;
 
     const container = getListViewTableContainer();
     if (!container) return;
@@ -2679,6 +2686,40 @@ function maybeLoadMoreListRows() {
     if (nearBottom) {
         fetchListPage(listViewState.page);
     }
+}
+
+function getListViewLoadedCount() {
+    const entityType = getCurrentEntityType();
+    const items = topTabData[entityType];
+    return Array.isArray(items) ? items.length : 0;
+}
+
+function formatLoadAllProgressText(baseText, loadedCount, totalCount) {
+    if (!Number.isFinite(totalCount) || totalCount <= 0) {
+        return baseText;
+    }
+
+    const safeLoaded = Math.min(Math.max(loadedCount || 0, 0), totalCount);
+    return baseText + ' (' + safeLoaded + '/' + totalCount + ')';
+}
+
+function updateListViewLoaderText() {
+    const loader = getOrCreateListViewLoader();
+    if (!loader) return;
+
+    loader.textContent = listViewLoadAllInProgress
+        ? formatLoadAllProgressText('Loading all...', getListViewLoadedCount(), listViewState.totalCount)
+        : 'Loading records...';
+}
+
+function updateListViewPaginationInfo() {
+    const infoEl = document.querySelector('.pagination-info span');
+    if (!infoEl) return;
+
+    const loadedCount = getListViewLoadedCount();
+    const totalCount = listViewState.totalCount || loadedCount;
+    const startCount = loadedCount > 0 ? 1 : 0;
+    infoEl.textContent = startCount + ' - ' + loadedCount + ' of ' + totalCount;
 }
 
 function getOrCreateListViewLoader() {
@@ -2706,7 +2747,10 @@ function getOrCreateListViewLoader() {
 
 function setListViewLoadingIndicator(isLoading) {
     const loader = getOrCreateListViewLoader();
-    if (loader) loader.hidden = !isLoading;
+    if (!loader) return;
+
+    updateListViewLoaderText();
+    loader.hidden = !isLoading;
 }
 
 /**
@@ -2718,6 +2762,7 @@ function fetchListPage(pageNum) {
     if (listViewState.loading) return;
     listViewState.loading = true;
     setListViewLoadingIndicator(true);
+    window.refreshPageLoadAllButtonState?.();
 
     const entityType = getCurrentEntityType();
     const params = getListFilterParams();
@@ -2727,7 +2772,7 @@ function fetchListPage(pageNum) {
 
     const requestToken = ++listViewRequestToken;
 
-    fetch('/' + entityType + '/api?' + params.toString())
+    return fetch('/' + entityType + '/api?' + params.toString())
         .then(r => r.json())
         .then(data => {
             if (requestToken !== listViewRequestToken) return;
@@ -2768,18 +2813,56 @@ function fetchListPage(pageNum) {
 
             const endEl = document.getElementById('listViewEnd');
             if (endEl) endEl.hidden = !listViewState.allLoaded;
-
-            requestAnimationFrame(() => {
-                maybeLoadMoreListRows();
-            });
+            updateListViewPaginationInfo();
+            window.refreshPageLoadAllButtonState?.();
         })
         .catch(err => {
             if (requestToken !== listViewRequestToken) return;
             listViewState.loading = false;
             setListViewLoadingIndicator(false);
+            window.refreshPageLoadAllButtonState?.();
             console.error('Error loading list view data:', err);
         });
 }
+
+window.isListViewLoadAllInProgress = function() {
+    return listViewLoadAllInProgress;
+};
+
+window.loadAllListViewResults = async function() {
+    if (listViewLoadAllInProgress || listViewState.loading || listViewState.allLoaded) {
+        return;
+    }
+
+    listViewLoadAllInProgress = true;
+    window.refreshPageLoadAllButtonState?.();
+
+    try {
+        if (listViewState.page === 0) {
+            await fetchListPage(0);
+        }
+
+        while (!listViewState.allLoaded) {
+            await fetchListPage(listViewState.page);
+        }
+    } finally {
+        listViewLoadAllInProgress = false;
+        window.refreshPageLoadAllButtonState?.();
+    }
+};
+
+window.getListViewProgressState = function() {
+    const loadedCount = getListViewLoadedCount();
+    return {
+        loadedCount,
+        totalCount: listViewState.totalCount || loadedCount,
+        loading: listViewState.loading,
+        loadAllInProgress: listViewLoadAllInProgress,
+        allLoaded: listViewState.allLoaded
+    };
+};
+
+window.formatLoadAllProgressText = formatLoadAllProgressText;
 
 
 /**
@@ -2887,14 +2970,11 @@ function setupListViewInfiniteScroll() {
     if (listViewScrollContainer !== container || !listViewScrollHandler) {
         listViewScrollContainer = container;
         listViewScrollHandler = () => {
+            listViewUserHasScrolled = true;
             maybeLoadMoreListRows();
         };
         container.addEventListener('scroll', listViewScrollHandler, { passive: true });
     }
-
-    requestAnimationFrame(() => {
-        maybeLoadMoreListRows();
-    });
 }
 
 /**

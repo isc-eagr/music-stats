@@ -29,6 +29,7 @@ public class ArtistSongDTO {
     private boolean fromGroup; // true if this song is from a group the artist belongs to
     private Integer sourceArtistId; // the group artist's ID when this is a group song
     private String sourceArtistName; // the group artist's name when this is a group song
+    private Boolean inItunes;
     
     public ArtistSongDTO() {}
     
@@ -294,5 +295,13 @@ public class ArtistSongDTO {
     
     public void setSourceArtistName(String sourceArtistName) {
         this.sourceArtistName = sourceArtistName;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

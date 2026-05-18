@@ -279,6 +279,20 @@
                 window.showWarningToast = function(message, duration) { return showToast(message, 'warning', duration || 5000); };
                 window.showSuccessToast = function(message, duration) { return showToast(message, 'success', duration || 4000); };
                 window.showInfoToast = function(message, duration) { return showToast(message, 'info', duration || 5000); };
+                function removePlayAutomationBanner(kind) {
+                    const banner = document.querySelector('.automation-banner[data-banner-kind="' + kind + '"]');
+                    if (!banner) {
+                        return;
+                    }
+
+                    const stack = banner.closest('.automation-banner-stack');
+                    banner.remove();
+
+                    if (stack && !stack.querySelector('.automation-banner')) {
+                        stack.remove();
+                    }
+                }
+
                 window.dismissPlayAutomationBanner = async function(kind) {
                     const endpoint = kind === 'imported'
                         ? '/plays/api/automation/dismiss-imported-banner'
@@ -291,7 +305,7 @@
                         if (!response.ok) {
                             throw new Error('Banner dismiss failed');
                         }
-                        window.location.reload();
+                        removePlayAutomationBanner(kind);
                     } catch (error) {
                         showErrorToast(error.message || 'Banner dismiss failed.');
                     }
@@ -409,7 +423,8 @@
                 </div>
                 <span class="automation-banner-cta">Open unmatched plays</span>
             </a>
-            <div class="automation-banner automation-banner-imported"
+              <div class="automation-banner automation-banner-imported"
+                  data-banner-kind="imported"
                  th:if="${playAutomationBannerState.importedBanner != null}">
                 <div class="automation-banner-copy">
                     <span class="automation-banner-eyebrow">New Plays Imported</span>
@@ -418,7 +433,8 @@
                 </div>
                 <button type="button" class="automation-banner-close" onclick="dismissPlayAutomationBanner('imported')" aria-label="Dismiss imported plays banner">x</button>
             </div>
-            <div class="automation-banner automation-banner-warning"
+              <div class="automation-banner automation-banner-warning"
+                  data-banner-kind="sync-issue"
                  th:if="${playAutomationBannerState.syncIssueBanner != null}">
                 <div class="automation-banner-copy">
                     <span class="automation-banner-eyebrow">Automated Import Warning</span>

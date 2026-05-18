@@ -34,6 +34,7 @@
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
+                    <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Album</button>
                 </div>
             </div>
@@ -2779,7 +2780,9 @@
             const totalPages = parseInt(grid.dataset.totalPages, 10);
             const sentinel = document.getElementById('scrollSentinel');
             const overlay = document.getElementById('infLoadOverlay');
+            const overlayTitle = overlay ? overlay.querySelector('.inf-load-title') : null;
             const endMsg = document.getElementById('scrollEnd');
+            const loadAllButton = document.getElementById('loadAllResultsButton');
 
             if (currentPage === 0) {
                 document.querySelectorAll('.pagination').forEach(el => el.style.display = 'none');
@@ -2791,6 +2794,14 @@
             }
 
             let loading = false;
+            let loadAllInProgress = false;
+            let cardLoadAllCompleted = false;
+            let listLoadAllCompleted = false;
+
+            function isListViewActive() {
+                const listView = document.getElementById('listView');
+                return listView && listView.style.display !== 'none';
+            }
 
             const observer = new IntersectionObserver(function(entries) {
                 if (entries[0].isIntersecting && !loading) {
@@ -2810,10 +2821,107 @@
                 }
             }
 
+            function getVisibleResultCounts() {
+                const infoEl = document.querySelector('.pagination-info span');
+                if (!infoEl) {
+                    return { loadedCount: 0, totalCount: 0 };
+                }
+
+                const match = infoEl.textContent.match(/(\d+)\s*-\s*(\d+)\s+of\s+(\d+)/i);
+                if (!match) {
+                    return { loadedCount: 0, totalCount: 0 };
+                }
+
+                return {
+                    loadedCount: parseInt(match[2], 10) || 0,
+                    totalCount: parseInt(match[3], 10) || 0
+                };
+            }
+
+            function formatLoadAllText(loadedCount, totalCount) {
+                if (typeof window.formatLoadAllProgressText === 'function') {
+                    return window.formatLoadAllProgressText('Loading all...', loadedCount, totalCount);
+                }
+
+                return totalCount > 0
+                    ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
+                    : 'Loading all...';
+            }
+
+            function updateOverlayTitle() {
+                if (!overlayTitle) return;
+
+                if (loadAllInProgress) {
+                    const progress = getVisibleResultCounts();
+                    overlayTitle.textContent = formatLoadAllText(progress.loadedCount, progress.totalCount);
+                    return;
+                }
+
+                overlayTitle.textContent = 'Loading more...';
+            }
+
+            function updateLoadAllButton() {
+                if (!loadAllButton) return;
+                if (typeof currentView !== 'undefined' && currentView === 'graphs') {
+                    setLoadAllButtonVisibility(true);
+                    updateOverlayTitle();
+                    return;
+                }
+
+                if (isListViewActive()) {
+                    const progress = typeof window.getListViewProgressState === 'function'
+                        ? window.getListViewProgressState()
+                        : { loadedCount: 0, totalCount: 0, loading: false, loadAllInProgress: false, allLoaded: false };
+                    setLoadAllButtonVisibility(listLoadAllCompleted || progress.allLoaded);
+                    loadAllButton.disabled = progress.loading || progress.loadAllInProgress;
+                    loadAllButton.textContent = progress.loadAllInProgress
+                        ? formatLoadAllText(progress.loadedCount, progress.totalCount)
+                        : 'Load all';
+                } else {
+                    setLoadAllButtonVisibility(cardLoadAllCompleted || totalPages <= 1 || currentPage >= totalPages - 1);
+                    loadAllButton.disabled = loading || loadAllInProgress;
+                    const progress = getVisibleResultCounts();
+                    loadAllButton.textContent = loadAllInProgress
+                        ? formatLoadAllText(progress.loadedCount, progress.totalCount)
+                        : 'Load all';
+                }
+                loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
+                loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
+                updateOverlayTitle();
+            }
+
+            function setLoadAllButtonVisibility(hidden) {
+                if (!loadAllButton) return;
+                loadAllButton.hidden = hidden;
+                loadAllButton.style.display = hidden ? 'none' : '';
+            }
+
+            function hideLoadAllButtonIfFinished() {
+                if (!loadAllButton) return;
+
+                if (isListViewActive()) {
+                    const progress = typeof window.getListViewProgressState === 'function'
+                        ? window.getListViewProgressState()
+                        : null;
+                    if (progress && progress.allLoaded) {
+                        listLoadAllCompleted = true;
+                        setLoadAllButtonVisibility(true);
+                    }
+                    return;
+                }
+
+                if (currentPage >= totalPages - 1) {
+                    cardLoadAllCompleted = true;
+                    setLoadAllButtonVisibility(true);
+                }
+            }
+
             async function loadNextPage() {
                 loading = true;
+                updateLoadAllButton();
                 overlay.classList.add('active');
                 currentPage++;
+                let addedCount = 0;
 
                 try {
                     const url = new URL(window.location.href);
@@ -2823,9 +2931,10 @@
                     const html = await resp.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     const newCards = doc.querySelectorAll('#albumGrid .album-card');
-                    const addedCount = newCards.length;
+                    addedCount = newCards.length;
                     newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
                     updateCounterText(addedCount);
+                    updateLoadAllButton();
                 } catch (e) {
                     currentPage--;
                 }
@@ -2838,7 +2947,50 @@
                 }
 
                 loading = false;
+                updateLoadAllButton();
+                return addedCount > 0;
             }
+
+            window.loadAllInfiniteResults = async function() {
+                if (loadAllInProgress || loading || currentPage >= totalPages - 1) {
+                    return;
+                }
+
+                loadAllInProgress = true;
+                cardLoadAllCompleted = false;
+                observer.disconnect();
+                updateLoadAllButton();
+
+                try {
+                    while (currentPage < totalPages - 1) {
+                        const advanced = await loadNextPage();
+                        if (!advanced) {
+                            break;
+                        }
+                    }
+                } finally {
+                    loadAllInProgress = false;
+                    updateLoadAllButton();
+                    hideLoadAllButtonIfFinished();
+                }
+            };
+
+            window.loadAllVisibleResults = async function() {
+                if (isListViewActive()) {
+                    if (typeof window.loadAllListViewResults === 'function') {
+                        listLoadAllCompleted = false;
+                        await window.loadAllListViewResults();
+                        hideLoadAllButtonIfFinished();
+                    }
+                    return;
+                }
+                await window.loadAllInfiniteResults();
+                hideLoadAllButtonIfFinished();
+            };
+
+            window.refreshPageLoadAllButtonState = updateLoadAllButton;
+
+            updateLoadAllButton();
         })();
     </script>
     <script>window.graphsEntityType = 'albums';</script>

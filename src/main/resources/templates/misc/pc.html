@@ -285,6 +285,7 @@
 
         <div class="pc-toolbar">
             <input type="text" id="pcSearchInput" class="pc-search-input-inline" placeholder="Filter the current overview..." oninput="filterPcTable()" autocomplete="off">
+            <button id="pcLoadAllButton" type="button" class="pc-toggle-btn" hidden th:if="${activeTotalCount > pageSize}" onclick="window.loadAllPcOverviewResults && window.loadAllPcOverviewResults()">Load all</button>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="clearPcSelection()">Clear Selection</button>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="runPcNormalizeCase(this)">Normalize Case Differences</button>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="runPcAutoLink(this)">Auto-Link Exact Matches</button>
@@ -1002,6 +1003,7 @@
             const tbody = getPcOverviewBody(overviewTab);
             const sentinel = document.getElementById('pcInfiniteSentinel');
             const loadingEl = document.getElementById('pcInfiniteLoading');
+            const loadAllButton = document.getElementById('pcLoadAllButton');
 
             if (!tbody || !sentinel || !pageSize) return;
 
@@ -1010,11 +1012,15 @@
             const initialRows = overviewTab === 'song'
                 ? tbody.querySelectorAll('tr[data-raw-song]').length
                 : tbody.querySelectorAll('tr').length;
-            if (initialRows >= totalCount) return;
+            if (initialRows >= totalCount) {
+                if (loadAllButton) loadAllButton.hidden = true;
+                return;
+            }
 
             let nextPage = 2;
             let loadedCount = initialRows;
             let isLoading = false;
+            let loadAllInProgress = false;
             const observer = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting) {
                     loadMore();
@@ -1023,14 +1029,34 @@
 
             observer.observe(sentinel);
 
+            function updateLoadAllButton() {
+                if (!loadAllButton) return;
+                loadAllButton.hidden = loadedCount >= totalCount;
+                loadAllButton.disabled = isLoading || loadAllInProgress;
+                loadAllButton.textContent = loadAllInProgress ? formatLoadAllText() : 'Load all';
+                loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
+                loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
+                if (loadingEl) {
+                    loadingEl.textContent = loadAllInProgress ? formatLoadAllText() : 'Loading...';
+                }
+            }
+
+            function formatLoadAllText() {
+                return totalCount > 0
+                    ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
+                    : 'Loading all...';
+            }
+
             async function loadMore() {
                 if (isLoading || loadedCount >= totalCount) {
                     if (loadedCount >= totalCount) observer.disconnect();
-                    return;
+                    return false;
                 }
 
                 isLoading = true;
+                updateLoadAllButton();
                 if (loadingEl) loadingEl.classList.add('visible');
+                let addedCount = 0;
 
                 try {
                     const url = new URL('/misc/vatos-cuntdown/data', window.location.origin);
@@ -1046,7 +1072,8 @@
                     if (!entries.length) {
                         loadedCount = totalCount;
                         observer.disconnect();
-                        return;
+                        updateLoadAllButton();
+                        return false;
                     }
 
                     const html = overviewTab === 'album'
@@ -1055,7 +1082,8 @@
                         ? renderPcArtistRows(entries)
                         : renderPcSongRows(entries);
                     tbody.insertAdjacentHTML('beforeend', html);
-                    loadedCount += entries.length;
+                    addedCount = entries.length;
+                    loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
                     filterPcTable();
 
@@ -1067,8 +1095,35 @@
                 } finally {
                     isLoading = false;
                     if (loadingEl) loadingEl.classList.remove('visible');
+                    updateLoadAllButton();
                 }
+
+                return addedCount > 0;
             }
+
+            window.loadAllPcOverviewResults = async function() {
+                if (loadAllInProgress || isLoading || loadedCount >= totalCount) {
+                    return;
+                }
+
+                loadAllInProgress = true;
+                observer.disconnect();
+                updateLoadAllButton();
+
+                try {
+                    while (loadedCount < totalCount) {
+                        const advanced = await loadMore();
+                        if (!advanced) {
+                            break;
+                        }
+                    }
+                } finally {
+                    loadAllInProgress = false;
+                    updateLoadAllButton();
+                }
+            };
+
+            updateLoadAllButton();
         }
 
         document.getElementById('pcMatchModal').addEventListener('click', function (event) {

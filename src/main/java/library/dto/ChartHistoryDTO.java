@@ -26,6 +26,7 @@ public class ChartHistoryDTO {
     private boolean fromGroup;        // True if from group artist
     private Integer sourceArtistId;   // The group or primary artist ID
     private String sourceArtistName;  // The group or primary artist name
+    private Boolean inItunes;
 
     public ChartHistoryDTO() {}
     
@@ -203,5 +204,13 @@ public class ChartHistoryDTO {
 
     public void setSourceArtistName(String sourceArtistName) {
         this.sourceArtistName = sourceArtistName;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }

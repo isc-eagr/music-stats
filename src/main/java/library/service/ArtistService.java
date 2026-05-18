@@ -905,6 +905,7 @@ public class ArtistService {
             SELECT 
                 s.id,
                 s.name,
+                ar.name as artist_name,
                 s.length_seconds,
                 (s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id)) as has_image,
                 a.image IS NOT NULL as album_has_image,
@@ -993,6 +994,7 @@ public class ArtistService {
             
             // Set isSingle
             dto.setIsSingle(rs.getBoolean("is_single"));
+            dto.setInItunes(itunesService.songExistsInItunes(rs.getString("artist_name"), dto.getAlbumName(), dto.getName()));
             
             return dto;
         }, artistId);
@@ -1004,6 +1006,7 @@ public class ArtistService {
             SELECT 
                 a.id,
                 a.name,
+                ar.name as artist_name,
                 a.release_date,
                 ar.country,
                 COALESCE(g_override.name, g_artist.name) as genre,
@@ -1083,6 +1086,7 @@ public class ArtistService {
             String lastListen = rs.getString("last_listen");
             dto.setFirstListenedDate(formatDate(firstListen));
             dto.setLastListenedDate(formatDate(lastListen));
+            dto.setInItunes(itunesService.albumExistsInItunes(rs.getString("artist_name"), dto.getName()));
             
             // Calculate and format total listening time
             int listeningSeconds = rs.getInt("total_listening_seconds");
@@ -1221,6 +1225,7 @@ public class ArtistService {
             dto.setFromCrossArtist(true);
             dto.setSourceArtistId(rs.getInt("owner_artist_id"));
             dto.setSourceArtistName(rs.getString("owner_artist_name"));
+            dto.setInItunes(itunesService.albumExistsInItunes(rs.getString("owner_artist_name"), dto.getName()));
             
             return dto;
         }, artistId, artistId, artistId, artistId);
@@ -2307,6 +2312,7 @@ public class ArtistService {
                 dto.setSourceArtistId(songArtistId);
                 dto.setSourceArtistName(rs.getString("artist_name"));
             }
+            dto.setInItunes(itunesService.songExistsInItunes(rs.getString("artist_name"), dto.getAlbumName(), dto.getName()));
             
             return dto;
         }, allArtistIds.toArray());
@@ -2440,6 +2446,7 @@ public class ArtistService {
                 dto.setSourceArtistId(albumArtistId);
                 dto.setSourceArtistName(rs.getString("artist_name"));
             }
+            dto.setInItunes(itunesService.albumExistsInItunes(rs.getString("artist_name"), dto.getName()));
             
             return dto;
         }, queryParams.toArray());
@@ -2856,6 +2863,7 @@ public class ArtistService {
             }
             
             dto.setIsSingle(rs.getBoolean("is_single"));
+            dto.setInItunes(itunesService.songExistsInItunes(rs.getString("primary_artist_name"), dto.getAlbumName(), dto.getName()));
             
             return dto;
         }, artistId);

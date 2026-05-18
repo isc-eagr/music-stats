@@ -704,7 +704,13 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <a th:href="@{'/albums/' + ${album.id}}" th:text="${album.name}">Album Name</a>
+                                    <a th:href="@{'/albums/' + ${album.id}}">
+                                        <span th:if="${album.inItunes != null}"
+                                              th:classappend="${album.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                              class="itunes-badge"
+                                              th:title="${album.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                              th:text="${album.inItunes ? '✓' : '✗'}"></span><span th:text="${album.name}">Album Name</span>
+                                    </a>
                                     <span th:if="${includeGroups and album.fromGroup and album.sourceArtistName != null}" 
                                           class="group-artist-label">
                                         (by <a th:href="@{'/artists/' + ${album.sourceArtistId}}" th:text="${album.sourceArtistName}">Group</a>)
@@ -813,7 +819,13 @@
                                     </div>
                                 </td>
                                 <td class="song-name-col">
-                                    <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
+                                    <a th:href="@{'/songs/' + ${song.id}}">
+                                        <span th:if="${song.inItunes != null}"
+                                              th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                              class="itunes-badge"
+                                              th:title="${song.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                              th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}">Song Name</span>
+                                    </a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
                                     <span th:if="${includeFeatured and song.featuredOn and song.primaryArtistName != null}" 
                                           class="featured-artist-label">
@@ -1242,7 +1254,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
+                                            <a th:href="@{'/albums/' + ${entry.id}}">
+                                                <span th:if="${entry.inItunes != null}"
+                                                      th:classappend="${entry.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry.inItunes ? '✓' : '✗'}"></span><span th:text="${entry.name}">Album Name</span>
+                                            </a>
                                             <span th:if="${includeGroups and entry.fromGroup and entry.sourceArtistName != null}"
                                                   class="group-artist-label">
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
@@ -1335,7 +1353,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a th:href="@{'/songs/' + ${entry.id}}" th:text="${entry.name}">Song Name</a>
+                                            <a th:href="@{'/songs/' + ${entry.id}}">
+                                                <span th:if="${entry.inItunes != null}"
+                                                      th:classappend="${entry.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry.inItunes ? '✓' : '✗'}"></span><span th:text="${entry.name}">Song Name</span>
+                                            </a>
                                             <span th:if="${includeFeatured and entry.featuredOn and entry.sourceArtistName != null}"
                                                   class="featured-artist-label">
                                                 (feat. on <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Artist</a>)
@@ -1533,7 +1557,13 @@
                                     <tr th:each="entry : ${seasonalAlbumHistory}"
                                         th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
                                         <td>
-                                            <a th:href="@{/albums/{id}(id=${entry['albumId']})}" th:text="${entry['albumName']}">Album Name</a>
+                                            <a th:href="@{/albums/{id}(id=${entry['albumId']})}">
+                                                <span th:if="${entry['inItunes'] != null}"
+                                                      th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry['albumName']}">Album Name</span>
+                                            </a>
                                             <span th:if="${includeGroups and entry['fromGroup'] == true and entry['sourceArtistName'] != null}"
                                                   class="group-artist-label">
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
@@ -1575,7 +1605,13 @@
                                     <tr th:each="entry : ${seasonalSongHistory}"
                                         th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
                                         <td>
-                                            <a th:href="@{/songs/{id}(id=${entry['songId']})}" th:text="${entry['songName']}">Song Name</a>
+                                            <a th:href="@{/songs/{id}(id=${entry['songId']})}">
+                                                <span th:if="${entry['inItunes'] != null}"
+                                                      th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry['songName']}">Song Name</span>
+                                            </a>
                                             <span th:if="${includeFeatured and entry['featuredOn'] == true and entry['sourceArtistName'] != null}"
                                                   class="featured-artist-label">
                                                 (feat. on <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Artist</a>)
@@ -1623,7 +1659,13 @@
                                     <tr th:each="entry : ${yearlyAlbumHistory}"
                                         th:classappend="${includeGroups and entry['fromGroup'] == true} ? 'group-item-row' : ''">
                                         <td>
-                                            <a th:href="@{/albums/{id}(id=${entry['albumId']})}" th:text="${entry['albumName']}">Album Name</a>
+                                            <a th:href="@{/albums/{id}(id=${entry['albumId']})}">
+                                                <span th:if="${entry['inItunes'] != null}"
+                                                      th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry['albumName']}">Album Name</span>
+                                            </a>
                                             <span th:if="${includeGroups and entry['fromGroup'] == true and entry['sourceArtistName'] != null}"
                                                   class="group-artist-label">
                                                 (by <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Group</a>)
@@ -1660,7 +1702,13 @@
                                     <tr th:each="entry : ${yearlySongHistory}"
                                         th:classappend="${(includeFeatured and entry['featuredOn'] == true) ? 'featured-song-row' : ''} + ${(includeGroups and entry['fromGroup'] == true) ? ' group-item-row' : ''}">
                                         <td>
-                                            <a th:href="@{/songs/{id}(id=${entry['songId']})}" th:text="${entry['songName']}">Song Name</a>
+                                            <a th:href="@{/songs/{id}(id=${entry['songId']})}">
+                                                <span th:if="${entry['inItunes'] != null}"
+                                                      th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry['songName']}">Song Name</span>
+                                            </a>
                                             <span th:if="${includeFeatured and entry['featuredOn'] == true and entry['sourceArtistName'] != null}"
                                                   class="featured-artist-label">
                                                 (feat. on <a th:href="@{'/artists/' + ${entry['sourceArtistId']}}" th:text="${entry['sourceArtistName']}">Artist</a>)

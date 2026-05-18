@@ -16,6 +16,10 @@
             <div class="catalog-toolbar-header">
                 <div class="catalog-toolbar-heading">
                     <h1 class="catalog-toolbar-title">Genres</h1>
+                    <div class="view-toggle" id="catalogViewToggle" role="tablist" aria-label="Genre views">
+                        <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchCatalogView('card')">Cards</button>
+                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchCatalogView('list')">List</button>
+                    </div>
                 </div>
                 <div class="catalog-toolbar-actions">
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Genre</button>
@@ -79,6 +83,7 @@
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
         
+        <div id="cardView">
         <!-- Genre cards grid -->
         <div class="catalog-grid">
             <div th:each="genre : ${genres}" class="catalog-card" style="cursor: pointer;"
@@ -258,6 +263,11 @@
                     </div>
                 </div>
             </div>
+        </div>
+        </div>
+
+        <div id="listView" style="display:none;">
+            <th:block th:replace="~{fragments/catalog-list-table :: metric-table(${genres}, 'genres', false, true, true, 'genre', 'id', 'name', 'Genre')}"></th:block>
         </div>
         
     </div>

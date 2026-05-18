@@ -24,14 +24,16 @@ public class ChartService {
     private final ChartRepository chartRepository;
     private final ChartEntryRepository chartEntryRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final ItunesService itunesService;
     
     // Progress tracking for bulk generation
     private final ConcurrentHashMap<String, ChartGenerationProgressDTO> generationProgress = new ConcurrentHashMap<>();
     
-    public ChartService(ChartRepository chartRepository, ChartEntryRepository chartEntryRepository, JdbcTemplate jdbcTemplate) {
+    public ChartService(ChartRepository chartRepository, ChartEntryRepository chartEntryRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService) {
         this.chartRepository = chartRepository;
         this.chartEntryRepository = chartEntryRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.itunesService = itunesService;
     }
     
     /**
@@ -1077,6 +1079,7 @@ public class ChartService {
             );
             dto.setHasImage(hasImage);
             dto.setAlbumId(albumId);
+            applyItunesPresence(dto);
             result.add(dto);
         }
         
@@ -1117,7 +1120,7 @@ public class ChartService {
             String peakWeek = getFirstPeakWeek(albumId, peakPosition, "album");
             String debutWeek = getDebutWeek(albumId, "album");
             
-            result.add(new ChartHistoryDTO(
+            ChartHistoryDTO dto = new ChartHistoryDTO(
                 albumId,
                 (String) row.get("name"),
                 null,
@@ -1130,7 +1133,9 @@ public class ChartService {
                 debutDate,
                 peakWeek,
                 debutWeek
-            ));
+            );
+            applyItunesPresence(dto);
+            result.add(dto);
         }
         
         result.sort((a, b) -> {
@@ -1170,7 +1175,7 @@ public class ChartService {
             String peakWeek = getFirstPeakWeek(songId, peakPosition, "song");
             String debutWeek = getDebutWeek(songId, "song");
             
-            result.add(new ChartHistoryDTO(
+            ChartHistoryDTO dto = new ChartHistoryDTO(
                 songId,
                 (String) row.get("name"),
                 null,
@@ -1183,7 +1188,9 @@ public class ChartService {
                 debutDate,
                 peakWeek,
                 debutWeek
-            ));
+            );
+            applyItunesPresence(dto);
+            result.add(dto);
         }
         
         result.sort((a, b) -> {
@@ -1223,7 +1230,7 @@ public class ChartService {
             String peakWeek = getFirstPeakWeek(id, peakPosition, "album");
             String debutWeek = getDebutWeek(id, "album");
             
-            result.add(new ChartHistoryDTO(
+            ChartHistoryDTO dto = new ChartHistoryDTO(
                 id,
                 (String) row.get("name"),
                 null,
@@ -1236,7 +1243,9 @@ public class ChartService {
                 debutDate,
                 peakWeek,
                 debutWeek
-            ));
+            );
+            applyItunesPresence(dto);
+            result.add(dto);
         }
         
         return result;
@@ -1290,6 +1299,7 @@ public class ChartService {
             );
             dto.setHasImage(hasImage);
             dto.setAlbumId(albumId);
+            applyItunesPresence(dto);
             result.add(dto);
         }
         
@@ -2379,6 +2389,7 @@ public class ChartService {
             entry.put("displayName", "seasonal".equals(periodType) ? formatSeasonPeriodKey(periodKey) : periodKey);
             entry.put(itemIdKey, rs.getInt("item_id"));
             entry.put(itemNameKey, rs.getString("item_name"));
+            applyItunesPresence(entry, chartType);
             return entry;
         }, artistId, periodType, chartType);
     }
@@ -2408,6 +2419,7 @@ public class ChartService {
             entry.put("displayName", "seasonal".equals(periodType) ? formatSeasonPeriodKey(periodKey) : periodKey);
             entry.put("songId", rs.getInt("song_id"));
             entry.put("songName", rs.getString("song_name"));
+            applyItunesPresence(entry, "song");
             return entry;
         }, albumId, periodType);
     }
@@ -3591,6 +3603,7 @@ public class ChartService {
             );
             dto.setHasImage(hasImage);
             dto.setAlbumId(albumId);
+            applyItunesPresence(dto);
 
             // Mark as from group if artist is different from requested artist
             if (!songArtistId.equals(artistId)) {
@@ -3662,6 +3675,7 @@ public class ChartService {
                 peakWeek,
                 debutWeek
             );
+            applyItunesPresence(dto);
 
             // Mark as from group if artist is different from requested artist
             if (!albumArtistId.equals(artistId)) {
@@ -3724,6 +3738,7 @@ public class ChartService {
             entry.put(itemIdKey, rs.getInt("item_id"));
             entry.put(itemNameKey, rs.getString("item_name"));
             entry.put("artistName", rs.getString("artist_name"));
+            applyItunesPresence(entry, chartType);
 
             // Track if from group
             Integer itemArtistId = rs.getInt("artist_id");
@@ -3863,6 +3878,7 @@ public class ChartService {
             dto.setFeaturedOn(true);
             dto.setSourceArtistId(((Number) row.get("primary_artist_id")).intValue());
             dto.setSourceArtistName((String) row.get("primary_artist_name"));
+            applyItunesPresence(dto);
             result.add(dto);
         }
 
@@ -3898,8 +3914,71 @@ public class ChartService {
             entry.put("featuredOn", true);
             entry.put("sourceArtistId", rs.getInt("primary_artist_id"));
             entry.put("sourceArtistName", rs.getString("primary_artist_name"));
+            applyItunesPresence(entry, "song");
             return entry;
         }, artistId, periodType);
+    }
+
+    private void applyItunesPresence(ChartHistoryDTO dto) {
+        if (dto == null || dto.getId() == null) {
+            return;
+        }
+
+        if ("song".equals(dto.getChartType())) {
+            dto.setInItunes(resolveSongItunesPresence(dto.getId()));
+            return;
+        }
+
+        dto.setInItunes(resolveAlbumItunesPresence(dto.getId()));
+    }
+
+    private void applyItunesPresence(Map<String, Object> entry, String chartType) {
+        if (entry == null) {
+            return;
+        }
+
+        String idKey = "song".equals(chartType) ? "songId" : "albumId";
+        Object rawId = entry.get(idKey);
+        if (!(rawId instanceof Number itemId)) {
+            return;
+        }
+
+        if ("song".equals(chartType)) {
+            entry.put("inItunes", resolveSongItunesPresence(itemId.intValue()));
+            return;
+        }
+
+        entry.put("inItunes", resolveAlbumItunesPresence(itemId.intValue()));
+    }
+
+    private Boolean resolveSongItunesPresence(Integer songId) {
+        Map<String, Object> songRow = jdbcTemplate.queryForMap(
+            "SELECT ar.name AS artist_name, a.name AS album_name, s.name AS song_name " +
+                "FROM Song s " +
+                "INNER JOIN Artist ar ON s.artist_id = ar.id " +
+                "LEFT JOIN Album a ON s.album_id = a.id " +
+                "WHERE s.id = ?",
+            songId
+        );
+        return itunesService.songExistsInItunes(
+            (String) songRow.get("artist_name"),
+            (String) songRow.get("album_name"),
+            (String) songRow.get("song_name")
+        );
+    }
+
+    private Boolean resolveAlbumItunesPresence(Integer albumId) {
+        Map<String, Object> albumRow = jdbcTemplate.queryForMap(
+            "SELECT ar.name AS artist_name, a.name AS album_name " +
+                "FROM Album a " +
+                "INNER JOIN Artist ar ON a.artist_id = ar.id " +
+                "WHERE a.id = ?",
+            albumId
+        );
+        return itunesService.albumExistsInItunes(
+            (String) albumRow.get("artist_name"),
+            (String) albumRow.get("album_name")
+        );
     }
     
     /**
@@ -4328,6 +4407,7 @@ public class ChartService {
                 entry.put("debutWeek", null);
                 entry.put("peakNumberOne", false);
             }
+            entry.put("inItunes", resolveSongItunesPresence(songId));
             result.add(entry);
         }
         return result;

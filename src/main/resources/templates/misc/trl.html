@@ -545,19 +545,20 @@
         </div>
 
         <!-- Toolbar -->
-        <div class="trl-toolbar" th:if="${overviewTab == 'song'}">
-            <button id="btnRetiredOnly" class="trl-toggle-btn" onclick="toggleRetiredFilter(this)">
+        <div class="trl-toolbar">
+            <button id="btnRetiredOnly" th:if="${overviewTab == 'song'}" class="trl-toggle-btn" onclick="toggleRetiredFilter(this)">
                 <span class="btn-icon">&#9733;</span> Hall of Fame Only
             </button>
-            <a href="/misc/trl/chart-entries" class="trl-toggle-btn" style="text-decoration:none;">
+            <a th:if="${overviewTab == 'song'}" href="/misc/trl/chart-entries" class="trl-toggle-btn" style="text-decoration:none;">
                 Chart Entries
             </a>
-            <button class="trl-toggle-btn" onclick="doAutoLink(this)">
+            <button th:if="${overviewTab == 'song'}" class="trl-toggle-btn" onclick="doAutoLink(this)">
                 Auto-Link Exact Matches
             </button>
-            <button class="trl-toggle-btn" onclick="doNormalizeLinked(this)">
+            <button th:if="${overviewTab == 'song'}" class="trl-toggle-btn" onclick="doNormalizeLinked(this)">
                 Normalize Linked
             </button>
+            <button id="trlLoadAllButton" type="button" class="trl-toggle-btn" hidden th:if="${activeTotalCount > pageSize}" onclick="window.loadAllTrlOverviewResults && window.loadAllTrlOverviewResults()">Load all</button>
         </div>
 
         <!-- Data attributes store TRL entry info for each row -->
@@ -1030,6 +1031,7 @@
             var tbody = getTrlOverviewBody(overviewTab);
             var sentinel = document.getElementById('trlInfiniteSentinel');
             var loadingEl = document.getElementById('trlInfiniteLoading');
+            var loadAllButton = document.getElementById('trlLoadAllButton');
 
             if (!tbody || !sentinel || !pageSize) return;
 
@@ -1038,12 +1040,14 @@
                 : tbody.querySelectorAll('tr').length;
 
             if (initialRows >= totalCount) {
+                if (loadAllButton) loadAllButton.hidden = true;
                 return;
             }
 
             var nextPage = 2;
             var loadedCount = initialRows;
             var isLoading = false;
+            var loadAllInProgress = false;
             var observer = new IntersectionObserver(function(entries) {
                 if (entries[0].isIntersecting) {
                     loadMore();
@@ -1052,16 +1056,36 @@
 
             observer.observe(sentinel);
 
+            function updateLoadAllButton() {
+                if (!loadAllButton) return;
+                loadAllButton.hidden = loadedCount >= totalCount;
+                loadAllButton.disabled = isLoading || loadAllInProgress;
+                loadAllButton.textContent = loadAllInProgress ? formatLoadAllText() : 'Load all';
+                loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
+                loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
+                if (loadingEl) {
+                    loadingEl.textContent = loadAllInProgress ? formatLoadAllText() : 'Loading...';
+                }
+            }
+
+            function formatLoadAllText() {
+                return totalCount > 0
+                    ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
+                    : 'Loading all...';
+            }
+
             async function loadMore() {
                 if (isLoading || loadedCount >= totalCount) {
                     if (loadedCount >= totalCount) {
                         observer.disconnect();
                     }
-                    return;
+                    return false;
                 }
 
                 isLoading = true;
+                updateLoadAllButton();
                 if (loadingEl) loadingEl.classList.add('visible');
+                var addedCount = 0;
 
                 try {
                     var url = new URL('/misc/trl/data', window.location.origin);
@@ -1077,7 +1101,8 @@
                     if (!entries.length) {
                         loadedCount = totalCount;
                         observer.disconnect();
-                        return;
+                        updateLoadAllButton();
+                        return false;
                     }
 
                     var html = overviewTab === 'album'
@@ -1086,7 +1111,8 @@
                         ? renderTrlArtistRows(entries)
                         : renderTrlSongRows(entries);
                     tbody.insertAdjacentHTML('beforeend', html);
-                    loadedCount += entries.length;
+                    addedCount = entries.length;
+                    loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
                     applyTrlRetiredFilterIfActive();
 
@@ -1098,8 +1124,35 @@
                 } finally {
                     isLoading = false;
                     if (loadingEl) loadingEl.classList.remove('visible');
+                    updateLoadAllButton();
                 }
+
+                return addedCount > 0;
             }
+
+            window.loadAllTrlOverviewResults = async function() {
+                if (loadAllInProgress || isLoading || loadedCount >= totalCount) {
+                    return;
+                }
+
+                loadAllInProgress = true;
+                observer.disconnect();
+                updateLoadAllButton();
+
+                try {
+                    while (loadedCount < totalCount) {
+                        var advanced = await loadMore();
+                        if (!advanced) {
+                            break;
+                        }
+                    }
+                } finally {
+                    loadAllInProgress = false;
+                    updateLoadAllButton();
+                }
+            };
+
+            updateLoadAllButton();
         }
 
         function showPageBusyOverlay(title, subtitle) {

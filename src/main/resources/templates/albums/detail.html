@@ -657,7 +657,13 @@
                                 <td class="row-num-col" th:text="${iter.count}">1</td>
                                 <td class="hide-mobile" style="text-align:right; color: #888;" th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</td>
                                 <td>
-                                    <a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a>
+                                    <a th:href="@{'/songs/' + ${song.id}}">
+                                        <span th:if="${song.inItunes != null}"
+                                              th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                              class="itunes-badge"
+                                              th:title="${song.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                              th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}">Song Name</span>
+                                    </a>
                                     <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
                                     <span th:if="${song.artistId != null and album.artistId != null and song.artistId != album.artistId}">
                                         <br/>
@@ -920,7 +926,13 @@
                                         th:data-run-url="@{'/charts/album/' + ${entry.id} + '/run'}">
                                         <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td>
-                                            <a th:href="@{'/albums/' + ${entry.id}}" th:text="${entry.name}">Album Name</a>
+                                            <a th:href="@{'/albums/' + ${entry.id}}">
+                                                <span th:if="${entry.inItunes != null}"
+                                                      th:classappend="${entry.inItunes ? 'in-itunes' : 'not-in-itunes'}"
+                                                      class="itunes-badge"
+                                                      th:title="${entry.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                      th:text="${entry.inItunes ? '✓' : '✗'}"></span><span th:text="${entry.name}">Album Name</span>
+                                            </a>
                                         </td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
@@ -974,7 +986,11 @@
                                         <button th:if="${entry['charted']}" class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button>
                                     </td>
                                     <td th:text="${entry['trackNumber'] != null ? entry['trackNumber'] : '-'}">-</td>
-                                    <td><a th:href="@{'/songs/' + ${entry['id']}}" th:text="${entry['name']}">Song</a></td>
+                                    <td><a th:href="@{'/songs/' + ${entry['id']}}"><span th:if="${entry['inItunes'] != null}"
+                                              th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                              class="itunes-badge"
+                                              th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                              th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry['name']}">Song</span></a></td>
                                     <td style="text-align:right;">
                                         <span th:if="${entry['charted']}"
                                               th:classappend="${entry['peakNumberOne']} ? 'peak-number-one' : ''"
@@ -1208,7 +1224,11 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${seasonalSongChartHistory}">
-                                        <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                        <td><a th:href="@{/songs/{id}(id=${entry.songId})}"><span th:if="${entry['inItunes'] != null}"
+                                                  th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                                  class="itunes-badge"
+                                                  th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                  th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry.songName}">Song Name</span></a></td>
                                         <td th:with="pk=${entry.periodKey}, sr=${#strings.contains(pk,'Winter') ? '0' : (#strings.contains(pk,'Spring') ? '1' : (#strings.contains(pk,'Summer') ? '2' : '3'))}" th:attr="data-value=${#strings.substring(pk,0,4) + '-' + sr}">
                                             <a th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
                                                 <span th:if="${#strings.contains(entry.displayName, 'Winter')}">❄️</span>
@@ -1272,7 +1292,11 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${yearlySongChartHistory}">
-                                        <td><a th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song Name</a></td>
+                                        <td><a th:href="@{/songs/{id}(id=${entry.songId})}"><span th:if="${entry['inItunes'] != null}"
+                                                  th:classappend="${entry['inItunes'] ? 'in-itunes' : 'not-in-itunes'}"
+                                                  class="itunes-badge"
+                                                  th:title="${entry['inItunes'] ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                                                  th:text="${entry['inItunes'] ? '✓' : '✗'}"></span><span th:text="${entry.songName}">Song Name</span></a></td>
                                         <td>
                                             <a th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" style="text-decoration: none; color: inherit;">
                                                 📅 <span th:text="${entry.displayName}">2024</span>

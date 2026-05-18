@@ -47,6 +47,13 @@ public class TimeframeService {
         
         int offset = page * perPage;
         String sortDirection = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
+
+        boolean hasAnyWinningFilters =
+            (winningGender != null && !winningGender.isEmpty() && winningGenderMode != null) ||
+            (winningGenre != null && !winningGenre.isEmpty() && winningGenreMode != null) ||
+            (winningEthnicity != null && !winningEthnicity.isEmpty() && winningEthnicityMode != null) ||
+            (winningLanguage != null && !winningLanguage.isEmpty() && winningLanguageMode != null) ||
+            (winningCountry != null && !winningCountry.isEmpty() && winningCountryMode != null);
         
         // Check if we need to merge with all periods (for 0-play period support)
         // If so, skip SQL pagination and do it in Java after the merge
@@ -64,16 +71,10 @@ public class TimeframeService {
         boolean needsJavaPostFilter = (maleDaysMin != null || maleDaysMax != null || 
                                         dateFrom != null || dateTo != null);
         boolean needsJavaSorting = "maledays".equalsIgnoreCase(sortBy);
-        boolean skipSqlPagination = needsMergeWithAllPeriods || needsJavaPostFilter || needsJavaSorting;
+        boolean skipSqlPagination = needsMergeWithAllPeriods || needsJavaPostFilter || needsJavaSorting || hasAnyWinningFilters;
         
         // Determine if we can defer winning attribute computation to after pagination
         // This is safe only when no winning attribute filters are active (including excludes)
-        boolean hasAnyWinningFilters = 
-            (winningGender != null && !winningGender.isEmpty() && winningGenderMode != null) ||
-            (winningGenre != null && !winningGenre.isEmpty() && winningGenreMode != null) ||
-            (winningEthnicity != null && !winningEthnicity.isEmpty() && winningEthnicityMode != null) ||
-            (winningLanguage != null && !winningLanguage.isEmpty() && winningLanguageMode != null) ||
-            (winningCountry != null && !winningCountry.isEmpty() && winningCountryMode != null);
         boolean deferWinningAttributes = skipSqlPagination && !hasAnyWinningFilters;
         
         // Determine if maleDays can be deferred to after pagination
@@ -1062,12 +1063,13 @@ public class TimeframeService {
             Double maleArtistPctMin, Double maleAlbumPctMin, Double maleSongPctMin,
             Double malePlayPctMin, Double maleTimePctMin) {
         
-        // Winning attribute filters would exclude 0-play periods
-        if (winningGenderMode != null && !"excludes".equals(winningGenderMode) && winningGender != null && !winningGender.isEmpty()) return true;
-        if (winningGenreMode != null && !"excludes".equals(winningGenreMode) && winningGenre != null && !winningGenre.isEmpty()) return true;
-        if (winningEthnicityMode != null && !"excludes".equals(winningEthnicityMode) && winningEthnicity != null && !winningEthnicity.isEmpty()) return true;
-        if (winningLanguageMode != null && !"excludes".equals(winningLanguageMode) && winningLanguage != null && !winningLanguage.isEmpty()) return true;
-        if (winningCountryMode != null && !"excludes".equals(winningCountryMode) && winningCountry != null && !winningCountry.isEmpty()) return true;
+        // Winning attribute filters change which periods qualify, so do not merge
+        // excluded played periods back in as empty 0-play cards.
+        if (winningGenderMode != null && winningGender != null && !winningGender.isEmpty()) return true;
+        if (winningGenreMode != null && winningGenre != null && !winningGenre.isEmpty()) return true;
+        if (winningEthnicityMode != null && winningEthnicity != null && !winningEthnicity.isEmpty()) return true;
+        if (winningLanguageMode != null && winningLanguage != null && !winningLanguage.isEmpty()) return true;
+        if (winningCountryMode != null && winningCountry != null && !winningCountry.isEmpty()) return true;
         
         // Min count filters would exclude 0-play periods
         if (artistCountMin != null && artistCountMin > 0) return true;
@@ -2192,15 +2194,16 @@ public class TimeframeService {
             List<Integer> winningEthnicity, String winningEthnicityMode,
             List<Integer> winningLanguage, String winningLanguageMode,
             List<String> winningCountry, String winningCountryMode) {
+        List<String> conditions = new ArrayList<>();
         
         // Winning gender filter
         if (winningGenderMode != null && winningGender != null && !winningGender.isEmpty()) {
             String placeholders = String.join(",", winningGender.stream().map(id -> "?").toList());
             if ("includes".equals(winningGenderMode)) {
-                sql.append(" WHERE wgn.gender_id IN (").append(placeholders).append(")");
+                conditions.add("wgn.gender_id IN (" + placeholders + ")");
                 params.addAll(winningGender);
             } else if ("excludes".equals(winningGenderMode)) {
-                sql.append(" WHERE (wgn.gender_id NOT IN (").append(placeholders).append(") OR wgn.gender_id IS NULL)");
+                conditions.add("(wgn.gender_id NOT IN (" + placeholders + ") OR wgn.gender_id IS NULL)");
                 params.addAll(winningGender);
             }
         }
@@ -2208,12 +2211,11 @@ public class TimeframeService {
         // Winning genre filter
         if (winningGenreMode != null && winningGenre != null && !winningGenre.isEmpty()) {
             String placeholders = String.join(",", winningGenre.stream().map(id -> "?").toList());
-            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningGenreMode)) {
-                sql.append(connector).append("wgr.genre_id IN (").append(placeholders).append(")");
+                conditions.add("wgr.genre_id IN (" + placeholders + ")");
                 params.addAll(winningGenre);
             } else if ("excludes".equals(winningGenreMode)) {
-                sql.append(connector).append("(wgr.genre_id NOT IN (").append(placeholders).append(") OR wgr.genre_id IS NULL)");
+                conditions.add("(wgr.genre_id NOT IN (" + placeholders + ") OR wgr.genre_id IS NULL)");
                 params.addAll(winningGenre);
             }
         }
@@ -2221,12 +2223,11 @@ public class TimeframeService {
         // Winning ethnicity filter
         if (winningEthnicityMode != null && winningEthnicity != null && !winningEthnicity.isEmpty()) {
             String placeholders = String.join(",", winningEthnicity.stream().map(id -> "?").toList());
-            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningEthnicityMode)) {
-                sql.append(connector).append("weth.ethnicity_id IN (").append(placeholders).append(")");
+                conditions.add("weth.ethnicity_id IN (" + placeholders + ")");
                 params.addAll(winningEthnicity);
             } else if ("excludes".equals(winningEthnicityMode)) {
-                sql.append(connector).append("(weth.ethnicity_id NOT IN (").append(placeholders).append(") OR weth.ethnicity_id IS NULL)");
+                conditions.add("(weth.ethnicity_id NOT IN (" + placeholders + ") OR weth.ethnicity_id IS NULL)");
                 params.addAll(winningEthnicity);
             }
         }
@@ -2234,12 +2235,11 @@ public class TimeframeService {
         // Winning language filter
         if (winningLanguageMode != null && winningLanguage != null && !winningLanguage.isEmpty()) {
             String placeholders = String.join(",", winningLanguage.stream().map(id -> "?").toList());
-            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningLanguageMode)) {
-                sql.append(connector).append("wlang.language_id IN (").append(placeholders).append(")");
+                conditions.add("wlang.language_id IN (" + placeholders + ")");
                 params.addAll(winningLanguage);
             } else if ("excludes".equals(winningLanguageMode)) {
-                sql.append(connector).append("(wlang.language_id NOT IN (").append(placeholders).append(") OR wlang.language_id IS NULL)");
+                conditions.add("(wlang.language_id NOT IN (" + placeholders + ") OR wlang.language_id IS NULL)");
                 params.addAll(winningLanguage);
             }
         }
@@ -2247,14 +2247,17 @@ public class TimeframeService {
         // Winning country filter
         if (winningCountryMode != null && winningCountry != null && !winningCountry.isEmpty()) {
             String placeholders = String.join(",", winningCountry.stream().map(c -> "?").toList());
-            String connector = sql.indexOf(" WHERE ") > 0 ? " AND " : " WHERE ";
             if ("includes".equals(winningCountryMode)) {
-                sql.append(connector).append("wcty.country IN (").append(placeholders).append(")");
+                conditions.add("wcty.country IN (" + placeholders + ")");
                 params.addAll(winningCountry);
             } else if ("excludes".equals(winningCountryMode)) {
-                sql.append(connector).append("(wcty.country NOT IN (").append(placeholders).append(") OR wcty.country IS NULL)");
+                conditions.add("(wcty.country NOT IN (" + placeholders + ") OR wcty.country IS NULL)");
                 params.addAll(winningCountry);
             }
+        }
+
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", conditions));
         }
     }
     

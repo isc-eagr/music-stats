@@ -698,7 +698,7 @@
                         </tr></thead>
                         <tbody>
                             <tr th:each="entry : ${songEntries}"
-                                th:attr="data-gender=${entry.genderId}"
+                                th:attr="data-id=${entry.songId},data-album=${entry.albumName},data-gender=${entry.genderId}"
                                 th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                 <td class="st-pos" th:attr="data-sort-val=${entry.position}" th:text="${entry.position}">1</td>
                                 <td class="st-thumb">
@@ -1634,14 +1634,17 @@
         function openSeasonalSongsPlaylistGenerator() {
             // Get song data from the chart entries
             const songs = [];
-            const entries = document.querySelectorAll('#songList .chart-entry');
+            let entries = document.querySelectorAll('#songList .chart-entry');
+            if (entries.length === 0) {
+                entries = document.querySelectorAll('#songListFinalized tbody tr[data-id]');
+            }
             
             entries.forEach(entry => {
                 const songId = entry.getAttribute('data-id');
                 if (!songId) return;
                 
-                const nameEl = entry.querySelector('.entry-name');
-                const artistEl = entry.querySelector('.entry-artist');
+                const nameEl = entry.querySelector('.entry-name') || entry.querySelector('td:nth-child(3)');
+                const artistEl = entry.querySelector('.entry-artist') || entry.querySelector('td:nth-child(4)');
                 const albumName = entry.getAttribute('data-album') || '';
                 
                 if (nameEl && artistEl) {

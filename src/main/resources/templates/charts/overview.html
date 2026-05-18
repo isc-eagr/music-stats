@@ -803,6 +803,7 @@
                 <div class="overview-toolbar-actions">
                     <button type="button" id="overviewResetFilters" class="overview-control-btn">Reset</button>
                     <button type="button" class="overview-control-btn" th:if="${overviewTab == 'song'}" onclick="openOverviewSongsPlaylistGenerator()">Generate Playlist</button>
+                    <button type="button" id="weeklyOverviewLoadAllButton" class="overview-control-btn" hidden th:if="${serverInfiniteScrollEnabled and activeTotalCount > pageSize}" onclick="window.loadAllOverviewResults && window.loadAllOverviewResults()">Load all</button>
                     <div class="overview-artist-thresholds" th:if="${overviewTab == 'artist'}">
                         <label class="overview-artist-threshold-label" for="artistTopSongFilter">
                             Top X Songs
@@ -2117,6 +2118,7 @@
             const tbody = getActiveOverviewBody();
             const loadingEl = document.getElementById('weeklyOverviewLoading');
             const sentinel = document.getElementById('weeklyOverviewSentinel');
+            const loadAllButton = document.getElementById('weeklyOverviewLoadAllButton');
             if (!container || !tbody || !sentinel) {
                 return;
             }
@@ -2125,13 +2127,39 @@
             const sort = container.dataset.sort || weeklyOverviewSort || 'debutPeriod';
             const dir = container.dataset.dir || weeklyOverviewDir || 'desc';
             const initialRows = tbody.querySelectorAll('.overview-filter-row').length;
-            if (!pageSize || initialRows >= totalCount) {
-                updateOverviewResultsCount();
-                return;
-            }
             let currentPage = 1;
             let loadedCount = initialRows;
             let isLoading = false;
+            let loadAllInProgress = false;
+
+            function updateLoadAllButton() {
+                if (!loadAllButton) {
+                    if (loadingEl) {
+                        loadingEl.textContent = loadAllInProgress ? formatLoadAllText() : 'Loading...';
+                    }
+                    return;
+                }
+                loadAllButton.hidden = !pageSize || loadedCount >= totalCount;
+                loadAllButton.disabled = isLoading || loadAllInProgress;
+                loadAllButton.textContent = loadAllInProgress ? formatLoadAllText() : 'Load all';
+                loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
+                loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
+                if (loadingEl) {
+                    loadingEl.textContent = loadAllInProgress ? formatLoadAllText() : 'Loading...';
+                }
+            }
+
+            function formatLoadAllText() {
+                return totalCount > 0
+                    ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
+                    : 'Loading all...';
+            }
+
+            if (!pageSize || initialRows >= totalCount) {
+                updateLoadAllButton();
+                updateOverviewResultsCount();
+                return;
+            }
             const observer = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting) {
                     loadMore();
@@ -2141,10 +2169,12 @@
 
             async function loadMore() {
                 if (isLoading || loadedCount >= totalCount) {
-                    return;
+                    return false;
                 }
                 isLoading = true;
+                updateLoadAllButton();
                 loadingEl?.classList.add('visible');
+                let addedCount = 0;
                 try {
                     const url = new URL(overviewDataPath, window.location.origin);
                     appendWeeklyOverviewRequestParams(url, currentPage, pageSize);
@@ -2155,7 +2185,8 @@
                     const data = await response.json();
                     tbody.insertAdjacentHTML('beforeend', renderWeeklyOverviewRows(data.entries || []));
                     hydrateWeeklyOverviewRows(data.entries || []);
-                    loadedCount += (data.entries || []).length;
+                    addedCount = (data.entries || []).length;
+                    loadedCount += addedCount;
                     currentPage = data.nextPage ?? (currentPage + 1);
                     await filterOverviewTable({ skipWeeklyServerReload: true });
                     if (!data.hasMore || loadedCount >= totalCount) {
@@ -2166,9 +2197,35 @@
                 } finally {
                     isLoading = false;
                     loadingEl?.classList.remove('visible');
+                    updateLoadAllButton();
                 }
+
+                return addedCount > 0;
             }
 
+            window.loadAllOverviewResults = async function() {
+                if (loadAllInProgress || isLoading || loadedCount >= totalCount) {
+                    return;
+                }
+
+                loadAllInProgress = true;
+                observer.disconnect();
+                updateLoadAllButton();
+
+                try {
+                    while (loadedCount < totalCount) {
+                        const advanced = await loadMore();
+                        if (!advanced) {
+                            break;
+                        }
+                    }
+                } finally {
+                    loadAllInProgress = false;
+                    updateLoadAllButton();
+                }
+            };
+
+            updateLoadAllButton();
             observer.observe(sentinel);
         }
 

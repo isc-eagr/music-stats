@@ -1080,24 +1080,154 @@ a.winning-chip:hover {
 }
 
 /* List view table */
+.catalog-list-hint {
+    margin: 0 0 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.catalog-list-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: #151515;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+.catalog-list-table,
 #listViewTable {
     width: 100%;
+    min-width: 1120px;
     border-collapse: collapse;
-    font-size: 14px;
+    table-layout: fixed;
+    font-size: 13px;
 }
+
+.catalog-list-table th,
+.catalog-list-table td,
 #listViewTable th,
 #listViewTable td {
-    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    vertical-align: middle;
 }
+
+.catalog-list-table thead th,
 #listViewTable thead th {
-    background: rgba(255,255,255,0.05);
-    font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 1;
+    background: #242424;
+    color: rgba(255, 255, 255, 0.78);
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
 }
+
+.catalog-list-table th[data-sort-key],
+#listViewTable th[data-sort-key] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.catalog-list-table th[data-sort-key]:hover,
+#listViewTable th[data-sort-key]:hover {
+    background: #303030;
+    color: #fff;
+}
+
+.catalog-list-table th.sort-asc::after,
+#listViewTable th.sort-asc::after {
+    content: " \2191";
+    color: #9acd32;
+}
+
+.catalog-list-table th.sort-desc::after,
+#listViewTable th.sort-desc::after {
+    content: " \2193";
+    color: #9acd32;
+}
+
+.catalog-list-table tbody tr:hover,
 #listViewTable tbody tr:hover {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.catalog-list-row {
+    cursor: pointer;
+}
+
+.catalog-list-table .rank-col,
+#listViewTable .rank-col {
+    width: 58px;
+    color: var(--text-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.catalog-list-table .numeric-cell,
+#listViewTable .numeric-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.catalog-list-table .name-cell,
+#listViewTable .name-cell {
+    color: #f3f4f6;
+    font-weight: 700;
+}
+
+.catalog-list-table a,
+#listViewTable a {
+    color: #9acd32;
+    text-decoration: none;
+}
+
+.catalog-list-table a:hover,
+#listViewTable a:hover {
+    text-decoration: underline;
+}
+
+.catalog-list-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.catalog-list-chip.genre {
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    background: rgba(139, 92, 246, 0.18);
+}
+
+.catalog-list-chip.male {
+    border: 1px solid rgba(56, 189, 248, 0.42);
+    background: rgba(56, 189, 248, 0.18);
+}
+
+.catalog-list-chip.female {
+    border: 1px solid rgba(244, 114, 182, 0.42);
+    background: rgba(244, 114, 182, 0.18);
+}
+
+.catalog-list-empty {
+    color: rgba(229, 229, 229, 0.42);
+}
+
+.catalog-list-table .no-data td,
+#listViewTable .no-data td {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
 }
 
 /* Graphs view chart tabs */

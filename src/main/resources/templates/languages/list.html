@@ -16,6 +16,10 @@
             <div class="catalog-toolbar-header">
                 <div class="catalog-toolbar-heading">
                     <h1 class="catalog-toolbar-title">Languages</h1>
+                    <div class="view-toggle" id="catalogViewToggle" role="tablist" aria-label="Language views">
+                        <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchCatalogView('card')">Cards</button>
+                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchCatalogView('list')">List</button>
+                    </div>
                 </div>
                 <div class="catalog-toolbar-actions">
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Language</button>
@@ -79,6 +83,7 @@
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
         
+        <div id="cardView">
         <!-- Language cards grid -->
         <div class="catalog-grid">
             <div th:each="language : ${languages}" class="catalog-card" style="cursor: pointer;"
@@ -258,6 +263,11 @@
                     </div>
                 </div>
             </div>
+        </div>
+        </div>
+
+        <div id="listView" style="display:none;">
+            <th:block th:replace="~{fragments/catalog-list-table :: metric-table(${languages}, 'languages', false, true, true, 'language', 'id', 'name', 'Language')}"></th:block>
         </div>
         
         <!-- Pagination controls (bottom) -->

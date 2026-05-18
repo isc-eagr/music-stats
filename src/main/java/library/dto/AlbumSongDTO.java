@@ -20,6 +20,7 @@ public class AlbumSongDTO {
     private String language;
     private String country;
     private boolean isSingle;
+    private Boolean inItunes;
     
     public AlbumSongDTO() {}
     
@@ -174,6 +175,14 @@ public class AlbumSongDTO {
     
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
     
     // Helper method to calculate and format total listening time

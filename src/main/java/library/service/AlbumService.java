@@ -732,6 +732,7 @@ public class AlbumService {
                 s.name,
                 s.track_number,
                 s.length_seconds,
+                alb.name as album_name,
                 COALESCE(s.release_date, alb.release_date) as release_date,
                 ar.country,
                 s.artist_id as song_artist_id,
@@ -814,6 +815,7 @@ public class AlbumService {
             dto.setArtistId(rs.getInt("song_artist_id"));
             dto.setArtistName(rs.getString("song_artist_name"));
             dto.setArtistGenderName(rs.getString("song_artist_gender_name"));
+            dto.setInItunes(itunesService.songExistsInItunes(rs.getString("song_artist_name"), rs.getString("album_name"), dto.getName()));
             
             return dto;
         }, albumId);

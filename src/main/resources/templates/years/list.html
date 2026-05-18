@@ -16,6 +16,10 @@
             <div class="catalog-toolbar-header">
                 <div class="catalog-toolbar-heading">
                     <h1 class="catalog-toolbar-title" th:text="${pageTitle}">Years</h1>
+                    <div class="view-toggle" id="catalogViewToggle" role="tablist" aria-label="Year views">
+                        <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchCatalogView('card')">Cards</button>
+                        <button type="button" class="view-btn" id="viewBtn-list" onclick="switchCatalogView('list')">List</button>
+                    </div>
                 </div>
             </div>
 
@@ -54,6 +58,7 @@
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
 
+        <div id="cardView">
         <!-- Year cards grid -->
         <div class="catalog-grid">
             <div th:each="year : ${years}" class="catalog-card">
@@ -238,6 +243,11 @@
                     </div>
                 </div>
             </div>
+        </div>
+        </div>
+
+        <div id="listView" style="display:none;">
+            <th:block th:replace="~{fragments/catalog-list-table :: year-table(${years}, 'years', true, true)}"></th:block>
         </div>
 
     </div>

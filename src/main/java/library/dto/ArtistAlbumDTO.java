@@ -23,6 +23,7 @@ public class ArtistAlbumDTO {
     private boolean fromCrossArtist; // true if this album belongs to another artist but has songs by this artist
     private Integer sourceArtistId; // the group/owner artist's ID when this is a group or cross-artist album
     private String sourceArtistName; // the group/owner artist's name when this is a group or cross-artist album
+    private Boolean inItunes;
     
     public ArtistAlbumDTO() {}
     
@@ -235,5 +236,13 @@ public class ArtistAlbumDTO {
     
     public void setSourceArtistName(String sourceArtistName) {
         this.sourceArtistName = sourceArtistName;
+    }
+
+    public Boolean getInItunes() {
+        return inItunes;
+    }
+
+    public void setInItunes(Boolean inItunes) {
+        this.inItunes = inItunes;
     }
 }
