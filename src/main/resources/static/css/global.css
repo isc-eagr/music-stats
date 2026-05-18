@@ -4613,19 +4613,35 @@ body.gender-other .mobile-row-expand-btn.expanded,
         min-width: 500px;
     }
 
-    .top-table.mobile-compact-table {
+    .top-table.mobile-compact-table,
+    .table.mobile-compact-table {
         width: 100%;
         min-width: 0;
     }
 
     .top-table.mobile-compact-table th.mobile-name-col,
-    .top-table.mobile-compact-table td.mobile-name-col {
+    .top-table.mobile-compact-table td.mobile-name-col,
+    .table.mobile-compact-table th.mobile-name-col,
+    .table.mobile-compact-table td.mobile-name-col {
         white-space: normal;
         overflow-wrap: anywhere;
     }
 
-    .top-table.mobile-compact-table .mobile-table-detail-cell {
+    .top-table.mobile-compact-table .mobile-table-detail-cell,
+    .table.mobile-compact-table .mobile-table-detail-cell {
         white-space: normal;
+    }
+
+    .table.chart-history-fit-table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    .table.chart-history-fit-table th,
+    .table.chart-history-fit-table td {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
     }
     
     .top-table th,

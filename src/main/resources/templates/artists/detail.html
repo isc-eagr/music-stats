@@ -1265,32 +1265,37 @@
                         </div>
                         
                         <div th:if="${albumChartHistory != null and !albumChartHistory.isEmpty()}" class="table-wrapper">
-                            <table class="table">
+                            <table class="table mobile-compact-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:32px;"></th>
+                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                        <th style="width:32px;" class="hide-mobile"></th>
                                         <th class="cover-col">Cover</th>
-                                        <th>Name</th>
+                                        <th class="mobile-name-col">Name</th>
+                                        <th style="text-align:right;">Total Weeks</th>
                                         <th style="text-align:right;">Peak</th>
                                         <th style="text-align:right;">Wks@Peak</th>
-                                        <th style="text-align:right;">Total Weeks</th>
-                                        <th>Release</th>
-                                        <th>Debut</th>
-                                        <th>Peak Date</th>
+                                        <th class="hide-mobile">Release</th>
+                                        <th class="hide-mobile">Debut</th>
+                                        <th class="hide-mobile">Peak Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${albumChartHistory}"
                                         th:classappend="${includeGroups and entry.fromGroup} ? 'group-item-row' : ''"
-                                        th:data-run-url="@{'/charts/album/' + ${entry.id} + '/run'}">
-                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        th:data-run-url="@{'/charts/album/' + ${entry.id} + '/run'}"
+                                        th:attr="data-mobile-release-date=${entry.releaseDate != null ? entry.releaseDate : '-'},
+                                                data-mobile-debut-date=${entry.debutDate != null ? entry.debutDate : '-'},
+                                                data-mobile-peak-date=${entry.peakDate != null ? entry.peakDate : '-'}">
+                                        <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show album chart details" aria-expanded="false">+</button></td>
+                                        <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div style="cursor:pointer;" th:onclick="|openAlbumImageModalFromArtist(${entry.id})| " th:title="${entry.name}">
                                                 <img th:src="@{'/albums/' + ${entry.id} + '/image'}" th:alt="${entry.name} + ' cover'" class="clickable-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" >
                                                 <div class="cover-placeholder" style="display:none;">-</div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td class="mobile-name-col">
                                             <a th:href="@{'/albums/' + ${entry.id}}">
                                                 <span th:if="${entry.inItunes != null}"
                                                       th:classappend="${entry.inItunes ? 'in-itunes' : 'not-in-itunes'}"
@@ -1303,6 +1308,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
+                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
@@ -1311,13 +1317,12 @@
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
-                                        <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
-                                        <td>
+                                        <td class="hide-mobile" th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
                                             <span th:unless="${entry.debutWeek != null}">-</span>
                                         </td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
                                             <span th:unless="${entry.peakWeek != null}">-</span>
                                         </td>
@@ -1338,25 +1343,30 @@
                         </div>
                         
                         <div th:if="${songChartHistory != null and !songChartHistory.isEmpty()}" class="table-wrapper">
-                            <table class="table">
+                            <table class="table mobile-compact-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:32px;"></th>
+                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                        <th style="width:32px;" class="hide-mobile"></th>
                                         <th class="cover-col">Cover</th>
-                                        <th>Name</th>
+                                        <th class="mobile-name-col">Name</th>
+                                        <th style="text-align:right;">Total Weeks</th>
                                         <th style="text-align:right;">Peak</th>
                                         <th style="text-align:right;">Wks@Peak</th>
-                                        <th style="text-align:right;">Total Weeks</th>
-                                        <th>Release</th>
-                                        <th>Debut</th>
-                                        <th>Peak Date</th>
+                                        <th class="hide-mobile">Release</th>
+                                        <th class="hide-mobile">Debut</th>
+                                        <th class="hide-mobile">Peak Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${songChartHistory}"
                                         th:classappend="${(includeFeatured and entry.featuredOn) ? 'featured-song-row' : ''} + ${(includeGroups and entry.fromGroup) ? ' group-item-row' : ''}"
-                                        th:data-run-url="@{'/charts/song/' + ${entry.id} + '/run'}">
-                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        th:data-run-url="@{'/charts/song/' + ${entry.id} + '/run'}"
+                                        th:attr="data-mobile-release-date=${entry.releaseDate != null ? entry.releaseDate : '-'},
+                                                data-mobile-debut-date=${entry.debutDate != null ? entry.debutDate : '-'},
+                                                data-mobile-peak-date=${entry.peakDate != null ? entry.peakDate : '-'}">
+                                        <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show song chart details" aria-expanded="false">+</button></td>
+                                        <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div th:title="${entry.name}" style="cursor: pointer;">
                                                 <!-- If song has image - show it -->
@@ -1389,7 +1399,7 @@
                                                 <div th:if="${!entry.hasImage and entry.albumId != null}" class="cover-placeholder" style="display:none;">-</div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td class="mobile-name-col">
                                             <a th:href="@{'/songs/' + ${entry.id}}">
                                                 <span th:if="${entry.inItunes != null}"
                                                       th:classappend="${entry.inItunes ? 'in-itunes' : 'not-in-itunes'}"
@@ -1406,6 +1416,7 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
+                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
@@ -1414,13 +1425,12 @@
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.weeksAtPeak}">1</span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
-                                        <td th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
-                                        <td>
+                                        <td class="hide-mobile" th:text="${entry.releaseDate != null ? entry.releaseDate : '-'}">-</td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry.debutWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.debutWeek})}" th:text="${entry.debutDate}">-</a>
                                             <span th:unless="${entry.debutWeek != null}">-</span>
                                         </td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry.peakWeek != null}" th:href="@{/charts/weekly/{week}(week=${entry.peakWeek})}" th:text="${entry.peakDate}">-</a>
                                             <span th:unless="${entry.peakWeek != null}">-</span>
                                         </td>
@@ -1441,34 +1451,48 @@
                             <p>No songs from this artist charted on the Billboard Hot 100.</p>
                         </div>
                         <div th:if="${!bbChartedSongs.isEmpty()}" class="table-wrapper">
-                            <table class="table">
+                            <table class="table mobile-compact-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:32px;"></th>
-                                        <th>Name</th>
+                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                        <th style="width:32px;" class="hide-mobile"></th>
+                                        <th class="cover-col">Cover</th>
+                                        <th class="mobile-name-col">Name</th>
+                                        <th style="text-align:right;">Total Weeks</th>
                                         <th style="text-align:right;">Peak</th>
                                         <th style="text-align:right;">Wks@Peak</th>
-                                        <th style="text-align:right;">Total Weeks</th>
-                                        <th>Debut</th>
-                                        <th>Peak Date</th>
+                                        <th class="hide-mobile">Debut</th>
+                                        <th class="hide-mobile">Peak Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${bbChartedSongs}"
-                                        th:data-run-url="@{'/charts/bb/song/' + ${entry['song_id']} + '/run'}">
-                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
-                                        <td><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        th:data-run-url="@{'/charts/bb/song/' + ${entry['song_id']} + '/run'}"
+                                        th:attr="data-mobile-debut-date=${entry['debut_date'] != null ? entry['debut_date'] : '-'},
+                                                data-mobile-peak-date=${entry['peak_date'] != null ? entry['peak_date'] : '-'}">
+                                        <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show Billboard chart details" aria-expanded="false">+</button></td>
+                                        <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        <td class="cover-col">
+                                            <div th:title="${entry['song_name']}" style="cursor: pointer;">
+                                                <img th:src="@{'/songs/' + ${entry['song_id']} + '/image'}"
+                                                     th:alt="${entry['song_name']}"
+                                                     class="clickable-image"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="cover-placeholder" style="display:none;">-</div>
+                                            </div>
+                                        </td>
+                                        <td class="mobile-name-col"><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        <td style="text-align:right;" th:text="${entry['weeks_on_chart']}">-</td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry['peak_position'] != null and entry['peak_position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="${entry['peak_position'] != null ? entry['peak_position'] : '-'}">-</span>
                                         </td>
                                         <td style="text-align:right;" th:text="${entry['weeks_at_peak'] != null ? entry['weeks_at_peak'] : '-'}">-</td>
-                                        <td style="text-align:right;" th:text="${entry['weeks_on_chart']}">-</td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry['debut_date'] != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry['debut_date']})}" th:text="${entry['debut_date']}">-</a>
                                             <span th:unless="${entry['debut_date'] != null}">-</span>
                                         </td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry['peak_date'] != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry['peak_date']})}" th:text="${entry['peak_date']}">-</a>
                                             <span th:unless="${entry['peak_date'] != null}">-</span>
                                         </td>
@@ -1489,34 +1513,48 @@
                             <p>No songs from this artist charted on Vato's Cuntdown.</p>
                         </div>
                         <div th:if="${!pcChartedSongs.isEmpty()}" class="table-wrapper">
-                            <table class="table">
+                            <table class="table mobile-compact-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:32px;"></th>
-                                        <th>Name</th>
+                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                        <th style="width:32px;" class="hide-mobile"></th>
+                                        <th class="cover-col">Cover</th>
+                                        <th class="mobile-name-col">Name</th>
+                                        <th style="text-align:right;">Total Days</th>
                                         <th style="text-align:right;">Peak</th>
                                         <th style="text-align:right;">Days@Peak</th>
-                                        <th style="text-align:right;">Total Days</th>
-                                        <th>Debut</th>
-                                        <th>Peak Date</th>
+                                        <th class="hide-mobile">Debut</th>
+                                        <th class="hide-mobile">Peak Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${pcChartedSongs}"
-                                        th:data-run-url="@{'/charts/pc/song/' + ${entry['song_id']} + '/run'}">
-                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
-                                        <td><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        th:data-run-url="@{'/charts/pc/song/' + ${entry['song_id']} + '/run'}"
+                                        th:attr="data-mobile-debut-date=${entry['debut_date'] != null ? entry['debut_date'] : '-'},
+                                                data-mobile-peak-date=${entry['peak_date'] != null ? entry['peak_date'] : '-'}">
+                                        <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show Vato's Cuntdown chart details" aria-expanded="false">+</button></td>
+                                        <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        <td class="cover-col">
+                                            <div th:title="${entry['song_name']}" style="cursor: pointer;">
+                                                <img th:src="@{'/songs/' + ${entry['song_id']} + '/image'}"
+                                                     th:alt="${entry['song_name']}"
+                                                     class="clickable-image"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="cover-placeholder" style="display:none;">-</div>
+                                            </div>
+                                        </td>
+                                        <td class="mobile-name-col"><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        <td style="text-align:right;" th:text="${entry['days_on_countdown']}">-</td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry['peak_position'] != null and entry['peak_position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="${entry['peak_position'] != null ? entry['peak_position'] : '-'}">-</span>
                                         </td>
                                         <td style="text-align:right;" th:text="${entry['days_at_peak'] != null ? entry['days_at_peak'] : '-'}">-</td>
-                                        <td style="text-align:right;" th:text="${entry['days_on_countdown']}">-</td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry['debut_date'] != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry['debut_date']})}" th:text="${entry['debut_date']}">-</a>
                                             <span th:unless="${entry['debut_date'] != null}">-</span>
                                         </td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry['peak_date'] != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry['peak_date']})}" th:text="${entry['peak_date']}">-</a>
                                             <span th:unless="${entry['peak_date'] != null}">-</span>
                                         </td>
@@ -1537,34 +1575,48 @@
                             <p>No songs from this artist appeared on TRL.</p>
                         </div>
                         <div th:if="${!trlChartedSongs.isEmpty()}" class="table-wrapper">
-                            <table class="table">
+                            <table class="table mobile-compact-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:32px;"></th>
-                                        <th>Name</th>
+                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                        <th style="width:32px;" class="hide-mobile"></th>
+                                        <th class="cover-col">Cover</th>
+                                        <th class="mobile-name-col">Name</th>
+                                        <th style="text-align:right;">Total Days</th>
                                         <th style="text-align:right;">Peak</th>
                                         <th style="text-align:right;">Days@Peak</th>
-                                        <th style="text-align:right;">Total Days</th>
-                                        <th>Debut</th>
-                                        <th>Peak Date</th>
+                                        <th class="hide-mobile">Debut</th>
+                                        <th class="hide-mobile">Peak Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${trlChartedSongs}"
-                                        th:data-run-url="@{'/charts/trl/song/' + ${entry['song_id']} + '/run'}">
-                                        <td><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
-                                        <td><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        th:data-run-url="@{'/charts/trl/song/' + ${entry['song_id']} + '/run'}"
+                                        th:attr="data-mobile-debut-date=${entry['debut_date'] != null ? entry['debut_date'] : '-'},
+                                                data-mobile-peak-date=${entry['peak_date'] != null ? entry['peak_date'] : '-'}">
+                                        <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show TRL chart details" aria-expanded="false">+</button></td>
+                                        <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
+                                        <td class="cover-col">
+                                            <div th:title="${entry['song_name']}" style="cursor: pointer;">
+                                                <img th:src="@{'/songs/' + ${entry['song_id']} + '/image'}"
+                                                     th:alt="${entry['song_name']}"
+                                                     class="clickable-image"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="cover-placeholder" style="display:none;">-</div>
+                                            </div>
+                                        </td>
+                                        <td class="mobile-name-col"><a th:href="@{'/songs/' + ${entry['song_id']}}" th:text="${entry['song_name']}">Song</a></td>
+                                        <td style="text-align:right;" th:text="${entry['days_on_countdown']}">-</td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry['peak_position'] != null and entry['peak_position'] == 1} ? 'peak-number-one' : ''"
                                                   th:text="${entry['peak_position'] != null ? entry['peak_position'] : '-'}">-</span>
                                         </td>
                                         <td style="text-align:right;" th:text="${entry['days_at_peak'] != null ? entry['days_at_peak'] : '-'}">-</td>
-                                        <td style="text-align:right;" th:text="${entry['days_on_countdown']}">-</td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry['debut_date'] != null}" th:href="@{/misc/trl/recaps(date=${entry['debut_date']})}" th:text="${entry['debut_date']}">-</a>
                                             <span th:unless="${entry['debut_date'] != null}">-</span>
                                         </td>
-                                        <td>
+                                        <td class="hide-mobile">
                                             <a th:if="${entry['peak_date'] != null}" th:href="@{/misc/trl/recaps(date=${entry['peak_date']})}" th:text="${entry['peak_date']}">-</a>
                                             <span th:unless="${entry['peak_date'] != null}">-</span>
                                         </td>
@@ -1581,7 +1633,7 @@
                     <div th:if="${(seasonalAlbumHistory != null and !seasonalAlbumHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">💿 Albums Seasonal Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table js-sortable">
+                            <table class="table js-sortable chart-history-fit-table">
                                 <thead>
                                     <tr>
                                         <th>Album</th>
@@ -1629,7 +1681,7 @@
                     <div th:if="${(seasonalSongHistory != null and !seasonalSongHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">🎵 Songs Seasonal Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table js-sortable">
+                            <table class="table js-sortable chart-history-fit-table">
                                 <thead>
                                     <tr>
                                         <th>Song</th>
@@ -1684,7 +1736,7 @@
                     <div th:if="${(yearlyAlbumHistory != null and !yearlyAlbumHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">💿 Albums Yearly Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table js-sortable">
+                            <table class="table js-sortable chart-history-fit-table">
                                 <thead>
                                     <tr>
                                         <th>Album</th>
@@ -1727,7 +1779,7 @@
                     <div th:if="${(yearlySongHistory != null and !yearlySongHistory.isEmpty())}" class="detail-content-card" style="margin-top: 20px;">
                         <h2 class="section-title">🎵 Songs Yearly Charts</h2>
                         <div class="table-wrapper">
-                            <table class="table js-sortable">
+                            <table class="table js-sortable chart-history-fit-table">
                                 <thead>
                                     <tr>
                                         <th>Song</th>
@@ -4408,6 +4460,56 @@
         button.classList.toggle('expanded', !isVisible);
         button.textContent = isVisible ? '+' : '-';
         button.setAttribute('aria-expanded', String(!isVisible));
+    }
+
+    function toggleMobileChartRow(button) {
+        const mainRow = button.closest('tr');
+        if (!mainRow) return;
+
+        let detailRow = mainRow.nextElementSibling;
+        if (!detailRow || !detailRow.classList.contains('mobile-table-detail-row')) {
+            detailRow = document.createElement('tr');
+            detailRow.className = 'detail-row mobile-table-detail-row';
+
+            const detailCell = document.createElement('td');
+            detailCell.className = 'mobile-table-detail-cell';
+            detailCell.colSpan = mainRow.cells.length;
+            detailCell.innerHTML = renderMobileChartDetails(mainRow);
+
+            detailRow.appendChild(detailCell);
+            mainRow.insertAdjacentElement('afterend', detailRow);
+        }
+
+        const isVisible = detailRow.classList.contains('visible');
+        detailRow.classList.toggle('visible', !isVisible);
+        button.classList.toggle('expanded', !isVisible);
+        button.textContent = isVisible ? '+' : '-';
+        button.setAttribute('aria-expanded', String(!isVisible));
+    }
+
+    function renderMobileChartDetails(row) {
+        const detailFields = [
+            ['Track #', row.dataset.mobileTrackNumber],
+            ['Release', row.dataset.mobileReleaseDate],
+            ['Debut', row.dataset.mobileDebutDate],
+            ['Peak Date', row.dataset.mobilePeakDate]
+        ].filter(([, value]) => value !== undefined);
+
+        return `<div class="mobile-table-detail-grid">${detailFields.map(([label, value]) => `
+            <div class="mobile-table-detail-item">
+                <span class="mobile-table-detail-label">${escapeMobileChartDetailHtml(label)}</span>
+                <span class="mobile-table-detail-value">${escapeMobileChartDetailHtml(value || '-')}</span>
+            </div>
+        `).join('')}</div>`;
+    }
+
+    function escapeMobileChartDetailHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function renderArtistMobileTableDetails(row) {
