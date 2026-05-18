@@ -413,10 +413,21 @@
     .container-wide {
         padding: 10px 12px 18px;
     }
-    /* Fix tabs: remove negative margin hacks that cause horizontal overflow */
+
+    /* Move detail tabs ahead of the detail header and let them span edge to edge */
+    .detail-sidebar {
+        order: 0;
+    }
+
     .detail-tabs {
-        margin-left: 0 !important;
-        margin-right: 0 !important;
+        order: -1;
+        width: calc(100% + 24px);
+        margin: 0 -12px 20px !important;
+    }
+
+    /* Fix tabs: keep the mobile strip full-width without causing horizontal overflow */
+    .detail-tabs {
+        box-sizing: border-box;
         padding-left: 12px !important;
         padding-right: 12px !important;
         gap: 0 !important;
