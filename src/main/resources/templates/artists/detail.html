@@ -381,8 +381,8 @@
             </div>
             
             <!-- Right side: Stacked cards layout for General and Statistics -->
-            <div class="detail-right-section" id="generalSectionContent"
-                 style="display: block !important;">
+              <div class="detail-right-section" id="generalSectionContent"
+                  th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -663,7 +663,9 @@
             </div>
             
             <!-- Albums List Section - Aligned with right section -->
-            <div class="detail-content-section general-tab-section" style="display: block !important;" th:if="${albums != null}">
+              <div class="detail-content-section general-tab-section"
+                  th:if="${albums != null}"
+                  th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <h2 class="section-title">Albums</h2>
                 <div class="top-table-container">
                     <table class="top-table" id="albumsTable">
@@ -749,7 +751,9 @@
             </div>
             
             <!-- Songs List Section - Aligned with right section -->
-            <div class="detail-content-section general-tab-section" style="display: block !important;" th:if="${songs != null and !songs.isEmpty()}">
+              <div class="detail-content-section general-tab-section"
+                  th:if="${songs != null and !songs.isEmpty()}"
+                  th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <h2 class="section-title">Songs</h2>
                 <div class="top-table-container">
                     <table class="top-table" id="songsTable">
@@ -849,8 +853,8 @@
             </div>
             
             <!-- Plays Tab Content -->
-            <div class="plays-tab-content" id="playsTabContent"
-                 style="display: none !important;">
+              <div class="plays-tab-content" id="playsTabContent"
+                  th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
                     <h2 class="section-title">Plays by Year</h2>
@@ -929,8 +933,8 @@
             </div>
             
             <!-- Artist Associations Tab Content -->
-            <div class="featured-tab-content" id="collaboratedTabContent" 
-                 style="display: none !important;">
+              <div class="featured-tab-content" id="collaboratedTabContent" 
+                  th:style="${activeTab == 'collaborated'} ? 'display: block !important;' : 'display: none !important;'">
                 
                 <!-- Is Part Of Section (Groups this artist belongs to) -->
                 <div th:if="${groupArtistCards != null and !groupArtistCards.isEmpty()}" class="detail-content-card">
@@ -1098,8 +1102,8 @@
             </div>
             
             <!-- Chart History Tab Content -->
-            <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
-                 style="display: none !important;">
+              <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
+                  th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
                  
                 <!-- Check if ANY chart data exists -->
                 <div th:if="${(songChartHistory == null or songChartHistory.isEmpty()) and

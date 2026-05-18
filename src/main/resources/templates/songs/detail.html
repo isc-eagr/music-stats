@@ -456,8 +456,8 @@
             </div>
             
             <!-- Right side: Stacked cards layout for General and Statistics -->
-            <div class="detail-right-section" id="generalSectionContent"
-                 style="display: block !important;">
+              <div class="detail-right-section" id="generalSectionContent"
+                  th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- General Section (Left) -->
                 <div class="detail-content-card">
                     <div class="section-header">
@@ -816,8 +816,8 @@
             </div>
             
             <!-- Plays Tab Content -->
-            <div class="plays-tab-content" id="playsTabContent"
-                 style="display: none !important;">
+              <div class="plays-tab-content" id="playsTabContent"
+                  th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
                     <h2 class="section-title">Plays by Year</h2>
@@ -940,8 +940,8 @@
             </div>
             
             <!-- Chart History Tab Content -->
-            <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
-                 style="display: none !important;">
+              <div class="featured-tab-content chart-history-content" id="chartHistoryTabContent"
+                  th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
 
                 <!-- Check if ANY chart data exists -->
                 <div th:if="${(chartHistory == null or chartHistory.isEmpty()) and
