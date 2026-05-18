@@ -330,7 +330,7 @@
     .toggle-text {
         font-size: 12px;
     }
-    
+
     /* Chart history tables - better mobile handling */
     .chart-history-grid .table {
         font-size: 11px;
@@ -347,7 +347,7 @@
         padding: 10px 10px;
         font-size: 11px;
     }
-    
+
     .chart-container {
         height: 220px;
     }

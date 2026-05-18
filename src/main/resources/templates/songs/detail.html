@@ -903,17 +903,19 @@
                                 <div th:unless="${artist.hasImage}" class="no-image">
                                     <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
                                 </div>
-                                <span class="flag-overlay" th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
-                                      th:title="${artist.country}">
-                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
-                                         th:alt="${artist.country}" />
-                                </span>
                                 <!-- Death indicator overlay -->
                                 <span class="death-overlay" th:if="${artist.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(artist.deathDate, 'dd-MMM-yyyy')}">†</span>
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${artist.id}}">
-                                    <h3 class="featured-artist-name" th:text="${artist.name}">Artist Name</h3>
+                                    <h3 class="featured-artist-name">
+                                        <span th:text="${artist.name}">Artist Name</span>
+                                        <span class="inline-flag" th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
+                                              th:title="${artist.country}">
+                                            <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
+                                                 th:alt="${artist.country}" />
+                                        </span>
+                                    </h3>
                                 </a>
                                 <div class="featured-artist-details" th:if="${artist.genderName != null or artist.ethnicityName != null}">
                                     <span th:if="${artist.genderName != null}" th:text="${artist.genderName}"></span>

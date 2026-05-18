@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -110,7 +110,7 @@
         }
     </style>
 </head>
-<body th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : 'gender-other')">
+<body class="artist-detail-page" th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : 'gender-other')">
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     <div class="detail-save-overlay" id="detailSaveOverlay" aria-hidden="true">
         <div class="detail-save-card" role="status" aria-live="polite">
@@ -350,7 +350,7 @@
                                    th:checked="${includeMain}"
                                    onchange="toggleIncludeMain(this.checked)">
                             <span class="toggle-slider"></span>
-                            <span class="toggle-text">Include main</span>
+                            <span class="toggle-text"><span class="toggle-prefix">Include </span>Main</span>
                         </label>
                     </div>
                     
@@ -362,7 +362,7 @@
                                    th:checked="${includeGroups}"
                                    onchange="toggleIncludeGroups(this.checked)">
                             <span class="toggle-slider"></span>
-                            <span class="toggle-text">Include groups</span>
+                            <span class="toggle-text"><span class="toggle-prefix">Include </span>Groups</span>
                         </label>
                     </div>
                     
@@ -374,7 +374,7 @@
                                    th:checked="${includeFeatured}"
                                    onchange="toggleIncludeFeatured(this.checked)">
                             <span class="toggle-slider"></span>
-                            <span class="toggle-text">Include featured</span>
+                            <span class="toggle-text"><span class="toggle-prefix">Include </span>Featured</span>
                         </label>
                     </div>
                 </div>
@@ -949,17 +949,19 @@
                                 <div th:unless="${group.hasImage}" class="no-image">
                                     <span th:text="${#strings.substring(group.name, 0, 1)}"></span>
                                 </div>
-                                <span class="flag-overlay" th:if="${group.country != null and @countryCodeMapper.getCode(group.country) != null}"
-                                      th:title="${group.country}">
-                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(group.country)})}"
-                                         th:alt="${group.country}" />
-                                </span>
                                 <!-- Death indicator overlay -->
                                 <span class="death-overlay" th:if="${group.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(group.deathDate, 'dd-MMM-yyyy')}">†</span>
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${group.id}}">
-                                    <h3 class="featured-artist-name" th:text="${group.name}">Group Name</h3>
+                                    <h3 class="featured-artist-name">
+                                        <span th:text="${group.name}">Group Name</span>
+                                        <span class="inline-flag" th:if="${group.country != null and @countryCodeMapper.getCode(group.country) != null}"
+                                              th:title="${group.country}">
+                                            <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(group.country)})}"
+                                                 th:alt="${group.country}" />
+                                        </span>
+                                    </h3>
                                 </a>
                                 <div class="featured-artist-details" th:if="${group.genderName != null or group.ethnicityName != null}">
                                     <span th:if="${group.genderName != null}" th:text="${group.genderName}"></span>
@@ -999,17 +1001,19 @@
                                 <div th:unless="${member.hasImage}" class="no-image">
                                     <span th:text="${#strings.substring(member.name, 0, 1)}"></span>
                                 </div>
-                                <span class="flag-overlay" th:if="${member.country != null and @countryCodeMapper.getCode(member.country) != null}"
-                                      th:title="${member.country}">
-                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(member.country)})}"
-                                         th:alt="${member.country}" />
-                                </span>
                                 <!-- Death indicator overlay -->
                                 <span class="death-overlay" th:if="${member.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(member.deathDate, 'dd-MMM-yyyy')}">†</span>
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${member.id}}">
-                                    <h3 class="featured-artist-name" th:text="${member.name}">Member Name</h3>
+                                    <h3 class="featured-artist-name">
+                                        <span th:text="${member.name}">Member Name</span>
+                                        <span class="inline-flag" th:if="${member.country != null and @countryCodeMapper.getCode(member.country) != null}"
+                                              th:title="${member.country}">
+                                            <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(member.country)})}"
+                                                 th:alt="${member.country}" />
+                                        </span>
+                                    </h3>
                                 </a>
                                 <div class="featured-artist-details" th:if="${member.genderName != null or member.ethnicityName != null}">
                                     <span th:if="${member.genderName != null}" th:text="${member.genderName}"></span>
@@ -1054,11 +1058,6 @@
                                 <div th:unless="${collab.hasImage}" class="no-image">
                                     <span th:text="${#strings.substring(collab.name, 0, 1)}"></span>
                                 </div>
-                                <span class="flag-overlay" th:if="${collab.country != null and @countryCodeMapper.getCode(collab.country) != null}"
-                                      th:title="${collab.country}">
-                                    <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(collab.country)})}"
-                                         th:alt="${collab.country}" />
-                                </span>
                                 <!-- Death indicator overlay -->
                                 <span class="death-overlay" th:if="${collab.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(collab.deathDate, 'dd-MMM-yyyy')}">†</span>
                                 <!-- Feature count badge for artists -->
@@ -1067,7 +1066,14 @@
                             </a>
                             <div class="featured-artist-info">
                                 <a th:href="@{'/artists/' + ${collab.id}}">
-                                    <h3 class="featured-artist-name" th:text="${collab.name}">Artist Name</h3>
+                                    <h3 class="featured-artist-name">
+                                        <span th:text="${collab.name}">Artist Name</span>
+                                        <span class="inline-flag" th:if="${collab.country != null and @countryCodeMapper.getCode(collab.country) != null}"
+                                              th:title="${collab.country}">
+                                            <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(collab.country)})}"
+                                                 th:alt="${collab.country}" />
+                                        </span>
+                                    </h3>
                                 </a>
                                 <div class="featured-artist-details" th:if="${collab.genderName != null or collab.ethnicityName != null}">
                                     <span th:if="${collab.genderName != null}" th:text="${collab.genderName}"></span>
@@ -3594,6 +3600,127 @@
                 font-size: 12px;
             }
         }
+
+        @media (max-width: 768px) {
+            .artist-detail .artist-mobile-toggle-placeholder {
+                display: none;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .app-nav-container {
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 10px;
+                padding-top: 6px;
+                padding-bottom: 6px;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .app-nav-left {
+                width: auto;
+                justify-content: flex-start;
+                gap: 6px;
+                flex: 0 0 auto;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .app-nav-brand {
+                margin-right: 0;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles {
+                position: static !important;
+                top: auto !important;
+                right: auto !important;
+                z-index: auto !important;
+                order: 0;
+                flex: 0 1 auto;
+                display: flex !important;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 6px !important;
+                align-items: center !important;
+                width: auto !important;
+                max-width: calc(100% - 150px);
+                height: auto !important;
+                margin: 0 0 0 auto !important;
+                padding: 0 !important;
+                background: transparent !important;
+                border: 0 !important;
+                overflow: visible !important;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .include-groups-toggle {
+                width: auto;
+                min-width: auto;
+                margin: 0 !important;
+                padding: 0;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-label {
+                width: auto;
+                min-height: 32px;
+                justify-content: flex-start;
+                gap: 0 !important;
+                padding: 6px 10px !important;
+                border-radius: 999px;
+                background: rgba(107, 114, 128, 0.16) !important;
+                border: 1px solid rgba(156, 163, 175, 0.26) !important;
+                white-space: nowrap;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-slider {
+                display: none !important;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-label:has(input:checked) {
+                background: rgba(59, 130, 246, 0.16) !important;
+                border-color: rgba(96, 165, 250, 0.34) !important;
+            }
+
+            body.artist-detail-page.gender-female .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-label:has(input:checked) {
+                background: rgba(236, 72, 153, 0.16) !important;
+                border-color: rgba(244, 114, 182, 0.34) !important;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-text {
+                flex: 0 1 auto;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 11px !important;
+                line-height: 1;
+                letter-spacing: 0.02em;
+                font-weight: 600;
+                color: #cbd5e1;
+                text-transform: none;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-prefix {
+                display: none;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-label:has(input:checked) .toggle-text {
+                color: #dbeafe;
+            }
+
+            body.artist-detail-page.gender-female .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-label:has(input:checked) .toggle-text {
+                color: #fce7f3;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles {
+                max-width: calc(100% - 132px);
+                gap: 5px !important;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-label {
+                padding: 5px 9px !important;
+            }
+
+            body.artist-detail-page .app-nav.artist-mobile-toggles-nav .mobile-topbar-toggles .toggle-text {
+                font-size: 10px !important;
+            }
+        }
     </style>
     
     <!-- Image Modal -->
@@ -3606,6 +3733,50 @@
             if (artistImage) {
                 artistImage.classList.add('clickable');
                 // Note: click handler is already set inline via onclick attribute
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglesContainer = document.querySelector('.artist-detail .toggles-container');
+            const detailTabs = document.querySelector('.artist-detail .detail-tabs');
+            const nav = document.querySelector('.app-nav');
+            const navContainer = nav ? nav.querySelector('.app-nav-container') : null;
+
+            if (!togglesContainer || !detailTabs || !nav || !navContainer || togglesContainer.dataset.mobileTopbarBound === 'true') {
+                return;
+            }
+
+            togglesContainer.dataset.mobileTopbarBound = 'true';
+
+            const placeholder = document.createElement('div');
+            placeholder.className = 'artist-mobile-toggle-placeholder';
+            detailTabs.insertBefore(placeholder, togglesContainer);
+
+            const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+            function syncArtistMobileTopbarToggles() {
+                if (mobileQuery.matches) {
+                    if (togglesContainer.parentElement !== navContainer) {
+                        navContainer.appendChild(togglesContainer);
+                    }
+                    togglesContainer.classList.add('mobile-topbar-toggles');
+                    nav.classList.add('artist-mobile-toggles-nav');
+                    return;
+                }
+
+                if (placeholder.parentNode && togglesContainer.parentElement !== detailTabs) {
+                    placeholder.parentNode.insertBefore(togglesContainer, placeholder.nextSibling);
+                }
+                togglesContainer.classList.remove('mobile-topbar-toggles');
+                nav.classList.remove('artist-mobile-toggles-nav');
+            }
+
+            syncArtistMobileTopbarToggles();
+
+            if (typeof mobileQuery.addEventListener === 'function') {
+                mobileQuery.addEventListener('change', syncArtistMobileTopbarToggles);
+            } else if (typeof mobileQuery.addListener === 'function') {
+                mobileQuery.addListener(syncArtistMobileTopbarToggles);
             }
         });
         

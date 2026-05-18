@@ -5036,3 +5036,23 @@ input.flatpickr-input:focus {
 
 
 
+
+/* Inline flag next to names inside featured cards */
+.inline-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 15px;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-right: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+}
+.inline-flag img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
