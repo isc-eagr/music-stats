@@ -7,6 +7,12 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <style>
+        body {
+            --accent: #a855f7;
+            --accent-strong: #ddb7ff;
+            --accent-soft: rgba(168, 85, 247, 0.14);
+            --accent-subtitle: #f3ddff;
+        }
         .chart-editor {
             padding: 20px;
             max-width: 1200px;
@@ -32,7 +38,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at top right, rgba(250, 128, 114, 0.14), transparent 48%);
+            background: radial-gradient(circle at top right, var(--accent-soft), transparent 48%);
             pointer-events: none;
         }
         
@@ -500,7 +506,7 @@
             position: relative;
             z-index: 1;
             font-size: clamp(2rem, 3.5vw, 2.5rem);
-            color: #ffb4aa;
+            color: var(--accent-strong);
             margin: 0;
             text-align: center;
             font-weight: 600;
@@ -511,7 +517,7 @@
             z-index: 1;
             margin-top: 10px;
             font-size: 1rem;
-            color: #ffd1ca;
+            color: var(--accent-subtitle);
             letter-spacing: 0.02em;
         }
 

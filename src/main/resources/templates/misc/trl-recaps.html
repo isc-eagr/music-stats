@@ -318,8 +318,8 @@
             margin-bottom: 14px;
         }
         .recap-run-stat {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: var(--mobile-detail-card-bg);
+            border: 1px solid var(--mobile-detail-card-border);
             border-radius: 8px;
             padding: 10px 14px;
             text-align: center;
@@ -327,7 +327,7 @@
         }
         .recap-run-stat-label {
             font-size: 0.72rem;
-            color: #888;
+            color: var(--mobile-detail-label);
             margin-bottom: 4px;
             text-transform: uppercase;
             letter-spacing: 0.06em;
@@ -335,7 +335,7 @@
         .recap-run-stat-value {
             font-size: 1.1rem;
             font-weight: 700;
-            color: #fff;
+            color: var(--mobile-detail-value);
         }
         .recap-run-label {
             font-size: 0.78rem;
@@ -371,6 +371,9 @@
         .recap-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
         .recap-run-loading { color: #888; font-size: 0.82rem; }
         .recap-run-error { color: #f87171; font-size: 0.82rem; }
+        .mobile-recap-run-section {
+            margin-top: 12px;
+        }
         .chart-link {
             text-decoration: none;
             transition: color 0.2s ease;
@@ -596,8 +599,8 @@
             padding: 16px 20px !important;
         }
         .recap-run-stat {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: var(--mobile-detail-card-bg);
+            border: 1px solid var(--mobile-detail-card-border);
             border-radius: 8px;
         }
         .recap-run-box {
@@ -779,7 +782,7 @@
                             <th:block th:each="e, stat : ${countdown}">
                                 <tr th:classappend="${(e.genderClass != null ? e.genderClass : '')} + ${(e.retired ? ' recap-retired' : '')}"
                                     th:attr="data-song-id=${e.songId},data-raw-artist=${e.artistName},data-raw-song=${e.songTitle},data-detail-id=${'trl-recap-run-' + stat.index},data-mobile-artist=${e.artistName != null ? e.artistName : '-'},data-mobile-movement=${e.movement != null ? e.movement : '-'},data-mobile-movement-class=${e.movementClass != null ? e.movementClass : ''},data-mobile-at-peak=${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'},data-mobile-at-peak-label='Days @ Peak'">
-                                    <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this)" aria-label="Show TRL recap details" aria-expanded="false">+</button></td>
+                                    <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this, 'trl')" aria-label="Show TRL recap details" aria-expanded="false">+</button></td>
                                     <td class="center col-expand hide-mobile">
                                         <button class="recap-expand-btn" onclick="toggleRecapExpand(this, 'trl')" title="Show chart run">+</button>
                                     </td>
@@ -1046,7 +1049,7 @@
                             + ' data-mobile-at-peak="' + escHtml(formatPeakCount(e.daysAtPeak)) + '"'
                             + ' data-mobile-at-peak-label="Days @ Peak"'
                             + ' data-detail-id="' + detailId + '">';
-                        html += '<td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this)" aria-label="Show TRL recap details" aria-expanded="false">+</button></td>';
+                        html += '<td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this, \'trl\')" aria-label="Show TRL recap details" aria-expanded="false">+</button></td>';
                         html += '<td class="center col-expand hide-mobile"><button class="recap-expand-btn" onclick="toggleRecapExpand(this, \'trl\')" title="Show chart run">+</button></td>';
                         if (e.movement != null) {
                             html += '<td class="center col-movement hide-mobile"><span class="mvmt ' + (e.movementClass || '') + '">' + escHtml(e.movement) + '</span></td>';
@@ -1166,7 +1169,7 @@
             return chartType + '-recap-run-' + base + '-' + encodeURIComponent(date || 'current');
         }
 
-        function toggleRecapMobileDetails(button) {
+        async function toggleRecapMobileDetails(button, chartType) {
             const row = button.closest('tr');
             if (!row) return;
 
@@ -1191,6 +1194,12 @@
             button.classList.toggle('expanded', !isVisible);
             button.textContent = isVisible ? '+' : '-';
             button.setAttribute('aria-expanded', String(!isVisible));
+            if (isVisible) return;
+
+            const runContainer = detailRow.querySelector('[data-mobile-run-container]');
+            if (runContainer) {
+                await loadRecapRunIntoContainer(runContainer, row, chartType || 'trl');
+            }
         }
 
         function renderRecapMobileDetails(row) {
@@ -1214,7 +1223,8 @@
                     + '<span class="mobile-table-detail-label">' + escHtml(field.label) + '</span>'
                     + '<span class="mobile-table-detail-value">' + field.html + '</span>'
                     + '</div>';
-            }).join('') + '</div>';
+            }).join('') + '</div>'
+                + '<div class="mobile-recap-run-section"><div class="recap-run-loading" data-mobile-run-container="1">Loading chart run...</div></div>';
         }
 
         function renderRecapMobileMovement(row) {
@@ -1296,6 +1306,61 @@
                 + '<div class="recap-run-boxes">' + boxesHtml + '</div>';
         }
 
+        function getRecapBasePath(chartType) {
+            if (chartType === 'pc') return '/misc/vatos-cuntdown/recaps';
+            if (chartType === 'bb') return '/misc/billboard-hot-100/recaps';
+            return '/misc/trl/recaps';
+        }
+
+        function getRecapRunUrl(chartType, row) {
+            let url;
+            if (chartType === 'pc') {
+                url = '/misc/vatos-cuntdown/chart-run?';
+            } else if (chartType === 'bb') {
+                url = '/misc/billboard-hot-100/chart-run?';
+            } else {
+                url = '/misc/trl/chart-run?';
+            }
+
+            if (row.dataset.songId) {
+                return url + 'songId=' + encodeURIComponent(row.dataset.songId);
+            }
+            return url + 'artist=' + encodeURIComponent(row.dataset.rawArtist) + '&song=' + encodeURIComponent(row.dataset.rawSong);
+        }
+
+        async function getFilteredRecapRunEntries(row, chartType) {
+            const runKey = row.dataset.songId
+                ? 'song:' + row.dataset.songId
+                : 'raw:' + row.dataset.rawArtist + '||' + row.dataset.rawSong;
+
+            let runEntries = recapRunCache.get(runKey);
+            if (!runEntries) {
+                const response = await fetch(getRecapRunUrl(chartType, row));
+                runEntries = await response.json();
+                recapRunCache.set(runKey, runEntries);
+            }
+
+            return (runEntries || []).filter(function(entry) {
+                return !currentRecapDate || !entry.chart_date || entry.chart_date <= currentRecapDate;
+            });
+        }
+
+        async function loadRecapRunIntoContainer(container, row, chartType) {
+            if (!container || container.dataset.loaded || container.dataset.loading) return;
+
+            container.dataset.loading = '1';
+            container.innerHTML = '<div class="recap-run-loading">Loading chart run...</div>';
+            try {
+                const filteredRun = await getFilteredRecapRunEntries(row, chartType);
+                container.innerHTML = renderRecapDetail(filteredRun, getRecapBasePath(chartType), getRecapRunToneClass(row));
+                container.dataset.loaded = '1';
+            } catch (error) {
+                container.innerHTML = '<div class="recap-run-error">Failed to load chart run</div>';
+            } finally {
+                delete container.dataset.loading;
+            }
+        }
+
         async function toggleRecapExpand(button, chartType) {
             const row = button.closest('tr');
             let detailRow = row.nextElementSibling;
@@ -1311,36 +1376,7 @@
 
             const detailId = row.dataset.detailId;
             const container = document.getElementById(detailId);
-            if (!container || container.dataset.loaded || container.dataset.loading) return;
-
-            container.dataset.loading = '1';
-            container.innerHTML = '<div class="recap-run-loading">Loading...</div>';
-            try {
-                const runKey = row.dataset.songId
-                    ? 'song:' + row.dataset.songId
-                    : 'raw:' + row.dataset.rawArtist + '||' + row.dataset.rawSong;
-                let runEntries = recapRunCache.get(runKey);
-                if (!runEntries) {
-                    let url = '/misc/trl/chart-run?';
-                    if (row.dataset.songId) {
-                        url += 'songId=' + encodeURIComponent(row.dataset.songId);
-                    } else {
-                        url += 'artist=' + encodeURIComponent(row.dataset.rawArtist) + '&song=' + encodeURIComponent(row.dataset.rawSong);
-                    }
-                    const response = await fetch(url);
-                    runEntries = await response.json();
-                    recapRunCache.set(runKey, runEntries);
-                }
-                const filteredRun = (runEntries || []).filter(function(entry) {
-                    return !currentRecapDate || !entry.chart_date || entry.chart_date <= currentRecapDate;
-                });
-                container.innerHTML = renderRecapDetail(filteredRun, '/misc/trl/recaps', getRecapRunToneClass(row));
-                container.dataset.loaded = '1';
-            } catch (error) {
-                container.innerHTML = '<div class="recap-run-error">Failed to load chart run</div>';
-            } finally {
-                delete container.dataset.loading;
-            }
+            await loadRecapRunIntoContainer(container, row, chartType || 'trl');
         }
 
         function isPeakNow(entry) {

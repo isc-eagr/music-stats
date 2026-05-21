@@ -820,8 +820,8 @@
             flex-wrap: wrap;
         }
         .chart-run-stat {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: var(--mobile-detail-card-bg);
+            border: 1px solid var(--mobile-detail-card-border);
             border-radius: 8px;
             padding: 10px 14px;
             text-align: center;
@@ -829,7 +829,7 @@
         }
         .chart-run-stat-label {
             font-size: 0.74rem;
-            color: #8c8f9a;
+            color: var(--mobile-detail-label);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 6px;
@@ -837,7 +837,7 @@
         .chart-run-stat-value {
             font-size: 1.15rem;
             font-weight: 700;
-            color: #fff;
+            color: var(--mobile-detail-value);
         }
         
         /* Empty state */
@@ -1156,7 +1156,7 @@
                             <tr th:data-song-id="${entry.songId}" th:data-album="${entry.albumName}"
                                 th:attr="data-gender=${entry.genderId},data-genre=${entry.genreName},data-mobile-artist=${entry.artistName != null ? entry.artistName : '-'},data-mobile-album=${entry.albumName != null ? entry.albumName : '-'},data-mobile-movement=${entry.movementDisplay != null ? entry.movementDisplay : '-'},data-mobile-movement-class=${entry.movementClass != null ? entry.movementClass : ''},data-mobile-plays=${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'},data-mobile-weeks-at-peak=${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}"
                                 th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this)" aria-label="Show weekly song details" aria-expanded="false">+</button></td>
+                                <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this, 'song')" aria-label="Show weekly song details" aria-expanded="false">+</button></td>
                                 <td class="col-expand hide-mobile">
                                     <button class="expand-btn" 
                                             th:data-song-id="${entry.songId}"
@@ -1345,7 +1345,7 @@
                                 <tr th:data-album-id="${entry.albumId}"
                                     th:attr="data-gender=${entry.genderId},data-genre=${entry.genreName},data-mobile-artist=${entry.artistName != null ? entry.artistName : '-'},data-mobile-movement=${entry.movementDisplay != null ? entry.movementDisplay : '-'},data-mobile-movement-class=${entry.movementClass != null ? entry.movementClass : ''},data-mobile-plays=${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'},data-mobile-weeks-at-peak=${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}"
                                     th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                    <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this)" aria-label="Show weekly album details" aria-expanded="false">+</button></td>
+                                    <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this, 'album')" aria-label="Show weekly album details" aria-expanded="false">+</button></td>
                                     <td class="col-expand hide-mobile">
                                         <button class="expand-btn" 
                                                 th:data-album-id="${entry.albumId}"
@@ -1572,7 +1572,7 @@
             return 'gender-other';
         }
 
-        function toggleWeeklyMobileDetails(button) {
+        async function toggleWeeklyMobileDetails(button, entityType) {
             const mainRow = button.closest('tr');
             if (!mainRow) return;
 
@@ -1597,6 +1597,12 @@
             button.classList.toggle('expanded', !isVisible);
             button.textContent = isVisible ? '+' : '-';
             button.setAttribute('aria-expanded', String(!isVisible));
+            if (isVisible) return;
+
+            const runContainer = detailRow.querySelector('[data-mobile-run-container]');
+            if (runContainer) {
+                await loadWeeklyMobileRunIntoContainer(runContainer, mainRow, entityType || (mainRow.dataset.albumId ? 'album' : 'song'));
+            }
         }
 
         function renderWeeklyMobileDetails(row) {
@@ -1612,7 +1618,7 @@
                     <span class="mobile-table-detail-label">${escapeWeeklyMobileDetailHtml(field.label)}</span>
                     <span class="mobile-table-detail-value">${field.html}</span>
                 </div>
-            `).join('')}</div>`;
+            `).join('')}</div><div style="margin-top:12px;"><div style="color:#888;font-size:0.82rem;" data-mobile-run-container="1">Loading chart run...</div></div>`;
         }
 
         function renderWeeklyMovementChip(row) {
@@ -1623,6 +1629,41 @@
             const movementClass = row.dataset.mobileMovementClass || '';
             const className = movementClass ? 'mvmt ' + movementClass : 'mvmt';
             return `<span class="${className}">${escapeWeeklyMobileDetailHtml(movement)}</span>`;
+        }
+
+        async function loadWeeklyMobileRunIntoContainer(container, row, entityType) {
+            if (!container || container.dataset.loaded || container.dataset.loading) return;
+
+            container.dataset.loading = '1';
+            container.innerHTML = '<div style="color:#888;font-size:0.82rem;">Loading chart run...</div>';
+            try {
+                if (entityType === 'album') {
+                    const albumId = row.dataset.albumId;
+                    let data = albumChartRunCache[albumId];
+                    if (!data) {
+                        const response = await fetch(`/charts/weekly/${currentPeriodKey}/album/${albumId}/run`);
+                        if (!response.ok) throw new Error('Failed to load chart run');
+                        data = await response.json();
+                        albumChartRunCache[albumId] = data;
+                    }
+                    container.innerHTML = renderAlbumChartRun(data, getWeeklyChartToneClass(row));
+                } else {
+                    const songId = row.dataset.songId;
+                    let data = chartRunCache[songId];
+                    if (!data) {
+                        const response = await fetch(`/charts/weekly/${currentPeriodKey}/song/${songId}/run`);
+                        if (!response.ok) throw new Error('Failed to load chart run');
+                        data = await response.json();
+                        chartRunCache[songId] = data;
+                    }
+                    container.innerHTML = renderChartRun(data, getWeeklyChartToneClass(row));
+                }
+                container.dataset.loaded = '1';
+            } catch (error) {
+                container.innerHTML = '<div style="color:#f87171;">Failed to load chart run data</div>';
+            } finally {
+                delete container.dataset.loading;
+            }
         }
 
         function escapeWeeklyMobileDetailHtml(value) {

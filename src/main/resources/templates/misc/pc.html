@@ -10,10 +10,15 @@
     <script th:src="@{/js/table-sort.js}" defer></script>
     <style>
         body {
-            --accent: #a855f7;
-            --accent-strong: #ddb7ff;
-            --accent-soft: rgba(168, 85, 247, 0.14);
-            --accent-border: rgba(168, 85, 247, 0.34);
+            --accent: #fa8072;
+            --accent-strong: #ffb4aa;
+            --accent-soft: rgba(250, 128, 114, 0.14);
+            --accent-border: rgba(250, 128, 114, 0.34);
+            --accent-overlay: rgba(250, 128, 114, 0.15);
+            --accent-card-border: rgba(250, 128, 114, 0.26);
+            --accent-button-text: #ffb4aa;
+            --accent-button-hover-text: #ffd1ca;
+            --accent-select-text: #ffd1ca;
         }
         .page-load-overlay { display: none; }
         html.js body.page-loading .page-load-overlay,
@@ -23,7 +28,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at top, rgba(170, 90, 220, 0.15), rgba(7, 7, 9, 0.94) 58%);
+            background: radial-gradient(circle at top, var(--accent-overlay), rgba(7, 7, 9, 0.94) 58%);
             backdrop-filter: blur(6px);
             z-index: 3000;
         }
@@ -31,7 +36,7 @@
             min-width: 230px;
             padding: 22px 26px;
             border-radius: 18px;
-            border: 1px solid rgba(170, 90, 220, 0.26);
+            border: 1px solid var(--accent-card-border);
             background: rgba(21, 14, 28, 0.94);
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
             text-align: center;
@@ -42,7 +47,7 @@
             margin: 0 auto 12px;
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,0.08);
-            border-top-color: #a855f7;
+            border-top-color: var(--accent);
             animation: page-load-spin 0.8s linear infinite;
         }
         .page-load-title { color: #efddff; font-size: 15px; font-weight: 600; }
@@ -112,10 +117,10 @@
             font-size: 0.88rem;
             outline: none;
         }
-        .pc-search-input-inline:focus { border-color: #a855f7; }
-        .pc-toggle-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(170, 90, 220, 0.45); background: rgba(170, 90, 220, 0.08); color: #c080e8; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-        .pc-toggle-btn:hover:not(:disabled) { border-color: rgba(170, 90, 220, 0.8); color: #dbb3ff; background: rgba(170, 90, 220, 0.14); }
-        .pc-toggle-btn.active { background: rgba(170, 90, 220, 0.18); border-color: rgba(170, 90, 220, 0.55); color: #c080e8; }
+        .pc-search-input-inline:focus { border-color: var(--accent); }
+        .pc-toggle-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 20px; border: 1px solid var(--accent-border); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent-button-text); font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .pc-toggle-btn:hover:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 80%, white 20%); color: var(--accent-button-hover-text); background: var(--accent-soft); }
+        .pc-toggle-btn.active { background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent-button-text); }
         .pc-toggle-btn:disabled { opacity: 0.55; cursor: default; }
         .pc-table-wrap { overflow: visible; border-radius: 12px; border: 1px solid #2a2a2a; }
         .pc-table { width: 100%; border-collapse: collapse; background: #141414; }
@@ -139,15 +144,15 @@
         .pc-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
         .pc-table td.right, .pc-table th.right { text-align: right; }
         .pc-song-link { color: #e0e0e0; text-decoration: none; font-weight: 600; }
-        .pc-song-link:hover { color: #a855f7; text-decoration: underline; }
+        .pc-song-link:hover { color: var(--accent); text-decoration: underline; }
         .pc-artist-link { color: #aaa; text-decoration: none; font-size: 0.85rem; }
         .pc-artist-link:hover { color: #ccc; text-decoration: underline; }
-        .pc-date-link { color: #c080e8; text-decoration: none; font-size: 0.83rem; }
-        .pc-date-link:hover { color: #dbb3ff; text-decoration: underline; }
+        .pc-date-link { color: var(--accent-button-text); text-decoration: none; font-size: 0.83rem; }
+        .pc-date-link:hover { color: var(--accent-button-hover-text); text-decoration: underline; }
         .pc-no-link-song { color: #999; font-size: 0.88rem; }
         .pc-no-link-artist { color: #777; font-size: 0.85rem; }
-        .pc-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(170, 90, 220, 0.45); background: rgba(170, 90, 220, 0.08); color: #c080e8; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
-        .pc-match-btn:hover { border-color: rgba(170, 90, 220, 0.8); color: #dbb3ff; }
+        .pc-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--accent-border); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent-button-text); font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+        .pc-match-btn:hover { border-color: color-mix(in srgb, var(--accent) 80%, white 20%); color: var(--accent-button-hover-text); }
         .pc-variant-chip { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(255, 199, 94, 0.35); color: #ffc75e; background: rgba(255, 199, 94, 0.08); font-size: 0.76rem; font-weight: 700; }
         .pc-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
         .pc-hidden { display: none; }
@@ -205,7 +210,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        .pc-select-label.source { background: rgba(168, 85, 247, 0.18); color: #d9b8ff; }
+        .pc-select-label.source { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-button-hover-text); }
         .pc-select-label.target { background: rgba(255, 199, 94, 0.16); color: #ffd37a; }
         .pc-select-bar {
             display: none;
@@ -221,7 +226,7 @@
         }
         .pc-select-bar.visible { display: flex; flex-wrap: wrap; }
         .pc-select-label-text { color: #9d7dc1; font-weight: 700; margin-right: 6px; }
-        .pc-source-row { outline: 1px solid rgba(168, 85, 247, 0.7); background: rgba(168, 85, 247, 0.08) !important; }
+        .pc-source-row { outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent) !important; }
         .pc-target-row { outline: 1px solid rgba(255, 199, 94, 0.45); background: rgba(255, 199, 94, 0.06) !important; }
         .pc-float-merge-btn {
             position: fixed;
@@ -233,7 +238,7 @@
             padding: 12px 18px;
             border: 0;
             border-radius: 999px;
-            background: linear-gradient(135deg, #a855f7, #d946ef);
+            background: linear-gradient(135deg, #fa8072, #ff9e93);
             color: #fff;
             font-size: 0.85rem;
             font-weight: 700;
@@ -251,11 +256,11 @@
         .pc-modal-close { border: 0; background: transparent; color: #888; font-size: 1.5rem; line-height: 1; cursor: pointer; }
         .pc-modal-body { padding: 16px 18px 18px; }
         .pc-search-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #353535; background: #101010; color: #e0e0e0; font-size: 0.88rem; outline: none; }
-        .pc-search-input:focus { border-color: #a855f7; }
+        .pc-search-input:focus { border-color: var(--accent); }
         .pc-search-results { margin-top: 12px; max-height: 48vh; overflow-y: auto; border: 1px solid #252525; border-radius: 10px; }
         .pc-result-item { padding: 10px 12px; border-bottom: 1px solid #1f1f1f; cursor: pointer; }
         .pc-result-item:last-child { border-bottom: 0; }
-        .pc-result-item:hover { background: rgba(170, 90, 220, 0.08); }
+        .pc-result-item:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
         .pc-result-title { color: #eee; font-size: 0.9rem; font-weight: 600; }
         .pc-result-artist { color: #949494; font-size: 0.82rem; margin-top: 2px; }
         .pc-search-empty { padding: 20px 14px; color: #777; font-size: 0.85rem; }
