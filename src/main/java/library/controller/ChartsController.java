@@ -20,14 +20,20 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -91,6 +97,8 @@ public class ChartsController {
                               @RequestParam(required = false) String view,
                               Model model) {
         String selectedView = normalizeWeeklyView(view);
+        Set<String> availableDates = buildWeeklyDateOptions(periodKey);
+        String selectedDate = getWeeklyPeriodEndDate(periodKey);
         Optional<Chart> chartOpt = chartService.getChart("song", periodKey);
         
         if (chartOpt.isEmpty()) {
@@ -120,6 +128,8 @@ public class ChartsController {
                 model.addAttribute("nextPeriodKey", null); // No next from preview (already at current week)
                 model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
                 model.addAttribute("selectedView", selectedView);
+                model.addAttribute("availableDates", availableDates);
+                model.addAttribute("selectedDate", selectedDate);
 
                 // Get #1 for display
                 if (!entries.isEmpty()) {
@@ -140,6 +150,8 @@ public class ChartsController {
             model.addAttribute("weekComplete", weekComplete);
             model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
             model.addAttribute("selectedView", selectedView);
+            model.addAttribute("availableDates", availableDates);
+            model.addAttribute("selectedDate", selectedDate);
             return "charts/weekly";
         }
         
@@ -185,6 +197,8 @@ public class ChartsController {
         model.addAttribute("nextIsPreview", nextIsPreview);
         model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
         model.addAttribute("selectedView", selectedView);
+        model.addAttribute("availableDates", availableDates);
+        model.addAttribute("selectedDate", selectedDate);
         
         // Get #1 song info for the header image
         if (!entries.isEmpty()) {
@@ -501,6 +515,34 @@ public class ChartsController {
 
     private String normalizeWeeklyView(String view) {
         return "albums".equalsIgnoreCase(view) ? "albums" : "songs";
+    }
+
+    private Set<String> buildWeeklyDateOptions(String currentPeriodKey) {
+        Set<String> periodKeys = new TreeSet<>(chartService.getExistingChartPeriodKeys("song"));
+        if (currentPeriodKey != null && !currentPeriodKey.isBlank()) {
+            periodKeys.add(currentPeriodKey);
+        }
+
+        Set<String> availableDates = new LinkedHashSet<>();
+        for (String periodKey : periodKeys) {
+            availableDates.add(getWeeklyPeriodEndDate(periodKey));
+        }
+        return availableDates;
+    }
+
+    private String getWeeklyPeriodEndDate(String periodKey) {
+        try {
+            String[] parts = periodKey.split("-W");
+            int year = Integer.parseInt(parts[0]);
+            int week = Integer.parseInt(parts[1]);
+
+            LocalDate jan1 = LocalDate.of(year, 1, 1);
+            LocalDate firstMonday = jan1.with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+            LocalDate weekStart = week == 0 ? jan1 : firstMonday.plusWeeks(week - 1L);
+            return weekStart.plusDays(6).toString();
+        } catch (Exception ignored) {
+            return LocalDate.now().toString();
+        }
     }
     
     // ========== SEASONAL CHARTS ==========

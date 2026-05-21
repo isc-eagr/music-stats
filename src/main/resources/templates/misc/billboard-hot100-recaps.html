@@ -624,12 +624,16 @@
             }
 
             .recap-date-bar {
+                display: grid;
+                grid-template-columns: 34px minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 1fr) 34px;
+                align-items: center;
                 gap: 8px;
                 margin-bottom: 18px;
             }
 
             .recap-date-select {
-                flex: 1 1 calc(33.33% - 8px);
+                width: 100%;
+                flex: 0 1 auto;
                 min-width: 0;
             }
 
@@ -739,9 +743,9 @@
                             <tr>
                                 <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
                                 <th class="col-expand hide-mobile"></th>
-                                <th class="cover-col">Cover</th>
+                                <th class="cover-col"></th>
                                 <th class="center col-movement hide-mobile" title="Movement vs previous week">Movement</th>
-                                <th class="center col-position">Position</th>
+                                <th class="center col-position">Pos.</th>
                                 <th class="col-title mobile-name-col">Song</th>
                                 <th class="col-artist hide-mobile">Artist</th>
                                 <th class="center col-span" title="Weeks on chart up to this week">Weeks</th>
@@ -815,8 +819,8 @@
                         <table class="recap-table table mobile-compact-table">
                             <thead>
                                 <tr>
-                                    <th class="center col-position">Position</th>
-                                    <th class="cover-col">Cover</th>
+                                    <th class="center col-position">Pos.</th>
+                                    <th class="cover-col"></th>
                                     <th class="col-title mobile-name-col">Song</th>
                                     <th class="col-artist hide-mobile">Artist</th>
                                     <th class="center col-span" title="Weeks on chart before dropping off">Weeks</th>
@@ -974,7 +978,7 @@
                     syncNavButtons(data);
 
                     let html = '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                    html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="col-expand hide-mobile"></th><th class="cover-col">Cover</th><th class="center col-movement hide-mobile" title="Movement vs previous week">Movement</th><th class="center col-position">Position</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                    html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="col-expand hide-mobile"></th><th class="cover-col"></th><th class="center col-movement hide-mobile" title="Movement vs previous week">Movement</th><th class="center col-position">Pos.</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                     html += '<th class="center col-span" title="Weeks on chart up to this week">Weeks</th>';
                     html += '<th class="center col-peak" title="Peak position">Peak</th>';
                     html += '<th class="center col-at-peak hide-mobile" title="Weeks at peak">Weeks @ Peak</th>';
@@ -1018,7 +1022,7 @@
                     if (data.fallOffs && data.fallOffs.length > 0) {
                         html += '<div class="recap-section-header">Fall-offs</div>';
                         html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                        html += '<th class="center col-position">Position</th><th class="cover-col">Cover</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                        html += '<th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                         html += '<th class="center col-span" title="Weeks on chart before dropping off">Weeks</th>';
                         html += '<th class="center col-peak" title="Peak position">Peak</th>';
                         html += '<th class="center col-at-peak hide-mobile" title="Weeks at peak">Weeks @ Peak</th>';

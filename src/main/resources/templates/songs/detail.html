@@ -1905,6 +1905,13 @@
             document.body.classList.add('detail-save-busy');
         }
 
+        function destroyFlatpickrInstance(inputId) {
+            const input = document.getElementById(inputId);
+            if (input && input._flatpickr) {
+                input._flatpickr.destroy();
+            }
+        }
+
         function exitEditMode() {
             restoreFormState('songForm', initialSongFormState);
             selectedFeaturedArtists = cloneStateArray(initialSelectedFeaturedArtists);
@@ -1982,6 +1989,7 @@
             }
             hideFeaturedArtistsDropdown();
             destroySearchableSelects('songForm');
+            destroyFlatpickrInstance('releaseDate');
         }
         
         // Add form submit handler to convert mm:ss to seconds and save featured artists
@@ -2150,6 +2158,21 @@
                     initSearchableSelect('overrideGenderId');
                     initSearchableSelect('overrideEthnicityId');
                 }, 100); // Slightly longer delay to wait for album dropdown to populate
+
+                setTimeout(function() {
+                    if (!isEditing) {
+                        return;
+                    }
+                    const releaseDateInput = document.getElementById('releaseDate');
+                    if (releaseDateInput && !releaseDateInput._flatpickr) {
+                        flatpickr(releaseDateInput, {
+                            dateFormat: 'd/m/Y',
+                            allowInput: true,
+                            disableMobile: true,
+                            theme: 'dark'
+                        });
+                    }
+                }, 120);
             } else {
                 exitEditMode();
             }
@@ -3633,18 +3656,6 @@
                 showErrorToast('Error fetching data from iTunes library');
             });
         }
-        
-        // Initialize Flatpickr on releaseDate input
-        document.addEventListener('DOMContentLoaded', function() {
-            const releaseDateInput = document.getElementById('releaseDate');
-            if (releaseDateInput) {
-                flatpickr(releaseDateInput, {
-                    dateFormat: 'd/m/Y',
-                    allowInput: true,
-                    theme: 'dark'
-                });
-            }
-        });
         
         // ==================== External Metadata Search for Song Edit ====================
         function highlightField(elementId) {

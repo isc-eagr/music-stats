@@ -1959,6 +1959,13 @@
             document.body.classList.add('detail-save-busy');
         }
 
+        function destroyFlatpickrInstance(inputId) {
+            const input = document.getElementById(inputId);
+            if (input && input._flatpickr) {
+                input._flatpickr.destroy();
+            }
+        }
+
         function exitEditMode() {
             restoreFormState('albumForm', initialAlbumFormState);
 
@@ -2008,6 +2015,7 @@
             });
 
             destroySearchableSelects('albumForm');
+            destroyFlatpickrInstance('releaseDate');
         }
         
         function toggleEdit() {
@@ -2083,6 +2091,21 @@
                     initSearchableSelect('overrideSubgenreId');
                     initSearchableSelect('overrideLanguageId');
                 }, 50);
+
+                setTimeout(function() {
+                    if (!isEditing) {
+                        return;
+                    }
+                    const releaseDateInput = document.getElementById('releaseDate');
+                    if (releaseDateInput && !releaseDateInput._flatpickr) {
+                        flatpickr(releaseDateInput, {
+                            dateFormat: 'd/m/Y',
+                            allowInput: true,
+                            disableMobile: true,
+                            theme: 'dark'
+                        });
+                    }
+                }, 100);
             } else {
                 exitEditMode();
             }
@@ -2756,18 +2779,6 @@
             }).join('');
             return `<div class="overview-chart-run-wrap"><div class="overview-chart-run-label">Chart Run</div><div class="overview-chart-run-boxes">${boxesHtml}</div></div>`;
         }
-        
-        // Initialize Flatpickr on releaseDate input
-        document.addEventListener('DOMContentLoaded', function() {
-            const releaseDateInput = document.getElementById('releaseDate');
-            if (releaseDateInput) {
-                flatpickr(releaseDateInput, {
-                    dateFormat: 'd/m/Y',
-                    allowInput: true,
-                    theme: 'dark'
-                });
-            }
-        });
         
         // External Metadata Search for Album Edit Mode
         function highlightField(elementId) {

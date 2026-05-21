@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weekly Charts - Music Stats</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
-    <!-- Flatpickr Date Picker -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <style>
         .charts-page {
@@ -63,6 +60,10 @@
             flex-wrap: wrap;
         }
 
+        .weekly-topbar-actions {
+            display: none;
+        }
+
         .overview-subtitle {
             font-size: 1.02rem;
             color: #c9d9ef;
@@ -92,9 +93,11 @@
         
         .charts-nav {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             margin-bottom: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
         }
         
         .charts-nav-center {
@@ -103,68 +106,76 @@
             gap: 12px;
         }
         
-        .date-picker-wrapper {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-        }
-        
-        .date-picker-input {
+        .weekly-date-select {
             background: #1a1a1a;
-            border: 1px solid #333;
-            color: #fff;
-            padding: 10px 14px;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 9px 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
+            outline: none;
         }
-        
-        .date-picker-input:hover {
-            border-color: #444;
+
+        .weekly-date-select:focus {
+            border-color: #60a5fa;
         }
-        
-        .date-picker-label {
-            display: none;
+
+        .weekly-date-select option {
+            background: #1a1a1a;
+            color: #e0e0e0;
         }
         
         @media (max-width: 768px) {
-            .date-picker-wrapper {
-                position: relative;
-            }
-            
-            .date-picker-label {
-                display: block;
-                position: absolute;
-                left: 0;
-                right: 0;
-                top: 0;
-                bottom: 0;
-                pointer-events: none;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #aaa;
-                font-size: 0.8rem;
+            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .app-nav-left {
+                width: auto;
+                justify-content: flex-start;
                 gap: 6px;
-                letter-spacing: 0.3px;
+                flex: 0 0 auto;
             }
-            
-            .date-picker-label svg {
-                width: 14px;
-                height: 14px;
-                stroke: #aaa;
+
+            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .app-nav-brand {
+                margin-right: 0;
             }
-            
-            .date-picker-input {
-                width: 140px;
-                text-align: center;
-                border-color: #444;
-                color-scheme: dark;
+
+            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .weekly-topbar-actions {
+                display: flex !important;
+                flex: 0 1 auto;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 6px;
+                width: auto;
+                max-width: calc(100% - 140px);
+                margin: 0 0 0 auto;
             }
-            
-            .date-picker-input:focus ~ .date-picker-label,
-            .date-picker-input.active ~ .date-picker-label {
-                display: none;
+
+            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .weekly-topbar-actions .action-btn {
+                padding: 6px 8px;
+                font-size: 0.72rem;
+                line-height: 1;
+                white-space: nowrap;
+                border-radius: 999px;
+            }
+
+            .charts-actions .weekly-mobile-hide,
+            .chart-playlist-btn {
+                display: none !important;
+            }
+
+            .charts-nav {
+                display: grid;
+                grid-template-columns: 34px minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 1fr) 34px;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .charts-nav-center {
+                display: contents;
+            }
+
+            .weekly-date-select {
+                width: 100%;
+                min-width: 0;
             }
         }
         
@@ -180,6 +191,15 @@
             align-items: center;
             gap: 8px;
             transition: all 0.2s ease;
+        }
+
+        .charts-nav .nav-btn {
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            font-size: 1rem;
+            flex-shrink: 0;
         }
         
         .nav-btn:hover:not(.disabled) {
@@ -706,22 +726,6 @@
                 font-size: 0.92rem;
             }
 
-            .charts-nav {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-
-            .charts-nav > .nav-btn,
-            .charts-nav-center {
-                flex: 1 1 calc(50% - 5px);
-                justify-content: center;
-            }
-
-            .charts-nav-center {
-                order: 3;
-                flex-basis: 100%;
-            }
-
             .chart-type-toggle {
                 gap: 8px;
                 margin-bottom: 22px;
@@ -1017,7 +1021,7 @@
         /* removed ::before overlay; shimmer applied directly to text via background-clip */
     </style>
 </head>
-<body>
+<body class="weekly-chart-page">
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     
     <div class="charts-page">
@@ -1038,6 +1042,15 @@
         
         <!-- Chart display when chart exists OR in preview mode -->
         <div th:if="${hasChart or isPreview}">
+            <div id="weeklyTopbarActions" class="weekly-topbar-actions">
+                <button th:if="${hasChart}" type="button" class="action-btn" onclick="regenerateThisChart()" title="Regenerate this chart">
+                    🔄 This Chart
+                </button>
+                <button type="button" class="action-btn" onclick="startBulkRegeneration()" title="Regenerate all charts">
+                    🔄 All
+                </button>
+            </div>
+
             <!-- Header -->
             <div class="overview-hero">
                 <section class="overview-hero-card">
@@ -1054,34 +1067,33 @@
                 <a th:if="${prevPeriodKey != null}" 
                    th:href="@{/charts/weekly/{pk}(pk=${prevPeriodKey}, view=${selectedView})}" 
                    id="prevChartLink"
-                   class="nav-btn">
-                    ← Previous
+                   class="nav-btn"
+                   title="Previous week">
+                    ←
                 </a>
-                <span th:if="${prevPeriodKey == null}" class="nav-btn disabled">← Previous</span>
+                <span th:if="${prevPeriodKey == null}" class="nav-btn disabled" title="Previous week">←</span>
                 
                 <div class="charts-nav-center">
-                    <div class="date-picker-wrapper">
-                        <input type="text" autocomplete="off"
-                               id="chartDatePicker" 
-                               class="date-picker-input"
-                               placeholder="dd/mm/yyyy"
-                               title="Jump to a specific week">
-                    </div>
+                    <select id="weeklyMonth" class="weekly-date-select" title="Month"></select>
+                    <select id="weeklyDay" class="weekly-date-select" title="Day"></select>
+                    <select id="weeklyYear" class="weekly-date-select" title="Year"></select>
                 </div>
                 
                 <a th:if="${nextPeriodKey != null and !nextIsPreview}" 
                    th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, view=${selectedView})}" 
                    id="nextChartLink"
-                   class="nav-btn">
-                    Next →
+                   class="nav-btn"
+                   title="Next week">
+                    →
                 </a>
                 <a th:if="${nextPeriodKey != null and nextIsPreview}" 
                    th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, preview=true, view=${selectedView})}" 
                    id="nextPreviewChartLink"
-                   class="nav-btn">
-                    Next →
+                   class="nav-btn"
+                   title="Next week">
+                    →
                 </a>
-                <span th:if="${nextPeriodKey == null}" class="nav-btn disabled">Next →</span>
+                <span th:if="${nextPeriodKey == null}" class="nav-btn disabled" title="Next week">→</span>
             </div>
             
             <!-- Chart type toggle buttons -->
@@ -1099,10 +1111,10 @@
                 <button th:if="${missingWeeksCount > 0}" class="action-btn primary" onclick="startBulkGeneration()">
                     Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
                 </button>
-                <button th:if="${hasChart}" class="action-btn" onclick="regenerateThisChart()" title="Regenerate just this week's chart">
+                <button th:if="${hasChart}" class="action-btn weekly-mobile-hide" onclick="regenerateThisChart()" title="Regenerate just this week's chart">
                     🔄 Regenerate This Chart
                 </button>
-                <button class="action-btn" onclick="startBulkRegeneration()" title="Delete all charts and regenerate from scratch">
+                <button class="action-btn weekly-mobile-hide" onclick="startBulkRegeneration()" title="Delete all charts and regenerate from scratch">
                     🔄 Regenerate All Charts
                 </button>
             </div>
@@ -1139,9 +1151,9 @@
                                 <tr>
                                     <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
                                     <th class="col-expand hide-mobile"></th>
-                                    <th class="cover-col">Cover</th>
+                                    <th class="cover-col"></th>
                                     <th class="col-movement hide-mobile">Movement</th>
-                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Position</th>
+                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Pos.</th>
                                     <th class="col-title mobile-name-col sortable" onclick="sortTable(this,'text')">Song</th>
                                     <th class="col-artist hide-mobile sortable" onclick="sortTable(this,'text')">Artist</th>
                                     <th class="col-plays hide-mobile sortable" onclick="sortTable(this,'number')">Plays</th>
@@ -1328,9 +1340,9 @@
                                 <tr>
                                     <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
                                     <th class="col-expand hide-mobile"></th>
-                                    <th class="cover-col">Cover</th>
+                                    <th class="cover-col"></th>
                                     <th class="col-movement hide-mobile">Movement</th>
-                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Position</th>
+                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Pos.</th>
                                     <th class="col-title mobile-name-col sortable" onclick="sortTable(this,'text')">Album</th>
                                     <th class="col-artist hide-mobile sortable" onclick="sortTable(this,'text')">Artist</th>
                                     <th class="col-plays hide-mobile sortable" onclick="sortTable(this,'number')">Plays</th>
@@ -1445,6 +1457,8 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
         const currentPeriodKey = /*[[${periodKey}]]*/ null;
+        const availableDates = /*[[${availableDates}]]*/ [];
+        const selectedDate = /*[[${selectedDate}]]*/ null;
         let activeWeeklyView = /*[[${selectedView}]]*/ 'songs';
         
         // Chart type toggle functions
@@ -1959,46 +1973,111 @@
             document.getElementById('progressCurrentWeek').textContent = progress.currentWeek || 'Finishing...';
         }
         
-        // Initialize date picker
         document.addEventListener('DOMContentLoaded', function() {
-            const picker = document.getElementById('chartDatePicker');
-            if (!picker) return;
-            
-            const isMobile = window.matchMedia('(max-width: 768px)').matches;
-            
-            // Use flatpickr for both desktop and mobile, but force its custom UI on mobile
-            // (disableMobile: true) so it doesn't use the native OS date picker.
-            // The native picker on some OSes fires 'change' events prematurely when scrolling
-            // through months/years, causing unwanted immediate navigation.
-            // Flatpickr's custom UI only fires onChange when a specific day is clicked.
-            const fp = flatpickr(picker, {
-                dateFormat: 'd/m/Y',
-                allowInput: !isMobile,
-                disableMobile: true,
-                theme: 'dark',
-                onChange: function(selectedDates) {
-                    if (selectedDates.length > 0) {
-                        const d = selectedDates[0];
-                        const year = d.getFullYear();
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const day = String(d.getDate()).padStart(2, '0');
-                        navigateToDate(`${year}-${month}-${day}`);
+            const topbarActions = document.getElementById('weeklyTopbarActions');
+            const nav = document.querySelector('.app-nav');
+            const navContainer = nav ? nav.querySelector('.app-nav-container') : null;
+
+            if (topbarActions && nav && navContainer && topbarActions.dataset.mobileTopbarBound !== 'true') {
+                topbarActions.dataset.mobileTopbarBound = 'true';
+
+                const placeholder = document.createElement('div');
+                placeholder.className = 'weekly-topbar-actions-placeholder';
+                topbarActions.parentNode.insertBefore(placeholder, topbarActions);
+
+                const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+                function syncWeeklyMobileTopbarActions() {
+                    if (mobileQuery.matches) {
+                        if (topbarActions.parentElement !== navContainer) {
+                            navContainer.appendChild(topbarActions);
+                        }
+                        nav.classList.add('weekly-mobile-actions-nav');
+                        return;
                     }
+
+                    if (placeholder.parentNode && topbarActions.parentElement !== placeholder.parentNode) {
+                        placeholder.parentNode.insertBefore(topbarActions, placeholder.nextSibling);
+                    }
+                    nav.classList.remove('weekly-mobile-actions-nav');
                 }
+
+                syncWeeklyMobileTopbarActions();
+
+                if (typeof mobileQuery.addEventListener === 'function') {
+                    mobileQuery.addEventListener('change', syncWeeklyMobileTopbarActions);
+                } else if (typeof mobileQuery.addListener === 'function') {
+                    mobileQuery.addListener(syncWeeklyMobileTopbarActions);
+                }
+            }
+
+            const monthSelect = document.getElementById('weeklyMonth');
+            const daySelect = document.getElementById('weeklyDay');
+            const yearSelect = document.getElementById('weeklyYear');
+            if (!monthSelect || !daySelect || !yearSelect) return;
+
+            let initYear = null;
+            let initMonth = null;
+            let initDay = null;
+            if (selectedDate) {
+                const parts = selectedDate.split('-');
+                if (parts.length === 3) {
+                    initYear = parts[0];
+                    initMonth = parts[1];
+                    initDay = parts[2];
+                }
+            }
+
+            const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthOption = document.createElement('option');
+            monthOption.value = '';
+            monthOption.textContent = '-- Month --';
+            monthSelect.appendChild(monthOption);
+            months.forEach(function(month, index) {
+                const option = document.createElement('option');
+                option.value = String(index + 1).padStart(2, '0');
+                option.textContent = month;
+                if (initMonth === option.value) option.selected = true;
+                monthSelect.appendChild(option);
             });
-            
-            // Handle Enter key when user types a date manually
-            picker.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const parts = picker.value.split('/');
-                    if (parts.length === 3) {
-                        const day = parts[0].padStart(2, '0');
-                        const month = parts[1].padStart(2, '0');
-                        const year = parts[2];
+
+            const dayOption = document.createElement('option');
+            dayOption.value = '';
+            dayOption.textContent = '-- Day --';
+            daySelect.appendChild(dayOption);
+            for (let day = 1; day <= 31; day++) {
+                const option = document.createElement('option');
+                option.value = String(day).padStart(2, '0');
+                option.textContent = String(day).padStart(2, '0');
+                if (initDay === option.value) option.selected = true;
+                daySelect.appendChild(option);
+            }
+
+            const years = Array.from(new Set((availableDates || []).map(function(date) {
+                return String(date).split('-')[0];
+            }).filter(Boolean))).sort();
+            const yearOption = document.createElement('option');
+            yearOption.value = '';
+            yearOption.textContent = '-- Year --';
+            yearSelect.appendChild(yearOption);
+            years.forEach(function(year) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (initYear === option.value) option.selected = true;
+                yearSelect.appendChild(option);
+            });
+
+            [monthSelect, daySelect, yearSelect].forEach(function(select) {
+                select.addEventListener('change', function() {
+                    const month = monthSelect.value;
+                    const day = daySelect.value;
+                    const year = yearSelect.value;
+                    if (month && day && year) {
                         navigateToDate(`${year}-${month}-${day}`);
                     }
-                }
+                });
             });
         });
         

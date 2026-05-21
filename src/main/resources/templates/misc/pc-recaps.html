@@ -619,12 +619,16 @@
             }
 
             .recap-date-bar {
+                display: grid;
+                grid-template-columns: 34px minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 1fr) 34px;
+                align-items: center;
                 gap: 8px;
                 margin-bottom: 18px;
             }
 
             .recap-date-select {
-                flex: 1 1 calc(33.33% - 8px);
+                width: 100%;
+                flex: 0 1 auto;
                 min-width: 0;
             }
 
@@ -730,9 +734,9 @@
                             <tr>
                                 <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
                                 <th class="col-expand hide-mobile"></th>
-                                <th class="cover-col">Cover</th>
+                                <th class="cover-col"></th>
                                 <th class="center col-movement hide-mobile" title="Movement vs previous countdown">Movement</th>
-                                <th class="center col-position">Position</th>
+                                <th class="center col-position">Pos.</th>
                                 <th class="col-title mobile-name-col">Song</th>
                                 <th class="col-artist hide-mobile">Artist</th>
                                 <th class="center col-span" title="Days on countdown up to this date">Days</th>
@@ -808,8 +812,8 @@
                         <table class="recap-table table mobile-compact-table">
                             <thead>
                                 <tr>
-                                    <th class="center col-position">Position</th>
-                                    <th class="cover-col">Cover</th>
+                                    <th class="center col-position">Pos.</th>
+                                    <th class="cover-col"></th>
                                     <th class="col-title mobile-name-col">Song</th>
                                     <th class="col-artist hide-mobile">Artist</th>
                                 </tr>
@@ -857,8 +861,8 @@
                         <table class="recap-table table mobile-compact-table">
                             <thead>
                                 <tr>
-                                    <th class="center col-position">Position</th>
-                                    <th class="cover-col">Cover</th>
+                                    <th class="center col-position">Pos.</th>
+                                    <th class="cover-col"></th>
                                     <th class="col-title mobile-name-col">Song</th>
                                     <th class="col-artist hide-mobile">Artist</th>
                                     <th class="center col-span" title="Days on countdown before dropping off">Days</th>
@@ -1051,7 +1055,7 @@
 
                     // Build main countdown table
                     let html = '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                    html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="col-expand hide-mobile"></th><th class="cover-col">Cover</th><th class="center col-movement hide-mobile" title="Movement vs previous countdown">Movement</th><th class="center col-position">Position</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                    html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="col-expand hide-mobile"></th><th class="cover-col"></th><th class="center col-movement hide-mobile" title="Movement vs previous countdown">Movement</th><th class="center col-position">Pos.</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                     html += '<th class="center col-span" title="Days on countdown up to this date">Days</th>';
                     html += '<th class="center col-peak" title="Peak position">Peak</th>';
                     html += '<th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>';
@@ -1098,7 +1102,7 @@
                     if (closeCallEntries.length > 0) {
                         html += '<div class="recap-section-header">Close Calls</div>';
                         html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                        html += '<th class="center col-position">Position</th><th class="cover-col">Cover</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                        html += '<th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                         html += '</tr></thead><tbody>';
 
                         closeCallEntries.forEach(function(e) {
@@ -1120,7 +1124,7 @@
                     if (data.fallOffs && data.fallOffs.length > 0) {
                         html += '<div class="recap-section-header">Fall-offs</div>';
                         html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                        html += '<th class="center col-position">Position</th><th class="cover-col">Cover</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                        html += '<th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                         html += '<th class="center col-span" title="Days on countdown before dropping off">Days</th>';
                         html += '<th class="center col-peak" title="Peak position">Peak</th>';
                         html += '<th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>';
