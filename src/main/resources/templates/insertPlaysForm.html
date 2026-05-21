@@ -71,6 +71,7 @@
                         <span class="summary-value" th:text="${automationConfig.enabled ? 'Enabled' : 'Disabled'}">Enabled</span>
                         <span class="summary-copy" th:text="${automationImportState.runIntervalMinutes + ' min cadence for ' + (#strings.isEmpty(automationAccount) ? 'no account configured' : automationAccount)}">10 min cadence for vatito</span>
                         <span class="summary-copy" th:text="${'Allowed window: ' + automationConfig.startHour + ':00 - ' + automationConfig.endHour + ':59'}">Allowed window: 7:00 - 23:59</span>
+                        <span class="summary-copy" th:text="${automationImportState.importLogLimit + ' recent rows shown (successes + errors)'}">20 recent rows shown (successes + errors)</span>
                     </div>
                     <div class="actions">
                         <a class="btn btn-action" th:href="@{/config}">Open Config Page</a>
@@ -99,7 +100,7 @@
 
         <div class="form-card automation-log-card" th:if="${automationImportState != null}">
             <p class="section-title">Automation Run Log</p>
-            <p class="hint">Latest automated cycles for the configured account. Each row records when the scheduler ran, what happened, and whether play counts matched.</p>
+            <p class="hint">Latest automated cycles for the configured account. Showing the last success runs with imported plays plus any errors, capped by the Config page limit.</p>
 
             <div th:if="${automationImportState.recentLogs == null or #lists.isEmpty(automationImportState.recentLogs)}">
                 <p class="hint" style="margin-bottom: 0;">No automated runs have been logged yet.</p>

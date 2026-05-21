@@ -312,6 +312,11 @@
                     <span class="config-stat-meta">Run interval</span>
                 </div>
                 <div class="config-stat-card">
+                    <span class="config-stat-label">Import Log Limit</span>
+                    <span class="config-stat-value" th:text="${automationConfig.importLogLimit + ' rows'}">20 rows</span>
+                    <span class="config-stat-meta">Successes and errors shown</span>
+                </div>
+                <div class="config-stat-card">
                     <span class="config-stat-label">Automation Window</span>
                     <span class="config-stat-value" th:text="${automationConfig.startHour + ':00 - ' + automationConfig.endHour + ':59'}">7:00 - 23:59</span>
                     <span class="config-stat-meta">Server time</span>
@@ -368,6 +373,16 @@
                             <label for="automationIntervalMinutes">Minutes</label>
                             <input id="automationIntervalMinutes" name="automationIntervalMinutes" type="number" min="1" max="180" step="1" th:value="${automationConfig.intervalMinutes}">
                             <span class="config-help">Allowed range: 1 to 180 minutes.</span>
+                        </div>
+                    </div>
+
+                    <div class="config-card third">
+                        <h3 class="config-card-title">Import log limit</h3>
+                        <p class="config-card-copy">Rows shown on the Import page.</p>
+                        <div class="config-field">
+                            <label for="automationImportLogLimit">Recent rows</label>
+                            <input id="automationImportLogLimit" name="automationImportLogLimit" type="number" min="10" max="100" step="1" th:value="${automationConfig.importLogLimit}">
+                            <span class="config-help">Allowed range: 10 to 100 rows.</span>
                         </div>
                     </div>
 

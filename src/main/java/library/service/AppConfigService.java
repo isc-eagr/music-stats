@@ -16,6 +16,8 @@ public class AppConfigService {
     public static final int MAX_PAGE_SIZE = 500;
     public static final int MIN_AUTOMATION_INTERVAL_MINUTES = 1;
     public static final int MAX_AUTOMATION_INTERVAL_MINUTES = 180;
+    public static final int MIN_AUTOMATION_IMPORT_LOG_LIMIT = 10;
+    public static final int MAX_AUTOMATION_IMPORT_LOG_LIMIT = 100;
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
@@ -23,6 +25,7 @@ public class AppConfigService {
     private static final String KEY_AUTOMATION_ACCOUNT = "automation.account";
     private static final String KEY_AUTOMATION_API_KEY = "automation.apiKey";
     private static final String KEY_AUTOMATION_INTERVAL_MINUTES = "automation.intervalMinutes";
+    private static final String KEY_AUTOMATION_IMPORT_LOG_LIMIT = "automation.importLogLimit";
     private static final String KEY_AUTOMATION_START_HOUR = "automation.startHour";
     private static final String KEY_AUTOMATION_END_HOUR = "automation.endHour";
 
@@ -49,6 +52,7 @@ public class AppConfigService {
     private final String defaultAutomationAccount;
     private final String defaultAutomationApiKey;
     private final int defaultAutomationIntervalMinutes;
+    private final int defaultAutomationImportLogLimit;
     private final int defaultAutomationStartHour;
     private final int defaultAutomationEndHour;
 
@@ -58,6 +62,7 @@ public class AppConfigService {
             @Value("${musicstats.play-import.automation.account:vatito}") String defaultAutomationAccount,
             @Value("${musicstats.play-import.automation.api-key:}") String defaultAutomationApiKey,
             @Value("${musicstats.play-import.automation.interval-minutes:10}") int defaultAutomationIntervalMinutes,
+            @Value("${musicstats.play-import.automation.import-log-limit:20}") int defaultAutomationImportLogLimit,
             @Value("${musicstats.play-import.automation.start-hour:7}") int defaultAutomationStartHour,
             @Value("${musicstats.play-import.automation.end-hour:23}") int defaultAutomationEndHour) {
         this.jdbcTemplate = jdbcTemplate;
@@ -65,6 +70,7 @@ public class AppConfigService {
         this.defaultAutomationAccount = defaultAutomationAccount;
         this.defaultAutomationApiKey = defaultAutomationApiKey;
         this.defaultAutomationIntervalMinutes = clamp(defaultAutomationIntervalMinutes, MIN_AUTOMATION_INTERVAL_MINUTES, MAX_AUTOMATION_INTERVAL_MINUTES);
+        this.defaultAutomationImportLogLimit = clamp(defaultAutomationImportLogLimit, MIN_AUTOMATION_IMPORT_LOG_LIMIT, MAX_AUTOMATION_IMPORT_LOG_LIMIT);
         this.defaultAutomationStartHour = clamp(defaultAutomationStartHour, 0, 23);
         this.defaultAutomationEndHour = clamp(defaultAutomationEndHour, 0, 23);
     }
@@ -83,6 +89,7 @@ public class AppConfigService {
         putDefault(KEY_AUTOMATION_ACCOUNT, defaultAutomationAccount != null ? defaultAutomationAccount.trim() : "vatito");
         putDefault(KEY_AUTOMATION_API_KEY, defaultAutomationApiKey != null ? defaultAutomationApiKey.trim() : "");
         putDefault(KEY_AUTOMATION_INTERVAL_MINUTES, Integer.toString(resolveLegacyAutomationIntervalMinutes()));
+        putDefault(KEY_AUTOMATION_IMPORT_LOG_LIMIT, Integer.toString(defaultAutomationImportLogLimit));
         putDefault(KEY_AUTOMATION_START_HOUR, Integer.toString(defaultAutomationStartHour));
         putDefault(KEY_AUTOMATION_END_HOUR, Integer.toString(defaultAutomationEndHour));
 
@@ -111,6 +118,7 @@ public class AppConfigService {
                 getString(KEY_AUTOMATION_ACCOUNT, defaultAutomationAccount),
                 getString(KEY_AUTOMATION_API_KEY, defaultAutomationApiKey),
                 getInt(KEY_AUTOMATION_INTERVAL_MINUTES, defaultAutomationIntervalMinutes, MIN_AUTOMATION_INTERVAL_MINUTES, MAX_AUTOMATION_INTERVAL_MINUTES),
+                getInt(KEY_AUTOMATION_IMPORT_LOG_LIMIT, defaultAutomationImportLogLimit, MIN_AUTOMATION_IMPORT_LOG_LIMIT, MAX_AUTOMATION_IMPORT_LOG_LIMIT),
                 getInt(KEY_AUTOMATION_START_HOUR, defaultAutomationStartHour, 0, 23),
                 getInt(KEY_AUTOMATION_END_HOUR, defaultAutomationEndHour, 0, 23)
         );
@@ -208,6 +216,7 @@ public class AppConfigService {
         putValue(KEY_AUTOMATION_ACCOUNT, sanitizeText(automationConfig.account()));
         putValue(KEY_AUTOMATION_API_KEY, sanitizeText(automationConfig.apiKey()));
         putValue(KEY_AUTOMATION_INTERVAL_MINUTES, Integer.toString(clamp(automationConfig.intervalMinutes(), MIN_AUTOMATION_INTERVAL_MINUTES, MAX_AUTOMATION_INTERVAL_MINUTES)));
+        putValue(KEY_AUTOMATION_IMPORT_LOG_LIMIT, Integer.toString(clamp(automationConfig.importLogLimit(), MIN_AUTOMATION_IMPORT_LOG_LIMIT, MAX_AUTOMATION_IMPORT_LOG_LIMIT)));
         putValue(KEY_AUTOMATION_START_HOUR, Integer.toString(Math.min(safeStartHour, safeEndHour)));
         putValue(KEY_AUTOMATION_END_HOUR, Integer.toString(Math.max(safeStartHour, safeEndHour)));
     }
@@ -346,6 +355,7 @@ public class AppConfigService {
             String account,
             String apiKey,
             int intervalMinutes,
+            int importLogLimit,
             int startHour,
             int endHour) {
     }

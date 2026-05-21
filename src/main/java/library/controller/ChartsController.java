@@ -988,6 +988,7 @@ public class ChartsController {
 
         model.addAttribute("currentSection", "weekly-overview-charts");
         model.addAttribute("periodType", "weekly");
+        model.addAttribute("unitLabel", resolveOverviewUnitLabel("weekly"));
         model.addAttribute("overviewTab", normalizedOverviewTab);
         model.addAttribute("songRows", pagedSongRows);
         model.addAttribute("albumRows", pagedAlbumRows);
@@ -1221,6 +1222,7 @@ public class ChartsController {
             default -> "weekly-overview-charts";
         });
         model.addAttribute("periodType", periodType);
+        model.addAttribute("unitLabel", resolveOverviewUnitLabel(periodType));
         model.addAttribute("overviewTab", normalizedOverviewTab);
         model.addAttribute("songRows", songRows);
         model.addAttribute("albumRows", albumRows);
@@ -1294,6 +1296,7 @@ public class ChartsController {
 
         model.addAttribute("currentSection", "seasonal-overview-charts");
         model.addAttribute("periodType", "seasonal");
+        model.addAttribute("unitLabel", resolveOverviewUnitLabel("seasonal"));
         model.addAttribute("overviewTab", overviewTab);
         model.addAttribute("songRows", pagedSongRows);
         model.addAttribute("albumRows", pagedAlbumRows);
@@ -1318,6 +1321,14 @@ public class ChartsController {
             return "";
         }
         return query.trim();
+    }
+
+    private String resolveOverviewUnitLabel(String periodType) {
+        return switch (periodType) {
+            case "seasonal" -> "Seasons";
+            case "yearly" -> "Years";
+            default -> "Weeks";
+        };
     }
 
     private List<String> normalizeOverviewColumnFilters(List<String> filters) {

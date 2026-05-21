@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -154,6 +156,7 @@ public class PlayAutomationStateService {
             automationConfig.account(),
             automationConfig.apiKey(),
             safeRunIntervalMinutes,
+            automationConfig.importLogLimit(),
             automationConfig.startHour(),
             automationConfig.endHour()
         ));
@@ -198,32 +201,54 @@ public class PlayAutomationStateService {
 
     public ImportPageState getImportPageState() {
         StateRow row = loadStateRow();
+        int importLogLimit = appConfigService.getAutomationConfig().importLogLimit();
         return new ImportPageState(
                 getRunIntervalMinutes(),
                 row.lastAttemptAt(),
                 row.lastSuccessAt(),
                 row.lastIssueAt(),
-                getRecentRunLogs(12)
+            importLogLimit,
+            getRecentRunLogs(importLogLimit)
         );
     }
 
     public List<AutomationRunLogEntry> getRecentRunLogs(int limit) {
+        int safeLimit = Math.max(AppConfigService.MIN_AUTOMATION_IMPORT_LOG_LIMIT, Math.min(limit, AppConfigService.MAX_AUTOMATION_IMPORT_LOG_LIMIT));
+
+        List<AutomationRunLogEntry> successLogs = queryRecentRunLogs(
+            "WHERE status = 'SUCCESS' AND imported_count > 0",
+            safeLimit
+        );
+        int remainingLimit = Math.max(0, safeLimit - successLogs.size());
+        List<AutomationRunLogEntry> errorLogs = remainingLimit > 0
+            ? queryRecentRunLogs("WHERE status = 'ERROR'", remainingLimit)
+            : List.of();
+
+        List<AutomationRunLogEntry> combined = new ArrayList<>(successLogs.size() + errorLogs.size());
+        combined.addAll(successLogs);
+        combined.addAll(errorLogs);
+        combined.sort(Comparator.comparingLong(AutomationRunLogEntry::getLogId).reversed());
+        return combined;
+    }
+
+        private List<AutomationRunLogEntry> queryRecentRunLogs(String whereClause, int limit) {
         int safeLimit = Math.max(1, limit);
         return jdbcTemplate.query(
-                "SELECT run_started_at, run_finished_at, status, message, interval_minutes, imported_count, unmatched_count, lastfm_playcount, local_playcount FROM play_import_automation_log ORDER BY id DESC LIMIT " + safeLimit,
-                (rs, rowNum) -> new AutomationRunLogEntry(
-                        rs.getString("run_started_at"),
-                        rs.getString("run_finished_at"),
-                        rs.getString("status"),
-                        rs.getString("message"),
-                        rs.getInt("interval_minutes"),
-                        rs.getInt("imported_count"),
-                        rs.getInt("unmatched_count"),
-                        getNullableInteger(rs.getObject("lastfm_playcount")),
-                        getNullableInteger(rs.getObject("local_playcount"))
-                )
+            "SELECT id, run_started_at, run_finished_at, status, message, interval_minutes, imported_count, unmatched_count, lastfm_playcount, local_playcount FROM play_import_automation_log " + whereClause + " ORDER BY id DESC LIMIT " + safeLimit,
+            (rs, rowNum) -> new AutomationRunLogEntry(
+                rs.getLong("id"),
+                rs.getString("run_started_at"),
+                rs.getString("run_finished_at"),
+                rs.getString("status"),
+                rs.getString("message"),
+                rs.getInt("interval_minutes"),
+                rs.getInt("imported_count"),
+                rs.getInt("unmatched_count"),
+                getNullableInteger(rs.getObject("lastfm_playcount")),
+                getNullableInteger(rs.getObject("local_playcount"))
+            )
         );
-    }
+        }
 
     private StateRow loadStateRow() {
         return jdbcTemplate.queryForObject(
@@ -308,13 +333,15 @@ public class PlayAutomationStateService {
         private final String lastAttemptAt;
         private final String lastSuccessAt;
         private final String lastIssueAt;
+        private final int importLogLimit;
         private final List<AutomationRunLogEntry> recentLogs;
 
-        public ImportPageState(int runIntervalMinutes, String lastAttemptAt, String lastSuccessAt, String lastIssueAt, List<AutomationRunLogEntry> recentLogs) {
+        public ImportPageState(int runIntervalMinutes, String lastAttemptAt, String lastSuccessAt, String lastIssueAt, int importLogLimit, List<AutomationRunLogEntry> recentLogs) {
             this.runIntervalMinutes = runIntervalMinutes;
             this.lastAttemptAt = lastAttemptAt;
             this.lastSuccessAt = lastSuccessAt;
             this.lastIssueAt = lastIssueAt;
+            this.importLogLimit = importLogLimit;
             this.recentLogs = recentLogs;
         }
 
@@ -334,12 +361,17 @@ public class PlayAutomationStateService {
             return lastIssueAt;
         }
 
+        public int getImportLogLimit() {
+            return importLogLimit;
+        }
+
         public List<AutomationRunLogEntry> getRecentLogs() {
             return recentLogs;
         }
     }
 
     public static final class AutomationRunLogEntry {
+        private final long logId;
         private final String runStartedAt;
         private final String runFinishedAt;
         private final String status;
@@ -350,7 +382,8 @@ public class PlayAutomationStateService {
         private final Integer lastfmPlaycount;
         private final Integer localPlaycount;
 
-        public AutomationRunLogEntry(String runStartedAt, String runFinishedAt, String status, String message, int intervalMinutes, int importedCount, int unmatchedCount, Integer lastfmPlaycount, Integer localPlaycount) {
+        public AutomationRunLogEntry(long logId, String runStartedAt, String runFinishedAt, String status, String message, int intervalMinutes, int importedCount, int unmatchedCount, Integer lastfmPlaycount, Integer localPlaycount) {
+            this.logId = logId;
             this.runStartedAt = runStartedAt;
             this.runFinishedAt = runFinishedAt;
             this.status = status;
@@ -360,6 +393,10 @@ public class PlayAutomationStateService {
             this.unmatchedCount = unmatchedCount;
             this.lastfmPlaycount = lastfmPlaycount;
             this.localPlaycount = localPlaycount;
+        }
+
+        public long getLogId() {
+            return logId;
         }
 
         public String getRunStartedAt() {

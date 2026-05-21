@@ -183,19 +183,19 @@
 #topArtistsTable,
 #topAlbumsTable,
 #topSongsTable {
-    table-layout: fixed !important;
+    table-layout: auto !important;
 }
 
-/* Remove all nowrap and allow wrapping everywhere */
+/* Keep desktop table behavior: no cell wrapping, rely on horizontal scroll */
 #topArtistsTable th,
 #topArtistsTable td,
 #topAlbumsTable th,
 #topAlbumsTable td,
 #topSongsTable th,
 #topSongsTable td {
-    white-space: normal !important;
-    overflow-wrap: break-word !important;
-    word-break: break-word !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
 }
 
 /* Keep rank column stable even when the rest of the table can wrap */
@@ -333,6 +333,33 @@
     /* Hide less important columns on mobile */
     .top-table .hide-mobile {
         display: none;
+    }
+
+    #topArtistsTable,
+    #topAlbumsTable,
+    #topSongsTable {
+        width: max-content !important;
+        min-width: 100% !important;
+        table-layout: auto !important;
+        font-size: 13px !important;
+    }
+
+    #topArtistsTable th,
+    #topArtistsTable td,
+    #topAlbumsTable th,
+    #topAlbumsTable td,
+    #topSongsTable th,
+    #topSongsTable td {
+        padding: 10px 12px !important;
+        white-space: nowrap !important;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+    }
+
+    #topArtistsTable .hide-mobile,
+    #topAlbumsTable .hide-mobile,
+    #topSongsTable .hide-mobile {
+        display: table-cell !important;
     }
 }
 
@@ -796,3 +823,4 @@
 .group-artist-label a:hover {
     color: #8fc4cc;
 }
+

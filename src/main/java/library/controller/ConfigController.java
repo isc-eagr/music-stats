@@ -36,6 +36,7 @@ public class ConfigController {
             @RequestParam(defaultValue = "") String automationAccount,
             @RequestParam(defaultValue = "") String automationApiKey,
             @RequestParam int automationIntervalMinutes,
+            @RequestParam int automationImportLogLimit,
             @RequestParam int automationStartHour,
             @RequestParam int automationEndHour,
             @RequestParam int allowedMissingUpTo6Tracks,
@@ -59,6 +60,7 @@ public class ConfigController {
                 automationAccount,
                 automationApiKey,
                 automationIntervalMinutes,
+                automationImportLogLimit,
                 automationStartHour,
                 automationEndHour
         ));
