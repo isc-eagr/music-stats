@@ -42,7 +42,6 @@ public class BillboardHot100Controller {
         int safeSize = normalizeSize(size);
         String safeSort = normalizeSort(safeOverviewTab, sort);
         String safeDir = normalizeDir(dir);
-        Map<String, Object> summary = billboardHot100Service.getSummary();
         int resultTotal;
         if ("album".equals(safeOverviewTab)) {
             resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
@@ -63,7 +62,6 @@ public class BillboardHot100Controller {
         } else {
             model.addAttribute("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
         }
-        model.addAttribute("summary", summary);
         model.addAttribute("page", safePage);
         model.addAttribute("size", safeSize);
         model.addAttribute("sort", safeSort);
@@ -141,12 +139,6 @@ public class BillboardHot100Controller {
             @RequestParam String rawSong,
             @RequestParam Integer songId) {
         return ResponseEntity.ok(billboardHot100Service.matchRawGroup(rawArtist, rawSong, songId));
-    }
-
-    @GetMapping("/diagnostics")
-    @ResponseBody
-    public ResponseEntity<Object> diagnostics() {
-        return ResponseEntity.ok(billboardHot100Service.getNameIssueReport(20));
     }
 
     @GetMapping("/recaps")

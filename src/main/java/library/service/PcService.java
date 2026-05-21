@@ -30,32 +30,6 @@ public class PcService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public Map<String, Object> getSummary() {
-        String sql =
-            "WITH matched_groups AS ( " +
-            "    SELECT song_id " +
-            "    FROM vatos_cuntdown_entry " +
-            "    WHERE is_close_call = 0 AND song_id IS NOT NULL " +
-            "    GROUP BY song_id " +
-            "), unmatched_groups AS ( " +
-            "    SELECT artist_name, song_title " +
-            "    FROM vatos_cuntdown_entry " +
-            "    WHERE is_close_call = 0 AND song_id IS NULL " +
-            "    GROUP BY artist_name, song_title " +
-            ") " +
-            "SELECT (SELECT COUNT(*) FROM matched_groups) AS matched, " +
-            "       (SELECT COUNT(*) FROM unmatched_groups) AS unmatched";
-        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-            int matched = rs.getInt("matched");
-            int unmatched = rs.getInt("unmatched");
-            return Map.of(
-                "total", matched + unmatched,
-                "matched", matched,
-                "unmatched", unmatched
-            );
-        });
-    }
-
     public Map<String, Object> getPcStatsBySongId(Integer songId) {
         if (songId == null) return null;
         String sql =
@@ -772,7 +746,7 @@ public class PcService {
             "LEFT JOIN peak_days pd ON pd.identity_key = es.identity_key " +
             "LEFT JOIN prev_pos pp ON pp.identity_key = es.identity_key " +
             "WHERE es.chart_date = ? " +
-            "ORDER BY es.is_close_call ASC, es.position DESC";
+            "ORDER BY es.is_close_call ASC, es.position ASC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> row = new LinkedHashMap<>();
             int currentPos = rs.getInt("position");

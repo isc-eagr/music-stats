@@ -12,12 +12,48 @@
             max-width: 1200px;
             margin: 0 auto;
         }
+
+        .overview-hero {
+            margin-bottom: 22px;
+        }
+
+        .overview-hero-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
+            border: 1px solid #2a2a2f;
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+            text-align: center;
+        }
+
+        .overview-hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(250, 128, 114, 0.14), transparent 48%);
+            pointer-events: none;
+        }
         
         .chart-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             margin-bottom: 30px;
+        }
+
+        .chart-period-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-period-nav-center {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
         .chart-header-left {
@@ -53,6 +89,8 @@
         .chart-actions {
             display: flex;
             gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         
         .btn {
@@ -459,11 +497,212 @@
         }
         
         .page-title {
-            font-size: 2rem;
-            color: #fff;
-            margin: 0 0 24px 0;
+            position: relative;
+            z-index: 1;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+            color: #ffb4aa;
+            margin: 0;
             text-align: center;
             font-weight: 600;
+        }
+
+        .overview-subtitle {
+            position: relative;
+            z-index: 1;
+            margin-top: 10px;
+            font-size: 1rem;
+            color: #ffd1ca;
+            letter-spacing: 0.02em;
+        }
+
+        @media (max-width: 768px) {
+            .chart-editor {
+                padding: 16px 12px 28px;
+            }
+
+            .overview-hero-card {
+                padding: 18px 16px;
+            }
+
+            .page-title {
+                font-size: 1.7rem;
+            }
+
+            .overview-subtitle {
+                font-size: 0.92rem;
+            }
+
+            .chart-header,
+            .chart-actions,
+            .chart-period-nav,
+            .chart-period-nav-center,
+            .status-info {
+                flex-wrap: wrap;
+            }
+
+            .chart-period-nav {
+                gap: 12px;
+                margin-bottom: 18px;
+            }
+
+            .chart-period-nav > .back-btn,
+            .chart-period-nav-center,
+            .chart-actions {
+                flex: 1 1 calc(50% - 6px);
+                justify-content: center;
+            }
+
+            .chart-period-nav-center {
+                order: 3;
+                flex-basis: 100%;
+            }
+
+            .chart-actions .btn,
+            .chart-actions .year-picker,
+            .chart-period-nav-center .year-picker {
+                flex: 1 1 100%;
+                min-width: 0;
+            }
+
+            .chart-list {
+                max-height: none;
+            }
+
+            .chart-entry {
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 12px 14px;
+            }
+
+            .entry-info {
+                min-width: calc(100% - 104px);
+            }
+
+            .entry-actions {
+                width: 100%;
+                justify-content: flex-end;
+                padding-top: 4px;
+            }
+
+            .seasonal-table-container {
+                overflow: visible;
+                background: transparent;
+                border: none;
+            }
+
+            .seasonal-table,
+            .seasonal-table thead,
+            .seasonal-table tbody {
+                display: block;
+                width: 100%;
+            }
+
+            .seasonal-table thead {
+                display: none;
+            }
+
+            #songListFinalized .seasonal-table tbody,
+            #albumListFinalized .seasonal-table tbody {
+                display: grid;
+                gap: 12px;
+            }
+
+            #songListFinalized .seasonal-table tbody tr,
+            #albumListFinalized .seasonal-table tbody tr {
+                display: grid;
+                grid-template-columns: 40px 44px minmax(0, 1fr) auto;
+                gap: 8px 10px;
+                align-items: center;
+                padding: 14px;
+                border: 1px solid #232633;
+                border-radius: 16px;
+                background: #101118;
+            }
+
+            .seasonal-table tbody tr td {
+                padding: 0;
+                border: none;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td.st-pos,
+            #albumListFinalized .seasonal-table tbody tr td.st-pos {
+                grid-column: 1;
+                grid-row: 1 / span 2;
+                width: auto;
+                align-self: start;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td.st-thumb,
+            #albumListFinalized .seasonal-table tbody tr td.st-thumb {
+                grid-column: 2;
+                grid-row: 1 / span 2;
+                width: auto;
+                padding: 0;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td:nth-child(3),
+            #albumListFinalized .seasonal-table tbody tr td:nth-child(3) {
+                grid-column: 3 / 5;
+                font-weight: 600;
+                color: #fff;
+                min-width: 0;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td:nth-child(4),
+            #albumListFinalized .seasonal-table tbody tr td:nth-child(4) {
+                grid-column: 3 / 5;
+                color: #aaa;
+                min-width: 0;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td:nth-child(5),
+            #albumListFinalized .seasonal-table tbody tr td:nth-child(5) {
+                grid-column: 1 / span 2;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                width: max-content;
+                padding: 6px 10px;
+                border: 1px solid #242938;
+                border-radius: 999px;
+                background: #151823;
+                color: #cbd5e1;
+                font-size: 0.78rem;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td:nth-child(5)::before,
+            #albumListFinalized .seasonal-table tbody tr td:nth-child(5)::before {
+                content: 'Genre';
+                font-size: 0.62rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: #8c8f9a;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td.st-plays,
+            #albumListFinalized .seasonal-table tbody tr td.st-plays {
+                grid-column: 3 / 5;
+                justify-self: end;
+                min-width: 112px;
+                padding: 10px 12px;
+                border: 1px solid #242938;
+                border-radius: 12px;
+                background: #151823;
+                text-align: left;
+            }
+
+            #songListFinalized .seasonal-table tbody tr td.st-plays::before,
+            #albumListFinalized .seasonal-table tbody tr td.st-plays::before {
+                content: 'Plays';
+                display: block;
+                margin-bottom: 6px;
+                font-size: 0.68rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: #8c8f9a;
+            }
         }
         
         .chart-playlist-btn {
@@ -552,15 +791,20 @@
     <th:block th:replace="~{fragments/navigation :: nav}"></th:block>
     
     <div class="chart-editor">
-        <h1 class="page-title" th:text="'Yearly Chart: ' + ${displayName}" th:data-display-name="${displayName}">Yearly Chart: 2025</h1>
-        
-        <div class="chart-header">
-            <div class="chart-header-left">
-                <a th:if="${prevPeriodKey != null}" 
-                   th:href="@{/charts/yearly/{pk}(pk=${prevPeriodKey})}" 
-                   class="back-btn">← Previous</a>
-                <span th:if="${prevPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">← Previous</span>
-                
+        <div class="overview-hero">
+            <section class="overview-hero-card">
+                <h1 class="page-title" th:data-display-name="${displayName}">Yearly Chart</h1>
+                <div class="overview-subtitle" th:text="${displayName}">2025</div>
+            </section>
+        </div>
+
+        <div class="chart-period-nav">
+            <a th:if="${prevPeriodKey != null}" 
+               th:href="@{/charts/yearly/{pk}(pk=${prevPeriodKey})}" 
+               class="back-btn">← Previous</a>
+            <span th:if="${prevPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">← Previous</span>
+
+            <div class="chart-period-nav-center">
                 <select class="year-picker" onchange="navigateToYear(this.value)">
                     <option th:each="year : ${allYears}" 
                             th:value="${year.periodKey}" 
@@ -568,14 +812,16 @@
                             th:selected="${year.periodKey == periodKey}">
                     </option>
                 </select>
-                
-                <a th:if="${nextPeriodKey != null}" 
-                   th:href="@{/charts/yearly/{pk}(pk=${nextPeriodKey})}" 
-                   class="back-btn">Next →</a>
-                <span th:if="${nextPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">Next →</span>
             </div>
+
+            <a th:if="${nextPeriodKey != null}" 
+               th:href="@{/charts/yearly/{pk}(pk=${nextPeriodKey})}" 
+               class="back-btn">Next →</a>
+            <span th:if="${nextPeriodKey == null}" class="back-btn" style="opacity: 0.3; cursor: not-allowed;">Next →</span>
+        </div>
+
+        <div class="chart-header">
             <div class="chart-actions">
-                <a th:href="@{/charts/yearly/overview}" class="btn btn-primary" style="text-decoration: none;">Overview</a>
                 <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
                 <button th:if="${songChartFinalized and albumChartFinalized}" class="btn btn-warning" onclick="unfinalizeAll()">Edit Charts</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>

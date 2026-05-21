@@ -9,6 +9,12 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <style>
+        body {
+            --accent: #22d3ee;
+            --accent-strong: #a8edf4;
+            --accent-soft: rgba(34, 211, 238, 0.14);
+            --accent-border: rgba(34, 211, 238, 0.34);
+        }
         .page-load-overlay { display: none; }
         html.js body.page-loading .page-load-overlay,
         html.js body.page-busy .page-load-overlay {
@@ -43,36 +49,57 @@
         .page-load-subtitle { color: rgba(213, 251, 255, 0.68); font-size: 12px; margin-top: 6px; }
         @keyframes page-load-spin { to { transform: rotate(360deg); } }
         .bb-container { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; }
-        .bb-summary { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-        .bb-stat { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px 22px; min-width: 120px; text-align: center; }
-        .bb-stat-value { font-size: 1.8rem; font-weight: 700; color: #fff; }
-        .bb-stat-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
-        .overview-tabs { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+        .overview-hero { margin-bottom: 22px; }
+        .overview-hero-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
+            border: 1px solid #2a2a2f;
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+            text-align: center;
+        }
+        .overview-hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, var(--accent-soft), transparent 48%);
+            pointer-events: none;
+        }
+        .overview-title {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+            color: var(--accent-strong);
+            text-align: center;
+            text-shadow: 0 0 24px rgba(0, 0, 0, 0.24);
+        }
+        .overview-tabs { display: flex; gap: 0; margin-bottom: 18px; padding: 0 8px; border-bottom: 1px solid #2b2d35; flex-wrap: wrap; }
         .overview-tab-link {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 9px 16px;
-            border-radius: 999px;
-            border: 1px solid rgba(34, 211, 238, 0.28);
-            background: rgba(34, 211, 238, 0.06);
-            color: #a8edf4;
+            padding: 12px 18px 11px;
+            margin-bottom: -1px;
+            border: none;
+            border-bottom: 3px solid transparent;
+            background: transparent;
+            color: #8f929d;
             text-decoration: none;
-            font-size: 0.84rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            transition: all 0.15s;
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
         }
         .overview-tab-link:hover {
-            border-color: rgba(34, 211, 238, 0.7);
-            color: #dfffff;
-            background: rgba(34, 211, 238, 0.14);
+            color: #f3f4f8;
+            background: rgba(255,255,255,0.02);
         }
         .overview-tab-link.active {
-            border-color: rgba(34, 211, 238, 0.86);
-            color: #062026;
-            background: linear-gradient(135deg, #22d3ee, #7dd3fc);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+            color: var(--accent-strong);
+            border-color: var(--accent);
         }
         .bb-toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
         .bb-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(34, 211, 238, 0.38); background: rgba(34, 211, 238, 0.08); color: #8de7f2; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
@@ -91,15 +118,6 @@
         .bb-panel { background: #141414; border: 1px solid #272727; border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; }
         .bb-panel-title { font-size: 0.78rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
         .bb-panel-copy { color: #b9b9b9; font-size: 0.9rem; line-height: 1.5; }
-        .bb-diagnostics { margin-bottom: 18px; }
-        .bb-diagnostics summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        .bb-diagnostics summary::-webkit-details-marker { display: none; }
-        .bb-diagnostics-summary-copy { color: #b9b9b9; font-size: 0.9rem; line-height: 1.45; }
-        .bb-diagnostics-chevron { color: #7fe9f1; font-size: 0.8rem; transition: transform 0.15s ease; }
-        .bb-diagnostics[open] .bb-diagnostics-chevron { transform: rotate(180deg); }
-        .bb-diagnostics-body { margin-top: 14px; }
-        .bb-diagnostics-count { color: #d5fbff; font-weight: 700; }
-        .bb-diagnostics-empty { color: #777; font-size: 0.84rem; }
         .bb-issue-table-wrap, .bb-table-wrap { overflow: visible; border-radius: 12px; border: 1px solid #2a2a2a; }
         .bb-table, .bb-issue-table { width: 100%; border-collapse: collapse; background: #141414; }
         .bb-table thead tr, .bb-issue-table thead tr { background: #1e1e1e; border-bottom: 2px solid #333; }
@@ -213,35 +231,10 @@
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <div class="bb-container">
-        <div class="topbar">
-            <div class="breadcrumbs">
-                <a href="/">Home</a> / <span>Billboard Hot 100 Overview</span>
-            </div>
-            <h1>Billboard Hot 100 Overview</h1>
-            <p class="page-subtitle">Loaded from a materialized Billboard debut snapshot, while chart runs and recaps still drill into the weekly history rows.</p>
-        </div>
-
-        <div class="bb-summary">
-            <div class="bb-stat">
-                <div class="bb-stat-value" id="bbSummaryTotal" th:text="${summary.total}">0</div>
-                <div class="bb-stat-label">Overview Rows</div>
-            </div>
-            <div class="bb-stat">
-                <div class="bb-stat-value" id="bbSummaryMatched" th:text="${summary.matched}">0</div>
-                <div class="bb-stat-label">Linked to Library</div>
-            </div>
-            <div class="bb-stat">
-                <div class="bb-stat-value" id="bbSummaryUnmatched" th:text="${summary.unmatched}">0</div>
-                <div class="bb-stat-label">Still Raw</div>
-            </div>
-            <div class="bb-stat">
-                <div class="bb-stat-value" id="bbSummaryRows" th:text="${summary.rowsImported}">0</div>
-                <div class="bb-stat-label">Weekly Rows</div>
-            </div>
-            <div class="bb-stat">
-                <div class="bb-stat-value" id="bbSummaryLastDate" th:text="${summary.lastImportedChartDate != null ? summary.lastImportedChartDate : '-'}">-</div>
-                <div class="bb-stat-label">Last Imported Week</div>
-            </div>
+        <div class="overview-hero">
+            <section class="overview-hero-card">
+                <h1 class="overview-title">Billboard Hot 100 Overview</h1>
+            </section>
         </div>
 
         <div class="overview-tabs" role="tablist" aria-label="Billboard overview type">
@@ -258,8 +251,6 @@
 
         <div class="bb-toolbar">
             <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
-            <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbAutoLinkBtn" onclick="runBillboardAutoLink(this)">Auto-Link Matches</button>
-            <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbNormalizeBtn" onclick="runBillboardNormalizeCase(this)">Normalize Case Differences</button>
             <button id="billboardLoadAllButton" type="button" class="bb-btn" hidden th:if="${resultTotal > size}" onclick="window.loadAllBillboardOverviewResults && window.loadAllBillboardOverviewResults()">Load all</button>
             <form class="bb-search-form" method="get" th:action="@{/misc/billboard-hot-100}">
                 <input type="hidden" name="overviewTab" th:value="${overviewTab}">
@@ -268,39 +259,9 @@
                 <input type="hidden" name="sort" th:value="${sort}">
                 <input type="hidden" name="dir" th:value="${dir}">
                 <input id="billboardSearchInput" name="q" class="bb-search-input-inline" type="text" placeholder="Search the current overview..." th:value="${q}" autocomplete="off">
-                <button type="submit" class="bb-btn">Search</button>
                 <a th:if="${q != null and !q.isBlank()}" class="bb-clear-link" th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=${size},sort=${sort},dir=${dir})}">Clear</a>
             </form>
             <div class="bb-search-status" th:if="${q != null and !q.isBlank()}" th:text="|Searching Billboard ${overviewTab} overview for '${q}' (${resultTotal} matches)|">Searching Billboard rows</div>
-            <div class="bb-page-size">
-                <span>Rows:</span>
-                <a th:if="${size != 100 and size != 250 and size != 500}" th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=${size},sort=${sort},dir=${dir},q=${q})}" class="active" th:text="${size}">175</a>
-                <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=100,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 100} ? 'active' : ''">100</a>
-                <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=250,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 250} ? 'active' : ''">250</a>
-                <a th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=500,sort=${sort},dir=${dir},q=${q})}" th:classappend="${size == 500} ? 'active' : ''">500</a>
-            </div>
-        </div>
-
-        <details th:if="${overviewTab == 'song'}" class="bb-panel bb-diagnostics">
-            <summary>
-                <div>
-                    <div class="bb-panel-title" style="margin-bottom:6px;">Spelling Diagnostics</div>
-                    <div class="bb-diagnostics-summary-copy" id="bbDiagnosticsSummary">
-                        Open this panel to load possible source-side variants and normalized-only library matches.
-                    </div>
-                </div>
-                <span class="bb-diagnostics-chevron">&#9662;</span>
-            </summary>
-
-            <div class="bb-diagnostics-body" id="bbDiagnosticsBody">
-                <div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don’t compete visually with the main Hot 100 table.</div>
-                <div class="bb-diagnostics-empty" id="bbDiagnosticsStatus">Diagnostics haven’t been loaded yet.</div>
-            </div>
-        </details>
-
-        <div th:if="${overviewTab == 'song'}" class="bb-panel" style="margin-top:-4px;">
-            <div class="bb-panel-title">Import Behavior</div>
-            <div class="bb-panel-copy">Incremental Refresh only imports chart weeks newer than your latest local Billboard date. If the table is empty, it loads the full history; otherwise it leaves existing weeks alone, carries forward exact raw-name song links onto the new rows, and rebuilds the debut snapshot used by this overview.</div>
         </div>
 
         <div class="pager">
@@ -562,7 +523,6 @@
     <script>
         let billboardModalRow = null;
         let billboardSearchTimer = null;
-        let billboardDiagnosticsLoaded = false;
         let billboardRowIndexCounter = 0;
 
         function getBillboardOverviewBody(overviewTab) {
@@ -1053,95 +1013,15 @@
                 .replace(/'/g, '&#39;');
         }
 
-        function renderBillboardDiagnostics(report) {
-            const summary = document.getElementById('bbDiagnosticsSummary');
-            const body = document.getElementById('bbDiagnosticsBody');
-            const samples = Array.isArray(report.samples) ? report.samples : [];
-
-            summary.innerHTML =
-                '<span class="bb-diagnostics-count">' + (report.sourceVariantGroupCount || 0) + '</span> possible source-side variant groups and ' +
-                '<span class="bb-diagnostics-count">' + (report.normalizedOnlyCandidateCount || 0) + '</span> unmatched rows that look like normalized-only matches to your library.';
-
-            if (!samples.length) {
-                body.innerHTML =
-                    '<div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don\'t compete visually with the main Hot 100 table.</div>' +
-                    '<div class="bb-diagnostics-empty">No sample rows to preview right now.</div>';
-                return;
-            }
-
-            const rows = samples.map(sample => {
-                const songCell = sample.songId != null
-                    ? '<a href="/songs/' + sample.songId + '" class="bb-song-link">' + escapeBillboardHtml(sample.librarySongTitle) + '</a>'
-                    : '<span class="bb-no-link-song">' + escapeBillboardHtml(sample.librarySongTitle) + '</span>';
-                return '<tr>' +
-                    '<td><div class="bb-no-link-song">' + escapeBillboardHtml(sample.billboardSongTitle) + '</div><div class="bb-no-link-artist">' + escapeBillboardHtml(sample.billboardArtistName) + '</div></td>' +
-                    '<td>' + songCell + '<div class="bb-artist-link">' + escapeBillboardHtml(sample.libraryArtistName) + '</div></td>' +
-                    '<td class="center">' + (sample.weeksOnChart || 0) + '</td>' +
-                    '<td class="center">' + (sample.peakPosition || 0) + '</td>' +
-                    '</tr>';
-            }).join('');
-
-            body.innerHTML =
-                '<div class="bb-panel-copy" style="margin-bottom:12px;">The samples below stay tucked away until you need them so they don\'t compete visually with the main Hot 100 table.</div>' +
-                '<div class="bb-issue-table-wrap">' +
-                '<table class="bb-issue-table">' +
-                '<thead><tr><th>Billboard Entry</th><th>Suggested Library Song</th><th class="center">Weeks</th><th class="center">Peak</th></tr></thead>' +
-                '<tbody>' + rows + '</tbody>' +
-                '</table>' +
-                '</div>';
-        }
-
-        function loadBillboardDiagnostics() {
-            if (billboardDiagnosticsLoaded) {
-                return;
-            }
-
-            const status = document.getElementById('bbDiagnosticsStatus');
-            if (status) {
-                status.textContent = 'Loading diagnostics...';
-            }
-
-            fetch('/misc/billboard-hot-100/diagnostics')
-                .then(r => r.json())
-                .then(report => {
-                    billboardDiagnosticsLoaded = true;
-                    renderBillboardDiagnostics(report);
-                })
-                .catch(() => {
-                    const summary = document.getElementById('bbDiagnosticsSummary');
-                    if (summary) {
-                        summary.textContent = 'Diagnostics failed to load.';
-                    }
-                    if (status) {
-                        status.textContent = 'Diagnostics failed to load.';
-                    }
-                });
-        }
-
         document.getElementById('billboardMatchModal').addEventListener('click', function (event) {
             if (event.target === this) {
                 closeBillboardMatchModal();
             }
         });
 
-        var diagnosticsPanel = document.querySelector('.bb-diagnostics');
-        if (diagnosticsPanel) {
-            diagnosticsPanel.addEventListener('toggle', function(event) {
-                if (event.target.open) {
-                    loadBillboardDiagnostics();
-                }
-            });
-        }
-
         document.querySelectorAll('.bb-sort-link').forEach(function(link) {
             link.addEventListener('click', function() {
                 showPageBusyOverlay('Sorting Billboard overview', 'Resorting the full Hot 100 dataset...');
-            });
-        });
-
-        document.querySelectorAll('.bb-page-size a').forEach(function(link) {
-            link.addEventListener('click', function() {
-                showPageBusyOverlay('Loading Billboard overview', 'Reloading the Hot 100 slice size...');
             });
         });
 
@@ -1150,6 +1030,35 @@
                 showPageBusyOverlay('Searching Billboard overview', 'Searching the full Hot 100 dataset...');
             });
         });
+
+        const billboardOverviewSearchForm = document.querySelector('.bb-search-form');
+        const billboardOverviewSearchInput = document.getElementById('billboardSearchInput');
+        let billboardOverviewSearchTimer = null;
+        let billboardOverviewLastSubmitted = billboardOverviewSearchInput ? (billboardOverviewSearchInput.value || '').trim() : '';
+
+        if (billboardOverviewSearchForm && billboardOverviewSearchInput) {
+            billboardOverviewSearchInput.addEventListener('input', function() {
+                const nextValue = (this.value || '').trim();
+                clearTimeout(billboardOverviewSearchTimer);
+                if (nextValue === billboardOverviewLastSubmitted) {
+                    return;
+                }
+                billboardOverviewSearchTimer = setTimeout(() => {
+                    billboardOverviewLastSubmitted = nextValue;
+                    billboardOverviewSearchForm.requestSubmit();
+                }, 250);
+            });
+
+            billboardOverviewSearchInput.addEventListener('keydown', function(event) {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+                event.preventDefault();
+                clearTimeout(billboardOverviewSearchTimer);
+                billboardOverviewLastSubmitted = (this.value || '').trim();
+                billboardOverviewSearchForm.requestSubmit();
+            });
+        }
 
         window.addEventListener('load', function() {
             setupBillboardInfiniteScroll();

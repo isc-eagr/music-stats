@@ -22,10 +22,10 @@
             --accent-border: rgba(52, 211, 153, 0.34);
         }
         body.period-yearly {
-            --accent: #f59e0b;
-            --accent-strong: #fbbf24;
-            --accent-soft: rgba(245, 158, 11, 0.14);
-            --accent-border: rgba(251, 191, 36, 0.34);
+            --accent: #fa8072;
+            --accent-strong: #ffb4aa;
+            --accent-soft: rgba(250, 128, 114, 0.14);
+            --accent-border: rgba(250, 128, 114, 0.34);
         }
         .overview-shell {
             max-width: 1280px;
@@ -33,18 +33,15 @@
             padding: 0 20px 40px;
         }
         .overview-hero {
-            display: grid;
-            grid-template-columns: 1.6fr 1fr;
-            gap: 18px;
             margin-bottom: 22px;
         }
-        .overview-hero-card,
-        .overview-summary-card {
+        .overview-hero-card {
             background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
             border: 1px solid #2a2a2f;
             border-radius: 18px;
             padding: 22px 24px;
             box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+            text-align: center;
         }
         .overview-hero-card {
             position: relative;
@@ -57,56 +54,13 @@
             background: radial-gradient(circle at top right, var(--accent-soft), transparent 48%);
             pointer-events: none;
         }
-        .overview-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            border: 1px solid var(--accent-border);
-            background: var(--accent-soft);
-            color: var(--accent-strong);
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            margin-bottom: 14px;
-        }
         .overview-title {
             margin: 0;
-            font-size: 2rem;
-            color: #f4f4f5;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+            color: var(--accent-strong);
+            text-align: center;
+            text-shadow: 0 0 24px rgba(0, 0, 0, 0.24);
         }
-        .overview-subtitle {
-            margin: 12px 0 0;
-            color: #b3b3bb;
-            line-height: 1.6;
-            max-width: 780px;
-        }
-        .overview-summary-card {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 14px;
-        }
-        .overview-summary-label {
-            font-size: 0.8rem;
-            color: #8e8e98;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-        .overview-summary-value {
-            font-size: 2.4rem;
-            font-weight: 800;
-            color: #fff;
-            line-height: 1;
-        }
-        .overview-summary-copy {
-            color: #a4a4ad;
-            line-height: 1.5;
-            font-size: 0.9rem;
-        }
-        .period-switch,
         .overview-tabs,
         .overview-toolbar,
         .overview-view-actions {
@@ -115,7 +69,6 @@
             flex-wrap: wrap;
             align-items: center;
         }
-        .period-switch,
         .overview-view-actions {
             margin-bottom: 16px;
         }
@@ -125,7 +78,6 @@
             padding: 0 8px;
             border-bottom: 1px solid #2b2d35;
         }
-        .period-link,
         .overview-action-link {
             display: inline-flex;
             align-items: center;
@@ -140,14 +92,6 @@
             font-weight: 700;
             letter-spacing: 0.03em;
             transition: all 0.15s ease;
-        }
-        .period-switch {
-            display: inline-flex;
-            padding: 6px;
-            border-radius: 999px;
-            border: 1px solid #2a2c34;
-            background: linear-gradient(180deg, #14161b, #101216);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
         }
         .overview-tab-link {
             display: inline-flex;
@@ -165,7 +109,6 @@
             letter-spacing: 0.01em;
             transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
         }
-        .period-link:hover,
         .overview-action-link:hover {
             border-color: var(--accent-border);
             color: #fff;
@@ -174,12 +117,6 @@
         .overview-tab-link:hover {
             color: #f3f4f8;
             background: rgba(255,255,255,0.02);
-        }
-        .period-link.active {
-            border-color: var(--accent-border);
-            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-            color: #071018;
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
         }
         .overview-tab-link.active {
             color: #f8fafc;
@@ -752,35 +689,8 @@
     <div class="overview-shell">
         <div class="overview-hero">
             <section class="overview-hero-card">
-                <div class="overview-kicker" th:text="${unitLabel} + ' Overview'">Weekly Overview</div>
                 <h1 class="overview-title" th:text="${pageTitle}">Weekly Chart Overview</h1>
-                <p class="overview-subtitle" th:text="${pageSubtitle}">Overview copy</p>
             </section>
-
-            <aside class="overview-summary-card">
-                <div>
-                    <div class="overview-summary-label">Song Rows</div>
-                    <div class="overview-summary-value" th:text="${songCount}">0</div>
-                </div>
-                <div class="overview-summary-copy">
-                    <span th:text="${albumCount}">0</span> album rollups and <span th:text="${artistCount}">0</span> artist rollups are available from the same finalized chart history.
-                </div>
-            </aside>
-        </div>
-
-        <div class="period-switch" role="tablist" aria-label="Chart overview period">
-            <a class="period-link"
-               th:classappend="${periodType == 'weekly'} ? ' active' : ''"
-               th:href="@{/charts/weekly/overview(overviewTab=${overviewTab})}"
-               onclick="persistOverviewSearch()">Weekly</a>
-            <a class="period-link"
-               th:classappend="${periodType == 'seasonal'} ? ' active' : ''"
-               th:href="@{/charts/seasonal/overview(overviewTab=${overviewTab})}"
-               onclick="persistOverviewSearch()">Seasonal</a>
-            <a class="period-link"
-               th:classappend="${periodType == 'yearly'} ? ' active' : ''"
-               th:href="@{/charts/yearly/overview(overviewTab=${overviewTab})}"
-               onclick="persistOverviewSearch()">Yearly</a>
         </div>
 
         <div class="overview-tabs" role="tablist" aria-label="Overview type">

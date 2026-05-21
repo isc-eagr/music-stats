@@ -9,6 +9,12 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <style>
+        body {
+            --accent: #f59e0b;
+            --accent-strong: #fbbf24;
+            --accent-soft: rgba(245, 158, 11, 0.14);
+            --accent-border: rgba(251, 191, 36, 0.34);
+        }
         .page-load-overlay { display: none; }
         html.js body.page-loading .page-load-overlay,
         html.js body.page-busy .page-load-overlay {
@@ -17,7 +23,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at top, rgba(201, 162, 39, 0.14), rgba(7, 7, 9, 0.94) 58%);
+            background: radial-gradient(circle at top, var(--accent-soft), rgba(7, 7, 9, 0.94) 58%);
             backdrop-filter: blur(6px);
             z-index: 3000;
         }
@@ -25,7 +31,7 @@
             min-width: 230px;
             padding: 22px 26px;
             border-radius: 18px;
-            border: 1px solid rgba(201, 162, 39, 0.24);
+            border: 1px solid var(--accent-border);
             background: rgba(18, 16, 10, 0.94);
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
             text-align: center;
@@ -36,78 +42,79 @@
             margin: 0 auto 12px;
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,0.08);
-            border-top-color: #c9a227;
+            border-top-color: var(--accent);
             animation: page-load-spin 0.8s linear infinite;
         }
-        .page-load-title { color: #f1e4b4; font-size: 15px; font-weight: 600; }
-        .page-load-subtitle { color: rgba(241, 228, 180, 0.62); font-size: 12px; margin-top: 6px; }
+        .page-load-title { color: var(--accent-strong); font-size: 15px; font-weight: 600; }
+        .page-load-subtitle { color: rgba(255, 180, 170, 0.68); font-size: 12px; margin-top: 6px; }
         @keyframes page-load-spin { to { transform: rotate(360deg); } }
         .trl-container {
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
             padding: 0 20px 40px;
         }
 
-        /* Summary bar */
-        .trl-summary {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
+        .overview-hero {
+            margin-bottom: 22px;
         }
-        .trl-stat {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 14px 22px;
+        .overview-hero-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
+            border: 1px solid #2a2a2f;
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
             text-align: center;
-            min-width: 120px;
         }
-        .trl-stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #fff;
+        .overview-hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, var(--accent-soft), transparent 48%);
+            pointer-events: none;
         }
-        .trl-stat-label {
-            font-size: 0.78rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 4px;
+        .overview-title {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+            color: var(--accent-strong);
+            text-align: center;
+            text-shadow: 0 0 24px rgba(0, 0, 0, 0.24);
         }
 
         .overview-tabs {
             display: flex;
-            gap: 10px;
+            gap: 0;
             margin-bottom: 18px;
+            padding: 0 8px;
+            border-bottom: 1px solid #2b2d35;
             flex-wrap: wrap;
         }
         .overview-tab-link {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 9px 16px;
-            border-radius: 999px;
-            border: 1px solid rgba(201,162,39,0.28);
-            background: rgba(201,162,39,0.05);
-            color: #bda56b;
+            padding: 12px 18px 11px;
+            margin-bottom: -1px;
+            border: none;
+            border-bottom: 3px solid transparent;
+            background: transparent;
+            color: #8f929d;
             text-decoration: none;
-            font-size: 0.84rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            transition: all 0.15s;
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
         }
         .overview-tab-link:hover {
-            border-color: rgba(201,162,39,0.58);
-            color: #ead38f;
-            background: rgba(201,162,39,0.12);
+            color: #f3f4f8;
+            background: rgba(255,255,255,0.02);
         }
         .overview-tab-link.active {
-            border-color: rgba(201,162,39,0.82);
-            color: #141107;
-            background: linear-gradient(135deg, #d7b347, #f0d889);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+            color: var(--accent-strong);
+            border-color: var(--accent);
         }
 
         /* Toolbar */
@@ -124,20 +131,20 @@
             gap: 7px;
             padding: 7px 16px;
             border-radius: 20px;
-            border: 1px solid rgba(201,162,39,0.45);
-            background: rgba(201,162,39,0.08);
-            color: #c9a227;
+            border: 1px solid var(--accent-border);
+            background: var(--accent-soft);
+            color: var(--accent-strong);
             font-size: 0.83rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s;
             user-select: none;
         }
-        .trl-toggle-btn:hover { border-color: rgba(201,162,39,0.78); color: #e8c547; background: rgba(201,162,39,0.14); }
+        .trl-toggle-btn:hover { border-color: var(--accent); color: #fff1ee; background: rgba(250, 128, 114, 0.2); }
         .trl-toggle-btn.active {
-            background: rgba(201,162,39,0.18);
-            border-color: rgba(201,162,39,0.55);
-            color: #c9a227;
+            background: rgba(250, 128, 114, 0.22);
+            border-color: rgba(250, 128, 114, 0.5);
+            color: #fff1ee;
         }
         .trl-toggle-btn .btn-icon { font-size: 0.9em; }
 
@@ -263,12 +270,12 @@
         /* Date column */
         .trl-date { color: #888; font-size: 0.83rem; white-space: nowrap; }
         .trl-date-link {
-            color: #c9a227;
+            color: var(--accent-strong);
             cursor: pointer;
             text-decoration: none;
             transition: color 0.12s;
         }
-        .trl-date-link:hover { color: #e8c547; text-decoration: underline; }
+        .trl-date-link:hover { color: #fff1ee; text-decoration: underline; }
 
         /* Match button */
         .trl-match-btn {
@@ -277,15 +284,15 @@
             gap: 5px;
             padding: 3px 10px;
             border-radius: 12px;
-            border: 1px solid rgba(201,162,39,0.45);
-            background: rgba(201,162,39,0.08);
-            color: #c9a227;
+            border: 1px solid var(--accent-border);
+            background: var(--accent-soft);
+            color: var(--accent-strong);
             font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.12s;
             white-space: nowrap;
         }
-        .trl-match-btn:hover { border-color: rgba(201,162,39,0.8); color: #e8c547; background: rgba(201,162,39,0.14); }
+        .trl-match-btn:hover { border-color: var(--accent); color: #fff1ee; background: rgba(250, 128, 114, 0.18); }
 
         /* Chart-link button */
         .trl-chart-btn {
@@ -294,21 +301,21 @@
             gap: 4px;
             padding: 3px 8px;
             border-radius: 12px;
-            border: 1px solid rgba(201,162,39,0.45);
-            background: rgba(201,162,39,0.08);
-            color: #c9a227;
+            border: 1px solid var(--accent-border);
+            background: var(--accent-soft);
+            color: var(--accent-strong);
             font-size: 0.72rem;
             cursor: pointer;
             transition: all 0.12s;
             white-space: nowrap;
         }
-        .trl-chart-btn:hover { border-color: rgba(201,162,39,0.8); color: #e8c547; background: rgba(201,162,39,0.14); }
+        .trl-chart-btn:hover { border-color: var(--accent); color: #fff1ee; background: rgba(250, 128, 114, 0.18); }
         .trl-chart-btn.linked {
-            border-color: rgba(201,162,39,0.62);
-            color: #e8c547;
-            background: rgba(201,162,39,0.14);
+            border-color: rgba(250, 128, 114, 0.6);
+            color: #fff1ee;
+            background: rgba(250, 128, 114, 0.18);
         }
-        .trl-chart-btn.linked:hover { background: rgba(201,162,39,0.2); }
+        .trl-chart-btn.linked:hover { background: rgba(250, 128, 114, 0.24); }
 
         /* Sort indicators */
         .trl-table th.sorted-asc::after  { content: ' \25B2'; font-size: 0.7em; }
@@ -316,20 +323,20 @@
         .trl-sort-link { color: inherit; text-decoration: none; }
         .trl-sort-link:hover { color: #e8e8e8; }
 
-        /* Retired / Hall of Fame rows — gold */
-        .trl-table tbody tr.trl-retired td { color: #c9a227; }
-        .trl-table tbody tr.trl-retired .days-val { color: #c9a227; }
-        .trl-table tbody tr.trl-retired .days-bar { background: #c9a227; }
-        .trl-table tbody tr.trl-retired .trl-song-link { color: #e8c547; }
-        .trl-table tbody tr.trl-retired .trl-song-link:hover { color: #ffd700; }
-        .trl-table tbody tr.trl-retired .trl-artist-link { color: #b8881e; }
-        .trl-table tbody tr.trl-retired .trl-artist-link:hover { color: #d4a429; }
-        .trl-table tbody tr.trl-retired .trl-no-link-song  { color: #c9a227; }
-        .trl-table tbody tr.trl-retired .trl-no-link-artist { color: #a8861a; }
+        /* Retired / Hall of Fame rows */
+        .trl-table tbody tr.trl-retired td { color: var(--accent-strong); }
+        .trl-table tbody tr.trl-retired .days-val { color: var(--accent-strong); }
+        .trl-table tbody tr.trl-retired .days-bar { background: var(--accent); }
+        .trl-table tbody tr.trl-retired .trl-song-link { color: #fff1ee; }
+        .trl-table tbody tr.trl-retired .trl-song-link:hover { color: #ffffff; }
+        .trl-table tbody tr.trl-retired .trl-artist-link { color: #f0a097; }
+        .trl-table tbody tr.trl-retired .trl-artist-link:hover { color: #ffd0c8; }
+        .trl-table tbody tr.trl-retired .trl-no-link-song  { color: var(--accent-strong); }
+        .trl-table tbody tr.trl-retired .trl-no-link-artist { color: #f0a097; }
         .trl-table tbody tr.trl-retired .pos-badge {
-            background: rgba(201,162,39,0.2);
-            border-color: rgba(201,162,39,0.5);
-            color: #c9a227;
+            background: rgba(250, 128, 114, 0.2);
+            border-color: rgba(250, 128, 114, 0.5);
+            color: var(--accent-strong);
         }
         .trl-table tbody tr.trl-retired.gender-male {
             background: rgba(74,144,226,0.07);
@@ -500,36 +507,11 @@
     </div>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
-    <header class="topbar">
-        <div class="container">
-            <nav class="breadcrumbs">
-                <a href="/">Home</a>
-                <span class="breadcrumb-sep">/</span>
-                <span>Miscellaneous</span>
-                <span class="breadcrumb-sep">/</span>
-                <span>TRL Overview</span>
-            </nav>
-            <h1 class="page-title">TRL Overview</h1>
-            <p class="page-subtitle">All videos that debuted on MTV's Total Request Live (Sep 1998 &ndash; Oct 2007)</p>
-        </div>
-    </header>
-
     <main class="container trl-container">
-
-        <!-- Summary stats -->
-        <div class="trl-summary">
-            <div class="trl-stat">
-                <div class="trl-stat-value" id="trlSummaryTotal" th:text="${summary.total}">0</div>
-                <div class="trl-stat-label">Total Videos</div>
-            </div>
-            <div class="trl-stat">
-                <div class="trl-stat-value" id="trlSummaryMatched" th:text="${summary.matched}">0</div>
-                <div class="trl-stat-label">In My Library</div>
-            </div>
-            <div class="trl-stat">
-                <div class="trl-stat-value" id="trlSummaryUnmatched" th:text="${summary.unmatched}">0</div>
-                <div class="trl-stat-label">Not in Library</div>
-            </div>
+        <div class="overview-hero">
+            <section class="overview-hero-card">
+                <h1 class="overview-title">TRL Overview</h1>
+            </section>
         </div>
 
         <div class="overview-tabs" role="tablist" aria-label="TRL overview type">
@@ -889,15 +871,6 @@
     </div>
 
     <script>
-        function updateTrlSummaryFromDoc(doc) {
-            var total = doc.getElementById('trlSummaryTotal');
-            var matched = doc.getElementById('trlSummaryMatched');
-            var unmatched = doc.getElementById('trlSummaryUnmatched');
-            if (total) document.getElementById('trlSummaryTotal').textContent = total.textContent;
-            if (matched) document.getElementById('trlSummaryMatched').textContent = matched.textContent;
-            if (unmatched) document.getElementById('trlSummaryUnmatched').textContent = unmatched.textContent;
-        }
-
         function getTrlOverviewBody(overviewTab) {
             if (overviewTab === 'album') {
                 return document.getElementById('trlAlbumOverviewBody');
@@ -1197,7 +1170,6 @@
                     return;
                 }
                 tbody.innerHTML = nextBody.innerHTML;
-                updateTrlSummaryFromDoc(doc);
                 applyTrlRetiredFilterIfActive();
             })
             .catch(function() {

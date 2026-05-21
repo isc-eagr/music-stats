@@ -412,29 +412,29 @@
                        th:href="@{/misc/trl}"
                        target="_blank"
                        class="winning-chip rank-chip trl-chip"
-                       th:classappend="${trlStats.peakPosition != null and trlStats.peakPosition == 1} ? ' peak-one'"
-                       th:text="${trlStats.daysOnCountdown} + ' Days on TRL'
-                              + (${trlStats.peakPosition != null} ? ' (Peak #' + ${trlStats.peakPosition} + (${trlStats.daysAtPeak != null} ? ' for ' + ${trlStats.daysAtPeak} + (${trlStats.daysAtPeak == 1} ? ' day)' : ' days)') : ')') : '')"
-                       th:title="'This video spent ' + ${trlStats.daysOnCountdown} + ' days on MTV Total Request Live'"></a>
+                          th:classappend="${trlStats['peakPosition'] != null and trlStats['peakPosition'] == 1} ? ' peak-one'"
+                          th:text="${trlStats['daysOnCountdown']} + ' Days on TRL'
+                              + (${trlStats['peakPosition'] != null} ? ' (Peak #' + ${trlStats['peakPosition']} + (${trlStats['daysAtPeak'] != null} ? ' for ' + ${trlStats['daysAtPeak']} + (${trlStats['daysAtPeak'] == 1} ? ' day)' : ' days)') : ')') : '')"
+                          th:title="'This video spent ' + ${trlStats['daysOnCountdown']} + ' days on MTV Total Request Live'"></a>
 
                           <!-- Vato's Cuntdown chip (same section as TRL) -->
                     <a th:if="${pcStats != null}"
                               th:href="@{/misc/vatos-cuntdown}"
                        target="_blank"
                        class="winning-chip rank-chip pc-chip"
-                       th:classappend="${pcStats.peakPosition != null and pcStats.peakPosition == 1} ? ' peak-one'"
-                       th:text="${pcStats.daysOnCountdown} + ' Days on Vato\'s Cuntdown'
-                              + (${pcStats.peakPosition != null} ? ' (Peak #' + ${pcStats.peakPosition} + (${pcStats.daysAtPeak != null} ? ' for ' + ${pcStats.daysAtPeak} + (${pcStats.daysAtPeak == 1} ? ' day)' : ' days)') : ')') : '')"
-                              th:title="'This song spent ' + ${pcStats.daysOnCountdown} + ' days on Vato\'s Cuntdown'"></a>
+                       th:classappend="${pcStats['peakPosition'] != null and pcStats['peakPosition'] == 1} ? ' peak-one'"
+                       th:text="${pcStats['daysOnCountdown']} + ' Days on Vato\'s Cuntdown'
+                              + (${pcStats['peakPosition'] != null} ? ' (Peak #' + ${pcStats['peakPosition']} + (${pcStats['daysAtPeak'] != null} ? ' for ' + ${pcStats['daysAtPeak']} + (${pcStats['daysAtPeak'] == 1} ? ' day)' : ' days)') : ')') : '')"
+                              th:title="'This song spent ' + ${pcStats['daysOnCountdown']} + ' days on Vato\'s Cuntdown'"></a>
 
                           <a th:if="${billboardHot100Stats != null}"
                           th:href="@{/misc/billboard-hot-100}"
                           target="_blank"
                           class="winning-chip rank-chip billboard-chip"
-                          th:classappend="${billboardHot100Stats.peakPosition != null and billboardHot100Stats.peakPosition == 1} ? ' peak-one'"
-                          th:text="${billboardHot100Stats.weeksOnChart} + ' weeks on the hot 100'
-                              + (${billboardHot100Stats.peakPosition != null} ? ' (Peak #' + ${billboardHot100Stats.peakPosition} + (${billboardHot100Stats.weeksAtPeak != null and billboardHot100Stats.weeksAtPeak > 0} ? ' for ' + ${billboardHot100Stats.weeksAtPeak} + (${billboardHot100Stats.weeksAtPeak == 1} ? ' week)' : ' weeks)') : ')') : '')"
-                          th:title="'This song spent ' + ${billboardHot100Stats.weeksOnChart} + ' weeks on the Billboard Hot 100'"></a>
+                          th:classappend="${billboardHot100Stats['peakPosition'] != null and billboardHot100Stats['peakPosition'] == 1} ? ' peak-one'"
+                          th:text="${billboardHot100Stats['weeksOnChart']} + ' weeks on the hot 100'
+                              + (${billboardHot100Stats['peakPosition'] != null} ? ' (Peak #' + ${billboardHot100Stats['peakPosition']} + (${billboardHot100Stats['weeksAtPeak'] != null and billboardHot100Stats['weeksAtPeak'] > 0} ? ' for ' + ${billboardHot100Stats['weeksAtPeak']} + (${billboardHot100Stats['weeksAtPeak'] == 1} ? ' week)' : ' weeks)') : ')') : '')"
+                          th:title="'This song spent ' + ${billboardHot100Stats['weeksOnChart']} + ' weeks on the Billboard Hot 100'"></a>
                 </div>
                 
             </div>
@@ -1115,8 +1115,8 @@
                                 </thead>
                                 <tbody>
                                     <tr th:data-run-url="@{'/charts/bb/song/' + ${song.id} + '/run'}"
-                                        th:attr="data-mobile-debut-date=${billboardHot100Stats.debutDate != null ? billboardHot100Stats.debutDate : '-'},
-                                                data-mobile-peak-date=${billboardHot100Stats.peakDate != null ? billboardHot100Stats.peakDate : '-'}">
+                                        th:attr="data-mobile-debut-date=${billboardHot100Stats['debutDate'] != null ? billboardHot100Stats['debutDate'] : '-'},
+                                                data-mobile-peak-date=${billboardHot100Stats['peakDate'] != null ? billboardHot100Stats['peakDate'] : '-'}">
                                         <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show Billboard chart details" aria-expanded="false">+</button></td>
                                         <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
@@ -1135,19 +1135,19 @@
                                             </div>
                                         </td>
                                         <td class="mobile-name-col"><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
-                                        <td style="text-align:right;" th:text="${billboardHot100Stats.weeksOnChart}">-</td>
+                                        <td style="text-align:right;" th:text="${billboardHot100Stats['weeksOnChart']}">-</td>
                                         <td style="text-align:right;">
-                                            <span th:classappend="${billboardHot100Stats.peakPosition != null and billboardHot100Stats.peakPosition == 1} ? 'peak-number-one' : ''"
-                                                  th:text="${billboardHot100Stats.peakPosition != null ? billboardHot100Stats.peakPosition : '-'}">-</span>
+                                            <span th:classappend="${billboardHot100Stats['peakPosition'] != null and billboardHot100Stats['peakPosition'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="${billboardHot100Stats['peakPosition'] != null ? billboardHot100Stats['peakPosition'] : '-'}">-</span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${billboardHot100Stats.weeksAtPeak != null ? billboardHot100Stats.weeksAtPeak : '-'}">-</td>
+                                        <td style="text-align:right;" th:text="${billboardHot100Stats['weeksAtPeak'] != null ? billboardHot100Stats['weeksAtPeak'] : '-'}">-</td>
                                         <td class="hide-mobile">
-                                            <a th:if="${billboardHot100Stats.debutDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${billboardHot100Stats.debutDate})}" th:text="${billboardHot100Stats.debutDate}">-</a>
-                                            <span th:unless="${billboardHot100Stats.debutDate != null}">-</span>
+                                            <a th:if="${billboardHot100Stats['debutDate'] != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${billboardHot100Stats['debutDate']})}" th:text="${billboardHot100Stats['debutDate']}">-</a>
+                                            <span th:unless="${billboardHot100Stats['debutDate'] != null}">-</span>
                                         </td>
                                         <td class="hide-mobile">
-                                            <a th:if="${billboardHot100Stats.peakDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${billboardHot100Stats.peakDate})}" th:text="${billboardHot100Stats.peakDate}">-</a>
-                                            <span th:unless="${billboardHot100Stats.peakDate != null}">-</span>
+                                            <a th:if="${billboardHot100Stats['peakDate'] != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${billboardHot100Stats['peakDate']})}" th:text="${billboardHot100Stats['peakDate']}">-</a>
+                                            <span th:unless="${billboardHot100Stats['peakDate'] != null}">-</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1177,8 +1177,8 @@
                                 </thead>
                                 <tbody>
                                     <tr th:data-run-url="@{'/charts/pc/song/' + ${song.id} + '/run'}"
-                                        th:attr="data-mobile-debut-date=${pcStats.debutDate != null ? pcStats.debutDate : '-'},
-                                                data-mobile-peak-date=${pcStats.peakDate != null ? pcStats.peakDate : '-'}">
+                                        th:attr="data-mobile-debut-date=${pcStats['debutDate'] != null ? pcStats['debutDate'] : '-'},
+                                                data-mobile-peak-date=${pcStats['peakDate'] != null ? pcStats['peakDate'] : '-'}">
                                         <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show Vato's Cuntdown chart details" aria-expanded="false">+</button></td>
                                         <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
@@ -1197,19 +1197,19 @@
                                             </div>
                                         </td>
                                         <td class="mobile-name-col"><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
-                                        <td style="text-align:right;" th:text="${pcStats.daysOnCountdown}">-</td>
+                                        <td style="text-align:right;" th:text="${pcStats['daysOnCountdown']}">-</td>
                                         <td style="text-align:right;">
-                                            <span th:classappend="${pcStats.peakPosition != null and pcStats.peakPosition == 1} ? 'peak-number-one' : ''"
-                                                  th:text="${pcStats.peakPosition != null ? pcStats.peakPosition : '-'}">-</span>
+                                            <span th:classappend="${pcStats['peakPosition'] != null and pcStats['peakPosition'] == 1} ? 'peak-number-one' : ''"
+                                                  th:text="${pcStats['peakPosition'] != null ? pcStats['peakPosition'] : '-'}">-</span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${pcStats.daysAtPeak != null ? pcStats.daysAtPeak : '-'}">-</td>
+                                        <td style="text-align:right;" th:text="${pcStats['daysAtPeak'] != null ? pcStats['daysAtPeak'] : '-'}">-</td>
                                         <td class="hide-mobile">
-                                            <a th:if="${pcStats.debutDate != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${pcStats.debutDate})}" th:text="${pcStats.debutDate}">-</a>
-                                            <span th:unless="${pcStats.debutDate != null}">-</span>
+                                            <a th:if="${pcStats['debutDate'] != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${pcStats['debutDate']})}" th:text="${pcStats['debutDate']}">-</a>
+                                            <span th:unless="${pcStats['debutDate'] != null}">-</span>
                                         </td>
                                         <td class="hide-mobile">
-                                            <a th:if="${pcStats.peakDate != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${pcStats.peakDate})}" th:text="${pcStats.peakDate}">-</a>
-                                            <span th:unless="${pcStats.peakDate != null}">-</span>
+                                            <a th:if="${pcStats['peakDate'] != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${pcStats['peakDate']})}" th:text="${pcStats['peakDate']}">-</a>
+                                            <span th:unless="${pcStats['peakDate'] != null}">-</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1239,8 +1239,8 @@
                                 </thead>
                                 <tbody>
                                     <tr th:data-run-url="@{'/charts/trl/song/' + ${song.id} + '/run'}"
-                                        th:attr="data-mobile-debut-date=${trlStats.debutDate != null ? trlStats.debutDate : '-'},
-                                                data-mobile-peak-date=${trlStats.peakDate != null ? trlStats.peakDate : '-'}">
+                                            th:attr="data-mobile-debut-date=${trlStats['debutDate'] != null ? trlStats['debutDate'] : '-'},
+                                                    data-mobile-peak-date=${trlStats['peakDate'] != null ? trlStats['peakDate'] : '-'}">
                                         <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleMobileChartRow(this)" aria-label="Show TRL chart details" aria-expanded="false">+</button></td>
                                         <td class="hide-mobile"><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
@@ -1259,19 +1259,19 @@
                                             </div>
                                         </td>
                                         <td class="mobile-name-col"><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
-                                        <td style="text-align:right;" th:text="${trlStats.daysOnCountdown}">-</td>
+                                            <td style="text-align:right;" th:text="${trlStats['daysOnCountdown']}">-</td>
                                         <td style="text-align:right;">
-                                            <span th:classappend="${trlStats.peakPosition != null and trlStats.peakPosition == 1} ? 'peak-number-one' : ''"
-                                                  th:text="${trlStats.peakPosition != null ? trlStats.peakPosition : '-'}">-</span>
+                                                <span th:classappend="${trlStats['peakPosition'] != null and trlStats['peakPosition'] == 1} ? 'peak-number-one' : ''"
+                                                    th:text="${trlStats['peakPosition'] != null ? trlStats['peakPosition'] : '-'}">-</span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${trlStats.daysAtPeak != null ? trlStats.daysAtPeak : '-'}">-</td>
+                                            <td style="text-align:right;" th:text="${trlStats['daysAtPeak'] != null ? trlStats['daysAtPeak'] : '-'}">-</td>
                                         <td class="hide-mobile">
-                                            <a th:if="${trlStats.debutDate != null}" th:href="@{/misc/trl/recaps(date=${trlStats.debutDate})}" th:text="${trlStats.debutDate}">-</a>
-                                            <span th:unless="${trlStats.debutDate != null}">-</span>
+                                                <a th:if="${trlStats['debutDate'] != null}" th:href="@{/misc/trl/recaps(date=${trlStats['debutDate']})}" th:text="${trlStats['debutDate']}">-</a>
+                                                <span th:unless="${trlStats['debutDate'] != null}">-</span>
                                         </td>
                                         <td class="hide-mobile">
-                                            <a th:if="${trlStats.peakDate != null}" th:href="@{/misc/trl/recaps(date=${trlStats.peakDate})}" th:text="${trlStats.peakDate}">-</a>
-                                            <span th:unless="${trlStats.peakDate != null}">-</span>
+                                                <a th:if="${trlStats['peakDate'] != null}" th:href="@{/misc/trl/recaps(date=${trlStats['peakDate']})}" th:text="${trlStats['peakDate']}">-</a>
+                                                <span th:unless="${trlStats['peakDate'] != null}">-</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -3359,6 +3359,7 @@
         .overview-chart-run-box.gender-other { background: #1a2e1a; color: #86efac; border-color: #166534; }
         .overview-chart-run-box.peak-one { background: #3d3012; color: #fbbf24; border-color: #6b5c1f; }
         .overview-chart-run-box.absent { background: transparent; color: #555; border-color: transparent; font-size: 0.72rem; }
+        a.overview-chart-run-box { cursor: pointer; text-decoration: none; }
     </style>
     
     <!-- Image Modal -->
@@ -3389,6 +3390,11 @@
             const runUrl = row.dataset.runUrl;
             if (!runUrl) return;
 
+            let chartType = 'weekly';
+            if (runUrl.includes('/charts/bb/')) chartType = 'billboard';
+            else if (runUrl.includes('/charts/pc/')) chartType = 'pc';
+            else if (runUrl.includes('/charts/trl/')) chartType = 'trl';
+
             let detailRow = row.nextElementSibling;
             if (!detailRow || !detailRow.classList.contains('detail-expand-row')) {
                 detailRow = document.createElement('tr');
@@ -3396,7 +3402,7 @@
                 const td = document.createElement('td');
                 td.className = 'overview-detail-cell';
                 td.colSpan = row.cells.length;
-                td.innerHTML = renderDetailExpandContent({}, true);
+                td.innerHTML = renderDetailExpandContent({}, true, chartType);
                 detailRow.appendChild(td);
                 row.insertAdjacentElement('afterend', detailRow);
             }
@@ -3413,7 +3419,7 @@
             fetch(runUrl)
                 .then(r => r.json())
                 .then(data => {
-                    td.innerHTML = renderDetailExpandContent(data, false);
+                    td.innerHTML = renderDetailExpandContent(data, false, chartType);
                     detailRow.dataset.loaded = '1';
                 })
                 .catch(() => {
@@ -3422,7 +3428,7 @@
                 .finally(() => delete detailRow.dataset.loading);
         }
 
-        function renderDetailExpandContent(data, loading) {
+        function renderDetailExpandContent(data, loading, chartType) {
             const unitLabel = (data.unit === 'day') ? 'Day' : 'Wk';
             const top1 = loading ? '-' : (data.weeksAtTop1 ?? 0);
             const top5 = loading ? '-' : (data.weeksAtTop5 ?? 0);
@@ -3430,7 +3436,7 @@
             const top20 = loading ? '-' : (data.weeksAtTop20 ?? 0);
             const chartRunHtml = loading
                 ? `<div class="overview-chart-run-wrap"><div class="overview-chart-run-label">Chart Run</div><div style="color:#888;">Loading...</div></div>`
-                : renderDetailChartRunBoxes(data);
+                : renderDetailChartRunBoxes(data, chartType);
             return `<div class="overview-detail-stack">
                 <div class="overview-detail-grid">
                     <div class="overview-detail-stat"><div class="overview-detail-label">#1</div><div class="overview-detail-value">${top1}</div></div>
@@ -3440,7 +3446,7 @@
                 </div>${chartRunHtml}</div>`;
         }
 
-        function renderDetailChartRunBoxes(data) {
+        function renderDetailChartRunBoxes(data, chartType) {
             if (!data.weeks || data.weeks.length === 0) return '';
             const weeks = data.weeks;
             let start = 0; while (start < weeks.length && !weeks[start].onChart) start++;
@@ -3458,6 +3464,14 @@
             const boxesHtml = consolidated.map(w => {
                 if (!w.onChart) return `<span class="overview-chart-run-box absent" title="${w.count} off">${w.count}x</span>`;
                 const cls = w.position === 1 ? 'overview-chart-run-box peak-one' : `overview-chart-run-box ${genderClass}`;
+                let href = null;
+                if (w.periodKey) {
+                    if (chartType === 'weekly') href = `/charts/weekly/${w.periodKey}`;
+                    else if (chartType === 'billboard') href = `/misc/billboard-hot-100/recaps?date=${encodeURIComponent(w.periodKey)}`;
+                    else if (chartType === 'pc') href = `/misc/vatos-cuntdown/recaps?date=${encodeURIComponent(w.periodKey)}`;
+                    else if (chartType === 'trl') href = `/misc/trl/recaps?date=${encodeURIComponent(w.periodKey)}`;
+                }
+                if (href) return `<a href="${href}" class="${cls}" title="${w.dateRange || w.periodKey}">${w.display}</a>`;
                 return `<span class="${cls}" title="${w.dateRange || w.periodKey}">${w.display}</span>`;
             }).join('');
             return `<div class="overview-chart-run-wrap"><div class="overview-chart-run-label">Chart Run</div><div class="overview-chart-run-boxes">${boxesHtml}</div></div>`;

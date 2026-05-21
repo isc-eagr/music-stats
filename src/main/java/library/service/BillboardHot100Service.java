@@ -382,36 +382,6 @@ public class BillboardHot100Service {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
-    public Map<String, Object> getSummary() {
-        Map<String, Object> summary = new LinkedHashMap<>();
-        ensureDebutSnapshot();
-        if (!tableExists()) {
-            summary.put("total", 0);
-            summary.put("matched", 0);
-            summary.put("unmatched", 0);
-            summary.put("rowsImported", 0);
-            summary.put("lastImportedChartDate", null);
-            return summary;
-        }
-
-        String sql =
-            "SELECT (SELECT COUNT(*) FROM billboard_hot100_debut WHERE matched = 1) AS matched, " +
-            "       (SELECT COUNT(*) FROM billboard_hot100_debut WHERE matched = 0) AS unmatched, " +
-            "       (SELECT COUNT(*) FROM billboard_hot100_entry) AS rows_imported, " +
-            "       (SELECT MAX(chart_date) FROM billboard_hot100_entry) AS last_imported_chart_date";
-
-        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-            int matched = rs.getInt("matched");
-            int unmatched = rs.getInt("unmatched");
-            summary.put("total", matched + unmatched);
-            summary.put("matched", matched);
-            summary.put("unmatched", unmatched);
-            summary.put("rowsImported", rs.getInt("rows_imported"));
-            summary.put("lastImportedChartDate", rs.getString("last_imported_chart_date"));
-            return summary;
-        });
-    }
-
     public Map<String, Object> importAllCharts() {
         try (Connection connection = dataSource.getConnection()) {
             BillboardHot100ImportSupport.ImportReport report = BillboardHot100ImportSupport.importAllCharts(connection);

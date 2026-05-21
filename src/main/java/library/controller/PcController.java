@@ -40,7 +40,6 @@ public class PcController {
         int safeSize = normalizeSize(size);
         String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
         String normalizedDir = normalizeDir(normalizedOverviewTab, dir);
-        Map<String, Object> summary = pcService.getSummary();
 
         List<PcOverviewRowDTO> entries = List.of();
         List<ChartAlbumOverviewRowDTO> albumOverviewRows = List.of();
@@ -65,7 +64,6 @@ public class PcController {
         model.addAttribute("albumOverviewRows", albumOverviewRows);
         model.addAttribute("artistOverviewRows", artistOverviewRows);
         model.addAttribute("overviewTab", normalizedOverviewTab);
-        model.addAttribute("summary", summary);
         model.addAttribute("pageSize", safeSize);
         model.addAttribute("activeTotalCount", activeTotalCount);
         model.addAttribute("selectedSort", normalizedSort);

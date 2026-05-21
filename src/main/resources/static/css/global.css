@@ -4266,38 +4266,53 @@ body.gender-other .mobile-row-expand-btn.expanded,
 .mobile-table-detail-cell {
     background: #101010;
     padding: 14px 16px !important;
+    width: 0;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .mobile-table-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
 }
 
 .mobile-table-detail-item {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 10px;
-    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 104px;
+    max-width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--mobile-detail-card-border, #242424);
+    background: var(--mobile-detail-card-bg, #151515);
+    box-sizing: border-box;
 }
 
 .mobile-table-detail-label {
-    color: #888;
+    color: var(--mobile-detail-label, #888);
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .mobile-table-detail-value {
-    color: #f3f4f6;
+    color: var(--mobile-detail-value, #f3f4f6);
     font-size: 0.85rem;
     font-weight: 600;
-    text-align: right;
+    text-align: left;
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.mobile-table-detail-item .mvmt {
+    min-width: 0;
 }
 
 .chart-history-content .table .cover-col {
@@ -4655,8 +4670,11 @@ body.gender-other .mobile-row-expand-btn.expanded,
     }
 
     .mobile-table-detail-grid {
-        grid-template-columns: 1fr;
         gap: 8px;
+    }
+
+    .mobile-table-detail-item {
+        min-width: calc(50% - 4px);
     }
 
     .chart-history-content .table .cover-col {

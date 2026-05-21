@@ -69,7 +69,6 @@ public class TrlController {
         model.addAttribute("activeTotalCount", activeTotalCount);
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
-        model.addAttribute("summary", trlService.getSummary());
         model.addAttribute("currentSection", "trl");
         return "misc/trl";
     }

@@ -215,18 +215,6 @@ public class TrlService {
             artistName, songTitle);
     }
 
-    public Map<String, Object> getSummary() {
-        Integer total = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM trl_debut", Integer.class);
-        Integer matched = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM trl_debut WHERE song_id IS NOT NULL", Integer.class);
-        return Map.of(
-                "total", total != null ? total : 0,
-                "matched", matched != null ? matched : 0,
-                "unmatched", (total != null ? total : 0) - (matched != null ? matched : 0)
-        );
-    }
-
     public Integer getDaysOnTrlBySongId(Integer songId) {
         if (songId == null) return null;
         try {
@@ -512,7 +500,7 @@ public class TrlService {
             "LEFT JOIN peak_days pd ON pd.debut_id = ce.debut_id " +
             "LEFT JOIN prev_pos pp ON pp.debut_id = ce.debut_id " +
             "WHERE ce.chart_date = ? " +
-            "ORDER BY ce.position DESC";
+            "ORDER BY ce.position ASC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> row = new LinkedHashMap<>();
             int currentPos = rs.getInt("position");

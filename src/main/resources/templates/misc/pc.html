@@ -9,6 +9,12 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <style>
+        body {
+            --accent: #a855f7;
+            --accent-strong: #ddb7ff;
+            --accent-soft: rgba(168, 85, 247, 0.14);
+            --accent-border: rgba(168, 85, 247, 0.34);
+        }
         .page-load-overlay { display: none; }
         html.js body.page-loading .page-load-overlay,
         html.js body.page-busy .page-load-overlay {
@@ -43,36 +49,57 @@
         .page-load-subtitle { color: rgba(239, 221, 255, 0.68); font-size: 12px; margin-top: 6px; }
         @keyframes page-load-spin { to { transform: rotate(360deg); } }
         .pc-container { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; }
-        .pc-summary { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-        .pc-stat { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px 22px; min-width: 120px; text-align: center; }
-        .pc-stat-value { font-size: 1.8rem; font-weight: 700; color: #fff; }
-        .pc-stat-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
-        .overview-tabs { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+        .overview-hero { margin-bottom: 22px; }
+        .overview-hero-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
+            border: 1px solid #2a2a2f;
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+            text-align: center;
+        }
+        .overview-hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, var(--accent-soft), transparent 48%);
+            pointer-events: none;
+        }
+        .overview-title {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+            color: var(--accent-strong);
+            text-align: center;
+            text-shadow: 0 0 24px rgba(0, 0, 0, 0.24);
+        }
+        .overview-tabs { display: flex; gap: 0; margin-bottom: 18px; padding: 0 8px; border-bottom: 1px solid #2b2d35; flex-wrap: wrap; }
         .overview-tab-link {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 9px 16px;
-            border-radius: 999px;
-            border: 1px solid rgba(168, 85, 247, 0.28);
-            background: rgba(168, 85, 247, 0.06);
-            color: #caa2f5;
+            padding: 12px 18px 11px;
+            margin-bottom: -1px;
+            border: none;
+            border-bottom: 3px solid transparent;
+            background: transparent;
+            color: #8f929d;
             text-decoration: none;
-            font-size: 0.84rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            transition: all 0.15s;
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
         }
         .overview-tab-link:hover {
-            border-color: rgba(168, 85, 247, 0.66);
-            color: #efdfff;
-            background: rgba(168, 85, 247, 0.14);
+            color: #f3f4f8;
+            background: rgba(255,255,255,0.02);
         }
         .overview-tab-link.active {
-            border-color: rgba(168, 85, 247, 0.82);
-            color: #fff;
-            background: linear-gradient(135deg, #7c3aed, #c026d3);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+            color: var(--accent-strong);
+            border-color: var(--accent);
         }
         .pc-toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
         .pc-search-input-inline {
@@ -245,27 +272,10 @@
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <div class="pc-container">
-        <div class="topbar">
-            <div class="breadcrumbs">
-                <a href="/">Home</a> / <span>Vato's Cuntdown Overview</span>
-            </div>
-            <h1>Vato's Cuntdown Overview</h1>
-            <p class="page-subtitle">Derived directly from non-close-call countdown entries, grouped by raw name until a library song link exists.</p>
-        </div>
-
-        <div class="pc-summary">
-            <div class="pc-stat">
-                <div class="pc-stat-value" th:text="${summary.total}">0</div>
-                <div class="pc-stat-label">Overview Rows</div>
-            </div>
-            <div class="pc-stat">
-                <div class="pc-stat-value" th:text="${summary.matched}">0</div>
-                <div class="pc-stat-label">Linked to Library</div>
-            </div>
-            <div class="pc-stat">
-                <div class="pc-stat-value" th:text="${summary.unmatched}">0</div>
-                <div class="pc-stat-label">Still Raw</div>
-            </div>
+        <div class="overview-hero">
+            <section class="overview-hero-card">
+                <h1 class="overview-title">Vato's Cuntdown Overview</h1>
+            </section>
         </div>
 
         <div class="overview-tabs" role="tablist" aria-label="Vato's Cuntdown overview type">

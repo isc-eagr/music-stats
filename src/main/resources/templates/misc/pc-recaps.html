@@ -8,9 +8,53 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <style>
         .recap-container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px 40px;
+            --mobile-detail-card-bg: rgba(168, 85, 247, 0.09);
+            --mobile-detail-card-border: rgba(168, 85, 247, 0.22);
+            --mobile-detail-label: #cfb0f1;
+            --mobile-detail-value: #f6ebff;
+        }
+        .overview-hero {
+            margin-bottom: 22px;
+        }
+        .overview-hero-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
+            border: 1px solid #2a2a2f;
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+            text-align: center;
+        }
+        .overview-hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 48%);
+            pointer-events: none;
+        }
+        .overview-title {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+            color: #ddb7ff;
+            text-align: center;
+            text-shadow: 0 0 24px rgba(0, 0, 0, 0.24);
+        }
+        .overview-subtitle {
+            position: relative;
+            z-index: 1;
+            margin-top: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f3ddff;
+            letter-spacing: 0.02em;
+            text-align: center;
+            text-shadow: 0 0 16px rgba(168, 85, 247, 0.18);
         }
 
         /* Date picker bar */
@@ -18,6 +62,7 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            justify-content: center;
             margin-bottom: 24px;
             flex-wrap: wrap;
         }
@@ -39,11 +84,6 @@
         }
         .recap-nav-btn:hover:not(:disabled) { border-color: #a855f7; color: #a855f7; background: rgba(168,85,247,0.08); }
         .recap-nav-btn:disabled { opacity: 0.3; cursor: default; }
-        .recap-date-bar label {
-            font-size: 0.88rem;
-            color: #aaa;
-            font-weight: 600;
-        }
         .recap-date-select {
             padding: 9px 12px;
             border-radius: 8px;
@@ -59,14 +99,6 @@
             background: #1a1a1a;
             color: #e0e0e0;
         }
-
-        /* Showing date label */
-        .recap-showing {
-            font-size: 0.82rem;
-            color: #888;
-            margin-bottom: 16px;
-        }
-        .recap-showing strong { color: #ccc; }
 
         /* Section header for close calls */
         .recap-section-header {
@@ -314,95 +346,450 @@
         .recap-run-box.gender-other { background: #3a3b43; border-color: #555861; color: #e5e7eb; }
         .recap-run-box.peak-one { background: #7c5200; border-color: #c47f00; color: #ffd966; }
         .recap-run-box.absent { background: #222; border-color: #333; color: #666; cursor: default; }
-        .recap-run-loading { color: #888; font-style: italic; font-size: 0.82rem; }
+        .recap-run-loading { color: #888; font-size: 0.82rem; }
         .recap-run-error { color: #f87171; font-size: 0.82rem; }
+        .chart-link {
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .chart-link:hover {
+            text-decoration: underline;
+        }
+        .chart-link-primary {
+            color: #fff;
+        }
+        .chart-link-primary:hover {
+            color: #22c55e;
+        }
+        .chart-link-secondary {
+            color: #aaa;
+        }
+        .chart-link-secondary:hover {
+            color: #fff;
+        }
+        .mobile-inline-artist {
+            display: none;
+            margin-top: 4px;
+            font-size: 0.78rem;
+            line-height: 1.25;
+        }
+        .mobile-inline-artist .chart-link-secondary {
+            color: #aaa;
+        }
+        .mobile-inline-artist .chart-link-secondary:hover {
+            color: #fff;
+        }
+        .recap-table-wrap {
+            border-radius: 18px;
+            border: 1px solid #252834;
+            background: #101118;
+        }
+        .recap-table {
+            background: #12131a;
+        }
+        .recap-table thead tr {
+            background: #171922;
+            border-bottom: 1px solid #2b3140;
+        }
+        .recap-table th {
+            padding: 12px 16px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #8c8f9a;
+            letter-spacing: 0.08em;
+        }
+        .recap-table td {
+            padding: 12px 16px;
+        }
+        .recap-table .col-title,
+        .recap-table .col-artist,
+        .recap-table .mobile-name-col {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        .recap-table .cover-col {
+            width: 62px;
+            padding: 8px 10px;
+        }
+        .recap-table .cover-col img,
+        .recap-table .cover-col .cover-placeholder {
+            width: 42px;
+            height: 42px;
+            border-radius: 6px;
+        }
+        .recap-table .cover-col img {
+            display: block;
+            object-fit: cover;
+            background: #0f0f0f;
+            border: 1px solid #2a2a2a;
+        }
+        .recap-table .cover-col .cover-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a1a, #262626);
+            border: 1px dashed #333;
+            color: #666;
+        }
+        .recap-table tbody tr {
+            border-bottom: 1px solid #1b1d27;
+        }
+        .recap-table tbody tr:hover {
+            background: #161824;
+        }
+        .recap-table tbody tr.gender-female {
+            background: rgba(236, 72, 153, 0.15);
+            border-left: 3px solid rgba(236, 72, 153, 0.6);
+        }
+        .recap-table tbody tr.gender-female:hover {
+            background: rgba(236, 72, 153, 0.19);
+        }
+        .recap-table tbody tr.gender-male {
+            background: rgba(59, 130, 246, 0.15);
+            border-left: 3px solid rgba(59, 130, 246, 0.6);
+        }
+        .recap-table tbody tr.gender-male:hover {
+            background: rgba(59, 130, 246, 0.19);
+        }
+        .recap-table th.col-expand,
+        .recap-table td.col-expand {
+            width: 52px;
+            text-align: center;
+        }
+        .recap-table th.col-movement,
+        .recap-table td.col-movement {
+            min-width: 90px;
+            text-align: center;
+        }
+        .recap-table th.col-position,
+        .recap-table td.col-position,
+        .recap-table th.col-peak,
+        .recap-table td.col-peak,
+        .recap-table th.col-span,
+        .recap-table td.col-span,
+        .recap-table th.col-at-peak,
+        .recap-table td.col-at-peak {
+            text-align: center;
+        }
+        .position-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .position-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .mvmt {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: #1f2937;
+            color: #d1d5db;
+            border: 1px solid #374151;
+        }
+        .mvmt-up {
+            color: #86efac;
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+        .mvmt-down {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .mvmt-same {
+            color: #d1d5db;
+            background: rgba(148, 163, 184, 0.12);
+            border-color: rgba(148, 163, 184, 0.28);
+        }
+        .mvmt-new {
+            color: #86efac;
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+        .mvmt-re {
+            color: #fcd34d;
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        .peak-cell,
+        .recap-pos-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .peak-position {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e5e7eb;
+        }
+        .peak-position.peak-number-one {
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
+        }
+        .title-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .title-image,
+        .title-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .title-image {
+            object-fit: cover;
+            background: #0f1016;
+        }
+        .title-placeholder {
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: #444;
+        }
+        .recap-expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+        }
+        .recap-run-stat {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+        }
+        .recap-run-box {
+            min-width: 28px;
+            height: 28px;
+            padding: 0 7px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            background: #25262d;
+            color: #d9dde7;
+            border: 1px solid #3b3d46;
+        }
+        .recap-run-box:hover {
+            border-color: rgba(96, 165, 250, 0.34);
+            color: #fff;
+        }
+        .recap-run-box.current {
+            border-color: rgba(96, 165, 250, 0.42);
+            box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.2) inset;
+        }
+        .recap-run-box.peak-one {
+            background: rgba(245, 158, 11, 0.18);
+            border-color: rgba(251, 191, 36, 0.45);
+            color: #fcd34d;
+        }
+
+        @media (max-width: 768px) {
+            .recap-container {
+                padding: 0 12px 32px;
+            }
+
+            .overview-hero-card {
+                padding: 18px 16px;
+            }
+
+            .overview-title {
+                font-size: 1.7rem;
+            }
+
+            .overview-subtitle {
+                font-size: 0.92rem;
+            }
+
+            .recap-date-bar {
+                gap: 8px;
+                margin-bottom: 18px;
+            }
+
+            .recap-date-select {
+                flex: 1 1 calc(33.33% - 8px);
+                min-width: 0;
+            }
+
+            .recap-table-wrap {
+                overflow-x: auto;
+            }
+
+            .recap-table.table.mobile-compact-table {
+                width: 100%;
+                min-width: 0;
+                table-layout: fixed;
+            }
+
+            .recap-table.table.mobile-compact-table th,
+            .recap-table.table.mobile-compact-table td {
+                padding: 8px 6px;
+            }
+
+            .recap-table.table.mobile-compact-table th.mobile-expand-col,
+            .recap-table.table.mobile-compact-table td.mobile-expand-col {
+                width: 32px;
+                padding-left: 4px;
+                padding-right: 4px;
+            }
+
+            .recap-table.table.mobile-compact-table th.col-position,
+            .recap-table.table.mobile-compact-table td.col-position,
+            .recap-table.table.mobile-compact-table th.col-span,
+            .recap-table.table.mobile-compact-table td.col-span,
+            .recap-table.table.mobile-compact-table th.col-peak,
+            .recap-table.table.mobile-compact-table td.col-peak {
+                width: 52px;
+            }
+
+            .recap-table.table.mobile-compact-table th.mobile-name-col,
+            .recap-table.table.mobile-compact-table td.mobile-name-col {
+                white-space: normal;
+                min-width: 0;
+                overflow-wrap: break-word;
+                word-break: normal;
+            }
+
+            .recap-table .cover-col {
+                width: 44px;
+                padding: 3px 6px;
+            }
+
+            .recap-table .cover-col img,
+            .recap-table .cover-col .cover-placeholder {
+                width: 38px;
+                height: 38px;
+            }
+
+            .recap-table.table.mobile-compact-table .mobile-table-detail-cell {
+                white-space: normal;
+            }
+
+            .recap-table.table.mobile-compact-table .position-number {
+                font-size: 1.15rem;
+            }
+
+            .recap-table.table.mobile-compact-table .peak-position {
+                font-size: 1rem;
+            }
+
+            .recap-table.table.mobile-compact-table .peak-now-pill {
+                display: none;
+            }
+
+            .mobile-inline-artist {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
     <div class="recap-container">
-        <div class="topbar">
-            <div class="breadcrumbs">
-                <a href="/">Home</a> / <a href="/misc/vatos-cuntdown">Vato's Cuntdown</a> / <span>Recaps</span>
-            </div>
-            <h1>Vato's Cuntdown Recaps</h1>
+        <div class="overview-hero">
+            <section class="overview-hero-card">
+                <h1 class="overview-title">Vato's Cuntdown Recaps</h1>
+                <div class="overview-subtitle" id="recapHeroDate" th:text="${selectedDate != null ? selectedDate : 'Select a countdown date'}">2004-01-01</div>
+            </section>
         </div>
 
         <!-- Date picker dropdowns + nav arrows -->
         <div class="recap-date-bar">
             <button id="recapPrev" class="recap-nav-btn" title="Previous show" disabled>&#8592;</button>
-            <label>Select date:</label>
             <select id="recapMonth" class="recap-date-select" title="Month"></select>
             <select id="recapDay" class="recap-date-select" title="Day"></select>
             <select id="recapYear" class="recap-date-select" title="Year"></select>
             <button id="recapNext" class="recap-nav-btn" title="Next show" disabled>&#8594;</button>
         </div>
 
-        <!-- Showing indicator -->
-        <div id="recapShowing" class="recap-showing" style="display:none;">
-            Showing countdown for <strong id="recapShowDate"></strong>
-        </div>
-
         <!-- Countdown table -->
         <div id="recapContent">
             <div th:if="${countdown != null}">
-                <div class="recap-showing">
-                    Showing countdown for <strong th:text="${selectedDate}"></strong>
-                </div>
                 <!-- Main countdown entries -->
                 <div class="recap-table-wrap">
-                    <table class="recap-table">
+                    <table class="recap-table table mobile-compact-table">
                         <thead>
                             <tr>
-                                <th></th>
-                                <th class="center" title="Movement vs previous countdown">Move</th>
-                                <th class="center" style="width:60px;">#</th>
-                                <th>Song</th>
-                                <th>Artist</th>
-                                <th class="center stat-col" title="Days on countdown up to this date">Days</th>
-                                <th class="center stat-col" title="Peak position">Peak</th>
-                                <th class="center stat-col" title="Days at peak">@ Peak</th>
+                                <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                <th class="col-expand hide-mobile"></th>
+                                <th class="cover-col">Cover</th>
+                                <th class="center col-movement hide-mobile" title="Movement vs previous countdown">Movement</th>
+                                <th class="center col-position">Position</th>
+                                <th class="col-title mobile-name-col">Song</th>
+                                <th class="col-artist hide-mobile">Artist</th>
+                                <th class="center col-span" title="Days on countdown up to this date">Days</th>
+                                <th class="center col-peak" title="Peak position">Peak</th>
+                                <th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>
                             </tr>
                         </thead>
                         <tbody>
                             <th:block th:each="e, stat : ${countdown}">
                                 <tr th:if="${!e.isClosecall}"
                                     th:classappend="${e.genderClass != null ? e.genderClass : ''}"
-                                    th:attr="data-song-id=${e.songId},data-raw-artist=${e.artistName},data-raw-song=${e.songTitle},data-detail-id=${'pc-recap-run-' + stat.index}">
-                                    <td class="center">
+                                    th:attr="data-song-id=${e.songId},data-raw-artist=${e.artistName},data-raw-song=${e.songTitle},data-detail-id=${'pc-recap-run-' + stat.index},data-mobile-artist=${e.artistName != null ? e.artistName : '-'},data-mobile-movement=${e.movement != null ? e.movement : '-'},data-mobile-movement-class=${e.movementClass != null ? e.movementClass : ''},data-mobile-at-peak=${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'},data-mobile-at-peak-label='Days @ Peak'">
+                                    <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this)" aria-label="Show PC recap details" aria-expanded="false">+</button></td>
+                                    <td class="center col-expand hide-mobile">
                                         <button class="recap-expand-btn" onclick="toggleRecapExpand(this, 'pc')" title="Show chart run">+</button>
                                     </td>
-                                    <td class="center">
+                                    <td class="cover-col">
+                                        <th:block th:if="${e.songId != null}">
+                                            <img th:src="@{'/songs/' + ${e.songId} + '/image'}" alt="" loading="lazy"
+                                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                            <div class="cover-placeholder" style="display:none;"><span>&#9835;</span></div>
+                                        </th:block>
+                                        <div th:if="${e.songId == null}" class="cover-placeholder"><span>&#9835;</span></div>
+                                    </td>
+                                    <td class="center col-movement hide-mobile">
                                         <span th:if="${e.movement != null}"
                                               th:classappend="'mvmt ' + ${e.movementClass}"
                                               th:text="${e.movement}"></span>
                                         <span th:if="${e.movement == null}" style="color:#555;">-</span>
                                     </td>
-                                    <td class="center">
-                                        <span class="pos-badge" th:text="${e.position}"></span>
+                                    <td class="center col-position">
+                                        <div class="position-cell">
+                                            <span class="position-number" th:text="${e.position}"></span>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <a th:if="${e.songId != null}" class="recap-song-link"
+                                    <td class="col-title mobile-name-col">
+                                        <a th:if="${e.songId != null}" class="chart-link chart-link-primary"
                                            th:href="@{'/songs/' + ${e.songId}}" th:text="${e.songTitle}"></a>
-                                        <span th:if="${e.songId == null}" class="recap-no-link-song" th:text="${e.songTitle}"></span>
+                                        <span th:if="${e.songId == null}" class="chart-link chart-link-primary" th:text="${e.songTitle}"></span>
+                                        <div class="mobile-inline-artist">
+                                            <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
+                                               th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
+                                            <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <a th:if="${e.artistId != null}" class="recap-artist-link"
+                                    <td class="col-artist hide-mobile">
+                                        <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
                                            th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
-                                        <span th:if="${e.artistId == null}" class="recap-no-link-artist" th:text="${e.artistName}"></span>
+                                        <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
                                     </td>
-                                    <td class="center" th:text="${e.days != null ? e.days : '-'}"></td>
-                                    <td class="center">
+                                    <td class="center col-span" th:text="${e.days != null ? e.days : '-'}"></td>
+                                    <td class="center col-peak">
                                         <span class="recap-pos-cell">
-                                            <span th:text="${e.peak != null ? e.peak : '-'}"></span>
+                                            <span class="peak-position" th:classappend="${e.peak == 1 ? ' peak-number-one' : ''}" th:text="${e.peak != null ? e.peak : '-'}"></span>
                                             <span th:if="${e.peak != null and e.position == e.peak}" class="peak-now-pill">Peak</span>
                                         </span>
                                     </td>
-                                    <td class="center" th:text="${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'}"></td>
+                                    <td class="center col-at-peak hide-mobile" th:text="${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'}"></td>
                                 </tr>
                                 <tr th:if="${!e.isClosecall}" class="recap-detail-row">
-                                    <td colspan="8" class="recap-detail-cell">
+                                    <td colspan="10" class="recap-detail-cell">
                                         <div class="recap-run-loading" th:id="${'pc-recap-run-' + stat.index}">Expand to load chart run...</div>
                                     </td>
                                 </tr>
@@ -414,30 +801,46 @@
                 <div th:if="${#lists.size(countdown.?[isClosecall]) > 0}">
                     <div class="recap-section-header">Close Calls</div>
                     <div class="recap-table-wrap">
-                        <table class="recap-table">
+                        <table class="recap-table table mobile-compact-table">
                             <thead>
                                 <tr>
-                                    <th class="center" style="width:60px;">#</th>
-                                    <th>Song</th>
-                                    <th>Artist</th>
+                                    <th class="center col-position">Position</th>
+                                    <th class="cover-col">Cover</th>
+                                    <th class="col-title mobile-name-col">Song</th>
+                                    <th class="col-artist hide-mobile">Artist</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="e : ${countdown}"
                                     th:if="${e.isClosecall}"
                                     th:classappend="${e.genderClass != null ? e.genderClass : ''}">
-                                    <td class="center">
-                                        <span class="pos-badge" th:text="${e.position}"></span>
+                                    <td class="center col-position">
+                                        <div class="position-cell">
+                                            <span class="position-number" th:text="${e.position}"></span>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <a th:if="${e.songId != null}" class="recap-song-link"
+                                    <td class="cover-col">
+                                        <th:block th:if="${e.songId != null}">
+                                            <img th:src="@{'/songs/' + ${e.songId} + '/image'}" alt="" loading="lazy"
+                                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                            <div class="cover-placeholder" style="display:none;"><span>&#9835;</span></div>
+                                        </th:block>
+                                        <div th:if="${e.songId == null}" class="cover-placeholder"><span>&#9835;</span></div>
+                                    </td>
+                                    <td class="col-title mobile-name-col">
+                                        <a th:if="${e.songId != null}" class="chart-link chart-link-primary"
                                            th:href="@{'/songs/' + ${e.songId}}" th:text="${e.songTitle}"></a>
-                                        <span th:if="${e.songId == null}" class="recap-no-link-song" th:text="${e.songTitle}"></span>
+                                        <span th:if="${e.songId == null}" class="chart-link chart-link-primary" th:text="${e.songTitle}"></span>
+                                        <div class="mobile-inline-artist">
+                                            <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
+                                               th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
+                                            <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <a th:if="${e.artistId != null}" class="recap-artist-link"
+                                    <td class="col-artist hide-mobile">
+                                        <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
                                            th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
-                                        <span th:if="${e.artistId == null}" class="recap-no-link-artist" th:text="${e.artistName}"></span>
+                                        <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -447,36 +850,56 @@
                 <div th:if="${fallOffs != null && !fallOffs.isEmpty()}">
                     <div class="recap-section-header">Fall-offs</div>
                     <div class="recap-table-wrap">
-                        <table class="recap-table">
+                        <table class="recap-table table mobile-compact-table">
                             <thead>
                                 <tr>
-                                    <th class="center" style="width:60px;">#</th>
-                                    <th>Song</th>
-                                    <th>Artist</th>
-                                    <th class="center stat-col" title="Days on countdown before dropping off">Days</th>
-                                    <th class="center stat-col" title="Peak position">Peak</th>
-                                    <th class="center stat-col" title="Days at peak">@ Peak</th>
+                                    <th class="center col-position">Position</th>
+                                    <th class="cover-col">Cover</th>
+                                    <th class="col-title mobile-name-col">Song</th>
+                                    <th class="col-artist hide-mobile">Artist</th>
+                                    <th class="center col-span" title="Days on countdown before dropping off">Days</th>
+                                    <th class="center col-peak" title="Peak position">Peak</th>
+                                    <th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="e : ${fallOffs}"
                                     th:classappend="${e.genderClass != null ? e.genderClass : ''}">
-                                    <td class="center">
-                                        <span class="pos-badge" th:text="${e.position}"></span>
+                                    <td class="center col-position">
+                                        <div class="position-cell">
+                                            <span class="position-number" th:text="${e.position}"></span>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <a th:if="${e.songId != null}" class="recap-song-link"
+                                    <td class="cover-col">
+                                        <th:block th:if="${e.songId != null}">
+                                            <img th:src="@{'/songs/' + ${e.songId} + '/image'}" alt="" loading="lazy"
+                                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                            <div class="cover-placeholder" style="display:none;"><span>&#9835;</span></div>
+                                        </th:block>
+                                        <div th:if="${e.songId == null}" class="cover-placeholder"><span>&#9835;</span></div>
+                                    </td>
+                                    <td class="col-title mobile-name-col">
+                                        <a th:if="${e.songId != null}" class="chart-link chart-link-primary"
                                            th:href="@{'/songs/' + ${e.songId}}" th:text="${e.songTitle}"></a>
-                                        <span th:if="${e.songId == null}" class="recap-no-link-song" th:text="${e.songTitle}"></span>
+                                        <span th:if="${e.songId == null}" class="chart-link chart-link-primary" th:text="${e.songTitle}"></span>
+                                        <div class="mobile-inline-artist">
+                                            <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
+                                               th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
+                                            <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <a th:if="${e.artistId != null}" class="recap-artist-link"
+                                    <td class="col-artist hide-mobile">
+                                        <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
                                            th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
-                                        <span th:if="${e.artistId == null}" class="recap-no-link-artist" th:text="${e.artistName}"></span>
+                                        <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
                                     </td>
-                                    <td class="center" th:text="${e.days != null ? e.days : '-'}"></td>
-                                    <td class="center" th:text="${e.peak != null ? e.peak : '-'}"></td>
-                                    <td class="center" th:text="${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'}"></td>
+                                    <td class="center col-span" th:text="${e.days != null ? e.days : '-'}"></td>
+                                    <td class="center col-peak">
+                                        <span class="recap-pos-cell">
+                                            <span class="peak-position" th:classappend="${e.peak == 1 ? ' peak-number-one' : ''}" th:text="${e.peak != null ? e.peak : '-'}"></span>
+                                        </span>
+                                    </td>
+                                    <td class="center col-at-peak hide-mobile" th:text="${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'}"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -495,6 +918,13 @@
         const selectedDate = /*[[${selectedDate}]]*/ null;
         let currentRecapDate = selectedDate;
         const recapRunCache = new Map();
+
+        function updateRecapHeroDate(date) {
+            const titleDate = document.getElementById('recapHeroDate');
+            if (titleDate) {
+                titleDate.textContent = date || 'Select a countdown date';
+            }
+        }
 
         // Parse selectedDate into components if available
         let initYear = null, initMonth = null, initDay = null;
@@ -584,17 +1014,14 @@
                     const content = document.getElementById('recapContent');
                     if (!data.entries || data.entries.length === 0) {
                         content.innerHTML = '<div class="recap-empty"><div class="recap-empty-icon">&#9835;</div><div>No countdown found for this date</div></div>';
-                        document.getElementById('recapShowing').style.display = 'none';
+                        updateRecapHeroDate(date);
                         return;
                     }
 
                     // Update the dropdowns to show the actual effective date
                     syncDateSelectors(data.date);
                     currentRecapDate = data.date || date;
-
-                    const showDiv = document.getElementById('recapShowing');
-                    showDiv.style.display = '';
-                    document.getElementById('recapShowDate').textContent = data.date;
+                    updateRecapHeroDate(currentRecapDate);
 
                     // Update prev/next buttons
                     const prevBtn = document.getElementById('recapPrev');
@@ -619,11 +1046,11 @@
                     const closeCallEntries = data.entries.filter(function(e) { return e.isClosecall; });
 
                     // Build main countdown table
-                    let html = '<div class="recap-table-wrap"><table class="recap-table"><thead><tr>';
-                    html += '<th></th><th class="center" title="Movement vs previous countdown">Move</th><th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
-                    html += '<th class="center stat-col" title="Days on countdown up to this date">Days</th>';
-                    html += '<th class="center stat-col" title="Peak position">Peak</th>';
-                    html += '<th class="center stat-col" title="Days at peak">@ Peak</th>';
+                    let html = '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
+                    html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="col-expand hide-mobile"></th><th class="cover-col">Cover</th><th class="center col-movement hide-mobile" title="Movement vs previous countdown">Movement</th><th class="center col-position">Position</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                    html += '<th class="center col-span" title="Days on countdown up to this date">Days</th>';
+                    html += '<th class="center col-peak" title="Peak position">Peak</th>';
+                    html += '<th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>';
                     html += '</tr></thead><tbody>';
 
                     mainEntries.forEach(function(e) {
@@ -635,34 +1062,30 @@
                             + ' data-song-id="' + (e.songId != null ? e.songId : '') + '"'
                             + ' data-raw-artist="' + escHtml(e.artistName) + '"'
                             + ' data-raw-song="' + escHtml(e.songTitle) + '"'
+                            + ' data-mobile-artist="' + escHtml(e.artistName || '-') + '"'
+                            + ' data-mobile-movement="' + escHtml(e.movement != null ? String(e.movement) : '-') + '"'
+                            + ' data-mobile-movement-class="' + escHtml(e.movementClass || '') + '"'
+                            + ' data-mobile-at-peak="' + escHtml(formatPeakCount(e.daysAtPeak)) + '"'
+                            + ' data-mobile-at-peak-label="Days @ Peak"'
                             + ' data-detail-id="' + detailId + '">';
-                        html += '<td class="center"><button class="recap-expand-btn" onclick="toggleRecapExpand(this, \'pc\')" title="Show chart run">+</button></td>';
+                        html += '<td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this)" aria-label="Show PC recap details" aria-expanded="false">+</button></td>';
+                        html += '<td class="center col-expand hide-mobile"><button class="recap-expand-btn" onclick="toggleRecapExpand(this, \'pc\')" title="Show chart run">+</button></td>';
                         if (e.movement != null) {
-                            html += '<td class="center"><span class="mvmt ' + (e.movementClass || '') + '">' + escHtml(String(e.movement)) + '</span></td>';
+                            html += '<td class="center col-movement hide-mobile"><span class="mvmt ' + (e.movementClass || '') + '">' + escHtml(String(e.movement)) + '</span></td>';
                         } else {
-                            html += '<td class="center"><span style="color:#555;">-</span></td>';
+                            html += '<td class="center col-movement hide-mobile"><span style="color:#555;">-</span></td>';
                         }
 
-                        html += '<td class="center"><span class="pos-badge">' + e.position + '</span></td>';
-
-                        if (e.songId) {
-                            html += '<td><a class="recap-song-link" href="/songs/' + e.songId + '">' + escHtml(e.songTitle) + '</a></td>';
-                        } else {
-                            html += '<td><span class="recap-no-link-song">' + escHtml(e.songTitle) + '</span></td>';
-                        }
-
-                        if (e.artistId) {
-                            html += '<td><a class="recap-artist-link" href="/artists/' + e.artistId + '">' + escHtml(e.artistName) + '</a></td>';
-                        } else {
-                            html += '<td><span class="recap-no-link-artist">' + escHtml(e.artistName) + '</span></td>';
-                        }
-
-                        html += '<td class="center">' + (e.days != null ? e.days : '-') + '</td>';
-                        html += '<td class="center">' + renderPeakCell(e) + '</td>';
-                        html += '<td class="center">' + formatPeakCount(e.daysAtPeak) + '</td>';
+                        html += renderSongCoverCell(e);
+                        html += '<td class="center col-position">' + renderPositionCell(e.position) + '</td>';
+                        html += '<td class="col-title mobile-name-col">' + renderSongNameCell(e) + '</td>';
+                        html += '<td class="col-artist hide-mobile">' + renderArtistCell(e) + '</td>';
+                        html += '<td class="center col-span">' + (e.days != null ? e.days : '-') + '</td>';
+                        html += '<td class="center col-peak">' + renderPeakCell(e) + '</td>';
+                        html += '<td class="center col-at-peak hide-mobile">' + formatPeakCount(e.daysAtPeak) + '</td>';
 
                         html += '</tr>';
-                        html += '<tr class="recap-detail-row"><td colspan="8" class="recap-detail-cell"><div class="recap-run-loading" id="' + detailId + '">Expand to load chart run...</div></td></tr>';
+                        html += '<tr class="recap-detail-row"><td colspan="10" class="recap-detail-cell"><div class="recap-run-loading" id="' + detailId + '">Expand to load chart run...</div></td></tr>';
                     });
 
                     html += '</tbody></table></div>';
@@ -670,8 +1093,8 @@
                     // Build close calls section if any
                     if (closeCallEntries.length > 0) {
                         html += '<div class="recap-section-header">Close Calls</div>';
-                        html += '<div class="recap-table-wrap"><table class="recap-table"><thead><tr>';
-                        html += '<th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
+                        html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
+                        html += '<th class="center col-position">Position</th><th class="cover-col">Cover</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                         html += '</tr></thead><tbody>';
 
                         closeCallEntries.forEach(function(e) {
@@ -679,19 +1102,10 @@
                             if (e.genderClass) cls += e.genderClass;
 
                             html += '<tr class="' + cls.trim() + '">';
-                            html += '<td class="center"><span class="pos-badge">' + e.position + '</span></td>';
-
-                            if (e.songId) {
-                                html += '<td><a class="recap-song-link" href="/songs/' + e.songId + '">' + escHtml(e.songTitle) + '</a></td>';
-                            } else {
-                                html += '<td><span class="recap-no-link-song">' + escHtml(e.songTitle) + '</span></td>';
-                            }
-
-                            if (e.artistId) {
-                                html += '<td><a class="recap-artist-link" href="/artists/' + e.artistId + '">' + escHtml(e.artistName) + '</a></td>';
-                            } else {
-                                html += '<td><span class="recap-no-link-artist">' + escHtml(e.artistName) + '</span></td>';
-                            }
+                            html += '<td class="center col-position">' + renderPositionCell(e.position) + '</td>';
+                            html += renderSongCoverCell(e);
+                            html += '<td class="col-title mobile-name-col">' + renderSongNameCell(e) + '</td>';
+                            html += '<td class="col-artist hide-mobile">' + renderArtistCell(e) + '</td>';
 
                             html += '</tr>';
                         });
@@ -701,11 +1115,11 @@
 
                     if (data.fallOffs && data.fallOffs.length > 0) {
                         html += '<div class="recap-section-header">Fall-offs</div>';
-                        html += '<div class="recap-table-wrap"><table class="recap-table"><thead><tr>';
-                        html += '<th class="center" style="width:60px;">#</th><th>Song</th><th>Artist</th>';
-                        html += '<th class="center stat-col" title="Days on countdown before dropping off">Days</th>';
-                        html += '<th class="center stat-col" title="Peak position">Peak</th>';
-                        html += '<th class="center stat-col" title="Days at peak">@ Peak</th>';
+                        html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
+                        html += '<th class="center col-position">Position</th><th class="cover-col">Cover</th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                        html += '<th class="center col-span" title="Days on countdown before dropping off">Days</th>';
+                        html += '<th class="center col-peak" title="Peak position">Peak</th>';
+                        html += '<th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>';
                         html += '</tr></thead><tbody>';
 
                         data.fallOffs.forEach(function(e) {
@@ -713,23 +1127,13 @@
                             if (e.genderClass) cls += e.genderClass;
 
                             html += '<tr class="' + cls.trim() + '">';
-                            html += '<td class="center"><span class="pos-badge">' + e.position + '</span></td>';
-
-                            if (e.songId) {
-                                html += '<td><a class="recap-song-link" href="/songs/' + e.songId + '">' + escHtml(e.songTitle) + '</a></td>';
-                            } else {
-                                html += '<td><span class="recap-no-link-song">' + escHtml(e.songTitle) + '</span></td>';
-                            }
-
-                            if (e.artistId) {
-                                html += '<td><a class="recap-artist-link" href="/artists/' + e.artistId + '">' + escHtml(e.artistName) + '</a></td>';
-                            } else {
-                                html += '<td><span class="recap-no-link-artist">' + escHtml(e.artistName) + '</span></td>';
-                            }
-
-                            html += '<td class="center">' + (e.days != null ? e.days : '-') + '</td>';
-                            html += '<td class="center">' + (e.peak != null ? e.peak : '-') + '</td>';
-                            html += '<td class="center">' + formatPeakCount(e.daysAtPeak) + '</td>';
+                            html += '<td class="center col-position">' + renderPositionCell(e.position) + '</td>';
+                            html += renderSongCoverCell(e);
+                            html += '<td class="col-title mobile-name-col">' + renderSongNameCell(e) + '</td>';
+                            html += '<td class="col-artist hide-mobile">' + renderArtistCell(e) + '</td>';
+                            html += '<td class="center col-span">' + (e.days != null ? e.days : '-') + '</td>';
+                            html += '<td class="center col-peak">' + renderPeakCell(e) + '</td>';
+                            html += '<td class="center col-at-peak hide-mobile">' + formatPeakCount(e.daysAtPeak) + '</td>';
                             html += '</tr>';
                         });
 
@@ -751,12 +1155,49 @@
 
         function escHtml(s) {
             if (!s) return '';
-            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g, '&#39;');
+        }
+
+        function renderPositionCell(position) {
+            return '<div class="position-cell"><span class="position-number">' + escHtml(position != null ? position : '-') + '</span></div>';
+        }
+
+        function renderSongVisual(songId) {
+            if (!songId) {
+                return '<div class="title-placeholder"><span>&#9835;</span></div>';
+            }
+            return '<img src="/songs/' + songId + '/image" alt="" class="title-image" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">'
+                + '<div class="title-placeholder" style="display:none;"><span>&#9835;</span></div>';
+        }
+
+        function renderSongNameCell(entry) {
+            const title = escHtml(entry.songTitle || '');
+            const titleHtml = entry.songId
+                ? '<a class="chart-link chart-link-primary" href="/songs/' + entry.songId + '">' + title + '</a>'
+                : '<span class="chart-link chart-link-primary">' + title + '</span>';
+            return titleHtml + renderMobileArtistInline(entry);
+        }
+
+        function renderSongCoverCell(entry) {
+            return '<td class="cover-col">' + renderSongVisual(entry.songId) + '</td>';
+        }
+
+        function renderArtistCell(entry) {
+            const artist = escHtml(entry.artistName || '');
+            if (entry.artistId) {
+                return '<a class="chart-link chart-link-secondary" href="/artists/' + entry.artistId + '">' + artist + '</a>';
+            }
+            return '<span class="chart-link chart-link-secondary">' + artist + '</span>';
+        }
+
+        function renderMobileArtistInline(entry) {
+            return '<div class="mobile-inline-artist">' + renderArtistCell(entry) + '</div>';
         }
 
         function renderPeakCell(entry) {
             const peakPill = isPeakNow(entry) ? '<span class="peak-now-pill">Peak</span>' : '';
-            return '<span class="recap-pos-cell"><span>' + (entry.peak != null ? entry.peak : '-') + '</span>' + peakPill + '</span>';
+            const peakClass = Number(entry.peak) === 1 ? ' peak-number-one' : '';
+            return '<div class="peak-cell"><span class="recap-pos-cell"><span class="peak-position' + peakClass + '">' + (entry.peak != null ? entry.peak : '-') + '</span>' + peakPill + '</span></div>';
         }
 
         function formatPeakCount(value) {
@@ -768,6 +1209,67 @@
                 ? 'song-' + entry.songId
                 : 'raw-' + encodeURIComponent((entry.artistName || '') + '||' + (entry.songTitle || ''));
             return chartType + '-recap-run-' + base + '-' + encodeURIComponent(date || 'current');
+        }
+
+        function toggleRecapMobileDetails(button) {
+            const row = button.closest('tr');
+            if (!row) return;
+
+            let detailRow = row.nextElementSibling;
+            if (!detailRow || !detailRow.classList.contains('mobile-table-detail-row')) {
+                detailRow = document.createElement('tr');
+                detailRow.className = 'mobile-table-detail-row';
+
+                const detailCell = document.createElement('td');
+                detailCell.className = 'mobile-table-detail-cell';
+                detailCell.colSpan = Array.from(row.cells).filter(function(cell) {
+                    return window.getComputedStyle(cell).display !== 'none';
+                }).length;
+                detailCell.innerHTML = renderRecapMobileDetails(row);
+
+                detailRow.appendChild(detailCell);
+                row.insertAdjacentElement('afterend', detailRow);
+            }
+
+            const isVisible = detailRow.classList.contains('visible');
+            detailRow.classList.toggle('visible', !isVisible);
+            button.classList.toggle('expanded', !isVisible);
+            button.textContent = isVisible ? '+' : '-';
+            button.setAttribute('aria-expanded', String(!isVisible));
+        }
+
+        function renderRecapMobileDetails(row) {
+            const detailFields = [
+                {
+                    label: 'Movement',
+                    value: row.dataset.mobileMovement,
+                    html: renderRecapMobileMovement(row)
+                },
+                {
+                    label: row.dataset.mobileAtPeakLabel || 'At Peak',
+                    value: row.dataset.mobileAtPeak,
+                    html: escHtml(row.dataset.mobileAtPeak || '-')
+                }
+            ].filter(function(field) {
+                return field.value !== undefined && field.value !== null && field.value !== '';
+            });
+
+            return '<div class="mobile-table-detail-grid">' + detailFields.map(function(field) {
+                return '<div class="mobile-table-detail-item">'
+                    + '<span class="mobile-table-detail-label">' + escHtml(field.label) + '</span>'
+                    + '<span class="mobile-table-detail-value">' + field.html + '</span>'
+                    + '</div>';
+            }).join('') + '</div>';
+        }
+
+        function renderRecapMobileMovement(row) {
+            const movement = row.dataset.mobileMovement || '-';
+            if (movement === '-') {
+                return '<span>-</span>';
+            }
+            const movementClass = row.dataset.mobileMovementClass || '';
+            const className = movementClass ? 'mvmt ' + movementClass : 'mvmt';
+            return '<span class="' + className + '">' + escHtml(movement) + '</span>';
         }
 
         function getRecapRunToneClass(row) {
@@ -811,6 +1313,7 @@
                 if (entry.on_chart) {
                     let classes = 'recap-run-box ' + toneClass;
                     if (entry.position === 1) classes += ' peak-one';
+                    if (currentRecapDate && entry.chart_date === currentRecapDate) classes += ' current';
                     return '<a href="' + recapBasePath + '?date=' + encodeURIComponent(entry.chart_date)
                         + '" class="' + classes + '" title="' + escHtml(entry.chart_date) + '">' + entry.position + '</a>';
                 }
@@ -840,7 +1343,10 @@
 
         async function toggleRecapExpand(button, chartType) {
             const row = button.closest('tr');
-            const detailRow = row.nextElementSibling;
+            let detailRow = row.nextElementSibling;
+            if (detailRow && detailRow.classList.contains('mobile-table-detail-row')) {
+                detailRow = detailRow.nextElementSibling;
+            }
             if (!detailRow || !detailRow.classList.contains('recap-detail-row')) return;
             const isVisible = detailRow.classList.contains('visible');
             detailRow.classList.toggle('visible', !isVisible);

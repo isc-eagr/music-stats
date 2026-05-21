@@ -948,12 +948,7 @@ public class ChartsController {
         model.addAttribute("songRows", pagedSongRows);
         model.addAttribute("albumRows", pagedAlbumRows);
         model.addAttribute("artistRows", pagedArtistRows);
-        model.addAttribute("songCount", weeklySongRows.size());
-        model.addAttribute("albumCount", weeklyAlbumRows.size());
-        model.addAttribute("artistCount", weeklyArtistRows.size());
         model.addAttribute("pageTitle", "Weekly Chart Overview");
-        model.addAttribute("pageSubtitle", "Every finalized weekly song and album chart rolled up into song, album, and artist stats.");
-        model.addAttribute("unitLabel", "Weeks");
         model.addAttribute("mainChartUrl", "/charts/weekly");
         model.addAttribute("mainChartLabel", "Weekly Charts");
         model.addAttribute("weeklyInfiniteScrollEnabled", true);
@@ -1186,23 +1181,10 @@ public class ChartsController {
         model.addAttribute("songRows", songRows);
         model.addAttribute("albumRows", albumRows);
         model.addAttribute("artistRows", artistRows);
-        model.addAttribute("songCount", songRows.size());
-        model.addAttribute("albumCount", albumRows.size());
-        model.addAttribute("artistCount", artistRows.size());
         model.addAttribute("pageTitle", switch (periodType) {
             case "seasonal" -> "Seasonal Chart Overview";
             case "yearly" -> "Yearly Chart Overview";
             default -> "Weekly Chart Overview";
-        });
-        model.addAttribute("pageSubtitle", switch (periodType) {
-            case "seasonal" -> "Finalized seasonal song and album charts rolled up into song, album, and artist stats.";
-            case "yearly" -> "Finalized yearly song and album charts rolled up into song, album, and artist stats.";
-            default -> "Every finalized weekly song and album chart rolled up into song, album, and artist stats.";
-        });
-        model.addAttribute("unitLabel", switch (periodType) {
-            case "seasonal" -> "Seasons";
-            case "yearly" -> "Years";
-            default -> "Weeks";
         });
         model.addAttribute("mainChartUrl", "/charts/" + periodType);
         model.addAttribute("mainChartLabel", switch (periodType) {
@@ -1272,12 +1254,7 @@ public class ChartsController {
         model.addAttribute("songRows", pagedSongRows);
         model.addAttribute("albumRows", pagedAlbumRows);
         model.addAttribute("artistRows", pagedArtistRows);
-        model.addAttribute("songCount", seasonalSongRows.size());
-        model.addAttribute("albumCount", seasonalAlbumRows.size());
-        model.addAttribute("artistCount", seasonalArtistRows.size());
         model.addAttribute("pageTitle", "Seasonal Chart Overview");
-        model.addAttribute("pageSubtitle", "Finalized seasonal song and album charts rolled up into song, album, and artist stats.");
-        model.addAttribute("unitLabel", "Seasons");
         model.addAttribute("mainChartUrl", "/charts/seasonal");
         model.addAttribute("mainChartLabel", "Seasonal Charts");
         model.addAttribute("weeklyInfiniteScrollEnabled", false);
