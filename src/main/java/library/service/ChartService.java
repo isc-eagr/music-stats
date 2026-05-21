@@ -254,6 +254,23 @@ public class ChartService {
             .filter(entry -> !currentSongIds.contains(entry.getSongId()))
             .toList();
     }
+
+    public List<ChartEntryDTO> getWeeklyAlbumChartFallOffs(String periodKey, List<ChartEntryDTO> currentEntries) {
+        Optional<Chart> prevChartOpt = chartRepository.findPreviousChart("album", periodKey);
+        if (prevChartOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Integer> currentAlbumIds = currentEntries.stream()
+            .map(ChartEntryDTO::getAlbumId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        return getWeeklyAlbumChartWithStats(prevChartOpt.get().getPeriodKey()).stream()
+            .filter(entry -> entry.getAlbumId() != null)
+            .filter(entry -> !currentAlbumIds.contains(entry.getAlbumId()))
+            .toList();
+    }
     
     /**
      * Get weekly album chart with full statistics for display.

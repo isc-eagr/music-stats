@@ -812,6 +812,8 @@
                         <table class="recap-table table mobile-compact-table">
                             <thead>
                                 <tr>
+                                    <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
+                                    <th class="center col-expand hide-mobile"></th>
                                     <th class="center col-position">Pos.</th>
                                     <th class="cover-col"></th>
                                     <th class="col-title mobile-name-col">Song</th>
@@ -871,44 +873,49 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="e : ${fallOffs}"
-                                    th:classappend="${e.genderClass != null ? e.genderClass : ''}">
-                                    <td class="center col-position">
-                                        <div class="position-cell">
-                                            <span class="position-number" th:text="${e.position}"></span>
-                                        </div>
-                                    </td>
-                                    <td class="cover-col">
-                                        <th:block th:if="${e.songId != null}">
-                                            <img th:src="@{'/songs/' + ${e.songId} + '/image'}" alt="" loading="lazy"
-                                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                            <div class="cover-placeholder" style="display:none;"><span>&#9835;</span></div>
-                                        </th:block>
-                                        <div th:if="${e.songId == null}" class="cover-placeholder"><span>&#9835;</span></div>
-                                    </td>
-                                    <td class="col-title mobile-name-col">
-                                        <a th:if="${e.songId != null}" class="chart-link chart-link-primary"
-                                           th:href="@{'/songs/' + ${e.songId}}" th:text="${e.songTitle}"></a>
-                                        <span th:if="${e.songId == null}" class="chart-link chart-link-primary" th:text="${e.songTitle}"></span>
-                                        <div class="mobile-inline-artist">
+                                <th:block th:each="e, stat : ${fallOffs}">
+                                    <tr th:classappend="${e.genderClass != null ? e.genderClass : ''}"
+                                        th:attr="data-song-id=${e.songId},data-raw-artist=${e.artistName},data-raw-song=${e.songTitle},data-detail-id=${'pc-falloff-run-' + stat.index},data-mobile-movement='OFF',data-mobile-movement-class='mvmt-down',data-mobile-at-peak=${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'},data-mobile-at-peak-label='Days @ Peak'">
+                                        <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this, 'pc')" aria-label="Show PC fall-off details" aria-expanded="false">+</button></td>
+                                        <td class="center col-expand hide-mobile"><button class="recap-expand-btn" onclick="toggleRecapExpand(this, 'pc')" title="Show chart run">+</button></td>
+                                        <td class="center col-position">
+                                            <div class="position-cell">
+                                                <span class="position-number" th:text="${e.position}"></span>
+                                            </div>
+                                        </td>
+                                        <td class="cover-col">
+                                            <th:block th:if="${e.songId != null}">
+                                                <img th:src="@{'/songs/' + ${e.songId} + '/image'}" alt="" loading="lazy"
+                                                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                                <div class="cover-placeholder" style="display:none;"><span>&#9835;</span></div>
+                                            </th:block>
+                                            <div th:if="${e.songId == null}" class="cover-placeholder"><span>&#9835;</span></div>
+                                        </td>
+                                        <td class="col-title mobile-name-col">
+                                            <a th:if="${e.songId != null}" class="chart-link chart-link-primary"
+                                               th:href="@{'/songs/' + ${e.songId}}" th:text="${e.songTitle}"></a>
+                                            <span th:if="${e.songId == null}" class="chart-link chart-link-primary" th:text="${e.songTitle}"></span>
+                                            <div class="mobile-inline-artist">
+                                                <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
+                                                   th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
+                                                <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
+                                            </div>
+                                        </td>
+                                        <td class="col-artist hide-mobile">
                                             <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
                                                th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
                                             <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
-                                        </div>
-                                    </td>
-                                    <td class="col-artist hide-mobile">
-                                        <a th:if="${e.artistId != null}" class="chart-link chart-link-secondary"
-                                           th:href="@{'/artists/' + ${e.artistId}}" th:text="${e.artistName}"></a>
-                                        <span th:if="${e.artistId == null}" class="chart-link chart-link-secondary" th:text="${e.artistName}"></span>
-                                    </td>
-                                    <td class="center col-span" th:text="${e.days != null ? e.days : '-'}"></td>
-                                    <td class="center col-peak">
-                                        <span class="recap-pos-cell">
-                                            <span class="peak-position" th:classappend="${e.peak == 1 ? ' peak-number-one' : ''}" th:text="${e.peak != null ? e.peak : '-'}"></span>
-                                        </span>
-                                    </td>
-                                    <td class="center col-at-peak hide-mobile" th:text="${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'}"></td>
-                                </tr>
+                                        </td>
+                                        <td class="center col-span" th:text="${e.days != null ? e.days : '-'}"></td>
+                                        <td class="center col-peak">
+                                            <span class="recap-pos-cell">
+                                                <span class="peak-position" th:classappend="${e.peak == 1 ? ' peak-number-one' : ''}" th:text="${e.peak != null ? e.peak : '-'}"></span>
+                                            </span>
+                                        </td>
+                                        <td class="center col-at-peak hide-mobile" th:text="${e.daysAtPeak != null ? 'x' + e.daysAtPeak : '-'}"></td>
+                                    </tr>
+                                    <tr class="recap-detail-row"><td colspan="9" class="recap-detail-cell"><div class="recap-run-loading" th:id="${'pc-falloff-run-' + stat.index}">Expand to load chart run...</div></td></tr>
+                                </th:block>
                             </tbody>
                         </table>
                     </div>
@@ -1102,14 +1109,15 @@
                     if (closeCallEntries.length > 0) {
                         html += '<div class="recap-section-header">Close Calls</div>';
                         html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                        html += '<th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                        html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                         html += '</tr></thead><tbody>';
 
                         closeCallEntries.forEach(function(e) {
                             let cls = '';
                             if (e.genderClass) cls += e.genderClass;
 
-                            html += '<tr class="' + cls.trim() + '">';
+                            html += '<tr class="' + cls.trim() + '" data-mobile-movement="OFF" data-mobile-movement-class="mvmt-down" data-mobile-at-peak="' + formatPeakCount(e.daysAtPeak) + '" data-mobile-at-peak-label="Days @ Peak">';
+                            html += '<td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this, \'pc\')" aria-label="Show PC fall-off details" aria-expanded="false">+</button></td>';
                             html += '<td class="center col-position">' + renderPositionCell(e.position) + '</td>';
                             html += renderSongCoverCell(e);
                             html += '<td class="col-title mobile-name-col">' + renderSongNameCell(e) + '</td>';
@@ -1124,7 +1132,7 @@
                     if (data.fallOffs && data.fallOffs.length > 0) {
                         html += '<div class="recap-section-header">Fall-offs</div>';
                         html += '<div class="recap-table-wrap"><table class="recap-table table mobile-compact-table"><thead><tr>';
-                        html += '<th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
+                        html += '<th class="mobile-expand-col show-mobile-only" data-no-sort></th><th class="center col-expand hide-mobile"></th><th class="center col-position">Pos.</th><th class="cover-col"></th><th class="col-title mobile-name-col">Song</th><th class="col-artist hide-mobile">Artist</th>';
                         html += '<th class="center col-span" title="Days on countdown before dropping off">Days</th>';
                         html += '<th class="center col-peak" title="Peak position">Peak</th>';
                         html += '<th class="center col-at-peak hide-mobile" title="Days at peak">Days @ Peak</th>';
@@ -1133,8 +1141,11 @@
                         data.fallOffs.forEach(function(e) {
                             let cls = '';
                             if (e.genderClass) cls += e.genderClass;
+                            const detailId = buildRecapDetailId('pc', e, data.date);
 
-                            html += '<tr class="' + cls.trim() + '">';
+                            html += '<tr class="' + cls.trim() + '" data-song-id="' + (e.songId != null ? e.songId : '') + '" data-raw-artist="' + escHtml(e.artistName) + '" data-raw-song="' + escHtml(e.songTitle) + '" data-detail-id="' + detailId + '" data-mobile-movement="OFF" data-mobile-movement-class="mvmt-down" data-mobile-at-peak="' + formatPeakCount(e.daysAtPeak) + '" data-mobile-at-peak-label="Days @ Peak">';
+                            html += '<td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleRecapMobileDetails(this, \'pc\')" aria-label="Show PC fall-off details" aria-expanded="false">+</button></td>';
+                            html += '<td class="center col-expand hide-mobile"><button class="recap-expand-btn" onclick="toggleRecapExpand(this, \'pc\')" title="Show chart run">+</button></td>';
                             html += '<td class="center col-position">' + renderPositionCell(e.position) + '</td>';
                             html += renderSongCoverCell(e);
                             html += '<td class="col-title mobile-name-col">' + renderSongNameCell(e) + '</td>';
@@ -1143,6 +1154,7 @@
                             html += '<td class="center col-peak">' + renderPeakCell(e) + '</td>';
                             html += '<td class="center col-at-peak hide-mobile">' + formatPeakCount(e.daysAtPeak) + '</td>';
                             html += '</tr>';
+                            html += '<tr class="recap-detail-row"><td colspan="9" class="recap-detail-cell"><div class="recap-run-loading" id="' + detailId + '">Expand to load chart run...</div></td></tr>';
                         });
 
                         html += '</tbody></table></div>';
@@ -1268,13 +1280,15 @@
                 return field.value !== undefined && field.value !== null && field.value !== '';
             });
 
+            const hasRunDetails = !!row.dataset.detailId;
+
             return '<div class="mobile-table-detail-grid">' + detailFields.map(function(field) {
                 return '<div class="mobile-table-detail-item">'
                     + '<span class="mobile-table-detail-label">' + escHtml(field.label) + '</span>'
                     + '<span class="mobile-table-detail-value">' + field.html + '</span>'
                     + '</div>';
             }).join('') + '</div>'
-                + '<div style="margin-top:12px;"><div class="recap-run-loading" data-mobile-run-container="1">Loading chart run...</div></div>';
+                + (hasRunDetails ? '<div style="margin-top:12px;"><div class="recap-run-loading" data-mobile-run-container="1">Loading chart run...</div></div>' : '');
         }
 
         function renderRecapMobileMovement(row) {

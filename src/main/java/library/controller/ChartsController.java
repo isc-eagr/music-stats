@@ -159,6 +159,7 @@ public class ChartsController {
         List<ChartEntryDTO> entries = chartService.getWeeklyChartWithStats(periodKey);
         List<ChartEntryDTO> albumEntries = chartService.getWeeklyAlbumChartWithStats(periodKey);
         List<ChartEntryDTO> fallOffEntries = chartService.getWeeklyChartFallOffs(periodKey, entries);
+        List<ChartEntryDTO> albumFallOffEntries = chartService.getWeeklyAlbumChartFallOffs(periodKey, albumEntries);
         
         // Navigation
         Optional<Chart> prevChart = chartService.getPreviousChart("song", periodKey);
@@ -190,6 +191,7 @@ public class ChartsController {
         model.addAttribute("entries", entries);
         model.addAttribute("albumEntries", albumEntries);
         model.addAttribute("fallOffEntries", fallOffEntries);
+        model.addAttribute("albumFallOffEntries", albumFallOffEntries);
         model.addAttribute("periodKey", periodKey);
         model.addAttribute("formattedPeriod", chart.getFormattedPeriod());
         model.addAttribute("prevPeriodKey", prevChart.map(Chart::getPeriodKey).orElse(null));
