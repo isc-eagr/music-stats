@@ -621,6 +621,19 @@
         visibility: hidden;
     }
 
+    .mobile-sort-init-pending .catalog-toolbar-actions,
+    .mobile-sort-init-pending .catalog-toolbar-search-row .filter-toggle,
+    .mobile-sort-init-pending #mobilePageActions {
+        visibility: hidden;
+    }
+
+    .mobile-sort-init-ready .catalog-toolbar-actions,
+    .mobile-sort-init-ready .catalog-toolbar-search-row .filter-toggle,
+    .mobile-sort-init-ready #mobilePageActions,
+    .mobile-sort-init-ready .toolbar-sort-panel > * {
+        visibility: visible;
+    }
+
     /* Search bar - prevent iOS zoom */
     .search-bar input[type="text"] {
         font-size: 16px !important;

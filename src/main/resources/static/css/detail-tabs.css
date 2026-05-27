@@ -335,6 +335,26 @@
     .chart-history-grid .table {
         font-size: 11px;
     }
+
+    /* Keep chart history type chips reachable when many chart types exist */
+    .chart-history-type-toggles {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 12px;
+    }
+
+    .chart-history-type-toggles::-webkit-scrollbar {
+        display: none;
+    }
+
+    .chart-history-type-toggles .ch-toggle-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
     
     .chart-history-grid .table th,
     .chart-history-grid .table td {
