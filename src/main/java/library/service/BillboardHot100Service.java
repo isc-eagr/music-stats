@@ -877,6 +877,7 @@ public class BillboardHot100Service {
         private final ChartAlbumOverviewRowDTO row;
         private final Set<Integer> songIds = new HashSet<>();
         private final Set<Integer> numberOneSongIds = new HashSet<>();
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
         private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
             row = new ChartAlbumOverviewRowDTO();
@@ -897,6 +898,7 @@ public class BillboardHot100Service {
             }
             if (songRow.getPeakPosition() == 1 && songRow.getSongId() != null && numberOneSongIds.add(songRow.getSongId())) {
                 row.setNumberOneSongsCount(numberOneSongIds.size());
+                numberOneSongTitles.putIfAbsent("song:" + songRow.getSongId(), songRow.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + songRow.getWeeksAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
@@ -904,6 +906,7 @@ public class BillboardHot100Service {
         }
 
         private ChartAlbumOverviewRowDTO toRow() {
+            row.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
             return row;
         }
     }
@@ -912,6 +915,7 @@ public class BillboardHot100Service {
         private final ChartArtistOverviewRowDTO row;
         private final Set<String> songKeys = new HashSet<>();
         private final Set<String> numberOneSongKeys = new HashSet<>();
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
         private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
             row = new ChartArtistOverviewRowDTO();
@@ -942,6 +946,7 @@ public class BillboardHot100Service {
             }
             if (songRow.getPeakPosition() == 1 && numberOneSongKeys.add(songKey)) {
                 row.setNumberOneSongsCount(numberOneSongKeys.size());
+                numberOneSongTitles.putIfAbsent(songKey, songRow.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + songRow.getWeeksAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
@@ -949,6 +954,7 @@ public class BillboardHot100Service {
         }
 
         private ChartArtistOverviewRowDTO toRow() {
+            row.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
             return row;
         }
     }

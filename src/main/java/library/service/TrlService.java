@@ -747,6 +747,7 @@ public class TrlService {
         private final ChartAlbumOverviewRowDTO row;
         private final Set<Integer> songIds = new HashSet<>();
         private final Set<Integer> numberOneSongIds = new HashSet<>();
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
         private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
             row = new ChartAlbumOverviewRowDTO();
@@ -770,6 +771,7 @@ public class TrlService {
 
             if (bestPeak != null && bestPeak == 1 && debut.getSongId() != null && numberOneSongIds.add(debut.getSongId())) {
                 row.setNumberOneSongsCount(numberOneSongIds.size());
+                numberOneSongTitles.putIfAbsent("song:" + debut.getSongId(), debut.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
@@ -777,6 +779,7 @@ public class TrlService {
         }
 
         private ChartAlbumOverviewRowDTO toRow() {
+            row.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
             return row;
         }
     }
@@ -785,6 +788,7 @@ public class TrlService {
         private final ChartArtistOverviewRowDTO row;
         private final Set<String> songKeys = new HashSet<>();
         private final Set<String> numberOneSongKeys = new HashSet<>();
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
         private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
             row = new ChartArtistOverviewRowDTO();
@@ -818,6 +822,7 @@ public class TrlService {
 
             if (bestPeak != null && bestPeak == 1 && numberOneSongKeys.add(songKey)) {
                 row.setNumberOneSongsCount(numberOneSongKeys.size());
+                numberOneSongTitles.putIfAbsent(songKey, debut.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
@@ -825,6 +830,7 @@ public class TrlService {
         }
 
         private ChartArtistOverviewRowDTO toRow() {
+            row.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
             return row;
         }
     }

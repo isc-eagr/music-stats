@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 public class ChartAlbumOverviewRowDTO {
 
     private Integer albumId;
@@ -25,6 +27,7 @@ public class ChartAlbumOverviewRowDTO {
     private String lastAppearanceKey;
     private String lastAppearanceSortValue;
     private int[] spanAtTopThresholds;
+    private List<String> numberOneSongTitles;
     private String genderClass;
 
     public Integer getAlbumId() {
@@ -209,6 +212,14 @@ public class ChartAlbumOverviewRowDTO {
 
     public void setSpanAtTopThresholds(int[] spanAtTopThresholds) {
         this.spanAtTopThresholds = spanAtTopThresholds;
+    }
+
+    public List<String> getNumberOneSongTitles() {
+        return numberOneSongTitles;
+    }
+
+    public void setNumberOneSongTitles(List<String> numberOneSongTitles) {
+        this.numberOneSongTitles = numberOneSongTitles;
     }
 
     public String getGenderClass() {

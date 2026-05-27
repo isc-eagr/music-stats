@@ -264,6 +264,47 @@
         .pc-result-title { color: #eee; font-size: 0.9rem; font-weight: 600; }
         .pc-result-artist { color: #949494; font-size: 0.82rem; margin-top: 2px; }
         .pc-search-empty { padding: 20px 14px; color: #777; font-size: 0.85rem; }
+        .number-one-tooltip {
+            position: fixed;
+            display: none;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.2);
+            z-index: 10000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .number-one-tooltip .tooltip-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .number-one-tooltip .tooltip-song {
+            font-size: 13px;
+            color: #e5e7eb;
+            padding: 4px 0;
+            line-height: 1.4;
+        }
+
+        .number-one-tooltip-trigger {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .number-one-tooltip-trigger.tooltip-enabled {
+            cursor: help;
+        }
+
+        .number-one-tooltip-item-source {
+            display: none;
+        }
     </style>
 </head>
 <body class="page-loading">
@@ -426,7 +467,14 @@
                             <span th:if="${entry.highestPeak != null}" th:text="${entry.highestPeak}">-</span>
                             <span th:if="${entry.highestPeak == null}" style="color:#666;">-</span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}">
+                            <span class="number-one-tooltip-trigger"
+                                  th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                  data-tooltip-title="Songs that reached #1:"
+                                  data-tooltip-icon="🏆"
+                                  th:text="${entry.numberOneSongsCount}">0</span>
+                            <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
+                        </td>
                         <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                         <td class="center" th:attr="data-value=${entry.firstDebutDate}">
                             <a th:if="${entry.firstDebutDate != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.firstDebutDate})}" class="pc-date-link" th:text="${entry.firstDebutDate}">-</a>
@@ -475,7 +523,14 @@
                             <span th:if="${entry.highestPeak != null}" th:text="${entry.highestPeak}">-</span>
                             <span th:if="${entry.highestPeak == null}" style="color:#666;">-</span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}">
+                            <span class="number-one-tooltip-trigger"
+                                  th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                  data-tooltip-title="Songs that reached #1:"
+                                  data-tooltip-icon="🏆"
+                                  th:text="${entry.numberOneSongsCount}">0</span>
+                            <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
+                        </td>
                         <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                         <td class="center" th:attr="data-value=${entry.firstDebutDate}">
                             <a th:if="${entry.firstDebutDate != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.firstDebutDate})}" class="pc-date-link" th:text="${entry.firstDebutDate}">-</a>
@@ -909,6 +964,95 @@
                 .replace(/'/g, '&#39;');
         }
 
+        let activePcNumberOneTooltip = null;
+        let activePcNumberOneTrigger = null;
+
+        function ensurePcNumberOneTooltip() {
+            if (activePcNumberOneTooltip) {
+                return activePcNumberOneTooltip;
+            }
+            activePcNumberOneTooltip = document.createElement('div');
+            activePcNumberOneTooltip.className = 'number-one-tooltip';
+            document.body.appendChild(activePcNumberOneTooltip);
+            return activePcNumberOneTooltip;
+        }
+
+        function buildPcNumberOneTooltipItemSources(items) {
+            if (!Array.isArray(items) || !items.length) {
+                return '';
+            }
+            return items
+                .filter((item) => item)
+                .map((item) => `<span class="number-one-tooltip-item-source" hidden>${escapePcHtml(item)}</span>`)
+                .join('');
+        }
+
+        function buildPcNumberOneTooltipTrigger(contentHtml, items, title, icon) {
+            const safeItems = Array.isArray(items) ? items.filter((item) => item) : [];
+            if (!safeItems.length) {
+                return contentHtml;
+            }
+            return `<span class="number-one-tooltip-trigger tooltip-enabled" data-tooltip-title="${escapePcHtml(title)}" data-tooltip-icon="${escapePcHtml(icon)}">${contentHtml}${buildPcNumberOneTooltipItemSources(safeItems)}</span>`;
+        }
+
+        function positionPcNumberOneTooltip(trigger) {
+            const tooltip = ensurePcNumberOneTooltip();
+            const rect = trigger.getBoundingClientRect();
+            const tooltipHeight = tooltip.offsetHeight;
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = Math.max(8, rect.top - tooltipHeight - 8) + 'px';
+        }
+
+        function showPcNumberOneTooltip(trigger) {
+            const items = Array.from(trigger.querySelectorAll('.number-one-tooltip-item-source'))
+                .map((item) => item.textContent.trim())
+                .filter((item) => item);
+            if (!items.length) {
+                return;
+            }
+            const tooltip = ensurePcNumberOneTooltip();
+            const title = trigger.dataset.tooltipTitle || 'Songs that reached #1:';
+            const icon = trigger.dataset.tooltipIcon || '🏆';
+            tooltip.innerHTML = `<div class="tooltip-title">${escapePcHtml(title)}</div>`
+                + items.map((item) => `<div class="tooltip-song">${icon} ${escapePcHtml(item)}</div>`).join('');
+            tooltip.style.display = 'block';
+            activePcNumberOneTrigger = trigger;
+            positionPcNumberOneTooltip(trigger);
+        }
+
+        function hidePcNumberOneTooltip(trigger) {
+            const tooltip = ensurePcNumberOneTooltip();
+            tooltip.style.display = 'none';
+            if (!trigger || activePcNumberOneTrigger === trigger) {
+                activePcNumberOneTrigger = null;
+            }
+        }
+
+        function initializePcNumberOneTooltips(root = document) {
+            root.querySelectorAll('.number-one-tooltip-trigger.tooltip-enabled').forEach((trigger) => {
+                if (trigger.dataset.tooltipBound === 'true') {
+                    return;
+                }
+                trigger.dataset.tooltipBound = 'true';
+                trigger.addEventListener('mouseenter', () => showPcNumberOneTooltip(trigger));
+                trigger.addEventListener('mouseleave', () => hidePcNumberOneTooltip(trigger));
+                trigger.addEventListener('focusin', () => showPcNumberOneTooltip(trigger));
+                trigger.addEventListener('focusout', () => hidePcNumberOneTooltip(trigger));
+            });
+        }
+
+        window.addEventListener('scroll', () => {
+            if (activePcNumberOneTrigger) {
+                positionPcNumberOneTooltip(activePcNumberOneTrigger);
+            }
+        }, true);
+
+        window.addEventListener('resize', () => {
+            if (activePcNumberOneTrigger) {
+                positionPcNumberOneTooltip(activePcNumberOneTrigger);
+            }
+        });
+
         function renderPcDateCell(dateValue) {
             if (!dateValue) {
                 return '<span style="color:#666;">-</span>';
@@ -973,6 +1117,7 @@
                 const albumCell = entry.albumId != null
                     ? '<a href="/albums/' + entry.albumId + '" class="pc-song-link">' + escapePcHtml(entry.albumName) + '</a>'
                     : '<span class="pc-no-link-song">' + escapePcHtml(entry.albumName) + '</span>';
+                const numberOnesCell = buildPcNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '" data-album-name="' + escapePcHtml(entry.albumName) + '"' + genderClass + '>'
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
@@ -980,7 +1125,7 @@
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
                     + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '<span style="color:#666;">-</span>') + '</td>'
-                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + numberOnesCell + '</td>'
                     + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
                     + '<td class="center" data-value="' + escapePcHtml(entry.firstDebutDate || '') + '">' + renderPcDateCell(entry.firstDebutDate) + '</td>'
                     + '<td class="center" data-value="' + escapePcHtml(entry.lastAppearanceDate || '') + '">' + renderPcDateCell(entry.lastAppearanceDate) + '</td>'
@@ -994,13 +1139,14 @@
                 const artistCell = entry.resolvedArtistId != null
                     ? '<a href="/artists/' + entry.resolvedArtistId + '" class="pc-artist-link">' + escapePcHtml(entry.artistName) + '</a>'
                     : '<span class="pc-no-link-artist">' + escapePcHtml(entry.artistName) + '</span>';
+                const numberOnesCell = buildPcNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '"' + genderClass + '>'
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
                     + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '<span style="color:#666;">-</span>') + '</td>'
-                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + numberOnesCell + '</td>'
                     + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
                     + '<td class="center" data-value="' + escapePcHtml(entry.firstDebutDate || '') + '">' + renderPcDateCell(entry.firstDebutDate) + '</td>'
                     + '<td class="center" data-value="' + escapePcHtml(entry.lastAppearanceDate || '') + '">' + renderPcDateCell(entry.lastAppearanceDate) + '</td>'
@@ -1097,6 +1243,7 @@
                         ? renderPcArtistRows(entries)
                         : renderPcSongRows(entries);
                     tbody.insertAdjacentHTML('beforeend', html);
+                    initializePcNumberOneTooltips(tbody);
                     addedCount = entries.length;
                     loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
@@ -1164,6 +1311,7 @@
 
         window.addEventListener('load', function() {
             setupPcInfiniteScroll();
+            initializePcNumberOneTooltips(document);
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

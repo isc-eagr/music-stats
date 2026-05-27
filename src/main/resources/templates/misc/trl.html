@@ -496,6 +496,47 @@
             .trl-table th:nth-child(1),
             .trl-table td:nth-child(1) { display: none; }
         }
+        .number-one-tooltip {
+            position: fixed;
+            display: none;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.2);
+            z-index: 10000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .number-one-tooltip .tooltip-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .number-one-tooltip .tooltip-song {
+            font-size: 13px;
+            color: #e5e7eb;
+            padding: 4px 0;
+            line-height: 1.4;
+        }
+
+        .number-one-tooltip-trigger {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .number-one-tooltip-trigger.tooltip-enabled {
+            cursor: help;
+        }
+
+        .number-one-tooltip-item-source {
+            display: none;
+        }
     </style></head>
 <body class="page-loading">
     <div class="page-load-overlay" aria-hidden="true">
@@ -734,7 +775,14 @@
                             <span th:if="${entry.highestPeak != null}" class="pos-badge" th:text="${entry.highestPeak}">-</span>
                             <span th:if="${entry.highestPeak == null}" style="color:#555">-</span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}">
+                            <span class="number-one-tooltip-trigger"
+                                  th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                  data-tooltip-title="Songs that reached #1:"
+                                  data-tooltip-icon="🏆"
+                                  th:text="${entry.numberOneSongsCount}">0</span>
+                            <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
+                        </td>
                         <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                         <td class="center trl-date" th:attr="data-value=${entry.firstDebutDate}">
                             <a th:if="${entry.firstDebutDate != null}"
@@ -793,7 +841,14 @@
                             <span th:if="${entry.highestPeak != null}" class="pos-badge" th:text="${entry.highestPeak}">-</span>
                             <span th:if="${entry.highestPeak == null}" style="color:#555">-</span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}">
+                            <span class="number-one-tooltip-trigger"
+                                  th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                  data-tooltip-title="Songs that reached #1:"
+                                  data-tooltip-icon="🏆"
+                                  th:text="${entry.numberOneSongsCount}">0</span>
+                            <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
+                        </td>
                         <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                         <td class="center trl-date" th:attr="data-value=${entry.firstDebutDate}">
                             <a th:if="${entry.firstDebutDate != null}"
@@ -890,6 +945,95 @@
                 .replace(/'/g, '&#39;');
         }
 
+        var activeTrlNumberOneTooltip = null;
+        var activeTrlNumberOneTrigger = null;
+
+        function ensureTrlNumberOneTooltip() {
+            if (activeTrlNumberOneTooltip) {
+                return activeTrlNumberOneTooltip;
+            }
+            activeTrlNumberOneTooltip = document.createElement('div');
+            activeTrlNumberOneTooltip.className = 'number-one-tooltip';
+            document.body.appendChild(activeTrlNumberOneTooltip);
+            return activeTrlNumberOneTooltip;
+        }
+
+        function buildTrlNumberOneTooltipItemSources(items) {
+            if (!Array.isArray(items) || !items.length) {
+                return '';
+            }
+            return items
+                .filter(function(item) { return item; })
+                .map(function(item) { return '<span class="number-one-tooltip-item-source" hidden>' + escapeTrlHtml(item) + '</span>'; })
+                .join('');
+        }
+
+        function buildTrlNumberOneTooltipTrigger(contentHtml, items, title, icon) {
+            var safeItems = Array.isArray(items) ? items.filter(function(item) { return item; }) : [];
+            if (!safeItems.length) {
+                return contentHtml;
+            }
+            return '<span class="number-one-tooltip-trigger tooltip-enabled" data-tooltip-title="' + escapeTrlHtml(title) + '" data-tooltip-icon="' + escapeTrlHtml(icon) + '">' + contentHtml + buildTrlNumberOneTooltipItemSources(safeItems) + '</span>';
+        }
+
+        function positionTrlNumberOneTooltip(trigger) {
+            var tooltip = ensureTrlNumberOneTooltip();
+            var rect = trigger.getBoundingClientRect();
+            var tooltipHeight = tooltip.offsetHeight;
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = Math.max(8, rect.top - tooltipHeight - 8) + 'px';
+        }
+
+        function showTrlNumberOneTooltip(trigger) {
+            var items = Array.from(trigger.querySelectorAll('.number-one-tooltip-item-source'))
+                .map(function(item) { return item.textContent.trim(); })
+                .filter(function(item) { return item; });
+            if (!items.length) {
+                return;
+            }
+            var tooltip = ensureTrlNumberOneTooltip();
+            var title = trigger.dataset.tooltipTitle || 'Songs that reached #1:';
+            var icon = trigger.dataset.tooltipIcon || '🏆';
+            tooltip.innerHTML = '<div class="tooltip-title">' + escapeTrlHtml(title) + '</div>'
+                + items.map(function(item) { return '<div class="tooltip-song">' + icon + ' ' + escapeTrlHtml(item) + '</div>'; }).join('');
+            tooltip.style.display = 'block';
+            activeTrlNumberOneTrigger = trigger;
+            positionTrlNumberOneTooltip(trigger);
+        }
+
+        function hideTrlNumberOneTooltip(trigger) {
+            var tooltip = ensureTrlNumberOneTooltip();
+            tooltip.style.display = 'none';
+            if (!trigger || activeTrlNumberOneTrigger === trigger) {
+                activeTrlNumberOneTrigger = null;
+            }
+        }
+
+        function initializeTrlNumberOneTooltips(root) {
+            (root || document).querySelectorAll('.number-one-tooltip-trigger.tooltip-enabled').forEach(function(trigger) {
+                if (trigger.dataset.tooltipBound === 'true') {
+                    return;
+                }
+                trigger.dataset.tooltipBound = 'true';
+                trigger.addEventListener('mouseenter', function() { showTrlNumberOneTooltip(trigger); });
+                trigger.addEventListener('mouseleave', function() { hideTrlNumberOneTooltip(trigger); });
+                trigger.addEventListener('focusin', function() { showTrlNumberOneTooltip(trigger); });
+                trigger.addEventListener('focusout', function() { hideTrlNumberOneTooltip(trigger); });
+            });
+        }
+
+        window.addEventListener('scroll', function() {
+            if (activeTrlNumberOneTrigger) {
+                positionTrlNumberOneTooltip(activeTrlNumberOneTrigger);
+            }
+        }, true);
+
+        window.addEventListener('resize', function() {
+            if (activeTrlNumberOneTrigger) {
+                positionTrlNumberOneTooltip(activeTrlNumberOneTrigger);
+            }
+        });
+
         function renderTrlDateCell(dateValue) {
             if (dateValue && dateValue !== '-') {
                 return '<a class="trl-date-link" href="/misc/trl/recaps?date=' + encodeURIComponent(dateValue) + '">' + escapeTrlHtml(dateValue) + '</a>';
@@ -959,6 +1103,7 @@
                 var albumCell = entry.albumId != null
                     ? '<a href="/albums/' + entry.albumId + '" class="trl-song-link">' + escapeTrlHtml(entry.albumName) + '</a>'
                     : '<span class="trl-no-link-song">' + escapeTrlHtml(entry.albumName) + '</span>';
+                var numberOnesCell = buildTrlNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
                     + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
@@ -966,7 +1111,7 @@
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
                     + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? '<span class="pos-badge">' + entry.highestPeak + '</span>' : '<span style="color:#555">-</span>') + '</td>'
-                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + numberOnesCell + '</td>'
                     + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
                     + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.firstDebutDate || '') + '">' + renderTrlDateCell(entry.firstDebutDate) + '</td>'
                     + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.lastAppearanceDate || '') + '">' + renderTrlDateCell(entry.lastAppearanceDate) + '</td>'
@@ -980,13 +1125,14 @@
                 var artistCell = entry.resolvedArtistId != null
                     ? '<a href="/artists/' + entry.resolvedArtistId + '" class="trl-artist-link">' + escapeTrlHtml(entry.artistName) + '</a>'
                     : '<span class="trl-no-link-artist">' + escapeTrlHtml(entry.artistName) + '</span>';
+                var numberOnesCell = buildTrlNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
                     + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
                     + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? '<span class="pos-badge">' + entry.highestPeak + '</span>' : '<span style="color:#555">-</span>') + '</td>'
-                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + numberOnesCell + '</td>'
                     + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
                     + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.firstDebutDate || '') + '">' + renderTrlDateCell(entry.firstDebutDate) + '</td>'
                     + '<td class="center trl-date" data-value="' + escapeTrlHtml(entry.lastAppearanceDate || '') + '">' + renderTrlDateCell(entry.lastAppearanceDate) + '</td>'
@@ -1084,6 +1230,7 @@
                         ? renderTrlArtistRows(entries)
                         : renderTrlSongRows(entries);
                     tbody.insertAdjacentHTML('beforeend', html);
+                    initializeTrlNumberOneTooltips(tbody);
                     addedCount = entries.length;
                     loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
@@ -1576,6 +1723,7 @@
 
         window.addEventListener('load', function() {
             setupTrlInfiniteScroll();
+            initializeTrlNumberOneTooltips(document);
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

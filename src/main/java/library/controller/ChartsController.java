@@ -1145,7 +1145,7 @@ public class ChartsController {
         switch (normalizedOverviewTab) {
             case "album" -> {
                 List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = chartService.getChartOverviewAlbumRows("seasonal");
-                List<ChartAlbumOverviewRowDTO> filteredRows = filterWeeklyAlbumOverviewRows(seasonalAlbumRows, normalizedQuery, normalizedFilters);
+                List<ChartAlbumOverviewRowDTO> filteredRows = filterAlbumOverviewRowsForPeriod(seasonalAlbumRows, normalizedQuery, normalizedFilters, "seasonal");
                 filteredRows.sort(buildAlbumOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
                 result.put("entries", paginateRows(filteredRows, page, safeSize));
@@ -1163,7 +1163,7 @@ public class ChartsController {
             }
             default -> {
                 List<ChartSongOverviewRowDTO> seasonalSongRows = chartService.getChartOverviewSongRows("seasonal");
-                List<ChartSongOverviewRowDTO> filteredRows = filterWeeklySongOverviewRows(seasonalSongRows, normalizedQuery, normalizedFilters);
+                List<ChartSongOverviewRowDTO> filteredRows = filterSongOverviewRowsForPeriod(seasonalSongRows, normalizedQuery, normalizedFilters, "seasonal");
                 filteredRows.sort(buildSongOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
                 result.put("entries", paginateRows(filteredRows, page, safeSize));
@@ -1447,22 +1447,30 @@ public class ChartsController {
     }
 
     private List<ChartSongOverviewRowDTO> filterWeeklySongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query, List<String> columnFilters) {
+        return filterSongOverviewRowsForPeriod(rows, query, columnFilters, "weekly");
+    }
+
+    private List<ChartAlbumOverviewRowDTO> filterWeeklyAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query, List<String> columnFilters) {
+        return filterAlbumOverviewRowsForPeriod(rows, query, columnFilters, "weekly");
+    }
+
+    private List<ChartSongOverviewRowDTO> filterSongOverviewRowsForPeriod(List<ChartSongOverviewRowDTO> rows, String query, List<String> columnFilters, String periodType) {
         List<ChartSongOverviewRowDTO> filteredRows = filterSongOverviewRows(rows, query);
         if (columnFilters == null || columnFilters.stream().allMatch(String::isBlank)) {
             return filteredRows;
         }
 
-        filteredRows.removeIf(row -> !matchesWeeklySongOverviewFilters(row, columnFilters));
+        filteredRows.removeIf(row -> !matchesSongOverviewFilters(row, columnFilters, periodType));
         return filteredRows;
     }
 
-    private List<ChartAlbumOverviewRowDTO> filterWeeklyAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query, List<String> columnFilters) {
+    private List<ChartAlbumOverviewRowDTO> filterAlbumOverviewRowsForPeriod(List<ChartAlbumOverviewRowDTO> rows, String query, List<String> columnFilters, String periodType) {
         List<ChartAlbumOverviewRowDTO> filteredRows = filterAlbumOverviewRows(rows, query);
         if (columnFilters == null || columnFilters.stream().allMatch(String::isBlank)) {
             return filteredRows;
         }
 
-        filteredRows.removeIf(row -> !matchesWeeklyAlbumOverviewFilters(row, columnFilters));
+        filteredRows.removeIf(row -> !matchesAlbumOverviewFilters(row, columnFilters, periodType));
         return filteredRows;
     }
 
@@ -1476,28 +1484,51 @@ public class ChartsController {
         return filteredRows;
     }
 
-    private boolean matchesWeeklySongOverviewFilters(ChartSongOverviewRowDTO row, List<String> filters) {
-        return matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getArtistName(), row.getArtistName())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 3), row.getSongTitle(), row.getSongTitle())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), row.getTotalChartSpan())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getPeakPosition())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 6), row.getSpanAtPeak())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 7), row.getFirstAppearanceLabel(), row.getFirstAppearanceSortValue())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 8), row.getDebutPosition())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 9), row.getPeakAppearanceLabel(), row.getPeakAppearanceSortValue())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 10), row.getLastAppearanceLabel(), row.getLastAppearanceSortValue());
+    private boolean matchesSongOverviewFilters(ChartSongOverviewRowDTO row, List<String> filters, String periodType) {
+        int artistIndex = 1;
+        if ("weekly".equals(periodType)) {
+            artistIndex++;
+        }
+        int songIndex = artistIndex + 1;
+        int spanIndex = songIndex + 1;
+        int peakIndex = spanIndex + 1;
+        int atPeakIndex = peakIndex + 1;
+        int debutDateIndex = atPeakIndex + 1;
+        int debutPositionIndex = debutDateIndex + 1;
+
+        boolean matches = matchesTextOverviewFilter(getOverviewFilterValue(filters, artistIndex), row.getArtistName(), row.getArtistName())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, songIndex), row.getSongTitle(), row.getSongTitle())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, spanIndex), row.getTotalChartSpan())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, peakIndex), row.getPeakPosition())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, atPeakIndex), row.getSpanAtPeak())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, debutDateIndex), row.getFirstAppearanceLabel(), row.getFirstAppearanceSortValue())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, debutPositionIndex), row.getDebutPosition());
+
+        if (!"weekly".equals(periodType)) {
+            return matches;
+        }
+
+        return matches
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, debutPositionIndex + 1), row.getPeakAppearanceLabel(), row.getPeakAppearanceSortValue())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, debutPositionIndex + 2), row.getLastAppearanceLabel(), row.getLastAppearanceSortValue());
     }
 
-    private boolean matchesWeeklyAlbumOverviewFilters(ChartAlbumOverviewRowDTO row, List<String> filters) {
-        return matchesTextOverviewFilter(getOverviewFilterValue(filters, 1), row.getArtistName(), row.getArtistName())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getAlbumName(), row.getAlbumName())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 3), row.getTotalChartSpan())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), row.getHighestPeak())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getSpanAtPeak())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 6), row.getFirstDebutDate(), row.getFirstDebutSortValue())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 7), row.getDebutPosition())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 8), row.getPeakAppearanceDate(), row.getPeakAppearanceSortValue())
-                && matchesTextOverviewFilter(getOverviewFilterValue(filters, 9), row.getLastAppearanceDate(), row.getLastAppearanceSortValue());
+    private boolean matchesAlbumOverviewFilters(ChartAlbumOverviewRowDTO row, List<String> filters, String periodType) {
+        boolean matches = matchesTextOverviewFilter(getOverviewFilterValue(filters, 1), row.getArtistName(), row.getArtistName())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getAlbumName(), row.getAlbumName())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 3), row.getTotalChartSpan())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), row.getHighestPeak())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getSpanAtPeak())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 6), row.getFirstDebutDate(), row.getFirstDebutSortValue())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 7), row.getDebutPosition());
+
+        if (!"weekly".equals(periodType)) {
+            return matches;
+        }
+
+        return matches
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 8), row.getPeakAppearanceDate(), row.getPeakAppearanceSortValue())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 9), row.getLastAppearanceDate(), row.getLastAppearanceSortValue());
     }
 
     private boolean matchesWeeklyArtistOverviewFilters(ChartArtistOverviewRowDTO row, List<String> filters, Integer topSongThreshold, Integer topAlbumThreshold) {

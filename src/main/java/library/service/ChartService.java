@@ -3307,6 +3307,8 @@ public class ChartService {
         private Integer albumHighestPeak;
         private int numberOneAlbumsCount;
         private int albumTotalSpanAtNumberOne;
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
+        private final Map<String, String> numberOneAlbumTitles = new LinkedHashMap<>();
         private int[] topSongCounts = new int[0];
         private int[] topSongWeeks = new int[0];
         private int[] topAlbumCounts = new int[0];
@@ -3337,6 +3339,8 @@ public class ChartService {
             }
             if (row.getSpanAtTop1() > 0) {
                 numberOneSongsCount++;
+                String songKey = row.getSongId() != null ? "song:" + row.getSongId() : "song:" + row.getSongTitle();
+                numberOneSongTitles.putIfAbsent(songKey, row.getSongTitle());
             }
 
             if (firstDebutSortValue == null || compareSortValues(row.getFirstAppearanceSortValue(), firstDebutSortValue) < 0) {
@@ -3374,6 +3378,8 @@ public class ChartService {
             }
             if (row.getHighestPeak() != null && row.getHighestPeak() == 1) {
                 numberOneAlbumsCount++;
+                String albumKey = row.getAlbumId() != null ? "album:" + row.getAlbumId() : "album:" + row.getAlbumName();
+                numberOneAlbumTitles.putIfAbsent(albumKey, row.getAlbumName());
             }
 
             int[] thresholdSpans = row.getSpanAtTopThresholds();
@@ -3421,6 +3427,8 @@ public class ChartService {
             dto.setTopSongWeeks(topSongWeeks);
             dto.setTopAlbumCounts(topAlbumCounts);
             dto.setTopAlbumWeeks(topAlbumWeeks);
+            dto.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
+            dto.setNumberOneAlbumTitles(new ArrayList<>(numberOneAlbumTitles.values()));
             dto.setGenderClass(genderClass);
             return dto;
         }

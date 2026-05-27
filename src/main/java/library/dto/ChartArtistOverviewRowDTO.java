@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 public class ChartArtistOverviewRowDTO {
 
     private boolean matched;
@@ -26,6 +28,8 @@ public class ChartArtistOverviewRowDTO {
     private int[] topSongWeeks;
     private int[] topAlbumCounts;
     private int[] topAlbumWeeks;
+    private List<String> numberOneSongTitles;
+    private List<String> numberOneAlbumTitles;
     private String genderClass;
 
     public boolean isMatched() {
@@ -218,6 +222,22 @@ public class ChartArtistOverviewRowDTO {
 
     public void setTopAlbumWeeks(int[] topAlbumWeeks) {
         this.topAlbumWeeks = topAlbumWeeks;
+    }
+
+    public List<String> getNumberOneSongTitles() {
+        return numberOneSongTitles;
+    }
+
+    public void setNumberOneSongTitles(List<String> numberOneSongTitles) {
+        this.numberOneSongTitles = numberOneSongTitles;
+    }
+
+    public List<String> getNumberOneAlbumTitles() {
+        return numberOneAlbumTitles;
+    }
+
+    public void setNumberOneAlbumTitles(List<String> numberOneAlbumTitles) {
+        this.numberOneAlbumTitles = numberOneAlbumTitles;
     }
 
     public String getGenderClass() {

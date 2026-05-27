@@ -395,6 +395,7 @@ public class PcService {
         private final ChartAlbumOverviewRowDTO row;
         private final Set<Integer> songIds = new HashSet<>();
         private final Set<Integer> numberOneSongIds = new HashSet<>();
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
         private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
             row = new ChartAlbumOverviewRowDTO();
@@ -418,6 +419,7 @@ public class PcService {
 
             if (bestPeak == 1 && entry.getSongId() != null && numberOneSongIds.add(entry.getSongId())) {
                 row.setNumberOneSongsCount(numberOneSongIds.size());
+                numberOneSongTitles.putIfAbsent("song:" + entry.getSongId(), entry.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
@@ -425,6 +427,7 @@ public class PcService {
         }
 
         private ChartAlbumOverviewRowDTO toRow() {
+            row.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
             return row;
         }
     }
@@ -433,6 +436,7 @@ public class PcService {
         private final ChartArtistOverviewRowDTO row;
         private final Set<String> songKeys = new HashSet<>();
         private final Set<String> numberOneSongKeys = new HashSet<>();
+        private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
         private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
             row = new ChartArtistOverviewRowDTO();
@@ -466,6 +470,7 @@ public class PcService {
 
             if (bestPeak == 1 && numberOneSongKeys.add(songKey)) {
                 row.setNumberOneSongsCount(numberOneSongKeys.size());
+                numberOneSongTitles.putIfAbsent(songKey, entry.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
@@ -473,6 +478,7 @@ public class PcService {
         }
 
         private ChartArtistOverviewRowDTO toRow() {
+            row.setNumberOneSongTitles(new ArrayList<>(numberOneSongTitles.values()));
             return row;
         }
     }
