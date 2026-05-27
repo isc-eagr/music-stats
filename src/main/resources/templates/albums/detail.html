@@ -10,6 +10,7 @@
     <link rel="stylesheet" th:href="@{/css/album-detail.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=3)}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -17,6 +18,7 @@
     <script th:src="@{/js/top-table-sort.js}" defer></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
+    <script th:src="@{/js/detail-chart-history.js(v=3)}" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
     <style>
@@ -1089,6 +1091,7 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${bbChartedSongs}"
+                                        th:classappend="${entry['genderClass'] != null ? ' ' + entry['genderClass'] : ''}"
                                         th:data-run-url="@{'/charts/bb/song/' + ${entry['song_id']} + '/run'}"
                                         th:attr="data-mobile-track-number=${entry['track_number'] != null ? entry['track_number'] : '-'},
                                                 data-mobile-debut-date=${entry['debut_date'] != null ? entry['debut_date'] : '-'},
@@ -1155,6 +1158,7 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${pcChartedSongs}"
+                                        th:classappend="${entry['genderClass'] != null ? ' ' + entry['genderClass'] : ''}"
                                         th:data-run-url="@{'/charts/pc/song/' + ${entry['song_id']} + '/run'}"
                                         th:attr="data-mobile-track-number=${entry['track_number'] != null ? entry['track_number'] : '-'},
                                                 data-mobile-debut-date=${entry['debut_date'] != null ? entry['debut_date'] : '-'},
@@ -1221,6 +1225,7 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="entry : ${trlChartedSongs}"
+                                        th:classappend="${entry['genderClass'] != null ? ' ' + entry['genderClass'] : ''}"
                                         th:data-run-url="@{'/charts/trl/song/' + ${entry['song_id']} + '/run'}"
                                         th:attr="data-mobile-track-number=${entry['track_number'] != null ? entry['track_number'] : '-'},
                                                 data-mobile-debut-date=${entry['debut_date'] != null ? entry['debut_date'] : '-'},
@@ -2595,23 +2600,15 @@
         }
         
         .chart-run-stat {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 10px 14px;
             text-align: center;
         }
         
         .chart-run-stat-label {
-            font-size: 0.75rem;
-            color: #888;
             margin-bottom: 4px;
         }
         
         .chart-run-stat-value {
-            font-size: 1.1rem;
             font-weight: bold;
-            color: #fff;
         }
 
         /* Chart History Expand Button */
