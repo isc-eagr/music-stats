@@ -35,11 +35,3 @@
 .album-artist .artist-link:hover {
     color: #ffffff;
 }
-
-/* Album metadata */
-.album-metadata {
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 10px;
-    line-height: 1.4;
-}

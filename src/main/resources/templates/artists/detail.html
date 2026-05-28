@@ -3361,91 +3361,30 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
         
-        /* Toggles Container */
-        .toggles-container {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-shrink: 0;
+        /* Artist detail toggles reuse detail-tabs.css and only override page-specific values here */
+        body.artist-detail-page .detail-tabs {
+            --detail-toggle-container-gap: 20px;
+            --detail-toggle-container-gap-compact: 12px;
+            --detail-toggle-gap: 10px;
+            --detail-toggle-slider-width: 44px;
+            --detail-toggle-slider-height: 24px;
+            --detail-toggle-slider-radius: 12px;
+            --detail-toggle-slider-thumb-offset: 3px;
+            --detail-toggle-slider-active-bg: #475569;
+            --detail-toggle-slider-active-translate: 20px;
+            --detail-toggle-text-size: 14px;
+            --detail-toggle-text-size-compact: 12px;
+            --detail-toggle-text-active-color: #94a3b8;
         }
-        
-        /* Include Groups Toggle */
-        .include-groups-toggle {
-            display: flex;
-            align-items: center;
+
+        body.artist-detail-page.gender-male .detail-tabs {
+            --detail-toggle-slider-active-bg: #1e40af;
+            --detail-toggle-text-active-color: #60a5fa;
         }
-        
-        .toggle-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        .toggle-label input[type="checkbox"] {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .toggle-slider {
-            width: 44px;
-            height: 24px;
-            background: #374151;
-            border-radius: 12px;
-            position: relative;
-            transition: background 0.3s ease;
-        }
-        
-        .toggle-slider::after {
-            content: '';
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 18px;
-            height: 18px;
-            background: #9ca3af;
-            border-radius: 50%;
-            transition: transform 0.3s ease, background 0.3s ease;
-        }
-        
-        /* Gender-based toggle colors */
-        .toggle-label input[type="checkbox"]:checked + .toggle-slider {
-            background: #475569; /* neutral gray default */
-        }
-        
-        .container-wide.gender-male .toggle-label input[type="checkbox"]:checked + .toggle-slider {
-            background: #1e40af; /* dark blue for male */
-        }
-        
-        .container-wide.gender-female .toggle-label input[type="checkbox"]:checked + .toggle-slider {
-            background: #9d174d; /* dark pink for female */
-        }
-        
-        .toggle-label input[type="checkbox"]:checked + .toggle-slider::after {
-            transform: translateX(20px);
-            background: white;
-        }
-        
-        .toggle-text {
-            font-size: 14px;
-            color: #9ca3af;
-        }
-        
-        /* Gender-based toggle text colors */
-        .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
-            color: #94a3b8; /* neutral gray default */
-        }
-        
-        .container-wide.gender-male .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
-            color: #60a5fa; /* light blue for male */
-        }
-        
-        .container-wide.gender-female .toggle-label input[type="checkbox"]:checked ~ .toggle-text {
-            color: #f472b6; /* light pink for female */
+
+        body.artist-detail-page.gender-female .detail-tabs {
+            --detail-toggle-slider-active-bg: #9d174d;
+            --detail-toggle-text-active-color: #f472b6;
         }
         
         /* Featured song row highlighting - slightly brighter dark teal tint */
@@ -3682,15 +3621,6 @@
         }
         
         /* Responsive styles for tabs and toggles */
-        @media (max-width: 1200px) {
-            .toggles-container {
-                gap: 12px;
-            }
-            .toggle-text {
-                font-size: 12px;
-            }
-        }
-
         @media (max-width: 768px) {
             .artist-detail .artist-mobile-toggle-placeholder {
                 display: none;

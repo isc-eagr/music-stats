@@ -4551,14 +4551,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         margin-top: 10px;
     }
     
-    .artist-toggles-section {
-        display: flex !important;
-        flex-wrap: wrap;
-        margin-left: 0 !important;
-        margin-top: 12px;
-        gap: 12px;
-    }
-    
     /* Card grids - 1 column on tablet/mobile */
     .album-grid,
     .song-grid {
