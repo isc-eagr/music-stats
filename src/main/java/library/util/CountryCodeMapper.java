@@ -10,11 +10,10 @@ import java.util.Map;
 public class CountryCodeMapper {
     private final Map<String, String> nameToCode = new HashMap<>();
 
-    @SuppressWarnings("deprecation")
     public CountryCodeMapper() {
         String[] iso = Locale.getISOCountries();
         for (String code : iso) {
-            Locale loc = new Locale("", code);
+            Locale loc = new Locale.Builder().setRegion(code).build();
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {
                 nameToCode.put(normalize(name), code.toLowerCase());
@@ -59,8 +58,7 @@ public class CountryCodeMapper {
         // Last resort: check if the input is already a country name that matches a Locale
         // Try to find the code by checking all ISO countries
         for (String isoCode : Locale.getISOCountries()) {
-            @SuppressWarnings("deprecation")
-            Locale locale = new Locale("", isoCode);
+            Locale locale = new Locale.Builder().setRegion(isoCode).build();
             String countryName = locale.getDisplayCountry(Locale.ENGLISH);
             if (countryName.equalsIgnoreCase(countryNameOrCode)) {
                 return isoCode.toLowerCase();

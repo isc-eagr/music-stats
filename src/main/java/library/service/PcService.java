@@ -3,6 +3,7 @@ package library.service;
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.PcOverviewRowDTO;
+import library.util.ChartAggregationUtils;
 import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,20 +33,23 @@ public class PcService {
     public Map<String, Object> getPcStatsBySongId(Integer songId) {
         if (songId == null) return null;
         String sql =
-            "WITH cs AS ( " +
-            "    SELECT MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
-            "           MIN(ce.chart_date) AS debut_date " +
+            "WITH song_entries AS ( " +
+            "    SELECT ce.chart_date, ce.position " +
             "    FROM vatos_cuntdown_entry ce " +
             "    WHERE ce.song_id = ? AND ce.is_close_call = 0 " +
+            "), cs AS ( " +
+            "    SELECT MIN(se.position) AS peak_position, " +
+            "           COUNT(DISTINCT se.chart_date) AS actual_days, " +
+            "           MIN(se.chart_date) AS debut_date " +
+            "    FROM song_entries se " +
             ") " +
             "SELECT cs.actual_days AS days_on_countdown, cs.peak_position, cs.actual_days, cs.debut_date, " +
-            "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM vatos_cuntdown_entry ce2 " +
-            "     WHERE ce2.song_id = ? AND ce2.position = cs.peak_position AND ce2.is_close_call = 0 " +
-            "    ) AS days_at_peak, " +
-            "    (SELECT MIN(ce3.chart_date) FROM vatos_cuntdown_entry ce3 " +
-            "     WHERE ce3.song_id = ? AND ce3.position = cs.peak_position AND ce3.is_close_call = 0 " +
-            "    ) AS peak_date " +
-            "FROM cs WHERE cs.actual_days > 0";
+            "       COUNT(DISTINCT CASE WHEN se.position = cs.peak_position THEN se.chart_date END) AS days_at_peak, " +
+            "       MIN(CASE WHEN se.position = cs.peak_position THEN se.chart_date END) AS peak_date " +
+            "FROM cs " +
+            "LEFT JOIN song_entries se ON 1 = 1 " +
+            "WHERE cs.actual_days > 0 " +
+            "GROUP BY cs.actual_days, cs.peak_position, cs.debut_date";
         try {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
                 Map<String, Object> m = new LinkedHashMap<>();
@@ -62,7 +65,7 @@ public class PcService {
                 String peakDate = rs.getString("peak_date");
                 if (peakDate != null) m.put("peakDate", peakDate);
                 return m;
-            }, songId, songId, songId);
+            }, songId);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return null;
         }
@@ -103,8 +106,8 @@ public class PcService {
         rows.sort(Comparator
             .comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan).reversed()
             .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
-            .thenComparing(row -> safeLower(row.getArtistName()))
-            .thenComparing(row -> safeLower(row.getAlbumName())));
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()))
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getAlbumName())));
         return rows;
     }
 
@@ -129,7 +132,7 @@ public class PcService {
             if (matched) {
                 key = "artist:" + entry.getResolvedArtistId();
             } else {
-                key = "raw:" + normalizeKeyPart(entry.getArtistName());
+                key = "raw:" + ChartAggregationUtils.normalizeKeyPart(entry.getArtistName());
             }
 
             ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
@@ -174,7 +177,7 @@ public class PcService {
         rows.sort(Comparator
             .comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan).reversed()
             .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
-            .thenComparing(row -> safeLower(row.getArtistName())));
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName())));
         return rows;
     }
 
@@ -379,50 +382,6 @@ public class PcService {
         return result;
     }
 
-    private String normalizeKeyPart(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String pickPreferredDisplayValue(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank()) {
-            return candidateValue;
-        }
-        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
-        if (ignoreCase < 0) {
-            return candidateValue;
-        }
-        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
-    private String minDate(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
-    private String maxDate(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) > 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
     private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
         if (songIds == null || songIds.isEmpty()) {
             return Map.of();
@@ -497,10 +456,6 @@ public class PcService {
         return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
     }
 
-    private String safeLower(String value) {
-        return value == null ? "" : value.toLowerCase(Locale.ROOT);
-    }
-
     private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
     }
 
@@ -535,8 +490,8 @@ public class PcService {
                 numberOneSongTitles.putIfAbsent("song:" + entry.getSongId(), entry.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
-            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
-            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
+            row.setFirstDebutDate(ChartAggregationUtils.minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
+            row.setLastAppearanceDate(ChartAggregationUtils.maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
         }
 
         private ChartAlbumOverviewRowDTO toRow() {
@@ -568,7 +523,7 @@ public class PcService {
         }
 
         private void accept(PcOverviewRowDTO entry, boolean includeTimelineMetrics) {
-            row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), entry.getArtistName()));
+            row.setArtistName(ChartAggregationUtils.pickPreferredDisplayValue(row.getArtistName(), entry.getArtistName()));
             if (row.getResolvedArtistId() == null) {
                 row.setResolvedArtistId(entry.getResolvedArtistId());
             }
@@ -578,7 +533,7 @@ public class PcService {
 
             String songKey = entry.getSongId() != null
                 ? "song:" + entry.getSongId()
-                : "raw:" + normalizeKeyPart(entry.getSongTitle());
+                : "raw:" + ChartAggregationUtils.normalizeKeyPart(entry.getSongTitle());
             if (songKeys.add(songKey)) {
                 row.setChartedSongsCount(songKeys.size());
             }
@@ -595,8 +550,8 @@ public class PcService {
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
             if (includeTimelineMetrics) {
-                row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
-                row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
+                row.setFirstDebutDate(ChartAggregationUtils.minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
+                row.setLastAppearanceDate(ChartAggregationUtils.maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
             }
         }
 
@@ -1049,6 +1004,6 @@ public class PcService {
     }
 
     private String normalizeIdentityPart(Object value) {
-        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
+        return ChartAggregationUtils.normalizeKeyPart(value == null ? null : value.toString());
     }
 }

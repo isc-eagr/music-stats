@@ -318,13 +318,13 @@ public class ArtistBirthDeathPopulator {
 		// Collect all exact name matches that are persons
 		List<ArtistCandidate> candidates = new ArrayList<>();
 		for (JsonNode artist : artists) {
-			String name = artist.get("name").asText();
+			String name = artist.get("name").asString();
 			if (name.equalsIgnoreCase(artistName)) {
 				// Check that it's a person, not a group
 				JsonNode type = artist.get("type");
-				if (type == null || "Person".equalsIgnoreCase(type.asText())) {
+				if (type == null || "Person".equalsIgnoreCase(type.asString())) {
 					ArtistCandidate candidate = new ArtistCandidate();
-					candidate.mbid = artist.get("id").asText();
+					candidate.mbid = artist.get("id").asString();
 					candidate.name = name;
 					
 					// Get country if available
@@ -332,14 +332,14 @@ public class ArtistBirthDeathPopulator {
 					if (area != null) {
 						JsonNode areaName = area.get("name");
 						if (areaName != null) {
-							candidate.country = areaName.asText();
+							candidate.country = areaName.asString();
 						}
 					}
 					
 					// Get disambiguation if available
 					JsonNode disambiguation = artist.get("disambiguation");
 					if (disambiguation != null && !disambiguation.isNull()) {
-						candidate.disambiguation = disambiguation.asText();
+						candidate.disambiguation = disambiguation.asString();
 					}
 					
 					candidates.add(candidate);
@@ -436,7 +436,7 @@ public class ArtistBirthDeathPopulator {
 		for (JsonNode recording : recordings) {
 			JsonNode titleNode = recording.get("title");
 			if (titleNode != null) {
-				String title = normalizeSongTitle(titleNode.asText());
+				String title = normalizeSongTitle(titleNode.asString());
 				if (normalizedKnownSongs.contains(title)) {
 					matches++;
 				}
@@ -488,7 +488,7 @@ public class ArtistBirthDeathPopulator {
 		if (lifeSpan != null) {
 			JsonNode beginNode = lifeSpan.get("begin");
 			if (beginNode != null && !beginNode.isNull()) {
-				LocalDate birthDate = parseDate(beginNode.asText());
+				LocalDate birthDate = parseDate(beginNode.asString());
 				if (birthDate != null) {
 					data.put("birth", birthDate);
 				}
@@ -496,7 +496,7 @@ public class ArtistBirthDeathPopulator {
 
 			JsonNode endNode = lifeSpan.get("end");
 			if (endNode != null && !endNode.isNull()) {
-				LocalDate deathDate = parseDate(endNode.asText());
+				LocalDate deathDate = parseDate(endNode.asString());
 				if (deathDate != null) {
 					data.put("death", deathDate);
 				}
@@ -508,12 +508,12 @@ public class ArtistBirthDeathPopulator {
 		if (area != null) {
 			JsonNode areaName = area.get("name");
 			if (areaName != null && !areaName.isNull()) {
-				data.put("country", areaName.asText());
+				data.put("country", areaName.asString());
 			} else {
 				// Fallback: try ISO code and convert to country name
 				JsonNode isoCodes = area.get("iso-3166-1-codes");
 				if (isoCodes != null && isoCodes.isArray() && isoCodes.size() > 0) {
-					String isoCode = isoCodes.get(0).asText();
+					String isoCode = isoCodes.get(0).asString();
 					String countryName = convertIsoCodeToCountryName(isoCode);
 					if (countryName != null) {
 						data.put("country", countryName);
@@ -533,8 +533,7 @@ public class ArtistBirthDeathPopulator {
 			return isoCode;
 		}
 
-		@SuppressWarnings("deprecation")
-		Locale locale = new Locale("", isoCode.toUpperCase());
+		Locale locale = new Locale.Builder().setRegion(isoCode.toUpperCase(Locale.ROOT)).build();
 		String countryName = locale.getDisplayCountry(Locale.ENGLISH);
 
 		// If we got a valid country name, return it; otherwise return the code
@@ -559,10 +558,10 @@ public class ArtistBirthDeathPopulator {
 		if (results != null && results.isArray() && results.size() > 0) {
 			// Try to find a musician/singer in results
 			for (JsonNode result : results) {
-				String id = result.get("id").asText();
+				String id = result.get("id").asString();
 				JsonNode description = result.get("description");
 				if (description != null) {
-					String desc = description.asText().toLowerCase();
+					String desc = description.asString().toLowerCase();
 					// Look for musician-related descriptions
 					if (desc.contains("singer") || desc.contains("musician") || 
 						desc.contains("rapper") || desc.contains("songwriter") ||
@@ -573,7 +572,7 @@ public class ArtistBirthDeathPopulator {
 				}
 			}
 			// Fall back to first result
-			return results.get(0).get("id").asText();
+			return results.get(0).get("id").asString();
 		}
 
 		return null;
@@ -634,7 +633,7 @@ public class ArtistBirthDeathPopulator {
 						JsonNode timeNode = value.get("time");
 						if (timeNode != null) {
 							// Wikidata time format: +1985-03-02T00:00:00Z
-							String timeStr = timeNode.asText();
+							String timeStr = timeNode.asString();
 							return parseWikidataTime(timeStr);
 						}
 					}

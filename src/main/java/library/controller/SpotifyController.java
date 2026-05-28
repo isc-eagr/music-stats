@@ -219,7 +219,7 @@ public class SpotifyController {
             String response = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             JsonNode root = objectMapper.readTree(response);
             
-            accessToken = root.get("access_token").asText();
+            accessToken = root.get("access_token").asString();
             int expiresIn = root.get("expires_in").asInt(); // Usually 3600 seconds
             tokenExpiresAt = System.currentTimeMillis() + (expiresIn * 1000L);
             
@@ -364,7 +364,7 @@ public class SpotifyController {
     private String getNodeText(JsonNode node, String field) {
         if (node == null) return "";
         JsonNode fieldNode = node.get(field);
-        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asText() : "";
+        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asString() : "";
     }
 
     private String makeAuthenticatedRequest(String urlString, String token) throws Exception {

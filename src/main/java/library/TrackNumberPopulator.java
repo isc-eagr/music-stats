@@ -440,23 +440,23 @@ public class TrackNumberPopulator {
         String normalizedArtist = normalizeName(artistName);
 
         for (JsonNode release : releases) {
-            String title = release.has("title") ? release.get("title").asText() : "";
-            String status = release.has("status") ? release.get("status").asText() : "";
+            String title = release.has("title") ? release.get("title").asString() : "";
+            String status = release.has("status") ? release.get("status").asString() : "";
 
             // Check artist credit matches
             JsonNode artistCredit = release.get("artist-credit");
             if (artistCredit != null && artistCredit.isArray()) {
                 for (JsonNode credit : artistCredit) {
-                    String creditName = credit.has("name") ? credit.get("name").asText() : "";
+                    String creditName = credit.has("name") ? credit.get("name").asString() : "";
                     JsonNode artistNode = credit.get("artist");
                     String mbArtistName = (artistNode != null && artistNode.has("name"))
-                            ? artistNode.get("name").asText() : creditName;
+                        ? artistNode.get("name").asString() : creditName;
 
                     if (normalizeName(mbArtistName).equals(normalizedArtist)
                             && normalizeName(title).equals(normalizedAlbum)) {
                         // Prefer official releases
                         if ("Official".equalsIgnoreCase(status)) {
-                            return release.get("id").asText();
+                            return release.get("id").asString();
                         }
                     }
                 }
@@ -465,9 +465,9 @@ public class TrackNumberPopulator {
 
         // Fallback: take the first result if the title matches reasonably
         JsonNode first = releases.get(0);
-        String firstTitle = first.has("title") ? first.get("title").asText() : "";
+        String firstTitle = first.has("title") ? first.get("title").asString() : "";
         if (normalizeName(firstTitle).equals(normalizedAlbum)) {
-            return first.get("id").asText();
+            return first.get("id").asString();
         }
 
         return null;
@@ -493,7 +493,7 @@ public class TrackNumberPopulator {
                 if (tracks != null && tracks.isArray()) {
                     for (JsonNode track : tracks) {
                         int position = track.has("position") ? track.get("position").asInt() : 0;
-                        String title = track.has("title") ? track.get("title").asText() : "";
+                        String title = track.has("title") ? track.get("title").asString() : "";
 
                         if (position > 0 && !title.isEmpty()) {
                             trackMap.put(normalizeName(title), position);
@@ -502,7 +502,7 @@ public class TrackNumberPopulator {
                         // Also try the recording title as fallback
                         JsonNode recording = track.get("recording");
                         if (recording != null && recording.has("title")) {
-                            String recTitle = recording.get("title").asText();
+                            String recTitle = recording.get("title").asString();
                             if (!recTitle.isEmpty()) {
                                 trackMap.putIfAbsent(normalizeName(recTitle), position);
                             }

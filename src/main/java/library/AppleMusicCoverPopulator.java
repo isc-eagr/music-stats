@@ -563,7 +563,7 @@ public class AppleMusicCoverPopulator {
                 boolean artistMatches = false;
                 JsonNode artistNameNode = result.get("artistName");
                 if (artistNameNode != null) {
-                    String apiArtist = artistNameNode.asText();
+                    String apiArtist = artistNameNode.asString();
                     if (normalizeForComparison(apiArtist).equals(normalizeForComparison(artistName))) {
                         artistMatches = true;
                     }
@@ -571,7 +571,7 @@ public class AppleMusicCoverPopulator {
                 if (!artistMatches) {
                     JsonNode collectionArtistNode = result.get("collectionArtistName");
                     if (collectionArtistNode != null) {
-                        String collectionArtist = collectionArtistNode.asText();
+                        String collectionArtist = collectionArtistNode.asString();
                         if (normalizeForComparison(collectionArtist).equals(normalizeForComparison(artistName))) {
                             artistMatches = true;
                         }
@@ -585,13 +585,13 @@ public class AppleMusicCoverPopulator {
                     // For songs: Check if collectionName = song + " - Single" OR song + " - EP"
                     JsonNode collectionNameNode = result.get("collectionName");
                     if (collectionNameNode != null && !collectionNameNode.isNull()) {
-                        String collectionName = collectionNameNode.asText();
+                        String collectionName = collectionNameNode.asString();
                         String normalizedCollection = normalizeForComparison(collectionName);
                         if (normalizedCollection.equals(normalizedSongWithSingle) || 
                             normalizedCollection.equals(normalizedSongWithEP)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
-                                return artworkNode.asText();
+                                return artworkNode.asString();
                             }
                         }
                     }
@@ -599,14 +599,14 @@ public class AppleMusicCoverPopulator {
                     // For albums: Check collectionName match
                     JsonNode nameNode = result.get("collectionName");
                     if (nameNode != null) {
-                        String apiName = nameNode.asText();
+                        String apiName = nameNode.asString();
                         String normalizedApi = normalizeForComparison(apiName);
                         
                         // Check for EXACT match first (highest priority)
                         if (normalizedApi.equals(normalizedSearch)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
-                                return artworkNode.asText(); // Return immediately for exact match
+                                return artworkNode.asString(); // Return immediately for exact match
                             }
                         }
                         
@@ -614,7 +614,7 @@ public class AppleMusicCoverPopulator {
                         if (fallbackUrl == null && isAlbumNameMatch(itemName, apiName)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
-                                fallbackUrl = artworkNode.asText(); // Save as fallback, keep looking for exact
+                                fallbackUrl = artworkNode.asString(); // Save as fallback, keep looking for exact
                             }
                         }
                     }
@@ -644,7 +644,7 @@ public class AppleMusicCoverPopulator {
                     boolean artistMatches = false;
                     JsonNode artistNameNode = result.get("artistName");
                     if (artistNameNode != null) {
-                        String apiArtist = artistNameNode.asText();
+                        String apiArtist = artistNameNode.asString();
                         if (normalizeForComparison(apiArtist).equals(normalizeForComparison(artistName))) {
                             artistMatches = true;
                         }
@@ -652,7 +652,7 @@ public class AppleMusicCoverPopulator {
                     if (!artistMatches) {
                         JsonNode collectionArtistNode = result.get("collectionArtistName");
                         if (collectionArtistNode != null) {
-                            String collectionArtist = collectionArtistNode.asText();
+                            String collectionArtist = collectionArtistNode.asString();
                             if (normalizeForComparison(collectionArtist).equals(normalizeForComparison(artistName))) {
                                 artistMatches = true;
                             }
@@ -665,14 +665,14 @@ public class AppleMusicCoverPopulator {
                     // Check if collectionName = song + " - Single" OR song + " - EP"
                     JsonNode collectionNameNode = result.get("collectionName");
                     if (collectionNameNode != null && !collectionNameNode.isNull()) {
-                        String collectionName = collectionNameNode.asText();
+                        String collectionName = collectionNameNode.asString();
                         String normalizedCollection = normalizeForComparison(collectionName);
                         if (normalizedCollection.equals(normalizedSongWithSingle) || 
                             normalizedCollection.equals(normalizedSongWithEP)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
                                 log("  ✓ Found via album search");
-                                return artworkNode.asText();
+                                return artworkNode.asString();
                             }
                         }
                     }
@@ -697,7 +697,7 @@ public class AppleMusicCoverPopulator {
                     boolean artistMatches = false;
                     JsonNode artistNameNode = result.get("artistName");
                     if (artistNameNode != null) {
-                        String apiArtist = artistNameNode.asText();
+                        String apiArtist = artistNameNode.asString();
                         if (normalizeForComparison(apiArtist).equals(normalizeForComparison(artistName))) {
                             artistMatches = true;
                         }
@@ -705,7 +705,7 @@ public class AppleMusicCoverPopulator {
                     if (!artistMatches) {
                         JsonNode collectionArtistNode = result.get("collectionArtistName");
                         if (collectionArtistNode != null) {
-                            String collectionArtist = collectionArtistNode.asText();
+                            String collectionArtist = collectionArtistNode.asString();
                             if (normalizeForComparison(collectionArtist).equals(normalizeForComparison(artistName))) {
                                 artistMatches = true;
                             }
@@ -718,7 +718,7 @@ public class AppleMusicCoverPopulator {
                     // Check if the song's collectionName matches our album name
                     JsonNode collectionNameNode = result.get("collectionName");
                     if (collectionNameNode != null && !collectionNameNode.isNull()) {
-                        String collectionName = collectionNameNode.asText();
+                        String collectionName = collectionNameNode.asString();
                         String normalizedCollection = normalizeForComparison(collectionName);
                         
                         // EXACT match first (highest priority)
@@ -726,7 +726,7 @@ public class AppleMusicCoverPopulator {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
                                 log("  ✓ Found via song search (exact collectionName match)");
-                                return artworkNode.asText();
+                                return artworkNode.asString();
                             }
                         }
                         
@@ -735,7 +735,7 @@ public class AppleMusicCoverPopulator {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
                                 log("  ✓ Found via song search (collectionName variation match)");
-                                return artworkNode.asText();
+                                return artworkNode.asString();
                             }
                         }
                     }
@@ -761,7 +761,7 @@ public class AppleMusicCoverPopulator {
                     boolean artistMatches = false;
                     JsonNode artistNameNode = result.get("artistName");
                     if (artistNameNode != null) {
-                        String apiArtist = artistNameNode.asText();
+                        String apiArtist = artistNameNode.asString();
                         if (normalizeForComparison(apiArtist).equals(normalizeForComparison(artistName))) {
                             artistMatches = true;
                         }
@@ -769,7 +769,7 @@ public class AppleMusicCoverPopulator {
                     if (!artistMatches) {
                         JsonNode collectionArtistNode = result.get("collectionArtistName");
                         if (collectionArtistNode != null) {
-                            String collectionArtist = collectionArtistNode.asText();
+                            String collectionArtist = collectionArtistNode.asString();
                             if (normalizeForComparison(collectionArtist).equals(normalizeForComparison(artistName))) {
                                 artistMatches = true;
                             }
@@ -782,14 +782,14 @@ public class AppleMusicCoverPopulator {
                     // Check if collectionName = song + " - Single" OR song + " - EP"
                     JsonNode collectionNameNode = result.get("collectionName");
                     if (collectionNameNode != null && !collectionNameNode.isNull()) {
-                        String collectionName = collectionNameNode.asText();
+                        String collectionName = collectionNameNode.asString();
                         String normalizedCollection = normalizeForComparison(collectionName);
                         if (normalizedCollection.equals(normalizedSongWithSingle) || 
                             normalizedCollection.equals(normalizedSongWithEP)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
                                 log("  ✓ Found via song-only search");
-                                return artworkNode.asText();
+                                return artworkNode.asString();
                             }
                         }
                     }
@@ -813,14 +813,14 @@ public class AppleMusicCoverPopulator {
                 for (JsonNode result : results) {
                     JsonNode nameNode = result.get("collectionName");
                     if (nameNode != null) {
-                        String apiName = nameNode.asText();
+                        String apiName = nameNode.asString();
                         String normalizedApi = normalizeForComparison(apiName);
                         
                         // Check for EXACT match first (highest priority)
                         if (normalizedApi.equals(normalizedSearch)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
-                                return artworkNode.asText(); // Return immediately for exact match
+                                return artworkNode.asString(); // Return immediately for exact match
                             }
                         }
                         
@@ -828,7 +828,7 @@ public class AppleMusicCoverPopulator {
                         if (fallbackUrl == null && isAlbumNameMatch(itemName, apiName)) {
                             JsonNode artworkNode = result.get("artworkUrl100");
                             if (artworkNode != null && !artworkNode.isNull()) {
-                                fallbackUrl = artworkNode.asText(); // Save as fallback, keep looking for exact
+                                fallbackUrl = artworkNode.asString(); // Save as fallback, keep looking for exact
                             }
                         }
                     }

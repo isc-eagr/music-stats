@@ -61,16 +61,7 @@ public class ArtistService {
 
     public String getItunesArtistIdsJson(String inItunes) {
         if (inItunes == null || inItunes.isEmpty()) return null;
-        List<Integer> ids = new ArrayList<>();
-        jdbcTemplate.query("SELECT id, name FROM Artist", rs -> {
-            int id = rs.getInt(1);
-            String name = rs.getString(2);
-            if (itunesService.artistExistsInItunes(name)) {
-                ids.add(id);
-            }
-        });
-        if (ids.isEmpty()) return "[]";
-        return "[" + ids.stream().map(String::valueOf).collect(Collectors.joining(",")) + "]";
+        return itunesService.getAllItunesArtistIdsJson();
     }
     
     public List<ArtistCardDTO> getArtists(String name, List<Integer> genderIds, String genderMode,
@@ -601,8 +592,7 @@ public class ArtistService {
         String[] iso = Locale.getISOCountries();
         Set<String> names = new TreeSet<>();
         for (String code : iso) {
-            @SuppressWarnings("deprecation")
-            Locale loc = new Locale("", code);
+            Locale loc = new Locale.Builder().setRegion(code).build();
             String name = loc.getDisplayCountry(Locale.ENGLISH);
             if (name != null && !name.isBlank()) {
                 names.add(name);
@@ -3225,32 +3215,6 @@ public class ArtistService {
         }, artistId);
         
         return rankings;
-    }
-    
-    /**
-     * Get artist rank by gender (position within same gender based on play count)
-     * @deprecated Use getAllArtistRankings() instead for better performance
-     */
-    @Deprecated
-    public Integer getArtistRankByGender(int artistId) {
-        String sql = """
-            SELECT rank FROM (
-                SELECT a.id, 
-                       ROW_NUMBER() OVER (PARTITION BY a.gender_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
-                FROM Artist a
-                LEFT JOIN Song s ON s.artist_id = a.id
-                LEFT JOIN Play p ON p.song_id = s.id
-                WHERE a.gender_id IS NOT NULL
-                GROUP BY a.id, a.gender_id
-            ) ranked
-            WHERE id = ?
-            """;
-        
-        try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-        } catch (Exception e) {
-            return null;
-        }
     }
     
     /**

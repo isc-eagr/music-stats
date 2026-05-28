@@ -4,6 +4,7 @@ import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.BillboardHot100OverviewRowDTO;
 import library.util.BillboardHot100ImportSupport;
+import library.util.ChartAggregationUtils;
 import library.util.StringNormalizer;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,7 +19,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -243,7 +243,7 @@ public class BillboardHot100Service {
             boolean matched = row.getResolvedArtistId() != null;
             String key = matched
                 ? "artist:" + row.getResolvedArtistId()
-                : "raw:" + normalizeKeyPart(row.getArtistName());
+                : "raw:" + ChartAggregationUtils.normalizeKeyPart(row.getArtistName());
             ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                 key,
                 ignored -> new ArtistOverviewAccumulator(matched, row.getResolvedArtistId(), row.getArtistName(), row.getGenderClass())
@@ -354,40 +354,40 @@ public class BillboardHot100Service {
 
     private Comparator<ChartAlbumOverviewRowDTO> buildAlbumOverviewComparator(String sort, String dir) {
         Comparator<ChartAlbumOverviewRowDTO> comparator = switch (sort) {
-            case "artist" -> Comparator.comparing(row -> safeLower(row.getArtistName()));
-            case "album" -> Comparator.comparing(row -> safeLower(row.getAlbumName()));
+            case "artist" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()));
+            case "album" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getAlbumName()));
             case "songs" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getChartedSongsCount);
             case "peak" -> Comparator.comparingInt(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak());
             case "numberOnes" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getNumberOneSongsCount);
             case "weeksAtNumberOne" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalSpanAtNumberOne);
-            case "firstWeek" -> Comparator.comparing(row -> safeLower(row.getFirstDebutDate()));
-            case "lastWeek" -> Comparator.comparing(row -> safeLower(row.getLastAppearanceDate()));
+            case "firstWeek" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getFirstDebutDate()));
+            case "lastWeek" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getLastAppearanceDate()));
             case "weeks" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan);
             default -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan);
         };
         if (!"asc".equalsIgnoreCase(dir)) {
             comparator = comparator.reversed();
         }
-        return comparator.thenComparing(row -> safeLower(row.getArtistName()))
-            .thenComparing(row -> safeLower(row.getAlbumName()));
+        return comparator.thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()))
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getAlbumName()));
     }
 
     private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewComparator(String sort, String dir) {
         Comparator<ChartArtistOverviewRowDTO> comparator = switch (sort) {
-            case "artist" -> Comparator.comparing(row -> safeLower(row.getArtistName()));
+            case "artist" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()));
             case "songs" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getChartedSongsCount);
             case "peak" -> Comparator.comparingInt(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak());
             case "numberOnes" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getNumberOneSongsCount);
             case "weeksAtNumberOne" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalSpanAtNumberOne);
-            case "firstWeek" -> Comparator.comparing(row -> safeLower(row.getFirstDebutDate()));
-            case "lastWeek" -> Comparator.comparing(row -> safeLower(row.getLastAppearanceDate()));
+            case "firstWeek" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getFirstDebutDate()));
+            case "lastWeek" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getLastAppearanceDate()));
             case "weeks" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan);
             default -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan);
         };
         if (!"asc".equalsIgnoreCase(dir)) {
             comparator = comparator.reversed();
         }
-        return comparator.thenComparing(row -> safeLower(row.getArtistName()));
+        return comparator.thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()));
     }
 
     private <T> List<T> paginate(List<T> rows, int page, int size) {
@@ -436,50 +436,6 @@ public class BillboardHot100Service {
         return result;
     }
 
-    private String normalizeKeyPart(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String pickPreferredDisplayValue(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank()) {
-            return candidateValue;
-        }
-        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
-        if (ignoreCase < 0) {
-            return candidateValue;
-        }
-        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
-    private String minDate(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
-    private String maxDate(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) > 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
     private String formatNumberOneSongLabel(String title, int weeksAtTop1) {
         if (title == null || title.isBlank()) {
             return title;
@@ -488,10 +444,6 @@ public class BillboardHot100Service {
             return title;
         }
         return title + " (" + weeksAtTop1 + (weeksAtTop1 == 1 ? " week" : " weeks") + ")";
-    }
-
-    private String safeLower(String value) {
-        return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
     public Map<String, Object> importAllCharts() {
@@ -863,7 +815,7 @@ public class BillboardHot100Service {
     }
 
     private String normalizeIdentityPart(Object value) {
-        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
+        return ChartAggregationUtils.normalizeKeyPart(value == null ? null : value.toString());
     }
 
     public BillboardHot100ImportSupport.NameIssueReport getNameIssueReport(int sampleLimit) {
@@ -1013,8 +965,8 @@ public class BillboardHot100Service {
                 numberOneSongTitles.putIfAbsent("song:" + songRow.getSongId(), songRow.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + songRow.getWeeksAtTop1());
-            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
-            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), songRow.getLastWeek()));
+            row.setFirstDebutDate(ChartAggregationUtils.minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
+            row.setLastAppearanceDate(ChartAggregationUtils.maxDate(row.getLastAppearanceDate(), songRow.getLastWeek()));
         }
 
         private ChartAlbumOverviewRowDTO toRow() {
@@ -1046,7 +998,7 @@ public class BillboardHot100Service {
         }
 
         private void accept(BillboardHot100OverviewRowDTO songRow, boolean includeTimelineMetrics) {
-            row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), songRow.getArtistName()));
+            row.setArtistName(ChartAggregationUtils.pickPreferredDisplayValue(row.getArtistName(), songRow.getArtistName()));
             if (row.getResolvedArtistId() == null) {
                 row.setResolvedArtistId(songRow.getResolvedArtistId());
             }
@@ -1056,7 +1008,7 @@ public class BillboardHot100Service {
 
             String songKey = songRow.getSongId() != null
                 ? "song:" + songRow.getSongId()
-                : "raw:" + normalizeKeyPart(songRow.getSongTitle());
+                : "raw:" + ChartAggregationUtils.normalizeKeyPart(songRow.getSongTitle());
             if (songKeys.add(songKey)) {
                 row.setChartedSongsCount(songKeys.size());
             }
@@ -1070,8 +1022,8 @@ public class BillboardHot100Service {
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + songRow.getWeeksAtTop1());
             if (includeTimelineMetrics) {
-                row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
-                row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), songRow.getLastWeek()));
+                row.setFirstDebutDate(ChartAggregationUtils.minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
+                row.setLastAppearanceDate(ChartAggregationUtils.maxDate(row.getLastAppearanceDate(), songRow.getLastWeek()));
             }
         }
 

@@ -63,20 +63,7 @@ public class SongService {
 
     public String getItunesSongIdsJson(String inItunes) {
         if (inItunes == null || inItunes.isEmpty()) return null;
-        List<Integer> ids = new ArrayList<>();
-        jdbcTemplate.query(
-                "SELECT s.id, ar.name, COALESCE(alb.name, ''), s.name FROM Song s " +
-                "JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album alb ON s.album_id = alb.id", rs -> {
-            int id = rs.getInt(1);
-            String artistN = rs.getString(2);
-            String albumN = rs.getString(3);
-            String songN = rs.getString(4);
-            if (itunesService.songExistsInItunes(artistN, albumN, songN)) {
-                ids.add(id);
-            }
-        });
-        if (ids.isEmpty()) return "[]";
-        return "[" + ids.stream().map(String::valueOf).collect(Collectors.joining(",")) + "]";
+        return itunesService.getAllItunesSongIdsJson();
     }
 
     @SuppressWarnings("unchecked")
@@ -2308,32 +2295,6 @@ public class SongService {
         }, songId);
         
         return rankings;
-    }
-    
-    /**
-     * Get song rank by gender (position within same artist gender based on play count)
-     * @deprecated Use getAllSongRankings() instead for better performance
-     */
-    @Deprecated
-    public Integer getSongRankByGender(int songId) {
-        String sql = """
-            SELECT rank FROM (
-                SELECT s.id, 
-                       ROW_NUMBER() OVER (PARTITION BY ar.gender_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
-                FROM Song s
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Play p ON p.song_id = s.id
-                WHERE ar.gender_id IS NOT NULL
-                GROUP BY s.id, ar.gender_id
-            ) ranked
-            WHERE id = ?
-            """;
-        
-        try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
-        } catch (Exception e) {
-            return null;
-        }
     }
     
     /**

@@ -591,6 +591,6 @@ public class MusicBrainzController {
         if (node == null) return null;
         JsonNode fieldNode = node.get(field);
         if (fieldNode == null || fieldNode.isNull()) return null;
-        return fieldNode.asText();
+        return fieldNode.asString();
     }
 }

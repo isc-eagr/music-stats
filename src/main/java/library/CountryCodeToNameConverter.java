@@ -136,8 +136,7 @@ public class CountryCodeToNameConverter {
         }
         
         // Convert to country name
-        @SuppressWarnings("deprecation")
-        Locale locale = new Locale("", code);
+        Locale locale = new Locale.Builder().setRegion(code).build();
         String countryName = locale.getDisplayCountry(Locale.ENGLISH);
         
         // Return the name if valid, otherwise return null

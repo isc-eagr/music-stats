@@ -344,7 +344,7 @@ public class PlayService {
         
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(response.body());
-        String playcountStr = root.path("user").path("playcount").asText("0");
+        String playcountStr = root.path("user").path("playcount").asString("0");
         return Integer.parseInt(playcountStr);
     }
     
@@ -631,10 +631,10 @@ public class PlayService {
                         continue;
                     }
                     
-                    String artistName = track.path("artist").path("#text").asText("");
-                    String albumName = track.path("album").path("#text").asText("");
-                    String songName = track.path("name").asText("");
-                    String utsStr = dateNode.path("uts").asText("");
+                    String artistName = track.path("artist").path("#text").asString("");
+                    String albumName = track.path("album").path("#text").asString("");
+                    String songName = track.path("name").asString("");
+                    String utsStr = dateNode.path("uts").asString("");
                     
                     if (utsStr.isEmpty()) {
                         totalErrors++;

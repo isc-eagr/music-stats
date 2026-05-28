@@ -271,7 +271,7 @@ public class DeezerController {
     private String getNodeText(JsonNode node, String field) {
         if (node == null) return "";
         JsonNode fieldNode = node.get(field);
-        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asText() : "";
+        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asString() : "";
     }
 
     private String makeHttpRequest(String urlString) throws Exception {

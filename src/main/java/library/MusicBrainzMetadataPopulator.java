@@ -527,7 +527,7 @@ public class MusicBrainzMetadataPopulator {
 		JsonNode artists = root.get("artists");
 		if (artists != null && artists.isArray() && artists.size() > 0) {
 			JsonNode firstArtist = artists.get(0);
-			return firstArtist.get("id").asText();
+			return firstArtist.get("id").asString();
 		}
 
 		return null;
@@ -551,13 +551,13 @@ public class MusicBrainzMetadataPopulator {
 			// First try to get the area name directly
 			JsonNode areaName = area.get("name");
 			if (areaName != null && !areaName.isNull()) {
-				return areaName.asText();
+				return areaName.asString();
 			}
 
 			// Fallback: get ISO code and convert to country name
 			JsonNode isoCodes = area.get("iso-3166-1-codes");
 			if (isoCodes != null && isoCodes.isArray() && isoCodes.size() > 0) {
-				String isoCode = isoCodes.get(0).asText();
+				String isoCode = isoCodes.get(0).asString();
 				return convertIsoCodeToCountryName(isoCode);
 			}
 		}
@@ -579,7 +579,7 @@ public class MusicBrainzMetadataPopulator {
 
 		JsonNode typeNode = root.get("type");
 		if (typeNode != null && !typeNode.isNull()) {
-			return typeNode.asText();
+			return typeNode.asString();
 		}
 
 		return null;
@@ -604,13 +604,13 @@ public class MusicBrainzMetadataPopulator {
 			for (JsonNode relation : relations) {
 				// Look for "member of band" relationships
 				JsonNode type = relation.get("type");
-				if (type != null && type.asText().equals("member of band")) {
+				if (type != null && type.asString().equals("member of band")) {
 					// Get the target artist (the member)
 					JsonNode artist = relation.get("artist");
 					if (artist != null) {
 						JsonNode name = artist.get("name");
 						if (name != null) {
-							members.add(name.asText());
+							members.add(name.asString());
 						}
 					}
 				}
@@ -628,8 +628,7 @@ public class MusicBrainzMetadataPopulator {
 			return isoCode;
 		}
 
-		@SuppressWarnings("deprecation")
-		Locale locale = new Locale("", isoCode.toUpperCase());
+		Locale locale = new Locale.Builder().setRegion(isoCode.toUpperCase(Locale.ROOT)).build();
 		String countryName = locale.getDisplayCountry(Locale.ENGLISH);
 
 		// If we got a valid country name, return it; otherwise return the code
@@ -652,7 +651,7 @@ public class MusicBrainzMetadataPopulator {
 		JsonNode releases = root.get("releases");
 		if (releases != null && releases.isArray() && releases.size() > 0) {
 			JsonNode firstRelease = releases.get(0);
-			return firstRelease.get("id").asText();
+			return firstRelease.get("id").asString();
 		}
 
 		return null;

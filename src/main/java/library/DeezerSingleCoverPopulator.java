@@ -249,9 +249,9 @@ public class DeezerSingleCoverPopulator {
 			List<JsonNode> exactMatches = new ArrayList<>();
 			
 			for (JsonNode trackNode : data) {
-				String trackTitle = trackNode.get("title").asText();
+				String trackTitle = trackNode.get("title").asString();
 				JsonNode artistNode = trackNode.get("artist");
-				String trackArtist = artistNode != null ? artistNode.get("name").asText() : "";
+				String trackArtist = artistNode != null ? artistNode.get("name").asString() : "";
 
 				// Skip live/acoustic/karaoke/remix versions
 				if (isLiveOrRemixVersion(trackTitle)) {
@@ -269,9 +269,9 @@ public class DeezerSingleCoverPopulator {
 			List<JsonNode> fuzzyMatches = new ArrayList<>();
 			
 			for (JsonNode trackNode : data) {
-				String trackTitle = trackNode.get("title").asText();
+				String trackTitle = trackNode.get("title").asString();
 				JsonNode artistNode = trackNode.get("artist");
-				String trackArtist = artistNode != null ? artistNode.get("name").asText() : "";
+				String trackArtist = artistNode != null ? artistNode.get("name").asString() : "";
 
 				// Skip live/acoustic/karaoke/remix versions
 				if (isLiveOrRemixVersion(trackTitle)) {
@@ -416,7 +416,7 @@ public class DeezerSingleCoverPopulator {
 	private DeezerTrack parseTrack(JsonNode trackNode) {
 		DeezerTrack track = new DeezerTrack();
 		track.id = trackNode.get("id").asInt();
-		track.title = trackNode.get("title").asText();
+		track.title = trackNode.get("title").asString();
 
 		JsonNode album = trackNode.get("album");
 		if (album != null) {
@@ -428,7 +428,7 @@ public class DeezerSingleCoverPopulator {
 			
 			JsonNode albumTitle = album.get("title");
 			if (albumTitle != null) {
-				track.albumTitle = albumTitle.asText();
+				track.albumTitle = albumTitle.asString();
 			}
 			
 			// Get all available cover URLs
@@ -437,10 +437,10 @@ public class DeezerSingleCoverPopulator {
 			JsonNode coverBig = album.get("cover_big");
 			JsonNode coverXl = album.get("cover_xl");
 
-			if (coverSmall != null) track.coverSmall = coverSmall.asText();
-			if (coverMedium != null) track.coverMedium = coverMedium.asText();
-			if (coverBig != null) track.coverBig = coverBig.asText();
-			if (coverXl != null) track.coverXl = coverXl.asText();
+			if (coverSmall != null) track.coverSmall = coverSmall.asString();
+			if (coverMedium != null) track.coverMedium = coverMedium.asString();
+			if (coverBig != null) track.coverBig = coverBig.asString();
+			if (coverXl != null) track.coverXl = coverXl.asString();
 		}
 
 		return track;
@@ -478,7 +478,7 @@ public class DeezerSingleCoverPopulator {
 			
 			JsonNode recordType = root.get("record_type");
 			if (recordType != null) {
-				return recordType.asText();
+				return recordType.asString();
 			}
 		} catch (Exception e) {
 			System.err.println("  ⚠ Error fetching album details: " + e.getMessage());

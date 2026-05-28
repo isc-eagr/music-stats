@@ -46,17 +46,7 @@ public class AlbumService {
 
     public String getItunesAlbumIdsJson(String inItunes) {
         if (inItunes == null || inItunes.isEmpty()) return null;
-        List<Integer> ids = new ArrayList<>();
-        jdbcTemplate.query("SELECT a.id, ar.name, a.name FROM Album a JOIN Artist ar ON a.artist_id = ar.id", rs -> {
-            int id = rs.getInt(1);
-            String artistName = rs.getString(2);
-            String albumName = rs.getString(3);
-            if (itunesService.albumExistsInItunes(artistName, albumName)) {
-                ids.add(id);
-            }
-        });
-        if (ids.isEmpty()) return "[]";
-        return "[" + ids.stream().map(String::valueOf).collect(Collectors.joining(",")) + "]";
+        return itunesService.getAllItunesAlbumIdsJson();
     }
     
     public List<AlbumCardDTO> getAlbums(String name, List<Integer> artistName,
@@ -1622,33 +1612,6 @@ public class AlbumService {
         }, albumId);
         
         return rankings;
-    }
-    
-    /**
-     * Get album rank by gender (position within same artist gender based on play count)
-     * @deprecated Use getAllAlbumRankings() instead for better performance
-     */
-    @Deprecated
-    public Integer getAlbumRankByGender(int albumId) {
-        String sql = """
-            SELECT rank FROM (
-                SELECT alb.id, 
-                       ROW_NUMBER() OVER (PARTITION BY ar.gender_id ORDER BY COALESCE(COUNT(sc.id), 0) DESC) as rank
-                FROM Album alb
-                INNER JOIN Artist ar ON alb.artist_id = ar.id
-                LEFT JOIN Song s ON s.album_id = alb.id
-                LEFT JOIN Play p ON p.song_id = s.id
-                WHERE ar.gender_id IS NOT NULL
-                GROUP BY alb.id, ar.gender_id
-            ) ranked
-            WHERE id = ?
-            """;
-        
-        try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
-        } catch (Exception e) {
-            return null;
-        }
     }
     
     /**

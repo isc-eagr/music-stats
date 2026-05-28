@@ -302,14 +302,14 @@ public class AudioDbAlbumCoverPopulator {
             // Find the best match
             for (JsonNode album : albums) {
                 JsonNode thumbNode = album.get("strAlbumThumb");
-                if (thumbNode != null && !thumbNode.isNull() && !thumbNode.asText().isEmpty()) {
-                    return thumbNode.asText();
+                if (thumbNode != null && !thumbNode.isNull() && !thumbNode.asString().isEmpty()) {
+                    return thumbNode.asString();
                 }
                 
                 // Also check strAlbumThumbHQ for high quality
                 JsonNode thumbHqNode = album.get("strAlbumThumbHQ");
-                if (thumbHqNode != null && !thumbHqNode.isNull() && !thumbHqNode.asText().isEmpty()) {
-                    return thumbHqNode.asText();
+                if (thumbHqNode != null && !thumbHqNode.isNull() && !thumbHqNode.asString().isEmpty()) {
+                    return thumbHqNode.asString();
                 }
             }
         }
@@ -329,7 +329,7 @@ public class AudioDbAlbumCoverPopulator {
             for (JsonNode album : albums) {
                 JsonNode nameNode = album.get("strAlbum");
                 if (nameNode != null && !nameNode.isNull()) {
-                    String apiAlbumName = nameNode.asText();
+                    String apiAlbumName = nameNode.asString();
                     String normalizedApi = normalizeForComparison(apiAlbumName);
                     
                     // Check if it's a close match
@@ -338,13 +338,13 @@ public class AudioDbAlbumCoverPopulator {
                         normalizedSearch.contains(normalizedApi)) {
                         
                         JsonNode thumbNode = album.get("strAlbumThumb");
-                        if (thumbNode != null && !thumbNode.isNull() && !thumbNode.asText().isEmpty()) {
-                            return thumbNode.asText();
+                        if (thumbNode != null && !thumbNode.isNull() && !thumbNode.asString().isEmpty()) {
+                            return thumbNode.asString();
                         }
                         
                         JsonNode thumbHqNode = album.get("strAlbumThumbHQ");
-                        if (thumbHqNode != null && !thumbHqNode.isNull() && !thumbHqNode.asText().isEmpty()) {
-                            return thumbHqNode.asText();
+                        if (thumbHqNode != null && !thumbHqNode.isNull() && !thumbHqNode.asString().isEmpty()) {
+                            return thumbHqNode.asString();
                         }
                     }
                 }

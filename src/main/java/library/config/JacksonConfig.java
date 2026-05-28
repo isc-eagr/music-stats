@@ -42,7 +42,7 @@ public class JacksonConfig {
         public Date deserialize(JsonParser p, DeserializationContext ctxt) {
             String text;
             try {
-                text = p.getText();
+                text = p.getString();
             } catch (Exception e) {
                 return null;
             }

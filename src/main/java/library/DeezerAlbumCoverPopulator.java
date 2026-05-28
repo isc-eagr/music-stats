@@ -235,9 +235,9 @@ public class DeezerAlbumCoverPopulator {
 		if (data != null && data.isArray() && data.size() > 0) {
 			// Try to find exact match first
 			for (JsonNode albumNode : data) {
-				String albumTitle = albumNode.get("title").asText();
+				String albumTitle = albumNode.get("title").asString();
 				JsonNode artistNode = albumNode.get("artist");
-				String albumArtist = artistNode != null ? artistNode.get("name").asText() : "";
+				String albumArtist = artistNode != null ? artistNode.get("name").asString() : "";
 
 				// Normalize and compare
 				if (normalizeName(albumTitle).equals(normalizeName(albumName)) &&
@@ -248,9 +248,9 @@ public class DeezerAlbumCoverPopulator {
 
 			// If no exact match, try fuzzy match on first result
 			JsonNode firstAlbum = data.get(0);
-			String albumTitle = firstAlbum.get("title").asText();
+			String albumTitle = firstAlbum.get("title").asString();
 			JsonNode artistNode = firstAlbum.get("artist");
-			String albumArtist = artistNode != null ? artistNode.get("name").asText() : "";
+			String albumArtist = artistNode != null ? artistNode.get("name").asString() : "";
 
 			// Check if artist matches and album title is similar
 			if (normalizeName(albumArtist).equals(normalizeName(artistName)) &&
@@ -269,7 +269,7 @@ public class DeezerAlbumCoverPopulator {
 	private DeezerAlbum parseAlbum(JsonNode albumNode) {
 		DeezerAlbum album = new DeezerAlbum();
 		album.id = albumNode.get("id").asInt();
-		album.title = albumNode.get("title").asText();
+		album.title = albumNode.get("title").asString();
 
 		// Get all available cover URLs
 		JsonNode coverSmall = albumNode.get("cover_small");
@@ -277,10 +277,10 @@ public class DeezerAlbumCoverPopulator {
 		JsonNode coverBig = albumNode.get("cover_big");
 		JsonNode coverXl = albumNode.get("cover_xl");
 
-		if (coverSmall != null) album.coverSmall = coverSmall.asText();
-		if (coverMedium != null) album.coverMedium = coverMedium.asText();
-		if (coverBig != null) album.coverBig = coverBig.asText();
-		if (coverXl != null) album.coverXl = coverXl.asText();
+		if (coverSmall != null) album.coverSmall = coverSmall.asString();
+		if (coverMedium != null) album.coverMedium = coverMedium.asString();
+		if (coverBig != null) album.coverBig = coverBig.asString();
+		if (coverXl != null) album.coverXl = coverXl.asString();
 
 		return album;
 	}

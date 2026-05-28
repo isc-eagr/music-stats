@@ -89,7 +89,7 @@ public class AppleMusicController {
                                       List<Map<String, String>> results, Set<String> seenUrls) {
         JsonNode artworkNode = result.get("artworkUrl100");
         if (artworkNode != null && !artworkNode.isNull()) {
-            String smallUrl = artworkNode.asText();
+            String smallUrl = artworkNode.asString();
             
             // Generate URLs for different sizes
             String thumbUrl = smallUrl.replace("100x100bb", "250x250bb");
@@ -148,7 +148,7 @@ public class AppleMusicController {
 
     private String getNodeText(JsonNode node, String field) {
         JsonNode fieldNode = node.get(field);
-        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asText() : "";
+        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asString() : "";
     }
 
     private String makeHttpRequest(String urlString) throws Exception {

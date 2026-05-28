@@ -1,6 +1,7 @@
 package library.util;
 
 import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.ObjectReadContext;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
 
@@ -278,32 +279,7 @@ public final class BillboardHot100ImportSupport {
         if (songId != null) {
             return "song:" + songId;
         }
-        return "raw:" + normalizeBillboardIdentityPart(artistName) + "||" + normalizeBillboardIdentityPart(songTitle);
-    }
-
-    private static String normalizeBillboardIdentityPart(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static String pickPreferredDisplayValue(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank()) {
-            return candidateValue;
-        }
-
-        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
-        if (ignoreCase < 0) {
-            return candidateValue;
-        }
-        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
+        return "raw:" + ChartAggregationUtils.normalizeKeyPart(artistName) + "||" + ChartAggregationUtils.normalizeKeyPart(songTitle);
     }
 
     private static final class BillboardDebutAggregate {
@@ -361,8 +337,8 @@ public final class BillboardHot100ImportSupport {
                     this.songTitle = canonicalSongTitle;
                 }
             } else {
-                this.artistName = pickPreferredDisplayValue(this.artistName, rawArtistName);
-                this.songTitle = pickPreferredDisplayValue(this.songTitle, rawSongTitle);
+                this.artistName = ChartAggregationUtils.pickPreferredDisplayValue(this.artistName, rawArtistName);
+                this.songTitle = ChartAggregationUtils.pickPreferredDisplayValue(this.songTitle, rawSongTitle);
             }
 
             weeksOnChart++;
@@ -619,7 +595,7 @@ public final class BillboardHot100ImportSupport {
         int preservedLinks = 0;
         try (PreparedStatement insert = connection.prepareStatement(insertSql);
              InputStream inputStream = openAllChartsStream();
-             JsonParser parser = new JsonFactory().createParser(inputStream)) {
+             JsonParser parser = new JsonFactory().createParser(ObjectReadContext.empty(), inputStream)) {
 
             if (parser.nextToken() != JsonToken.START_ARRAY) {
                 throw new IOException("Unexpected Billboard Hot 100 payload format");

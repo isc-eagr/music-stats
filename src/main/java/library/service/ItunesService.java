@@ -32,6 +32,8 @@ public class ItunesService {
     private long cachedFileLastModified = 0;
     private String cachedFilePath = null;
     private String cachedSongIdsJson = null;
+    private String cachedAlbumIdsJson = null;
+    private String cachedArtistIdsJson = null;
 
     public ItunesService(JdbcTemplate jdbcTemplate, iTunesLibraryService iTunesLibraryService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -74,6 +76,9 @@ public class ItunesService {
             cachedAllSongs = new ArrayList<>();
             cachedFilePath = filePath;
             cachedFileLastModified = 0;
+            cachedSongIdsJson = null;
+            cachedAlbumIdsJson = null;
+            cachedArtistIdsJson = null;
             return;
         }
 
@@ -106,6 +111,9 @@ public class ItunesService {
         cachedAllSongs = allSongs;
         cachedFilePath = filePath;
         cachedFileLastModified = file.lastModified();
+        cachedSongIdsJson = null;
+        cachedAlbumIdsJson = null;
+        cachedArtistIdsJson = null;
     }
 
     /**
@@ -119,6 +127,8 @@ public class ItunesService {
         cachedFilePath = null;
         cachedFileLastModified = 0;
         cachedSongIdsJson = null;
+        cachedAlbumIdsJson = null;
+        cachedArtistIdsJson = null;
     }
 
     /**
@@ -633,28 +643,83 @@ public class ItunesService {
     public String getAllItunesSongIdsJson() {
         if (!libraryExists()) return "[]";
         if (cachedSongIdsJson != null) return cachedSongIdsJson;
+        try {
+            ensureCacheLoaded();
+        } catch (Exception e) {
+            return "[]";
+        }
         List<Integer> ids = new ArrayList<>();
         jdbcTemplate.query(
             "SELECT s.id, ar.name, COALESCE(alb.name, ''), s.name FROM Song s " +
             "JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album alb ON s.album_id = alb.id",
             rs -> {
-                if (songExistsInItunes(rs.getString(2), rs.getString(3), rs.getString(4))) {
+                String key = createStrictSongLookupKey(rs.getString(2), rs.getString(3), rs.getString(4));
+                if (cachedSongKeys.contains(key)) {
                     ids.add(rs.getInt(1));
                 }
             }
         );
-        if (ids.isEmpty()) {
-            cachedSongIdsJson = "[]";
-            return cachedSongIdsJson;
+        cachedSongIdsJson = toJsonArray(ids);
+        return cachedSongIdsJson;
+    }
+
+    public String getAllItunesAlbumIdsJson() {
+        if (!libraryExists()) return "[]";
+        if (cachedAlbumIdsJson != null) return cachedAlbumIdsJson;
+        try {
+            ensureCacheLoaded();
+        } catch (Exception e) {
+            return "[]";
         }
+
+        List<Integer> ids = new ArrayList<>();
+        jdbcTemplate.query(
+            "SELECT a.id, ar.name, a.name FROM Album a JOIN Artist ar ON a.artist_id = ar.id",
+            rs -> {
+                String key = createStrictAlbumLookupKey(rs.getString(2), rs.getString(3));
+                if (cachedAlbumKeys.contains(key)) {
+                    ids.add(rs.getInt(1));
+                }
+            }
+        );
+        cachedAlbumIdsJson = toJsonArray(ids);
+        return cachedAlbumIdsJson;
+    }
+
+    public String getAllItunesArtistIdsJson() {
+        if (!libraryExists()) return "[]";
+        if (cachedArtistIdsJson != null) return cachedArtistIdsJson;
+        try {
+            ensureCacheLoaded();
+        } catch (Exception e) {
+            return "[]";
+        }
+
+        List<Integer> ids = new ArrayList<>();
+        jdbcTemplate.query("SELECT id, name FROM Artist", rs -> {
+            String key = normalizeForStrictMatch(rs.getString(2));
+            if (cachedArtistKeys.contains(key)) {
+                ids.add(rs.getInt(1));
+            }
+        });
+        cachedArtistIdsJson = toJsonArray(ids);
+        return cachedArtistIdsJson;
+    }
+
+    private String toJsonArray(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return "[]";
+        }
+
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < ids.size(); i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0) {
+                sb.append(',');
+            }
             sb.append(ids.get(i));
         }
-        sb.append("]");
-        cachedSongIdsJson = sb.toString();
-        return cachedSongIdsJson;
+        sb.append(']');
+        return sb.toString();
     }
 
     /**

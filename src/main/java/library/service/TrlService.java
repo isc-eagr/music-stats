@@ -5,6 +5,7 @@ import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
 import library.repository.TrlDebutRepository;
+import library.util.ChartAggregationUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -152,8 +152,8 @@ public class TrlService {
         rows.sort(Comparator
             .comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan).reversed()
             .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
-            .thenComparing(row -> safeLower(row.getArtistName()))
-            .thenComparing(row -> safeLower(row.getAlbumName())));
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()))
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getAlbumName())));
         return rows;
     }
 
@@ -178,7 +178,7 @@ public class TrlService {
             if (matched) {
                 key = "artist:" + debut.getResolvedArtistId();
             } else {
-                key = "raw:" + normalizeKeyPart(debut.getArtistName());
+                key = "raw:" + ChartAggregationUtils.normalizeKeyPart(debut.getArtistName());
             }
 
             ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
@@ -223,7 +223,7 @@ public class TrlService {
         rows.sort(Comparator
             .comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan).reversed()
             .thenComparing(row -> row.getHighestPeak() == null ? Integer.MAX_VALUE : row.getHighestPeak())
-            .thenComparing(row -> safeLower(row.getArtistName())));
+            .thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName())));
         return rows;
     }
 
@@ -714,7 +714,7 @@ public class TrlService {
     }
 
     private String normalizeIdentityPart(Object value) {
-        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
+        return ChartAggregationUtils.normalizeKeyPart(value == null ? null : value.toString());
     }
 
     private int getChartSpan(TrlDebut debut) {
@@ -729,50 +729,6 @@ public class TrlService {
             return debut.getPeakPosition();
         }
         return debut.getDebutPosition();
-    }
-
-    private String normalizeKeyPart(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String pickPreferredDisplayValue(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank()) {
-            return candidateValue;
-        }
-        int ignoreCase = candidateValue.compareToIgnoreCase(currentValue);
-        if (ignoreCase < 0) {
-            return candidateValue;
-        }
-        if (ignoreCase == 0 && candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
-    private String minDate(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) < 0) {
-            return candidateValue;
-        }
-        return currentValue;
-    }
-
-    private String maxDate(String currentValue, String candidateValue) {
-        if (candidateValue == null || candidateValue.isBlank()) {
-            return currentValue;
-        }
-        if (currentValue == null || currentValue.isBlank() || candidateValue.compareTo(currentValue) > 0) {
-            return candidateValue;
-        }
-        return currentValue;
     }
 
     private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
@@ -852,10 +808,6 @@ public class TrlService {
         return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
     }
 
-    private String safeLower(String value) {
-        return value == null ? "" : value.toLowerCase(Locale.ROOT);
-    }
-
     private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
     }
 
@@ -890,8 +842,8 @@ public class TrlService {
                 numberOneSongTitles.putIfAbsent("song:" + debut.getSongId(), debut.getSongTitle());
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
-            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
-            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
+            row.setFirstDebutDate(ChartAggregationUtils.minDate(row.getFirstDebutDate(), debut.getDebutDate()));
+            row.setLastAppearanceDate(ChartAggregationUtils.maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
         }
 
         private ChartAlbumOverviewRowDTO toRow() {
@@ -923,7 +875,7 @@ public class TrlService {
         }
 
         private void accept(TrlDebut debut, boolean includeTimelineMetrics) {
-            row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), debut.getArtistName()));
+            row.setArtistName(ChartAggregationUtils.pickPreferredDisplayValue(row.getArtistName(), debut.getArtistName()));
             if (row.getResolvedArtistId() == null) {
                 row.setResolvedArtistId(debut.getResolvedArtistId());
             }
@@ -933,7 +885,7 @@ public class TrlService {
 
             String songKey = debut.getSongId() != null
                 ? "song:" + debut.getSongId()
-                : "raw:" + normalizeKeyPart(debut.getSongTitle());
+                : "raw:" + ChartAggregationUtils.normalizeKeyPart(debut.getSongTitle());
             if (songKeys.add(songKey)) {
                 row.setChartedSongsCount(songKeys.size());
             }
@@ -950,8 +902,8 @@ public class TrlService {
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
             if (includeTimelineMetrics) {
-                row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
-                row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
+                row.setFirstDebutDate(ChartAggregationUtils.minDate(row.getFirstDebutDate(), debut.getDebutDate()));
+                row.setLastAppearanceDate(ChartAggregationUtils.maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
             }
         }
 
