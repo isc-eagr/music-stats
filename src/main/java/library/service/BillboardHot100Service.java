@@ -378,6 +378,16 @@ public class BillboardHot100Service {
         return currentValue;
     }
 
+    private String formatNumberOneSongLabel(String title, int weeksAtTop1) {
+        if (title == null || title.isBlank()) {
+            return title;
+        }
+        if (weeksAtTop1 <= 0) {
+            return title;
+        }
+        return title + " (" + weeksAtTop1 + (weeksAtTop1 == 1 ? " week" : " weeks") + ")";
+    }
+
     private String safeLower(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
@@ -946,7 +956,7 @@ public class BillboardHot100Service {
             }
             if (songRow.getPeakPosition() == 1 && numberOneSongKeys.add(songKey)) {
                 row.setNumberOneSongsCount(numberOneSongKeys.size());
-                numberOneSongTitles.putIfAbsent(songKey, songRow.getSongTitle());
+                numberOneSongTitles.putIfAbsent(songKey, formatNumberOneSongLabel(songRow.getSongTitle(), songRow.getWeeksAtTop1()));
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + songRow.getWeeksAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));

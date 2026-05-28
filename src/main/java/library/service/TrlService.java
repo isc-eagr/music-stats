@@ -739,6 +739,16 @@ public class TrlService {
         return currentValue;
     }
 
+    private String formatNumberOneSongLabel(String title, int daysAtTop1) {
+        if (title == null || title.isBlank()) {
+            return title;
+        }
+        if (daysAtTop1 <= 0) {
+            return title;
+        }
+        return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
+    }
+
     private String safeLower(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
@@ -822,7 +832,7 @@ public class TrlService {
 
             if (bestPeak != null && bestPeak == 1 && numberOneSongKeys.add(songKey)) {
                 row.setNumberOneSongsCount(numberOneSongKeys.size());
-                numberOneSongTitles.putIfAbsent(songKey, debut.getSongTitle());
+                numberOneSongTitles.putIfAbsent(songKey, formatNumberOneSongLabel(debut.getSongTitle(), debut.getDaysAtTop1()));
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
             row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));

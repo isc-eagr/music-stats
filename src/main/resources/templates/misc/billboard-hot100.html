@@ -254,6 +254,9 @@
 
         .number-one-tooltip-trigger.tooltip-enabled {
             cursor: help;
+            text-decoration-line: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 2px;
         }
 
         .number-one-tooltip-item-source {
@@ -458,15 +461,15 @@
                             <span th:if="${entry.highestPeak != null}" th:text="${entry.highestPeak}">-</span>
                             <span th:if="${entry.highestPeak == null}">-</span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}">
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}">
                             <span class="number-one-tooltip-trigger"
-                                  th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                  th:classappend="${entry.totalSpanAtNumberOne > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
                                   data-tooltip-title="Songs that reached #1:"
                                   data-tooltip-icon="🏆"
-                                  th:text="${entry.numberOneSongsCount}">0</span>
+                                  th:text="${entry.totalSpanAtNumberOne}">0</span>
                             <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                         <td class="center" th:attr="data-value=${entry.firstDebutDate}">
                             <a th:if="${entry.firstDebutDate != null}" th:href="@{/misc/billboard-hot-100/recaps(date=${entry.firstDebutDate})}" class="bb-date-link" th:text="${entry.firstDebutDate}">-</a>
                             <span th:if="${entry.firstDebutDate == null}">-</span>
@@ -780,15 +783,15 @@
                 const artistCell = entry.resolvedArtistId != null
                     ? '<a href="/artists/' + entry.resolvedArtistId + '" class="bb-artist-link">' + escapeBillboardHtml(entry.artistName) + '</a>'
                     : '<span class="bb-no-link-artist">' + escapeBillboardHtml(entry.artistName) + '</span>';
-                const numberOnesCell = buildBillboardNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
+                const numberOneSpanCell = buildBillboardNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
                     + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
                     + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '-') + '</td>'
-                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + numberOnesCell + '</td>'
-                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + numberOneSpanCell + '</td>'
                     + '<td class="center" data-value="' + escapeBillboardHtml(entry.firstDebutDate || '') + '">' + renderBillboardDateCell(entry.firstDebutDate) + '</td>'
                     + '<td class="center" data-value="' + escapeBillboardHtml(entry.lastAppearanceDate || '') + '">' + renderBillboardDateCell(entry.lastAppearanceDate) + '</td>'
                     + '</tr>';
@@ -1111,7 +1114,8 @@
         }
 
         function showBillboardNumberOneTooltip(trigger) {
-            const items = Array.from(trigger.querySelectorAll('.number-one-tooltip-item-source'))
+            const itemRoot = trigger.closest('td, th') || trigger.parentElement || trigger;
+            const items = Array.from(itemRoot.querySelectorAll('.number-one-tooltip-item-source'))
                 .map((item) => item.textContent.trim())
                 .filter((item) => item);
             if (!items.length) {

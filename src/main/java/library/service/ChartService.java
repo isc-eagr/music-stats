@@ -3077,15 +3077,26 @@ public class ChartService {
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType) {
         List<ChartSongOverviewRowDTO> songRows = buildChartOverviewSongRows(periodType);
         List<ChartAlbumOverviewRowDTO> albumRows = buildChartOverviewAlbumRows(periodType);
-        return buildChartOverviewArtistRows(songRows, albumRows);
+        return buildChartOverviewArtistRows(periodType, songRows, albumRows);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType,
+                                                                       List<ChartSongOverviewRowDTO> songRows) {
+        return buildChartOverviewArtistRows(periodType, songRows, List.of());
+    }
+
+    public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType,
+                                                                       List<ChartSongOverviewRowDTO> songRows,
+                                                                       List<ChartAlbumOverviewRowDTO> albumRows) {
+        return buildChartOverviewArtistRows(periodType, songRows, albumRows);
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows) {
-        return buildChartOverviewArtistRows(songRows);
+        return buildChartOverviewArtistRows(null, songRows, List.of());
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows, List<ChartAlbumOverviewRowDTO> albumRows) {
-        return buildChartOverviewArtistRows(songRows, albumRows);
+        return buildChartOverviewArtistRows(null, songRows, albumRows);
     }
 
     private List<ChartSongOverviewRowDTO> buildChartOverviewSongRows(String periodType) {
@@ -3229,20 +3240,18 @@ public class ChartService {
         return rows;
     }
 
-    private List<ChartArtistOverviewRowDTO> buildChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows) {
-        return buildChartOverviewArtistRows(songRows, List.of());
-    }
-
-    private List<ChartArtistOverviewRowDTO> buildChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows, List<ChartAlbumOverviewRowDTO> albumRows) {
+    private List<ChartArtistOverviewRowDTO> buildChartOverviewArtistRows(String periodType,
+                                                                         List<ChartSongOverviewRowDTO> songRows,
+                                                                         List<ChartAlbumOverviewRowDTO> albumRows) {
         Map<Integer, ChartOverviewArtistAccumulator> accumulators = new LinkedHashMap<>();
 
         for (ChartSongOverviewRowDTO row : songRows) {
-            accumulators.computeIfAbsent(row.getArtistId(), ignored -> new ChartOverviewArtistAccumulator(row))
+            accumulators.computeIfAbsent(row.getArtistId(), ignored -> new ChartOverviewArtistAccumulator(periodType, row))
                 .addSong(row);
         }
 
         for (ChartAlbumOverviewRowDTO row : albumRows) {
-            accumulators.computeIfAbsent(row.getResolvedArtistId(), ignored -> new ChartOverviewArtistAccumulator(row))
+            accumulators.computeIfAbsent(row.getResolvedArtistId(), ignored -> new ChartOverviewArtistAccumulator(periodType, row))
                 .addAlbum(row);
         }
 
@@ -3259,6 +3268,38 @@ public class ChartService {
             .thenComparing(ChartArtistOverviewRowDTO::getFirstDebutSortValue, Comparator.nullsLast(String::compareTo))
             .thenComparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER));
         return rows;
+    }
+
+    private static String formatArtistOverviewNumberOneSongLabel(String periodType, ChartSongOverviewRowDTO row) {
+        if (row == null || row.getSongTitle() == null || row.getSongTitle().isBlank()) {
+            return null;
+        }
+
+        String qualifier = null;
+        if ("weekly".equals(periodType) && row.getSpanAtTop1() > 0) {
+            qualifier = row.getSpanAtTop1() == 1 ? "1 week" : row.getSpanAtTop1() + " weeks";
+        } else if ("yearly".equals(periodType) && row.getPeakPosition() == 1
+                && row.getPeakAppearanceLabel() != null && !row.getPeakAppearanceLabel().isBlank()) {
+            qualifier = row.getPeakAppearanceLabel();
+        }
+
+        return qualifier == null ? row.getSongTitle() : row.getSongTitle() + " (" + qualifier + ")";
+    }
+
+    private static String formatArtistOverviewNumberOneAlbumLabel(String periodType, ChartAlbumOverviewRowDTO row) {
+        if (row == null || row.getAlbumName() == null || row.getAlbumName().isBlank()) {
+            return null;
+        }
+
+        String qualifier = null;
+        if ("weekly".equals(periodType) && row.getHighestPeak() != null && row.getHighestPeak() == 1 && row.getSpanAtPeak() > 0) {
+            qualifier = row.getSpanAtPeak() == 1 ? "1 week" : row.getSpanAtPeak() + " weeks";
+        } else if ("yearly".equals(periodType) && row.getHighestPeak() != null && row.getHighestPeak() == 1
+                && row.getPeakAppearanceDate() != null && !row.getPeakAppearanceDate().isBlank()) {
+            qualifier = row.getPeakAppearanceDate();
+        }
+
+        return qualifier == null ? row.getAlbumName() : row.getAlbumName() + " (" + qualifier + ")";
     }
 
     public String formatOverviewPeriodLabel(String periodType, String periodKey) {
@@ -3703,6 +3744,7 @@ public class ChartService {
 
     private static final class ChartOverviewArtistAccumulator {
 
+        private final String periodType;
         private final Integer resolvedArtistId;
         private final String artistName;
         private final String genderClass;
@@ -3730,14 +3772,16 @@ public class ChartService {
         private int[] topAlbumCounts = new int[0];
         private int[] topAlbumWeeks = new int[0];
 
-        private ChartOverviewArtistAccumulator(ChartSongOverviewRowDTO row) {
+        private ChartOverviewArtistAccumulator(String periodType, ChartSongOverviewRowDTO row) {
+            this.periodType = periodType;
             this.resolvedArtistId = row.getArtistId();
             this.artistName = row.getArtistName();
             this.genderClass = row.getGenderClass();
             this.hasImage = row.isArtistHasImage();
         }
 
-        private ChartOverviewArtistAccumulator(ChartAlbumOverviewRowDTO row) {
+        private ChartOverviewArtistAccumulator(String periodType, ChartAlbumOverviewRowDTO row) {
+            this.periodType = periodType;
             this.resolvedArtistId = row.getResolvedArtistId();
             this.artistName = row.getArtistName();
             this.genderClass = row.getGenderClass();
@@ -3756,7 +3800,8 @@ public class ChartService {
             if (row.getSpanAtTop1() > 0) {
                 numberOneSongsCount++;
                 String songKey = row.getSongId() != null ? "song:" + row.getSongId() : "song:" + row.getSongTitle();
-                numberOneSongTitles.putIfAbsent(songKey, row.getSongTitle());
+                String label = formatArtistOverviewNumberOneSongLabel(periodType, row);
+                numberOneSongTitles.putIfAbsent(songKey, label != null ? label : row.getSongTitle());
             }
 
             if (firstDebutSortValue == null || compareSortValues(row.getFirstAppearanceSortValue(), firstDebutSortValue) < 0) {
@@ -3795,7 +3840,8 @@ public class ChartService {
             if (row.getHighestPeak() != null && row.getHighestPeak() == 1) {
                 numberOneAlbumsCount++;
                 String albumKey = row.getAlbumId() != null ? "album:" + row.getAlbumId() : "album:" + row.getAlbumName();
-                numberOneAlbumTitles.putIfAbsent(albumKey, row.getAlbumName());
+                String label = formatArtistOverviewNumberOneAlbumLabel(periodType, row);
+                numberOneAlbumTitles.putIfAbsent(albumKey, label != null ? label : row.getAlbumName());
             }
 
             int[] thresholdSpans = row.getSpanAtTopThresholds();

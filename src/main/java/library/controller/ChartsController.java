@@ -958,7 +958,7 @@ public class ChartsController {
 
         List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
         List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows("weekly");
-        List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows(weeklySongRows, weeklyAlbumRows);
+        List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly", weeklySongRows, weeklyAlbumRows);
 
         List<ChartSongOverviewRowDTO> pagedSongRows = List.of();
         List<ChartAlbumOverviewRowDTO> pagedAlbumRows = List.of();
@@ -1214,7 +1214,7 @@ public class ChartsController {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         List<ChartSongOverviewRowDTO> songRows = chartService.getChartOverviewSongRows(periodType);
         List<ChartAlbumOverviewRowDTO> albumRows = chartService.getChartOverviewAlbumRows(periodType);
-        List<ChartArtistOverviewRowDTO> artistRows = chartService.getChartOverviewArtistRows(songRows, albumRows);
+        List<ChartArtistOverviewRowDTO> artistRows = chartService.getChartOverviewArtistRows(periodType, songRows, albumRows);
 
         model.addAttribute("currentSection", switch (periodType) {
             case "seasonal" -> "seasonal-overview-charts";
@@ -1261,7 +1261,7 @@ public class ChartsController {
                                           Model model) {
         List<ChartSongOverviewRowDTO> seasonalSongRows = chartService.getChartOverviewSongRows("seasonal");
         List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = chartService.getChartOverviewAlbumRows("seasonal");
-        List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows(seasonalSongRows, seasonalAlbumRows);
+        List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal", seasonalSongRows, seasonalAlbumRows);
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(overviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedSort = sortSpecs.get(0).sort();
         String normalizedDir = sortSpecs.get(0).dir();

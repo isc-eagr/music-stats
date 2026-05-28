@@ -300,6 +300,9 @@
 
         .number-one-tooltip-trigger.tooltip-enabled {
             cursor: help;
+            text-decoration-line: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 2px;
         }
 
         .number-one-tooltip-item-source {
@@ -467,15 +470,15 @@
                             <span th:if="${entry.highestPeak != null}" th:text="${entry.highestPeak}">-</span>
                             <span th:if="${entry.highestPeak == null}" style="color:#666;">-</span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}">
+                        <td class="right" th:attr="data-value=${entry.numberOneSongsCount}" th:text="${entry.numberOneSongsCount}">0</td>
+                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}">
                             <span class="number-one-tooltip-trigger"
-                                  th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                  th:classappend="${entry.totalSpanAtNumberOne > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
                                   data-tooltip-title="Songs that reached #1:"
                                   data-tooltip-icon="🏆"
-                                  th:text="${entry.numberOneSongsCount}">0</span>
+                                  th:text="${entry.totalSpanAtNumberOne}">0</span>
                             <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
                         </td>
-                        <td class="right" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                         <td class="center" th:attr="data-value=${entry.firstDebutDate}">
                             <a th:if="${entry.firstDebutDate != null}" th:href="@{/misc/vatos-cuntdown/recaps(date=${entry.firstDebutDate})}" class="pc-date-link" th:text="${entry.firstDebutDate}">-</a>
                             <span th:if="${entry.firstDebutDate == null}" style="color:#666;">-</span>
@@ -1004,7 +1007,8 @@
         }
 
         function showPcNumberOneTooltip(trigger) {
-            const items = Array.from(trigger.querySelectorAll('.number-one-tooltip-item-source'))
+            const itemRoot = trigger.closest('td, th') || trigger.parentElement || trigger;
+            const items = Array.from(itemRoot.querySelectorAll('.number-one-tooltip-item-source'))
                 .map((item) => item.textContent.trim())
                 .filter((item) => item);
             if (!items.length) {
@@ -1139,15 +1143,15 @@
                 const artistCell = entry.resolvedArtistId != null
                     ? '<a href="/artists/' + entry.resolvedArtistId + '" class="pc-artist-link">' + escapePcHtml(entry.artistName) + '</a>'
                     : '<span class="pc-no-link-artist">' + escapePcHtml(entry.artistName) + '</span>';
-                const numberOnesCell = buildPcNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
+                const numberOneSpanCell = buildPcNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '"' + genderClass + '>'
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
                     + '<td class="center" data-value="' + (entry.highestPeak != null ? entry.highestPeak : 999) + '">' + (entry.highestPeak != null ? entry.highestPeak : '<span style="color:#666;">-</span>') + '</td>'
-                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + numberOnesCell + '</td>'
-                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + entry.totalSpanAtNumberOne + '</td>'
+                    + '<td class="right" data-value="' + entry.numberOneSongsCount + '">' + entry.numberOneSongsCount + '</td>'
+                    + '<td class="right" data-value="' + entry.totalSpanAtNumberOne + '">' + numberOneSpanCell + '</td>'
                     + '<td class="center" data-value="' + escapePcHtml(entry.firstDebutDate || '') + '">' + renderPcDateCell(entry.firstDebutDate) + '</td>'
                     + '<td class="center" data-value="' + escapePcHtml(entry.lastAppearanceDate || '') + '">' + renderPcDateCell(entry.lastAppearanceDate) + '</td>'
                     + '</tr>';
