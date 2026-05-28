@@ -13,6 +13,7 @@ import library.entity.ArtistImage;
 import library.repository.ArtistImageRepository;
 import library.repository.ArtistRepository;
 import library.repository.LookupRepository;
+import library.util.StringNormalizer;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -1399,20 +1400,19 @@ public class ArtistService {
     
     // Search artists by name for API
     public List<Map<String, Object>> searchArtists(String query, int limit) {
-        String sql = """
-            SELECT a.id, a.name, a.genre_id, a.subgenre_id, a.language_id, a.gender_id, a.ethnicity_id,
-                   g.name as genre_name, sg.name as subgenre_name, l.name as language_name,
-                   gn.name as gender_name, e.name as ethnicity_name
-            FROM Artist a
-            LEFT JOIN Genre g ON a.genre_id = g.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN Gender gn ON a.gender_id = gn.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            WHERE LOWER(a.name) LIKE ?
-            ORDER BY a.name
-            LIMIT ?
-            """;
+        String normalizedQuery = StringNormalizer.normalizeForSearch(query);
+        String sql = "SELECT a.id, a.name, a.genre_id, a.subgenre_id, a.language_id, a.gender_id, a.ethnicity_id, "
+            + "g.name as genre_name, sg.name as subgenre_name, l.name as language_name, "
+            + "gn.name as gender_name, e.name as ethnicity_name "
+            + "FROM Artist a "
+            + "LEFT JOIN Genre g ON a.genre_id = g.id "
+            + "LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id "
+            + "LEFT JOIN Language l ON a.language_id = l.id "
+            + "LEFT JOIN Gender gn ON a.gender_id = gn.id "
+            + "LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id "
+            + "WHERE " + StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ? "
+            + "ORDER BY a.name "
+            + "LIMIT ?";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> artist = new java.util.HashMap<>();
             artist.put("id", rs.getInt("id"));
@@ -1428,7 +1428,7 @@ public class ArtistService {
             artist.put("genderName", rs.getString("gender_name"));
             artist.put("ethnicityName", rs.getString("ethnicity_name"));
             return artist;
-        }, "%" + query.toLowerCase() + "%", limit);
+        }, "%" + normalizedQuery + "%", limit);
     }
     
     // Find artist by ID

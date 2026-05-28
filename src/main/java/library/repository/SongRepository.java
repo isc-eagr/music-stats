@@ -45,11 +45,17 @@ public class SongRepository {
                                               Integer trackNumber, String trackNumberMode,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                              String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                               Integer trlPeak, Integer trlDays,
+                                              String trlDateFrom, String trlDateTo,
                                               Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                              String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                                               Integer billboardPeak, Integer billboardWeeks,
+                                              String billboardDateFrom, String billboardDateTo,
                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                              String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                                               Integer yearlyChartPeak, Integer yearlyChartYears,
+                                              String yearlyChartDateFrom, String yearlyChartDateTo,
                                                String sortBy, String sortDirection,
                                                String sortBy2, String sortDirection2,
                                                String sortBy3, String sortDirection3,
@@ -631,66 +637,18 @@ public class SongRepository {
             }
         }
         
-        // Weekly chart filter (peak position <= specified, total weeks >= specified)
-        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (weeklyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(weeklyChartPeak);
-            }
-            if (weeklyChartWeeks != null) {
-                sql.append(" AND chart_stats.weeks >= ?");
-                params.add(weeklyChartWeeks);
-            }
-            sql.append(")");
-        }
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "weekly", "weeks",
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason);
 
-        appendSongTrlFilter(sql, params, trlPeak, trlDays);
-        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays);
-        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks);
-        
-        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
-        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (seasonalChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(seasonalChartPeak);
-            }
-            if (seasonalChartSeasons != null) {
-                sql.append(" AND chart_stats.seasons >= ?");
-                params.add(seasonalChartSeasons);
-            }
-            sql.append(")");
-        }
-        
-        // Yearly chart filter (peak position <= specified, total years >= specified)
-        if (yearlyChartPeak != null || yearlyChartYears != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (yearlyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(yearlyChartPeak);
-            }
-            if (yearlyChartYears != null) {
-                sql.append(" AND chart_stats.years >= ?");
-                params.add(yearlyChartYears);
-            }
-            sql.append(")");
-        }
+        appendSongTrlFilter(sql, params, trlPeak, trlDays, trlDateFrom, trlDateTo);
+        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays, vatosCuntdownDateFrom, vatosCuntdownDateTo);
+        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks, billboardDateFrom, billboardDateTo);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "seasonal", "seasons",
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "yearly", "years",
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo, null);
         
         appendSongSortOrder(sql, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
         
@@ -864,11 +822,17 @@ public class SongRepository {
                                       Integer trackNumber, String trackNumberMode,
                                       Integer lengthMin, Integer lengthMax, String lengthMode,
                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                      String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                       Integer trlPeak, Integer trlDays,
+                                      String trlDateFrom, String trlDateTo,
                                       Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                      String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                                       Integer billboardPeak, Integer billboardWeeks,
+                                      String billboardDateFrom, String billboardDateTo,
                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                      Integer yearlyChartPeak, Integer yearlyChartYears) {
+                                      String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
+                                      Integer yearlyChartPeak, Integer yearlyChartYears,
+                                      String yearlyChartDateFrom, String yearlyChartDateTo) {
         // Build account filter subquery for play_stats if we need play count filter
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -1490,11 +1454,17 @@ public class SongRepository {
                                               Integer trackNumber, String trackNumberMode,
                                               Integer lengthMin, Integer lengthMax, String lengthMode,
                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                              String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                               Integer trlPeak, Integer trlDays,
+                                              String trlDateFrom, String trlDateTo,
                                               Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                              String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                                               Integer billboardPeak, Integer billboardWeeks,
+                                              String billboardDateFrom, String billboardDateTo,
                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                              Integer yearlyChartPeak, Integer yearlyChartYears) {
+                                              String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
+                                              Integer yearlyChartPeak, Integer yearlyChartYears,
+                                              String yearlyChartDateFrom, String yearlyChartDateTo) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -1786,66 +1756,18 @@ public class SongRepository {
             }
         }
         
-        // Weekly chart filter
-        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (weeklyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(weeklyChartPeak);
-            }
-            if (weeklyChartWeeks != null) {
-                sql.append(" AND chart_stats.weeks >= ?");
-                params.add(weeklyChartWeeks);
-            }
-            sql.append(")");
-        }
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "weekly", "weeks",
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason);
 
-        appendSongTrlFilter(sql, params, trlPeak, trlDays);
-        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays);
-        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks);
-        
-        // Seasonal chart filter
-        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (seasonalChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(seasonalChartPeak);
-            }
-            if (seasonalChartSeasons != null) {
-                sql.append(" AND chart_stats.seasons >= ?");
-                params.add(seasonalChartSeasons);
-            }
-            sql.append(")");
-        }
-        
-        // Yearly chart filter
-        if (yearlyChartPeak != null || yearlyChartYears != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (yearlyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(yearlyChartPeak);
-            }
-            if (yearlyChartYears != null) {
-                sql.append(" AND chart_stats.years >= ?");
-                params.add(yearlyChartYears);
-            }
-            sql.append(")");
-        }
+        appendSongTrlFilter(sql, params, trlPeak, trlDays, trlDateFrom, trlDateTo);
+        appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownDays, vatosCuntdownDateFrom, vatosCuntdownDateTo);
+        appendSongBillboardFilter(sql, params, billboardPeak, billboardWeeks, billboardDateFrom, billboardDateTo);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "seasonal", "seasons",
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "yearly", "years",
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo, null);
         
         // Add GROUP BY
         sql.append(" GROUP BY effective_gender_id");
@@ -2484,49 +2406,7 @@ public class SongRepository {
             }
             sql.append(")");
         }
-        
-        // Albums Seasonal Chart filter (peak position <= specified, total seasons >= specified)
-        Integer albumsSeasonalChartPeak = filter.getAlbumsSeasonalChartPeak();
-        Integer albumsSeasonalChartSeasons = filter.getAlbumsSeasonalChartSeasons();
-        if (albumsSeasonalChartPeak != null || albumsSeasonalChartSeasons != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (albumsSeasonalChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(albumsSeasonalChartPeak);
-            }
-            if (albumsSeasonalChartSeasons != null) {
-                sql.append(" AND chart_stats.seasons >= ?");
-                params.add(albumsSeasonalChartSeasons);
-            }
-            sql.append(")");
-        }
-        
-        // Albums Yearly Chart filter (peak position <= specified, total years >= specified)
-        Integer albumsYearlyChartPeak = filter.getAlbumsYearlyChartPeak();
-        Integer albumsYearlyChartYears = filter.getAlbumsYearlyChartYears();
-        if (albumsYearlyChartPeak != null || albumsYearlyChartYears != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = alb.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (albumsYearlyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(albumsYearlyChartPeak);
-            }
-            if (albumsYearlyChartYears != null) {
-                sql.append(" AND chart_stats.years >= ?");
-                params.add(albumsYearlyChartYears);
-            }
-            sql.append(")");
-        }
-        
+
         // Songs Weekly Chart filter (peak position <= specified, total weeks >= specified)
         Integer songsWeeklyChartPeak = filter.getSongsWeeklyChartPeak();
         Integer songsWeeklyChartWeeks = filter.getSongsWeeklyChartWeeks();
@@ -7575,7 +7455,12 @@ public class SongRepository {
     }
 
     private void appendSongTrlFilter(StringBuilder sql, List<Object> params, Integer peak, Integer days) {
-        if (peak == null && days == null) {
+        appendSongTrlFilter(sql, params, peak, days, null, null);
+    }
+
+    private void appendSongTrlFilter(StringBuilder sql, List<Object> params, Integer peak, Integer days,
+                                     String dateFrom, String dateTo) {
+        if (peak == null && days == null && !SqlFilterHelper.hasValue(dateFrom) && !SqlFilterHelper.hasValue(dateTo)) {
             return;
         }
 
@@ -7584,7 +7469,8 @@ public class SongRepository {
         sql.append("FROM trl_chart_entry ce ");
         sql.append("INNER JOIN trl_debut td ON td.id = ce.debut_id ");
         sql.append("WHERE td.song_id = s.id");
-        sql.append(") countdown_stats WHERE 1=1");
+        SqlFilterHelper.appendDateRangeBounds(sql, params, "ce.chart_date", dateFrom, dateTo);
+        sql.append(") countdown_stats WHERE countdown_stats.days > 0");
         if (peak != null) {
             sql.append(" AND countdown_stats.peak <= ?");
             params.add(peak);
@@ -7597,7 +7483,12 @@ public class SongRepository {
     }
 
     private void appendSongVatosCuntdownFilter(StringBuilder sql, List<Object> params, Integer peak, Integer days) {
-        if (peak == null && days == null) {
+        appendSongVatosCuntdownFilter(sql, params, peak, days, null, null);
+    }
+
+    private void appendSongVatosCuntdownFilter(StringBuilder sql, List<Object> params, Integer peak, Integer days,
+                                               String dateFrom, String dateTo) {
+        if (peak == null && days == null && !SqlFilterHelper.hasValue(dateFrom) && !SqlFilterHelper.hasValue(dateTo)) {
             return;
         }
 
@@ -7605,7 +7496,8 @@ public class SongRepository {
         sql.append("SELECT MIN(e.position) as peak, COUNT(DISTINCT e.chart_date) as days ");
         sql.append("FROM vatos_cuntdown_entry e ");
         sql.append("WHERE e.song_id = s.id AND e.is_close_call = 0");
-        sql.append(") countdown_stats WHERE 1=1");
+        SqlFilterHelper.appendDateRangeBounds(sql, params, "e.chart_date", dateFrom, dateTo);
+        sql.append(") countdown_stats WHERE countdown_stats.days > 0");
         if (peak != null) {
             sql.append(" AND countdown_stats.peak <= ?");
             params.add(peak);
@@ -7618,15 +7510,21 @@ public class SongRepository {
     }
 
     private void appendSongBillboardFilter(StringBuilder sql, List<Object> params, Integer peak, Integer weeks) {
-        if (peak == null && weeks == null) {
+        appendSongBillboardFilter(sql, params, peak, weeks, null, null);
+    }
+
+    private void appendSongBillboardFilter(StringBuilder sql, List<Object> params, Integer peak, Integer weeks,
+                                           String dateFrom, String dateTo) {
+        if (peak == null && weeks == null && !SqlFilterHelper.hasValue(dateFrom) && !SqlFilterHelper.hasValue(dateTo)) {
             return;
         }
 
         sql.append(" AND EXISTS (SELECT 1 FROM (");
-        sql.append("SELECT MIN(b.peak_position) as peak, MAX(b.weeks_on_chart) as weeks ");
-        sql.append("FROM billboard_hot100_debut b ");
+        sql.append("SELECT MIN(b.position) as peak, COUNT(DISTINCT b.chart_date) as weeks ");
+        sql.append("FROM billboard_hot100_entry b ");
         sql.append("WHERE b.song_id = s.id");
-        sql.append(") countdown_stats WHERE 1=1");
+        SqlFilterHelper.appendDateRangeBounds(sql, params, "b.chart_date", dateFrom, dateTo);
+        sql.append(") countdown_stats WHERE countdown_stats.weeks > 0");
         if (peak != null) {
             sql.append(" AND countdown_stats.peak <= ?");
             params.add(peak);

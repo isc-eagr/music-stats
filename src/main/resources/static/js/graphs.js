@@ -177,6 +177,13 @@ const listViewSortParamMap = {
     }
 };
 
+const listViewSortColumnMap = Object.fromEntries(
+    Object.entries(listViewSortParamMap).map(([entityType, mapping]) => [
+        entityType,
+        Object.fromEntries(Object.entries(mapping).map(([column, sortParam]) => [sortParam, column]))
+    ])
+);
+
 // Column visibility configuration for top tables
 // Each column: { key: data field name, label: display name, defaultVisible: boolean, align: 'left'|'right' }
 const topColumnConfig = {
@@ -2570,6 +2577,7 @@ function switchView(viewName) {
         listViewUserHasScrolled = true;
         // Load first page if not yet loaded
         if (listViewState.page === 0 && !listViewState.loading && !listViewState.allLoaded) {
+            syncListViewSortStateFromUrl(getCurrentEntityType());
             fetchListPage(0);
         } else {
             updateListViewPaginationInfo();
@@ -2653,6 +2661,36 @@ function getListViewTableBody(entityType = getCurrentEntityType()) {
 
 function camelToSnakeCase(value) {
     return value.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+}
+
+function snakeToCamelCase(value) {
+    return value.replace(/_([a-z])/g, (_, ch) => ch.toUpperCase());
+}
+
+function getListViewSortColumn(sortParam, entityType) {
+    return listViewSortColumnMap[entityType]?.[sortParam] || snakeToCamelCase(sortParam);
+}
+
+function syncListViewSortStateFromUrl(entityType = getCurrentEntityType()) {
+    const url = new URL(window.location.href);
+    const sorts = [];
+
+    [1, 2, 3].forEach(level => {
+        const suffix = level === 1 ? '' : String(level);
+        const sortParam = url.searchParams.get('sortby' + suffix);
+        if (!sortParam) {
+            return;
+        }
+
+        sorts.push({
+            column: getListViewSortColumn(sortParam, entityType),
+            direction: url.searchParams.get('sortdir' + suffix) === 'asc' ? 'asc' : 'desc'
+        });
+    });
+
+    if (sorts.length > 0) {
+        topSortState[entityType] = normalizeTopSortState(sorts);
+    }
 }
 
 function getListViewSortParam(column, entityType) {

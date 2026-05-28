@@ -21,6 +21,7 @@ import library.service.BillboardHot100Service;
 import library.util.DateFormatUtils;
 import library.util.StringNormalizer;
 import library.service.iTunesLibraryService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -190,22 +191,37 @@ public class SongController {
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) String weeklyChartDateFrom,
+            @RequestParam(required = false) String weeklyChartDateTo,
+            @RequestParam(required = false) String weeklyChartSeason,
             @RequestParam(required = false) Integer trlPeak,
             @RequestParam(required = false) Integer trlDays,
+            @RequestParam(required = false) String trlDateFrom,
+            @RequestParam(required = false) String trlDateTo,
             @RequestParam(required = false) Integer vatosCuntdownPeak,
             @RequestParam(required = false) Integer vatosCuntdownDays,
+            @RequestParam(required = false) String vatosCuntdownDateFrom,
+            @RequestParam(required = false) String vatosCuntdownDateTo,
             @RequestParam(required = false) Integer billboardPeak,
             @RequestParam(required = false) Integer billboardWeeks,
+            @RequestParam(required = false) String billboardDateFrom,
+            @RequestParam(required = false) String billboardDateTo,
             @RequestParam(required = false) Integer seasonalChartPeak,
             @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) String seasonalChartDateFrom,
+            @RequestParam(required = false) String seasonalChartDateTo,
+            @RequestParam(required = false) String seasonalChartSeason,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(required = false) String yearlyChartDateFrom,
+            @RequestParam(required = false) String yearlyChartDateTo,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(required = false) String sortby2,
             @RequestParam(required = false) String sortdir2,
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
+            HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
             Model model) {
@@ -228,6 +244,18 @@ public class SongController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        String weeklyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateFrom);
+        String weeklyChartDateToConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateTo);
+        String trlDateFromConverted = DateFormatUtils.convertToIsoFormat(trlDateFrom);
+        String trlDateToConverted = DateFormatUtils.convertToIsoFormat(trlDateTo);
+        String vatosCuntdownDateFromConverted = DateFormatUtils.convertToIsoFormat(vatosCuntdownDateFrom);
+        String vatosCuntdownDateToConverted = DateFormatUtils.convertToIsoFormat(vatosCuntdownDateTo);
+        String billboardDateFromConverted = DateFormatUtils.convertToIsoFormat(billboardDateFrom);
+        String billboardDateToConverted = DateFormatUtils.convertToIsoFormat(billboardDateTo);
+        String seasonalChartDateFromConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateFrom);
+        String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
+        String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
+        String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
         
         // Pre-compute iTunes song IDs once for all 3 queries (getSongs, countSongs, countSongsByGender)
@@ -251,10 +279,17 @@ public class SongController {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFromConverted, trlDateToConverted,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFromConverted, vatosCuntdownDateToConverted,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                billboardDateFromConverted, billboardDateToConverted,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
         );
         
@@ -275,10 +310,17 @@ public class SongController {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFromConverted, trlDateToConverted,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFromConverted, vatosCuntdownDateToConverted,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                billboardDateFromConverted, billboardDateToConverted,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFromConverted, yearlyChartDateToConverted);
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
@@ -298,10 +340,17 @@ public class SongController {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFromConverted, trlDateToConverted,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFromConverted, vatosCuntdownDateToConverted,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                billboardDateFromConverted, billboardDateToConverted,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFromConverted, yearlyChartDateToConverted);
         
         // Add data to model
         model.addAttribute("currentSection", "songs");
@@ -372,16 +421,42 @@ public class SongController {
         // Chart filter attributes
         model.addAttribute("weeklyChartPeak", weeklyChartPeak);
         model.addAttribute("weeklyChartWeeks", weeklyChartWeeks);
+        model.addAttribute("weeklyChartDateFrom", weeklyChartDateFrom);
+        model.addAttribute("weeklyChartDateTo", weeklyChartDateTo);
+        model.addAttribute("weeklyChartDateFromFormatted", formatDateForDisplay(weeklyChartDateFrom));
+        model.addAttribute("weeklyChartDateToFormatted", formatDateForDisplay(weeklyChartDateTo));
+        model.addAttribute("weeklyChartSeason", weeklyChartSeason);
         model.addAttribute("trlPeak", trlPeak);
         model.addAttribute("trlDays", trlDays);
+        model.addAttribute("trlDateFrom", trlDateFrom);
+        model.addAttribute("trlDateTo", trlDateTo);
+        model.addAttribute("trlDateFromFormatted", formatDateForDisplay(trlDateFrom));
+        model.addAttribute("trlDateToFormatted", formatDateForDisplay(trlDateTo));
         model.addAttribute("vatosCuntdownPeak", vatosCuntdownPeak);
         model.addAttribute("vatosCuntdownDays", vatosCuntdownDays);
+        model.addAttribute("vatosCuntdownDateFrom", vatosCuntdownDateFrom);
+        model.addAttribute("vatosCuntdownDateTo", vatosCuntdownDateTo);
+        model.addAttribute("vatosCuntdownDateFromFormatted", formatDateForDisplay(vatosCuntdownDateFrom));
+        model.addAttribute("vatosCuntdownDateToFormatted", formatDateForDisplay(vatosCuntdownDateTo));
         model.addAttribute("billboardPeak", billboardPeak);
         model.addAttribute("billboardWeeks", billboardWeeks);
+        model.addAttribute("billboardDateFrom", billboardDateFrom);
+        model.addAttribute("billboardDateTo", billboardDateTo);
+        model.addAttribute("billboardDateFromFormatted", formatDateForDisplay(billboardDateFrom));
+        model.addAttribute("billboardDateToFormatted", formatDateForDisplay(billboardDateTo));
         model.addAttribute("seasonalChartPeak", seasonalChartPeak);
         model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
+        model.addAttribute("seasonalChartDateFrom", seasonalChartDateFrom);
+        model.addAttribute("seasonalChartDateTo", seasonalChartDateTo);
+        model.addAttribute("seasonalChartDateFromFormatted", formatDateForDisplay(seasonalChartDateFrom));
+        model.addAttribute("seasonalChartDateToFormatted", formatDateForDisplay(seasonalChartDateTo));
+        model.addAttribute("seasonalChartSeason", seasonalChartSeason);
         model.addAttribute("yearlyChartPeak", yearlyChartPeak);
         model.addAttribute("yearlyChartYears", yearlyChartYears);
+        model.addAttribute("yearlyChartDateFrom", yearlyChartDateFrom);
+        model.addAttribute("yearlyChartDateTo", yearlyChartDateTo);
+        model.addAttribute("yearlyChartDateFromFormatted", formatDateForDisplay(yearlyChartDateFrom));
+        model.addAttribute("yearlyChartDateToFormatted", formatDateForDisplay(yearlyChartDateTo));
         
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
@@ -423,6 +498,7 @@ public class SongController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("defaultSortBy", "plays");
+        model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
         // Add filter options
         model.addAttribute("genres", songService.getGenres());
@@ -435,6 +511,15 @@ public class SongController {
         return "songs/list";
     }
 
+    private boolean hasActiveFilters(HttpServletRequest request) {
+        return request.getParameterMap().entrySet().stream().anyMatch(entry -> {
+            String key = entry.getKey();
+            if (java.util.Set.of("sortby", "sortdir", "sortby2", "sortdir2", "sortby3", "sortdir3", "page", "perpage", "view", "tab").contains(key)) {
+                return false;
+            }
+            return java.util.Arrays.stream(entry.getValue()).anyMatch(value -> value != null && !value.isBlank());
+        });
+    }
     @GetMapping("/api")
     @ResponseBody
     public Map<String, Object> listSongsApi(
@@ -498,16 +583,30 @@ public class SongController {
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) String weeklyChartDateFrom,
+            @RequestParam(required = false) String weeklyChartDateTo,
+            @RequestParam(required = false) String weeklyChartSeason,
             @RequestParam(required = false) Integer trlPeak,
             @RequestParam(required = false) Integer trlDays,
+            @RequestParam(required = false) String trlDateFrom,
+            @RequestParam(required = false) String trlDateTo,
             @RequestParam(required = false) Integer vatosCuntdownPeak,
             @RequestParam(required = false) Integer vatosCuntdownDays,
+            @RequestParam(required = false) String vatosCuntdownDateFrom,
+            @RequestParam(required = false) String vatosCuntdownDateTo,
             @RequestParam(required = false) Integer billboardPeak,
             @RequestParam(required = false) Integer billboardWeeks,
+            @RequestParam(required = false) String billboardDateFrom,
+            @RequestParam(required = false) String billboardDateTo,
             @RequestParam(required = false) Integer seasonalChartPeak,
             @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) String seasonalChartDateFrom,
+            @RequestParam(required = false) String seasonalChartDateTo,
+            @RequestParam(required = false) String seasonalChartSeason,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(required = false) String yearlyChartDateFrom,
+            @RequestParam(required = false) String yearlyChartDateTo,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(required = false) String sortby2,
@@ -534,6 +633,18 @@ public class SongController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        String weeklyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateFrom);
+        String weeklyChartDateToConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateTo);
+        String trlDateFromConverted = DateFormatUtils.convertToIsoFormat(trlDateFrom);
+        String trlDateToConverted = DateFormatUtils.convertToIsoFormat(trlDateTo);
+        String vatosCuntdownDateFromConverted = DateFormatUtils.convertToIsoFormat(vatosCuntdownDateFrom);
+        String vatosCuntdownDateToConverted = DateFormatUtils.convertToIsoFormat(vatosCuntdownDateTo);
+        String billboardDateFromConverted = DateFormatUtils.convertToIsoFormat(billboardDateFrom);
+        String billboardDateToConverted = DateFormatUtils.convertToIsoFormat(billboardDateTo);
+        String seasonalChartDateFromConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateFrom);
+        String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
+        String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
+        String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
 
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
@@ -555,10 +666,17 @@ public class SongController {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFromConverted, trlDateToConverted,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFromConverted, vatosCuntdownDateToConverted,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                billboardDateFromConverted, billboardDateToConverted,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
         );
 
@@ -578,10 +696,17 @@ public class SongController {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFromConverted, trlDateToConverted,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFromConverted, vatosCuntdownDateToConverted,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                billboardDateFromConverted, billboardDateToConverted,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFromConverted, yearlyChartDateToConverted);
 
         Map<String, Object> result = new HashMap<>();
         result.put("items", songs);
@@ -2978,16 +3103,30 @@ public class SongController {
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) String weeklyChartDateFrom,
+            @RequestParam(required = false) String weeklyChartDateTo,
+            @RequestParam(required = false) String weeklyChartSeason,
             @RequestParam(required = false) Integer trlPeak,
             @RequestParam(required = false) Integer trlDays,
+            @RequestParam(required = false) String trlDateFrom,
+            @RequestParam(required = false) String trlDateTo,
             @RequestParam(required = false) Integer vatosCuntdownPeak,
             @RequestParam(required = false) Integer vatosCuntdownDays,
+            @RequestParam(required = false) String vatosCuntdownDateFrom,
+            @RequestParam(required = false) String vatosCuntdownDateTo,
             @RequestParam(required = false) Integer billboardPeak,
             @RequestParam(required = false) Integer billboardWeeks,
+            @RequestParam(required = false) String billboardDateFrom,
+            @RequestParam(required = false) String billboardDateTo,
             @RequestParam(required = false) Integer seasonalChartPeak,
             @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) String seasonalChartDateFrom,
+            @RequestParam(required = false) String seasonalChartDateTo,
+            @RequestParam(required = false) String seasonalChartSeason,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(required = false) String yearlyChartDateFrom,
+            @RequestParam(required = false) String yearlyChartDateTo,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(required = false) String sortby2,
@@ -3014,6 +3153,18 @@ public class SongController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        String weeklyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateFrom);
+        String weeklyChartDateToConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateTo);
+        String trlDateFromConverted = DateFormatUtils.convertToIsoFormat(trlDateFrom);
+        String trlDateToConverted = DateFormatUtils.convertToIsoFormat(trlDateTo);
+        String vatosCuntdownDateFromConverted = DateFormatUtils.convertToIsoFormat(vatosCuntdownDateFrom);
+        String vatosCuntdownDateToConverted = DateFormatUtils.convertToIsoFormat(vatosCuntdownDateTo);
+        String billboardDateFromConverted = DateFormatUtils.convertToIsoFormat(billboardDateFrom);
+        String billboardDateToConverted = DateFormatUtils.convertToIsoFormat(billboardDateTo);
+        String seasonalChartDateFromConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateFrom);
+        String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
+        String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
+        String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
         
         // Get all songs matching filters (using a large limit instead of pagination)
@@ -3035,11 +3186,17 @@ public class SongController {
                 trackNumber, trackNumberMode,
             lengthMin, lengthMax, lengthMode,
             weeklyChartPeak, weeklyChartWeeks,
+            weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
             trlPeak, trlDays,
+            trlDateFromConverted, trlDateToConverted,
             vatosCuntdownPeak, vatosCuntdownDays,
+            vatosCuntdownDateFromConverted, vatosCuntdownDateToConverted,
             billboardPeak, billboardWeeks,
+            billboardDateFromConverted, billboardDateToConverted,
             seasonalChartPeak, seasonalChartSeasons,
+            seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
             yearlyChartPeak, yearlyChartYears,
+            yearlyChartDateFromConverted, yearlyChartDateToConverted,
             sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, 0, limit
         );
         

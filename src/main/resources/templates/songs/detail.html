@@ -142,25 +142,62 @@
         .linked-song-list {
             display: grid;
             gap: 10px;
-            margin-bottom: 14px;
+            width: 100%;
+        }
+        .linked-song-form {
+            display: grid;
+            gap: 12px;
+            width: min(100%, 760px);
+            padding: 16px 20px 20px;
         }
         .linked-song-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, auto) auto;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            justify-content: start;
+            gap: 10px;
             padding: 10px 12px;
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 8px;
             background: rgba(255,255,255,0.035);
+        }
+        .linked-song-row > div {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.2rem;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            line-height: 1.4;
         }
         .linked-song-row a {
             color: var(--text);
             font-weight: 700;
             text-decoration: none;
         }
+        .linked-songs-card {
+            position: relative;
+            overflow: visible !important;
+            z-index: 8;
+        }
         .linked-song-search {
             position: relative;
+            width: 100%;
+            max-width: 760px;
+            z-index: 20;
+        }
+        .linked-song-search .editable-input {
+            min-height: 42px;
+            padding: 9px 12px;
+            font-size: 0.95rem;
+            background: rgba(31, 41, 55, 0.88);
+            border-color: rgba(71, 85, 105, 0.9);
+            box-shadow: none;
+        }
+        .linked-song-search .editable-input:focus {
+            outline: none;
+            border-color: rgba(148, 163, 184, 0.85);
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.14);
         }
         .linked-empty {
             color: var(--text-muted);
@@ -168,13 +205,67 @@
         }
         .linked-song-actions {
             display: flex;
-            margin-top: 12px;
+            width: 100%;
+            padding: 0;
+            margin-top: 4px;
+            background: transparent;
+            border-top: none;
+        }
+        .linked-remove-btn {
+            margin-left: 0;
+            flex-shrink: 0;
+            align-self: center;
+            padding: 7px 12px;
+        }
+        .linked-song-actions .btn-action:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: saturate(0.75);
+        }
+        .linked-song-actions .btn-action:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        .linked-song-search-dropdown {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: auto;
+            max-height: min(320px, calc(100vh - 96px));
+            overflow-y: auto;
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+            border: 1px solid rgba(71, 85, 105, 0.95);
+            border-radius: 10px;
+            z-index: 10050;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+            backdrop-filter: blur(10px);
+        }
+        .linked-song-search-dropdown .dropdown-item {
+            padding: 9px 12px;
+            line-height: 1.35;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+        }
+        .linked-song-search-dropdown .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .linked-song-search-dropdown .dropdown-item:hover {
+            background: rgba(51, 65, 85, 0.88);
         }
         body.gender-male .detail-save-text span {
             color: rgba(229, 237, 248, 0.74);
         }
         body.gender-female .detail-save-text span {
             color: rgba(251, 233, 242, 0.74);
+        }
+        @media (max-width: 768px) {
+            .linked-song-form {
+                width: 100%;
+                padding: 14px 14px 16px;
+            }
+            .linked-song-row {
+                grid-template-columns: 1fr;
+                justify-items: start;
+            }
         }
         @keyframes detail-save-spin {
             to {
@@ -492,7 +583,7 @@
               <div class="detail-right-section" id="generalSectionContent"
                   th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
                 <!-- General Section (Left) -->
-                <div class="detail-content-card">
+                <div class="detail-content-card linked-songs-card">
                     <div class="section-header">
                         <h2 class="section-title">General</h2>
                         <div class="edit-button-container">
@@ -799,7 +890,7 @@
                             <div id="linkedSongResults" class="chips-dropdown" style="display:none;"></div>
                         </div>
                         <div class="form-actions linked-song-actions">
-                            <button type="submit" class="btn-action">Save Linked Songs</button>
+                            <button type="submit" id="linkedSongsSaveButton" class="btn-action" disabled>Save Linked Songs</button>
                         </div>
                     </form>
                 </div>
@@ -2947,12 +3038,52 @@
             const input = document.getElementById('linkedSongSearch');
             const results = document.getElementById('linkedSongResults');
             const list = document.getElementById('linkedSongList');
+            const saveButton = document.getElementById('linkedSongsSaveButton');
             if (!input || !results || !list) return;
+
+            function getCurrentLinkedSongIds() {
+                return Array.from(list.querySelectorAll('input[name="linkedSongIds"]'))
+                    .map(el => String(el.value))
+                    .sort();
+            }
+
+            const initialLinkedSongIds = getCurrentLinkedSongIds();
+
+            function updateSaveButtonState() {
+                if (!saveButton) {
+                    return;
+                }
+                const currentLinkedSongIds = getCurrentLinkedSongIds();
+                const hasChanges = currentLinkedSongIds.length !== initialLinkedSongIds.length
+                    || currentLinkedSongIds.some((id, index) => id !== initialLinkedSongIds[index]);
+                saveButton.disabled = !hasChanges;
+            }
+
+            if (!results.dataset.floatingInitialized) {
+                results.dataset.floatingInitialized = 'true';
+                results.classList.remove('chips-dropdown');
+                results.classList.add('linked-song-search-dropdown');
+                document.body.appendChild(results);
+            }
+
+            function hideResults() {
+                results.style.display = 'none';
+            }
+
+            function positionResults() {
+                if (results.style.display === 'none') {
+                    return;
+                }
+                const rect = input.getBoundingClientRect();
+                results.style.left = Math.round(rect.left) + 'px';
+                results.style.top = Math.round(rect.bottom + 6) + 'px';
+                results.style.width = Math.round(rect.width) + 'px';
+            }
 
             input.addEventListener('input', function() {
                 const query = input.value.trim();
                 if (query.length < 2) {
-                    results.style.display = 'none';
+                    hideResults();
                     return;
                 }
                 fetch('/songs/api/search?song=' + encodeURIComponent(query) + '&limit=10')
@@ -2962,7 +3093,7 @@
                         existingIds.add(String(songId));
                         const filtered = data.filter(song => !existingIds.has(String(song.id)));
                         if (filtered.length === 0) {
-                            results.style.display = 'none';
+                            hideResults();
                             return;
                         }
                         results.innerHTML = filtered.map(song => {
@@ -2971,7 +3102,15 @@
                             return `<div class="dropdown-item" data-id="${song.id}" data-name="${escapeHtml(song.name)}" data-artist="${escapeHtml(song.artistName || '')}" data-album="${escapeHtml(song.albumName || '')}">${label}</div>`;
                         }).join('');
                         results.style.display = 'block';
+                        positionResults();
                     });
+            });
+
+            input.addEventListener('focus', function() {
+                if (input.value.trim().length >= 2 && results.innerHTML.trim() !== '') {
+                    results.style.display = 'block';
+                    positionResults();
+                }
             });
 
             results.addEventListener('click', function(event) {
@@ -2992,8 +3131,25 @@
                     </div>
                 `);
                 input.value = '';
-                results.style.display = 'none';
+                hideResults();
+                updateSaveButtonState();
             });
+
+            document.addEventListener('click', function(event) {
+                if (!results.contains(event.target) && event.target !== input) {
+                    hideResults();
+                }
+            });
+
+            new MutationObserver(updateSaveButtonState).observe(list, {
+                childList: true,
+                subtree: true
+            });
+
+            updateSaveButtonState();
+
+            window.addEventListener('resize', positionResults);
+            window.addEventListener('scroll', positionResults, true);
         }
         
         // Set up featured artists input listener

@@ -113,11 +113,17 @@ public class PlaylistController {
                 null, null,                 // trackNumber, trackNumberMode
                 null, null, null,           // lengthMin, lengthMax, lengthMode
                 null, null,                 // weeklyChartPeak, weeklyChartWeeks
+                null, null, null,           // weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason
                 null, null,                 // trlPeak, trlDays
+                null, null,                 // trlDateFrom, trlDateTo
                 null, null,                 // vatosCuntdownPeak, vatosCuntdownDays
+                null, null,                 // vatosCuntdownDateFrom, vatosCuntdownDateTo
                 null, null,                 // billboardPeak, billboardWeeks
+                null, null,                 // billboardDateFrom, billboardDateTo
                 null, null,                 // seasonalChartPeak, seasonalChartSeasons
+                null, null, null,           // seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason
                 null, null,                 // yearlyChartPeak, yearlyChartYears
+                null, null,                 // yearlyChartDateFrom, yearlyChartDateTo
                 "name", "asc", null, null, null, null, page, perpage
         );
     }

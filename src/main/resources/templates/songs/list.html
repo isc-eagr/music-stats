@@ -317,6 +317,12 @@
                                             <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
                                                 <input type="number" autocomplete="off" name="billboardWeeks" th:value="${billboardWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
                                             </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted From</span>
+                                                <input type="text" autocomplete="off" name="billboardDateFrom" th:value="${billboardDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted To</span>
+                                                <input type="text" autocomplete="off" name="billboardDateTo" th:value="${billboardDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -881,6 +887,35 @@
                                             <label class="field" style="margin-top: 8px;"><span>Total Seasons ≥</span>
                                                 <input type="number" autocomplete="off" name="seasonalChartSeasons" th:value="${seasonalChartSeasons}" placeholder="e.g. 1" min="1" style="width: 100%;" />
                                             </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted From</span>
+                                                <input type="text" autocomplete="off" name="seasonalChartDateFrom" th:value="${seasonalChartDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted To</span>
+                                                <input type="text" autocomplete="off" name="seasonalChartDateTo" th:value="${seasonalChartDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Seasonal Charting by Season Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Seasonal Charting by Season
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Season</span>
+                                                <select name="seasonalChartSeason" style="width: 100%;">
+                                                    <option value="">Any Season</option>
+                                                    <option value="Winter" th:selected="${seasonalChartSeason == 'Winter'}">Winter</option>
+                                                    <option value="Spring" th:selected="${seasonalChartSeason == 'Spring'}">Spring</option>
+                                                    <option value="Summer" th:selected="${seasonalChartSeason == 'Summer'}">Summer</option>
+                                                    <option value="Fall" th:selected="${seasonalChartSeason == 'Fall'}">Fall</option>
+                                                </select>
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -968,6 +1003,12 @@
                                             <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
                                                 <input type="number" autocomplete="off" name="trlDays" th:value="${trlDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
                                             </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted From</span>
+                                                <input type="text" autocomplete="off" name="trlDateFrom" th:value="${trlDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted To</span>
+                                                <input type="text" autocomplete="off" name="trlDateTo" th:value="${trlDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -987,6 +1028,12 @@
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
                                                 <input type="number" autocomplete="off" name="vatosCuntdownDays" th:value="${vatosCuntdownDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted From</span>
+                                                <input type="text" autocomplete="off" name="vatosCuntdownDateFrom" th:value="${vatosCuntdownDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted To</span>
+                                                <input type="text" autocomplete="off" name="vatosCuntdownDateTo" th:value="${vatosCuntdownDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                     </div>
@@ -1008,6 +1055,35 @@
                                             <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
                                                 <input type="number" autocomplete="off" name="weeklyChartWeeks" th:value="${weeklyChartWeeks}" placeholder="e.g. 1" min="1" style="width: 100%;" />
                                             </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted From</span>
+                                                <input type="text" autocomplete="off" name="weeklyChartDateFrom" th:value="${weeklyChartDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted To</span>
+                                                <input type="text" autocomplete="off" name="weeklyChartDateTo" th:value="${weeklyChartDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Weekly Charting by Season Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Weekly Charting by Season
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Season</span>
+                                                <select name="weeklyChartSeason" style="width: 100%;">
+                                                    <option value="">Any Season</option>
+                                                    <option value="Winter" th:selected="${weeklyChartSeason == 'Winter'}">Winter</option>
+                                                    <option value="Spring" th:selected="${weeklyChartSeason == 'Spring'}">Spring</option>
+                                                    <option value="Summer" th:selected="${weeklyChartSeason == 'Summer'}">Summer</option>
+                                                    <option value="Fall" th:selected="${weeklyChartSeason == 'Fall'}">Fall</option>
+                                                </select>
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -1027,6 +1103,12 @@
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Years ≥</span>
                                                 <input type="number" autocomplete="off" name="yearlyChartYears" th:value="${yearlyChartYears}" placeholder="e.g. 1" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted From</span>
+                                                <input type="text" autocomplete="off" name="yearlyChartDateFrom" th:value="${yearlyChartDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Charted To</span>
+                                                <input type="text" autocomplete="off" name="yearlyChartDateTo" th:value="${yearlyChartDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
                                     </div>
@@ -1414,73 +1496,113 @@
             </div>
             
             <!-- Seasonal Chart filter chip -->
-            <div class="filter-chip" th:if="${seasonalChartPeak != null or seasonalChartSeasons != null}">
+            <div class="filter-chip" th:if="${seasonalChartPeak != null or seasonalChartSeasons != null or (seasonalChartDateFrom != null and !seasonalChartDateFrom.isEmpty()) or (seasonalChartDateTo != null and !seasonalChartDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📅 Seasonal Chart:
                     <span th:if="${seasonalChartPeak != null}" th:text="'Peak ≤' + ${seasonalChartPeak}"></span>
                     <span th:if="${seasonalChartPeak != null and seasonalChartSeasons != null}">, </span>
                     <span th:if="${seasonalChartSeasons != null}" th:text="'≥' + ${seasonalChartSeasons} + ' seasons'"></span>
+                    <span th:if="${(seasonalChartPeak != null or seasonalChartSeasons != null) and seasonalChartDateFrom != null and !seasonalChartDateFrom.isEmpty()}">, </span>
+                    <span th:if="${seasonalChartDateFrom != null and !seasonalChartDateFrom.isEmpty()}" th:text="'From ' + ${seasonalChartDateFrom}"></span>
+                    <span th:if="${(seasonalChartPeak != null or seasonalChartSeasons != null or (seasonalChartDateFrom != null and !seasonalChartDateFrom.isEmpty())) and seasonalChartDateTo != null and !seasonalChartDateTo.isEmpty()}">, </span>
+                    <span th:if="${seasonalChartDateTo != null and !seasonalChartDateTo.isEmpty()}" th:text="'To ' + ${seasonalChartDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('seasonalChartPeak', 'seasonalChartSeasons')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('seasonalChartPeak', 'seasonalChartSeasons', 'seasonalChartDateFrom', 'seasonalChartDateTo')" type="button">×</button>
+            </div>
+
+            <div class="filter-chip" th:if="${seasonalChartSeason != null and !seasonalChartSeason.isEmpty()}">
+                <span class="filter-chip-label">
+                    Seasonal Charting by Season:
+                    <span th:text="${seasonalChartSeason}"></span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('seasonalChartSeason')" type="button">×</button>
             </div>
             
             <!-- Weekly Chart filter chip -->
-            <div class="filter-chip" th:if="${weeklyChartPeak != null or weeklyChartWeeks != null}">
+            <div class="filter-chip" th:if="${weeklyChartPeak != null or weeklyChartWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()) or (weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📊 Weekly Chart:
                     <span th:if="${weeklyChartPeak != null}" th:text="'Peak ≤' + ${weeklyChartPeak}"></span>
                     <span th:if="${weeklyChartPeak != null and weeklyChartWeeks != null}">, </span>
                     <span th:if="${weeklyChartWeeks != null}" th:text="'≥' + ${weeklyChartWeeks} + ' weeks'"></span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null) and weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}">, </span>
+                    <span th:if="${weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}" th:text="'From ' + ${weeklyChartDateFrom}"></span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty())) and weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}">, </span>
+                    <span th:if="${weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}" th:text="'To ' + ${weeklyChartDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartWeeks')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartWeeks', 'weeklyChartDateFrom', 'weeklyChartDateTo')" type="button">×</button>
+            </div>
+
+            <div class="filter-chip" th:if="${weeklyChartSeason != null and !weeklyChartSeason.isEmpty()}">
+                <span class="filter-chip-label">
+                    Weekly Charting by Season:
+                    <span th:text="${weeklyChartSeason}"></span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartSeason')" type="button">×</button>
             </div>
 
             <!-- TRL filter chip -->
-            <div class="filter-chip" th:if="${trlPeak != null or trlDays != null}">
+            <div class="filter-chip" th:if="${trlPeak != null or trlDays != null or (trlDateFrom != null and !trlDateFrom.isEmpty()) or (trlDateTo != null and !trlDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📺 TRL:
                     <span th:if="${trlPeak != null}" th:text="'Peak ≤' + ${trlPeak}"></span>
                     <span th:if="${trlPeak != null and trlDays != null}">, </span>
                     <span th:if="${trlDays != null}" th:text="'≥' + ${trlDays} + ' days'"></span>
+                    <span th:if="${(trlPeak != null or trlDays != null) and trlDateFrom != null and !trlDateFrom.isEmpty()}">, </span>
+                    <span th:if="${trlDateFrom != null and !trlDateFrom.isEmpty()}" th:text="'From ' + ${trlDateFrom}"></span>
+                    <span th:if="${(trlPeak != null or trlDays != null or (trlDateFrom != null and !trlDateFrom.isEmpty())) and trlDateTo != null and !trlDateTo.isEmpty()}">, </span>
+                    <span th:if="${trlDateTo != null and !trlDateTo.isEmpty()}" th:text="'To ' + ${trlDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('trlPeak', 'trlDays')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('trlPeak', 'trlDays', 'trlDateFrom', 'trlDateTo')" type="button">×</button>
             </div>
 
             <!-- Vato's Cuntdown filter chip -->
-            <div class="filter-chip" th:if="${vatosCuntdownPeak != null or vatosCuntdownDays != null}">
+            <div class="filter-chip" th:if="${vatosCuntdownPeak != null or vatosCuntdownDays != null or (vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()) or (vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     🗓 Vato's Cuntdown:
                     <span th:if="${vatosCuntdownPeak != null}" th:text="'Peak ≤' + ${vatosCuntdownPeak}"></span>
                     <span th:if="${vatosCuntdownPeak != null and vatosCuntdownDays != null}">, </span>
                     <span th:if="${vatosCuntdownDays != null}" th:text="'≥' + ${vatosCuntdownDays} + ' days'"></span>
+                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null) and vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()}">, </span>
+                    <span th:if="${vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()}" th:text="'From ' + ${vatosCuntdownDateFrom}"></span>
+                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null or (vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty())) and vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty()}">, </span>
+                    <span th:if="${vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty()}" th:text="'To ' + ${vatosCuntdownDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('vatosCuntdownPeak', 'vatosCuntdownDays')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('vatosCuntdownPeak', 'vatosCuntdownDays', 'vatosCuntdownDateFrom', 'vatosCuntdownDateTo')" type="button">×</button>
             </div>
 
             <!-- Billboard filter chip -->
-            <div class="filter-chip" th:if="${billboardPeak != null or billboardWeeks != null}">
+            <div class="filter-chip" th:if="${billboardPeak != null or billboardWeeks != null or (billboardDateFrom != null and !billboardDateFrom.isEmpty()) or (billboardDateTo != null and !billboardDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     🎵 Billboard:
                     <span th:if="${billboardPeak != null}" th:text="'Peak ≤' + ${billboardPeak}"></span>
                     <span th:if="${billboardPeak != null and billboardWeeks != null}">, </span>
                     <span th:if="${billboardWeeks != null}" th:text="'≥' + ${billboardWeeks} + ' weeks'"></span>
+                    <span th:if="${(billboardPeak != null or billboardWeeks != null) and billboardDateFrom != null and !billboardDateFrom.isEmpty()}">, </span>
+                    <span th:if="${billboardDateFrom != null and !billboardDateFrom.isEmpty()}" th:text="'From ' + ${billboardDateFrom}"></span>
+                    <span th:if="${(billboardPeak != null or billboardWeeks != null or (billboardDateFrom != null and !billboardDateFrom.isEmpty())) and billboardDateTo != null and !billboardDateTo.isEmpty()}">, </span>
+                    <span th:if="${billboardDateTo != null and !billboardDateTo.isEmpty()}" th:text="'To ' + ${billboardDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('billboardPeak', 'billboardWeeks')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('billboardPeak', 'billboardWeeks', 'billboardDateFrom', 'billboardDateTo')" type="button">×</button>
             </div>
             
             <!-- Yearly Chart filter chip -->
-            <div class="filter-chip" th:if="${yearlyChartPeak != null or yearlyChartYears != null}">
+            <div class="filter-chip" th:if="${yearlyChartPeak != null or yearlyChartYears != null or (yearlyChartDateFrom != null and !yearlyChartDateFrom.isEmpty()) or (yearlyChartDateTo != null and !yearlyChartDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📆 Yearly Chart:
                     <span th:if="${yearlyChartPeak != null}" th:text="'Peak ≤' + ${yearlyChartPeak}"></span>
                     <span th:if="${yearlyChartPeak != null and yearlyChartYears != null}">, </span>
                     <span th:if="${yearlyChartYears != null}" th:text="'≥' + ${yearlyChartYears} + ' years'"></span>
+                    <span th:if="${(yearlyChartPeak != null or yearlyChartYears != null) and yearlyChartDateFrom != null and !yearlyChartDateFrom.isEmpty()}">, </span>
+                    <span th:if="${yearlyChartDateFrom != null and !yearlyChartDateFrom.isEmpty()}" th:text="'From ' + ${yearlyChartDateFrom}"></span>
+                    <span th:if="${(yearlyChartPeak != null or yearlyChartYears != null or (yearlyChartDateFrom != null and !yearlyChartDateFrom.isEmpty())) and yearlyChartDateTo != null and !yearlyChartDateTo.isEmpty()}">, </span>
+                    <span th:if="${yearlyChartDateTo != null and !yearlyChartDateTo.isEmpty()}" th:text="'To ' + ${yearlyChartDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('yearlyChartPeak', 'yearlyChartYears')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('yearlyChartPeak', 'yearlyChartYears', 'yearlyChartDateFrom', 'yearlyChartDateTo')" type="button">×</button>
             </div>
             
                 <button class="clear-all-filters" onclick="clearFilters()" type="button" 
-                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedArtist != null and !selectedArtist.isEmpty()) or (selectedAlbum != null and !selectedAlbum.isEmpty()) or (releaseDate != null and !releaseDate.isEmpty()) or (releaseDateFrom != null and !releaseDateFrom.isEmpty()) or (releaseDateTo != null and !releaseDateTo.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedAccounts != null and !selectedAccounts.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or imageCountMin != null or imageCountMax != null or (selectedHasFeaturedArtists != null and !selectedHasFeaturedArtists.isEmpty()) or (selectedIsBand != null and !selectedIsBand.isEmpty()) or (selectedIsSingle != null and !selectedIsSingle.isEmpty()) or (selectedInItunes != null and !selectedInItunes.isEmpty()) or playCountMin != null or playCountMax != null or trackNumber != null or trackNumberMode == 'isnull' or trackNumberMode == 'isnotnull' or lengthMin != null or lengthMax != null or (lengthMode != null and (lengthMode == 'zero' or lengthMode == 'nonzero')) or weeklyChartPeak != null or weeklyChartWeeks != null or trlPeak != null or trlDays != null or vatosCuntdownPeak != null or vatosCuntdownDays != null or billboardPeak != null or billboardWeeks != null or seasonalChartPeak != null or seasonalChartSeasons != null or yearlyChartPeak != null or yearlyChartYears != null or (firstListenedDate != null and !firstListenedDate.isEmpty()) or (firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty()) or (firstListenedDateTo != null and !firstListenedDateTo.isEmpty()) or (lastListenedDate != null and !lastListenedDate.isEmpty()) or (lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty()) or (lastListenedDateTo != null and !lastListenedDateTo.isEmpty()) or (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or (listenedDateTo != null and !listenedDateTo.isEmpty()) or genderMode == 'isnull' or genderMode == 'isnotnull' or ethnicityMode == 'isnull' or ethnicityMode == 'isnotnull' or genreMode == 'isnull' or genreMode == 'isnotnull' or subgenreMode == 'isnull' or subgenreMode == 'isnotnull' or languageMode == 'isnull' or languageMode == 'isnotnull' or countryMode == 'isnull' or countryMode == 'isnotnull'}">
+                    th:if="${hasActiveFilters}">
                 Clear
             </button>
         </div>
@@ -1508,13 +1630,9 @@
         
         <!-- Pagination controls (top) - center-aligned -->
         <div class="pagination" th:if="${totalPages > 1}">
-            <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=0, perpage=${perPage})}"
-               class="page-btn">«</a>
+                <button th:if="${currentPage > 0}" onclick="goToPage(0)" type="button" class="page-btn">«</button>
             
-            <a th:if="${currentPage > 0}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage - 1}, perpage=${perPage})}"
-               class="page-btn">‹</a>
+                <button th:if="${currentPage > 0}" th:onclick="|goToPage(${currentPage - 1})|" type="button" class="page-btn">‹</button>
             
             <span class="page-info">
                 Page <input type="number" autocomplete="off" th:value="${currentPage + 1}" min="1" th:max="${totalPages}" 
@@ -1522,13 +1640,9 @@
                 of <span th:text="${totalPages}"></span>
             </span>
             
-            <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage + 1}, perpage=${perPage})}"
-               class="page-btn">›</a>
+                <button th:if="${currentPage < totalPages - 1}" th:onclick="|goToPage(${currentPage + 1})|" type="button" class="page-btn">›</button>
             
-            <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/songs(q=${searchQuery}, artist=${selectedArtist}, album=${selectedAlbum}, releaseDate=${releaseDate}, releaseDateFrom=${releaseDateFrom}, releaseDateTo=${releaseDateTo}, releaseDateMode=${releaseDateMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, hasFeaturedArtists=${selectedHasFeaturedArtists}, isBand=${selectedIsBand}, isSingle=${selectedIsSingle}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, trackNumber=${trackNumber}, trackNumberMode=${trackNumberMode}, weeklyChartPeak=${weeklyChartPeak}, weeklyChartWeeks=${weeklyChartWeeks}, seasonalChartPeak=${seasonalChartPeak}, seasonalChartSeasons=${seasonalChartSeasons}, yearlyChartPeak=${yearlyChartPeak}, yearlyChartYears=${yearlyChartYears}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${totalPages - 1}, perpage=${perPage})}"
-               class="page-btn">»</a>
+                <button th:if="${currentPage < totalPages - 1}" th:onclick="|goToPage(${totalPages - 1})|" type="button" class="page-btn">»</button>
         </div>
         
         </div> <!-- Close pagination-and-counters-wrapper -->
@@ -2441,6 +2555,18 @@
             
             const deathDateToInput = document.querySelector('input[name="deathDateTo"]');
             if (deathDateToInput) flatpickr(deathDateToInput, dateConfig);
+
+            [
+                'weeklyChartDateFrom', 'weeklyChartDateTo',
+                'trlDateFrom', 'trlDateTo',
+                'vatosCuntdownDateFrom', 'vatosCuntdownDateTo',
+                'billboardDateFrom', 'billboardDateTo',
+                'seasonalChartDateFrom', 'seasonalChartDateTo',
+                'yearlyChartDateFrom', 'yearlyChartDateTo'
+            ].forEach(function(name) {
+                const input = document.querySelector('input[name="' + name + '"]');
+                if (input) flatpickr(input, dateConfig);
+            });
         });
         
         // Create Song Modal Functions

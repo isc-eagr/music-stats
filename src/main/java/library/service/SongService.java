@@ -40,6 +40,7 @@ public class SongService {
 
     private static final String COMBINED_SONG_COUNT_REQUEST_CACHE = SongService.class.getName() + ".combinedSongCountRequestCache";
     private static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter LEGACY_DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
     
     private final SongRepository songRepository;
     private final SongImageRepository songImageRepository;
@@ -133,11 +134,17 @@ public class SongService {
                                                     Integer trackNumber, String trackNumberMode,
                                                     Integer lengthMin, Integer lengthMax, String lengthMode,
                                                     Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                                    String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                                     Integer trlPeak, Integer trlDays,
+                                                    String trlDateFrom, String trlDateTo,
                                                     Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                                    String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                                                     Integer billboardPeak, Integer billboardWeeks,
+                                                    String billboardDateFrom, String billboardDateTo,
                                                     Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                                    Integer yearlyChartPeak, Integer yearlyChartYears) {
+                                                    String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
+                                                    Integer yearlyChartPeak, Integer yearlyChartYears,
+                                                    String yearlyChartDateFrom, String yearlyChartDateTo) {
         List<Object> parts = new ArrayList<>();
         parts.add(name);
         parts.add(snapshotList(artistName));
@@ -200,16 +207,30 @@ public class SongService {
         parts.add(lengthMode);
         parts.add(weeklyChartPeak);
         parts.add(weeklyChartWeeks);
+        parts.add(weeklyChartDateFrom);
+        parts.add(weeklyChartDateTo);
+        parts.add(weeklyChartSeason);
         parts.add(trlPeak);
         parts.add(trlDays);
+        parts.add(trlDateFrom);
+        parts.add(trlDateTo);
         parts.add(vatosCuntdownPeak);
         parts.add(vatosCuntdownDays);
+        parts.add(vatosCuntdownDateFrom);
+        parts.add(vatosCuntdownDateTo);
         parts.add(billboardPeak);
         parts.add(billboardWeeks);
+        parts.add(billboardDateFrom);
+        parts.add(billboardDateTo);
         parts.add(seasonalChartPeak);
         parts.add(seasonalChartSeasons);
+        parts.add(seasonalChartDateFrom);
+        parts.add(seasonalChartDateTo);
+        parts.add(seasonalChartSeason);
         parts.add(yearlyChartPeak);
         parts.add(yearlyChartYears);
+        parts.add(yearlyChartDateFrom);
+        parts.add(yearlyChartDateTo);
         return parts.toString();
     }
 
@@ -245,11 +266,17 @@ public class SongService {
                                        Integer trackNumber, String trackNumberMode,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                        Integer trlPeak, Integer trlDays,
+                                       String trlDateFrom, String trlDateTo,
                                        Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                       String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                                        Integer billboardPeak, Integer billboardWeeks,
+                                       String billboardDateFrom, String billboardDateTo,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                       String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                                        Integer yearlyChartPeak, Integer yearlyChartYears,
+                                       String yearlyChartDateFrom, String yearlyChartDateTo,
                                        String sortBy, String sortDirection,
                                        String sortBy2, String sortDirection2,
                                        String sortBy3, String sortDirection3,
@@ -284,11 +311,17 @@ public class SongService {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFrom, trlDateTo,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFrom, vatosCuntdownDateTo,
                 billboardPeak, billboardWeeks,
+                billboardDateFrom, billboardDateTo,
                 seasonalChartPeak, seasonalChartSeasons,
-                yearlyChartPeak, yearlyChartYears
+                seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFrom, yearlyChartDateTo
             )
             : null;
 
@@ -310,10 +343,17 @@ public class SongService {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFrom, trlDateTo,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFrom, vatosCuntdownDateTo,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                billboardDateFrom, billboardDateTo,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFrom, yearlyChartDateTo,
                 sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, queryLimit, queryOffset
         );
         
@@ -593,8 +633,20 @@ public class SongService {
         if (value == null || value.isBlank()) {
             return null;
         }
+        String normalizedValue = value.trim();
+        if ("-".equals(normalizedValue)) {
+            return null;
+        }
         try {
-            return LocalDate.parse(value, DISPLAY_DATE_FORMATTER);
+            return LocalDate.parse(normalizedValue, DISPLAY_DATE_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+        }
+        try {
+            return LocalDate.parse(normalizedValue, LEGACY_DISPLAY_DATE_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+        }
+        try {
+            return LocalDate.parse(normalizedValue);
         } catch (DateTimeParseException ignored) {
             return null;
         }
@@ -722,11 +774,17 @@ public class SongService {
                           Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                           Integer trlPeak, Integer trlDays,
+                          String trlDateFrom, String trlDateTo,
                           Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                          String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                           Integer billboardPeak, Integer billboardWeeks,
+                          String billboardDateFrom, String billboardDateTo,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                          Integer yearlyChartPeak, Integer yearlyChartYears) {
+                          String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
+                          Integer yearlyChartPeak, Integer yearlyChartYears,
+                          String yearlyChartDateFrom, String yearlyChartDateTo) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
@@ -749,10 +807,17 @@ public class SongService {
                     trackNumber, trackNumberMode,
                     lengthMin, lengthMax, lengthMode,
                     weeklyChartPeak, weeklyChartWeeks,
+                        weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                     trlPeak, trlDays,
+                        trlDateFrom, trlDateTo,
                     vatosCuntdownPeak, vatosCuntdownDays,
+                        vatosCuntdownDateFrom, vatosCuntdownDateTo,
                     billboardPeak, billboardWeeks,
-                    seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears
+                        billboardDateFrom, billboardDateTo,
+                        seasonalChartPeak, seasonalChartSeasons,
+                        seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                        yearlyChartPeak, yearlyChartYears,
+                        yearlyChartDateFrom, yearlyChartDateTo
             );
             Long cachedCount = getCachedCombinedSongCount(combinedSongsCacheKey);
             if (cachedCount != null) {
@@ -777,10 +842,17 @@ public class SongService {
                     trackNumber, trackNumberMode,
                     lengthMin, lengthMax, lengthMode,
                     weeklyChartPeak, weeklyChartWeeks,
+                        weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                     trlPeak, trlDays,
+                        trlDateFrom, trlDateTo,
                     vatosCuntdownPeak, vatosCuntdownDays,
+                        vatosCuntdownDateFrom, vatosCuntdownDateTo,
                     billboardPeak, billboardWeeks,
-                    seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                        billboardDateFrom, billboardDateTo,
+                        seasonalChartPeak, seasonalChartSeasons,
+                        seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                        yearlyChartPeak, yearlyChartYears,
+                        yearlyChartDateFrom, yearlyChartDateTo,
                     "plays", "desc", null, null, null, null, 100000, 0
             );
                     long combinedCount = countCombinedRows(results);
@@ -805,10 +877,17 @@ public class SongService {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFrom, trlDateTo,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFrom, vatosCuntdownDateTo,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                billboardDateFrom, billboardDateTo,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFrom, yearlyChartDateTo);
     }
     
     /**
@@ -838,11 +917,17 @@ public class SongService {
                           Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
                           Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                           Integer trlPeak, Integer trlDays,
+                          String trlDateFrom, String trlDateTo,
                           Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                          String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
                           Integer billboardPeak, Integer billboardWeeks,
+                          String billboardDateFrom, String billboardDateTo,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                          Integer yearlyChartPeak, Integer yearlyChartYears) {
+                          String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
+                          Integer yearlyChartPeak, Integer yearlyChartYears,
+                          String yearlyChartDateFrom, String yearlyChartDateTo) {
         // Normalize empty lists to null
         if (accounts != null && accounts.isEmpty()) accounts = null;
 
@@ -865,10 +950,17 @@ public class SongService {
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
                 weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 trlPeak, trlDays,
+                trlDateFrom, trlDateTo,
                 vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownDateFrom, vatosCuntdownDateTo,
                 billboardPeak, billboardWeeks,
-                seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears);
+                billboardDateFrom, billboardDateTo,
+                seasonalChartPeak, seasonalChartSeasons,
+                seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears,
+                yearlyChartDateFrom, yearlyChartDateTo);
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);

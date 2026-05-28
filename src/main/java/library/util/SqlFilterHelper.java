@@ -262,6 +262,97 @@ public final class SqlFilterHelper {
         params.add(itunesIdsJson);
     }
 
+    public static void appendChartStatsFilter(StringBuilder sql, List<Object> params,
+                                              String chartEntryItemColumn, String outerItemIdExpression,
+                                              String chartType, String periodType, String countAlias,
+                                              Integer peak, Integer countMin,
+                                              String dateFrom, String dateTo,
+                                              String season) {
+        if (peak == null && countMin == null && !hasValue(dateFrom) && !hasValue(dateTo) && !hasValue(season)) {
+            return;
+        }
+
+        sql.append(" AND EXISTS (SELECT 1 FROM (");
+        sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as ").append(countAlias).append(" ");
+        sql.append("FROM ChartEntry ce ");
+        sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+        sql.append("WHERE ").append(chartEntryItemColumn).append(" = ").append(outerItemIdExpression);
+        sql.append(" AND c.chart_type = '").append(chartType).append("' AND c.period_type = '").append(periodType).append("'");
+        appendChartDateOverlapFilter(sql, params, "c.period_start_date", "c.period_end_date", dateFrom, dateTo);
+        appendChartSeasonFilter(sql, params, periodType, season);
+        sql.append(") chart_stats WHERE chart_stats.").append(countAlias).append(" > 0");
+        if (peak != null) {
+            sql.append(" AND chart_stats.peak <= ?");
+            params.add(peak);
+        }
+        if (countMin != null) {
+            sql.append(" AND chart_stats.").append(countAlias).append(" >= ?");
+            params.add(countMin);
+        }
+        sql.append(")");
+    }
+
+    public static void appendDateRangeBounds(StringBuilder sql, List<Object> params,
+                                             String dateExpression, String dateFrom, String dateTo) {
+        if (hasValue(dateFrom)) {
+            sql.append(" AND DATE(").append(dateExpression).append(") >= DATE(?)");
+            params.add(dateFrom);
+        }
+        if (hasValue(dateTo)) {
+            sql.append(" AND DATE(").append(dateExpression).append(") <= DATE(?)");
+            params.add(dateTo);
+        }
+    }
+
+    public static boolean hasValue(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static void appendChartDateOverlapFilter(StringBuilder sql, List<Object> params,
+                                                     String periodStartExpression, String periodEndExpression,
+                                                     String dateFrom, String dateTo) {
+        if (hasValue(dateFrom)) {
+            sql.append(" AND DATE(COALESCE(")
+                .append(periodEndExpression)
+                .append(", ")
+                .append(periodStartExpression)
+                .append(")) >= DATE(?)");
+            params.add(dateFrom);
+        }
+        if (hasValue(dateTo)) {
+            sql.append(" AND DATE(").append(periodStartExpression).append(") <= DATE(?)");
+            params.add(dateTo);
+        }
+    }
+
+    private static void appendChartSeasonFilter(StringBuilder sql, List<Object> params,
+                                                String periodType, String season) {
+        if (!hasValue(season)) {
+            return;
+        }
+
+        String seasonExpression = resolveSeasonExpression(periodType);
+        if (seasonExpression == null) {
+            return;
+        }
+
+        sql.append(" AND ").append(seasonExpression).append(" = ?");
+        params.add(season);
+    }
+
+    private static String resolveSeasonExpression(String periodType) {
+        return switch (periodType) {
+            case "seasonal" -> "SUBSTR(c.period_key, 6)";
+            case "weekly" -> "CASE " +
+                    "WHEN c.period_start_date IS NULL THEN NULL " +
+                    "WHEN CAST(strftime('%m', c.period_start_date) AS INTEGER) IN (12, 1, 2) THEN 'Winter' " +
+                    "WHEN CAST(strftime('%m', c.period_start_date) AS INTEGER) BETWEEN 3 AND 5 THEN 'Spring' " +
+                    "WHEN CAST(strftime('%m', c.period_start_date) AS INTEGER) BETWEEN 6 AND 8 THEN 'Summer' " +
+                    "ELSE 'Fall' END";
+            default -> null;
+        };
+    }
+
     /**
      * Helper to append comma-separated placeholders.
      */

@@ -80,8 +80,11 @@ public class AlbumService {
                                          Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                          Integer lengthMin, Integer lengthMax, String lengthMode,
                                          Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                         String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                          Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                         String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                                          Integer yearlyChartPeak, Integer yearlyChartYears,
+                                         String yearlyChartDateFrom, String yearlyChartDateTo,
                                          String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
                                          Integer itunesPresenceMin, Integer itunesPresenceMax,
                                          String sortBy, String sortDir,
@@ -109,7 +112,9 @@ public class AlbumService {
                 deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
                 sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, perPage, page * perPage
@@ -241,8 +246,11 @@ public class AlbumService {
                            Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                            Integer lengthMin, Integer lengthMax, String lengthMode,
                            Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                           String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                            Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                           String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                            Integer yearlyChartPeak, Integer yearlyChartYears,
+                           String yearlyChartDateFrom, String yearlyChartDateTo,
                            String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
@@ -263,7 +271,9 @@ public class AlbumService {
                 deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
     }
@@ -294,8 +304,11 @@ public class AlbumService {
                            Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                            Integer lengthMin, Integer lengthMax, String lengthMode,
                            Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                           String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                            Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                           String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                            Integer yearlyChartPeak, Integer yearlyChartYears,
+                           String yearlyChartDateFrom, String yearlyChartDateTo,
                            String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null
@@ -318,7 +331,9 @@ public class AlbumService {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
         
         // Gender ID 1 = Female, Gender ID 2 = Male

@@ -42,8 +42,11 @@ public class AlbumRepository {
                                                Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                                Integer lengthMin, Integer lengthMax, String lengthMode,
                                                Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                               String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                                Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                               String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                                                Integer yearlyChartPeak, Integer yearlyChartYears,
+                                               String yearlyChartDateFrom, String yearlyChartDateTo,
                                                String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
                                                Integer itunesPresenceMin, Integer itunesPresenceMax,
                                                String itunesSongIdsJson,
@@ -742,62 +745,14 @@ public class AlbumRepository {
             }
         }
         
-        // Weekly chart filter (peak position <= specified, total weeks >= specified)
-        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (weeklyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(weeklyChartPeak);
-            }
-            if (weeklyChartWeeks != null) {
-                sql.append(" AND chart_stats.weeks >= ?");
-                params.add(weeklyChartWeeks);
-            }
-            sql.append(")");
-        }
-        
-        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
-        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (seasonalChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(seasonalChartPeak);
-            }
-            if (seasonalChartSeasons != null) {
-                sql.append(" AND chart_stats.seasons >= ?");
-                params.add(seasonalChartSeasons);
-            }
-            sql.append(")");
-        }
-        
-        // Yearly chart filter (peak position <= specified, total years >= specified)
-        if (yearlyChartPeak != null || yearlyChartYears != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (yearlyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(yearlyChartPeak);
-            }
-            if (yearlyChartYears != null) {
-                sql.append(" AND chart_stats.years >= ?");
-                params.add(yearlyChartYears);
-            }
-            sql.append(")");
-        }
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "weekly", "weeks",
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "seasonal", "seasons",
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "yearly", "years",
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo, null);
         
         // iTunes presence ratio filter
         if (itunesPresenceMin != null) {
@@ -966,8 +921,11 @@ public class AlbumRepository {
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                       String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                                        Integer yearlyChartPeak, Integer yearlyChartYears,
+                                       String yearlyChartDateFrom, String yearlyChartDateTo,
                                        String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
                                        Integer itunesPresenceMin, Integer itunesPresenceMax,
                                        String itunesSongIdsJson) {
@@ -1745,8 +1703,11 @@ public class AlbumRepository {
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
                                        Integer weeklyChartPeak, Integer weeklyChartWeeks,
-                                       Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                       Integer yearlyChartPeak, Integer yearlyChartYears,
+                                               String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
+                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                               String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
+                                               Integer yearlyChartPeak, Integer yearlyChartYears,
+                                               String yearlyChartDateFrom, String yearlyChartDateTo,
                                        Integer itunesPresenceMin, Integer itunesPresenceMax,
                                        String itunesSongIdsJson) {
         // Build account filter subquery for play_stats if we need play count filter
@@ -1790,62 +1751,6 @@ public class AlbumRepository {
         if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
             sql.append(
                 "SELECT ar.gender_id, COUNT(DISTINCT a.id) as cnt " +
-                "FROM Album a " +
-                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
-            
-            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
-                sql.append("""
-                    LEFT JOIN (
-                        SELECT s.album_id, COUNT(*) as play_count
-                        FROM Play p
-                        JOIN Song s ON p.song_id = s.id
-                        WHERE 1=1 """);
-                sql.append(accountFilterClause);
-                sql.append(listenedDateFilterClause);
-                sql.append("""
-                        GROUP BY s.album_id
-                    ) play_stats ON play_stats.album_id = a.id
-                    """);
-            }
-            
-            if (needsItunesJoinGender) {
-                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
-                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
-            }
-            sql.append("INNER JOIN Song s ON s.album_id = a.id " +
-                "INNER JOIN Play p ON p.song_id = s.id " +
-                "WHERE p.account IN (");
-            for (int i = 0; i < accounts.size(); i++) {
-                if (i > 0) sql.append(",");
-                sql.append("?");
-            }
-            sql.append(") ");
-        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            sql.append(
-                "SELECT ar.gender_id, COUNT(DISTINCT a.id) as cnt " +
-                "FROM Album a " +
-                "LEFT JOIN Artist ar ON a.artist_id = ar.id ");
-            
-            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
-                sql.append("""
-                    LEFT JOIN (
-                        SELECT s.album_id, COUNT(*) as play_count
-                        FROM Play p
-                        JOIN Song s ON p.song_id = s.id
-                        WHERE 1=1 """);
-                sql.append(accountFilterClause);
-                sql.append(listenedDateFilterClause);
-                sql.append("""
-                        GROUP BY s.album_id
-                    ) play_stats ON play_stats.album_id = a.id
-                    """);
-            }
-            
-            if (needsItunesJoinGender) {
-                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as itunes_song_count FROM Song WHERE id IN (SELECT value FROM json_each(?)) AND album_id IS NOT NULL GROUP BY album_id) itunes_count_stats ON itunes_count_stats.album_id = a.id ");
-                sql.append("LEFT JOIN (SELECT album_id, COUNT(*) as song_count FROM Song WHERE album_id IS NOT NULL GROUP BY album_id) album_song_count_stats ON album_song_count_stats.album_id = a.id ");
-            }
-            sql.append("WHERE NOT EXISTS ( " +
                 "    SELECT 1 FROM Play p " +
                 "    JOIN Song song ON p.song_id = song.id " +
                 "    WHERE song.album_id = a.id AND p.account IN (");
@@ -2060,62 +1965,14 @@ public class AlbumRepository {
             }
         }
         
-        // Weekly chart filter
-        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (weeklyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(weeklyChartPeak);
-            }
-            if (weeklyChartWeeks != null) {
-                sql.append(" AND chart_stats.weeks >= ?");
-                params.add(weeklyChartWeeks);
-            }
-            sql.append(")");
-        }
-        
-        // Seasonal chart filter
-        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'seasonal'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (seasonalChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(seasonalChartPeak);
-            }
-            if (seasonalChartSeasons != null) {
-                sql.append(" AND chart_stats.seasons >= ?");
-                params.add(seasonalChartSeasons);
-            }
-            sql.append(")");
-        }
-        
-        // Yearly chart filter
-        if (yearlyChartPeak != null || yearlyChartYears != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'yearly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (yearlyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(yearlyChartPeak);
-            }
-            if (yearlyChartYears != null) {
-                sql.append(" AND chart_stats.years >= ?");
-                params.add(yearlyChartYears);
-            }
-            sql.append(")");
-        }
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "weekly", "weeks",
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "seasonal", "seasons",
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "yearly", "years",
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo, null);
         
         // iTunes presence ratio filter (using pre-joined itunes_count_stats)
         if (itunesPresenceMin != null) {

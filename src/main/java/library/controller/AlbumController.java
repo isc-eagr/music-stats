@@ -165,10 +165,18 @@ public class AlbumController {
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) String weeklyChartDateFrom,
+            @RequestParam(required = false) String weeklyChartDateTo,
+            @RequestParam(required = false) String weeklyChartSeason,
             @RequestParam(required = false) Integer seasonalChartPeak,
             @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) String seasonalChartDateFrom,
+            @RequestParam(required = false) String seasonalChartDateTo,
+            @RequestParam(required = false) String seasonalChartSeason,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(required = false) String yearlyChartDateFrom,
+            @RequestParam(required = false) String yearlyChartDateTo,
             @RequestParam(required = false) String lastFullListenDate,
             @RequestParam(required = false) String lastFullListenDateFrom,
             @RequestParam(required = false) String lastFullListenDateTo,
@@ -183,6 +191,7 @@ public class AlbumController {
             @RequestParam(required = false) String sortdir3,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
+            HttpServletRequest request,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -206,6 +215,12 @@ public class AlbumController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        String weeklyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateFrom);
+        String weeklyChartDateToConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateTo);
+        String seasonalChartDateFromConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateFrom);
+        String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
+        String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
+        String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
         
         // Pre-compute iTunes album IDs once for all 3 queries
@@ -227,7 +242,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
                 sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
@@ -248,7 +265,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax);
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
@@ -268,7 +287,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax);
         
@@ -341,10 +362,24 @@ public class AlbumController {
         // Chart filter attributes
         model.addAttribute("weeklyChartPeak", weeklyChartPeak);
         model.addAttribute("weeklyChartWeeks", weeklyChartWeeks);
+        model.addAttribute("weeklyChartDateFrom", weeklyChartDateFrom);
+        model.addAttribute("weeklyChartDateTo", weeklyChartDateTo);
+        model.addAttribute("weeklyChartDateFromFormatted", formatDateForDisplay(weeklyChartDateFrom));
+        model.addAttribute("weeklyChartDateToFormatted", formatDateForDisplay(weeklyChartDateTo));
+        model.addAttribute("weeklyChartSeason", weeklyChartSeason);
         model.addAttribute("seasonalChartPeak", seasonalChartPeak);
         model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
+        model.addAttribute("seasonalChartDateFrom", seasonalChartDateFrom);
+        model.addAttribute("seasonalChartDateTo", seasonalChartDateTo);
+        model.addAttribute("seasonalChartDateFromFormatted", formatDateForDisplay(seasonalChartDateFrom));
+        model.addAttribute("seasonalChartDateToFormatted", formatDateForDisplay(seasonalChartDateTo));
+        model.addAttribute("seasonalChartSeason", seasonalChartSeason);
         model.addAttribute("yearlyChartPeak", yearlyChartPeak);
         model.addAttribute("yearlyChartYears", yearlyChartYears);
+        model.addAttribute("yearlyChartDateFrom", yearlyChartDateFrom);
+        model.addAttribute("yearlyChartDateTo", yearlyChartDateTo);
+        model.addAttribute("yearlyChartDateFromFormatted", formatDateForDisplay(yearlyChartDateFrom));
+        model.addAttribute("yearlyChartDateToFormatted", formatDateForDisplay(yearlyChartDateTo));
         
         // Release date filter attributes
         model.addAttribute("releaseDate", releaseDate);
@@ -392,6 +427,7 @@ public class AlbumController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("defaultSortBy", "plays");
+        model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
         // Add filter options
         model.addAttribute("genres", albumService.getGenres());
@@ -465,10 +501,18 @@ public class AlbumController {
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) String weeklyChartDateFrom,
+            @RequestParam(required = false) String weeklyChartDateTo,
+            @RequestParam(required = false) String weeklyChartSeason,
             @RequestParam(required = false) Integer seasonalChartPeak,
             @RequestParam(required = false) Integer seasonalChartSeasons,
+            @RequestParam(required = false) String seasonalChartDateFrom,
+            @RequestParam(required = false) String seasonalChartDateTo,
+            @RequestParam(required = false) String seasonalChartSeason,
             @RequestParam(required = false) Integer yearlyChartPeak,
             @RequestParam(required = false) Integer yearlyChartYears,
+            @RequestParam(required = false) String yearlyChartDateFrom,
+            @RequestParam(required = false) String yearlyChartDateTo,
             @RequestParam(required = false) String lastFullListenDate,
             @RequestParam(required = false) String lastFullListenDateFrom,
             @RequestParam(required = false) String lastFullListenDateTo,
@@ -504,6 +548,12 @@ public class AlbumController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
+        String weeklyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateFrom);
+        String weeklyChartDateToConverted = DateFormatUtils.convertToIsoFormat(weeklyChartDateTo);
+        String seasonalChartDateFromConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateFrom);
+        String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
+        String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
+        String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
 
         String itunesIdsJson = albumService.getItunesAlbumIdsJson(inItunes);
@@ -523,7 +573,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
                 sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
@@ -543,7 +595,9 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax);
 
@@ -1011,5 +1065,15 @@ public class AlbumController {
         Map<String, Object> response = new HashMap<>();
         response.put("genderId", genderId);
         return ResponseEntity.ok(response);
+    }
+
+    private boolean hasActiveFilters(HttpServletRequest request) {
+        return request.getParameterMap().entrySet().stream().anyMatch(entry -> {
+            String key = entry.getKey();
+            if (java.util.Set.of("sortby", "sortdir", "sortby2", "sortdir2", "sortby3", "sortdir3", "page", "perpage", "view", "tab").contains(key)) {
+                return false;
+            }
+            return java.util.Arrays.stream(entry.getValue()).anyMatch(value -> value != null && !value.isBlank());
+        });
     }
 }
