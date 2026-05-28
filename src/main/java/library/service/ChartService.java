@@ -25,15 +25,20 @@ public class ChartService {
     private final ChartEntryRepository chartEntryRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ItunesService itunesService;
+    private final AppConfigService appConfigService;
+    private final SongLinkService songLinkService;
     
     // Progress tracking for bulk generation
     private final ConcurrentHashMap<String, ChartGenerationProgressDTO> generationProgress = new ConcurrentHashMap<>();
     
-    public ChartService(ChartRepository chartRepository, ChartEntryRepository chartEntryRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService) {
+    public ChartService(ChartRepository chartRepository, ChartEntryRepository chartEntryRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService,
+                        AppConfigService appConfigService, SongLinkService songLinkService) {
         this.chartRepository = chartRepository;
         this.chartEntryRepository = chartEntryRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.itunesService = itunesService;
+        this.appConfigService = appConfigService;
+        this.songLinkService = songLinkService;
     }
     
     /**
@@ -168,6 +173,10 @@ public class ChartService {
 
             calculateChartRunStats(dto, songId, periodKey, currentChartIndex);
             result.add(dto);
+        }
+
+        if (appConfigService.isCombineLinkedSongsEnabled()) {
+            applySongPlayBreakdowns(result, periodKey);
         }
 
         return result;
@@ -349,6 +358,12 @@ public class ChartService {
         LocalDate startDate = dateRange[0];
         LocalDate endDate = dateRange[1];
 
+        if (appConfigService.isCombineLinkedSongsEnabled()) {
+            List<ChartEntryDTO> preview = getCombinedWeeklySongChartPreview(startDate, endDate);
+            applySongPlayBreakdowns(preview, startDate, endDate);
+            return preview;
+        }
+
         // Query top 20 songs for this period with song/artist/album details
         String sql = """
             SELECT 
@@ -396,6 +411,344 @@ public class ChartService {
         }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
 
         return result;
+    }
+
+    private List<ChartEntryDTO> getCombinedWeeklySongChartPreview(LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            WITH play_rows AS (
+                SELECT
+                    COALESCE(slgm.group_id, -s.id) as entity_key,
+                    s.id as song_id,
+                    s.album_id,
+                    s.name as song_name,
+                    ar.id as artist_id,
+                    ar.name as artist_name,
+                    al.name as album_name,
+                    ar.gender_id as gender_id,
+                    p.play_date,
+                    CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END as has_image,
+                    CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END as album_has_image,
+                    (SELECT gn.name FROM Genre gn WHERE gn.id = COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id)) as genre_name
+                FROM Play p
+                INNER JOIN Song s ON p.song_id = s.id
+                INNER JOIN Artist ar ON s.artist_id = ar.id
+                LEFT JOIN Album al ON s.album_id = al.id
+                LEFT JOIN song_link_group_member slgm ON slgm.song_id = s.id
+                WHERE DATE(p.play_date) >= ? AND DATE(p.play_date) <= ?
+                  AND p.song_id IS NOT NULL
+            ),
+            group_stats AS (
+                SELECT entity_key, COUNT(*) as play_count, MAX(play_date) as last_play
+                FROM play_rows
+                GROUP BY entity_key
+            ),
+            candidates AS (
+                SELECT pr.*,
+                       gs.play_count,
+                       gs.last_play,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY pr.entity_key
+                           ORDER BY
+                               CASE WHEN lower(pr.song_name) GLOB '*remix*'
+                                      OR lower(pr.song_name) GLOB '*demo*'
+                                      OR lower(pr.song_name) GLOB '*alternate*'
+                                      OR lower(pr.song_name) GLOB '*version*'
+                                      OR lower(pr.song_name) GLOB '*live*'
+                                      OR lower(pr.song_name) GLOB '*acoustic*'
+                                      OR lower(pr.song_name) GLOB '*remaster*'
+                                      OR lower(pr.song_name) GLOB '*edit*'
+                                    THEN 1 ELSE 0 END,
+                               LENGTH(pr.song_name),
+                               pr.song_id
+                       ) as representative_rank
+                FROM play_rows pr
+                INNER JOIN group_stats gs ON gs.entity_key = pr.entity_key
+            )
+            SELECT song_id, album_id, song_name, artist_id, artist_name, album_name, gender_id,
+                   play_count, has_image, album_has_image, genre_name
+            FROM candidates
+            WHERE representative_rank = 1
+            ORDER BY play_count DESC, last_play ASC
+            LIMIT ?
+            """;
+
+        List<ChartEntryDTO> result = new ArrayList<>();
+        int[] position = {1};
+        jdbcTemplate.query(sql, rs -> {
+            ChartEntryDTO dto = new ChartEntryDTO();
+            dto.setPosition(position[0]++);
+            dto.setSongId(rs.getInt("song_id"));
+            dto.setAlbumId(rs.getObject("album_id") != null ? rs.getInt("album_id") : null);
+            dto.setSongName(rs.getString("song_name"));
+            dto.setArtistId(rs.getInt("artist_id"));
+            dto.setArtistName(rs.getString("artist_name"));
+            dto.setAlbumName(rs.getString("album_name"));
+            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
+            dto.setPlayCount(rs.getInt("play_count"));
+            dto.setHasImage(rs.getInt("has_image") == 1);
+            dto.setAlbumHasImage(rs.getInt("album_has_image") == 1);
+            dto.setGenreName(rs.getString("genre_name"));
+            result.add(dto);
+        }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
+
+        return result;
+    }
+
+    private void applySongPlayBreakdowns(List<ChartEntryDTO> entries, String periodKey) {
+        LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
+        applySongPlayBreakdowns(entries, dateRange[0], dateRange[1]);
+    }
+
+    private void applySongPlayBreakdowns(List<ChartEntryDTO> entries, LocalDate startDate, LocalDate endDate) {
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+        for (ChartEntryDTO entry : entries) {
+            if (entry == null || entry.getSongId() == null) {
+                continue;
+            }
+            List<String> playBreakdownItems = getSongPlayBreakdownItems(entry.getSongId(), entry.getArtistName(), startDate, endDate);
+            entry.setPlayBreakdownItems(playBreakdownItems);
+            entry.setPlayBreakdown(playBreakdownItems.isEmpty() ? null : String.join("\n", playBreakdownItems));
+        }
+    }
+
+    private List<String> getSongPlayBreakdownItems(Integer songId, String representativeArtistName, LocalDate startDate, LocalDate endDate) {
+        List<Integer> linkedSongIds = songLinkService.getLinkedSongIds(songId);
+        if (linkedSongIds == null || linkedSongIds.size() <= 1) {
+            return List.of();
+        }
+
+        String sql = """
+            SELECT
+                s.id as song_id,
+                s.name as song_name,
+                ar.name as artist_name,
+                al.name as album_name,
+                COUNT(*) as play_count
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album al ON s.album_id = al.id
+            WHERE p.song_id IN (%s)
+              AND DATE(p.play_date) >= ?
+              AND DATE(p.play_date) <= ?
+            GROUP BY s.id, s.name, ar.name, al.name
+            ORDER BY play_count DESC, lower(s.name) ASC, s.id ASC
+            """.formatted(String.join(",", linkedSongIds.stream().map(id -> "?").toList()));
+
+        List<Object> params = new ArrayList<>(linkedSongIds);
+        params.add(startDate.toString());
+        params.add(endDate.toString());
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
+        if (rows.size() <= 1) {
+            return List.of();
+        }
+
+        long distinctArtists = rows.stream()
+                .map(row -> (String) row.get("artist_name"))
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        boolean includeArtist = distinctArtists > 1;
+
+        return rows.stream()
+                .map(row -> formatSongPlayBreakdownLine(row, representativeArtistName, includeArtist))
+            .toList();
+    }
+
+    private String formatSongPlayBreakdownLine(Map<String, Object> row, String representativeArtistName, boolean includeArtist) {
+        String songName = row.get("song_name") != null ? row.get("song_name").toString() : "Unknown song";
+        String artistName = row.get("artist_name") != null ? row.get("artist_name").toString() : null;
+        String albumName = row.get("album_name") != null ? row.get("album_name").toString() : null;
+        Number playCount = (Number) row.get("play_count");
+        StringBuilder label = new StringBuilder();
+        if (includeArtist && artistName != null && !artistName.isBlank()) {
+            label.append(artistName).append(" - ");
+        } else if (representativeArtistName != null && artistName != null && !artistName.equalsIgnoreCase(representativeArtistName)) {
+            label.append(artistName).append(" - ");
+        }
+        label.append(songName);
+        if (albumName != null && !albumName.isBlank()) {
+            label.append(" (").append(albumName).append(")");
+        }
+        label.append(": ")
+                .append(playCount != null ? String.format(Locale.US, "%,d", playCount.intValue()) : "0")
+                .append(" plays");
+        return label.toString();
+    }
+
+    private List<String> buildLinkedSongWeekBreakdownItems(Integer songId) {
+        if (!appConfigService.isCombineLinkedSongsEnabled() || songId == null) {
+            return List.of();
+        }
+
+        List<Integer> linkedSongIds = songLinkService.getLinkedSongIds(songId);
+        return buildLinkedSongWeekBreakdownItems(linkedSongIds);
+    }
+
+    private List<String> buildLinkedSongWeekBreakdownItems(List<Integer> linkedSongIds) {
+        if (!appConfigService.isCombineLinkedSongsEnabled()) {
+            return List.of();
+        }
+
+        if (linkedSongIds == null || linkedSongIds.size() <= 1) {
+            return List.of();
+        }
+
+        String placeholders = String.join(",", linkedSongIds.stream().map(id -> "?").toList());
+        String sql = """
+            WITH chart_weeks AS (
+                SELECT DISTINCT c.period_key, c.period_start_date, c.period_end_date
+                FROM ChartEntry ce
+                INNER JOIN Chart c ON ce.chart_id = c.id
+                WHERE c.chart_type = 'song'
+                  AND c.period_type = 'weekly'
+                  AND ce.song_id IN (%s)
+            )
+            SELECT p.song_id,
+                   s.name as song_name,
+                   ar.name as artist_name,
+                   al.name as album_name,
+                   COUNT(DISTINCT cw.period_key) as contributed_weeks
+            FROM chart_weeks cw
+            INNER JOIN Play p ON DATE(p.play_date) >= cw.period_start_date
+                              AND DATE(p.play_date) <= cw.period_end_date
+            INNER JOIN Song s ON s.id = p.song_id
+            INNER JOIN Artist ar ON s.artist_id = ar.id
+            LEFT JOIN Album al ON s.album_id = al.id
+            WHERE p.song_id IN (%s)
+            GROUP BY p.song_id, s.name, ar.name, al.name
+            ORDER BY contributed_weeks DESC, lower(s.name) ASC, p.song_id ASC
+            """.formatted(placeholders, placeholders);
+
+        List<Object> params = new ArrayList<>();
+        params.addAll(linkedSongIds);
+        params.addAll(linkedSongIds);
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
+        if (rows.size() <= 1) {
+            return List.of();
+        }
+
+        long distinctArtists = rows.stream()
+                .map(row -> (String) row.get("artist_name"))
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        boolean includeArtist = distinctArtists > 1;
+
+        return rows.stream()
+                .map(row -> formatLinkedSongWeekBreakdownLine(row, includeArtist))
+                .filter(item -> item != null && !item.isBlank())
+                .toList();
+    }
+
+    private CombinedSongChartHistoryMetrics getCombinedSongChartHistoryMetrics(List<Integer> linkedSongIds) {
+        if (linkedSongIds == null || linkedSongIds.isEmpty()) {
+            return new CombinedSongChartHistoryMetrics(0, 0, 0, null, null, null, null);
+        }
+
+        String placeholders = String.join(",", linkedSongIds.stream().map(id -> "?").toList());
+        String sql = """
+            SELECT c.period_key,
+                   c.period_start_date,
+                   c.period_end_date,
+                   MIN(ce.position) as best_position
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            WHERE c.chart_type = 'song'
+              AND c.period_type = 'weekly'
+              AND ce.song_id IN (%s)
+            GROUP BY c.period_key, c.period_start_date, c.period_end_date
+            ORDER BY c.period_start_date ASC
+            """.formatted(placeholders);
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, linkedSongIds.toArray());
+        if (rows.isEmpty()) {
+            return new CombinedSongChartHistoryMetrics(0, 0, 0, null, null, null, null);
+        }
+
+        int peakPosition = rows.stream()
+                .map(row -> ((Number) row.get("best_position")).intValue())
+                .min(Integer::compareTo)
+                .orElse(0);
+        int weeksAtPeak = (int) rows.stream()
+                .filter(row -> ((Number) row.get("best_position")).intValue() == peakPosition)
+                .count();
+
+        Map<String, Object> debutRow = rows.get(0);
+        Map<String, Object> peakRow = rows.stream()
+                .filter(row -> ((Number) row.get("best_position")).intValue() == peakPosition)
+                .findFirst()
+                .orElse(debutRow);
+
+        return new CombinedSongChartHistoryMetrics(
+                peakPosition,
+                weeksAtPeak,
+                rows.size(),
+                formatPeakDate((String) peakRow.get("period_end_date")),
+                (String) peakRow.get("period_key"),
+                formatPeakDate((String) debutRow.get("period_end_date")),
+                (String) debutRow.get("period_key")
+        );
+    }
+
+    private ChartHistoryDTO copyChartHistory(ChartHistoryDTO source) {
+        ChartHistoryDTO target = new ChartHistoryDTO();
+        target.setId(source.getId());
+        target.setName(source.getName());
+        target.setArtistName(source.getArtistName());
+        target.setPeakPosition(source.getPeakPosition());
+        target.setWeeksAtPeak(source.getWeeksAtPeak());
+        target.setTotalWeeks(source.getTotalWeeks());
+        target.setChartType(source.getChartType());
+        target.setReleaseDate(source.getReleaseDate());
+        target.setPeakDate(source.getPeakDate());
+        target.setDebutDate(source.getDebutDate());
+        target.setPeakWeek(source.getPeakWeek());
+        target.setDebutWeek(source.getDebutWeek());
+        target.setHasImage(source.isHasImage());
+        target.setAlbumId(source.getAlbumId());
+        target.setFeaturedOn(source.isFeaturedOn());
+        target.setFromGroup(source.isFromGroup());
+        target.setSourceArtistId(source.getSourceArtistId());
+        target.setSourceArtistName(source.getSourceArtistName());
+        target.setInItunes(source.getInItunes());
+        target.setTotalWeekBreakdownItems(source.getTotalWeekBreakdownItems());
+        return target;
+    }
+
+    private record CombinedSongChartHistoryMetrics(
+            int peakPosition,
+            int weeksAtPeak,
+            int totalWeeks,
+            String peakDate,
+            String peakWeek,
+            String debutDate,
+            String debutWeek
+    ) {
+    }
+
+    private String formatLinkedSongWeekBreakdownLine(Map<String, Object> row, boolean includeArtist) {
+        String songName = row.get("song_name") != null ? row.get("song_name").toString() : "Unknown song";
+        String artistName = row.get("artist_name") != null ? row.get("artist_name").toString() : null;
+        String albumName = row.get("album_name") != null ? row.get("album_name").toString() : null;
+        Number contributedWeeks = (Number) row.get("contributed_weeks");
+
+        StringBuilder label = new StringBuilder();
+        if (includeArtist && artistName != null && !artistName.isBlank()) {
+            label.append(artistName).append(" - ");
+        }
+        label.append(songName);
+        if (albumName != null && !albumName.isBlank()) {
+            label.append(" (").append(albumName).append(")");
+        }
+        label.append(": ")
+                .append(contributedWeeks != null ? String.format(Locale.US, "%,d", contributedWeeks.intValue()) : "0")
+                .append(" weeks");
+        return label.toString();
     }
 
     /**
@@ -758,6 +1111,27 @@ public class ChartService {
         return jdbcTemplate.queryForList(sql, String.class);
     }
 
+    @Transactional
+    public void regenerateAffectedWeeklySongChartsForLinkedSongs() {
+        regenerateWeeklySongCharts(songLinkService.getAffectedWeeklyPeriodKeysForLinkedSongs());
+    }
+
+    @Transactional
+    public void regenerateAffectedWeeklySongChartsForSongIds(Set<Integer> songIds) {
+        regenerateWeeklySongCharts(songLinkService.getAffectedWeeklyPeriodKeysForSongIds(songIds));
+    }
+
+    private void regenerateWeeklySongCharts(List<String> periodKeys) {
+        if (periodKeys == null || periodKeys.isEmpty()) {
+            return;
+        }
+        for (String periodKey : periodKeys) {
+            if (periodKey != null && !periodKey.endsWith("-W00") && chartRepository.existsByChartTypeAndPeriodKey("song", periodKey)) {
+                generateWeeklySongChart(periodKey);
+            }
+        }
+    }
+
     /**
      * Delete all weekly chart data for a specific period.
      * This includes both song and album charts and their entries.
@@ -1096,6 +1470,7 @@ public class ChartService {
             );
             dto.setHasImage(hasImage);
             dto.setAlbumId(albumId);
+            dto.setTotalWeekBreakdownItems(buildLinkedSongWeekBreakdownItems(songId));
             applyItunesPresence(dto);
             result.add(dto);
         }
@@ -1316,6 +1691,7 @@ public class ChartService {
             );
             dto.setHasImage(hasImage);
             dto.setAlbumId(albumId);
+            dto.setTotalWeekBreakdownItems(buildLinkedSongWeekBreakdownItems(songId));
             applyItunesPresence(dto);
             result.add(dto);
         }
@@ -2958,6 +3334,45 @@ public class ChartService {
         return null;
     }
 
+    private List<String> buildLinkedSongTooltipItems(Integer songId) {
+        if (!appConfigService.isCombineLinkedSongsEnabled() || songId == null) {
+            return List.of();
+        }
+
+        List<LinkedSongDTO> linkedSongs = songLinkService.getLinkedSongs(songId);
+        if (linkedSongs == null || linkedSongs.size() <= 1) {
+            return List.of();
+        }
+
+        long distinctArtists = linkedSongs.stream()
+                .map(LinkedSongDTO::getArtistName)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        boolean includeArtist = distinctArtists > 1;
+
+        return linkedSongs.stream()
+                .map(linkedSong -> formatLinkedSongTooltipItem(linkedSong, includeArtist))
+                .filter(item -> item != null && !item.isBlank())
+                .toList();
+    }
+
+    private String formatLinkedSongTooltipItem(LinkedSongDTO linkedSong, boolean includeArtist) {
+        if (linkedSong == null || linkedSong.getName() == null || linkedSong.getName().isBlank()) {
+            return null;
+        }
+
+        StringBuilder label = new StringBuilder();
+        if (includeArtist && linkedSong.getArtistName() != null && !linkedSong.getArtistName().isBlank()) {
+            label.append(linkedSong.getArtistName()).append(" - ");
+        }
+        label.append(linkedSong.getName());
+        if (linkedSong.getAlbumName() != null && !linkedSong.getAlbumName().isBlank()) {
+            label.append(" (").append(linkedSong.getAlbumName()).append(")");
+        }
+        return label.toString();
+    }
+
     private record ChartOverviewAppearanceRow(
         Integer songId,
         String songTitle,
@@ -3106,6 +3521,7 @@ public class ChartService {
             dto.setSpanAtTop10(spanAtTop10);
             dto.setSpanAtTopThresholds(spanAtTopThresholds);
             dto.setGenderClass(resolveGenderClass(genderId));
+            dto.setLinkedSongTitles(buildLinkedSongTooltipItems(songId));
             return dto;
         }
     }
@@ -3647,6 +4063,97 @@ public class ChartService {
         
         return result;
     }
+
+    public List<ChartHistoryDTO> combineLinkedSongChartHistory(List<ChartHistoryDTO> rows) {
+        if (!appConfigService.isCombineLinkedSongsEnabled() || rows == null || rows.isEmpty()) {
+            return rows;
+        }
+
+        List<Integer> songIds = rows.stream()
+                .map(ChartHistoryDTO::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (songIds.isEmpty()) {
+            return rows;
+        }
+
+        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
+        Map<String, List<ChartHistoryDTO>> grouped = new LinkedHashMap<>();
+        for (ChartHistoryDTO row : rows) {
+            Integer groupId = groupIds.get(row.getId());
+            String key = groupId != null ? "g:" + groupId : "s:" + row.getId();
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(row);
+        }
+
+        List<ChartHistoryDTO> combined = new ArrayList<>();
+        for (List<ChartHistoryDTO> group : grouped.values()) {
+            if (group.size() == 1) {
+                ChartHistoryDTO single = group.get(0);
+                single.setTotalWeekBreakdownItems(buildLinkedSongWeekBreakdownItems(single.getId()));
+                combined.add(single);
+                continue;
+            }
+
+            ChartHistoryDTO representative = group.stream()
+                    .min(Comparator.comparingInt((ChartHistoryDTO entry) -> songLinkService.cleanTitleScore(entry.getName()))
+                            .thenComparing(ChartHistoryDTO::getName, String.CASE_INSENSITIVE_ORDER)
+                            .thenComparing(ChartHistoryDTO::getId))
+                    .orElse(group.get(0));
+
+            List<Integer> linkedSongIds = group.stream()
+                    .map(ChartHistoryDTO::getId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+
+            CombinedSongChartHistoryMetrics metrics = getCombinedSongChartHistoryMetrics(linkedSongIds);
+
+            ChartHistoryDTO dto = copyChartHistory(representative);
+            dto.setHasImage(group.stream().anyMatch(ChartHistoryDTO::isHasImage));
+            dto.setPeakPosition(metrics.peakPosition());
+            dto.setWeeksAtPeak(metrics.weeksAtPeak());
+            dto.setTotalWeeks(metrics.totalWeeks());
+            dto.setPeakDate(metrics.peakDate());
+            dto.setPeakWeek(metrics.peakWeek());
+            dto.setDebutDate(metrics.debutDate());
+            dto.setDebutWeek(metrics.debutWeek());
+            dto.setTotalWeekBreakdownItems(buildLinkedSongWeekBreakdownItems(linkedSongIds));
+
+            dto.setFeaturedOn(group.stream().allMatch(ChartHistoryDTO::isFeaturedOn));
+            if (dto.isFeaturedOn()) {
+                dto.setSourceArtistId(representative.getSourceArtistId());
+                dto.setSourceArtistName(representative.getSourceArtistName());
+            } else {
+                dto.setSourceArtistId(null);
+                dto.setSourceArtistName(null);
+            }
+
+            dto.setFromGroup(group.stream().allMatch(ChartHistoryDTO::isFromGroup));
+            if (dto.isFromGroup()) {
+                dto.setSourceArtistId(representative.getSourceArtistId());
+                dto.setSourceArtistName(representative.getSourceArtistName());
+            } else if (!dto.isFeaturedOn()) {
+                dto.setSourceArtistId(null);
+                dto.setSourceArtistName(null);
+            }
+
+            combined.add(dto);
+        }
+
+        combined.sort((a, b) -> {
+            int peakCompare = a.getPeakPosition().compareTo(b.getPeakPosition());
+            if (peakCompare != 0) {
+                return peakCompare;
+            }
+            int weeksAtPeakCompare = b.getWeeksAtPeak().compareTo(a.getWeeksAtPeak());
+            if (weeksAtPeakCompare != 0) {
+                return weeksAtPeakCompare;
+            }
+            return Integer.compare(b.getTotalWeeks() != null ? b.getTotalWeeks() : 0,
+                    a.getTotalWeeks() != null ? a.getTotalWeeks() : 0);
+        });
+        return combined;
+    }
     
     /**
      * Get aggregated weekly album chart history for an artist including all groups
@@ -3903,6 +4410,7 @@ public class ChartService {
             dto.setFeaturedOn(true);
             dto.setSourceArtistId(((Number) row.get("primary_artist_id")).intValue());
             dto.setSourceArtistName((String) row.get("primary_artist_name"));
+            dto.setTotalWeekBreakdownItems(buildLinkedSongWeekBreakdownItems(songId));
             applyItunesPresence(dto);
             result.add(dto);
         }

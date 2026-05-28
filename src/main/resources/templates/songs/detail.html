@@ -139,6 +139,37 @@
             font-size: 0.83rem;
             color: rgba(238, 241, 246, 0.72);
         }
+        .linked-song-list {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .linked-song-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.035);
+        }
+        .linked-song-row a {
+            color: var(--text);
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .linked-song-search {
+            position: relative;
+        }
+        .linked-empty {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .linked-song-actions {
+            display: flex;
+            margin-top: 12px;
+        }
         body.gender-male .detail-save-text span {
             color: rgba(229, 237, 248, 0.74);
         }
@@ -744,6 +775,34 @@
                         </div>
                     </form>
                 </div>
+
+                <div class="detail-content-card">
+                    <div class="section-header">
+                        <h2 class="section-title">Linked Songs</h2>
+                    </div>
+                    <form method="post" th:action="@{'/songs/' + ${song.id} + '/linked-songs'}" class="linked-song-form">
+                        <div class="linked-song-list" id="linkedSongList">
+                            <div class="linked-song-row" th:each="linkedSong : ${linkedSongs}" th:if="${linkedSong.id != song.id}">
+                                <input type="hidden" name="linkedSongIds" th:value="${linkedSong.id}">
+                                <div>
+                                    <a th:href="@{'/songs/' + ${linkedSong.id}}" th:text="${linkedSong.name}">Song</a>
+                                    <span th:text="' - ' + ${linkedSong.artistName}"> - Artist</span>
+                                    <span th:if="${linkedSong.albumName != null}" th:text="' (' + ${linkedSong.albumName} + ')'"></span>
+                                    <span th:text="' • ' + ${(linkedSong.playCount != null ? linkedSong.playCount : 0)} + ' plays'"> • 0 plays</span>
+                                </div>
+                                <button type="button" class="btn-negative linked-remove-btn" onclick="this.closest('.linked-song-row').remove()">Remove</button>
+                            </div>
+                            <div class="linked-empty" th:if="${linkedSongs == null or linkedSongs.size() <= 1}">No linked songs yet.</div>
+                        </div>
+                        <div class="linked-song-search">
+                            <input type="text" id="linkedSongSearch" class="editable-input" autocomplete="off" placeholder="Search songs to link...">
+                            <div id="linkedSongResults" class="chips-dropdown" style="display:none;"></div>
+                        </div>
+                        <div class="form-actions linked-song-actions">
+                            <button type="submit" class="btn-action">Save Linked Songs</button>
+                        </div>
+                    </form>
+                </div>
                 
                 <!-- Statistics Section -->
                 <div class="detail-content-card">
@@ -852,16 +911,20 @@
                             <thead>
                                 <tr>
                                     <th>Date</th>
+                                    <th>Song</th>
                                     <th>Account</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="play : ${plays}">
                                     <td th:text="${play.playDate}">-</td>
+                                    <td>
+                                        <a th:href="@{'/songs/' + ${play.songId}}" th:text="${play.songName}">Song</a>
+                                    </td>
                                     <td th:text="${play.account}">-</td>
                                 </tr>
                                 <tr th:if="${plays == null or plays.isEmpty()}">
-                                    <td colspan="2"><em>No plays recorded</em></td>
+                                    <td colspan="3"><em>No plays recorded</em></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -2879,9 +2942,63 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        function initializeLinkedSongSearch() {
+            const input = document.getElementById('linkedSongSearch');
+            const results = document.getElementById('linkedSongResults');
+            const list = document.getElementById('linkedSongList');
+            if (!input || !results || !list) return;
+
+            input.addEventListener('input', function() {
+                const query = input.value.trim();
+                if (query.length < 2) {
+                    results.style.display = 'none';
+                    return;
+                }
+                fetch('/songs/api/search?song=' + encodeURIComponent(query) + '&limit=10')
+                    .then(response => response.json())
+                    .then(data => {
+                        const existingIds = new Set(Array.from(list.querySelectorAll('input[name="linkedSongIds"]')).map(el => el.value));
+                        existingIds.add(String(songId));
+                        const filtered = data.filter(song => !existingIds.has(String(song.id)));
+                        if (filtered.length === 0) {
+                            results.style.display = 'none';
+                            return;
+                        }
+                        results.innerHTML = filtered.map(song => {
+                            const album = song.albumName ? ' (' + escapeHtml(song.albumName) + ')' : '';
+                            const label = `${escapeHtml(song.name)} - ${escapeHtml(song.artistName || '')}${album}`;
+                            return `<div class="dropdown-item" data-id="${song.id}" data-name="${escapeHtml(song.name)}" data-artist="${escapeHtml(song.artistName || '')}" data-album="${escapeHtml(song.albumName || '')}">${label}</div>`;
+                        }).join('');
+                        results.style.display = 'block';
+                    });
+            });
+
+            results.addEventListener('click', function(event) {
+                const item = event.target.closest('.dropdown-item');
+                if (!item) return;
+                const empty = list.querySelector('.linked-empty');
+                if (empty) empty.remove();
+                const album = item.dataset.album ? ` (${escapeHtml(item.dataset.album)})` : '';
+                list.insertAdjacentHTML('beforeend', `
+                    <div class="linked-song-row">
+                        <input type="hidden" name="linkedSongIds" value="${item.dataset.id}">
+                        <div>
+                            <a href="/songs/${item.dataset.id}">${escapeHtml(item.dataset.name)}</a>
+                            <span> - ${escapeHtml(item.dataset.artist)}</span>
+                            <span>${album}</span>
+                        </div>
+                        <button type="button" class="btn-negative linked-remove-btn" onclick="this.closest('.linked-song-row').remove()">Remove</button>
+                    </div>
+                `);
+                input.value = '';
+                results.style.display = 'none';
+            });
+        }
         
         // Set up featured artists input listener
         document.addEventListener('DOMContentLoaded', function() {
+            initializeLinkedSongSearch();
             const input = document.getElementById('featuredArtistsInput');
             if (input) {
                 input.addEventListener('input', function(e) {

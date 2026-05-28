@@ -692,6 +692,14 @@
             cursor: help;
         }
 
+        .number-one-tooltip-trigger.tooltip-enabled > a,
+        .number-one-tooltip-trigger.tooltip-enabled > span:not(.number-one-tooltip-item-source) {
+            text-decoration-line: underline;
+            text-decoration-style: dotted;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
         .number-one-tooltip-item-source {
             display: none;
         }
@@ -856,7 +864,15 @@
                                 <td>
                                     <a class="overview-link-primary" th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songTitle}">Song</a>
                                 </td>
-                                <td class="center" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
+                                <td class="center" th:attr="data-value=${entry.totalChartSpan}">
+                                    <span class="number-one-tooltip-trigger"
+                                          th:classappend="${entry.linkedSongTitles != null and !entry.linkedSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
+                                          data-tooltip-title="Combined song versions:"
+                                          data-tooltip-icon="🎵">
+                                        <span th:text="${entry.totalChartSpan}">0</span>
+                                        <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.linkedSongTitles}" th:text="${title}"></span>
+                                    </span>
+                                </td>
                                 <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
                                 <td class="center" th:attr="data-value=${entry.spanAtPeak}" th:text="${entry.spanAtPeak}">0</td>
                                 <td class="center" th:attr="data-value=${entry.firstAppearanceSortValue}">
@@ -1377,6 +1393,12 @@
             return entries.map((entry) => {
                 const genderClass = entry.genderClass ? ` ${entry.genderClass}` : '';
                 const isWeeklyOverview = overviewPeriodType === 'weekly';
+                const weeksHtml = buildNumberOneTooltipTrigger(
+                    `<span>${entry.totalChartSpan}</span>`,
+                    entry.linkedSongTitles,
+                    'Combined song versions:',
+                    '🎵'
+                );
                 const detailButtonHtml = isWeeklyOverview
                     ? `<td class="center"><button type="button" class="overview-expand-btn" data-colspan="11" onclick="toggleOverviewDetail(this)">+</button></td>`
                     : '';
@@ -1392,7 +1414,7 @@
                         ${detailButtonHtml}
                         <td><a class="overview-link-secondary" href="/artists/${entry.artistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
                         <td><a class="overview-link-primary" href="/songs/${entry.songId}">${escapeWeeklyOverviewHtml(entry.songTitle)}</a></td>
-                        <td class="center" data-value="${entry.totalChartSpan}">${entry.totalChartSpan}</td>
+                        <td class="center" data-value="${entry.totalChartSpan}">${weeksHtml}</td>
                         <td class="center" data-value="${entry.peakPosition}">${entry.peakPosition}</td>
                         <td class="center" data-value="${entry.spanAtPeak}">${entry.spanAtPeak}</td>
                         <td class="center" data-value="${entry.firstAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.firstAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.firstAppearanceLabel))}</a></td>

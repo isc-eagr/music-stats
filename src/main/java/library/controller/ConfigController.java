@@ -1,6 +1,7 @@
 package library.controller;
 
 import library.service.AppConfigService;
+import library.service.ChartService;
 import library.service.PlayAutomationStateService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,10 +14,12 @@ public class ConfigController {
 
     private final AppConfigService appConfigService;
     private final PlayAutomationStateService automationStateService;
+    private final ChartService chartService;
 
-    public ConfigController(AppConfigService appConfigService, PlayAutomationStateService automationStateService) {
+    public ConfigController(AppConfigService appConfigService, PlayAutomationStateService automationStateService, ChartService chartService) {
         this.appConfigService = appConfigService;
         this.automationStateService = automationStateService;
+        this.chartService = chartService;
     }
 
     @GetMapping("/config")
@@ -26,6 +29,7 @@ public class ConfigController {
         model.addAttribute("automationConfig", appConfigService.getAutomationConfig());
         model.addAttribute("fullListenConfig", appConfigService.getAlbumFullListenConfig());
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
+        model.addAttribute("combineLinkedSongs", appConfigService.isCombineLinkedSongsEnabled());
         model.addAttribute("automationImportState", automationStateService.getImportPageState());
         return "config/index";
     }
@@ -39,6 +43,7 @@ public class ConfigController {
             @RequestParam int automationImportLogLimit,
             @RequestParam int automationStartHour,
             @RequestParam int automationEndHour,
+            @RequestParam(defaultValue = "false") boolean combineLinkedSongs,
             @RequestParam int allowedMissingUpTo6Tracks,
             @RequestParam int allowedMissingUpTo10Tracks,
             @RequestParam int allowedMissingUpTo20Tracks,
@@ -86,6 +91,10 @@ public class ConfigController {
                 trlOverviewPageSize,
                 billboardOverviewPageSize
         ));
+
+        if (appConfigService.updateCombineLinkedSongs(combineLinkedSongs)) {
+            chartService.regenerateAffectedWeeklySongChartsForLinkedSongs();
+        }
 
         return "redirect:/config?saved=true";
     }

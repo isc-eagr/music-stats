@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 public class ChartSongOverviewRowDTO {
 
     private Integer songId;
@@ -29,6 +31,7 @@ public class ChartSongOverviewRowDTO {
     private int spanAtTop10;
     private int[] spanAtTopThresholds;
     private String genderClass;
+    private List<String> linkedSongTitles;
 
     public Integer getSongId() {
         return songId;
@@ -244,5 +247,13 @@ public class ChartSongOverviewRowDTO {
 
     public void setGenderClass(String genderClass) {
         this.genderClass = genderClass;
+    }
+
+    public List<String> getLinkedSongTitles() {
+        return linkedSongTitles;
+    }
+
+    public void setLinkedSongTitles(List<String> linkedSongTitles) {
+        this.linkedSongTitles = linkedSongTitles;
     }
 }

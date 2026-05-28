@@ -46,6 +46,7 @@ public class AppConfigService {
     private static final String KEY_PAGE_SIZE_PC_OVERVIEW = "pageSize.misc.pcOverview";
     private static final String KEY_PAGE_SIZE_TRL_OVERVIEW = "pageSize.misc.trlOverview";
     private static final String KEY_PAGE_SIZE_BILLBOARD_OVERVIEW = "pageSize.misc.billboardHot100Overview";
+    private static final String KEY_COMBINE_LINKED_SONGS = "songs.combineLinkedSongs";
 
     private final JdbcTemplate jdbcTemplate;
     private final boolean defaultAutomationEnabled;
@@ -110,6 +111,7 @@ public class AppConfigService {
         putDefault(KEY_PAGE_SIZE_PC_OVERVIEW, "100");
         putDefault(KEY_PAGE_SIZE_TRL_OVERVIEW, "100");
         putDefault(KEY_PAGE_SIZE_BILLBOARD_OVERVIEW, "250");
+        putDefault(KEY_COMBINE_LINKED_SONGS, "false");
     }
 
     public AutomationConfig getAutomationConfig() {
@@ -196,6 +198,17 @@ public class AppConfigService {
 
     public int getBillboardOverviewPageSize() {
         return getPageSizeConfig().billboardOverviewPageSize();
+    }
+
+    public boolean isCombineLinkedSongsEnabled() {
+        return getBoolean(KEY_COMBINE_LINKED_SONGS, false);
+    }
+
+    @Transactional
+    public boolean updateCombineLinkedSongs(boolean combineLinkedSongs) {
+        boolean previousValue = isCombineLinkedSongsEnabled();
+        putValue(KEY_COMBINE_LINKED_SONGS, Boolean.toString(combineLinkedSongs));
+        return previousValue != combineLinkedSongs;
     }
 
     public int normalizePageSize(Integer requestedPageSize, int configuredDefaultPageSize) {

@@ -753,6 +753,9 @@ public class ArtistController {
             songs.sort((a, b) -> Integer.compare(b.getTotalPlays() != null ? b.getTotalPlays() : 0, 
                                                   a.getTotalPlays() != null ? a.getTotalPlays() : 0));
         }
+        if (appConfigService.isCombineLinkedSongsEnabled()) {
+            songs = artistService.combineLinkedSongs(songs);
+        }
         model.addAttribute("songs", songs);
         
         // Tab and plays data
@@ -952,6 +955,10 @@ public class ArtistController {
                     seasonalSongHistory.addAll(chartService.getFeaturedArtistChartHistoryByPeriodType(id, "seasonal"));
                     yearlySongHistory.addAll(chartService.getFeaturedArtistChartHistoryByPeriodType(id, "yearly"));
                 }
+            }
+
+            if (appConfigService.isCombineLinkedSongsEnabled()) {
+                songHistory = chartService.combineLinkedSongChartHistory(songHistory);
             }
 
             model.addAttribute("songChartHistory", songHistory);

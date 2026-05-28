@@ -869,7 +869,13 @@
                                         (by <a th:href="@{'/artists/' + ${song.sourceArtistId}}" th:text="${song.sourceArtistName}">Group</a>)
                                     </span>
                                 </td>
-                                <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</td>
+                                <td style="text-align:right;" th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'golden-plays' : ''">
+                                    <span th:if="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Total Plays):">
+                                        <span th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</span>
+                                        <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.totalPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                    </span>
+                                    <span th:unless="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</span>
+                                </td>
                                 <td style="text-align:right;" class="hide-mobile" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
                                 <td style="text-align:right;" class="hide-mobile" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
                                 <td style="text-align:right;" class="hide-mobile" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
@@ -1306,7 +1312,13 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
+                                        <td style="text-align:right;">
+                                            <span th:if="${entry.totalWeekBreakdownItems != null and !entry.totalWeekBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Weeks):">
+                                                <span th:text="${entry.totalWeeks}">5</span>
+                                                <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${entry.totalWeekBreakdownItems}" th:text="${tooltipItem}"></span>
+                                            </span>
+                                            <span th:unless="${entry.totalWeekBreakdownItems != null and !entry.totalWeekBreakdownItems.isEmpty()}" th:text="${entry.totalWeeks}">5</span>
+                                        </td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
@@ -1410,7 +1422,13 @@
                                                 (by <a th:href="@{'/artists/' + ${entry.sourceArtistId}}" th:text="${entry.sourceArtistName}">Group</a>)
                                             </span>
                                         </td>
-                                        <td style="text-align:right;" th:text="${entry.totalWeeks}">5</td>
+                                        <td style="text-align:right;">
+                                            <span th:if="${entry.totalWeekBreakdownItems != null and !entry.totalWeekBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Weeks):">
+                                                <span th:text="${entry.totalWeeks}">5</span>
+                                                <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${entry.totalWeekBreakdownItems}" th:text="${tooltipItem}"></span>
+                                            </span>
+                                            <span th:unless="${entry.totalWeekBreakdownItems != null and !entry.totalWeekBreakdownItems.isEmpty()}" th:text="${entry.totalWeeks}">5</span>
+                                        </td>
                                         <td style="text-align:right;">
                                             <span th:classappend="${entry.peakNumberOne} ? 'peak-number-one' : ''" 
                                                   th:text="${entry.peakPosition}">#1</span>
@@ -4529,6 +4547,92 @@
             }[char];
         });
     }
+
+    let activeLinkedSongTooltip = null;
+    let activeLinkedSongTrigger = null;
+
+    function escapeLinkedSongTooltipHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function(char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char];
+        });
+    }
+
+    function ensureLinkedSongTooltip() {
+        if (activeLinkedSongTooltip) {
+            return activeLinkedSongTooltip;
+        }
+        activeLinkedSongTooltip = document.createElement('div');
+        activeLinkedSongTooltip.className = 'linked-song-tooltip';
+        document.body.appendChild(activeLinkedSongTooltip);
+        return activeLinkedSongTooltip;
+    }
+
+    function positionLinkedSongTooltip(trigger) {
+        const tooltip = ensureLinkedSongTooltip();
+        const rect = trigger.getBoundingClientRect();
+        const tooltipHeight = tooltip.offsetHeight;
+        tooltip.style.left = rect.left + 'px';
+        tooltip.style.top = Math.max(8, rect.top - tooltipHeight - 8) + 'px';
+    }
+
+    function showLinkedSongTooltip(trigger) {
+        const items = Array.from(trigger.querySelectorAll('.linked-song-tooltip-item-source'))
+            .map((item) => item.textContent.trim())
+            .filter((item) => item);
+        if (!items.length) {
+            return;
+        }
+        const tooltip = ensureLinkedSongTooltip();
+        const title = trigger.dataset.tooltipTitle || 'Combined song versions:';
+        tooltip.innerHTML = `<div class="tooltip-title">${escapeLinkedSongTooltipHtml(title)}</div>`
+            + items.map((item) => `<div class="tooltip-song">${escapeLinkedSongTooltipHtml(item)}</div>`).join('');
+        tooltip.style.display = 'block';
+        activeLinkedSongTrigger = trigger;
+        positionLinkedSongTooltip(trigger);
+    }
+
+    function hideLinkedSongTooltip(trigger) {
+        const tooltip = ensureLinkedSongTooltip();
+        tooltip.style.display = 'none';
+        if (!trigger || activeLinkedSongTrigger === trigger) {
+            activeLinkedSongTrigger = null;
+        }
+    }
+
+    function initializeLinkedSongTooltips(root = document) {
+        root.querySelectorAll('.linked-song-tooltip-trigger.tooltip-enabled').forEach((trigger) => {
+            if (trigger.dataset.tooltipBound === 'true') {
+                return;
+            }
+            trigger.dataset.tooltipBound = 'true';
+            trigger.addEventListener('mouseenter', () => showLinkedSongTooltip(trigger));
+            trigger.addEventListener('mouseleave', () => hideLinkedSongTooltip(trigger));
+            trigger.addEventListener('focusin', () => showLinkedSongTooltip(trigger));
+            trigger.addEventListener('focusout', () => hideLinkedSongTooltip(trigger));
+        });
+    }
+
+    window.addEventListener('scroll', () => {
+        if (activeLinkedSongTrigger) {
+            positionLinkedSongTooltip(activeLinkedSongTrigger);
+        }
+    }, true);
+
+    window.addEventListener('resize', () => {
+        if (activeLinkedSongTrigger) {
+            positionLinkedSongTooltip(activeLinkedSongTrigger);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeLinkedSongTooltips();
+    });
     </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 public class ArtistSongDTO {
     private Integer id;
     private String name;
@@ -30,6 +32,7 @@ public class ArtistSongDTO {
     private Integer sourceArtistId; // the group artist's ID when this is a group song
     private String sourceArtistName; // the group artist's name when this is a group song
     private Boolean inItunes;
+    private List<String> totalPlayBreakdownItems;
     
     public ArtistSongDTO() {}
     
@@ -303,5 +306,13 @@ public class ArtistSongDTO {
 
     public void setInItunes(Boolean inItunes) {
         this.inItunes = inItunes;
+    }
+
+    public List<String> getTotalPlayBreakdownItems() {
+        return totalPlayBreakdownItems;
+    }
+
+    public void setTotalPlayBreakdownItems(List<String> totalPlayBreakdownItems) {
+        this.totalPlayBreakdownItems = totalPlayBreakdownItems;
     }
 }

@@ -1222,7 +1222,12 @@
                                 </td>
                                 <td class="col-plays hide-mobile" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
                                     <div class="plays-cell">
-                                        <span class="plays-count"
+                                        <span th:if="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="number-one-tooltip-trigger tooltip-enabled" tabindex="0" data-tooltip-title="Combined song versions:" data-tooltip-icon="🎵">
+                                            <span class="plays-count"
+                                                  th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
+                                            <span class="number-one-tooltip-item-source" hidden th:each="tooltipItem : ${entry.playBreakdownItems}" th:text="${tooltipItem}"></span>
+                                        </span>
+                                        <span th:unless="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="plays-count"
                                               th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
                                     </div>
                                 </td>
@@ -1316,7 +1321,12 @@
                                             </td>
                                             <td class="col-plays hide-mobile">
                                                 <div class="plays-cell">
-                                                    <span class="plays-count"
+                                                    <span th:if="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="number-one-tooltip-trigger tooltip-enabled" tabindex="0" data-tooltip-title="Combined song versions:" data-tooltip-icon="🎵">
+                                                        <span class="plays-count"
+                                                              th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
+                                                        <span class="number-one-tooltip-item-source" hidden th:each="tooltipItem : ${entry.playBreakdownItems}" th:text="${tooltipItem}"></span>
+                                                    </span>
+                                                    <span th:unless="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="plays-count"
                                                           th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
                                                 </div>
                                             </td>
@@ -2297,6 +2307,77 @@
     
     <script th:inline="javascript">
         /*<![CDATA[*/
+        let activeWeeklyNumberOneTooltip = null;
+        let activeWeeklyNumberOneTrigger = null;
+
+        function ensureWeeklyNumberOneTooltip() {
+            if (activeWeeklyNumberOneTooltip) {
+                return activeWeeklyNumberOneTooltip;
+            }
+            activeWeeklyNumberOneTooltip = document.createElement('div');
+            activeWeeklyNumberOneTooltip.className = 'number-one-tooltip';
+            document.body.appendChild(activeWeeklyNumberOneTooltip);
+            return activeWeeklyNumberOneTooltip;
+        }
+
+        function positionWeeklyNumberOneTooltip(trigger) {
+            const tooltip = ensureWeeklyNumberOneTooltip();
+            const rect = trigger.getBoundingClientRect();
+            const tooltipHeight = tooltip.offsetHeight;
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = Math.max(8, rect.top - tooltipHeight - 8) + 'px';
+        }
+
+        function showWeeklyNumberOneTooltip(trigger) {
+            const items = Array.from(trigger.querySelectorAll('.number-one-tooltip-item-source'))
+                .map((item) => item.textContent.trim())
+                .filter((item) => item);
+            if (!items.length) {
+                return;
+            }
+            const tooltip = ensureWeeklyNumberOneTooltip();
+            const title = trigger.dataset.tooltipTitle || 'Combined song versions:';
+            const icon = trigger.dataset.tooltipIcon || '🎵';
+            tooltip.innerHTML = `<div class="tooltip-title">${title}</div>`
+                + items.map((item) => `<div class="tooltip-song">${icon} ${item}</div>`).join('');
+            tooltip.style.display = 'block';
+            activeWeeklyNumberOneTrigger = trigger;
+            positionWeeklyNumberOneTooltip(trigger);
+        }
+
+        function hideWeeklyNumberOneTooltip(trigger) {
+            const tooltip = ensureWeeklyNumberOneTooltip();
+            tooltip.style.display = 'none';
+            if (!trigger || activeWeeklyNumberOneTrigger === trigger) {
+                activeWeeklyNumberOneTrigger = null;
+            }
+        }
+
+        function initializeWeeklyNumberOneTooltips(root = document) {
+            root.querySelectorAll('.number-one-tooltip-trigger.tooltip-enabled').forEach((trigger) => {
+                if (trigger.dataset.tooltipBound === 'true') {
+                    return;
+                }
+                trigger.dataset.tooltipBound = 'true';
+                trigger.addEventListener('mouseenter', () => showWeeklyNumberOneTooltip(trigger));
+                trigger.addEventListener('mouseleave', () => hideWeeklyNumberOneTooltip(trigger));
+                trigger.addEventListener('focusin', () => showWeeklyNumberOneTooltip(trigger));
+                trigger.addEventListener('focusout', () => hideWeeklyNumberOneTooltip(trigger));
+            });
+        }
+
+        window.addEventListener('scroll', () => {
+            if (activeWeeklyNumberOneTrigger) {
+                positionWeeklyNumberOneTooltip(activeWeeklyNumberOneTrigger);
+            }
+        }, true);
+
+        window.addEventListener('resize', () => {
+            if (activeWeeklyNumberOneTrigger) {
+                positionWeeklyNumberOneTooltip(activeWeeklyNumberOneTrigger);
+            }
+        });
+
         function computeMalePct(listSelector, rowSelector, targetId) {
             const rows = document.querySelectorAll(listSelector + ' ' + rowSelector);
             let male = 0, total = 0;
@@ -2326,6 +2407,7 @@
             // Songs table: exclude detail rows
             computeMalePct('#songsSection .charts-table tbody', 'tr[data-song-id]', 'songsGenderPct');
             computeMalePct('#albumsSection .charts-table tbody', 'tr[data-album-id]', 'albumsGenderPct');
+            initializeWeeklyNumberOneTooltips();
         });
         /*]]>*/
     </script>
@@ -2356,6 +2438,49 @@
             white-space: nowrap;
         }
         .genre-breakdown-btn:hover { border-color: #888; color: #ccc; }
+        .number-one-tooltip {
+            position: fixed;
+            display: none;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.2);
+            z-index: 10000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .number-one-tooltip .tooltip-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .number-one-tooltip .tooltip-song {
+            font-size: 13px;
+            color: #e5e7eb;
+            padding: 4px 0;
+            line-height: 1.4;
+        }
+        .number-one-tooltip-trigger {
+            display: inline-flex;
+            align-items: center;
+        }
+        .number-one-tooltip-trigger.tooltip-enabled {
+            cursor: help;
+        }
+        .number-one-tooltip-trigger.tooltip-enabled > a,
+        .number-one-tooltip-trigger.tooltip-enabled > span:not(.number-one-tooltip-item-source) {
+            text-decoration-line: underline;
+            text-decoration-style: dotted;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+        .number-one-tooltip-item-source {
+            display: none;
+        }
         .gb-modal-overlay {
             display: none;
             position: fixed;

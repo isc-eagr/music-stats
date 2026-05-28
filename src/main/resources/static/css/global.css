@@ -428,6 +428,55 @@ select:focus {
   }
 }
 
+.linked-song-tooltip {
+    position: fixed;
+    display: none;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid #ffd700;
+    border-radius: 8px;
+    padding: 12px 16px;
+    max-width: 400px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.2);
+    z-index: 10000;
+}
+
+.linked-song-tooltip .tooltip-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.linked-song-tooltip .tooltip-song {
+    font-size: 13px;
+    color: #e5e7eb;
+    padding: 4px 0;
+    line-height: 1.4;
+}
+
+.linked-song-tooltip-trigger {
+    display: inline-flex;
+    align-items: center;
+}
+
+.linked-song-tooltip-trigger.tooltip-enabled {
+    cursor: help;
+}
+
+.linked-song-tooltip-trigger.tooltip-enabled > a,
+.linked-song-tooltip-trigger.tooltip-enabled > span:not(.linked-song-tooltip-item-source) {
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+.linked-song-tooltip-item-source {
+    display: none;
+}
+
 /* Shared multi-select dropdown styles */
 .multi-select-container { position: relative; }
 .multi-select-display {

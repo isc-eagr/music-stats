@@ -13,6 +13,7 @@ import library.service.AlbumService;
 import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.SongService;
+import library.service.SongLinkService;
 import library.service.ItunesService;
 import library.service.TrlService;
 import library.service.PcService;
@@ -61,6 +62,7 @@ public class SongController {
     private final TrlService trlService;
     private final PcService pcService;
     private final BillboardHot100Service billboardHot100Service;
+    private final SongLinkService songLinkService;
     private final JdbcTemplate jdbcTemplate;
     private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
@@ -69,7 +71,7 @@ public class SongController {
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
                          AppConfigService appConfigService,
                          ItunesService itunesService, TrlService trlService, PcService pcService,
-                         BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate) {
+                         BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate, SongLinkService songLinkService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -82,6 +84,7 @@ public class SongController {
         this.pcService = pcService;
         this.billboardHot100Service = billboardHot100Service;
         this.jdbcTemplate = jdbcTemplate;
+        this.songLinkService = songLinkService;
     }
     
     @InitBinder
@@ -630,6 +633,8 @@ public class SongController {
         model.addAttribute("albumName", albumName);
         model.addAttribute("whoSampledUrl", whoSampledUrl);
         model.addAttribute("whoSampledSearchUrl", whoSampledSearchUrl);
+        model.addAttribute("combineLinkedSongs", appConfigService.isCombineLinkedSongsEnabled());
+        model.addAttribute("linkedSongs", songLinkService.getLinkedSongs(id));
         
         // Add artist and album entities for ranking chips
         Artist artist = artistService.findById(song.get().getArtistId());
@@ -816,6 +821,16 @@ public class SongController {
     public String updateSong(@PathVariable Integer id, @ModelAttribute Song song) {
         song.setId(id);
         songService.saveSong(song);
+        return "redirect:/songs/" + id;
+    }
+
+    @PostMapping("/{id}/linked-songs")
+    public String updateLinkedSongs(@PathVariable Integer id,
+                                    @RequestParam(required = false) List<Integer> linkedSongIds) {
+        java.util.Set<Integer> impactedSongIds = songLinkService.saveLinkedSongs(id, linkedSongIds);
+        if (appConfigService.isCombineLinkedSongsEnabled()) {
+            chartService.regenerateAffectedWeeklySongChartsForSongIds(impactedSongIds);
+        }
         return "redirect:/songs/" + id;
     }
     

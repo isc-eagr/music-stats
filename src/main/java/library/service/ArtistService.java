@@ -21,9 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -31,20 +33,24 @@ import java.util.stream.Collectors;
 
 @Service
 public class ArtistService {
+    private static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
+
     
     private final ArtistRepository artistRepository;
     private final ArtistImageRepository artistImageRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ItunesService itunesService;
+    private final SongLinkService songLinkService;
     private ThemeService themeService; // set via setter to avoid circular-dependency risk
 
-    public ArtistService(ArtistRepository artistRepository, ArtistImageRepository artistImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService) {
+    public ArtistService(ArtistRepository artistRepository, ArtistImageRepository artistImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService, SongLinkService songLinkService) {
         this.artistRepository = artistRepository;
         this.artistImageRepository = artistImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.itunesService = itunesService;
+        this.songLinkService = songLinkService;
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -998,6 +1004,89 @@ public class ArtistService {
             
             return dto;
         }, artistId);
+    }
+
+    public List<ArtistSongDTO> combineLinkedSongs(List<ArtistSongDTO> songs) {
+        if (songs == null || songs.isEmpty()) {
+            return songs;
+        }
+
+        List<Integer> songIds = songs.stream()
+                .map(ArtistSongDTO::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (songIds.isEmpty()) {
+            return songs;
+        }
+
+        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
+        Map<String, List<ArtistSongDTO>> grouped = new java.util.LinkedHashMap<>();
+        for (ArtistSongDTO song : songs) {
+            Integer groupId = groupIds.get(song.getId());
+            String key = groupId != null ? "g:" + groupId : "s:" + song.getId();
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(song);
+        }
+
+        List<ArtistSongDTO> combined = new ArrayList<>();
+        for (List<ArtistSongDTO> group : grouped.values()) {
+            if (group.size() == 1) {
+                combined.add(group.get(0));
+                continue;
+            }
+
+            ArtistSongDTO representative = group.stream()
+                    .min(java.util.Comparator.comparingInt((ArtistSongDTO song) -> songLinkService.cleanTitleScore(song.getName()))
+                            .thenComparing(ArtistSongDTO::getName, String.CASE_INSENSITIVE_ORDER)
+                            .thenComparing(ArtistSongDTO::getId))
+                    .orElse(group.get(0));
+
+            ArtistSongDTO dto = copyArtistSong(representative);
+            dto.setHasImage(group.stream().anyMatch(ArtistSongDTO::getHasImage));
+            dto.setAlbumHasImage(group.stream().anyMatch(ArtistSongDTO::getAlbumHasImage));
+            dto.setVatitoPlays(group.stream().mapToInt(song -> song.getVatitoPlays() != null ? song.getVatitoPlays() : 0).sum());
+            dto.setRobertloverPlays(group.stream().mapToInt(song -> song.getRobertloverPlays() != null ? song.getRobertloverPlays() : 0).sum());
+            dto.setTotalPlays(group.stream().mapToInt(song -> song.getTotalPlays() != null ? song.getTotalPlays() : 0).sum());
+
+            int totalListeningSeconds = group.stream()
+                    .mapToInt(song -> song.getTotalListeningTimeSeconds() != null ? song.getTotalListeningTimeSeconds() : 0)
+                    .sum();
+            dto.setTotalListeningTimeSeconds(totalListeningSeconds);
+                dto.setTotalListeningTime(formatArtistSongListeningTime(totalListeningSeconds));
+            dto.setFeaturedOn(group.stream().allMatch(ArtistSongDTO::isFeaturedOn));
+            if (!dto.isFeaturedOn()) {
+                dto.setPrimaryArtistId(null);
+                dto.setPrimaryArtistName(null);
+            }
+            dto.setFromGroup(group.stream().allMatch(ArtistSongDTO::isFromGroup));
+            if (!dto.isFromGroup()) {
+                dto.setSourceArtistId(null);
+                dto.setSourceArtistName(null);
+            }
+
+            dto.setFirstListenedDate(group.stream()
+                    .map(ArtistSongDTO::getFirstListenedDate)
+                    .map(this::parseDisplayDate)
+                    .filter(Objects::nonNull)
+                    .min(LocalDate::compareTo)
+                    .map(this::formatDisplayDate)
+                    .orElse("-"));
+            dto.setLastListenedDate(group.stream()
+                    .map(ArtistSongDTO::getLastListenedDate)
+                    .map(this::parseDisplayDate)
+                    .filter(Objects::nonNull)
+                    .max(LocalDate::compareTo)
+                    .map(this::formatDisplayDate)
+                    .orElse("-"));
+                dto.setTotalPlayBreakdownItems(buildArtistSongPlayBreakdownItems(group));
+
+            combined.add(dto);
+        }
+
+        combined.sort(java.util.Comparator
+                .comparing(ArtistSongDTO::getTotalPlays, java.util.Comparator.nullsFirst(Integer::compareTo)).reversed()
+                .thenComparing(ArtistSongDTO::getName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                .thenComparing(ArtistSongDTO::getId, java.util.Comparator.nullsLast(Integer::compareTo)));
+        return combined;
     }
     
     // Get all albums for an artist with play counts
@@ -2450,6 +2539,125 @@ public class ArtistService {
             
             return dto;
         }, queryParams.toArray());
+    }
+
+    private ArtistSongDTO copyArtistSong(ArtistSongDTO source) {
+        ArtistSongDTO target = new ArtistSongDTO();
+        target.setId(source.getId());
+        target.setName(source.getName());
+        target.setAlbumId(source.getAlbumId());
+        target.setAlbumName(source.getAlbumName());
+        target.setReleaseDate(source.getReleaseDate());
+        target.setLength(source.getLength());
+        target.setLengthFormatted(source.getLengthFormatted());
+        target.setVatitoPlays(source.getVatitoPlays());
+        target.setRobertloverPlays(source.getRobertloverPlays());
+        target.setTotalPlays(source.getTotalPlays());
+        target.setTotalListeningTime(source.getTotalListeningTime());
+        target.setTotalListeningTimeSeconds(source.getTotalListeningTimeSeconds());
+        target.setFirstListenedDate(source.getFirstListenedDate());
+        target.setLastListenedDate(source.getLastListenedDate());
+        target.setGenre(source.getGenre());
+        target.setSubgenre(source.getSubgenre());
+        target.setEthnicity(source.getEthnicity());
+        target.setLanguage(source.getLanguage());
+        target.setCountry(source.getCountry());
+        target.setHasImage(source.getHasImage());
+        target.setAlbumHasImage(source.getAlbumHasImage());
+        target.setIsSingle(source.getIsSingle());
+        target.setFeaturedOn(source.isFeaturedOn());
+        target.setPrimaryArtistId(source.getPrimaryArtistId());
+        target.setPrimaryArtistName(source.getPrimaryArtistName());
+        target.setFromGroup(source.isFromGroup());
+        target.setSourceArtistId(source.getSourceArtistId());
+        target.setSourceArtistName(source.getSourceArtistName());
+        target.setInItunes(source.getInItunes());
+        target.setTotalPlayBreakdownItems(source.getTotalPlayBreakdownItems());
+        return target;
+    }
+
+    private List<String> buildArtistSongPlayBreakdownItems(List<ArtistSongDTO> group) {
+        if (group == null || group.size() <= 1) {
+            return List.of();
+        }
+
+        long distinctSources = group.stream()
+                .map(this::resolveArtistSongTooltipSource)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        boolean includeSource = distinctSources > 1;
+
+        List<String> items = group.stream()
+                .map(song -> formatArtistSongPlayBreakdownItem(song, includeSource))
+                .filter(item -> item != null && !item.isBlank())
+                .toList();
+        return items.size() > 1 ? items : List.of();
+    }
+
+    private String formatArtistSongPlayBreakdownItem(ArtistSongDTO song, boolean includeSource) {
+        if (song == null || song.getName() == null || song.getName().isBlank()) {
+            return null;
+        }
+
+        StringBuilder label = new StringBuilder();
+        String source = resolveArtistSongTooltipSource(song);
+        if (includeSource && source != null && !source.isBlank()) {
+            label.append(source).append(" - ");
+        }
+        label.append(song.getName());
+        if (song.getAlbumName() != null && !song.getAlbumName().isBlank()) {
+            label.append(" (").append(song.getAlbumName()).append(")");
+        }
+        label.append(": ").append(String.format(Locale.US, "%,d", song.getTotalPlays() != null ? song.getTotalPlays() : 0));
+        return label.toString();
+    }
+
+    private String resolveArtistSongTooltipSource(ArtistSongDTO song) {
+        if (song == null) {
+            return null;
+        }
+        if (song.isFeaturedOn() && song.getPrimaryArtistName() != null && !song.getPrimaryArtistName().isBlank()) {
+            return song.getPrimaryArtistName();
+        }
+        if (song.isFromGroup() && song.getSourceArtistName() != null && !song.getSourceArtistName().isBlank()) {
+            return song.getSourceArtistName();
+        }
+        return null;
+    }
+
+    private LocalDate parseDisplayDate(String value) {
+        if (value == null || value.isBlank() || "-".equals(value)) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value, DISPLAY_DATE_FORMATTER);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String formatDisplayDate(LocalDate value) {
+        return value != null ? value.format(DISPLAY_DATE_FORMATTER) : "-";
+    }
+
+    private String formatArtistSongListeningTime(int totalSeconds) {
+        if (totalSeconds <= 0) {
+            return "-";
+        }
+
+        long days = totalSeconds / 86400;
+        long hours = (totalSeconds % 86400) / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        if (days > 0) {
+            return String.format("%dd:%02d:%02d:%02d", days, hours, minutes, seconds);
+        }
+        if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, seconds);
+        }
+        return String.format("%d:%02d", minutes, seconds);
     }
     
     /**

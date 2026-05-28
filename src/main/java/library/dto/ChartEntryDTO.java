@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 /**
  * DTO for displaying a chart entry with calculated statistics.
  * Used in the weekly charts table display.
@@ -25,6 +27,8 @@ public class ChartEntryDTO {
     private Integer peakPosition;
     private Integer timesAtPeak;
     private Integer weeksOnChart;
+    private String playBreakdown;
+    private List<String> playBreakdownItems;
     
     // Getters and setters
     public Integer getPosition() {
@@ -172,6 +176,22 @@ public class ChartEntryDTO {
     
     public void setWeeksOnChart(Integer weeksOnChart) {
         this.weeksOnChart = weeksOnChart;
+    }
+
+    public String getPlayBreakdown() {
+        return playBreakdown;
+    }
+
+    public void setPlayBreakdown(String playBreakdown) {
+        this.playBreakdown = playBreakdown;
+    }
+
+    public List<String> getPlayBreakdownItems() {
+        return playBreakdownItems;
+    }
+
+    public void setPlayBreakdownItems(List<String> playBreakdownItems) {
+        this.playBreakdownItems = playBreakdownItems;
     }
     
     // Computed properties

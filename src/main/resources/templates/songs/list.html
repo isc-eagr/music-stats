@@ -1625,15 +1625,27 @@
                         <div class="song-stats song-stats-plays">
                             <div class="stat" title="Total plays">
                                 <span class="stat-icon total-plays">⏵</span>
-                                <span class="stat-value" th:text="${song.playCount}">0</span>
+                                <span th:if="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Total Plays):">
+                                    <span class="stat-value" th:text="${song.playCount}">0</span>
+                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.totalPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                </span>
+                                <span th:unless="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" class="stat-value" th:text="${song.playCount}">0</span>
                             </div>
                             <div class="stat" title="Primary plays">
                                 <span class="stat-icon primary-plays">⏵</span>
-                                <span class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
+                                <span th:if="${song.primaryPlayBreakdownItems != null and !song.primaryPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Primary Plays):">
+                                    <span class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
+                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.primaryPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                </span>
+                                <span th:unless="${song.primaryPlayBreakdownItems != null and !song.primaryPlayBreakdownItems.isEmpty()}" class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
                             </div>
                             <div class="stat" title="Legacy plays">
                                 <span class="stat-icon legacy-plays">⏵</span>
-                                <span class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
+                                <span th:if="${song.legacyPlayBreakdownItems != null and !song.legacyPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Legacy Plays):">
+                                    <span class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
+                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.legacyPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                </span>
+                                <span th:unless="${song.legacyPlayBreakdownItems != null and !song.legacyPlayBreakdownItems.isEmpty()}" class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
                             </div>
                         </div>
                     </div>
@@ -2638,6 +2650,103 @@
         }
         
     </script>
+
+    <script>
+        let activeLinkedSongTooltip = null;
+        let activeLinkedSongTrigger = null;
+
+        function escapeLinkedSongTooltipHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function(char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[char];
+            });
+        }
+
+        function ensureLinkedSongTooltip() {
+            if (activeLinkedSongTooltip) {
+                return activeLinkedSongTooltip;
+            }
+            activeLinkedSongTooltip = document.createElement('div');
+            activeLinkedSongTooltip.className = 'linked-song-tooltip';
+            document.body.appendChild(activeLinkedSongTooltip);
+            return activeLinkedSongTooltip;
+        }
+
+        function positionLinkedSongTooltip(trigger) {
+            const tooltip = ensureLinkedSongTooltip();
+            const rect = trigger.getBoundingClientRect();
+            const tooltipHeight = tooltip.offsetHeight;
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = Math.max(8, rect.top - tooltipHeight - 8) + 'px';
+        }
+
+        function showLinkedSongTooltip(trigger) {
+            const items = Array.from(trigger.querySelectorAll('.linked-song-tooltip-item-source'))
+                .map((item) => item.textContent.trim())
+                .filter((item) => item);
+            if (!items.length) {
+                return;
+            }
+            const tooltip = ensureLinkedSongTooltip();
+            const title = trigger.dataset.tooltipTitle || 'Combined song versions:';
+            tooltip.innerHTML = `<div class="tooltip-title">${escapeLinkedSongTooltipHtml(title)}</div>`
+                + items.map((item) => `<div class="tooltip-song">${escapeLinkedSongTooltipHtml(item)}</div>`).join('');
+            tooltip.style.display = 'block';
+            activeLinkedSongTrigger = trigger;
+            positionLinkedSongTooltip(trigger);
+        }
+
+        function hideLinkedSongTooltip(trigger) {
+            const tooltip = ensureLinkedSongTooltip();
+            tooltip.style.display = 'none';
+            if (!trigger || activeLinkedSongTrigger === trigger) {
+                activeLinkedSongTrigger = null;
+            }
+        }
+
+        function initializeLinkedSongTooltips(root = document) {
+            root.querySelectorAll('.linked-song-tooltip-trigger.tooltip-enabled').forEach((trigger) => {
+                if (trigger.dataset.tooltipBound === 'true') {
+                    return;
+                }
+                trigger.dataset.tooltipBound = 'true';
+                trigger.addEventListener('mouseenter', () => showLinkedSongTooltip(trigger));
+                trigger.addEventListener('mouseleave', () => hideLinkedSongTooltip(trigger));
+                trigger.addEventListener('focusin', () => showLinkedSongTooltip(trigger));
+                trigger.addEventListener('focusout', () => hideLinkedSongTooltip(trigger));
+            });
+        }
+
+        window.initializeLinkedSongTooltips = initializeLinkedSongTooltips;
+        window.buildLinkedSongTooltipTriggerHtml = function(contentHtml, items, title) {
+            const safeItems = Array.isArray(items) ? items.filter((item) => item) : [];
+            if (!safeItems.length) {
+                return contentHtml;
+            }
+            return `<span class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="${escapeLinkedSongTooltipHtml(title || 'Combined song versions:')}">${contentHtml}${safeItems.map((item) => `<span class="linked-song-tooltip-item-source" hidden>${escapeLinkedSongTooltipHtml(item)}</span>`).join('')}</span>`;
+        };
+
+        window.addEventListener('scroll', () => {
+            if (activeLinkedSongTrigger) {
+                positionLinkedSongTooltip(activeLinkedSongTrigger);
+            }
+        }, true);
+
+        window.addEventListener('resize', () => {
+            if (activeLinkedSongTrigger) {
+                positionLinkedSongTooltip(activeLinkedSongTrigger);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeLinkedSongTooltips();
+        });
+    </script>
     
     <!-- Image Modal -->
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
@@ -3248,6 +3357,7 @@
                     const newCards = doc.querySelectorAll('#songGrid .song-card');
                     addedCount = newCards.length;
                     newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
+                    initializeLinkedSongTooltips(grid);
                     updateCounterText(addedCount);
                     updateLoadAllButton();
                 } catch (e) {

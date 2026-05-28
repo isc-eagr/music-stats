@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -36,13 +37,18 @@ public class SongService {
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ItunesService itunesService;
+    private final AppConfigService appConfigService;
+    private final SongLinkService songLinkService;
     
-    public SongService(SongRepository songRepository, SongImageRepository songImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate, ItunesService itunesService) {
+    public SongService(SongRepository songRepository, SongImageRepository songImageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate,
+                       ItunesService itunesService, AppConfigService appConfigService, SongLinkService songLinkService) {
         this.songRepository = songRepository;
         this.songImageRepository = songImageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.itunesService = itunesService;
+        this.appConfigService = appConfigService;
+        this.songLinkService = songLinkService;
     }
 
     public String getItunesSongIdsJson(String inItunes) {
@@ -97,6 +103,10 @@ public class SongService {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
+        boolean combineLinkedSongs = appConfigService.isCombineLinkedSongsEnabled();
+        int queryLimit = combineLinkedSongs ? 100000 : perPage;
+        int queryOffset = combineLinkedSongs ? 0 : page * perPage;
+
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
@@ -119,7 +129,7 @@ public class SongService {
                 vatosCuntdownPeak, vatosCuntdownDays,
                 billboardPeak, billboardWeeks,
                 seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
-                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, perPage, page * perPage
+                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, queryLimit, queryOffset
         );
         
         List<SongCardDTO> songs = new ArrayList<>();
@@ -219,7 +229,211 @@ public class SongService {
             songs.add(dto);
         }
         
+        if (combineLinkedSongs) {
+            songs = combineLinkedSongCards(songs, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
+            int fromIndex = Math.min(page * perPage, songs.size());
+            int toIndex = Math.min(fromIndex + perPage, songs.size());
+            return new ArrayList<>(songs.subList(fromIndex, toIndex));
+        }
+
         return songs;
+    }
+
+    private long countCombinedRows(List<Object[]> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return 0;
+        }
+        List<Integer> songIds = rows.stream()
+                .map(row -> ((Number) row[0]).intValue())
+                .toList();
+        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
+        return rows.stream()
+                .map(row -> {
+                    Integer songId = ((Number) row[0]).intValue();
+                    Integer groupId = groupIds.get(songId);
+                    return groupId != null ? "g:" + groupId : "s:" + songId;
+                })
+                .distinct()
+                .count();
+    }
+
+    private List<SongCardDTO> combineLinkedSongCards(List<SongCardDTO> songs,
+                                                     String sortBy, String sortDirection,
+                                                     String sortBy2, String sortDirection2,
+                                                     String sortBy3, String sortDirection3) {
+        if (songs == null || songs.isEmpty()) {
+            return songs;
+        }
+        List<Integer> songIds = songs.stream().map(SongCardDTO::getId).toList();
+        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
+        Map<String, List<SongCardDTO>> grouped = new java.util.LinkedHashMap<>();
+        for (SongCardDTO song : songs) {
+            Integer groupId = groupIds.get(song.getId());
+            String key = groupId != null ? "g:" + groupId : "s:" + song.getId();
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(song);
+        }
+
+        List<SongCardDTO> combined = new ArrayList<>();
+        for (List<SongCardDTO> group : grouped.values()) {
+            if (group.size() == 1) {
+                SongCardDTO single = group.get(0);
+                single.setLinkedSongGroup(false);
+                single.setLinkedSongCount(1);
+                combined.add(single);
+                continue;
+            }
+
+            SongCardDTO representative = group.stream()
+                    .min(java.util.Comparator.comparingInt((SongCardDTO song) -> songLinkService.cleanTitleScore(song.getName()))
+                            .thenComparing(SongCardDTO::getName, String.CASE_INSENSITIVE_ORDER)
+                            .thenComparing(SongCardDTO::getId))
+                    .orElse(group.get(0));
+            SongCardDTO dto = copySongCard(representative);
+            dto.setPlayCount(group.stream().mapToInt(song -> song.getPlayCount() != null ? song.getPlayCount() : 0).sum());
+            dto.setVatitoPlayCount(group.stream().mapToInt(song -> song.getVatitoPlayCount() != null ? song.getVatitoPlayCount() : 0).sum());
+            dto.setRobertloverPlayCount(group.stream().mapToInt(song -> song.getRobertloverPlayCount() != null ? song.getRobertloverPlayCount() : 0).sum());
+            long timeListened = group.stream().mapToLong(song -> song.getTimeListened() != null ? song.getTimeListened() : 0L).sum();
+            dto.setTimeListened(timeListened);
+            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
+            dto.setDaysListened(group.stream().map(SongCardDTO::getDaysListened).filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0));
+            dto.setWeeksListened(group.stream().map(SongCardDTO::getWeeksListened).filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0));
+            dto.setMonthsListened(group.stream().map(SongCardDTO::getMonthsListened).filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0));
+            dto.setYearsListened(group.stream().map(SongCardDTO::getYearsListened).filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0));
+            dto.setLinkedSongGroup(true);
+            dto.setLinkedSongCount(group.size());
+            dto.setTotalPlayBreakdownItems(buildSongPlayBreakdownItems(group, SongCardDTO::getPlayCount, false));
+            dto.setPrimaryPlayBreakdownItems(buildSongPlayBreakdownItems(group, SongCardDTO::getVatitoPlayCount, true));
+            dto.setLegacyPlayBreakdownItems(buildSongPlayBreakdownItems(group, SongCardDTO::getRobertloverPlayCount, true));
+            combined.add(dto);
+        }
+
+        combined.sort(songCardComparator(sortBy, sortDirection)
+                .thenComparing(songCardComparator(sortBy2, sortDirection2))
+                .thenComparing(songCardComparator(sortBy3, sortDirection3))
+                .thenComparing(SongCardDTO::getPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo)).reversed()
+                .thenComparing(SongCardDTO::getName, String.CASE_INSENSITIVE_ORDER));
+        return combined;
+    }
+
+    private java.util.Comparator<SongCardDTO> songCardComparator(String sortBy, String sortDirection) {
+        if (sortBy == null || sortBy.isBlank()) {
+            sortBy = "name";
+        }
+        boolean desc = "desc".equalsIgnoreCase(sortDirection);
+        java.util.Comparator<SongCardDTO> comparator = switch (sortBy) {
+            case "artist" -> java.util.Comparator.comparing(SongCardDTO::getArtistName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "album" -> java.util.Comparator.comparing(SongCardDTO::getAlbumName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "plays" -> java.util.Comparator.comparing(SongCardDTO::getPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo));
+            case "primary_plays" -> java.util.Comparator.comparing(SongCardDTO::getVatitoPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo));
+            case "legacy_plays" -> java.util.Comparator.comparing(SongCardDTO::getRobertloverPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo));
+            case "time" -> java.util.Comparator.comparing(SongCardDTO::getTimeListened, java.util.Comparator.nullsFirst(Long::compareTo));
+            case "length" -> java.util.Comparator.comparing(SongCardDTO::getLengthSeconds, java.util.Comparator.nullsFirst(Integer::compareTo));
+            case "release_date" -> java.util.Comparator.comparing(SongCardDTO::getReleaseDate, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "first_listened" -> java.util.Comparator.comparing(SongCardDTO::getFirstListenedDate, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "last_listened" -> java.util.Comparator.comparing(SongCardDTO::getLastListenedDate, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            default -> java.util.Comparator.comparing(SongCardDTO::getName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        };
+        return desc ? comparator.reversed() : comparator;
+    }
+
+    private SongCardDTO copySongCard(SongCardDTO source) {
+        SongCardDTO target = new SongCardDTO();
+        target.setId(source.getId());
+        target.setName(source.getName());
+        target.setArtistName(source.getArtistName());
+        target.setArtistId(source.getArtistId());
+        target.setAlbumName(source.getAlbumName());
+        target.setAlbumId(source.getAlbumId());
+        target.setGenreId(source.getGenreId());
+        target.setGenreName(source.getGenreName());
+        target.setSubgenreId(source.getSubgenreId());
+        target.setSubgenreName(source.getSubgenreName());
+        target.setLanguageId(source.getLanguageId());
+        target.setLanguageName(source.getLanguageName());
+        target.setEthnicityId(source.getEthnicityId());
+        target.setEthnicityName(source.getEthnicityName());
+        target.setGenderId(source.getGenderId());
+        target.setGenderName(source.getGenderName());
+        target.setReleaseYear(source.getReleaseYear());
+        target.setReleaseDate(source.getReleaseDate());
+        target.setFirstListenedDate(source.getFirstListenedDate());
+        target.setLastListenedDate(source.getLastListenedDate());
+        target.setTrackNumber(source.getTrackNumber());
+        target.setLengthSeconds(source.getLengthSeconds());
+        target.setLengthFormatted(source.getLengthFormatted());
+        target.setHasImage(source.getHasImage());
+        target.setAlbumHasImage(source.getAlbumHasImage());
+        target.setCountry(source.getCountry());
+        target.setOrganized(source.getOrganized());
+        target.setIsSingle(source.getIsSingle());
+        target.setInItunes(source.getInItunes());
+        target.setBirthDate(source.getBirthDate());
+        target.setDeathDate(source.getDeathDate());
+        target.setImageCount(source.getImageCount());
+        target.setBillboardPeak(source.getBillboardPeak());
+        target.setBillboardWeeks(source.getBillboardWeeks());
+        target.setSeasonalChartPeak(source.getSeasonalChartPeak());
+        target.setTrlDays(source.getTrlDays());
+        target.setTrlPeak(source.getTrlPeak());
+        target.setVatosCuntdownDays(source.getVatosCuntdownDays());
+        target.setVatosCuntdownPeak(source.getVatosCuntdownPeak());
+        target.setWeeklyChartPeak(source.getWeeklyChartPeak());
+        target.setWeeklyChartWeeks(source.getWeeklyChartWeeks());
+        target.setYearlyChartPeak(source.getYearlyChartPeak());
+        target.setWeeklyChartPeakStartDate(source.getWeeklyChartPeakStartDate());
+        target.setSeasonalChartPeakPeriod(source.getSeasonalChartPeakPeriod());
+        target.setYearlyChartPeakPeriod(source.getYearlyChartPeakPeriod());
+        target.setWeeklyChartPeakWeeks(source.getWeeklyChartPeakWeeks());
+        target.setSeasonalChartPeakSeasons(source.getSeasonalChartPeakSeasons());
+        target.setYearlyChartPeakYears(source.getYearlyChartPeakYears());
+        target.setAgeAtRelease(source.getAgeAtRelease());
+        target.setFeaturedArtistCount(source.getFeaturedArtistCount());
+        target.setTotalPlayBreakdownItems(source.getTotalPlayBreakdownItems());
+        target.setPrimaryPlayBreakdownItems(source.getPrimaryPlayBreakdownItems());
+        target.setLegacyPlayBreakdownItems(source.getLegacyPlayBreakdownItems());
+        return target;
+    }
+
+    private List<String> buildSongPlayBreakdownItems(List<SongCardDTO> group,
+                                                     java.util.function.Function<SongCardDTO, Integer> countExtractor,
+                                                     boolean suppressZeroCounts) {
+        if (group == null || group.size() <= 1) {
+            return List.of();
+        }
+
+        long distinctArtists = group.stream()
+                .map(SongCardDTO::getArtistName)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        boolean includeArtist = distinctArtists > 1;
+
+        List<String> items = group.stream()
+                .map(song -> formatSongPlayBreakdownItem(song, countExtractor.apply(song), includeArtist, suppressZeroCounts))
+                .filter(item -> item != null && !item.isBlank())
+                .toList();
+        return items.size() > 1 ? items : List.of();
+    }
+
+    private String formatSongPlayBreakdownItem(SongCardDTO song,
+                                               Integer count,
+                                               boolean includeArtist,
+                                               boolean suppressZeroCounts) {
+        int safeCount = count != null ? count : 0;
+        if (suppressZeroCounts && safeCount <= 0) {
+            return null;
+        }
+
+        StringBuilder label = new StringBuilder();
+        if (includeArtist && song.getArtistName() != null && !song.getArtistName().isBlank()) {
+            label.append(song.getArtistName()).append(" - ");
+        }
+        label.append(song.getName() != null ? song.getName() : "Unknown song");
+        if (song.getAlbumName() != null && !song.getAlbumName().isBlank()) {
+            label.append(" (").append(song.getAlbumName()).append(")");
+        }
+        label.append(": ").append(String.format(Locale.US, "%,d", safeCount));
+        return label.toString();
     }
     
     public long countSongs(String name, List<Integer> artistName, String albumName,
@@ -252,6 +466,34 @@ public class SongService {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
+        if (appConfigService.isCombineLinkedSongsEnabled()) {
+            List<Object[]> results = songRepository.findSongsWithStats(
+                    name, artistName, albumName,
+                    genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
+                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                    itunesIdsJson, inItunes,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    playCountMin, playCountMax,
+                    trackNumber, trackNumberMode,
+                    lengthMin, lengthMax, lengthMode,
+                    weeklyChartPeak, weeklyChartWeeks,
+                    trlPeak, trlDays,
+                    vatosCuntdownPeak, vatosCuntdownDays,
+                    billboardPeak, billboardWeeks,
+                    seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
+                    "plays", "desc", null, null, null, null, 100000, 0
+            );
+            return countCombinedRows(results);
+        }
+
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                 genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
@@ -834,32 +1076,38 @@ public class SongService {
 
     // NEW: total plays for a song (count plays for this song)
     public int getPlayCountForSong(int songId) {
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM Play WHERE song_id = ?",
-                Integer.class, songId);
+                "SELECT COUNT(*) FROM Play WHERE song_id IN (" + placeholders(ids) + ")",
+                Integer.class, ids.toArray());
         return count != null ? count : 0;
     }
 
     // Get vatito (primary) play count for song
     public int getVatitoPlayCountForSong(int songId) {
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        Object[] params = append(ids, "vatito");
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM Play WHERE song_id = ? AND account = 'vatito'",
-                Integer.class, songId);
+                "SELECT COUNT(*) FROM Play WHERE song_id IN (" + placeholders(ids) + ") AND account = ?",
+                Integer.class, params);
         return count != null ? count : 0;
     }
     
     // Get robertlover (legacy) play count for song
     public int getRobertloverPlayCountForSong(int songId) {
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        Object[] params = append(ids, "robertlover");
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM Play WHERE song_id = ? AND account = 'robertlover'",
-                Integer.class, songId);
+                "SELECT COUNT(*) FROM Play WHERE song_id IN (" + placeholders(ids) + ") AND account = ?",
+                Integer.class, params);
         return count != null ? count : 0;
     }
 
     // Return a string with per-account play counts for this song (e.g. "lastfm: 12\nspotify: 3\n")
     public String getPlaysByAccountForSong(int songId) {
-        String sql = "SELECT account, COUNT(*) as cnt FROM Play WHERE song_id = ? GROUP BY account ORDER BY cnt DESC";
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, songId);
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT account, COUNT(*) as cnt FROM Play WHERE song_id IN (" + placeholders(ids) + ") GROUP BY account ORDER BY cnt DESC";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, ids.toArray());
         StringBuilder sb = new StringBuilder();
         for (Map<String, Object> row : rows) {
             Object account = row.get("account");
@@ -874,20 +1122,16 @@ public class SongService {
 
     // Get total listening time for a song
     public String getTotalListeningTimeForSong(int songId) {
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
         String sql = """
-            SELECT s.length_seconds * COALESCE(play_count, 0) as total_seconds
-            FROM Song s
-            LEFT JOIN (
-                SELECT song_id, COUNT(*) as play_count
-                FROM Play
-                WHERE song_id = ?
-                GROUP BY song_id
-            ) p ON s.id = p.song_id
-            WHERE s.id = ?
+            SELECT SUM(COALESCE(s.length_seconds, 0)) as total_seconds
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE p.song_id IN (%s)
             """;
         
         try {
-            Integer totalSeconds = jdbcTemplate.queryForObject(sql, Integer.class, songId, songId);
+            Integer totalSeconds = jdbcTemplate.queryForObject(sql.formatted(placeholders(ids)), Integer.class, ids.toArray());
             if (totalSeconds == null || totalSeconds == 0) {
                 return "-";
             }
@@ -899,9 +1143,10 @@ public class SongService {
 
     // Get first listened date for a song
     public String getFirstListenedDateForSong(int songId) {
-        String sql = "SELECT MIN(play_date) FROM Play WHERE song_id = ?";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT MIN(play_date) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
         try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, songId);
+            String date = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
             return formatDate(date);
         } catch (Exception e) {
             return "-";
@@ -910,9 +1155,10 @@ public class SongService {
 
     // Get first listened date for a song as LocalDate (for calculations)
     public java.time.LocalDate getFirstListenedDateAsLocalDateForSong(int songId) {
-        String sql = "SELECT MIN(DATE(play_date)) FROM Play WHERE song_id = ?";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT MIN(DATE(play_date)) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
         try {
-            String dateStr = jdbcTemplate.queryForObject(sql, String.class, songId);
+            String dateStr = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
             return dateStr != null ? java.time.LocalDate.parse(dateStr) : null;
         } catch (Exception e) {
             return null;
@@ -921,9 +1167,10 @@ public class SongService {
 
     // Get last listened date for a song
     public String getLastListenedDateForSong(int songId) {
-        String sql = "SELECT MAX(play_date) FROM Play WHERE song_id = ?";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT MAX(play_date) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
         try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, songId);
+            String date = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
             return formatDate(date);
         } catch (Exception e) {
             return "-";
@@ -932,9 +1179,10 @@ public class SongService {
 
     // Get unique days played for a song
     public int getUniqueDaysPlayedForSong(int songId) {
-        String sql = "SELECT COUNT(DISTINCT DATE(play_date)) FROM Play WHERE song_id = ? AND play_date IS NOT NULL";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT COUNT(DISTINCT DATE(play_date)) FROM Play WHERE song_id IN (" + placeholders(ids) + ") AND play_date IS NOT NULL";
         try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, ids.toArray());
             return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
@@ -943,9 +1191,10 @@ public class SongService {
 
     // Get unique weeks played for a song
     public int getUniqueWeeksPlayedForSong(int songId) {
-        String sql = "SELECT COUNT(DISTINCT strftime('%Y-%W', play_date)) FROM Play WHERE song_id = ? AND play_date IS NOT NULL";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT COUNT(DISTINCT strftime('%Y-%W', play_date)) FROM Play WHERE song_id IN (" + placeholders(ids) + ") AND play_date IS NOT NULL";
         try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, ids.toArray());
             return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
@@ -954,9 +1203,10 @@ public class SongService {
 
     // Get unique months played for a song
     public int getUniqueMonthsPlayedForSong(int songId) {
-        String sql = "SELECT COUNT(DISTINCT strftime('%Y-%m', play_date)) FROM Play WHERE song_id = ? AND play_date IS NOT NULL";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT COUNT(DISTINCT strftime('%Y-%m', play_date)) FROM Play WHERE song_id IN (" + placeholders(ids) + ") AND play_date IS NOT NULL";
         try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, ids.toArray());
             return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
@@ -965,13 +1215,34 @@ public class SongService {
 
     // Get unique years played for a song
     public int getUniqueYearsPlayedForSong(int songId) {
-        String sql = "SELECT COUNT(DISTINCT strftime('%Y', play_date)) FROM Play WHERE song_id = ? AND play_date IS NOT NULL";
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT COUNT(DISTINCT strftime('%Y', play_date)) FROM Play WHERE song_id IN (" + placeholders(ids) + ") AND play_date IS NOT NULL";
         try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, ids.toArray());
             return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public List<Integer> getEffectiveSongIdsForStats(int songId) {
+        if (!appConfigService.isCombineLinkedSongsEnabled()) {
+            return List.of(songId);
+        }
+        return songLinkService.getLinkedSongIds(songId);
+    }
+
+    private String placeholders(List<Integer> ids) {
+        return String.join(",", ids.stream().map(id -> "?").toList());
+    }
+
+    private Object[] append(List<Integer> ids, Object value) {
+        Object[] params = new Object[ids.size() + 1];
+        for (int i = 0; i < ids.size(); i++) {
+            params[i] = ids.get(i);
+        }
+        params[ids.size()] = value;
+        return params;
     }
 
     // Delete song (only if play count is 0)
@@ -1286,6 +1557,7 @@ public class SongService {
     // Get plays for a song with pagination
     public List<PlayDTO> getPlaysForSong(int songId, int page, int pageSize) {
         int offset = page * pageSize;
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
         String sql = """
             SELECT 
                 p.id,
@@ -1301,11 +1573,15 @@ public class SongService {
             INNER JOIN Song s ON p.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album a ON s.album_id = a.id
-            WHERE s.id = ?
+            WHERE s.id IN (%s)
             ORDER BY p.play_date DESC
             LIMIT ? OFFSET ?
-            """;
+            """.formatted(placeholders(ids));
         
+        Object[] params = new Object[ids.size() + 2];
+        for (int i = 0; i < ids.size(); i++) params[i] = ids.get(i);
+        params[ids.size()] = pageSize;
+        params[ids.size() + 1] = offset;
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PlayDTO dto = new PlayDTO();
             dto.setId(rs.getInt("id"));
@@ -1319,48 +1595,51 @@ public class SongService {
             dto.setArtistId(rs.getInt("artist_id"));
             dto.setAccount(rs.getString("account"));
             return dto;
-        }, songId, pageSize, offset);
+        }, params);
     }
     
     // Count total plays for a song
     public long countPlaysForSong(int songId) {
-        String sql = "SELECT COUNT(*) FROM Play WHERE song_id = ?";
-        Long count = jdbcTemplate.queryForObject(sql, Long.class, songId);
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
+        String sql = "SELECT COUNT(*) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, ids.toArray());
         return count != null ? count : 0;
     }
     
     // Get plays by year for a song
     public List<PlaysByYearDTO> getPlaysByYearForSong(int songId) {
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
         String sql = """
             SELECT 
-                strftime('%Y', play_date) as year,
+                strftime('%%Y', play_date) as year,
                 COUNT(*) as play_count
             FROM Play
-            WHERE song_id = ? AND play_date IS NOT NULL
-            GROUP BY strftime('%Y', play_date)
+            WHERE song_id IN (%s) AND play_date IS NOT NULL
+            GROUP BY strftime('%%Y', play_date)
             ORDER BY year ASC
-            """;
+            """.formatted(placeholders(ids));
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PlaysByYearDTO dto = new PlaysByYearDTO();
             dto.setYear(rs.getString("year"));
             dto.setPlayCount(rs.getLong("play_count"));
             return dto;
-        }, songId);
+        }, ids.toArray());
     }
     
     // Get plays by month for a song
     public List<PlaysByMonthDTO> getPlaysByMonthForSong(int songId) {
+        List<Integer> ids = getEffectiveSongIdsForStats(songId);
         String sql = """
             SELECT 
-                strftime('%Y', play_date) as year,
-                strftime('%m', play_date) as month,
+                strftime('%%Y', play_date) as year,
+                strftime('%%m', play_date) as month,
                 COUNT(*) as play_count
             FROM Play
-            WHERE song_id = ? AND play_date IS NOT NULL
-            GROUP BY strftime('%Y', play_date), strftime('%m', play_date)
+            WHERE song_id IN (%s) AND play_date IS NOT NULL
+            GROUP BY strftime('%%Y', play_date), strftime('%%m', play_date)
             ORDER BY year ASC, month ASC
-            """;
+            """.formatted(placeholders(ids));
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PlaysByMonthDTO dto = new PlaysByMonthDTO();
@@ -1368,7 +1647,7 @@ public class SongService {
             dto.setMonth(rs.getString("month"));
             dto.setPlayCount(rs.getLong("play_count"));
             return dto;
-        }, songId);
+        }, ids.toArray());
     }
     
     // ============================================

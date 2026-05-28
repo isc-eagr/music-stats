@@ -1992,6 +1992,13 @@ function renderTopAlbumsTable() {
  */
 function buildSongRow(song, rank) {
     const vis = (col) => getColDisplay('songs', col);
+    const buildLinkedSongTooltip = (value, items, title, extraClass = '') => {
+        const contentHtml = `<span${extraClass ? ` class="${extraClass}"` : ''}>${value}</span>`;
+        if (typeof window.buildLinkedSongTooltipTriggerHtml === 'function') {
+            return window.buildLinkedSongTooltipTriggerHtml(contentHtml, items, title);
+        }
+        return contentHtml;
+    };
     let coverHtml;
     if (song.hasImage && song.albumHasImage && song.albumId) {
         coverHtml = `<div class="hover-image-container" style="display:block;position:relative;width:50px;height:50px;cursor:pointer;">
@@ -2027,9 +2034,9 @@ function buildSongRow(song, rank) {
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
             <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">&#128313;</span>' : ''}${songLabel}</td>
-            <td style="text-align:right;display:${vis('plays')};"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${(song.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;display:${vis('primaryPlays')};">${(song.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;display:${vis('legacyPlays')};">${(song.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('plays')};"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${buildLinkedSongTooltip((song.plays || 0).toLocaleString(), song.totalPlayBreakdownItems, 'Combined song versions (Total Plays):')}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${buildLinkedSongTooltip((song.primaryPlays || 0).toLocaleString(), song.primaryPlayBreakdownItems, 'Combined song versions (Primary Plays):')}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};">${buildLinkedSongTooltip((song.legacyPlays || 0).toLocaleString(), song.legacyPlayBreakdownItems, 'Combined song versions (Legacy Plays):')}</td>
             <td style="text-align:right;display:${vis('length')};">${song.lengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('timeListened')};">${song.timeListenedFormatted || '-'}</td>
             <td style="display:${vis('releaseDate')};">${song.releaseDate || '-'}</td>
@@ -2079,6 +2086,9 @@ function renderTopSongsTable() {
     const rowsToRender = data.slice(0, topInfiniteScrollState.songs.displayedRows);
     
     tbody.innerHTML = rowsToRender.map((song, index) => buildSongRow(song, index + 1)).join('');
+    if (typeof window.initializeLinkedSongTooltips === 'function') {
+        window.initializeLinkedSongTooltips(tbody);
+    }
     
     // Add hover event listeners for image swap
     tbody.querySelectorAll('.hover-image-container').forEach(container => {
@@ -2473,6 +2483,9 @@ function appendTopSongsRows(data, startRank) {
     data.forEach((song, index) => {
         tbody.insertAdjacentHTML('beforeend', buildSongRow(song, startRank + index + 1));
     });
+    if (typeof window.initializeLinkedSongTooltips === 'function') {
+        window.initializeLinkedSongTooltips(tbody);
+    }
     // Re-bind hover listeners for image swap on newly appended rows
     tbody.querySelectorAll('.hover-image-container').forEach(container => {
         if (!container.dataset.hoverBound) {

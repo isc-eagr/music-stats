@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 public class SongCardDTO {
     private Integer id;
     private String name;
@@ -58,6 +60,11 @@ public class SongCardDTO {
     private Integer weeksListened;
     private Integer monthsListened;
     private Integer yearsListened;
+    private Boolean linkedSongGroup;
+    private Integer linkedSongCount;
+    private List<String> totalPlayBreakdownItems;
+    private List<String> primaryPlayBreakdownItems;
+    private List<String> legacyPlayBreakdownItems;
 
     // Getters and Setters
     public Integer getId() {
@@ -394,6 +401,46 @@ public class SongCardDTO {
 
     public void setYearsListened(Integer yearsListened) {
         this.yearsListened = yearsListened;
+    }
+
+    public Boolean getLinkedSongGroup() {
+        return linkedSongGroup;
+    }
+
+    public void setLinkedSongGroup(Boolean linkedSongGroup) {
+        this.linkedSongGroup = linkedSongGroup;
+    }
+
+    public Integer getLinkedSongCount() {
+        return linkedSongCount;
+    }
+
+    public void setLinkedSongCount(Integer linkedSongCount) {
+        this.linkedSongCount = linkedSongCount;
+    }
+
+    public List<String> getTotalPlayBreakdownItems() {
+        return totalPlayBreakdownItems;
+    }
+
+    public void setTotalPlayBreakdownItems(List<String> totalPlayBreakdownItems) {
+        this.totalPlayBreakdownItems = totalPlayBreakdownItems;
+    }
+
+    public List<String> getPrimaryPlayBreakdownItems() {
+        return primaryPlayBreakdownItems;
+    }
+
+    public void setPrimaryPlayBreakdownItems(List<String> primaryPlayBreakdownItems) {
+        this.primaryPlayBreakdownItems = primaryPlayBreakdownItems;
+    }
+
+    public List<String> getLegacyPlayBreakdownItems() {
+        return legacyPlayBreakdownItems;
+    }
+
+    public void setLegacyPlayBreakdownItems(List<String> legacyPlayBreakdownItems) {
+        this.legacyPlayBreakdownItems = legacyPlayBreakdownItems;
     }
 
     public Integer getSeasonalChartPeak() {

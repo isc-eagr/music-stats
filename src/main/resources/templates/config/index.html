@@ -458,6 +458,27 @@
             <section class="config-section">
                 <div class="config-section-header">
                     <div>
+                        <h2 class="config-section-title">Song Display</h2>
+                        <p class="config-section-copy">Controls for song-level statistics and charts.</p>
+                    </div>
+                </div>
+
+                <div class="config-grid">
+                    <div class="config-card half">
+                        <div class="config-toggle">
+                            <input type="checkbox" id="combineLinkedSongs" name="combineLinkedSongs" th:checked="${combineLinkedSongs}">
+                            <div>
+                                <p class="config-toggle-title">Combine Linked Songs</p>
+                                <p class="config-toggle-copy">Show linked versions as one song in song stats and weekly song charts.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="config-section">
+                <div class="config-section-header">
+                    <div>
                         <h2 class="config-section-title">Per-Page Load Sizes</h2>
                         <p class="config-section-copy">Default row counts when no page size is provided.</p>
                     </div>

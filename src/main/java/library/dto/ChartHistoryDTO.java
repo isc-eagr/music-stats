@@ -1,5 +1,7 @@
 package library.dto;
 
+import java.util.List;
+
 /**
  * DTO for displaying chart history entries (songs/albums that have charted).
  * Used in artist, album, and song detail pages.
@@ -27,6 +29,7 @@ public class ChartHistoryDTO {
     private Integer sourceArtistId;   // The group or primary artist ID
     private String sourceArtistName;  // The group or primary artist name
     private Boolean inItunes;
+    private List<String> totalWeekBreakdownItems;
 
     public ChartHistoryDTO() {}
     
@@ -212,5 +215,13 @@ public class ChartHistoryDTO {
 
     public void setInItunes(Boolean inItunes) {
         this.inItunes = inItunes;
+    }
+
+    public List<String> getTotalWeekBreakdownItems() {
+        return totalWeekBreakdownItems;
+    }
+
+    public void setTotalWeekBreakdownItems(List<String> totalWeekBreakdownItems) {
+        this.totalWeekBreakdownItems = totalWeekBreakdownItems;
     }
 }
