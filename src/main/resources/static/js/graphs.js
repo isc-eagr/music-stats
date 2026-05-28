@@ -1648,10 +1648,13 @@ function initColumnToggles() {
         if (!container) return;
         
         const config = topColumnConfig[type];
-        // Initialize visibility state from defaults
+        // Preserve any user-selected visibility state across table reloads/sorts.
+        const existingVisibility = topColumnVisibility[type] || {};
         topColumnVisibility[type] = {};
         config.forEach(col => {
-            topColumnVisibility[type][col.key] = col.defaultVisible;
+            topColumnVisibility[type][col.key] = Object.prototype.hasOwnProperty.call(existingVisibility, col.key)
+                ? existingVisibility[col.key]
+                : col.defaultVisible;
         });
         
         // Sort checkboxes alphabetically by label
@@ -1666,7 +1669,7 @@ function initColumnToggles() {
             sortedConfig.map(col => `
             <label>
                 <input type="checkbox" data-type="${type}" data-col="${col.key}" 
-                       ${col.defaultVisible ? 'checked' : ''} 
+                       ${topColumnVisibility[type][col.key] ? 'checked' : ''} 
                        onchange="onColumnToggle('${type}', '${col.key}', this.checked)">
                 <span>${col.label}</span>
             </label>
@@ -1891,7 +1894,7 @@ function renderTopArtistsTable() {
     const tbody = document.querySelector('#topArtistsTable tbody');
     if (!tbody) return;
     
-    const data = getSortedTopData('artists', topTabData.artists, topSortState.artists);
+    const data = getRenderedTopData('artists', topTabData.artists, topSortState.artists);
     topSortedData.artists = data;
     
     // Render podium with sorted data
@@ -1965,7 +1968,7 @@ function renderTopAlbumsTable() {
     const tbody = document.querySelector('#topAlbumsTable tbody');
     if (!tbody) return;
     
-    const data = getSortedTopData('albums', topTabData.albums, topSortState.albums);
+    const data = getRenderedTopData('albums', topTabData.albums, topSortState.albums);
     topSortedData.albums = data;
     
     // Render podium with sorted data
@@ -2071,7 +2074,7 @@ function renderTopSongsTable() {
     const tbody = document.querySelector('#topSongsTable tbody');
     if (!tbody) return;
     
-    const data = getSortedTopData('songs', topTabData.songs, topSortState.songs);
+    const data = getRenderedTopData('songs', topTabData.songs, topSortState.songs);
     topSortedData.songs = data;
     
     // Render podium with sorted data
@@ -2268,6 +2271,13 @@ function getSortedTopData(type, data, sortState) {
     }
 
     return sorted;
+}
+
+function getRenderedTopData(type, data, sortState) {
+    if (currentView === 'table' && type === getCurrentEntityType()) {
+        return Array.isArray(data) ? data : [];
+    }
+    return getSortedTopData(type, data, sortState);
 }
 
 /**
@@ -2557,6 +2567,7 @@ function switchView(viewName) {
         if (cardView) cardView.style.display = '';
     } else if (normalizedView === 'table') {
         if (tableView) tableView.style.display = '';
+        listViewUserHasScrolled = true;
         // Load first page if not yet loaded
         if (listViewState.page === 0 && !listViewState.loading && !listViewState.allLoaded) {
             fetchListPage(0);
@@ -2665,7 +2676,7 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
     listViewState.totalCount = 0;
     listViewState.loading = false;
     listViewState.allLoaded = false;
-    listViewUserHasScrolled = false;
+    listViewUserHasScrolled = currentView === 'table';
 
     topTabData[entityType] = [];
     topSortedData[entityType] = [];
@@ -2829,6 +2840,9 @@ function fetchListPage(pageNum) {
             if (endEl) endEl.hidden = !listViewState.allLoaded;
             updateListViewPaginationInfo();
             window.refreshPageLoadAllButtonState?.();
+            if (currentView === 'table') {
+                requestAnimationFrame(maybeLoadMoreListRows);
+            }
         })
         .catch(err => {
             if (requestToken !== listViewRequestToken) return;
@@ -2988,6 +3002,10 @@ function setupListViewInfiniteScroll() {
             maybeLoadMoreListRows();
         };
         container.addEventListener('scroll', listViewScrollHandler, { passive: true });
+    }
+
+    if (currentView === 'table') {
+        requestAnimationFrame(maybeLoadMoreListRows);
     }
 }
 

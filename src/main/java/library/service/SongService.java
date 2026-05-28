@@ -17,7 +17,12 @@ import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,10 +32,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class SongService {
+
+    private static final String COMBINED_SONG_COUNT_REQUEST_CACHE = SongService.class.getName() + ".combinedSongCountRequestCache";
+    private static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     
     private final SongRepository songRepository;
     private final SongImageRepository songImageRepository;
@@ -67,6 +76,151 @@ public class SongService {
         });
         if (ids.isEmpty()) return "[]";
         return "[" + ids.stream().map(String::valueOf).collect(Collectors.joining(",")) + "]";
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Long> getCombinedSongCountRequestCache() {
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes == null) {
+            return null;
+        }
+
+        Object existing = requestAttributes.getAttribute(COMBINED_SONG_COUNT_REQUEST_CACHE, RequestAttributes.SCOPE_REQUEST);
+        if (existing instanceof Map<?, ?> cache) {
+            return (Map<String, Long>) cache;
+        }
+
+        Map<String, Long> cache = new HashMap<>();
+        requestAttributes.setAttribute(COMBINED_SONG_COUNT_REQUEST_CACHE, cache, RequestAttributes.SCOPE_REQUEST);
+        return cache;
+    }
+
+    private Long getCachedCombinedSongCount(String cacheKey) {
+        Map<String, Long> cache = getCombinedSongCountRequestCache();
+        return cache != null ? cache.get(cacheKey) : null;
+    }
+
+    private void cacheCombinedSongCount(String cacheKey, long count) {
+        Map<String, Long> cache = getCombinedSongCountRequestCache();
+        if (cache != null) {
+            cache.put(cacheKey, count);
+        }
+    }
+
+    private <T> List<T> snapshotList(List<T> values) {
+        return values == null ? null : List.copyOf(values);
+    }
+
+    private String buildCombinedSongsFilterCacheKey(String name, List<Integer> artistName, String albumName,
+                                                    List<Integer> genreIds, String genreMode,
+                                                    List<Integer> subgenreIds, String subgenreMode,
+                                                    List<Integer> languageIds, String languageMode,
+                                                    List<Integer> genderIds, String genderMode,
+                                                    List<Integer> ethnicityIds, String ethnicityMode,
+                                                    List<String> countries, String countryMode,
+                                                    List<String> accounts, String accountMode,
+                                                    String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
+                                                    String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
+                                                    String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
+                                                    String listenedDateFrom, String listenedDateTo,
+                                                    String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
+                                                    Integer ageMin, Integer ageMax, String ageMode,
+                                                    Integer ageAtReleaseMin, Integer ageAtReleaseMax,
+                                                    String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
+                                                    String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
+                                                    String itunesIdsJson, String inItunes,
+                                                    Integer playCountMin, Integer playCountMax,
+                                                    Integer trackNumber, String trackNumberMode,
+                                                    Integer lengthMin, Integer lengthMax, String lengthMode,
+                                                    Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                                    Integer trlPeak, Integer trlDays,
+                                                    Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                                    Integer billboardPeak, Integer billboardWeeks,
+                                                    Integer seasonalChartPeak, Integer seasonalChartSeasons,
+                                                    Integer yearlyChartPeak, Integer yearlyChartYears) {
+        List<Object> parts = new ArrayList<>();
+        parts.add(name);
+        parts.add(snapshotList(artistName));
+        parts.add(albumName);
+        parts.add(snapshotList(genreIds));
+        parts.add(genreMode);
+        parts.add(snapshotList(subgenreIds));
+        parts.add(subgenreMode);
+        parts.add(snapshotList(languageIds));
+        parts.add(languageMode);
+        parts.add(snapshotList(genderIds));
+        parts.add(genderMode);
+        parts.add(snapshotList(ethnicityIds));
+        parts.add(ethnicityMode);
+        parts.add(snapshotList(countries));
+        parts.add(countryMode);
+        parts.add(snapshotList(accounts));
+        parts.add(accountMode);
+        parts.add(releaseDate);
+        parts.add(releaseDateFrom);
+        parts.add(releaseDateTo);
+        parts.add(releaseDateMode);
+        parts.add(firstListenedDate);
+        parts.add(firstListenedDateFrom);
+        parts.add(firstListenedDateTo);
+        parts.add(firstListenedDateMode);
+        parts.add(lastListenedDate);
+        parts.add(lastListenedDateFrom);
+        parts.add(lastListenedDateTo);
+        parts.add(lastListenedDateMode);
+        parts.add(listenedDateFrom);
+        parts.add(listenedDateTo);
+        parts.add(organized);
+        parts.add(imageCountMin);
+        parts.add(imageCountMax);
+        parts.add(hasFeaturedArtists);
+        parts.add(isBand);
+        parts.add(isSingle);
+        parts.add(ageMin);
+        parts.add(ageMax);
+        parts.add(ageMode);
+        parts.add(ageAtReleaseMin);
+        parts.add(ageAtReleaseMax);
+        parts.add(birthDate);
+        parts.add(birthDateFrom);
+        parts.add(birthDateTo);
+        parts.add(birthDateMode);
+        parts.add(deathDate);
+        parts.add(deathDateFrom);
+        parts.add(deathDateTo);
+        parts.add(deathDateMode);
+        parts.add(itunesIdsJson);
+        parts.add(inItunes);
+        parts.add(playCountMin);
+        parts.add(playCountMax);
+        parts.add(trackNumber);
+        parts.add(trackNumberMode);
+        parts.add(lengthMin);
+        parts.add(lengthMax);
+        parts.add(lengthMode);
+        parts.add(weeklyChartPeak);
+        parts.add(weeklyChartWeeks);
+        parts.add(trlPeak);
+        parts.add(trlDays);
+        parts.add(vatosCuntdownPeak);
+        parts.add(vatosCuntdownDays);
+        parts.add(billboardPeak);
+        parts.add(billboardWeeks);
+        parts.add(seasonalChartPeak);
+        parts.add(seasonalChartSeasons);
+        parts.add(yearlyChartPeak);
+        parts.add(yearlyChartYears);
+        return parts.toString();
+    }
+
+    private void populateSongItunesPresence(List<SongCardDTO> songs) {
+        if (songs == null || songs.isEmpty()) {
+            return;
+        }
+
+        for (SongCardDTO song : songs) {
+            song.setInItunes(itunesService.songExistsInItunes(song.getArtistName(), song.getAlbumName(), song.getName()));
+        }
     }
     
     public List<SongCardDTO> getSongs(String name, List<Integer> artistName, String albumName,
@@ -106,6 +260,37 @@ public class SongService {
         boolean combineLinkedSongs = appConfigService.isCombineLinkedSongsEnabled();
         int queryLimit = combineLinkedSongs ? 100000 : perPage;
         int queryOffset = combineLinkedSongs ? 0 : page * perPage;
+        String combinedSongsCacheKey = combineLinkedSongs
+            ? buildCombinedSongsFilterCacheKey(
+                name, artistName, albumName,
+                genreIds, genreMode,
+                subgenreIds, subgenreMode,
+                languageIds, languageMode,
+                genderIds, genderMode,
+                ethnicityIds, ethnicityMode,
+                countries, countryMode,
+                accounts, accountMode,
+                releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                listenedDateFrom, listenedDateTo,
+                organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                ageMin, ageMax, ageMode,
+                ageAtReleaseMin, ageAtReleaseMax,
+                birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                itunesIdsJson, inItunes,
+                playCountMin, playCountMax,
+                trackNumber, trackNumberMode,
+                lengthMin, lengthMax, lengthMode,
+                weeklyChartPeak, weeklyChartWeeks,
+                trlPeak, trlDays,
+                vatosCuntdownPeak, vatosCuntdownDays,
+                billboardPeak, billboardWeeks,
+                seasonalChartPeak, seasonalChartSeasons,
+                yearlyChartPeak, yearlyChartYears
+            )
+            : null;
 
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
@@ -223,19 +408,20 @@ public class SongService {
                 dto.setLengthFormatted(String.format("%d:%02d", minutes, seconds));
             }
             
-            // Check iTunes presence for badge display
-            dto.setInItunes(itunesService.songExistsInItunes(dto.getArtistName(), dto.getAlbumName(), dto.getName()));
-            
             songs.add(dto);
         }
         
         if (combineLinkedSongs) {
             songs = combineLinkedSongCards(songs, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
+            cacheCombinedSongCount(combinedSongsCacheKey, songs.size());
             int fromIndex = Math.min(page * perPage, songs.size());
             int toIndex = Math.min(fromIndex + perPage, songs.size());
-            return new ArrayList<>(songs.subList(fromIndex, toIndex));
+            List<SongCardDTO> pagedSongs = new ArrayList<>(songs.subList(fromIndex, toIndex));
+            populateSongItunesPresence(pagedSongs);
+            return pagedSongs;
         }
 
+        populateSongItunesPresence(songs);
         return songs;
     }
 
@@ -306,33 +492,112 @@ public class SongService {
             combined.add(dto);
         }
 
-        combined.sort(songCardComparator(sortBy, sortDirection)
-                .thenComparing(songCardComparator(sortBy2, sortDirection2))
-                .thenComparing(songCardComparator(sortBy3, sortDirection3))
-                .thenComparing(SongCardDTO::getPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo)).reversed()
-                .thenComparing(SongCardDTO::getName, String.CASE_INSENSITIVE_ORDER));
+        java.util.Comparator<SongCardDTO> combinedComparator = songCardComparator(sortBy, sortDirection);
+        if (sortBy2 != null && !sortBy2.isBlank()) {
+            combinedComparator = combinedComparator.thenComparing(songCardComparator(sortBy2, sortDirection2));
+        }
+        if (sortBy3 != null && !sortBy3.isBlank()) {
+            combinedComparator = combinedComparator.thenComparing(songCardComparator(sortBy3, sortDirection3));
+        }
+        combinedComparator = combinedComparator
+            .thenComparing(java.util.Comparator.comparing(
+                SongCardDTO::getPlayCount,
+                java.util.Comparator.nullsFirst(Integer::compareTo)
+            ).reversed())
+            .thenComparing(SongCardDTO::getName, String.CASE_INSENSITIVE_ORDER);
+        combined.sort(combinedComparator);
         return combined;
     }
 
     private java.util.Comparator<SongCardDTO> songCardComparator(String sortBy, String sortDirection) {
-        if (sortBy == null || sortBy.isBlank()) {
-            sortBy = "name";
-        }
+        String normalizedSortBy = (sortBy == null || sortBy.isBlank()) ? "name" : sortBy;
         boolean desc = "desc".equalsIgnoreCase(sortDirection);
-        java.util.Comparator<SongCardDTO> comparator = switch (sortBy) {
-            case "artist" -> java.util.Comparator.comparing(SongCardDTO::getArtistName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "album" -> java.util.Comparator.comparing(SongCardDTO::getAlbumName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "plays" -> java.util.Comparator.comparing(SongCardDTO::getPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo));
-            case "primary_plays" -> java.util.Comparator.comparing(SongCardDTO::getVatitoPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo));
-            case "legacy_plays" -> java.util.Comparator.comparing(SongCardDTO::getRobertloverPlayCount, java.util.Comparator.nullsFirst(Integer::compareTo));
-            case "time" -> java.util.Comparator.comparing(SongCardDTO::getTimeListened, java.util.Comparator.nullsFirst(Long::compareTo));
-            case "length" -> java.util.Comparator.comparing(SongCardDTO::getLengthSeconds, java.util.Comparator.nullsFirst(Integer::compareTo));
-            case "release_date" -> java.util.Comparator.comparing(SongCardDTO::getReleaseDate, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "first_listened" -> java.util.Comparator.comparing(SongCardDTO::getFirstListenedDate, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "last_listened" -> java.util.Comparator.comparing(SongCardDTO::getLastListenedDate, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            default -> java.util.Comparator.comparing(SongCardDTO::getName, java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        return switch (normalizedSortBy) {
+            case "artist" -> comparingStrings(SongCardDTO::getArtistName, desc, false);
+            case "album" -> comparingStrings(SongCardDTO::getAlbumName, desc, false);
+            case "plays" -> comparingComparable(SongCardDTO::getPlayCount, desc, false);
+            case "primary_plays" -> comparingComparable(SongCardDTO::getVatitoPlayCount, desc, false);
+            case "legacy_plays" -> comparingComparable(SongCardDTO::getRobertloverPlayCount, desc, false);
+            case "time" -> comparingComparable(SongCardDTO::getTimeListened, desc, false);
+            case "length" -> comparingComparable(SongCardDTO::getLengthSeconds, desc, false);
+            case "release_date" -> comparingDisplayDates(SongCardDTO::getReleaseDate, desc, false);
+            case "first_listened" -> comparingDisplayDates(SongCardDTO::getFirstListenedDate, desc, false);
+            case "last_listened" -> comparingDisplayDates(SongCardDTO::getLastListenedDate, desc, false);
+            case "days_listened" -> comparingComparable(SongCardDTO::getDaysListened, desc, false);
+            case "weeks_listened" -> comparingComparable(SongCardDTO::getWeeksListened, desc, false);
+            case "months_listened" -> comparingComparable(SongCardDTO::getMonthsListened, desc, false);
+            case "years_listened" -> comparingComparable(SongCardDTO::getYearsListened, desc, false);
+            case "track_number" -> comparingComparable(SongCardDTO::getTrackNumber, desc, false);
+            case "age_at_release" -> comparingComparable(SongCardDTO::getAgeAtRelease, desc, false);
+            case "featured_artist_count" -> comparingComparable(SongCardDTO::getFeaturedArtistCount, desc, false);
+            case "seasonal_chart_peak" -> comparingComparable(SongCardDTO::getSeasonalChartPeak, desc, true)
+                .thenComparing(comparingStrings(SongCardDTO::getSeasonalChartPeakPeriod, true, true));
+            case "weekly_chart_peak" -> comparingComparable(SongCardDTO::getWeeklyChartPeak, desc, true)
+                .thenComparing(comparingDisplayDates(SongCardDTO::getWeeklyChartPeakStartDate, true, true));
+            case "weekly_chart_weeks" -> comparingComparable(SongCardDTO::getWeeklyChartWeeks, desc, false);
+            case "trl_peak" -> comparingComparable(SongCardDTO::getTrlPeak, desc, true)
+                .thenComparing(comparingComparable(SongCardDTO::getTrlDays, true, true));
+            case "trl_days" -> comparingComparable(SongCardDTO::getTrlDays, desc, false);
+            case "vatos_cuntdown_peak" -> comparingComparable(SongCardDTO::getVatosCuntdownPeak, desc, true)
+                .thenComparing(comparingComparable(SongCardDTO::getVatosCuntdownDays, true, true));
+            case "vatos_cuntdown_days" -> comparingComparable(SongCardDTO::getVatosCuntdownDays, desc, false);
+            case "billboard_peak" -> comparingComparable(SongCardDTO::getBillboardPeak, desc, true)
+                .thenComparing(comparingComparable(SongCardDTO::getBillboardWeeks, true, true));
+            case "billboard_weeks" -> comparingComparable(SongCardDTO::getBillboardWeeks, desc, false);
+            case "yearly_chart_peak" -> comparingComparable(SongCardDTO::getYearlyChartPeak, desc, true)
+                .thenComparing(comparingStrings(SongCardDTO::getYearlyChartPeakPeriod, true, true));
+            case "genre" -> comparingStrings(SongCardDTO::getGenreName, desc, false);
+            case "subgenre" -> comparingStrings(SongCardDTO::getSubgenreName, desc, false);
+            case "ethnicity" -> comparingStrings(SongCardDTO::getEthnicityName, desc, false);
+            case "country" -> comparingStrings(SongCardDTO::getCountry, desc, false);
+            case "language" -> comparingStrings(SongCardDTO::getLanguageName, desc, false);
+            case "birth_date" -> comparingDisplayDates(SongCardDTO::getBirthDate, desc, false);
+            case "death_date" -> comparingDisplayDates(SongCardDTO::getDeathDate, desc, false);
+            case "image_count" -> comparingComparable(SongCardDTO::getImageCount, desc, false);
+            default -> comparingStrings(SongCardDTO::getName, desc, false);
         };
-        return desc ? comparator.reversed() : comparator;
+    }
+
+    private <T> java.util.Comparator<SongCardDTO> comparingValues(Function<SongCardDTO, T> extractor,
+                                                                  java.util.Comparator<T> valueComparator,
+                                                                  boolean desc,
+                                                                  boolean forceNullsLast) {
+        java.util.Comparator<T> directionalComparator = desc ? valueComparator.reversed() : valueComparator;
+        java.util.Comparator<T> nullAwareComparator = forceNullsLast
+                ? java.util.Comparator.nullsLast(directionalComparator)
+                : (desc
+                    ? java.util.Comparator.nullsLast(directionalComparator)
+                    : java.util.Comparator.nullsFirst(directionalComparator));
+        return java.util.Comparator.comparing(extractor, nullAwareComparator);
+    }
+
+    private <T extends Comparable<? super T>> java.util.Comparator<SongCardDTO> comparingComparable(Function<SongCardDTO, T> extractor,
+                                                                                                     boolean desc,
+                                                                                                     boolean forceNullsLast) {
+        return comparingValues(extractor, java.util.Comparator.naturalOrder(), desc, forceNullsLast);
+    }
+
+    private java.util.Comparator<SongCardDTO> comparingStrings(Function<SongCardDTO, String> extractor,
+                                                               boolean desc,
+                                                               boolean forceNullsLast) {
+        return comparingValues(extractor, String.CASE_INSENSITIVE_ORDER, desc, forceNullsLast);
+    }
+
+    private java.util.Comparator<SongCardDTO> comparingDisplayDates(Function<SongCardDTO, String> extractor,
+                                                                    boolean desc,
+                                                                    boolean forceNullsLast) {
+        return comparingComparable(song -> parseDisplayDate(extractor.apply(song)), desc, forceNullsLast);
+    }
+
+    private LocalDate parseDisplayDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value, DISPLAY_DATE_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
     }
 
     private SongCardDTO copySongCard(SongCardDTO source) {
@@ -466,6 +731,34 @@ public class SongService {
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
         if (appConfigService.isCombineLinkedSongsEnabled()) {
+            String combinedSongsCacheKey = buildCombinedSongsFilterCacheKey(
+                    name, artistName, albumName,
+                    genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
+                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    itunesIdsJson, inItunes,
+                    playCountMin, playCountMax,
+                    trackNumber, trackNumberMode,
+                    lengthMin, lengthMax, lengthMode,
+                    weeklyChartPeak, weeklyChartWeeks,
+                    trlPeak, trlDays,
+                    vatosCuntdownPeak, vatosCuntdownDays,
+                    billboardPeak, billboardWeeks,
+                    seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears
+            );
+            Long cachedCount = getCachedCombinedSongCount(combinedSongsCacheKey);
+            if (cachedCount != null) {
+                return cachedCount;
+            }
+
             List<Object[]> results = songRepository.findSongsWithStats(
                     name, artistName, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
@@ -490,7 +783,9 @@ public class SongService {
                     seasonalChartPeak, seasonalChartSeasons, yearlyChartPeak, yearlyChartYears,
                     "plays", "desc", null, null, null, null, 100000, 0
             );
-            return countCombinedRows(results);
+                    long combinedCount = countCombinedRows(results);
+                    cacheCombinedSongCount(combinedSongsCacheKey, combinedCount);
+                    return combinedCount;
         }
 
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
