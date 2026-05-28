@@ -104,11 +104,19 @@ public class BillboardHot100Service {
     }
 
     public int countArtistOverviewRows(String query) {
-        return getAllArtistOverviewRows(query).size();
+        return countArtistOverviewRows(query, false);
+    }
+
+    public int countArtistOverviewRows(String query, boolean includeFeatured) {
+        return getAllArtistOverviewRows(query, includeFeatured).size();
     }
 
     public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(int page, int size, String sort, String dir, String query) {
-        List<ChartArtistOverviewRowDTO> rows = getAllArtistOverviewRows(query);
+        return getArtistOverviewRows(page, size, sort, dir, query, false);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(int page, int size, String sort, String dir, String query, boolean includeFeatured) {
+        List<ChartArtistOverviewRowDTO> rows = getAllArtistOverviewRows(query, includeFeatured);
         rows.sort(buildArtistOverviewComparator(sort, dir));
         return paginate(rows, page, size);
     }
@@ -227,7 +235,7 @@ public class BillboardHot100Service {
         return rows;
     }
 
-    private List<ChartArtistOverviewRowDTO> getAllArtistOverviewRows(String query) {
+    private List<ChartArtistOverviewRowDTO> getAllArtistOverviewRows(String query, boolean includeFeatured) {
         List<BillboardHot100OverviewRowDTO> songRows = getAllOverviewRows(query);
         Map<String, ArtistOverviewAccumulator> grouped = new LinkedHashMap<>();
 
@@ -243,11 +251,105 @@ public class BillboardHot100Service {
             accumulator.accept(row);
         }
 
+        if (includeFeatured) {
+            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = getFeaturedArtistRefsBySongId(songRows.stream()
+                .map(BillboardHot100OverviewRowDTO::getSongId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList());
+            for (BillboardHot100OverviewRowDTO row : songRows) {
+                if (row.getSongId() == null) {
+                    continue;
+                }
+                List<FeaturedArtistRef> featuredArtistRefs = featuredArtistRefsBySongId.get(row.getSongId());
+                if (featuredArtistRefs == null || featuredArtistRefs.isEmpty()) {
+                    continue;
+                }
+                for (FeaturedArtistRef featuredArtistRef : featuredArtistRefs) {
+                    if (row.getResolvedArtistId() != null && row.getResolvedArtistId().equals(featuredArtistRef.artistId())) {
+                        continue;
+                    }
+                    BillboardHot100OverviewRowDTO featuredRow = copyOverviewRowForFeaturedArtist(row, featuredArtistRef);
+                    ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                        "artist:" + featuredArtistRef.artistId(),
+                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.genderClass())
+                    );
+                    accumulator.acceptFeatured(featuredRow);
+                }
+            }
+        }
+
         List<ChartArtistOverviewRowDTO> rows = new ArrayList<>();
         for (ArtistOverviewAccumulator accumulator : grouped.values()) {
             rows.add(accumulator.toRow());
         }
         return rows;
+    }
+
+    private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
+        if (songIds == null || songIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = songIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
+        String sql = """
+            SELECT sfa.song_id,
+                   a.id AS artist_id,
+                   a.name AS artist_name,
+                   LOWER(g.name) AS gender_name
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Artist a ON a.id = sfa.artist_id
+            LEFT JOIN Gender g ON g.id = a.gender_id
+            WHERE sfa.song_id IN (%s)
+            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
+            """.formatted(placeholders);
+
+        Map<Integer, List<FeaturedArtistRef>> refsBySongId = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, (rs) -> {
+            FeaturedArtistRef ref = new FeaturedArtistRef(
+                rs.getInt("artist_id"),
+                rs.getString("artist_name"),
+                mapGenderClass(rs.getString("gender_name"))
+            );
+            refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
+        }, songIds.toArray());
+        return refsBySongId;
+    }
+
+    private BillboardHot100OverviewRowDTO copyOverviewRowForFeaturedArtist(BillboardHot100OverviewRowDTO source, FeaturedArtistRef featuredArtistRef) {
+        BillboardHot100OverviewRowDTO target = new BillboardHot100OverviewRowDTO();
+        target.setMatched(true);
+        target.setSongId(source.getSongId());
+        target.setResolvedArtistId(featuredArtistRef.artistId());
+        target.setSongTitle(source.getSongTitle());
+        target.setArtistName(featuredArtistRef.artistName());
+        target.setFirstWeek(source.getFirstWeek());
+        target.setDebutPosition(source.getDebutPosition());
+        target.setLastWeek(source.getLastWeek());
+        target.setPeakWeek(source.getPeakWeek());
+        target.setWeeksOnChart(source.getWeeksOnChart());
+        target.setPeakPosition(source.getPeakPosition());
+        target.setWeeksAtPeak(source.getWeeksAtPeak());
+        target.setGenderClass(featuredArtistRef.genderClass());
+        target.setWeeksAtTop1(source.getWeeksAtTop1());
+        target.setWeeksAtTop5(source.getWeeksAtTop5());
+        target.setWeeksAtTop10(source.getWeeksAtTop10());
+        target.setWeeksAtTop20(source.getWeeksAtTop20());
+        target.setWeeksAtTop50(source.getWeeksAtTop50());
+        target.setWeeksAtTop100(source.getWeeksAtTop100());
+        return target;
+    }
+
+    private String mapGenderClass(String genderName) {
+        if (genderName == null) {
+            return null;
+        }
+        if (genderName.contains("female")) {
+            return "gender-female";
+        }
+        if (genderName.contains("male")) {
+            return "gender-male";
+        }
+        return null;
     }
 
     private Comparator<ChartAlbumOverviewRowDTO> buildAlbumOverviewComparator(String sort, String dir) {
@@ -936,6 +1038,14 @@ public class BillboardHot100Service {
         }
 
         private void accept(BillboardHot100OverviewRowDTO songRow) {
+            accept(songRow, true);
+        }
+
+        private void acceptFeatured(BillboardHot100OverviewRowDTO songRow) {
+            accept(songRow, false);
+        }
+
+        private void accept(BillboardHot100OverviewRowDTO songRow, boolean includeTimelineMetrics) {
             row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), songRow.getArtistName()));
             if (row.getResolvedArtistId() == null) {
                 row.setResolvedArtistId(songRow.getResolvedArtistId());
@@ -951,7 +1061,7 @@ public class BillboardHot100Service {
                 row.setChartedSongsCount(songKeys.size());
             }
             row.setTotalChartSpan(row.getTotalChartSpan() + songRow.getWeeksOnChart());
-            if (row.getHighestPeak() == null || songRow.getPeakPosition() < row.getHighestPeak()) {
+            if (includeTimelineMetrics && (row.getHighestPeak() == null || songRow.getPeakPosition() < row.getHighestPeak())) {
                 row.setHighestPeak(songRow.getPeakPosition());
             }
             if (songRow.getPeakPosition() == 1 && numberOneSongKeys.add(songKey)) {
@@ -959,8 +1069,10 @@ public class BillboardHot100Service {
                 numberOneSongTitles.putIfAbsent(songKey, formatNumberOneSongLabel(songRow.getSongTitle(), songRow.getWeeksAtTop1()));
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + songRow.getWeeksAtTop1());
-            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
-            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), songRow.getLastWeek()));
+            if (includeTimelineMetrics) {
+                row.setFirstDebutDate(minDate(row.getFirstDebutDate(), songRow.getFirstWeek()));
+                row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), songRow.getLastWeek()));
+            }
         }
 
         private ChartArtistOverviewRowDTO toRow() {
@@ -1010,6 +1122,9 @@ public class BillboardHot100Service {
     }
 
     private record AlbumSongInfo(Integer albumId, String albumName) {
+    }
+
+    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
     }
 
     private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName) {

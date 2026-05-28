@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 @Service
@@ -117,12 +119,32 @@ public class SongLinkService {
     }
 
     public Integer chooseCleanestSongId(List<LinkedSongDTO> songs) {
+        LinkedSongDTO representative = chooseRepresentativeSong(songs, LinkedSongDTO::getId, LinkedSongDTO::getName);
+        return representative != null ? representative.getId() : null;
+        }
+
+        public <T> T chooseRepresentativeSong(List<T> songs, Function<T, Integer> idExtractor, Function<T, String> nameExtractor) {
+        if (songs == null || songs.isEmpty()) {
+            return null;
+        }
+
+        List<Integer> songIds = songs.stream()
+            .map(idExtractor)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+        Map<Integer, RepresentativeSongMetadata> metadataBySongId = getRepresentativeSongMetadata(songIds);
+
         return songs.stream()
-                .min(Comparator.comparingInt((LinkedSongDTO song) -> cleanTitleScore(song.getName()))
-                        .thenComparing(song -> song.getName() == null ? "" : song.getName(), String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(LinkedSongDTO::getId))
-                .map(LinkedSongDTO::getId)
-                .orElse(null);
+            .min(Comparator.comparingInt((T song) -> cleanTitleScore(nameExtractor.apply(song)))
+                .thenComparing(song -> getReleaseDate(metadataBySongId, idExtractor.apply(song)), Comparator.nullsLast(LocalDate::compareTo))
+                .thenComparing(song -> getFirstPlayDate(metadataBySongId, idExtractor.apply(song)), Comparator.nullsLast(LocalDate::compareTo))
+                .thenComparing(song -> {
+                    String name = nameExtractor.apply(song);
+                    return name == null ? "" : name;
+                }, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(idExtractor, Comparator.nullsLast(Integer::compareTo)))
+            .orElse(null);
     }
 
     public int cleanTitleScore(String name) {
@@ -291,5 +313,52 @@ public class SongLinkService {
 
     private String now() {
         return LocalDateTime.now().format(TIMESTAMP_FORMAT);
+    }
+
+    private Map<Integer, RepresentativeSongMetadata> getRepresentativeSongMetadata(List<Integer> songIds) {
+        if (songIds == null || songIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", songIds.stream().map(id -> "?").toList());
+        return jdbcTemplate.query("""
+                SELECT s.id,
+                       DATE(s.release_date) as release_date,
+                       MIN(DATE(p.play_date)) as first_play_date
+                FROM Song s
+                LEFT JOIN Play p ON p.song_id = s.id
+                WHERE s.id IN (%s)
+                GROUP BY s.id, s.release_date
+                """.formatted(placeholders), rs -> {
+            java.util.Map<Integer, RepresentativeSongMetadata> result = new java.util.HashMap<>();
+            while (rs.next()) {
+                Integer songId = rs.getInt("id");
+                result.put(songId, new RepresentativeSongMetadata(
+                        parseIsoDate(rs.getString("release_date")),
+                        parseIsoDate(rs.getString("first_play_date"))
+                ));
+            }
+            return result;
+        }, songIds.toArray());
+    }
+
+    private LocalDate getReleaseDate(Map<Integer, RepresentativeSongMetadata> metadataBySongId, Integer songId) {
+        RepresentativeSongMetadata metadata = metadataBySongId.get(songId);
+        return metadata != null ? metadata.releaseDate() : null;
+    }
+
+    private LocalDate getFirstPlayDate(Map<Integer, RepresentativeSongMetadata> metadataBySongId, Integer songId) {
+        RepresentativeSongMetadata metadata = metadataBySongId.get(songId);
+        return metadata != null ? metadata.firstPlayDate() : null;
+    }
+
+    private LocalDate parseIsoDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(value);
+    }
+
+    private record RepresentativeSongMetadata(LocalDate releaseDate, LocalDate firstPlayDate) {
     }
 }

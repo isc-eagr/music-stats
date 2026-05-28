@@ -345,6 +345,13 @@
         <div class="pc-toolbar">
             <input type="text" id="pcSearchInput" class="pc-search-input-inline" placeholder="Filter the current overview..." oninput="filterPcTable()" autocomplete="off">
             <button id="pcLoadAllButton" type="button" class="pc-toggle-btn" hidden th:if="${activeTotalCount > pageSize}" onclick="window.loadAllPcOverviewResults && window.loadAllPcOverviewResults()">Load all</button>
+            <a th:if="${overviewTab == 'artist'}"
+               class="pc-toggle-btn"
+               th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
+               th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort=${selectedSort},dir=${selectedDir},includeFeatured=${!selectedIncludeFeatured})}"
+               onclick="persistPcSearch()"
+               style="text-decoration:none;"
+               th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="clearPcSelection()">Clear Selection</button>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="runPcNormalizeCase(this)">Normalize Case Differences</button>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="runPcAutoLink(this)">Auto-Link Exact Matches</button>
@@ -498,7 +505,7 @@
            <div class="pc-table-wrap"
                id="pcOverviewContainer"
                th:if="${overviewTab == 'artist'}"
-               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-include-featured=${selectedIncludeFeatured}">
             <table class="pc-table" id="pcArtistOverviewTable">
                 <thead>
                     <tr>
@@ -600,6 +607,18 @@
             if (overviewTab === 'album') return document.getElementById('pcAlbumTableBody');
             if (overviewTab === 'artist') return document.getElementById('pcArtistTableBody');
             return document.getElementById('pcTableBody');
+        }
+
+        function preservePcFeaturedLinks() {
+            const container = document.getElementById('pcOverviewContainer');
+            if (!container || container.dataset.overviewTab !== 'artist' || container.dataset.includeFeatured !== 'true') {
+                return;
+            }
+            document.querySelectorAll('.overview-tab-link, #pcArtistOverviewTable .pc-sort-link').forEach(link => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set('includeFeatured', 'true');
+                link.href = url.toString();
+            });
         }
 
         function filterPcTable() {
@@ -1230,6 +1249,9 @@
                     url.searchParams.set('size', String(pageSize));
                     url.searchParams.set('sort', container.dataset.sort || 'days');
                     url.searchParams.set('dir', container.dataset.dir || 'desc');
+                    if (overviewTab === 'artist' && container.dataset.includeFeatured === 'true') {
+                        url.searchParams.set('includeFeatured', 'true');
+                    }
                     const response = await fetch(url.toString());
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     const data = await response.json();
@@ -1314,6 +1336,7 @@
         }
 
         window.addEventListener('load', function() {
+            preservePcFeaturedLinks();
             setupPcInfiniteScroll();
             initializePcNumberOneTooltips(document);
             requestAnimationFrame(function() {

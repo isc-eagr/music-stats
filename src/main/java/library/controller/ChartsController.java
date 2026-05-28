@@ -948,6 +948,7 @@ public class ChartsController {
             @RequestParam(required = false) String dir2,
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         String normalizedQuery = normalizeOverviewQuery(q);
@@ -958,7 +959,7 @@ public class ChartsController {
 
         List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
         List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows("weekly");
-        List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly", weeklySongRows, weeklyAlbumRows);
+        List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly", weeklySongRows, weeklyAlbumRows, includeFeatured);
 
         List<ChartSongOverviewRowDTO> pagedSongRows = List.of();
         List<ChartAlbumOverviewRowDTO> pagedAlbumRows = List.of();
@@ -1004,6 +1005,7 @@ public class ChartsController {
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
+        model.addAttribute("selectedIncludeFeatured", includeFeatured);
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
 
         return "charts/overview";
@@ -1020,6 +1022,7 @@ public class ChartsController {
             @RequestParam(required = false) String dir2,
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(name = "filter", required = false) List<String> columnFilters,
             @RequestParam(required = false) Integer topSong,
             @RequestParam(required = false) Integer topAlbum,
@@ -1045,7 +1048,7 @@ public class ChartsController {
                 result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
             }
             case "artist" -> {
-                List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly");
+                List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly", includeFeatured);
                 List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(weeklyArtistRows, normalizedQuery, normalizedFilters, topSong, topAlbum);
                 filteredRows.sort(buildArtistOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
@@ -1105,16 +1108,18 @@ public class ChartsController {
             @RequestParam(required = false) String dir2,
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
-        return renderSeasonalOverview(normalizedOverviewTab, q, sort, dir, sort2, dir2, sort3, dir3, model);
+        return renderSeasonalOverview(normalizedOverviewTab, q, sort, dir, sort2, dir2, sort3, dir3, includeFeatured, model);
     }
 
     @GetMapping("/yearly/overview")
     public String yearlyOverview(
             @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             Model model) {
-        return renderChartOverview("yearly", overviewTab, model);
+        return renderChartOverview("yearly", overviewTab, includeFeatured, model);
     }
 
     @GetMapping("/seasonal/overview/data")
@@ -1128,6 +1133,7 @@ public class ChartsController {
             @RequestParam(required = false) String dir2,
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam(name = "filter", required = false) List<String> columnFilters,
             @RequestParam(required = false) Integer topSong,
             @RequestParam(required = false) Integer topAlbum,
@@ -1153,7 +1159,7 @@ public class ChartsController {
                 result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
             }
             case "artist" -> {
-                List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal");
+                List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal", includeFeatured);
                 List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(seasonalArtistRows, normalizedQuery, normalizedFilters, topSong, topAlbum);
                 filteredRows.sort(buildArtistOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
@@ -1210,11 +1216,11 @@ public class ChartsController {
         return ResponseEntity.ok(history);
     }
 
-    private String renderChartOverview(String periodType, String overviewTab, Model model) {
+    private String renderChartOverview(String periodType, String overviewTab, boolean includeFeatured, Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         List<ChartSongOverviewRowDTO> songRows = chartService.getChartOverviewSongRows(periodType);
         List<ChartAlbumOverviewRowDTO> albumRows = chartService.getChartOverviewAlbumRows(periodType);
-        List<ChartArtistOverviewRowDTO> artistRows = chartService.getChartOverviewArtistRows(periodType, songRows, albumRows);
+        List<ChartArtistOverviewRowDTO> artistRows = chartService.getChartOverviewArtistRows(periodType, songRows, albumRows, includeFeatured);
 
         model.addAttribute("currentSection", switch (periodType) {
             case "seasonal" -> "seasonal-overview-charts";
@@ -1242,6 +1248,7 @@ public class ChartsController {
         model.addAttribute("selectedSort", null);
         model.addAttribute("selectedDir", null);
         model.addAttribute("searchQuery", "");
+        model.addAttribute("selectedIncludeFeatured", includeFeatured);
         model.addAttribute("activeTotalCount", 0);
         model.addAttribute("pageSize", 0);
         model.addAttribute("serverInfiniteScrollEnabled", false);
@@ -1258,10 +1265,11 @@ public class ChartsController {
                                           String dir2,
                                           String sort3,
                                           String dir3,
+                                          boolean includeFeatured,
                                           Model model) {
         List<ChartSongOverviewRowDTO> seasonalSongRows = chartService.getChartOverviewSongRows("seasonal");
         List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = chartService.getChartOverviewAlbumRows("seasonal");
-        List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal", seasonalSongRows, seasonalAlbumRows);
+        List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal", seasonalSongRows, seasonalAlbumRows, includeFeatured);
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(overviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedSort = sortSpecs.get(0).sort();
         String normalizedDir = sortSpecs.get(0).dir();
@@ -1312,6 +1320,7 @@ public class ChartsController {
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
+        model.addAttribute("selectedIncludeFeatured", includeFeatured);
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
         return "charts/overview";
     }

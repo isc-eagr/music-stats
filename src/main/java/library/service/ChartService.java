@@ -3075,28 +3075,39 @@ public class ChartService {
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType) {
+        return getChartOverviewArtistRows(periodType, false);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType, boolean includeFeatured) {
         List<ChartSongOverviewRowDTO> songRows = buildChartOverviewSongRows(periodType);
         List<ChartAlbumOverviewRowDTO> albumRows = buildChartOverviewAlbumRows(periodType);
-        return buildChartOverviewArtistRows(periodType, songRows, albumRows);
+        return buildChartOverviewArtistRows(periodType, songRows, albumRows, includeFeatured);
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType,
                                                                        List<ChartSongOverviewRowDTO> songRows) {
-        return buildChartOverviewArtistRows(periodType, songRows, List.of());
+        return getChartOverviewArtistRows(periodType, songRows, List.of(), false);
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType,
                                                                        List<ChartSongOverviewRowDTO> songRows,
                                                                        List<ChartAlbumOverviewRowDTO> albumRows) {
-        return buildChartOverviewArtistRows(periodType, songRows, albumRows);
+        return getChartOverviewArtistRows(periodType, songRows, albumRows, false);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(String periodType,
+                                                                       List<ChartSongOverviewRowDTO> songRows,
+                                                                       List<ChartAlbumOverviewRowDTO> albumRows,
+                                                                       boolean includeFeatured) {
+        return buildChartOverviewArtistRows(periodType, songRows, albumRows, includeFeatured);
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows) {
-        return buildChartOverviewArtistRows(null, songRows, List.of());
+        return buildChartOverviewArtistRows(null, songRows, List.of(), false);
     }
 
     public List<ChartArtistOverviewRowDTO> getChartOverviewArtistRows(List<ChartSongOverviewRowDTO> songRows, List<ChartAlbumOverviewRowDTO> albumRows) {
-        return buildChartOverviewArtistRows(null, songRows, albumRows);
+        return buildChartOverviewArtistRows(null, songRows, albumRows, false);
     }
 
     private List<ChartSongOverviewRowDTO> buildChartOverviewSongRows(String periodType) {
@@ -3242,12 +3253,34 @@ public class ChartService {
 
     private List<ChartArtistOverviewRowDTO> buildChartOverviewArtistRows(String periodType,
                                                                          List<ChartSongOverviewRowDTO> songRows,
-                                                                         List<ChartAlbumOverviewRowDTO> albumRows) {
+                                                                         List<ChartAlbumOverviewRowDTO> albumRows,
+                                                                         boolean includeFeatured) {
         Map<Integer, ChartOverviewArtistAccumulator> accumulators = new LinkedHashMap<>();
 
         for (ChartSongOverviewRowDTO row : songRows) {
             accumulators.computeIfAbsent(row.getArtistId(), ignored -> new ChartOverviewArtistAccumulator(periodType, row))
                 .addSong(row);
+        }
+
+        if (includeFeatured) {
+            Map<Integer, List<FeaturedArtistOverviewRef>> featuredArtistRefsBySongId = getFeaturedArtistOverviewRefsBySongId(songRows);
+            for (ChartSongOverviewRowDTO row : songRows) {
+                if (row.getSongId() == null) {
+                    continue;
+                }
+                List<FeaturedArtistOverviewRef> featuredArtistRefs = featuredArtistRefsBySongId.get(row.getSongId());
+                if (featuredArtistRefs == null || featuredArtistRefs.isEmpty()) {
+                    continue;
+                }
+                for (FeaturedArtistOverviewRef featuredArtistRef : featuredArtistRefs) {
+                    if (Objects.equals(featuredArtistRef.artistId(), row.getArtistId())) {
+                        continue;
+                    }
+                    ChartSongOverviewRowDTO featuredRow = copySongOverviewRowForArtist(row, featuredArtistRef);
+                    accumulators.computeIfAbsent(featuredArtistRef.artistId(), ignored -> new ChartOverviewArtistAccumulator(periodType, featuredRow))
+                        .addFeaturedSongMetrics(featuredRow);
+                }
+            }
         }
 
         for (ChartAlbumOverviewRowDTO row : albumRows) {
@@ -3268,6 +3301,78 @@ public class ChartService {
             .thenComparing(ChartArtistOverviewRowDTO::getFirstDebutSortValue, Comparator.nullsLast(String::compareTo))
             .thenComparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER));
         return rows;
+    }
+
+    private Map<Integer, List<FeaturedArtistOverviewRef>> getFeaturedArtistOverviewRefsBySongId(List<ChartSongOverviewRowDTO> songRows) {
+        List<Integer> songIds = songRows.stream()
+            .map(ChartSongOverviewRowDTO::getSongId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (songIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = songIds.stream()
+            .map(ignored -> "?")
+            .collect(Collectors.joining(","));
+        String sql = """
+            SELECT sfa.song_id,
+                   a.id AS artist_id,
+                   a.name AS artist_name,
+                   a.gender_id,
+                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS has_image
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Artist a ON a.id = sfa.artist_id
+            WHERE sfa.song_id IN (%s)
+            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
+            """.formatted(placeholders);
+
+        Map<Integer, List<FeaturedArtistOverviewRef>> refsBySongId = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, (rs) -> {
+            Integer songId = rs.getInt("song_id");
+            FeaturedArtistOverviewRef ref = new FeaturedArtistOverviewRef(
+                rs.getInt("artist_id"),
+                rs.getString("artist_name"),
+                resolveGenderClass(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null),
+                rs.getInt("has_image") == 1
+            );
+            refsBySongId.computeIfAbsent(songId, ignored -> new ArrayList<>()).add(ref);
+        }, songIds.toArray());
+        return refsBySongId;
+    }
+
+    private ChartSongOverviewRowDTO copySongOverviewRowForArtist(ChartSongOverviewRowDTO source, FeaturedArtistOverviewRef featuredArtistRef) {
+        ChartSongOverviewRowDTO target = new ChartSongOverviewRowDTO();
+        target.setSongId(source.getSongId());
+        target.setAlbumId(source.getAlbumId());
+        target.setArtistId(featuredArtistRef.artistId());
+        target.setSongTitle(source.getSongTitle());
+        target.setAlbumName(source.getAlbumName());
+        target.setArtistName(featuredArtistRef.artistName());
+        target.setHasImage(source.isHasImage());
+        target.setAlbumHasImage(source.isAlbumHasImage());
+        target.setArtistHasImage(featuredArtistRef.hasImage());
+        target.setFirstAppearanceLabel(source.getFirstAppearanceLabel());
+        target.setFirstAppearanceKey(source.getFirstAppearanceKey());
+        target.setFirstAppearanceSortValue(source.getFirstAppearanceSortValue());
+        target.setLastAppearanceLabel(source.getLastAppearanceLabel());
+        target.setLastAppearanceKey(source.getLastAppearanceKey());
+        target.setLastAppearanceSortValue(source.getLastAppearanceSortValue());
+        target.setPeakAppearanceLabel(source.getPeakAppearanceLabel());
+        target.setPeakAppearanceKey(source.getPeakAppearanceKey());
+        target.setPeakAppearanceSortValue(source.getPeakAppearanceSortValue());
+        target.setDebutPosition(source.getDebutPosition());
+        target.setTotalChartSpan(source.getTotalChartSpan());
+        target.setPeakPosition(source.getPeakPosition());
+        target.setSpanAtPeak(source.getSpanAtPeak());
+        target.setSpanAtTop1(source.getSpanAtTop1());
+        target.setSpanAtTop5(source.getSpanAtTop5());
+        target.setSpanAtTop10(source.getSpanAtTop10());
+        target.setSpanAtTopThresholds(source.getSpanAtTopThresholds());
+        target.setGenderClass(featuredArtistRef.genderClass());
+        target.setLinkedSongTitles(source.getLinkedSongTitles());
+        return target;
     }
 
     private static String formatArtistOverviewNumberOneSongLabel(String periodType, ChartSongOverviewRowDTO row) {
@@ -3442,6 +3547,14 @@ public class ChartService {
         int position,
         String periodKey,
         String periodStartDate
+    ) {
+    }
+
+    private record FeaturedArtistOverviewRef(
+        Integer artistId,
+        String artistName,
+        String genderClass,
+        boolean hasImage
     ) {
     }
 
@@ -3789,12 +3902,20 @@ public class ChartService {
         }
 
         private void addSong(ChartSongOverviewRowDTO row) {
+            addSongMetrics(row, true);
+        }
+
+        private void addFeaturedSongMetrics(ChartSongOverviewRowDTO row) {
+            addSongMetrics(row, false);
+        }
+
+        private void addSongMetrics(ChartSongOverviewRowDTO row, boolean includeTimelineMetrics) {
             hasImage = hasImage || row.isArtistHasImage();
             chartedSongsCount++;
             totalChartSpan += row.getTotalChartSpan();
             totalSpanAtNumberOne += row.getSpanAtTop1();
 
-            if (highestPeak == null || row.getPeakPosition() < highestPeak) {
+            if (includeTimelineMetrics && (highestPeak == null || row.getPeakPosition() < highestPeak)) {
                 highestPeak = row.getPeakPosition();
             }
             if (row.getSpanAtTop1() > 0) {
@@ -3804,13 +3925,13 @@ public class ChartService {
                 numberOneSongTitles.putIfAbsent(songKey, label != null ? label : row.getSongTitle());
             }
 
-            if (firstDebutSortValue == null || compareSortValues(row.getFirstAppearanceSortValue(), firstDebutSortValue) < 0) {
+            if (includeTimelineMetrics && (firstDebutSortValue == null || compareSortValues(row.getFirstAppearanceSortValue(), firstDebutSortValue) < 0)) {
                 firstDebutDate = row.getFirstAppearanceLabel();
                 firstDebutKey = row.getFirstAppearanceKey();
                 firstDebutSortValue = row.getFirstAppearanceSortValue();
             }
 
-            if (lastAppearanceSortValue == null || compareSortValues(row.getLastAppearanceSortValue(), lastAppearanceSortValue) > 0) {
+            if (includeTimelineMetrics && (lastAppearanceSortValue == null || compareSortValues(row.getLastAppearanceSortValue(), lastAppearanceSortValue) > 0)) {
                 lastAppearanceDate = row.getLastAppearanceLabel();
                 lastAppearanceKey = row.getLastAppearanceKey();
                 lastAppearanceSortValue = row.getLastAppearanceSortValue();
@@ -4140,11 +4261,10 @@ public class ChartService {
                 continue;
             }
 
-            ChartHistoryDTO representative = group.stream()
-                    .min(Comparator.comparingInt((ChartHistoryDTO entry) -> songLinkService.cleanTitleScore(entry.getName()))
-                            .thenComparing(ChartHistoryDTO::getName, String.CASE_INSENSITIVE_ORDER)
-                            .thenComparing(ChartHistoryDTO::getId))
-                    .orElse(group.get(0));
+                ChartHistoryDTO representative = songLinkService.chooseRepresentativeSong(group, ChartHistoryDTO::getId, ChartHistoryDTO::getName);
+                if (representative == null) {
+                representative = group.get(0);
+                }
 
             List<Integer> linkedSongIds = group.stream()
                     .map(ChartHistoryDTO::getId)

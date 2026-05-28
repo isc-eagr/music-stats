@@ -765,6 +765,11 @@
                     <button type="button" id="overviewResetFilters" class="overview-control-btn">Reset</button>
                     <button type="button" class="overview-control-btn" th:if="${overviewTab == 'song'}" onclick="openOverviewSongsPlaylistGenerator()">Generate Playlist</button>
                     <button type="button" id="weeklyOverviewLoadAllButton" class="overview-control-btn" hidden th:if="${serverInfiniteScrollEnabled and activeTotalCount > pageSize}" onclick="window.loadAllOverviewResults && window.loadAllOverviewResults()">Load all</button>
+                    <a th:if="${overviewTab == 'artist'}"
+                       class="overview-control-btn"
+                       th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
+                       th:href="${periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery},includeFeatured=${!selectedIncludeFeatured})} : (${periodType == 'seasonal'} ? @{/charts/seasonal/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery},includeFeatured=${!selectedIncludeFeatured})} : @{/charts/yearly/overview(overviewTab='artist',includeFeatured=${!selectedIncludeFeatured})})"
+                       th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
                     <div class="overview-artist-thresholds" th:if="${overviewTab == 'artist'}">
                         <label class="overview-artist-threshold-label" for="artistTopSongFilter">
                             Top X Songs
@@ -984,7 +989,7 @@
         <section th:if="${overviewTab == 'artist'}">
             <div class="overview-table-wrap"
                  th:if="${!artistRows.isEmpty()}"
-                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
+                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery},data-include-featured=${selectedIncludeFeatured}">
                 <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="artistOverviewTable">
                     <thead>
                         <tr>
@@ -1103,6 +1108,7 @@
         const overviewDataPath = /*[[${overviewDataPath}]]*/ '/charts/weekly/overview/data';
         const weeklyOverviewSort = /*[[${selectedSort}]]*/ '';
         const weeklyOverviewDir = /*[[${selectedDir}]]*/ '';
+        const overviewIncludeFeatured = /*[[${selectedIncludeFeatured}]]*/ false;
         const overviewArtistMetrics = /*[[${overviewTab == 'artist' ? artistRows : null}]]*/ null;
         const artistMetricColumns = {
             image: 0,
@@ -1728,6 +1734,9 @@
             url.searchParams.set('overviewTab', overviewTab);
             url.searchParams.set('page', String(page));
             url.searchParams.set('size', String(size));
+            if (overviewTab === 'artist' && overviewIncludeFeatured) {
+                url.searchParams.set('includeFeatured', 'true');
+            }
             getWeeklySortStateFromLocation().forEach((sortEntry, index) => {
                 const sortKey = index === 0 ? 'sort' : `sort${index + 1}`;
                 const dirKey = index === 0 ? 'dir' : `dir${index + 1}`;
@@ -1747,6 +1756,17 @@
                     url.searchParams.set('topAlbum', String(albumThreshold));
                 }
             }
+        }
+
+        function preserveFeaturedOverviewLinks() {
+            if (!overviewIncludeFeatured || overviewTab !== 'artist') {
+                return;
+            }
+            document.querySelectorAll('.overview-tab-link, #artistOverviewTable .sort-link').forEach((link) => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set('includeFeatured', 'true');
+                link.href = url.toString();
+            });
         }
 
         async function reloadWeeklyOverviewRowsFromServer() {
@@ -2488,6 +2508,7 @@
         window.addEventListener('load', async () => {
             const resetButton = document.getElementById('overviewResetFilters');
             resetButton?.addEventListener('click', resetOverviewControls);
+            preserveFeaturedOverviewLinks();
             setupOverviewColumnFilters();
             populateArtistThresholdOptions();
             restoreOverviewSearch();

@@ -1034,11 +1034,10 @@ public class ArtistService {
                 continue;
             }
 
-            ArtistSongDTO representative = group.stream()
-                    .min(java.util.Comparator.comparingInt((ArtistSongDTO song) -> songLinkService.cleanTitleScore(song.getName()))
-                            .thenComparing(ArtistSongDTO::getName, String.CASE_INSENSITIVE_ORDER)
-                            .thenComparing(ArtistSongDTO::getId))
-                    .orElse(group.get(0));
+                ArtistSongDTO representative = songLinkService.chooseRepresentativeSong(group, ArtistSongDTO::getId, ArtistSongDTO::getName);
+                if (representative == null) {
+                representative = group.get(0);
+                }
 
             ArtistSongDTO dto = copyArtistSong(representative);
             dto.setHasImage(group.stream().anyMatch(ArtistSongDTO::getHasImage));

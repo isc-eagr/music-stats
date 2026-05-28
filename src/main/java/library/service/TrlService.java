@@ -158,10 +158,18 @@ public class TrlService {
     }
 
     public List<ChartArtistOverviewRowDTO> getArtistOverviewRows() {
-        return getArtistOverviewRows(getAllDebuts());
+        return getArtistOverviewRows(getAllDebuts(), false);
     }
 
     public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(List<TrlDebut> debuts) {
+        return getArtistOverviewRows(debuts, false);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(boolean includeFeatured) {
+        return getArtistOverviewRows(getAllDebuts(), includeFeatured);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(List<TrlDebut> debuts, boolean includeFeatured) {
         Map<String, ArtistOverviewAccumulator> grouped = new LinkedHashMap<>();
 
         for (TrlDebut debut : debuts) {
@@ -178,6 +186,34 @@ public class TrlService {
                 ignored -> new ArtistOverviewAccumulator(matched, debut.getResolvedArtistId(), debut.getArtistName(), debut.getGenderClass())
             );
             accumulator.accept(debut);
+        }
+
+        if (includeFeatured) {
+            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = getFeaturedArtistRefsBySongId(debuts.stream()
+                .map(TrlDebut::getSongId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList());
+            for (TrlDebut debut : debuts) {
+                if (debut.getSongId() == null) {
+                    continue;
+                }
+                List<FeaturedArtistRef> featuredArtistRefs = featuredArtistRefsBySongId.get(debut.getSongId());
+                if (featuredArtistRefs == null || featuredArtistRefs.isEmpty()) {
+                    continue;
+                }
+                for (FeaturedArtistRef featuredArtistRef : featuredArtistRefs) {
+                    if (debut.getResolvedArtistId() != null && debut.getResolvedArtistId().equals(featuredArtistRef.artistId())) {
+                        continue;
+                    }
+                    TrlDebut featuredDebut = copyDebutForFeaturedArtist(debut, featuredArtistRef);
+                    ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                        "artist:" + featuredArtistRef.artistId(),
+                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.genderClass())
+                    );
+                    accumulator.acceptFeatured(featuredDebut);
+                }
+            }
         }
 
         List<ChartArtistOverviewRowDTO> rows = new ArrayList<>();
@@ -739,6 +775,73 @@ public class TrlService {
         return currentValue;
     }
 
+    private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
+        if (songIds == null || songIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = songIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
+        String sql = """
+            SELECT sfa.song_id,
+                   a.id AS artist_id,
+                   a.name AS artist_name,
+                   LOWER(g.name) AS gender_name
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Artist a ON a.id = sfa.artist_id
+            LEFT JOIN Gender g ON g.id = a.gender_id
+            WHERE sfa.song_id IN (%s)
+            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
+            """.formatted(placeholders);
+
+        Map<Integer, List<FeaturedArtistRef>> refsBySongId = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, (rs) -> {
+            FeaturedArtistRef ref = new FeaturedArtistRef(
+                rs.getInt("artist_id"),
+                rs.getString("artist_name"),
+                mapGenderClass(rs.getString("gender_name"))
+            );
+            refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
+        }, songIds.toArray());
+        return refsBySongId;
+    }
+
+    private TrlDebut copyDebutForFeaturedArtist(TrlDebut source, FeaturedArtistRef featuredArtistRef) {
+        TrlDebut target = new TrlDebut();
+        target.setId(source.getId());
+        target.setDaysOnCountdown(source.getDaysOnCountdown());
+        target.setDebutDate(source.getDebutDate());
+        target.setDebutPosition(source.getDebutPosition());
+        target.setSongTitle(source.getSongTitle());
+        target.setArtistName(featuredArtistRef.artistName());
+        target.setSongId(source.getSongId());
+        target.setRetired(source.isRetired());
+        target.setPeakPosition(source.getPeakPosition());
+        target.setDaysAtPeak(source.getDaysAtPeak());
+        target.setPeakDate(source.getPeakDate());
+        target.setActualDays(source.getActualDays());
+        target.setLastAppearanceDate(source.getLastAppearanceDate());
+        target.setSongPath(source.getSongPath());
+        target.setArtistPath(source.getArtistPath());
+        target.setGenderClass(featuredArtistRef.genderClass());
+        target.setResolvedArtistId(featuredArtistRef.artistId());
+        target.setDaysAtTop1(source.getDaysAtTop1());
+        target.setDaysAtTop5(source.getDaysAtTop5());
+        target.setDaysAtTop10(source.getDaysAtTop10());
+        return target;
+    }
+
+    private String mapGenderClass(String genderName) {
+        if (genderName == null) {
+            return null;
+        }
+        if (genderName.contains("female")) {
+            return "gender-female";
+        }
+        if (genderName.contains("male")) {
+            return "gender-male";
+        }
+        return null;
+    }
+
     private String formatNumberOneSongLabel(String title, int daysAtTop1) {
         if (title == null || title.isBlank()) {
             return title;
@@ -751,6 +854,9 @@ public class TrlService {
 
     private String safeLower(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
     }
 
     private final class AlbumOverviewAccumulator {
@@ -809,6 +915,14 @@ public class TrlService {
         }
 
         private void accept(TrlDebut debut) {
+            accept(debut, true);
+        }
+
+        private void acceptFeatured(TrlDebut debut) {
+            accept(debut, false);
+        }
+
+        private void accept(TrlDebut debut, boolean includeTimelineMetrics) {
             row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), debut.getArtistName()));
             if (row.getResolvedArtistId() == null) {
                 row.setResolvedArtistId(debut.getResolvedArtistId());
@@ -826,7 +940,7 @@ public class TrlService {
             row.setTotalChartSpan(row.getTotalChartSpan() + getChartSpan(debut));
 
             Integer bestPeak = getBestPeak(debut);
-            if (bestPeak != null && (row.getHighestPeak() == null || bestPeak < row.getHighestPeak())) {
+            if (includeTimelineMetrics && bestPeak != null && (row.getHighestPeak() == null || bestPeak < row.getHighestPeak())) {
                 row.setHighestPeak(bestPeak);
             }
 
@@ -835,8 +949,10 @@ public class TrlService {
                 numberOneSongTitles.putIfAbsent(songKey, formatNumberOneSongLabel(debut.getSongTitle(), debut.getDaysAtTop1()));
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + debut.getDaysAtTop1());
-            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
-            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
+            if (includeTimelineMetrics) {
+                row.setFirstDebutDate(minDate(row.getFirstDebutDate(), debut.getDebutDate()));
+                row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), debut.getLastAppearanceDate()));
+            }
         }
 
         private ChartArtistOverviewRowDTO toRow() {

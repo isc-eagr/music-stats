@@ -283,11 +283,10 @@ public class SongService {
                 continue;
             }
 
-            SongCardDTO representative = group.stream()
-                    .min(java.util.Comparator.comparingInt((SongCardDTO song) -> songLinkService.cleanTitleScore(song.getName()))
-                            .thenComparing(SongCardDTO::getName, String.CASE_INSENSITIVE_ORDER)
-                            .thenComparing(SongCardDTO::getId))
-                    .orElse(group.get(0));
+                SongCardDTO representative = songLinkService.chooseRepresentativeSong(group, SongCardDTO::getId, SongCardDTO::getName);
+                if (representative == null) {
+                representative = group.get(0);
+                }
             SongCardDTO dto = copySongCard(representative);
             dto.setPlayCount(group.stream().mapToInt(song -> song.getPlayCount() != null ? song.getPlayCount() : 0).sum());
             dto.setVatitoPlayCount(group.stream().mapToInt(song -> song.getVatitoPlayCount() != null ? song.getVatitoPlayCount() : 0).sum());

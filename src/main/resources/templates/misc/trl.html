@@ -575,6 +575,12 @@
             <button id="btnRetiredOnly" th:if="${overviewTab == 'song'}" class="trl-toggle-btn" onclick="toggleRetiredFilter(this)">
                 <span class="btn-icon">&#9733;</span> Hall of Fame Only
             </button>
+            <a th:if="${overviewTab == 'artist'}"
+               class="trl-toggle-btn"
+               th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
+               th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort=${selectedSort},dir=${selectedDir},includeFeatured=${!selectedIncludeFeatured})}"
+               style="text-decoration:none;"
+               th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
             <a th:if="${overviewTab == 'song'}" href="/misc/trl/chart-entries" class="trl-toggle-btn" style="text-decoration:none;">
                 Chart Entries
             </a>
@@ -812,7 +818,7 @@
            <div class="trl-table-wrap"
                id="trlOverviewContainer"
                th:if="${overviewTab == 'artist'}"
-               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir}">
+               th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-include-featured=${selectedIncludeFeatured}">
             <table class="trl-table" id="trlArtistOverviewTable">
                 <thead>
                     <tr>
@@ -937,6 +943,18 @@
                 return document.getElementById('trlArtistOverviewBody');
             }
             return document.getElementById('trlTableBody');
+        }
+
+        function preserveTrlFeaturedLinks() {
+            var container = document.getElementById('trlOverviewContainer');
+            if (!container || container.dataset.overviewTab !== 'artist' || container.dataset.includeFeatured !== 'true') {
+                return;
+            }
+            document.querySelectorAll('.overview-tab-link, #trlArtistOverviewTable .trl-sort-link').forEach(function(link) {
+                var url = new URL(link.href, window.location.origin);
+                url.searchParams.set('includeFeatured', 'true');
+                link.href = url.toString();
+            });
         }
 
         function escapeTrlHtml(value) {
@@ -1217,6 +1235,9 @@
                     url.searchParams.set('size', String(pageSize));
                     url.searchParams.set('sort', container.dataset.sort || 'days');
                     url.searchParams.set('dir', container.dataset.dir || 'desc');
+                    if (overviewTab === 'artist' && container.dataset.includeFeatured === 'true') {
+                        url.searchParams.set('includeFeatured', 'true');
+                    }
                     var response = await fetch(url.toString());
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     var data = await response.json();
@@ -1726,6 +1747,7 @@
         }
 
         window.addEventListener('load', function() {
+            preserveTrlFeaturedLinks();
             setupTrlInfiniteScroll();
             initializeTrlNumberOneTooltips(document);
             requestAnimationFrame(function() {

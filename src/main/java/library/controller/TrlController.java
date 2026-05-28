@@ -35,6 +35,7 @@ public class TrlController {
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
@@ -52,7 +53,7 @@ public class TrlController {
             activeTotalCount = allAlbumRows.size();
             albumOverviewRows = paginateRows(allAlbumRows, safePage, safeSize);
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(trlService.getArtistOverviewRows(), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(trlService.getArtistOverviewRows(includeFeatured), normalizedSort, normalizedDir);
             activeTotalCount = allArtistRows.size();
             artistOverviewRows = paginateRows(allArtistRows, safePage, safeSize);
         } else {
@@ -69,6 +70,7 @@ public class TrlController {
         model.addAttribute("activeTotalCount", activeTotalCount);
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
+        model.addAttribute("selectedIncludeFeatured", includeFeatured);
         model.addAttribute("currentSection", "trl");
         return "misc/trl";
     }
@@ -80,7 +82,8 @@ public class TrlController {
             @RequestParam(defaultValue = "2") int page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir) {
+            @RequestParam(required = false) String dir,
+            @RequestParam(defaultValue = "false") boolean includeFeatured) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
         int safeSize = normalizeSize(size);
@@ -94,7 +97,7 @@ public class TrlController {
             result.put("totalCount", allAlbumRows.size());
             result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(trlService.getArtistOverviewRows(), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(trlService.getArtistOverviewRows(includeFeatured), normalizedSort, normalizedDir);
             result.put("entries", paginateRows(allArtistRows, safePage, safeSize));
             result.put("totalCount", allArtistRows.size());
             result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());

@@ -37,6 +37,7 @@ public class BillboardHot100Controller {
             @RequestParam(defaultValue = "desc") String dir,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
             Model model) {
         String safeOverviewTab = normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
@@ -46,7 +47,7 @@ public class BillboardHot100Controller {
         if ("album".equals(safeOverviewTab)) {
             resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
         } else if ("artist".equals(safeOverviewTab)) {
-            resultTotal = billboardHot100Service.countArtistOverviewRows(q);
+            resultTotal = billboardHot100Service.countArtistOverviewRows(q, includeFeatured);
         } else {
             resultTotal = billboardHot100Service.countOverviewRows(q);
         }
@@ -57,7 +58,7 @@ public class BillboardHot100Controller {
             List<ChartAlbumOverviewRowDTO> albumEntries = billboardHot100Service.getAlbumOverviewRows(safePage, safeSize, safeSort, safeDir, q);
             model.addAttribute("albumEntries", albumEntries);
         } else if ("artist".equals(safeOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> artistEntries = billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q);
+            List<ChartArtistOverviewRowDTO> artistEntries = billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q, includeFeatured);
             model.addAttribute("artistEntries", artistEntries);
         } else {
             model.addAttribute("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
@@ -68,6 +69,7 @@ public class BillboardHot100Controller {
         model.addAttribute("dir", safeDir);
         model.addAttribute("q", q);
         model.addAttribute("overviewTab", safeOverviewTab);
+        model.addAttribute("selectedIncludeFeatured", includeFeatured);
         model.addAttribute("resultTotal", resultTotal);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("hasPrev", safePage > 1);
@@ -84,7 +86,8 @@ public class BillboardHot100Controller {
             @RequestParam(defaultValue = "firstWeek") String sort,
             @RequestParam(defaultValue = "desc") String dir,
             @RequestParam(required = false) String q,
-            @RequestParam(defaultValue = "song") String overviewTab) {
+            @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "false") boolean includeFeatured) {
         String safeOverviewTab = normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
         int safePage = Math.max(1, page);
@@ -98,8 +101,8 @@ public class BillboardHot100Controller {
             resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
             result.put("entries", billboardHot100Service.getAlbumOverviewRows(safePage, safeSize, safeSort, safeDir, q));
         } else if ("artist".equals(safeOverviewTab)) {
-            resultTotal = billboardHot100Service.countArtistOverviewRows(q);
-            result.put("entries", billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+            resultTotal = billboardHot100Service.countArtistOverviewRows(q, includeFeatured);
+            result.put("entries", billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q, includeFeatured));
         } else {
             resultTotal = billboardHot100Service.countOverviewRows(q);
             result.put("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));

@@ -296,12 +296,19 @@
         <div class="bb-toolbar">
             <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
             <button id="billboardLoadAllButton" type="button" class="bb-btn" hidden th:if="${resultTotal > size}" onclick="window.loadAllBillboardOverviewResults && window.loadAllBillboardOverviewResults()">Load all</button>
+            <a th:if="${overviewTab == 'artist'}"
+               class="bb-btn"
+               th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
+               th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort=${sort},dir=${dir},q=${q},includeFeatured=${!selectedIncludeFeatured})}"
+               style="text-decoration:none;"
+               th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
             <form class="bb-search-form" method="get" th:action="@{/misc/billboard-hot-100}">
                 <input type="hidden" name="overviewTab" th:value="${overviewTab}">
                 <input type="hidden" name="page" value="1">
                 <input type="hidden" name="size" th:value="${size}">
                 <input type="hidden" name="sort" th:value="${sort}">
                 <input type="hidden" name="dir" th:value="${dir}">
+                <input type="hidden" name="includeFeatured" th:value="${selectedIncludeFeatured}">
                 <input id="billboardSearchInput" name="q" class="bb-search-input-inline" type="text" placeholder="Search the current overview..." th:value="${q}" autocomplete="off">
                 <a th:if="${q != null and !q.isBlank()}" class="bb-clear-link" th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=${size},sort=${sort},dir=${dir})}">Clear</a>
             </form>
@@ -489,7 +496,7 @@
            <div class="bb-table-wrap"
                id="billboardOverviewContainer"
                th:if="${overviewTab == 'artist'}"
-               th:attr="data-total=${resultTotal},data-page-size=${size},data-overview-tab=${overviewTab},data-sort=${sort},data-dir=${dir},data-q=${q != null ? q : ''}">
+               th:attr="data-total=${resultTotal},data-page-size=${size},data-overview-tab=${overviewTab},data-sort=${sort},data-dir=${dir},data-q=${q != null ? q : ''},data-include-featured=${selectedIncludeFeatured}">
             <table class="bb-table" id="billboardArtistTable">
                 <thead>
                     <tr>
@@ -587,6 +594,18 @@
             if (overviewTab === 'album') return document.getElementById('billboardAlbumTableBody');
             if (overviewTab === 'artist') return document.getElementById('billboardArtistTableBody');
             return document.getElementById('billboardTableBody');
+        }
+
+        function preserveBillboardFeaturedLinks() {
+            const container = document.getElementById('billboardOverviewContainer');
+            if (!container || container.dataset.overviewTab !== 'artist' || container.dataset.includeFeatured !== 'true') {
+                return;
+            }
+            document.querySelectorAll('.overview-tab-link, #billboardArtistTable .bb-sort-link, .bb-clear-link').forEach(link => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set('includeFeatured', 'true');
+                link.href = url.toString();
+            });
         }
 
         function renderOvChartRun(entries, chartType, toneClass) {
@@ -875,6 +894,9 @@
                     url.searchParams.set('dir', dir);
                     if (query) {
                         url.searchParams.set('q', query);
+                    }
+                    if (overviewTab === 'artist' && container.dataset.includeFeatured === 'true') {
+                        url.searchParams.set('includeFeatured', 'true');
                     }
                     const response = await fetch(url.toString());
                     if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -1212,6 +1234,7 @@
         }
 
         window.addEventListener('load', function() {
+            preserveBillboardFeaturedLinks();
             setupBillboardInfiniteScroll();
             initializeBillboardNumberOneTooltips(document);
             requestAnimationFrame(function() {

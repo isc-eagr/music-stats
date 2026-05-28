@@ -109,10 +109,18 @@ public class PcService {
     }
 
     public List<ChartArtistOverviewRowDTO> getArtistOverviewRows() {
-        return getArtistOverviewRows(getOverviewRows());
+        return getArtistOverviewRows(getOverviewRows(), false);
     }
 
     public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(List<PcOverviewRowDTO> entries) {
+        return getArtistOverviewRows(entries, false);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(boolean includeFeatured) {
+        return getArtistOverviewRows(getOverviewRows(), includeFeatured);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(List<PcOverviewRowDTO> entries, boolean includeFeatured) {
         Map<String, ArtistOverviewAccumulator> grouped = new LinkedHashMap<>();
 
         for (PcOverviewRowDTO entry : entries) {
@@ -129,6 +137,34 @@ public class PcService {
                 ignored -> new ArtistOverviewAccumulator(matched, entry.getResolvedArtistId(), entry.getArtistName(), entry.getGenderClass())
             );
             accumulator.accept(entry);
+        }
+
+        if (includeFeatured) {
+            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = getFeaturedArtistRefsBySongId(entries.stream()
+                .map(PcOverviewRowDTO::getSongId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList());
+            for (PcOverviewRowDTO entry : entries) {
+                if (entry.getSongId() == null) {
+                    continue;
+                }
+                List<FeaturedArtistRef> featuredArtistRefs = featuredArtistRefsBySongId.get(entry.getSongId());
+                if (featuredArtistRefs == null || featuredArtistRefs.isEmpty()) {
+                    continue;
+                }
+                for (FeaturedArtistRef featuredArtistRef : featuredArtistRefs) {
+                    if (entry.getResolvedArtistId() != null && entry.getResolvedArtistId().equals(featuredArtistRef.artistId())) {
+                        continue;
+                    }
+                    PcOverviewRowDTO featuredEntry = copyOverviewRowForFeaturedArtist(entry, featuredArtistRef);
+                    ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
+                        "artist:" + featuredArtistRef.artistId(),
+                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.genderClass())
+                    );
+                    accumulator.acceptFeatured(featuredEntry);
+                }
+            }
         }
 
         List<ChartArtistOverviewRowDTO> rows = new ArrayList<>();
@@ -387,6 +423,70 @@ public class PcService {
         return currentValue;
     }
 
+    private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
+        if (songIds == null || songIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = songIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
+        String sql = """
+            SELECT sfa.song_id,
+                   a.id AS artist_id,
+                   a.name AS artist_name,
+                   LOWER(g.name) AS gender_name
+            FROM SongFeaturedArtist sfa
+            INNER JOIN Artist a ON a.id = sfa.artist_id
+            LEFT JOIN Gender g ON g.id = a.gender_id
+            WHERE sfa.song_id IN (%s)
+            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
+            """.formatted(placeholders);
+
+        Map<Integer, List<FeaturedArtistRef>> refsBySongId = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, (rs) -> {
+            FeaturedArtistRef ref = new FeaturedArtistRef(
+                rs.getInt("artist_id"),
+                rs.getString("artist_name"),
+                mapGenderClass(rs.getString("gender_name"))
+            );
+            refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
+        }, songIds.toArray());
+        return refsBySongId;
+    }
+
+    private PcOverviewRowDTO copyOverviewRowForFeaturedArtist(PcOverviewRowDTO source, FeaturedArtistRef featuredArtistRef) {
+        PcOverviewRowDTO target = new PcOverviewRowDTO();
+        target.setMatched(true);
+        target.setSongId(source.getSongId());
+        target.setResolvedArtistId(featuredArtistRef.artistId());
+        target.setSongTitle(source.getSongTitle());
+        target.setArtistName(featuredArtistRef.artistName());
+        target.setFirstWeek(source.getFirstWeek());
+        target.setLastWeek(source.getLastWeek());
+        target.setPeakWeek(source.getPeakWeek());
+        target.setDebutPosition(source.getDebutPosition());
+        target.setDaysOnCountdown(source.getDaysOnCountdown());
+        target.setPeakPosition(source.getPeakPosition());
+        target.setDaysAtPeak(source.getDaysAtPeak());
+        target.setRawVariantCount(source.getRawVariantCount());
+        target.setGenderClass(featuredArtistRef.genderClass());
+        target.setDaysAtTop1(source.getDaysAtTop1());
+        target.setDaysAtTop5(source.getDaysAtTop5());
+        target.setDaysAtTop10(source.getDaysAtTop10());
+        return target;
+    }
+
+    private String mapGenderClass(String genderName) {
+        if (genderName == null) {
+            return null;
+        }
+        if (genderName.contains("female")) {
+            return "gender-female";
+        }
+        if (genderName.contains("male")) {
+            return "gender-male";
+        }
+        return null;
+    }
+
     private String formatNumberOneSongLabel(String title, int daysAtTop1) {
         if (title == null || title.isBlank()) {
             return title;
@@ -399,6 +499,9 @@ public class PcService {
 
     private String safeLower(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
     }
 
     private final class AlbumOverviewAccumulator {
@@ -457,6 +560,14 @@ public class PcService {
         }
 
         private void accept(PcOverviewRowDTO entry) {
+            accept(entry, true);
+        }
+
+        private void acceptFeatured(PcOverviewRowDTO entry) {
+            accept(entry, false);
+        }
+
+        private void accept(PcOverviewRowDTO entry, boolean includeTimelineMetrics) {
             row.setArtistName(pickPreferredDisplayValue(row.getArtistName(), entry.getArtistName()));
             if (row.getResolvedArtistId() == null) {
                 row.setResolvedArtistId(entry.getResolvedArtistId());
@@ -474,7 +585,7 @@ public class PcService {
             row.setTotalChartSpan(row.getTotalChartSpan() + entry.getDaysOnCountdown());
 
             int bestPeak = entry.getPeakPosition();
-            if (row.getHighestPeak() == null || bestPeak < row.getHighestPeak()) {
+            if (includeTimelineMetrics && (row.getHighestPeak() == null || bestPeak < row.getHighestPeak())) {
                 row.setHighestPeak(bestPeak);
             }
 
@@ -483,8 +594,10 @@ public class PcService {
                 numberOneSongTitles.putIfAbsent(songKey, formatNumberOneSongLabel(entry.getSongTitle(), entry.getDaysAtTop1()));
             }
             row.setTotalSpanAtNumberOne(row.getTotalSpanAtNumberOne() + entry.getDaysAtTop1());
-            row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
-            row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
+            if (includeTimelineMetrics) {
+                row.setFirstDebutDate(minDate(row.getFirstDebutDate(), entry.getFirstWeek()));
+                row.setLastAppearanceDate(maxDate(row.getLastAppearanceDate(), entry.getLastWeek()));
+            }
         }
 
         private ChartArtistOverviewRowDTO toRow() {
