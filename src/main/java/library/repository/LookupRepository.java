@@ -65,6 +65,16 @@ public class LookupRepository {
         return languages;
     }
 
+    public Map<Integer, String> getAllTags() {
+        Map<Integer, String> tags = new LinkedHashMap<>();
+        String sql = "SELECT id, name FROM Tag ORDER BY LOWER(name)";
+        jdbcTemplate.query(sql, (rs, rowNum) -> {
+            tags.put(rs.getInt("id"), rs.getString("name"));
+            return null;
+        });
+        return tags;
+    }
+
     /**
      * Get genre ID by name (e.g., "Rap" -> 5)
      */

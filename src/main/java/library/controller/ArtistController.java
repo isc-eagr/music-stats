@@ -16,6 +16,7 @@ import library.service.ChartFilterRequestFactory;
 import library.service.ItunesService;
 import library.service.PcService;
 import library.service.ThemeService;
+import library.service.TagService;
 import library.service.TrlService;
 import library.util.DateFormatUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,11 +49,13 @@ public class ArtistController {
     private final TrlService trlService;
     private final CatalogChartService catalogChartService;
     private final ChartFilterRequestFactory chartFilterRequestFactory;
+    private final TagService tagService;
 
     public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository,
                              ItunesService itunesService, ThemeService themeService, AppConfigService appConfigService,
                              BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
-                             CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory) {
+                             CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory,
+                             TagService tagService) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
@@ -64,6 +67,7 @@ public class ArtistController {
         this.trlService = trlService;
         this.catalogChartService = catalogChartService;
         this.chartFilterRequestFactory = chartFilterRequestFactory;
+        this.tagService = tagService;
     }
     
     @InitBinder
@@ -144,6 +148,8 @@ public class ArtistController {
             @RequestParam(required = false) String languageMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) String deathDate,
             @RequestParam(required = false) String deathDateFrom,
             @RequestParam(required = false) String deathDateTo,
@@ -216,6 +222,7 @@ public class ArtistController {
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, country, countryMode,
+                tag, tagMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
@@ -234,6 +241,7 @@ public class ArtistController {
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
                 languageMode, country, countryMode,
+                tag, tagMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
@@ -251,6 +259,7 @@ public class ArtistController {
         GenderCountDTO genderCounts = artistService.countArtistsByGender(q, gender, genderMode, ethnicity, 
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
                 languageMode, country, countryMode,
+                tag, tagMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
@@ -288,6 +297,8 @@ public class ArtistController {
         model.addAttribute("languageMode", languageMode != null ? languageMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedTags", tag);
+        model.addAttribute("tagMode", tagMode != null ? tagMode : "includes");
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("selectedOrganized", organized);
@@ -368,6 +379,7 @@ public class ArtistController {
         model.addAttribute("subgenres", artistService.getSubGenres());
         model.addAttribute("languages", artistService.getLanguages());
         model.addAttribute("countries", artistService.getCountries());
+        model.addAttribute("tags", tagService.getAllTags());
         model.addAttribute("themes", themeService.getAllThemes());
         model.addAttribute("activeTheme", themeService.getActiveTheme().orElse(null));
         
@@ -390,6 +402,8 @@ public class ArtistController {
             @RequestParam(required = false) String languageMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) String deathDate,
             @RequestParam(required = false) String deathDateFrom,
             @RequestParam(required = false) String deathDateTo,
@@ -458,6 +472,7 @@ public class ArtistController {
         List<ArtistCardDTO> artists = artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode,
                 subgenre, subgenreMode, language, languageMode, country, countryMode,
+                tag, tagMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
@@ -475,6 +490,7 @@ public class ArtistController {
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity,
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language,
                 languageMode, country, countryMode,
+                tag, tagMode,
                 deathDateConverted, deathDateFromConverted, deathDateToConverted, deathDateMode,
                 account, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
@@ -552,6 +568,8 @@ public class ArtistController {
         model.addAttribute("languages", artistService.getLanguages());
         // Use ALL countries for edit mode dropdown
         model.addAttribute("countries", artistService.getAllCountries());
+        model.addAttribute("tagOptions", tagService.getAllTagOptions());
+        model.addAttribute("assignedTags", tagService.getArtistTags(id));
         
         // Add iTunes presence
         Artist artistEntity = artist.get();
@@ -1052,9 +1070,12 @@ public class ArtistController {
     }
     
     @PostMapping("/{id}")
-    public String updateArtist(@PathVariable Integer id, @ModelAttribute Artist artist) {
+    public String updateArtist(@PathVariable Integer id,
+                               @ModelAttribute Artist artist,
+                               @RequestParam(required = false) List<Integer> tags) {
         artist.setId(id);
         artistService.saveArtist(artist);
+        tagService.saveArtistTags(id, tags);
         return "redirect:/artists/" + id;
     }
     

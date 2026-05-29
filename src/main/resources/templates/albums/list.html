@@ -520,6 +520,48 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Tag Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">â–¶</span>
+                                            Tag
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="tag">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="tag">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="tag">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="tag">is not null</button>
+                                        </div>
+                                        <input type="hidden" autocomplete="off" name="tagMode" th:value="${tagMode}" id="tagMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('tag')">
+                                                <div class="multi-select-chips" id="tagChips">
+                                                    <span class="multi-select-chip" th:each="tagId : ${selectedTags}">
+                                                        <span th:text="${tags.get(tagId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'tag\', ' + ${tagId} + ')'" th:attr="data-value=${tagId}">Ã—</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedTags == null || selectedTags.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">â–¼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="tagDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${tags}">
+                                                    <label>
+                                                        <input type="checkbox" autocomplete="off" name="tag" th:value="${entry.key}"
+                                                               th:checked="${selectedTags != null && selectedTags.contains(entry.key)}"
+                                                               onchange="updateChips('tag', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 
                                 <!-- Has Featured Artists Filter -->
                                 <div class="filter-item">
@@ -1087,6 +1129,15 @@
                 </span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
             </div>
+
+            <div class="filter-chip" th:if="${selectedTags != null and !selectedTags.isEmpty()}">
+                <span class="filter-chip-label" th:text="${tagMode == 'excludes' ? 'Tag excludes' : 'Tag includes'}">Tag includes</span>
+                <span class="filter-chip-value" th:each="tagId, iterStat : ${selectedTags}">
+                    <span th:text="${tags.get(tagId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('tag')" type="button">×</button>
+            </div>
             
             <div class="filter-chip" th:if="${selectedSubgenres != null and !selectedSubgenres.isEmpty()}">
                 <span class="filter-chip-label" th:text="${subgenreMode == 'excludes' ? 'Subgenre excludes' : 'Subgenre includes'}">Subgenre includes</span>
@@ -1213,6 +1264,15 @@
             <div class="filter-chip" th:if="${genreMode == 'isnotnull'}">
                 <span class="filter-chip-label">Genre is not null</span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
+            </div>
+
+            <div class="filter-chip" th:if="${tagMode == 'isnull'}">
+                <span class="filter-chip-label">Tag is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('tag')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${tagMode == 'isnotnull'}">
+                <span class="filter-chip-label">Tag is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('tag')" type="button">×</button>
             </div>
 
             <div class="filter-chip" th:if="${subgenreMode == 'isnull'}">

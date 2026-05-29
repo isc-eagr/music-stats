@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tags - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <style>
+        .tags-page {
+            max-width: 1680px;
+            margin: 28px auto 48px;
+            padding: 0 18px;
+        }
+        .tags-toolbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+        .tags-title h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            line-height: 1.1;
+        }
+        .tags-title span {
+            display: block;
+            margin-top: 6px;
+            color: #9fb0bf;
+            font-size: 0.9rem;
+        }
+        .tag-create-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .tag-create-form input {
+            width: min(320px, 48vw);
+            height: 38px;
+            padding: 0 12px;
+            border: 1px solid #3b4a57;
+            border-radius: 6px;
+            background: #172431;
+            color: #f4f7fa;
+            font-size: 14px;
+        }
+        .tag-create-form input:focus {
+            outline: none;
+            border-color: #6aa5d8;
+            box-shadow: 0 0 0 3px rgba(106, 165, 216, 0.12);
+        }
+        .tag-create-form button {
+            height: 38px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: 6px;
+            background: #5d98c9;
+            color: #08131c;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .tag-create-form button:hover {
+            background: #7ab1dc;
+        }
+        .tags-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 10px;
+        }
+        .tag-card {
+            min-height: 260px;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            border: 1px solid #253747;
+            border-radius: 6px;
+            background: #2f4050;
+            overflow: hidden;
+        }
+        .tag-card-main {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 26px;
+            padding: 28px 32px 22px;
+        }
+        .tag-card-icon {
+            width: 110px;
+            height: 84px;
+            color: #f4f5f6;
+            align-self: center;
+        }
+        .tag-card-name {
+            color: #f7fbff;
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        .tag-card-counts {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            padding: 8px 10px;
+            background: rgba(24, 34, 43, 0.34);
+        }
+        .tag-count-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 42px;
+            justify-content: center;
+            color: #f2f7fb;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .tag-count-link svg {
+            width: 15px;
+            height: 15px;
+            flex: 0 0 auto;
+        }
+        .tag-count-link:hover {
+            color: #9ed1f5;
+        }
+        .tag-empty {
+            padding: 42px;
+            border: 1px dashed #344b5f;
+            border-radius: 6px;
+            color: #9fb0bf;
+            text-align: center;
+        }
+        .tag-alert {
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .tag-alert-success {
+            background: rgba(34, 197, 94, 0.16);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #b7f7cc;
+        }
+        .tag-alert-error {
+            background: rgba(239, 68, 68, 0.16);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fecaca;
+        }
+        @media (max-width: 720px) {
+            .tags-toolbar {
+                grid-template-columns: 1fr;
+            }
+            .tag-create-form {
+                width: 100%;
+            }
+            .tag-create-form input {
+                flex: 1;
+                width: auto;
+            }
+            .tag-card {
+                min-height: 220px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <main class="tags-page">
+        <div class="tags-toolbar">
+            <div class="tags-title">
+                <h1>Tags</h1>
+                <span><span th:text="${tagCount}">0</span> total</span>
+            </div>
+            <form class="tag-create-form" th:action="@{/tags}" method="post">
+                <input type="text" name="name" placeholder="New tag name" maxlength="100" required>
+                <button type="submit">Create Tag</button>
+            </form>
+        </div>
+
+        <div th:if="${successMessage}" class="tag-alert tag-alert-success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="tag-alert tag-alert-error" th:text="${errorMessage}"></div>
+
+        <div class="tags-grid" th:if="${tags != null and !tags.isEmpty()}">
+            <article class="tag-card" th:each="tag : ${tags}">
+                <div class="tag-card-main">
+                    <svg class="tag-card-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M20.59 13.41 11.17 22.83a2 2 0 0 1-2.83 0L1.17 15.66a2 2 0 0 1 0-2.83L10.59 3.41A2 2 0 0 1 12 2.83h7a2 2 0 0 1 2 2v7a2 2 0 0 1-.41 1.24ZM16.5 8.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"/>
+                    </svg>
+                    <div>
+                        <div class="tag-card-name" th:text="${tag.name}">tag</div>
+                    </div>
+                </div>
+                <div class="tag-card-counts">
+                    <a class="tag-count-link"
+                       th:href="@{/artists(tag=${tag.id}, tagMode='includes')}"
+                       th:title="${tag.artistCount + ' artists'}"
+                       aria-label="Filter artists by tag">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span th:text="${tag.artistCount}">0</span>
+                    </a>
+                    <a class="tag-count-link"
+                       th:href="@{/albums(tag=${tag.id}, tagMode='includes')}"
+                       th:title="${tag.albumCount + ' albums'}"
+                       aria-label="Filter albums by tag">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span th:text="${tag.albumCount}">0</span>
+                    </a>
+                    <a class="tag-count-link"
+                       th:href="@{/songs(tag=${tag.id}, tagMode='includes')}"
+                       th:title="${tag.songCount + ' songs'}"
+                       aria-label="Filter songs by tag">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        <span th:text="${tag.songCount}">0</span>
+                    </a>
+                </div>
+            </article>
+        </div>
+
+        <div class="tag-empty" th:if="${tags == null or tags.isEmpty()}">
+            No tags yet.
+        </div>
+    </main>
+</body>
+</html>

@@ -28,6 +28,7 @@ public class AlbumRepository {
                                                List<Integer> genderIds, String genderMode,
                                                List<Integer> ethnicityIds, String ethnicityMode,
                                                List<String> countries, String countryMode,
+                                               List<Integer> tagIds, String tagMode,
                                                List<String> accounts, String accountMode,
                                                String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                                String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -403,6 +404,9 @@ public class AlbumRepository {
                 }
             }
         }
+
+        // Tag filter
+        SqlFilterHelper.appendTagFilter(sql, params, "a.id", "AlbumTag", "album_id", tagIds, tagMode);
         
         // Release Date filter
         if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
@@ -907,6 +911,7 @@ public class AlbumRepository {
                                        List<Integer> genderIds, String genderMode,
                                        List<Integer> ethnicityIds, String ethnicityMode,
                                        List<String> countries, String countryMode,
+                                       List<Integer> tagIds, String tagMode,
                                        List<String> accounts, String accountMode,
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -1264,6 +1269,9 @@ public class AlbumRepository {
                 }
             }
         }
+
+        // Tag filter
+        SqlFilterHelper.appendTagFilter(sql, params, "a.id", "AlbumTag", "album_id", tagIds, tagMode);
         
         // Release Date filter
         if (releaseDateMode != null && !releaseDateMode.isEmpty()) {
@@ -1689,6 +1697,7 @@ public class AlbumRepository {
                                        List<Integer> genderIds, String genderMode,
                                        List<Integer> ethnicityIds, String ethnicityMode,
                                        List<String> countries, String countryMode,
+                                       List<Integer> tagIds, String tagMode,
                                        List<String> accounts, String accountMode,
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -1842,6 +1851,9 @@ public class AlbumRepository {
         
         // Country filter
         library.util.SqlFilterHelper.appendStringFilter(sql, params, "ar.country", countries, countryMode);
+
+        // Tag filter
+        library.util.SqlFilterHelper.appendTagFilter(sql, params, "a.id", "AlbumTag", "album_id", tagIds, tagMode);
         
         // Release date filter
         library.util.SqlFilterHelper.appendDateFilter(sql, params, "a.release_date", releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode);

@@ -56,6 +56,7 @@ public class AlbumService {
                                          List<Integer> genderIds, String genderMode,
                                          List<Integer> ethnicityIds, String ethnicityMode,
                                          List<String> countries, String countryMode,
+                                         List<Integer> tagIds, String tagMode,
                                          List<String> accounts, String accountMode,
                                          String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                          String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -83,13 +84,14 @@ public class AlbumService {
                                          int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         
         String itunesSongIdsJson = itunesService.getAllItunesSongIdsJson();
         
         List<Object[]> results = albumRepository.findAlbumsWithStats(
                 name, artistName, genreIds, genreMode, 
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -222,6 +224,7 @@ public class AlbumService {
                            List<Integer> genderIds, String genderMode,
                            List<Integer> ethnicityIds, String ethnicityMode,
                            List<String> countries, String countryMode,
+                           List<Integer> tagIds, String tagMode,
                            List<String> accounts, String accountMode,
                            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -245,10 +248,11 @@ public class AlbumService {
                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         
         return albumRepository.countAlbumsWithFilters(name, artistName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -280,6 +284,7 @@ public class AlbumService {
                            List<Integer> genderIds, String genderMode,
                            List<Integer> ethnicityIds, String ethnicityMode,
                            List<String> countries, String countryMode,
+                           List<Integer> tagIds, String tagMode,
                            List<String> accounts, String accountMode,
                            String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                            String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -303,12 +308,13 @@ public class AlbumService {
                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
 
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = albumRepository.countAlbumsByGenderWithFilters(
                 name, artistName, genreIds, genreMode,
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,

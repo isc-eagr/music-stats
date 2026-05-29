@@ -70,6 +70,7 @@ public class ArtistService {
                                           List<Integer> subgenreIds, String subgenreMode,
                                           List<Integer> languageIds, String languageMode,
                                           List<String> countries, String countryMode,
+                                          List<Integer> tagIds, String tagMode,
                                           String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                           List<String> accounts, String accountMode,
                                           Integer ageMin, Integer ageMax, String ageMode,
@@ -93,6 +94,7 @@ public class ArtistService {
         if (subgenreIds != null && subgenreIds.isEmpty()) subgenreIds = null;
         if (languageIds != null && languageIds.isEmpty()) languageIds = null;
         if (countries != null && countries.isEmpty()) countries = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
         String itunesSongIdsJson = itunesService.getAllItunesSongIdsJson();
@@ -100,7 +102,7 @@ public class ArtistService {
         List<Object[]> results = artistRepository.findArtistsWithStats(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                countries, countryMode, tagIds, tagMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 accounts, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -205,6 +207,7 @@ public class ArtistService {
                             List<Integer> subgenreIds, String subgenreMode,
                             List<Integer> languageIds, String languageMode,
                             List<String> countries, String countryMode,
+                            List<Integer> tagIds, String tagMode,
                             String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                             List<String> accounts, String accountMode,
                             Integer ageMin, Integer ageMax, String ageMode,
@@ -224,11 +227,12 @@ public class ArtistService {
         if (subgenreIds != null && subgenreIds.isEmpty()) subgenreIds = null;
         if (languageIds != null && languageIds.isEmpty()) languageIds = null;
         if (countries != null && countries.isEmpty()) countries = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
         return artistRepository.countArtistsWithFilters(name, genderIds, genderMode, 
                 ethnicityIds, ethnicityMode, genreIds, genreMode, subgenreIds, subgenreMode,
-                languageIds, languageMode, countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                languageIds, languageMode, countries, countryMode, tagIds, tagMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 accounts, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -252,6 +256,7 @@ public class ArtistService {
                             List<Integer> subgenreIds, String subgenreMode,
                             List<Integer> languageIds, String languageMode,
                             List<String> countries, String countryMode,
+                            List<Integer> tagIds, String tagMode,
                             String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                             List<String> accounts, String accountMode,
                             Integer ageMin, Integer ageMax, String ageMode,
@@ -271,13 +276,14 @@ public class ArtistService {
         if (subgenreIds != null && subgenreIds.isEmpty()) subgenreIds = null;
         if (languageIds != null && languageIds.isEmpty()) languageIds = null;
         if (countries != null && countries.isEmpty()) countries = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         if (accounts != null && accounts.isEmpty()) accounts = null;
 
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = artistRepository.countArtistsByGenderWithFilters(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode,
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                countries, countryMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                countries, countryMode, tagIds, tagMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 accounts, accountMode, ageMin, ageMax, ageMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,

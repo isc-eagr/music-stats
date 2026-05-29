@@ -34,6 +34,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            List<Integer> tagIds,
+            String tagMode,
             String deathDate,
             String deathDateFrom,
             String deathDateTo,
@@ -256,6 +258,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Country filter
         SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
+
+        // Tag filter
+        SqlFilterHelper.appendTagFilter(sql, params, "a.id", "ArtistTag", "artist_id", tagIds, tagMode);
         
         // First Listened Date filter
         String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
@@ -490,6 +495,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            List<Integer> tagIds,
+            String tagMode,
             String deathDate,
             String deathDateFrom,
             String deathDateTo,
@@ -623,6 +630,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Country filter
         SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
+
+        // Tag filter
+        SqlFilterHelper.appendTagFilter(sql, params, "a.id", "ArtistTag", "artist_id", tagIds, tagMode);
         
         // First Listened Date filter
         String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";
@@ -753,6 +763,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             String languageMode,
             List<String> countries,
             String countryMode,
+            List<Integer> tagIds,
+            String tagMode,
             String deathDate,
             String deathDateFrom,
             String deathDateTo,
@@ -886,6 +898,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         
         // Country filter
         SqlFilterHelper.appendStringFilter(sql, params, "a.country", countries, countryMode);
+
+        // Tag filter
+        SqlFilterHelper.appendTagFilter(sql, params, "a.id", "ArtistTag", "artist_id", tagIds, tagMode);
         
         // First Listened Date filter
         String firstListenedSubquery = "(SELECT MIN(p.play_date) FROM Play p WHERE p.song_id IN (SELECT id FROM Song WHERE artist_id = a.id))";

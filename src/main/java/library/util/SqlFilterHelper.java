@@ -97,6 +97,67 @@ public final class SqlFilterHelper {
                 break;
         }
     }
+
+    /**
+     * Appends a many-to-many tag filter.
+     * Supports modes: includes, excludes, isnull, isnotnull.
+     */
+    public static void appendTagFilter(StringBuilder sql, List<Object> params,
+                                       String idColumn, String tagTableName, String entityIdColumn,
+                                       List<Integer> tagIds, String mode) {
+        if (mode == null) return;
+
+        switch (mode) {
+            case "includes":
+                if (tagIds != null && !tagIds.isEmpty()) {
+                    sql.append(" AND EXISTS (SELECT 1 FROM ")
+                            .append(tagTableName)
+                            .append(" tag_filter WHERE tag_filter.")
+                            .append(entityIdColumn)
+                            .append(" = ")
+                            .append(idColumn)
+                            .append(" AND tag_filter.tag_id IN (");
+                    appendPlaceholders(sql, tagIds.size());
+                    sql.append(")) ");
+                    params.addAll(tagIds);
+                }
+                break;
+            case "excludes":
+                if (tagIds != null && !tagIds.isEmpty()) {
+                    sql.append(" AND NOT EXISTS (SELECT 1 FROM ")
+                            .append(tagTableName)
+                            .append(" tag_filter WHERE tag_filter.")
+                            .append(entityIdColumn)
+                            .append(" = ")
+                            .append(idColumn)
+                            .append(" AND tag_filter.tag_id IN (");
+                    appendPlaceholders(sql, tagIds.size());
+                    sql.append(")) ");
+                    params.addAll(tagIds);
+                }
+                break;
+            case "isnull":
+                sql.append(" AND NOT EXISTS (SELECT 1 FROM ")
+                        .append(tagTableName)
+                        .append(" tag_filter WHERE tag_filter.")
+                        .append(entityIdColumn)
+                        .append(" = ")
+                        .append(idColumn)
+                        .append(") ");
+                break;
+            case "isnotnull":
+                sql.append(" AND EXISTS (SELECT 1 FROM ")
+                        .append(tagTableName)
+                        .append(" tag_filter WHERE tag_filter.")
+                        .append(entityIdColumn)
+                        .append(" = ")
+                        .append(idColumn)
+                        .append(") ");
+                break;
+            default:
+                break;
+        }
+    }
     
     /**
      * Appends a date filter condition with support for exact, gte, lte, and between modes.

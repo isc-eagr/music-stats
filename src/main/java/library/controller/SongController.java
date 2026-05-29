@@ -14,6 +14,7 @@ import library.service.ArtistService;
 import library.service.ChartService;
 import library.service.SongService;
 import library.service.SongLinkService;
+import library.service.TagService;
 import library.service.ItunesService;
 import library.service.TrlService;
 import library.service.PcService;
@@ -64,6 +65,7 @@ public class SongController {
     private final PcService pcService;
     private final BillboardHot100Service billboardHot100Service;
     private final SongLinkService songLinkService;
+    private final TagService tagService;
     private final JdbcTemplate jdbcTemplate;
     private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
@@ -72,7 +74,8 @@ public class SongController {
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
                          AppConfigService appConfigService,
                          ItunesService itunesService, TrlService trlService, PcService pcService,
-                         BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate, SongLinkService songLinkService) {
+                         BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate, SongLinkService songLinkService,
+                         TagService tagService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -86,6 +89,7 @@ public class SongController {
         this.billboardHot100Service = billboardHot100Service;
         this.jdbcTemplate = jdbcTemplate;
         this.songLinkService = songLinkService;
+        this.tagService = tagService;
     }
     
     @InitBinder
@@ -146,6 +150,8 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) Integer ageMin,
@@ -265,7 +271,7 @@ public class SongController {
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -296,7 +302,7 @@ public class SongController {
         // Get total count for pagination
         long totalCount = songService.countSongs(q, artist, album, 
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -326,7 +332,7 @@ public class SongController {
         // Get gender counts for the filtered dataset
         GenderCountDTO genderCounts = songService.countSongsByGender(q, artist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -382,6 +388,8 @@ public class SongController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedTags", tag);
+        model.addAttribute("tagMode", tagMode != null ? tagMode : "includes");
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("ageMin", ageMin);
@@ -507,6 +515,7 @@ public class SongController {
         model.addAttribute("genders", songService.getGenders());
         model.addAttribute("ethnicities", songService.getEthnicities());
         model.addAttribute("countries", songService.getCountries());
+        model.addAttribute("tags", tagService.getAllTags());
         
         return "songs/list";
     }
@@ -538,6 +547,8 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) Integer ageMin,
@@ -652,7 +663,7 @@ public class SongController {
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode,
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -682,7 +693,7 @@ public class SongController {
 
         long totalCount = songService.countSongs(q, artist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
-                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -842,6 +853,8 @@ public class SongController {
         model.addAttribute("languages", languages);
         model.addAttribute("genders", genders);
         model.addAttribute("ethnicities", ethnicities);
+        model.addAttribute("tagOptions", tagService.getAllTagOptions());
+        model.addAttribute("assignedTags", tagService.getSongTags(id));
         
         // Add effective (resolved) value names for display
         Song s = song.get();
@@ -943,9 +956,12 @@ public class SongController {
     }
     
     @PostMapping("/{id}")
-    public String updateSong(@PathVariable Integer id, @ModelAttribute Song song) {
+    public String updateSong(@PathVariable Integer id,
+                             @ModelAttribute Song song,
+                             @RequestParam(required = false) List<Integer> tags) {
         song.setId(id);
         songService.saveSong(song);
+        tagService.saveSongTags(id, tags);
         return "redirect:/songs/" + id;
     }
 
@@ -2049,6 +2065,8 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String releaseDate,
@@ -2157,6 +2175,8 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String releaseDate,
@@ -3058,6 +3078,8 @@ public class SongController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) Integer ageMin,
@@ -3171,7 +3193,7 @@ public class SongController {
         List<SongCardDTO> songs = songService.getSongs(
                 q, artist, album, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
-                ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,

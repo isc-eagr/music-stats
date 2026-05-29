@@ -517,6 +517,19 @@
                                     <label>Ethnicity</label>
                                     <span class="attribute-text attribute-inherited" th:text="${artistEthnicityName != null ? artistEthnicityName : '-'}">-</span>
                                 </div>
+
+                                <div class="form-group form-group-full-width">
+                                    <label>Tags</label>
+                                    <span class="attribute-text" data-field="tags">
+                                        <th:block th:if="${assignedTags != null and !assignedTags.isEmpty()}">
+                                            <th:block th:each="tag, stat : ${assignedTags}">
+                                                <span th:text="${tag['name']}"></span><th:block th:if="${!stat.last}">, </th:block>
+                                            </th:block>
+                                        </th:block>
+                                        <th:block th:if="${assignedTags == null or assignedTags.isEmpty()}">-</th:block>
+                                    </span>
+                                    <div id="tagChipSelect" style="display:none;"></div>
+                                </div>
                             </div>
                         </div>
                         
@@ -1455,6 +1468,7 @@
         }
     </script>
     
+    <script th:src="@{/js/chip-select.js}"></script>
     <script th:inline="javascript">
         // Initialize plays by month chart (grouped by year)
         document.addEventListener('DOMContentLoaded', function() {
@@ -1834,8 +1848,12 @@
     <script th:inline="javascript">
         let isEditing = false;
         let initialAlbumFormState = null;
+        let tagChipSelect = null;
+        const tagOptions = /*[[${tagOptions}]]*/ [];
+        const initialAssignedTags = /*[[${assignedTags}]]*/ [];
 
         document.addEventListener('DOMContentLoaded', function() {
+            initializeTagChipSelect();
             initialAlbumFormState = captureFormState('albumForm');
 
             const form = document.getElementById('albumForm');
@@ -1845,6 +1863,32 @@
                 });
             }
         });
+
+        function toTagChipValues(tags) {
+            return Array.isArray(tags) ? tags.map(tag => ({ value: tag.id, label: tag.name })) : [];
+        }
+
+        function initializeTagChipSelect() {
+            tagChipSelect = initChipSelect({
+                containerId: 'tagChipSelect',
+                inputName: 'tags',
+                placeholder: 'Search tags...',
+                staticOptions: tagOptions || [],
+                valueField: 'id',
+                labelField: 'name',
+                minChars: 1,
+                debounceMs: 100,
+                initialValues: toTagChipValues(initialAssignedTags)
+            });
+        }
+
+        function resetTagChipSelect() {
+            if (!tagChipSelect) {
+                return;
+            }
+            tagChipSelect.clear();
+            toTagChipValues(initialAssignedTags).forEach(tag => tagChipSelect.addChip(tag.value, tag.label));
+        }
 
         function captureFormState(formId) {
             const form = document.getElementById(formId);
@@ -1979,6 +2023,11 @@
             if (fetchExternalMetaBtn) {
                 fetchExternalMetaBtn.style.display = 'none';
             }
+            const tagChipSelectEl = document.getElementById('tagChipSelect');
+            if (tagChipSelectEl) {
+                tagChipSelectEl.style.display = 'none';
+            }
+            resetTagChipSelect();
 
             textInputs.forEach(input => {
                 if (input.type !== 'hidden') {
@@ -2054,6 +2103,10 @@
                         text.style.display = 'none';
                     }
                 });
+                const tagChipSelectEl = document.getElementById('tagChipSelect');
+                if (tagChipSelectEl) {
+                    tagChipSelectEl.style.display = 'block';
+                }
                 
                 // Initialize searchable selects for dropdowns
                 setTimeout(function() {

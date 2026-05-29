@@ -822,6 +822,19 @@
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
+
+                                <div class="form-group form-group-full-width">
+                                    <label>Tags</label>
+                                    <span class="attribute-text" data-field="tags">
+                                        <th:block th:if="${assignedTags != null and !assignedTags.isEmpty()}">
+                                            <th:block th:each="tag, stat : ${assignedTags}">
+                                                <span th:text="${tag['name']}"></span><th:block th:if="${!stat.last}">, </th:block>
+                                            </th:block>
+                                        </th:block>
+                                        <th:block th:if="${assignedTags == null or assignedTags.isEmpty()}">-</th:block>
+                                    </span>
+                                    <div id="tagChipSelect" style="display:none;"></div>
+                                </div>
                                 
                                 <!-- Featured Artists field (spans full width) - only shown in edit mode -->
                                 <div class="form-group form-group-full-width" id="featuredArtistsField" style="display:none;">
@@ -1539,6 +1552,7 @@
         }
     </script>
     
+    <script th:src="@{/js/chip-select.js}"></script>
     <script th:inline="javascript">
         // Initialize plays by month chart (grouped by year)
         document.addEventListener('DOMContentLoaded', function() {
@@ -1922,6 +1936,9 @@
         let isEditing = false;
         let initialSongFormState = null;
         let initialSelectedFeaturedArtists = [];
+        let tagChipSelect = null;
+        const tagOptions = /*[[${tagOptions}]]*/ [];
+        const initialAssignedTags = /*[[${assignedTags}]]*/ [];
         
         // Featured artists state
         let selectedFeaturedArtists = /*[[${featuredArtists}]]*/ [];
@@ -1930,9 +1947,36 @@
         // Initialize featured artists from server data
         document.addEventListener('DOMContentLoaded', function() {
             initializeFeaturedArtists();
+            initializeTagChipSelect();
             initialSongFormState = captureFormState('songForm');
             initialSelectedFeaturedArtists = cloneStateArray(selectedFeaturedArtists);
         });
+
+        function toTagChipValues(tags) {
+            return Array.isArray(tags) ? tags.map(tag => ({ value: tag.id, label: tag.name })) : [];
+        }
+
+        function initializeTagChipSelect() {
+            tagChipSelect = initChipSelect({
+                containerId: 'tagChipSelect',
+                inputName: 'tags',
+                placeholder: 'Search tags...',
+                staticOptions: tagOptions || [],
+                valueField: 'id',
+                labelField: 'name',
+                minChars: 1,
+                debounceMs: 100,
+                initialValues: toTagChipValues(initialAssignedTags)
+            });
+        }
+
+        function resetTagChipSelect() {
+            if (!tagChipSelect) {
+                return;
+            }
+            tagChipSelect.clear();
+            toTagChipValues(initialAssignedTags).forEach(tag => tagChipSelect.addChip(tag.value, tag.label));
+        }
         
         function initializeFeaturedArtists() {
             // Convert server data to our format
@@ -2121,6 +2165,11 @@
             if (featuredArtistsContainer) {
                 featuredArtistsContainer.style.display = 'none';
             }
+            const tagChipSelectEl = document.getElementById('tagChipSelect');
+            if (tagChipSelectEl) {
+                tagChipSelectEl.style.display = 'none';
+            }
+            resetTagChipSelect();
 
             const featuredArtistsInput = document.getElementById('featuredArtistsInput');
             if (featuredArtistsInput) {
@@ -2272,6 +2321,10 @@
                 const featuredArtistsContainer = document.getElementById('featuredArtistsContainer');
                 if (featuredArtistsContainer) {
                     featuredArtistsContainer.style.display = 'block';
+                }
+                const tagChipSelectEl = document.getElementById('tagChipSelect');
+                if (tagChipSelectEl) {
+                    tagChipSelectEl.style.display = 'block';
                 }
                 
                 // Initialize searchable selects for dropdowns

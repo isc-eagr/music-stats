@@ -15,6 +15,7 @@ import library.service.ChartService;
 import library.service.ChartFilterRequestFactory;
 import library.service.ItunesService;
 import library.service.PcService;
+import library.service.TagService;
 import library.service.TrlService;
 import library.util.DateFormatUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,11 +47,13 @@ public class AlbumController {
     private final TrlService trlService;
     private final CatalogChartService catalogChartService;
     private final ChartFilterRequestFactory chartFilterRequestFactory;
+    private final TagService tagService;
 
     public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService,
                            LookupRepository lookupRepository, ItunesService itunesService, AppConfigService appConfigService,
                            BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
-                           CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory) {
+                           CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory,
+                           TagService tagService) {
         this.albumService = albumService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -62,6 +65,7 @@ public class AlbumController {
         this.trlService = trlService;
         this.catalogChartService = catalogChartService;
         this.chartFilterRequestFactory = chartFilterRequestFactory;
+        this.tagService = tagService;
     }
     
     @InitBinder
@@ -126,6 +130,8 @@ public class AlbumController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String birthDate,
@@ -230,7 +236,7 @@ public class AlbumController {
         List<AlbumCardDTO> albums = albumService.getAlbums(
                 q, artist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-                country, countryMode, account, accountMode,
+                country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -253,7 +259,7 @@ public class AlbumController {
         // Get total count for pagination
         long totalCount = albumService.countAlbums(q, artist, genre, 
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
-                genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -275,7 +281,7 @@ public class AlbumController {
         // Get gender counts for the filtered dataset
         GenderCountDTO genderCounts = albumService.countAlbumsByGender(q, artist, genre, 
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
-                genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -322,6 +328,8 @@ public class AlbumController {
         model.addAttribute("ethnicityMode", ethnicityMode != null ? ethnicityMode : "includes");
         model.addAttribute("selectedCountries", country);
         model.addAttribute("countryMode", countryMode != null ? countryMode : "includes");
+        model.addAttribute("selectedTags", tag);
+        model.addAttribute("tagMode", tagMode != null ? tagMode : "includes");
         model.addAttribute("selectedAccounts", account);
         model.addAttribute("accountMode", accountMode != null ? accountMode : "includes");
         model.addAttribute("ageMin", ageMin);
@@ -436,6 +444,7 @@ public class AlbumController {
         model.addAttribute("genders", albumService.getGenders());
         model.addAttribute("ethnicities", albumService.getEthnicities());
         model.addAttribute("countries", albumService.getCountries());
+        model.addAttribute("tags", tagService.getAllTags());
         
         return "albums/list";
     }
@@ -462,6 +471,8 @@ public class AlbumController {
             @RequestParam(required = false) String ethnicityMode,
             @RequestParam(required = false) List<String> country,
             @RequestParam(required = false) String countryMode,
+            @RequestParam(required = false) List<Integer> tag,
+            @RequestParam(required = false) String tagMode,
             @RequestParam(required = false) List<String> account,
             @RequestParam(required = false) String accountMode,
             @RequestParam(required = false) String birthDate,
@@ -561,7 +572,7 @@ public class AlbumController {
         List<AlbumCardDTO> albums = albumService.getAlbums(
                 q, artist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-                country, countryMode, account, accountMode,
+                country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -583,7 +594,7 @@ public class AlbumController {
 
         long totalCount = albumService.countAlbums(q, artist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender,
-                genderMode, ethnicity, ethnicityMode, country, countryMode, account, accountMode,
+                genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
                 firstListenedDateConverted, firstListenedDateFromConverted, firstListenedDateToConverted, firstListenedDateMode,
                 lastListenedDateConverted, lastListenedDateFromConverted, lastListenedDateToConverted, lastListenedDateMode,
@@ -687,6 +698,8 @@ public class AlbumController {
         model.addAttribute("languages", languages);
         model.addAttribute("genders", genders);
         model.addAttribute("ethnicities", ethnicities);
+        model.addAttribute("tagOptions", tagService.getAllTagOptions());
+        model.addAttribute("assignedTags", tagService.getAlbumTags(id));
         
         // Add effective (resolved) value names for display
         Album a = album.get();
@@ -835,9 +848,12 @@ public class AlbumController {
     }
     
     @PostMapping("/{id}")
-    public String updateAlbum(@PathVariable Integer id, @ModelAttribute Album album) {
+    public String updateAlbum(@PathVariable Integer id,
+                              @ModelAttribute Album album,
+                              @RequestParam(required = false) List<Integer> tags) {
         album.setId(id);
         albumService.saveAlbum(album);
+        tagService.saveAlbumTags(id, tags);
         return "redirect:/albums/" + id;
     }
     

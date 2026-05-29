@@ -98,6 +98,7 @@ public class PlaylistController {
                 null, null,                 // genderIds, genderMode
                 null, null,                 // ethnicityIds, ethnicityMode
                 null, null,                 // countries, countryMode
+                null, null,                 // tagIds, tagMode
                 null, null,                 // accounts, accountMode
                 null, null, null, null,     // releaseDate, from, to, mode
                 null, null, null, null,     // firstListenedDate, from, to, mode

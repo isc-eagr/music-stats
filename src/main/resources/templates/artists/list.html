@@ -527,6 +527,48 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Tag Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">â–¶</span>
+                                            Tag
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'includes' ? 'active' : ''}" data-mode="includes" data-filter="tag">includes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'excludes' ? 'active' : ''}" data-mode="excludes" data-filter="tag">excludes</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'isnull' ? 'active' : ''}" data-mode="isnull" data-filter="tag">is null</button>
+                                            <button type="button" class="filter-modifier" th:classappend="${tagMode == 'isnotnull' ? 'active' : ''}" data-mode="isnotnull" data-filter="tag">is not null</button>
+                                        </div>
+                                        <input type="hidden" name="tagMode" th:value="${tagMode}" id="tagMode">
+                                        <div class="filter-group multi-select-container">
+                                            <div class="multi-select-display" onclick="toggleMultiSelectDropdown('tag')">
+                                                <div class="multi-select-chips" id="tagChips">
+                                                    <span class="multi-select-chip" th:each="tagId : ${selectedTags}">
+                                                        <span th:text="${tags.get(tagId)}"></span>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'tag\', ' + ${tagId} + ')'" th:attr="data-value=${tagId}">Ã—</button>
+                                                    </span>
+                                                </div>
+                                                <span class="multi-select-label" th:if="${selectedTags == null || selectedTags.isEmpty()}">Select...</span>
+                                                <span class="multi-select-arrow">â–¼</span>
+                                            </div>
+                                            <div class="multi-select-dropdown" id="tagDropdown">
+                                                <div class="multi-select-option" th:each="entry : ${tags}">
+                                                    <label>
+                                                        <input type="checkbox" autocomplete="off" name="tag" th:value="${entry.key}"
+                                                               th:checked="${selectedTags != null && selectedTags.contains(entry.key)}"
+                                                               onchange="updateChips('tag', this)">
+                                                        <span th:text="${entry.value}"></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 
                                 <!-- Image Count Filter -->
                                 <div class="filter-item">
@@ -855,6 +897,15 @@
                 </span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
             </div>
+
+            <div class="filter-chip" th:if="${selectedTags != null and !selectedTags.isEmpty()}">
+                <span class="filter-chip-label" th:text="${tagMode == 'excludes' ? 'Tag excludes' : 'Tag includes'}">Tag includes</span>
+                <span class="filter-chip-value" th:each="tagId, iterStat : ${selectedTags}">
+                    <span th:text="${tags.get(tagId)}"></span>
+                    <span th:if="${!iterStat.last}">, </span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('tag')" type="button">×</button>
+            </div>
             
             <div class="filter-chip" th:if="${selectedSubgenres != null and !selectedSubgenres.isEmpty()}">
                 <span class="filter-chip-label" th:text="${subgenreMode == 'excludes' ? 'Subgenre excludes' : 'Subgenre includes'}">Subgenre includes</span>
@@ -981,6 +1032,15 @@
             <div class="filter-chip" th:if="${genreMode == 'isnotnull'}">
                 <span class="filter-chip-label">Genre is not null</span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('genre')" type="button">×</button>
+            </div>
+
+            <div class="filter-chip" th:if="${tagMode == 'isnull'}">
+                <span class="filter-chip-label">Tag is null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('tag')" type="button">×</button>
+            </div>
+            <div class="filter-chip" th:if="${tagMode == 'isnotnull'}">
+                <span class="filter-chip-label">Tag is not null</span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('tag')" type="button">×</button>
             </div>
 
             <div class="filter-chip" th:if="${subgenreMode == 'isnull'}">
@@ -1148,7 +1208,7 @@
             </div>
             
             <button class="clear-all-filters" onclick="clearFilters()" type="button" 
-                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedAccounts != null and !selectedAccounts.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or imageCountMin != null or imageCountMax != null or selectedImageTheme != null or (selectedIsBand != null and !selectedIsBand.isEmpty()) or (selectedInItunes != null and !selectedInItunes.isEmpty()) or playCountMin != null or playCountMax != null or albumCountMin != null or albumCountMax != null or songCountMin != null or songCountMax != null or itunesPresenceMin != null or itunesPresenceMax != null or (firstListenedDate != null and !firstListenedDate.isEmpty()) or (firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty()) or (firstListenedDateTo != null and !firstListenedDateTo.isEmpty()) or (lastListenedDate != null and !lastListenedDate.isEmpty()) or (lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty()) or (lastListenedDateTo != null and !lastListenedDateTo.isEmpty()) or (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or (listenedDateTo != null and !listenedDateTo.isEmpty()) or genderMode == 'isnull' or genderMode == 'isnotnull' or ethnicityMode == 'isnull' or ethnicityMode == 'isnotnull' or genreMode == 'isnull' or genreMode == 'isnotnull' or subgenreMode == 'isnull' or subgenreMode == 'isnotnull' or languageMode == 'isnull' or languageMode == 'isnotnull' or countryMode == 'isnull' or countryMode == 'isnotnull'}">Clear</button>
+                    th:if="${(searchQuery != null and !searchQuery.isEmpty()) or (selectedGenders != null and !selectedGenders.isEmpty()) or (selectedEthnicities != null and !selectedEthnicities.isEmpty()) or (selectedGenres != null and !selectedGenres.isEmpty()) or (selectedTags != null and !selectedTags.isEmpty()) or (selectedSubgenres != null and !selectedSubgenres.isEmpty()) or (selectedLanguages != null and !selectedLanguages.isEmpty()) or (selectedCountries != null and !selectedCountries.isEmpty()) or (selectedAccounts != null and !selectedAccounts.isEmpty()) or (selectedOrganized != null and !selectedOrganized.isEmpty()) or imageCountMin != null or imageCountMax != null or selectedImageTheme != null or (selectedIsBand != null and !selectedIsBand.isEmpty()) or (selectedInItunes != null and !selectedInItunes.isEmpty()) or playCountMin != null or playCountMax != null or albumCountMin != null or albumCountMax != null or songCountMin != null or songCountMax != null or itunesPresenceMin != null or itunesPresenceMax != null or (firstListenedDate != null and !firstListenedDate.isEmpty()) or (firstListenedDateFrom != null and !firstListenedDateFrom.isEmpty()) or (firstListenedDateTo != null and !firstListenedDateTo.isEmpty()) or (lastListenedDate != null and !lastListenedDate.isEmpty()) or (lastListenedDateFrom != null and !lastListenedDateFrom.isEmpty()) or (lastListenedDateTo != null and !lastListenedDateTo.isEmpty()) or (listenedDateFrom != null and !listenedDateFrom.isEmpty()) or (listenedDateTo != null and !listenedDateTo.isEmpty()) or genderMode == 'isnull' or genderMode == 'isnotnull' or ethnicityMode == 'isnull' or ethnicityMode == 'isnotnull' or genreMode == 'isnull' or genreMode == 'isnotnull' or tagMode == 'isnull' or tagMode == 'isnotnull' or subgenreMode == 'isnull' or subgenreMode == 'isnotnull' or languageMode == 'isnull' or languageMode == 'isnotnull' or countryMode == 'isnull' or countryMode == 'isnotnull'}">Clear</button>
         </div>
         
         <!-- Gender Counters and Pagination Container -->
@@ -1175,11 +1235,11 @@
         <!-- Pagination controls (top) - center-aligned -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=0, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=0, perpage=${perPage})}"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage - 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage - 1}, perpage=${perPage})}"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -1189,11 +1249,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage + 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${currentPage + 1}, perpage=${perPage})}"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${totalPages - 1}, perpage=${perPage})}"
+               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2}, sortby3=${sortBy3}, sortdir3=${sortDir3}, page=${totalPages - 1}, perpage=${perPage})}"
                class="page-btn">»</a>
         </div>
         

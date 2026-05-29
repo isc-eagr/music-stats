@@ -1,0 +1,39 @@
+CREATE TABLE IF NOT EXISTS Tag (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    creation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_name_lower ON Tag(LOWER(name));
+
+CREATE TABLE IF NOT EXISTS ArtistTag (
+    artist_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    creation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (artist_id, tag_id),
+    FOREIGN KEY (artist_id) REFERENCES Artist(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES Tag(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS AlbumTag (
+    album_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    creation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (album_id, tag_id),
+    FOREIGN KEY (album_id) REFERENCES Album(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES Tag(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS SongTag (
+    song_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    creation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (song_id, tag_id),
+    FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES Tag(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_artist_tag_tag ON ArtistTag(tag_id);
+CREATE INDEX IF NOT EXISTS idx_album_tag_tag ON AlbumTag(tag_id);
+CREATE INDEX IF NOT EXISTS idx_song_tag_tag ON SongTag(tag_id);

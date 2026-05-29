@@ -106,6 +106,7 @@ public class SongService {
                                                     List<Integer> genderIds, String genderMode,
                                                     List<Integer> ethnicityIds, String ethnicityMode,
                                                     List<String> countries, String countryMode,
+                                                    List<Integer> tagIds, String tagMode,
                                                     List<String> accounts, String accountMode,
                                                     String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                                     String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -148,6 +149,8 @@ public class SongService {
         parts.add(ethnicityMode);
         parts.add(snapshotList(countries));
         parts.add(countryMode);
+        parts.add(snapshotList(tagIds));
+        parts.add(tagMode);
         parts.add(snapshotList(accounts));
         parts.add(accountMode);
         parts.add(releaseDate);
@@ -238,6 +241,7 @@ public class SongService {
                                        List<Integer> genderIds, String genderMode,
                                        List<Integer> ethnicityIds, String ethnicityMode,
                                        List<String> countries, String countryMode,
+                                       List<Integer> tagIds, String tagMode,
                                        List<String> accounts, String accountMode,
                                        String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                                        String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -270,6 +274,7 @@ public class SongService {
                                        int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         
         boolean combineLinkedSongs = appConfigService.isCombineLinkedSongsEnabled();
         int queryLimit = combineLinkedSongs ? 100000 : perPage;
@@ -283,6 +288,7 @@ public class SongService {
                 genderIds, genderMode,
                 ethnicityIds, ethnicityMode,
                 countries, countryMode,
+                tagIds, tagMode,
                 accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
@@ -315,7 +321,7 @@ public class SongService {
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -746,6 +752,7 @@ public class SongService {
                           List<Integer> genderIds, String genderMode,
                           List<Integer> ethnicityIds, String ethnicityMode,
                           List<String> countries, String countryMode,
+                          List<Integer> tagIds, String tagMode,
                           List<String> accounts, String accountMode,
                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -774,12 +781,13 @@ public class SongService {
                           String yearlyChartDateFrom, String yearlyChartDateTo) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         
         if (appConfigService.isCombineLinkedSongsEnabled()) {
             String combinedSongsCacheKey = buildCombinedSongsFilterCacheKey(
                     name, artistName, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                     releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                     firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                     lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -814,7 +822,7 @@ public class SongService {
             List<Object[]> results = songRepository.findSongsWithStats(
                     name, artistName, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                     releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                     firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                     lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -849,7 +857,7 @@ public class SongService {
 
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
-                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
@@ -889,6 +897,7 @@ public class SongService {
                           List<Integer> genderIds, String genderMode,
                           List<Integer> ethnicityIds, String ethnicityMode,
                           List<String> countries, String countryMode,
+                          List<Integer> tagIds, String tagMode,
                           List<String> accounts, String accountMode,
                           String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
                           String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
@@ -917,12 +926,13 @@ public class SongService {
                           String yearlyChartDateFrom, String yearlyChartDateTo) {
         // Normalize empty lists to null
         if (accounts != null && accounts.isEmpty()) accounts = null;
+        if (tagIds != null && tagIds.isEmpty()) tagIds = null;
 
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = songRepository.countSongsByGenderWithFilters(
                 name, artistName, albumName, genreIds, genreMode,
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                ethnicityIds, ethnicityMode, countries, countryMode, accounts, accountMode,
+                ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
                 firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
                 lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
