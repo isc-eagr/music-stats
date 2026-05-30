@@ -1,6 +1,6 @@
 package library.dto;
 
-public class LanguageCardDTO {
+public class LanguageCardDTO extends CatalogWinningPeriodStatsDTO {
     private Integer id;
     private String name;
     private boolean hasImage;

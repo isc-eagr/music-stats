@@ -881,7 +881,7 @@
             // Show loading state
             container.innerHTML = '<div class="wizard-inline-loading active">Searching for artists...</div>';
             
-            fetch(`/artists/api/search?q=${encodeURIComponent(query)}&limit=20`)
+            fetch(`/artists/api/search?q=${encodeURIComponent(query)}`)
                 .then(r => r.json())
                 .then(data => {
                     if (!data || data.length === 0) {

@@ -35,10 +35,11 @@ class ChipSelect {
         this.valueField = options.valueField || 'id';
         this.labelField = options.labelField || 'name';
         this.genderField = options.genderField || null; // Optional: for gender-based coloring
-        this.minChars = options.minChars || 2;
+        this.minChars = options.minChars ?? 2;
         this.initialValues = options.initialValues || [];
-        this.debounceMs = options.debounceMs || 500;
+        this.debounceMs = options.debounceMs ?? 500;
         this.staticOptions = options.staticOptions || null; // If provided, use static options instead of API
+        this.showAllOnFocus = options.showAllOnFocus || false;
         
         this.container = document.getElementById(this.containerId);
         if (!this.container) {
@@ -88,6 +89,15 @@ class ChipSelect {
         this.displayEl.addEventListener('click', (e) => {
             if (e.target.closest('.chip-select-chip-remove')) return;
             this.inputEl.focus();
+            if (this.showAllOnFocus && this.inputEl.value.trim().length >= this.minChars) {
+                this.search(this.inputEl.value.trim());
+            }
+        });
+
+        this.inputEl.addEventListener('focus', () => {
+            if (this.showAllOnFocus && this.inputEl.value.trim().length >= this.minChars) {
+                this.search(this.inputEl.value.trim());
+            }
         });
         
         // Handle input for search
@@ -154,7 +164,7 @@ class ChipSelect {
         if (this.staticOptions) {
             // Filter static options
             const filtered = this.staticOptions.filter(opt => 
-                opt[this.labelField].toLowerCase().includes(query.toLowerCase()) &&
+                String(opt[this.labelField] || '').toLowerCase().includes(query.toLowerCase()) &&
                 !this.selectedItems.has(String(opt[this.valueField]))
             );
             // Only update if this search is still relevant (user hasn't typed more)

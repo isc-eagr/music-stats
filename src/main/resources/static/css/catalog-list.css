@@ -1104,6 +1104,18 @@ a.winning-chip:hover {
     font-size: 13px;
 }
 
+.catalog-list-table {
+    width: max-content;
+    min-width: max(100%, 1820px);
+    table-layout: auto;
+}
+
+#listViewTable {
+    width: 100%;
+    min-width: 1120px;
+    table-layout: fixed;
+}
+
 .catalog-list-table th,
 .catalog-list-table td,
 #listViewTable th,
@@ -1111,6 +1123,11 @@ a.winning-chip:hover {
     padding: 11px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     vertical-align: middle;
+}
+
+.catalog-list-table th,
+.catalog-list-table td {
+    white-space: nowrap;
 }
 
 .catalog-list-table thead th,
@@ -1164,6 +1181,19 @@ a.winning-chip:hover {
     color: var(--text-muted);
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+.catalog-list-table .name-cell {
+    min-width: 220px;
+}
+
+.catalog-list-table .winning-period-cell {
+    min-width: 116px;
+}
+
+.catalog-list-table th:nth-last-child(-n + 3),
+.catalog-list-table td:nth-last-child(-n + 3) {
+    min-width: 220px;
 }
 
 .catalog-list-table .numeric-cell,

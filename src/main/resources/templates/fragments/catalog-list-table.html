@@ -24,6 +24,18 @@
                         th:classappend="${sortBy == 'plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Plays</th>
                     <th data-sort-key="time" class="numeric-cell"
                         th:classappend="${sortBy == 'time'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Time</th>
+                    <th data-sort-key="winningdays" data-default-dir="desc" class="numeric-cell winning-period-cell"
+                        th:classappend="${sortBy == 'winningdays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Days</th>
+                    <th data-sort-key="winningweeks" data-default-dir="desc" class="numeric-cell winning-period-cell"
+                        th:classappend="${sortBy == 'winningweeks'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Weeks</th>
+                    <th data-sort-key="winningmonths" data-default-dir="desc" class="numeric-cell winning-period-cell"
+                        th:classappend="${sortBy == 'winningmonths'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Months</th>
+                    <th data-sort-key="winningseasons" data-default-dir="desc" class="numeric-cell winning-period-cell"
+                        th:classappend="${sortBy == 'winningseasons'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Seasons</th>
+                    <th data-sort-key="winningyears" data-default-dir="desc" class="numeric-cell winning-period-cell"
+                        th:classappend="${sortBy == 'winningyears'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Years</th>
+                    <th data-sort-key="winningdecades" data-default-dir="desc" class="numeric-cell winning-period-cell"
+                        th:classappend="${sortBy == 'winningdecades'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Decades</th>
                     <th th:if="${showMalePercentages}" data-sort-key="maleartistpct" class="numeric-cell"
                         th:classappend="${sortBy == 'maleartistpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Artist %</th>
                     <th th:if="${showMalePercentages}" data-sort-key="malealbumpct" class="numeric-cell"
@@ -41,7 +53,7 @@
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(items)}" class="no-data">
-                    <td th:colspan="${2 + (showParent ? 1 : 0) + 5 + (showMalePercentages ? 5 : 0) + (showTop ? 3 : 0)}"
+                    <td th:colspan="${2 + (showParent ? 1 : 0) + 11 + (showMalePercentages ? 5 : 0) + (showTop ? 3 : 0)}"
                         th:text="'No ' + ${emptyLabel} + ' found'">No records found</td>
                 </tr>
                 <tr th:each="item, iterStat : ${items}"
@@ -60,6 +72,12 @@
                     <td class="numeric-cell" th:text="${item.songCount}">0</td>
                     <td class="numeric-cell" th:text="${item.playCount}">0</td>
                     <td class="numeric-cell" th:text="${item.timeListenedFormatted}">0m</td>
+                    <td class="numeric-cell winning-period-cell" th:text="${item.winningDaysCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" th:text="${item.winningWeeksCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" th:text="${item.winningMonthsCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" th:text="${item.winningSeasonsCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" th:text="${item.winningYearsCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" th:text="${item.winningDecadesCount}">0</td>
                     <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleArtistPercentage != null ? #numbers.formatDecimal(item.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
                     <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleAlbumPercentage != null ? #numbers.formatDecimal(item.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
                     <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleSongPercentage != null ? #numbers.formatDecimal(item.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>

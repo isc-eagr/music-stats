@@ -1216,7 +1216,7 @@ public class ArtistController {
     @ResponseBody
     public List<Map<String, Object>> searchArtistsApi(
             @RequestParam String q,
-            @RequestParam(required = false, defaultValue = "20") int limit) {
+            @RequestParam(required = false, defaultValue = "0") int limit) {
         return artistService.searchArtists(q, limit);
     }
     

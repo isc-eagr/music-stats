@@ -48,6 +48,12 @@
                                 <option value="maleplaypct" th:selected="${sortBy == 'maleplaypct'}">Male Play %</option>
                                 <option value="malesongpct" th:selected="${sortBy == 'malesongpct'}">Male Song %</option>
                                 <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
+                                <option value="winningdays" th:selected="${sortBy == 'winningdays'}">Winning Days</option>
+                                <option value="winningweeks" th:selected="${sortBy == 'winningweeks'}">Winning Weeks</option>
+                                <option value="winningmonths" th:selected="${sortBy == 'winningmonths'}">Winning Months</option>
+                                <option value="winningseasons" th:selected="${sortBy == 'winningseasons'}">Winning Seasons</option>
+                                <option value="winningyears" th:selected="${sortBy == 'winningyears'}">Winning Years</option>
+                                <option value="winningdecades" th:selected="${sortBy == 'winningdecades'}">Winning Decades</option>
                                 <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                                 <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
                                 <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
@@ -110,6 +116,12 @@
                             <th:block th:case="'malesongpct'">Male Song %:</th:block>
                             <th:block th:case="'maleplaypct'">Male Play %:</th:block>
                             <th:block th:case="'maletimepct'">Male Time %:</th:block>
+                            <th:block th:case="'winningdays'">Winning Days:</th:block>
+                            <th:block th:case="'winningweeks'">Winning Weeks:</th:block>
+                            <th:block th:case="'winningmonths'">Winning Months:</th:block>
+                            <th:block th:case="'winningseasons'">Winning Seasons:</th:block>
+                            <th:block th:case="'winningyears'">Winning Years:</th:block>
+                            <th:block th:case="'winningdecades'">Winning Decades:</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'maleartistpct'" th:text="${language.artistCount > 0 ? #numbers.formatDecimal(language.maleArtistCount * 100.0 / language.artistCount, 1, 1) + '%' : 'N/A'}"></th:block>
@@ -117,6 +129,12 @@
                             <th:block th:case="'malesongpct'" th:text="${language.songCount > 0 ? #numbers.formatDecimal(language.maleSongCount * 100.0 / language.songCount, 1, 1) + '%' : 'N/A'}"></th:block>
                             <th:block th:case="'maleplaypct'" th:text="${language.playCount > 0 ? #numbers.formatDecimal(language.malePlayCount * 100.0 / language.playCount, 1, 1) + '%' : 'N/A'}"></th:block>
                             <th:block th:case="'maletimepct'" th:text="${language.timeListened > 0 ? #numbers.formatDecimal(language.maleTimeListened * 100.0 / language.timeListened, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'winningdays'" th:text="${language.winningDaysCount}"></th:block>
+                            <th:block th:case="'winningweeks'" th:text="${language.winningWeeksCount}"></th:block>
+                            <th:block th:case="'winningmonths'" th:text="${language.winningMonthsCount}"></th:block>
+                            <th:block th:case="'winningseasons'" th:text="${language.winningSeasonsCount}"></th:block>
+                            <th:block th:case="'winningyears'" th:text="${language.winningYearsCount}"></th:block>
+                            <th:block th:case="'winningdecades'" th:text="${language.winningDecadesCount}"></th:block>
                         </span>
                     </div>
                     

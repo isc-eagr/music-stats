@@ -19,11 +19,14 @@ public class LanguageService {
     private final LanguageRepository languageRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final CatalogWinningPeriodService winningPeriodService;
     
-    public LanguageService(LanguageRepository languageRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public LanguageService(LanguageRepository languageRepository, LookupRepository lookupRepository,
+            JdbcTemplate jdbcTemplate, CatalogWinningPeriodService winningPeriodService) {
         this.languageRepository = languageRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.winningPeriodService = winningPeriodService;
     }
     
     public List<LanguageCardDTO> getLanguages(String name, String sortBy, String sortDir) {
@@ -215,6 +218,14 @@ public class LanguageService {
             dto.setFemaleTimeListened((Long) row[23]);
             dto.setOtherTimeListened((Long) row[24]);
             languages.add(dto);
+        }
+
+        winningPeriodService.populateWinningCounts(
+            languages,
+            LanguageCardDTO::getId,
+            CatalogWinningPeriodService.CatalogAttribute.LANGUAGE);
+        if (CatalogWinningPeriodService.isWinningPeriodSort(sortBy)) {
+            CatalogWinningPeriodService.sortByWinningPeriod(languages, sortBy, sortDir, LanguageCardDTO::getName);
         }
         
         // Fetch top artist/album/song for all languages on this page

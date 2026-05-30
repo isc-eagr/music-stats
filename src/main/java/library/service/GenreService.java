@@ -19,11 +19,14 @@ public class GenreService {
     private final GenreRepository genreRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final CatalogWinningPeriodService winningPeriodService;
     
-    public GenreService(GenreRepository genreRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public GenreService(GenreRepository genreRepository, LookupRepository lookupRepository,
+            JdbcTemplate jdbcTemplate, CatalogWinningPeriodService winningPeriodService) {
         this.genreRepository = genreRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.winningPeriodService = winningPeriodService;
     }
     
     public List<GenreCardDTO> getGenres(String name, String sortBy, String sortDir) {
@@ -232,6 +235,14 @@ public class GenreService {
             dto.setFemaleTimeListened((Long) row[23]);
             dto.setOtherTimeListened((Long) row[24]);
             genres.add(dto);
+        }
+
+        winningPeriodService.populateWinningCounts(
+            genres,
+            GenreCardDTO::getId,
+            CatalogWinningPeriodService.CatalogAttribute.GENRE);
+        if (CatalogWinningPeriodService.isWinningPeriodSort(sortBy)) {
+            CatalogWinningPeriodService.sortByWinningPeriod(genres, sortBy, sortDir, GenreCardDTO::getName);
         }
         
         // Fetch top artist/album/song for all genres on this page

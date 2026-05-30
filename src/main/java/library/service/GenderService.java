@@ -15,10 +15,13 @@ public class GenderService {
     
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final CatalogWinningPeriodService winningPeriodService;
     
-    public GenderService(LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public GenderService(LookupRepository lookupRepository, JdbcTemplate jdbcTemplate,
+            CatalogWinningPeriodService winningPeriodService) {
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.winningPeriodService = winningPeriodService;
     }
     
     public List<GenderCardDTO> getGenders(String name, String sortBy, String sortDir) {
@@ -109,6 +112,14 @@ public class GenderService {
             dto.setAlbumCount((Integer) row[7]);
             dto.setSongCount((Integer) row[8]);
             genders.add(dto);
+        }
+
+        winningPeriodService.populateWinningCounts(
+            genders,
+            GenderCardDTO::getId,
+            CatalogWinningPeriodService.CatalogAttribute.GENDER);
+        if (CatalogWinningPeriodService.isWinningPeriodSort(sortBy)) {
+            CatalogWinningPeriodService.sortByWinningPeriod(genders, sortBy, sortDir, GenderCardDTO::getName);
         }
         
         // Fetch top artist/album/song for all genders on this page

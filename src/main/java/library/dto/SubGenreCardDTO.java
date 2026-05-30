@@ -1,6 +1,6 @@
 package library.dto;
 
-public class SubGenreCardDTO {
+public class SubGenreCardDTO extends CatalogWinningPeriodStatsDTO {
     private Integer id;
     private String name;
     private Integer parentGenreId;

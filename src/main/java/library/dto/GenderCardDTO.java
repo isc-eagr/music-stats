@@ -1,6 +1,6 @@
 package library.dto;
 
-public class GenderCardDTO {
+public class GenderCardDTO extends CatalogWinningPeriodStatsDTO {
     private Integer id;
     private String name;
     private Integer playCount;

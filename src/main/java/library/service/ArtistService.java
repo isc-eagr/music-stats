@@ -1396,8 +1396,8 @@ public class ArtistService {
     
     // Search artists by name for API
     public List<Map<String, Object>> searchArtists(String query, int limit) {
-        String normalizedQuery = StringNormalizer.normalizeForSearch(query);
-        String sql = "SELECT a.id, a.name, a.genre_id, a.subgenre_id, a.language_id, a.gender_id, a.ethnicity_id, "
+        String normalizedQuery = StringNormalizer.normalizeForImport(query);
+        String baseSql = "SELECT a.id, a.name, a.genre_id, a.subgenre_id, a.language_id, a.gender_id, a.ethnicity_id, "
             + "g.name as genre_name, sg.name as subgenre_name, l.name as language_name, "
             + "gn.name as gender_name, e.name as ethnicity_name "
             + "FROM Artist a "
@@ -1407,8 +1407,10 @@ public class ArtistService {
             + "LEFT JOIN Gender gn ON a.gender_id = gn.id "
             + "LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id "
             + "WHERE " + StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ? "
-            + "ORDER BY a.name "
-            + "LIMIT ?";
+            + "ORDER BY a.name";
+
+        String wildcardQuery = "%" + normalizedQuery + "%";
+        String sql = limit > 0 ? baseSql + " LIMIT ?" : baseSql;
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> artist = new java.util.HashMap<>();
             artist.put("id", rs.getInt("id"));
@@ -1424,7 +1426,7 @@ public class ArtistService {
             artist.put("genderName", rs.getString("gender_name"));
             artist.put("ethnicityName", rs.getString("ethnicity_name"));
             return artist;
-        }, "%" + normalizedQuery + "%", limit);
+        }, limit > 0 ? new Object[] { wildcardQuery, limit } : new Object[] { wildcardQuery });
     }
     
     // Find artist by ID

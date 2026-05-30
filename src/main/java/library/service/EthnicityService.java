@@ -19,11 +19,14 @@ public class EthnicityService {
     private final EthnicityRepository ethnicityRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final CatalogWinningPeriodService winningPeriodService;
     
-    public EthnicityService(EthnicityRepository ethnicityRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public EthnicityService(EthnicityRepository ethnicityRepository, LookupRepository lookupRepository,
+            JdbcTemplate jdbcTemplate, CatalogWinningPeriodService winningPeriodService) {
         this.ethnicityRepository = ethnicityRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.winningPeriodService = winningPeriodService;
     }
     
     public List<EthnicityCardDTO> getEthnicities(String name, String sortBy, String sortDir) {
@@ -215,6 +218,14 @@ public class EthnicityService {
             dto.setFemaleTimeListened((Long) row[23]);
             dto.setOtherTimeListened((Long) row[24]);
             ethnicities.add(dto);
+        }
+
+        winningPeriodService.populateWinningCounts(
+            ethnicities,
+            EthnicityCardDTO::getId,
+            CatalogWinningPeriodService.CatalogAttribute.ETHNICITY);
+        if (CatalogWinningPeriodService.isWinningPeriodSort(sortBy)) {
+            CatalogWinningPeriodService.sortByWinningPeriod(ethnicities, sortBy, sortDir, EthnicityCardDTO::getName);
         }
         
         // Fetch top artist/album/song for all ethnicities on this page

@@ -1876,8 +1876,9 @@
                 staticOptions: tagOptions || [],
                 valueField: 'id',
                 labelField: 'name',
-                minChars: 1,
+                minChars: 0,
                 debounceMs: 100,
+                showAllOnFocus: true,
                 initialValues: toTagChipValues(initialAssignedTags)
             });
         }

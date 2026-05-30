@@ -1,6 +1,6 @@
 package library.dto;
 
-public class CountryCardDTO {
+public class CountryCardDTO extends CatalogWinningPeriodStatsDTO {
     private String name;  // Country name is the identifier (no database ID)
     private Integer playCount;
     private Integer vatitoPlayCount;

@@ -12,9 +12,11 @@ import java.util.List;
 public class CountryService {
     
     private final JdbcTemplate jdbcTemplate;
+    private final CatalogWinningPeriodService winningPeriodService;
     
-    public CountryService(JdbcTemplate jdbcTemplate) {
+    public CountryService(JdbcTemplate jdbcTemplate, CatalogWinningPeriodService winningPeriodService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.winningPeriodService = winningPeriodService;
     }
     
     public List<CountryCardDTO> getCountries(String name, String sortBy, String sortDir) {
@@ -173,6 +175,14 @@ public class CountryService {
             dto.setFemaleTimeListened((Long) row[21]);
             dto.setOtherTimeListened((Long) row[22]);
             countries.add(dto);
+        }
+
+        winningPeriodService.populateWinningCounts(
+            countries,
+            CountryCardDTO::getName,
+            CatalogWinningPeriodService.CatalogAttribute.COUNTRY);
+        if (CatalogWinningPeriodService.isWinningPeriodSort(sortBy)) {
+            CatalogWinningPeriodService.sortByWinningPeriod(countries, sortBy, sortDir, CountryCardDTO::getName);
         }
         
         // Fetch top artist/album/song for all countries on this page

@@ -19,11 +19,14 @@ public class SubGenreService {
     private final SubGenreRepository subGenreRepository;
     private final LookupRepository lookupRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final CatalogWinningPeriodService winningPeriodService;
     
-    public SubGenreService(SubGenreRepository subGenreRepository, LookupRepository lookupRepository, JdbcTemplate jdbcTemplate) {
+    public SubGenreService(SubGenreRepository subGenreRepository, LookupRepository lookupRepository,
+            JdbcTemplate jdbcTemplate, CatalogWinningPeriodService winningPeriodService) {
         this.subGenreRepository = subGenreRepository;
         this.lookupRepository = lookupRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.winningPeriodService = winningPeriodService;
     }
     
     public List<SubGenreCardDTO> getSubGenres(String name, Integer parentGenreId, String sortBy, String sortDir) {
@@ -227,6 +230,14 @@ public class SubGenreService {
             dto.setFemaleTimeListened((Long) row[25]);
             dto.setOtherTimeListened((Long) row[26]);
             subGenres.add(dto);
+        }
+
+        winningPeriodService.populateWinningCounts(
+            subGenres,
+            SubGenreCardDTO::getId,
+            CatalogWinningPeriodService.CatalogAttribute.SUBGENRE);
+        if (CatalogWinningPeriodService.isWinningPeriodSort(sortBy)) {
+            CatalogWinningPeriodService.sortByWinningPeriod(subGenres, sortBy, sortDir, SubGenreCardDTO::getName);
         }
 
         // Fetch top artist/album/song for all subgenres on this page
