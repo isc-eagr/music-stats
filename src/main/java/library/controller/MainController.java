@@ -6,9 +6,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import library.dto.GlobalSearchResultDTO;
 import library.repository.SongRepositoryImpl;
+import library.service.GlobalSearchService;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,6 +21,9 @@ public class MainController {
 
 	@Autowired
 	private SongRepositoryImpl songRepositoryImpl;
+
+	@Autowired
+	private GlobalSearchService globalSearchService;
 
 	
 	@RequestMapping("/")
@@ -61,6 +68,14 @@ public class MainController {
 		data.put("playsByYearAndGender", songRepositoryImpl.getPlayCountsByYearAndGender());
 		
 		return data;
+	}
+
+	@GetMapping("/api/search/global")
+	@ResponseBody
+	public List<GlobalSearchResultDTO> searchAllCatalogs(
+			@RequestParam(required = false) String q,
+			@RequestParam(required = false, defaultValue = "6") int limit) {
+		return globalSearchService.search(q, limit);
 	}
 
 }

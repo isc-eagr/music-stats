@@ -117,6 +117,10 @@
         padding: 10px 0 !important;
     }
 
+    .app-nav-search {
+        display: none !important;
+    }
+
     /* Bottom nav handles mobile menu access on phones, so hide the top trigger. */
     .mobile-menu-toggle {
         display: none !important;

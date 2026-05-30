@@ -433,6 +433,20 @@
                  </li>
              </ul>
          </div>
+         <div class="app-nav-search" id="globalDesktopSearch">
+             <svg class="app-nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                 <circle cx="11" cy="11" r="8"></circle>
+                 <path d="m21 21-4.35-4.35"></path>
+             </svg>
+             <input type="search"
+                    class="app-nav-search-input"
+                    id="globalDesktopSearchInput"
+                    autocomplete="off"
+                    placeholder="Search..."
+                    aria-label="Search artists, albums, and songs"
+                    aria-controls="globalDesktopSearchResults">
+             <div class="app-nav-search-panel" id="globalDesktopSearchResults" role="listbox" aria-label="Search results"></div>
+         </div>
          <div class="app-nav-utilities">
              <a href="/plays/upload" class="app-nav-link-discreet">Import</a>
              <a href="/config" class="app-nav-link-discreet" th:classappend="${currentSection == 'config'} ? 'active' : ''">Config</a>
@@ -488,13 +502,232 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                 <span>Songs</span>
             </a>
+            <button class="mobile-bottom-nav-item" type="button" onclick="openGlobalSearch()" aria-label="Search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <span>Search</span>
+            </button>
             <button class="mobile-bottom-nav-item" onclick="toggleMobileNav()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 <span>More</span>
             </button>
         </div>
 
+        <div class="global-search-overlay" id="globalSearchOverlay" aria-hidden="true">
+            <div class="global-search-backdrop" onclick="closeGlobalSearch()"></div>
+            <div class="global-search-sheet" role="dialog" aria-modal="true" aria-label="Search">
+                <div class="global-search-sheet-header">
+                    <div class="global-search-mobile-field">
+                        <svg class="app-nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input type="search"
+                               class="app-nav-search-input global-search-mobile-input"
+                               id="globalMobileSearchInput"
+                               autocomplete="off"
+                               placeholder="Search..."
+                               aria-label="Search artists, albums, and songs"
+                               aria-controls="globalMobileSearchResults">
+                    </div>
+                    <button class="global-search-close" type="button" onclick="closeGlobalSearch()" aria-label="Close search">x</button>
+                </div>
+                <div class="app-nav-search-panel global-search-mobile-results" id="globalMobileSearchResults" role="listbox" aria-label="Search results"></div>
+            </div>
+        </div>
+
         <script>
+            (function() {
+                const SEARCH_ENDPOINT = '/api/search/global';
+                const MIN_QUERY_LENGTH = 2;
+                const DEBOUNCE_MS = 220;
+                const searchInstances = [];
+                let activeMobileRestoreOverflow = '';
+
+                function createPlaceholder() {
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'global-search-thumb-placeholder';
+                    placeholder.setAttribute('aria-hidden', 'true');
+                    return placeholder;
+                }
+
+                function createState(message) {
+                    const state = document.createElement('div');
+                    state.className = 'global-search-state';
+                    state.textContent = message;
+                    return state;
+                }
+
+                function clearPanel(panel) {
+                    panel.innerHTML = '';
+                    panel.classList.remove('open');
+                }
+
+                function renderResults(panel, results) {
+                    panel.innerHTML = '';
+
+                    if (!results || results.length === 0) {
+                        panel.appendChild(createState('No matches'));
+                        panel.classList.add('open');
+                        return;
+                    }
+
+                    results.forEach(function(result) {
+                        const link = document.createElement('a');
+                        link.className = 'global-search-result';
+                        link.href = result.detailUrl;
+                        link.setAttribute('role', 'option');
+                        link.setAttribute('aria-label', result.type + ': ' + result.name);
+
+                        if (result.hasImage && result.imageUrl) {
+                            const image = document.createElement('img');
+                            image.className = 'global-search-thumb';
+                            image.src = result.imageUrl;
+                            image.alt = '';
+                            image.loading = 'lazy';
+                            image.onerror = function() {
+                                image.replaceWith(createPlaceholder());
+                            };
+                            link.appendChild(image);
+                        } else {
+                            link.appendChild(createPlaceholder());
+                        }
+
+                        const name = document.createElement('span');
+                        name.className = 'global-search-name';
+                        name.textContent = result.name;
+                        link.appendChild(name);
+                        link.addEventListener('click', window.closeGlobalSearch);
+
+                        panel.appendChild(link);
+                    });
+
+                    panel.classList.add('open');
+                }
+
+                function setupSearch(inputId, panelId, rootId) {
+                    const input = document.getElementById(inputId);
+                    const panel = document.getElementById(panelId);
+                    const root = rootId ? document.getElementById(rootId) : null;
+                    if (!input || !panel) {
+                        return;
+                    }
+
+                    let debounceTimer = null;
+                    let requestId = 0;
+
+                    function runSearch() {
+                        const query = input.value.trim();
+                        requestId++;
+                        const currentRequestId = requestId;
+
+                        if (query.length < MIN_QUERY_LENGTH) {
+                            clearPanel(panel);
+                            return;
+                        }
+
+                        panel.innerHTML = '';
+                        panel.appendChild(createState('Searching...'));
+                        panel.classList.add('open');
+
+                        fetch(SEARCH_ENDPOINT + '?q=' + encodeURIComponent(query) + '&limit=6', {
+                            headers: { 'Accept': 'application/json' }
+                        })
+                            .then(function(response) {
+                                if (!response.ok) {
+                                    throw new Error('Search failed');
+                                }
+                                return response.json();
+                            })
+                            .then(function(results) {
+                                if (currentRequestId === requestId) {
+                                    renderResults(panel, results);
+                                }
+                            })
+                            .catch(function() {
+                                if (currentRequestId === requestId) {
+                                    panel.innerHTML = '';
+                                    panel.appendChild(createState('Search unavailable'));
+                                    panel.classList.add('open');
+                                }
+                            });
+                    }
+
+                    input.addEventListener('input', function() {
+                        window.clearTimeout(debounceTimer);
+                        debounceTimer = window.setTimeout(runSearch, DEBOUNCE_MS);
+                    });
+
+                    input.addEventListener('focus', function() {
+                        if (input.value.trim().length >= MIN_QUERY_LENGTH) {
+                            runSearch();
+                        }
+                    });
+
+                    input.addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter') {
+                            const firstResult = panel.querySelector('.global-search-result');
+                            if (firstResult) {
+                                event.preventDefault();
+                                window.location.href = firstResult.href;
+                            }
+                        } else if (event.key === 'Escape') {
+                            clearPanel(panel);
+                            window.closeGlobalSearch();
+                            input.blur();
+                        }
+                    });
+
+                    searchInstances.push({ input: input, panel: panel, root: root });
+                }
+
+                window.openGlobalSearch = function() {
+                    const navLinks = document.getElementById('mobileNavLinks');
+                    if (navLinks && navLinks.classList.contains('mobile-open')) {
+                        toggleMobileNav();
+                    }
+
+                    const overlay = document.getElementById('globalSearchOverlay');
+                    const input = document.getElementById('globalMobileSearchInput');
+                    if (!overlay || !input) {
+                        return;
+                    }
+
+                    activeMobileRestoreOverflow = document.body.style.overflow || '';
+                    overlay.classList.add('active');
+                    overlay.setAttribute('aria-hidden', 'false');
+                    document.body.style.overflow = 'hidden';
+
+                    window.setTimeout(function() {
+                        input.focus();
+                    }, 80);
+                };
+
+                window.closeGlobalSearch = function() {
+                    const overlay = document.getElementById('globalSearchOverlay');
+                    const wasActive = overlay && overlay.classList.contains('active');
+                    if (overlay) {
+                        overlay.classList.remove('active');
+                        overlay.setAttribute('aria-hidden', 'true');
+                    }
+                    if (wasActive) {
+                        document.body.style.overflow = activeMobileRestoreOverflow;
+                    }
+                };
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    setupSearch('globalDesktopSearchInput', 'globalDesktopSearchResults', 'globalDesktopSearch');
+                    setupSearch('globalMobileSearchInput', 'globalMobileSearchResults', null);
+                });
+
+                document.addEventListener('click', function(event) {
+                    searchInstances.forEach(function(instance) {
+                        if (instance.root && !instance.root.contains(event.target)) {
+                            clearPanel(instance.panel);
+                        }
+                    });
+                });
+            })();
+
             function syncActiveDropdowns() {
                 const isMobileNav = window.matchMedia('(max-width: 900px)').matches || window.matchMedia('(pointer: coarse)').matches;
                 if (!isMobileNav) {
