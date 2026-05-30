@@ -925,15 +925,16 @@ public class TimeframeService {
                 try {
                     LocalDate from = LocalDate.parse(tf.getListenedDateFrom());
                     LocalDate to = LocalDate.parse(tf.getListenedDateTo());
-                    // If this period started before the first scrobble, use the first scrobble as effective start
-                    if (effectiveFirstDay != null && from.isBefore(effectiveFirstDay)) {
+                    // If this period overlaps the first scrobble, count only the scrobbled portion.
+                    // Chart-only periods before the first scrobble keep their nominal length.
+                    if (effectiveFirstDay != null && from.isBefore(effectiveFirstDay) && !to.isBefore(effectiveFirstDay)) {
                         from = effectiveFirstDay;
                     }
-                    // If this period hasn't ended yet, use today as effective end (elapsed days only)
-                    if (to.isAfter(today)) {
+                    // If this period is in progress, use today as effective end (elapsed days only).
+                    if (to.isAfter(today) && !from.isAfter(today)) {
                         to = today;
                     }
-                    int total = (int) java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1;
+                    int total = from.isAfter(to) ? 0 : (int) java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1;
                     tf.setTotalDays(total);
                 } catch (Exception ignored) {}
             }

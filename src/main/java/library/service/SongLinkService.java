@@ -66,6 +66,22 @@ public class SongLinkService {
         if (songIds == null || songIds.isEmpty()) {
             return Map.of();
         }
+        if (songIds.size() > 900) {
+            Set<Integer> requestedSongIds = new HashSet<>(songIds);
+            return jdbcTemplate.query(
+                    "SELECT song_id, group_id FROM song_link_group_member",
+                    rs -> {
+                        java.util.Map<Integer, Integer> result = new java.util.HashMap<>();
+                        while (rs.next()) {
+                            int songId = rs.getInt("song_id");
+                            if (requestedSongIds.contains(songId)) {
+                                result.put(songId, rs.getInt("group_id"));
+                            }
+                        }
+                        return result;
+                    }
+            );
+        }
         String placeholders = String.join(",", songIds.stream().map(id -> "?").toList());
         return jdbcTemplate.query(
                 "SELECT song_id, group_id FROM song_link_group_member WHERE song_id IN (" + placeholders + ")",

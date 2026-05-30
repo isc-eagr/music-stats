@@ -60,7 +60,9 @@ public class SongRepository {
                                                String sortBy, String sortDirection,
                                                String sortBy2, String sortDirection2,
                                                String sortBy3, String sortDirection3,
-                                               int limit, int offset) {
+                                               int limit, int offset,
+                                               boolean includeExpensiveStats,
+                                               List<Integer> songIdsFilter) {
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -134,6 +136,9 @@ public class SongRepository {
                 ar.birth_date,
                 ar.death_date,
                 ((CASE WHEN s.single_cover IS NOT NULL THEN 1 ELSE 0 END) + (SELECT COUNT(*) FROM SongImage WHERE song_id = s.id)) as image_count,
+                """);
+        if (includeExpensiveStats) {
+            sql.append("""
                 (SELECT MIN(b.peak_position) FROM billboard_hot100_debut b WHERE b.song_id = s.id) as billboard_peak,
                 (SELECT MAX(b.weeks_on_chart) FROM billboard_hot100_debut b WHERE b.song_id = s.id) as billboard_weeks,
                 (SELECT MIN(ce.position) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal') as seasonal_chart_peak,
@@ -151,6 +156,29 @@ public class SongRepository {
                 (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'weekly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'weekly')) as weekly_chart_peak_weeks,
                 (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'seasonal')) as seasonal_chart_peak_seasons,
                 (SELECT COUNT(*) FROM ChartEntry ce INNER JOIN Chart c ON ce.chart_id = c.id WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly' AND ce.position = (SELECT MIN(ce2.position) FROM ChartEntry ce2 INNER JOIN Chart c2 ON ce2.chart_id = c2.id WHERE ce2.song_id = s.id AND c2.chart_type = 'song' AND c2.period_type = 'yearly')) as yearly_chart_peak_years,
+                """);
+        } else {
+            sql.append("""
+                NULL as billboard_peak,
+                NULL as billboard_weeks,
+                NULL as seasonal_chart_peak,
+                NULL as trl_days,
+                NULL as trl_peak,
+                NULL as vatos_cuntdown_days,
+                NULL as vatos_cuntdown_peak,
+                NULL as weekly_chart_peak,
+                NULL as weekly_chart_weeks,
+                NULL as yearly_chart_peak,
+                NULL as weekly_chart_peak_start_date,
+                NULL as seasonal_chart_peak_start_date,
+                NULL as seasonal_chart_peak_period,
+                NULL as yearly_chart_peak_period,
+                NULL as weekly_chart_peak_weeks,
+                NULL as seasonal_chart_peak_seasons,
+                NULL as yearly_chart_peak_years,
+                """);
+        }
+        sql.append("""
                 COALESCE(fac.featured_artist_count, 0) as featured_artist_count,
                 CASE WHEN ar.birth_date IS NOT NULL AND COALESCE(s.release_date, alb.release_date) IS NOT NULL THEN CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) ELSE NULL END as age_at_release,
                 s.track_number
@@ -203,6 +231,12 @@ public class SongRepository {
         params.addAll(accountParams);
         // Add listened date params
         params.addAll(listenedDateParams);
+
+        if (songIdsFilter != null && !songIdsFilter.isEmpty()) {
+            String placeholders = String.join(",", songIdsFilter.stream().map(id -> "?").toList());
+            sql.append(" AND s.id IN (").append(placeholders).append(") ");
+            params.addAll(songIdsFilter);
+        }
         
         // Name filters with accent-insensitive search
         if (name != null && !name.trim().isEmpty()) {

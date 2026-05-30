@@ -317,6 +317,7 @@ public class SongService {
                 yearlyChartDateFrom, yearlyChartDateTo
             )
             : null;
+        boolean includeExpensiveStats = !combineLinkedSongs || requiresExpensiveStatsForSort(sortBy, sortBy2, sortBy3);
 
         List<Object[]> results = songRepository.findSongsWithStats(
                 name, artistName, albumName, genreIds, genreMode, 
@@ -347,9 +348,71 @@ public class SongService {
                 seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears,
                 yearlyChartDateFrom, yearlyChartDateTo,
-                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, queryLimit, queryOffset
+                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, queryLimit, queryOffset,
+                includeExpensiveStats, null
         );
         
+        List<SongCardDTO> songs = mapSongRows(results);
+        
+        if (combineLinkedSongs) {
+            songs = combineLinkedSongCards(songs, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
+            cacheCombinedSongCount(combinedSongsCacheKey, songs.size());
+            int fromIndex = Math.min(page * perPage, songs.size());
+            int toIndex = Math.min(fromIndex + perPage, songs.size());
+            List<SongCardDTO> pagedSongs = new ArrayList<>(songs.subList(fromIndex, toIndex));
+            if (!includeExpensiveStats && !pagedSongs.isEmpty()) {
+                List<Integer> pageSongIds = pagedSongs.stream()
+                        .map(SongCardDTO::getId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+                List<Object[]> fullRows = songRepository.findSongsWithStats(
+                        name, artistName, albumName, genreIds, genreMode,
+                        subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
+                        ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
+                        releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                        firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                        lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                        listenedDateFrom, listenedDateTo,
+                        organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                        itunesIdsJson, inItunes,
+                        ageMin, ageMax, ageMode,
+                        ageAtReleaseMin, ageAtReleaseMax,
+                        birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                        deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                        playCountMin, playCountMax,
+                        trackNumber, trackNumberMode,
+                        lengthMin, lengthMax, lengthMode,
+                        weeklyChartPeak, weeklyChartWeeks,
+                        weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                        trlPeak, trlDays,
+                        trlDateFrom, trlDateTo,
+                        vatosCuntdownPeak, vatosCuntdownDays,
+                        vatosCuntdownDateFrom, vatosCuntdownDateTo,
+                        billboardPeak, billboardWeeks,
+                        billboardDateFrom, billboardDateTo,
+                        seasonalChartPeak, seasonalChartSeasons,
+                        seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                        yearlyChartPeak, yearlyChartYears,
+                        yearlyChartDateFrom, yearlyChartDateTo,
+                        sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3,
+                        pageSongIds.size(), 0, true, pageSongIds
+                );
+                Map<Integer, SongCardDTO> fullStatsById = mapSongRows(fullRows).stream()
+                        .collect(Collectors.toMap(SongCardDTO::getId, Function.identity()));
+                pagedSongs = pagedSongs.stream()
+                        .map(summary -> mergeCombinedSummaryWithFullStats(summary, fullStatsById.get(summary.getId())))
+                        .collect(Collectors.toCollection(ArrayList::new));
+            }
+            populateSongItunesPresence(pagedSongs);
+            return pagedSongs;
+        }
+
+        populateSongItunesPresence(songs);
+        return songs;
+    }
+
+    private List<SongCardDTO> mapSongRows(List<Object[]> results) {
         List<SongCardDTO> songs = new ArrayList<>();
         for (Object[] row : results) {
             SongCardDTO dto = new SongCardDTO();
@@ -376,41 +439,24 @@ public class SongService {
             dto.setPlayCount(row[20] != null ? ((Number) row[20]).intValue() : 0);
             dto.setVatitoPlayCount(row[21] != null ? ((Number) row[21]).intValue() : 0);
             dto.setRobertloverPlayCount(row[22] != null ? ((Number) row[22]).intValue() : 0);
-            
-            // Set time listened and format it
+
             long timeListened = row[23] != null ? ((Number) row[23]).longValue() : 0L;
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            
-            // Set first and last listened dates (indices 24 and 25)
+
             dto.setFirstListenedDate(row[24] != null ? formatDate((String) row[24]) : null);
             dto.setLastListenedDate(row[25] != null ? formatDate((String) row[25]) : null);
             dto.setDaysListened(row[26] != null ? ((Number) row[26]).intValue() : 0);
             dto.setWeeksListened(row[27] != null ? ((Number) row[27]).intValue() : 0);
             dto.setMonthsListened(row[28] != null ? ((Number) row[28]).intValue() : 0);
             dto.setYearsListened(row[29] != null ? ((Number) row[29]).intValue() : 0);
-            dto.setTrackNumber(row[56] != null ? ((Number) row[56]).intValue() : null);
-            
-            // Set country (inherited from artist, index 30)
             dto.setCountry((String) row[30]);
-            
-            // Set organized (index 31)
             dto.setOrganized(row[31] != null && ((Number) row[31]).intValue() == 1);
-            
-            // Set album has image (index 32)
             dto.setAlbumHasImage(row[32] != null && ((Number) row[32]).intValue() == 1);
-            
-            // Set isSingle (index 33)
             dto.setIsSingle(row[33] != null && ((Number) row[33]).intValue() == 1);
-            
-            // Set birth date (index 34) and death date (index 35)
             dto.setBirthDate(row[34] != null ? formatDate((String) row[34]) : null);
             dto.setDeathDate(row[35] != null ? formatDate((String) row[35]) : null);
-            
-            // Set image count (index 36)
             dto.setImageCount(row[36] != null ? ((Number) row[36]).intValue() : 0);
-            
-            // Set chart stats (indices 37-50)
             dto.setBillboardPeak(row[37] != null ? ((Number) row[37]).intValue() : null);
             dto.setBillboardWeeks(row[38] != null ? ((Number) row[38]).intValue() : null);
             dto.setSeasonalChartPeak(row[39] != null ? ((Number) row[39]).intValue() : null);
@@ -424,38 +470,68 @@ public class SongService {
             dto.setWeeklyChartPeakStartDate(row[47] != null ? formatDate((String) row[47]) : null);
             dto.setSeasonalChartPeakPeriod((String) row[48]);
             dto.setYearlyChartPeakPeriod((String) row[49]);
-            
-            // Set featured artist count (index 51) and age at release (index 52)
             dto.setFeaturedArtistCount(row[51] != null ? ((Number) row[51]).intValue() : 0);
             dto.setAgeAtRelease(row[52] != null ? ((Number) row[52]).intValue() : null);
-            
-            // Set peak durations (indices 53-55)
             dto.setWeeklyChartPeakWeeks(row[53] != null ? ((Number) row[53]).intValue() : null);
             dto.setSeasonalChartPeakSeasons(row[54] != null ? ((Number) row[54]).intValue() : null);
             dto.setYearlyChartPeakYears(row[55] != null ? ((Number) row[55]).intValue() : null);
+            dto.setTrackNumber(row[56] != null ? ((Number) row[56]).intValue() : null);
 
-            // Format length
             if (dto.getLengthSeconds() != null) {
                 int minutes = dto.getLengthSeconds() / 60;
                 int seconds = dto.getLengthSeconds() % 60;
                 dto.setLengthFormatted(String.format("%d:%02d", minutes, seconds));
             }
-            
+
             songs.add(dto);
         }
-        
-        if (combineLinkedSongs) {
-            songs = combineLinkedSongCards(songs, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
-            cacheCombinedSongCount(combinedSongsCacheKey, songs.size());
-            int fromIndex = Math.min(page * perPage, songs.size());
-            int toIndex = Math.min(fromIndex + perPage, songs.size());
-            List<SongCardDTO> pagedSongs = new ArrayList<>(songs.subList(fromIndex, toIndex));
-            populateSongItunesPresence(pagedSongs);
-            return pagedSongs;
+        return songs;
+    }
+
+    private SongCardDTO mergeCombinedSummaryWithFullStats(SongCardDTO summary, SongCardDTO fullStats) {
+        if (summary == null || fullStats == null) {
+            return summary;
         }
 
-        populateSongItunesPresence(songs);
-        return songs;
+        fullStats.setPlayCount(summary.getPlayCount());
+        fullStats.setVatitoPlayCount(summary.getVatitoPlayCount());
+        fullStats.setRobertloverPlayCount(summary.getRobertloverPlayCount());
+        fullStats.setTimeListened(summary.getTimeListened());
+        fullStats.setTimeListenedFormatted(summary.getTimeListenedFormatted());
+        fullStats.setDaysListened(summary.getDaysListened());
+        fullStats.setWeeksListened(summary.getWeeksListened());
+        fullStats.setMonthsListened(summary.getMonthsListened());
+        fullStats.setYearsListened(summary.getYearsListened());
+        fullStats.setLinkedSongGroup(summary.getLinkedSongGroup());
+        fullStats.setLinkedSongCount(summary.getLinkedSongCount());
+        fullStats.setTotalPlayBreakdownItems(summary.getTotalPlayBreakdownItems());
+        fullStats.setPrimaryPlayBreakdownItems(summary.getPrimaryPlayBreakdownItems());
+        fullStats.setLegacyPlayBreakdownItems(summary.getLegacyPlayBreakdownItems());
+        return fullStats;
+    }
+
+    private boolean requiresExpensiveStatsForSort(String... sortFields) {
+        if (sortFields == null) {
+            return false;
+        }
+        for (String sortField : sortFields) {
+            if (sortField == null || sortField.isBlank()) {
+                continue;
+            }
+            switch (sortField) {
+                case "billboard_peak", "billboard_weeks",
+                        "seasonal_chart_peak",
+                        "trl_days", "trl_peak",
+                        "vatos_cuntdown_days", "vatos_cuntdown_peak",
+                        "weekly_chart_peak", "weekly_chart_weeks",
+                        "yearly_chart_peak" -> {
+                    return true;
+                }
+                default -> {
+                }
+            }
+        }
+        return false;
     }
 
     private long countCombinedRows(List<Object[]> rows) {
@@ -848,7 +924,7 @@ public class SongService {
                         seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                         yearlyChartPeak, yearlyChartYears,
                         yearlyChartDateFrom, yearlyChartDateTo,
-                    "plays", "desc", null, null, null, null, 100000, 0
+                    "plays", "desc", null, null, null, null, 100000, 0, false, null
             );
                     long combinedCount = countCombinedRows(results);
                     cacheCombinedSongCount(combinedSongsCacheKey, combinedCount);
