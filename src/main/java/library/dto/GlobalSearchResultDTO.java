@@ -5,6 +5,7 @@ public class GlobalSearchResultDTO {
     private String type;
     private Integer id;
     private String name;
+    private String artistName;
     private String detailUrl;
     private String imageUrl;
     private boolean hasImage;
@@ -12,10 +13,11 @@ public class GlobalSearchResultDTO {
     public GlobalSearchResultDTO() {
     }
 
-    public GlobalSearchResultDTO(String type, Integer id, String name, String detailUrl, String imageUrl, boolean hasImage) {
+    public GlobalSearchResultDTO(String type, Integer id, String name, String artistName, String detailUrl, String imageUrl, boolean hasImage) {
         this.type = type;
         this.id = id;
         this.name = name;
+        this.artistName = artistName;
         this.detailUrl = detailUrl;
         this.imageUrl = imageUrl;
         this.hasImage = hasImage;
@@ -43,6 +45,14 @@ public class GlobalSearchResultDTO {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getArtistName() {
+        return artistName;
+    }
+
+    public void setArtistName(String artistName) {
+        this.artistName = artistName;
     }
 
     public String getDetailUrl() {

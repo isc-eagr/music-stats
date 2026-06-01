@@ -1217,17 +1217,17 @@
                                     </td>
                                     <td class="cover-col">
                                         <div th:title="${entry.name}" style="cursor: pointer;">
-                                            <img th:src="@{'/songs/' + ${entry.id} + '/image'}"
+                                            <img th:if="${entry.hasImage}"
+                                                 th:src="@{'/songs/' + ${entry.id} + '/image'}"
                                                  th:alt="${entry.name}"
                                                  class="clickable-image"
-                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                            <img th:if="${album != null}"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <img th:if="${!entry.hasImage and album != null}"
                                                  th:src="@{'/albums/' + ${album.id} + '/image'}"
                                                  th:alt="${entry.name} + ' cover'"
                                                  class="clickable-image"
-                                                 style="display:none;"
                                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                            <div class="cover-placeholder" th:style="${album != null} ? 'display:none;' : 'display:flex;'">-</div>
+                                            <div class="cover-placeholder" th:style="${(entry.hasImage or album != null)} ? 'display:none;' : 'display:flex;'">-</div>
                                         </div>
                                     </td>
                                     <td >
@@ -1281,17 +1281,17 @@
                                                 data-mobile-peak-date=${billboardHot100Stats['peakDate'] != null ? billboardHot100Stats['peakDate'] : '-'}"><td ><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div th:title="${song.name}" style="cursor: pointer;">
-                                                <img th:src="@{'/songs/' + ${song.id} + '/image'}"
+                                                <img th:if="${hasImage}"
+                                                     th:src="@{'/songs/' + ${song.id} + '/image'}"
                                                      th:alt="${song.name}"
                                                      class="clickable-image"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                <img th:if="${album != null}"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <img th:if="${!hasImage and album != null}"
                                                      th:src="@{'/albums/' + ${album.id} + '/image'}"
                                                      th:alt="${song.name} + ' cover'"
                                                      class="clickable-image"
-                                                     style="display:none;"
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                                <div class="cover-placeholder" th:style="${album != null} ? 'display:none;' : 'display:flex;'">-</div>
+                                                <div class="cover-placeholder" th:style="${(hasImage or album != null)} ? 'display:none;' : 'display:flex;'">-</div>
                                             </div>
                                         </td>
                                         <td ><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
@@ -1339,17 +1339,17 @@
                                                 data-mobile-peak-date=${pcStats['peakDate'] != null ? pcStats['peakDate'] : '-'}"><td ><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div th:title="${song.name}" style="cursor: pointer;">
-                                                <img th:src="@{'/songs/' + ${song.id} + '/image'}"
+                                                <img th:if="${hasImage}"
+                                                     th:src="@{'/songs/' + ${song.id} + '/image'}"
                                                      th:alt="${song.name}"
                                                      class="clickable-image"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                <img th:if="${album != null}"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <img th:if="${!hasImage and album != null}"
                                                      th:src="@{'/albums/' + ${album.id} + '/image'}"
                                                      th:alt="${song.name} + ' cover'"
                                                      class="clickable-image"
-                                                     style="display:none;"
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                                <div class="cover-placeholder" th:style="${album != null} ? 'display:none;' : 'display:flex;'">-</div>
+                                                <div class="cover-placeholder" th:style="${(hasImage or album != null)} ? 'display:none;' : 'display:flex;'">-</div>
                                             </div>
                                         </td>
                                         <td ><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>
@@ -1397,17 +1397,17 @@
                                                     data-mobile-peak-date=${trlStats['peakDate'] != null ? trlStats['peakDate'] : '-'}"><td ><button class="overview-expand-btn" onclick="toggleDetailRun(this)">+</button></td>
                                         <td class="cover-col">
                                             <div th:title="${song.name}" style="cursor: pointer;">
-                                                <img th:src="@{'/songs/' + ${song.id} + '/image'}"
+                                                <img th:if="${hasImage}"
+                                                     th:src="@{'/songs/' + ${song.id} + '/image'}"
                                                      th:alt="${song.name}"
                                                      class="clickable-image"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                <img th:if="${album != null}"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <img th:if="${!hasImage and album != null}"
                                                      th:src="@{'/albums/' + ${album.id} + '/image'}"
                                                      th:alt="${song.name} + ' cover'"
                                                      class="clickable-image"
-                                                     style="display:none;"
                                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                                <div class="cover-placeholder" th:style="${album != null} ? 'display:none;' : 'display:flex;'">-</div>
+                                                <div class="cover-placeholder" th:style="${(hasImage or album != null)} ? 'display:none;' : 'display:flex;'">-</div>
                                             </div>
                                         </td>
                                         <td ><a th:href="@{'/songs/' + ${song.id}}" th:text="${song.name}">Song Name</a></td>

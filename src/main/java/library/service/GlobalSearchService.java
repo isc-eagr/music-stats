@@ -11,8 +11,8 @@ import java.util.List;
 @Service
 public class GlobalSearchService {
 
-    private static final int DEFAULT_LIMIT_PER_TYPE = 6;
-    private static final int MAX_LIMIT_PER_TYPE = 10;
+    private static final int DEFAULT_LIMIT_PER_TYPE = 20;
+    private static final int MAX_LIMIT_PER_TYPE = 20;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -64,6 +64,7 @@ public class GlobalSearchService {
             "artist",
             rs.getInt("id"),
             rs.getString("name"),
+            null,
             "/artists/" + rs.getInt("id"),
             "/artists/" + rs.getInt("id") + "/image?thumbnail=true",
             rs.getInt("has_image") == 1
@@ -72,9 +73,8 @@ public class GlobalSearchService {
 
     private List<GlobalSearchResultDTO> searchAlbums(String wildcardQuery, String exactQuery, String startsWithQuery, int limit) {
         String albumName = StringNormalizer.sqlNormalizeColumn("al.name");
-        String artistName = StringNormalizer.sqlNormalizeColumn("ar.name");
         String sql = """
-            SELECT al.id, al.name,
+            SELECT al.id, al.name, ar.name as artist_name,
                    CASE
                        WHEN al.image IS NOT NULL
                             OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id)
@@ -82,34 +82,31 @@ public class GlobalSearchService {
                    END as has_image
             FROM Album al
             JOIN Artist ar ON al.artist_id = ar.id
-            WHERE %s LIKE ? OR %s LIKE ?
+            WHERE %s LIKE ?
             ORDER BY CASE
                          WHEN %s = ? THEN 0
                          WHEN %s LIKE ? THEN 1
-                         WHEN %s = ? THEN 2
-                         WHEN %s LIKE ? THEN 3
-                         ELSE 4
+                         ELSE 2
                      END,
                      al.name
             LIMIT ?
-            """.formatted(albumName, artistName, albumName, albumName, artistName, artistName);
+            """.formatted(albumName, albumName, albumName);
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> new GlobalSearchResultDTO(
             "album",
             rs.getInt("id"),
             rs.getString("name"),
+            rs.getString("artist_name"),
             "/albums/" + rs.getInt("id"),
             "/albums/" + rs.getInt("id") + "/image?thumbnail=true",
             rs.getInt("has_image") == 1
-        ), wildcardQuery, wildcardQuery, exactQuery, startsWithQuery, exactQuery, startsWithQuery, limit);
+        ), wildcardQuery, exactQuery, startsWithQuery, limit);
     }
 
     private List<GlobalSearchResultDTO> searchSongs(String wildcardQuery, String exactQuery, String startsWithQuery, int limit) {
         String songName = StringNormalizer.sqlNormalizeColumn("s.name");
-        String artistName = StringNormalizer.sqlNormalizeColumn("ar.name");
-        String albumName = StringNormalizer.sqlNormalizeColumn("al.name");
         String sql = """
-            SELECT s.id, s.name,
+            SELECT s.id, s.name, ar.name as artist_name,
                    CASE
                        WHEN s.single_cover IS NOT NULL
                             OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id)
@@ -119,27 +116,24 @@ public class GlobalSearchService {
             FROM Song s
             JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album al ON s.album_id = al.id
-            WHERE %s LIKE ? OR %s LIKE ? OR %s LIKE ?
+            WHERE %s LIKE ?
             ORDER BY CASE
                          WHEN %s = ? THEN 0
                          WHEN %s LIKE ? THEN 1
-                         WHEN %s = ? THEN 2
-                         WHEN %s LIKE ? THEN 3
-                         WHEN %s = ? THEN 4
-                         WHEN %s LIKE ? THEN 5
-                         ELSE 6
+                         ELSE 2
                      END,
                      s.name
             LIMIT ?
-            """.formatted(songName, artistName, albumName, songName, songName, artistName, artistName, albumName, albumName);
+            """.formatted(songName, songName, songName);
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> new GlobalSearchResultDTO(
             "song",
             rs.getInt("id"),
             rs.getString("name"),
+            rs.getString("artist_name"),
             "/songs/" + rs.getInt("id"),
             "/songs/" + rs.getInt("id") + "/image?thumbnail=true",
             rs.getInt("has_image") == 1
-        ), wildcardQuery, wildcardQuery, wildcardQuery, exactQuery, startsWithQuery, exactQuery, startsWithQuery, exactQuery, startsWithQuery, limit);
+        ), wildcardQuery, exactQuery, startsWithQuery, limit);
     }
 }

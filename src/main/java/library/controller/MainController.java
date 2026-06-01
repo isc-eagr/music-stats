@@ -74,7 +74,7 @@ public class MainController {
 	@ResponseBody
 	public List<GlobalSearchResultDTO> searchAllCatalogs(
 			@RequestParam(required = false) String q,
-			@RequestParam(required = false, defaultValue = "6") int limit) {
+			@RequestParam(required = false, defaultValue = "20") int limit) {
 		return globalSearchService.search(q, limit);
 	}
 

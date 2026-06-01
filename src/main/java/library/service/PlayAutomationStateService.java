@@ -99,7 +99,10 @@ public class PlayAutomationStateService {
     }
 
     public void refreshUnmatchedBanner() {
-        StateRow row = loadStateRow();
+        refreshUnmatchedBanner(loadStateRow());
+    }
+
+    private void refreshUnmatchedBanner(StateRow row) {
         if (!row.unmatchedBannerActive()) {
             return;
         }
@@ -183,12 +186,14 @@ public class PlayAutomationStateService {
     }
 
     public BannerState getBannerState() {
-        refreshUnmatchedBanner();
-
         StateRow row = loadStateRow();
-        String automationAccount = appConfigService.getAutomationConfig().account();
+        refreshUnmatchedBanner(row);
+        // Reload only if refreshUnmatchedBanner may have mutated the counts
+        if (row.unmatchedBannerActive()) {
+            row = loadStateRow();
+        }
         UnmatchedBanner unmatchedBanner = row.unmatchedBannerActive() && row.unmatchedCount() > 0
-                ? new UnmatchedBanner(row.unmatchedCount(), "/plays/unmatched?account=" + automationAccount)
+                ? new UnmatchedBanner(row.unmatchedCount(), "/plays/unmatched?account=" + appConfigService.getAutomationConfig().account())
                 : null;
         ImportedBanner importedBanner = row.importedSinceSeen() > 0
                 ? new ImportedBanner(row.importedSinceSeen())

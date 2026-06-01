@@ -153,51 +153,51 @@ public class AppConfigService {
     }
 
     public int getArtistsListPageSize() {
-        return getPageSizeConfig().artistsListPageSize();
+        return getInt(KEY_PAGE_SIZE_ARTISTS_LIST, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getAlbumsListPageSize() {
-        return getPageSizeConfig().albumsListPageSize();
+        return getInt(KEY_PAGE_SIZE_ALBUMS_LIST, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getSongsListPageSize() {
-        return getPageSizeConfig().songsListPageSize();
+        return getInt(KEY_PAGE_SIZE_SONGS_LIST, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getTimeframesListPageSize() {
-        return getPageSizeConfig().timeframesListPageSize();
+        return getInt(KEY_PAGE_SIZE_TIMEFRAMES_LIST, 50, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getArtistDetailPlaysPageSize() {
-        return getPageSizeConfig().artistDetailPlaysPageSize();
+        return getInt(KEY_PAGE_SIZE_ARTIST_DETAIL_PLAYS, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getAlbumDetailPlaysPageSize() {
-        return getPageSizeConfig().albumDetailPlaysPageSize();
+        return getInt(KEY_PAGE_SIZE_ALBUM_DETAIL_PLAYS, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getSongDetailPlaysPageSize() {
-        return getPageSizeConfig().songDetailPlaysPageSize();
+        return getInt(KEY_PAGE_SIZE_SONG_DETAIL_PLAYS, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getWeeklyOverviewPageSize() {
-        return getPageSizeConfig().weeklyOverviewPageSize();
+        return getInt(KEY_PAGE_SIZE_WEEKLY_OVERVIEW, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getSeasonalOverviewPageSize() {
-        return getPageSizeConfig().seasonalOverviewPageSize();
+        return getInt(KEY_PAGE_SIZE_SEASONAL_OVERVIEW, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getPcOverviewPageSize() {
-        return getPageSizeConfig().pcOverviewPageSize();
+        return getInt(KEY_PAGE_SIZE_PC_OVERVIEW, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getTrlOverviewPageSize() {
-        return getPageSizeConfig().trlOverviewPageSize();
+        return getInt(KEY_PAGE_SIZE_TRL_OVERVIEW, 100, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public int getBillboardOverviewPageSize() {
-        return getPageSizeConfig().billboardOverviewPageSize();
+        return getInt(KEY_PAGE_SIZE_BILLBOARD_OVERVIEW, 250, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
     }
 
     public boolean isCombineLinkedSongsEnabled() {

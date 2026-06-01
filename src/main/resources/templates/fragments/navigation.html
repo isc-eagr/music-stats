@@ -571,34 +571,67 @@
                         return;
                     }
 
+                    // Group results by type (order: artists → albums → songs)
+                    const groups = { artist: [], album: [], song: [] };
                     results.forEach(function(result) {
-                        const link = document.createElement('a');
-                        link.className = 'global-search-result';
-                        link.href = result.detailUrl;
-                        link.setAttribute('role', 'option');
-                        link.setAttribute('aria-label', result.type + ': ' + result.name);
-
-                        if (result.hasImage && result.imageUrl) {
-                            const image = document.createElement('img');
-                            image.className = 'global-search-thumb';
-                            image.src = result.imageUrl;
-                            image.alt = '';
-                            image.loading = 'lazy';
-                            image.onerror = function() {
-                                image.replaceWith(createPlaceholder());
-                            };
-                            link.appendChild(image);
-                        } else {
-                            link.appendChild(createPlaceholder());
+                        if (groups[result.type]) {
+                            groups[result.type].push(result);
                         }
+                    });
 
-                        const name = document.createElement('span');
-                        name.className = 'global-search-name';
-                        name.textContent = result.name;
-                        link.appendChild(name);
-                        link.addEventListener('click', window.closeGlobalSearch);
+                    const typeLabels = { artist: 'Artists', album: 'Albums', song: 'Songs' };
 
-                        panel.appendChild(link);
+                    Object.keys(groups).forEach(function(type) {
+                        const items = groups[type];
+                        if (items.length === 0) return;
+
+                        // Section header
+                        const header = document.createElement('div');
+                        header.className = 'global-search-section-header';
+                        header.textContent = typeLabels[type];
+                        panel.appendChild(header);
+
+                        items.forEach(function(result) {
+                            const link = document.createElement('a');
+                            link.className = 'global-search-result';
+                            link.href = result.detailUrl;
+                            link.setAttribute('role', 'option');
+                            link.setAttribute('aria-label', result.type + ': ' + result.name);
+
+                            if (result.hasImage && result.imageUrl) {
+                                const image = document.createElement('img');
+                                image.className = 'global-search-thumb';
+                                image.src = result.imageUrl;
+                                image.alt = '';
+                                image.loading = 'lazy';
+                                image.onerror = function() {
+                                    image.replaceWith(createPlaceholder());
+                                };
+                                link.appendChild(image);
+                            } else {
+                                link.appendChild(createPlaceholder());
+                            }
+
+                            const textBlock = document.createElement('span');
+                            textBlock.className = 'global-search-text';
+
+                            const name = document.createElement('span');
+                            name.className = 'global-search-name';
+                            name.textContent = result.name;
+                            textBlock.appendChild(name);
+
+                            if (result.artistName && (type === 'album' || type === 'song')) {
+                                const sub = document.createElement('span');
+                                sub.className = 'global-search-subtitle';
+                                sub.textContent = result.artistName;
+                                textBlock.appendChild(sub);
+                            }
+
+                            link.appendChild(textBlock);
+                            link.addEventListener('click', window.closeGlobalSearch);
+                            panel.appendChild(link);
+                        });
+
                     });
 
                     panel.classList.add('open');
@@ -629,7 +662,7 @@
                         panel.appendChild(createState('Searching...'));
                         panel.classList.add('open');
 
-                        fetch(SEARCH_ENDPOINT + '?q=' + encodeURIComponent(query) + '&limit=6', {
+                        fetch(SEARCH_ENDPOINT + '?q=' + encodeURIComponent(query) + '&limit=20', {
                             headers: { 'Accept': 'application/json' }
                         })
                             .then(function(response) {

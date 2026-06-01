@@ -136,6 +136,13 @@ public final class StringNormalizer {
         // Strip apostrophes so that DB values like "Can't" match search queries like "cant"
         // (normalizeForSearch() also strips apostrophes from the query side)
         expr = "REPLACE(" + expr + ", '''', '')";
+        // Strip punctuation chars to match normalizeForSearch() behavior on the query side.
+        // This ensures "Ne-Yo" in the DB matches query "neyo", "T.I." matches "ti", etc.
+        expr = "REPLACE(" + expr + ", ' & ', ' ')"; // "wisin & yandel" → "wisin yandel"
+        expr = "REPLACE(" + expr + ", '&', '')";     // Remove remaining &
+        expr = "REPLACE(" + expr + ", '-', '')";     // Remove hyphens: ne-yo → neyo
+        expr = "REPLACE(" + expr + ", '.', '')";     // Remove dots: t.i. → ti
+        expr = "REPLACE(" + expr + ", '_', '')";     // Remove underscores
         // Apply LOWER at the end for case-insensitive comparison
         return "LOWER(" + expr + ")";
     }

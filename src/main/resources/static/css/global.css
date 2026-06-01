@@ -3011,6 +3011,58 @@ select:focus {
   outline: none;
 }
 
+.global-search-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.global-search-section-header {
+  padding: 6px 10px 3px;
+  color: #858585;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.global-search-section-header:first-child {
+  border-top: none;
+}
+
+.global-search-subtitle {
+  overflow: hidden;
+  color: #858585;
+  font-size: 11px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-more-link {
+  display: block;
+  padding: 5px 10px 7px;
+  color: #858585;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.global-search-more-link:hover,
+.global-search-more-link:focus {
+  color: var(--text);
+  text-decoration: none;
+  outline: none;
+}
+
+.global-search-more-link:last-child {
+  border-bottom: none;
+}
+
 .global-search-thumb,
 .global-search-thumb-placeholder {
   width: 40px;
@@ -3034,7 +3086,6 @@ select:focus {
 }
 
 .global-search-name {
-  min-width: 0;
   overflow: hidden;
   color: var(--text);
   font-size: 13px;
