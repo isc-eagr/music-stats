@@ -83,6 +83,12 @@
     border: 1px solid rgba(16, 185, 129, 0.5);
 }
 
+/* Ranked chips below title in detail card */
+.card-detail-modal-body .modal-rank-chips {
+    margin-top: 0;
+    margin-bottom: 14px;
+}
+
 .card-detail-modal-body .modal-section {
     margin-bottom: 8px;
 }
@@ -470,79 +476,82 @@ a.winning-chip:hover {
 }
 
 .winning-chip.genre {
-    background-color: rgba(139, 92, 246, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.5);
+    background-color: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(196, 181, 253, 0.6);
+    color: #c4b5fd;
 }
 
 .winning-chip.subgenre {
-    background-color: rgba(167, 139, 250, 0.3);
-    border: 1px solid rgba(167, 139, 250, 0.5);
+    background-color: rgba(167, 139, 250, 0.15);
+    border: 1px solid rgba(221, 214, 254, 0.6);
+    color: #ddd6fe;
 }
 
 .winning-chip.ethnicity {
-    background-color: rgba(245, 158, 11, 0.3);
-    border: 1px solid rgba(245, 158, 11, 0.5);
+    background-color: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(253, 224, 71, 0.6);
+    color: #fef08a;
 }
 
 .winning-chip.language {
-    background-color: rgba(16, 185, 129, 0.3);
-    border: 1px solid rgba(16, 185, 129, 0.5);
+    background-color: rgba(20, 184, 166, 0.15);
+    border: 1px solid rgba(94, 234, 212, 0.6);
+    color: #99f6e4;
 }
 
 .winning-chip.country {
-    background-color: rgba(59, 130, 246, 0.3);
-    border: 1px solid rgba(59, 130, 246, 0.5);
+    background-color: rgba(180, 100, 45, 0.15);
+    border: 1px solid rgba(213, 148, 85, 0.6);
+    color: #e8c49a;
 }
 
 .winning-chip.gender {
-    background-color: rgba(100, 100, 100, 0.3);
-    border: 1px solid rgba(100, 100, 100, 0.5);
+    background-color: rgba(148, 163, 184, 0.15);
+    border: 1px solid rgba(203, 213, 225, 0.5);
+    color: #cbd5e1;
 }
 
 .winning-chip.gender.male {
-    background-color: rgba(56, 189, 248, 0.3);
-    border: 1px solid rgba(56, 189, 248, 0.5);
+    background-color: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(125, 211, 252, 0.6);
+    color: #bae6fd;
 }
 
 .winning-chip.gender.female {
-    background-color: rgba(244, 114, 182, 0.3);
-    border: 1px solid rgba(244, 114, 182, 0.5);
+    background-color: rgba(244, 114, 182, 0.15);
+    border: 1px solid rgba(249, 168, 212, 0.6);
+    color: #fce7f3;
 }
 
 .winning-chip.year {
-    background-color: rgba(245, 158, 11, 0.3);
-    border: 1px solid rgba(245, 158, 11, 0.5);
+    background-color: rgba(253, 224, 71, 0.15);
+    border: 1px solid rgba(254, 240, 138, 0.6);
+    color: #fef9c3;
 }
 
-/* Rank chips - slightly more transparent with dashed borders to distinguish from chart chips */
+/* Rank chips - solid borders */
 .winning-chip.rank-chip {
-    opacity: 0.85;
-    border-style: dashed;
-    border-width: 1.5px;
+    border-style: solid;
+    border-width: 1px;
 }
 
-.winning-chip.rank-chip:hover {
-    opacity: 1;
-}
-
-/* Year ranking chips - dark red/maroon */
+/* Year ranking chips - pastel red */
 .winning-chip.year-rank {
-    background-color: rgba(127, 29, 29, 0.4);
-    border: 1px dashed rgba(185, 28, 28, 0.6);
+    background-color: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(252, 165, 165, 0.6);
     color: #fca5a5;
 }
 
 /* Chart placement chips */
 .winning-chip.chart-chip {
-    opacity: 1;
     border-style: solid;
     border-width: 1px;
 }
 
-/* Seasonal chart chips - emerald/teal */
+/* Seasonal chart chips - emerald (seasonal chart color: #10b981) */
 .winning-chip.seasonal-chart {
-    background-color: rgba(6, 78, 59, 0.5);
-    border: 1px solid rgba(16, 185, 129, 0.6);
+    background-color: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(52, 211, 153, 0.6);
     color: #6ee7b7;
 }
 
@@ -589,46 +598,90 @@ a.winning-chip:hover {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Weekly chart stats chip - gold/amber */
+/* Weekly chart stats chip - blue (weekly chart color: #3b82f6) */
 .winning-chip.chart-stats {
-    background-color: rgba(120, 53, 15, 0.5);
-    border: 1px solid rgba(217, 119, 6, 0.6);
-    color: #fcd34d;
+    background-color: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(147, 197, 253, 0.6);
+    color: #93c5fd;
 }
 
-/* Overall position chip - purple */
+/* TRL chip - amber (TRL chart color: #f59e0b) */
+.winning-chip.trl-chip {
+    background-color: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.6);
+    color: #fde68a;
+}
+
+.winning-chip.trl-chip:hover {
+    border-color: rgba(251, 191, 36, 0.9);
+    color: #fef08a;
+}
+
+/* Vato's Cuntdown chip - salmon (PC chart color: #fa8072) */
+.winning-chip.pc-chip {
+    background-color: rgba(250, 128, 114, 0.15);
+    border: 1px solid rgba(255, 180, 170, 0.6);
+    color: #ffb4aa;
+}
+
+.winning-chip.pc-chip:hover {
+    border-color: rgba(255, 180, 170, 0.9);
+    color: #ffd1ca;
+}
+
+/* Billboard Hot 100 chip - cyan (Billboard color: #22d3ee) */
+.winning-chip.billboard-chip {
+    background-color: rgba(34, 211, 238, 0.15);
+    border: 1px solid rgba(103, 232, 249, 0.6);
+    color: #a8edf4;
+}
+
+.winning-chip.billboard-chip:hover {
+    border-color: rgba(103, 232, 249, 0.9);
+    color: #cffafe;
+}
+
+/* Overall position chip - amber */
 .winning-chip.overall {
-    background-color: rgba(88, 28, 135, 0.5);
-    border: 1px solid rgba(168, 85, 247, 0.6);
-    color: #d8b4fe;
+    background-color: rgba(217, 119, 6, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    color: #fbbf24;
 }
 
-/* Release year position chip - cyan/teal */
+/* Release year position chip - lime */
 .winning-chip.release-year {
-    background-color: rgba(14, 83, 92, 0.5);
-    border: 1px solid rgba(20, 184, 166, 0.6);
-    color: #5eead4;
+    background-color: rgba(163, 230, 53, 0.15);
+    border: 1px solid rgba(190, 242, 100, 0.6);
+    color: #d9f99d;
 }
 
-/* Artist rank chip - indigo */
+/* Artist rank chip - vivid orange (distinct from violet genre) */
 .winning-chip.artist-rank {
-    background-color: rgba(49, 46, 129, 0.5);
-    border: 1px solid rgba(99, 102, 241, 0.6);
-    color: #a5b4fc;
+    background-color: rgba(234, 88, 12, 0.15);
+    border: 1px solid rgba(249, 115, 22, 0.6);
+    color: #fb923c;
 }
 
-/* Album rank chip - rose */
+/* Album rank chip - sky blue (distinct from rose/pink family) */
 .winning-chip.album-rank {
-    background-color: rgba(136, 19, 55, 0.5);
-    border: 1px solid rgba(244, 63, 94, 0.6);
-    color: #fda4af;
+    background-color: rgba(14, 165, 233, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    color: #7dd3fc;
 }
 
-/* Spanish Rap rank chip - special combo (orange/amber for the culture) */
+/* Spanish Rap rank chip - orange */
 .winning-chip.spanish-rap {
-    background-color: rgba(180, 83, 9, 0.5);
-    border: 1px dashed rgba(251, 146, 60, 0.7);
+    background-color: rgba(251, 146, 60, 0.15);
+    border: 1px solid rgba(253, 186, 116, 0.6);
     color: #fed7aa;
+}
+
+/* Chart achievement chips (e.g. artist N songs at #1) - lime yellow-green
+   Only appears in artist detail; release-year lime never appears there, so no conflict. */
+.winning-chip.chart-achievement {
+    background-color: rgba(163, 230, 53, 0.15);
+    border: 1px solid rgba(190, 242, 100, 0.6);
+    color: #d9f99d;
 }
 
 @media (max-width: 480px) {

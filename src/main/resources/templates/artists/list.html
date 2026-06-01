@@ -1306,22 +1306,6 @@
                         </h3>
                     </a>
                     
-                    <!-- Attribute chips -->
-                    <div class="winning-chips">
-                        <a th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}" 
-                                    th:href="@{/artists(genre=${artist.genreId},genreMode='includes',view='graphs',tab='genre')}"
-                           class="winning-chip genre" th:text="${artist.genreName}" title="Genre"></a>
-                        <a th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}" 
-                                    th:href="@{/artists(subgenre=${artist.subgenreId},subgenreMode='includes',view='graphs',tab='subgenre')}"
-                           class="winning-chip subgenre" th:text="${artist.subgenreName}" title="Subgenre"></a>
-                        <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}" 
-                                    th:href="@{/artists(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
-                           class="winning-chip ethnicity" th:text="${artist.ethnicityName}" title="Ethnicity"></a>
-                        <a th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}" 
-                                    th:href="@{/artists(language=${artist.languageId},languageMode='includes',view='graphs',tab='language')}"
-                           class="winning-chip language" th:text="${artist.languageName}" title="Language"></a>
-                    </div>
-
                     <!-- Sort metric display (only for non-visible metrics) -->
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'songs' and sortBy != 'albums' and sortBy != 'time' and sortBy != 'featured'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
@@ -1411,12 +1395,39 @@
                                       th:title="${artist.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
                                       th:text="${artist.inItunes ? '✓' : '✗'}"></span><span th:text="${artist.name}">Artist Name</span>
                             </h3>
-                            <div class="modal-chips">
-                                <span th:if="${artist.genreName != null}" class="modal-chip genre" th:text="${artist.genreName}">Genre</span>
-                                <span th:if="${artist.subgenreName != null}" class="modal-chip subgenre" th:text="${artist.subgenreName}">Subgenre</span>
-                                <span th:if="${artist.ethnicityName != null}" class="modal-chip ethnicity" th:text="${artist.ethnicityName}">Ethnicity</span>
-                                <span th:if="${artist.languageName != null}" class="modal-chip language" th:text="${artist.languageName}">Language</span>
-                            </div>
+                        </div>
+                        <div class="winning-chips modal-rank-chips" th:with="rankMap=${artistRankings.get(artist.id)}">
+                            <a th:if="${artist.genderName != null and !#strings.isEmpty(artist.genderName)}"
+                                        th:href="@{/artists(gender=${artist.genderId},genderMode='includes',view='graphs',tab='general')}"
+                               class="winning-chip rank-chip gender"
+                               th:classappend="${artist.genderName.toLowerCase().contains('female')} ? 'female' : (${artist.genderName.toLowerCase().contains('male')} ? 'male' : '')"
+                               th:with="rank=${rankMap != null ? rankMap.get('gender') : null}"
+                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.genderName}" title="Gender"></a>
+                            <a th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}"
+                                        th:href="@{/artists(genre=${artist.genreId},genreMode='includes',view='graphs',tab='genre')}"
+                               class="winning-chip rank-chip genre"
+                               th:with="rank=${rankMap != null ? rankMap.get('genre') : null}"
+                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.genreName}" title="Genre"></a>
+                            <a th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}"
+                                        th:href="@{/artists(subgenre=${artist.subgenreId},subgenreMode='includes',view='graphs',tab='subgenre')}"
+                               class="winning-chip rank-chip subgenre"
+                               th:with="rank=${rankMap != null ? rankMap.get('subgenre') : null}"
+                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.subgenreName}" title="Subgenre"></a>
+                            <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}"
+                                        th:href="@{/artists(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
+                               class="winning-chip rank-chip ethnicity"
+                               th:with="rank=${rankMap != null ? rankMap.get('ethnicity') : null}"
+                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.ethnicityName}" title="Ethnicity"></a>
+                            <a th:if="${artist.country != null and !#strings.isEmpty(artist.country)}"
+                                        th:href="@{/artists(country=${artist.country},countryMode='includes',view='graphs',tab='country')}"
+                               class="winning-chip rank-chip country"
+                               th:with="rank=${rankMap != null ? rankMap.get('country') : null}"
+                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.country}" title="Country"></a>
+                            <a th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}"
+                                        th:href="@{/artists(language=${artist.languageId},languageMode='includes',view='graphs',tab='language')}"
+                               class="winning-chip rank-chip language"
+                               th:with="rank=${rankMap != null ? rankMap.get('language') : null}"
+                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.languageName}" title="Language"></a>
                         </div>
 
                         <!-- Section 1: Plays -->
@@ -2338,15 +2349,6 @@
     </div>
     
     <style>
-        .card-index {
-            position: absolute;
-            bottom: 6px;
-            right: 8px;
-            font-size: 0.7rem;
-            color: #555;
-            line-height: 1;
-            pointer-events: none;
-        }
         /* Gender counters below filter chips */
         .gender-counters-container {
             display: flex;

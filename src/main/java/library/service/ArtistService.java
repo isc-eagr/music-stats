@@ -3148,7 +3148,76 @@ public class ArtistService {
     }
     
     // ============= RANKING METHODS =============
-    
+
+    /**
+     * Get rankings for a batch of artists in a single query (for list pages).
+     * Returns Map of artistId -> Map of rank keys ("gender","genre","subgenre","ethnicity","language","country").
+     */
+    public java.util.Map<Integer, java.util.Map<String, Integer>> getBatchRankingsForArtists(java.util.List<Integer> artistIds) {
+        if (artistIds == null || artistIds.isEmpty()) return java.util.Collections.emptyMap();
+        String placeholders = String.join(",", java.util.Collections.nCopies(artistIds.size(), "?"));
+        String sql = """
+            WITH artist_play_counts AS (
+                SELECT a.id,
+                       a.gender_id,
+                       a.genre_id,
+                       a.subgenre_id,
+                       a.ethnicity_id,
+                       a.language_id,
+                       a.country,
+                       COALESCE(COUNT(p.id), 0) as play_count,
+                       MIN(p.play_date) as first_play
+                FROM Artist a
+                LEFT JOIN Song s ON s.artist_id = a.id
+                LEFT JOIN Play p ON p.song_id = s.id
+                GROUP BY a.id, a.gender_id, a.genre_id, a.subgenre_id, a.ethnicity_id, a.language_id, a.country
+            ),
+            ranked_artists AS (
+                SELECT id,
+                       CASE WHEN gender_id IS NOT NULL
+                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC)
+                            END as gender_rank,
+                       CASE WHEN genre_id IS NOT NULL
+                            THEN ROW_NUMBER() OVER (PARTITION BY genre_id ORDER BY play_count DESC, first_play ASC)
+                            END as genre_rank,
+                       CASE WHEN subgenre_id IS NOT NULL
+                            THEN ROW_NUMBER() OVER (PARTITION BY subgenre_id ORDER BY play_count DESC, first_play ASC)
+                            END as subgenre_rank,
+                       CASE WHEN ethnicity_id IS NOT NULL
+                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC, first_play ASC)
+                            END as ethnicity_rank,
+                       CASE WHEN language_id IS NOT NULL
+                            THEN ROW_NUMBER() OVER (PARTITION BY language_id ORDER BY play_count DESC, first_play ASC)
+                            END as language_rank,
+                       CASE WHEN country IS NOT NULL
+                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC, first_play ASC)
+                            END as country_rank
+                FROM artist_play_counts
+            )
+            SELECT id, gender_rank, genre_rank, subgenre_rank, ethnicity_rank, language_rank, country_rank
+            FROM ranked_artists
+            WHERE id IN (""" + placeholders + ")";
+        java.util.Map<Integer, java.util.Map<String, Integer>> result = new java.util.HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            int id = rs.getInt("id");
+            java.util.Map<String, Integer> ranks = new java.util.HashMap<>();
+            Integer genderRank = (Integer) rs.getObject("gender_rank");
+            Integer genreRank = (Integer) rs.getObject("genre_rank");
+            Integer subgenreRank = (Integer) rs.getObject("subgenre_rank");
+            Integer ethnicityRank = (Integer) rs.getObject("ethnicity_rank");
+            Integer languageRank = (Integer) rs.getObject("language_rank");
+            Integer countryRank = (Integer) rs.getObject("country_rank");
+            if (genderRank != null) ranks.put("gender", genderRank);
+            if (genreRank != null) ranks.put("genre", genreRank);
+            if (subgenreRank != null) ranks.put("subgenre", subgenreRank);
+            if (ethnicityRank != null) ranks.put("ethnicity", ethnicityRank);
+            if (languageRank != null) ranks.put("language", languageRank);
+            if (countryRank != null) ranks.put("country", countryRank);
+            result.put(id, ranks);
+        }, artistIds.toArray());
+        return result;
+    }
+
     /**
      * Get all rankings for an artist in a single query (optimized)
      * Returns a Map with keys: "gender", "genre", "subgenre", "ethnicity", "language", "country"

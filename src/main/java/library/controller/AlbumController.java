@@ -302,6 +302,9 @@ public class AlbumController {
         // Add data to model
         model.addAttribute("currentSection", "albums");
         model.addAttribute("albums", albums);
+        model.addAttribute("albumRankings", albumService.getBatchRankingsForAlbums(
+                albums.stream().map(library.dto.AlbumCardDTO::getId).collect(java.util.stream.Collectors.toList())
+        ));
         model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
