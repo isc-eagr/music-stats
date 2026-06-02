@@ -323,6 +323,12 @@
         width: 38px;
         height: 38px;
     }
+
+    .top-table .cover-col.artist-cover img,
+    .top-table .cover-col.artist-cover .cover-placeholder {
+        width: 34px;
+        height: 51px;
+    }
     
     .top-table .rank-col {
         width: 52px;
@@ -377,6 +383,12 @@
     .top-table .cover-col .cover-placeholder {
         width: 32px;
         height: 32px;
+    }
+
+    .top-table .cover-col.artist-cover img,
+    .top-table .cover-col.artist-cover .cover-placeholder {
+        width: 30px;
+        height: 45px;
     }
 }
 

@@ -93,8 +93,8 @@ public class PcService {
             }
 
             AlbumOverviewAccumulator accumulator = grouped.computeIfAbsent(
-                albumSongInfo.albumId,
-                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId, albumSongInfo.albumName, entry.getResolvedArtistId(), entry.getArtistName(), entry.getGenderClass())
+                albumSongInfo.albumId(),
+                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId(), albumSongInfo.albumName(), albumSongInfo.hasImage(), entry.getResolvedArtistId(), entry.getArtistName(), entry.isArtistHasImage(), entry.getGenderClass())
             );
             accumulator.accept(entry);
         }
@@ -137,7 +137,7 @@ public class PcService {
 
             ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                 key,
-                ignored -> new ArtistOverviewAccumulator(matched, entry.getResolvedArtistId(), entry.getArtistName(), entry.getGenderClass())
+                ignored -> new ArtistOverviewAccumulator(matched, entry.getResolvedArtistId(), entry.getArtistName(), entry.isArtistHasImage(), entry.getGenderClass())
             );
             accumulator.accept(entry);
         }
@@ -163,7 +163,7 @@ public class PcService {
                     PcOverviewRowDTO featuredEntry = copyOverviewRowForFeaturedArtist(entry, featuredArtistRef);
                     ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                         "artist:" + featuredArtistRef.artistId(),
-                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.genderClass())
+                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.hasImage(), featuredArtistRef.genderClass())
                     );
                     accumulator.acceptFeatured(featuredEntry);
                 }
@@ -278,25 +278,30 @@ public class PcService {
             "    WHERE e.is_close_call = 0 AND e.song_id IS NULL " +
             "    GROUP BY e.artist_name, e.song_title " +
             ") " +
-            "SELECT 1 AS matched, mg.song_id, s.name AS song_title, a.name AS artist_name, " +
+            "SELECT 1 AS matched, mg.song_id, s.album_id, s.name AS song_title, a.name AS artist_name, " +
             "       mg.first_week, mg.last_week, md.debut_position, mg.days_on_countdown, mg.peak_position, " +
             "       COALESCE(mp.days_at_peak, 0) AS days_at_peak, mp.peak_week, mg.raw_variant_count, " +
             "       a.id AS resolved_artist_id, LOWER(g.name) AS gender_name, " +
+            "       CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END AS has_image, " +
+            "       CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END AS album_has_image, " +
+            "       CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image, " +
             "       COALESCE(mt.days_at_top1, 0) AS days_at_top1, " +
             "       COALESCE(mt.days_at_top5, 0) AS days_at_top5, " +
             "       COALESCE(mt.days_at_top10, 0) AS days_at_top10 " +
             "FROM matched_groups mg " +
             "JOIN Song s ON s.id = mg.song_id " +
+            "LEFT JOIN Album al ON al.id = s.album_id " +
             "JOIN Artist a ON a.id = s.artist_id " +
             "LEFT JOIN Gender g ON g.id = a.gender_id " +
             "LEFT JOIN matched_debut md ON md.song_id = mg.song_id " +
             "LEFT JOIN matched_peak mp ON mp.song_id = mg.song_id " +
             "LEFT JOIN matched_tiers mt ON mt.song_id = mg.song_id " +
             "UNION ALL " +
-            "SELECT 0 AS matched, NULL AS song_id, ug.song_title, ug.artist_name, " +
+            "SELECT 0 AS matched, NULL AS song_id, NULL AS album_id, ug.song_title, ug.artist_name, " +
             "       ug.first_week, ug.last_week, ud.debut_position, ug.days_on_countdown, ug.peak_position, " +
             "       COALESCE(up.days_at_peak, 0) AS days_at_peak, up.peak_week, ug.raw_variant_count, " +
             "       NULL AS resolved_artist_id, NULL AS gender_name, " +
+            "       0 AS has_image, 0 AS album_has_image, 0 AS artist_has_image, " +
             "       COALESCE(ut.days_at_top1, 0) AS days_at_top1, " +
             "       COALESCE(ut.days_at_top5, 0) AS days_at_top5, " +
             "       COALESCE(ut.days_at_top10, 0) AS days_at_top10 " +
@@ -318,10 +323,15 @@ public class PcService {
         row.setMatched(rs.getInt("matched") == 1);
         int songId = rs.getInt("song_id");
         if (!rs.wasNull()) row.setSongId(songId);
+        int albumId = rs.getInt("album_id");
+        if (!rs.wasNull()) row.setAlbumId(albumId);
         int artistId = rs.getInt("resolved_artist_id");
         if (!rs.wasNull()) row.setResolvedArtistId(artistId);
         row.setSongTitle(rs.getString("song_title"));
         row.setArtistName(rs.getString("artist_name"));
+        row.setHasImage(rs.getInt("has_image") == 1);
+        row.setAlbumHasImage(rs.getInt("album_has_image") == 1);
+        row.setArtistHasImage(rs.getInt("artist_has_image") == 1);
         row.setFirstWeek(rs.getString("first_week"));
         row.setLastWeek(rs.getString("last_week"));
         row.setPeakWeek(rs.getString("peak_week"));
@@ -361,7 +371,8 @@ public class PcService {
         List<Integer> orderedSongIds = new ArrayList<>(songIds);
         String placeholders = String.join(",", java.util.Collections.nCopies(orderedSongIds.size(), "?"));
         String sql =
-            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name " +
+            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name, " +
+            "       CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END AS has_image " +
             "FROM Song s " +
             "JOIN Album al ON al.id = s.album_id " +
             "WHERE s.id IN (" + placeholders + ")";
@@ -372,12 +383,13 @@ public class PcService {
             (rs, rowNum) -> new AlbumSongInfoRow(
                 rs.getInt("song_id"),
                 rs.getInt("album_id"),
-                rs.getString("album_name")
+                rs.getString("album_name"),
+                rs.getInt("has_image") == 1
             ),
             orderedSongIds.toArray()
         );
         for (AlbumSongInfoRow row : rows) {
-            result.put(row.songId(), new AlbumSongInfo(row.albumId(), row.albumName()));
+            result.put(row.songId(), new AlbumSongInfo(row.albumId(), row.albumName(), row.hasImage()));
         }
         return result;
     }
@@ -391,7 +403,8 @@ public class PcService {
             SELECT sfa.song_id,
                    a.id AS artist_id,
                    a.name AS artist_name,
-                   LOWER(g.name) AS gender_name
+                   LOWER(g.name) AS gender_name,
+                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image
             FROM SongFeaturedArtist sfa
             INNER JOIN Artist a ON a.id = sfa.artist_id
             LEFT JOIN Gender g ON g.id = a.gender_id
@@ -404,7 +417,8 @@ public class PcService {
             FeaturedArtistRef ref = new FeaturedArtistRef(
                 rs.getInt("artist_id"),
                 rs.getString("artist_name"),
-                mapGenderClass(rs.getString("gender_name"))
+                mapGenderClass(rs.getString("gender_name")),
+                rs.getInt("artist_has_image") == 1
             );
             refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
         }, songIds.toArray());
@@ -415,9 +429,13 @@ public class PcService {
         PcOverviewRowDTO target = new PcOverviewRowDTO();
         target.setMatched(true);
         target.setSongId(source.getSongId());
+        target.setAlbumId(source.getAlbumId());
         target.setResolvedArtistId(featuredArtistRef.artistId());
         target.setSongTitle(source.getSongTitle());
         target.setArtistName(featuredArtistRef.artistName());
+        target.setHasImage(source.isHasImage());
+        target.setAlbumHasImage(source.isAlbumHasImage());
+        target.setArtistHasImage(featuredArtistRef.hasImage());
         target.setFirstWeek(source.getFirstWeek());
         target.setLastWeek(source.getLastWeek());
         target.setPeakWeek(source.getPeakWeek());
@@ -456,7 +474,7 @@ public class PcService {
         return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
     }
 
-    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
+    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {
     }
 
     private final class AlbumOverviewAccumulator {
@@ -465,12 +483,14 @@ public class PcService {
         private final Set<Integer> numberOneSongIds = new HashSet<>();
         private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
-        private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
+        private AlbumOverviewAccumulator(Integer albumId, String albumName, boolean hasImage, Integer resolvedArtistId, String artistName, boolean artistHasImage, String genderClass) {
             row = new ChartAlbumOverviewRowDTO();
             row.setAlbumId(albumId);
             row.setAlbumName(albumName);
+            row.setHasImage(hasImage);
             row.setResolvedArtistId(resolvedArtistId);
             row.setArtistName(artistName);
+            row.setArtistHasImage(artistHasImage);
             row.setGenderClass(genderClass);
         }
 
@@ -506,11 +526,12 @@ public class PcService {
         private final Set<String> numberOneSongKeys = new HashSet<>();
         private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
-        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
+        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, boolean hasImage, String genderClass) {
             row = new ChartArtistOverviewRowDTO();
             row.setMatched(matched);
             row.setResolvedArtistId(resolvedArtistId);
             row.setArtistName(artistName);
+            row.setHasImage(hasImage);
             row.setGenderClass(genderClass);
         }
 
@@ -561,10 +582,10 @@ public class PcService {
         }
     }
 
-    private record AlbumSongInfo(Integer albumId, String albumName) {
+    private record AlbumSongInfo(Integer albumId, String albumName, boolean hasImage) {
     }
 
-    private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName) {
+    private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName, boolean hasImage) {
     }
 
     public Map<String, Object> matchRawGroup(String rawArtist, String rawSong, Integer songId) {

@@ -429,7 +429,12 @@
                                 <!-- Column 2: First Listened, Last Listened, Birth Date, Death Date -->
                                 <div class="form-group view-only-field">
                                     <label>First Listened Date</label>
-                                    <span class="attribute-text" th:text="${firstListenedDate}">-</span>
+                                    <span class="attribute-text">
+                                        <span th:text="${firstListenedDate}">-</span>
+                                        <th:block th:if="${firstListenedSong != null}">
+                                            <span> (</span><a th:href="@{/songs/{id}(id=${firstListenedSong.id})}" th:text="${firstListenedSong.name}">Song</a><span>)</span>
+                                        </th:block>
+                                    </span>
                                 </div>
                                 
                                 <div class="form-group">

@@ -506,8 +506,10 @@ public class SongController {
         model.addAttribute("sortDir", sortdir);
         model.addAttribute("sortBy2", sortby2);
         model.addAttribute("sortDir2", sortdir2 != null ? sortdir2 : "asc");
+        model.addAttribute("sortDir2Param", sortby2 != null && !sortby2.isBlank() ? (sortdir2 != null ? sortdir2 : "asc") : null);
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
+        model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
         model.addAttribute("defaultSortBy", "plays");
         model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         

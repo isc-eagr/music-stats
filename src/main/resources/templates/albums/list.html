@@ -132,10 +132,10 @@
                                 <input type="hidden" autocomplete="off" name="q" th:value="${searchQuery}">
                                 <input type="hidden" autocomplete="off" name="sortby" th:value="${sortBy}">
                                 <input type="hidden" autocomplete="off" name="sortdir" th:value="${sortDir}">
-                                <input type="hidden" autocomplete="off" name="sortby2" th:value="${sortBy2}">
-                                <input type="hidden" autocomplete="off" name="sortdir2" th:value="${sortDir2}">
-                                <input type="hidden" autocomplete="off" name="sortby3" th:value="${sortBy3}">
-                                <input type="hidden" autocomplete="off" name="sortdir3" th:value="${sortDir3}">
+                                <input type="hidden" autocomplete="off" name="sortby2" th:if="${sortBy2 != null and !sortBy2.isEmpty()}" th:value="${sortBy2}">
+                                <input type="hidden" autocomplete="off" name="sortdir2" th:if="${sortBy2 != null and !sortBy2.isEmpty()}" th:value="${sortDir2Param}">
+                                <input type="hidden" autocomplete="off" name="sortby3" th:if="${sortBy3 != null and !sortBy3.isEmpty()}" th:value="${sortBy3}">
+                                <input type="hidden" autocomplete="off" name="sortdir3" th:if="${sortBy3 != null and !sortBy3.isEmpty()}" th:value="${sortDir3Param}">
                                 <input type="hidden" autocomplete="off" name="perpage" th:value="${perPage}">
                                 
                                 <!-- Account Filter -->

@@ -83,10 +83,17 @@ public class BillboardHot100Service {
 
         List<Object> params = new ArrayList<>();
         String searchClause = buildOverviewSearchClause(query, params);
-        String sql = "SELECT matched, song_id, resolved_artist_id, song_title, artist_name, debut_week, last_week, peak_week, " +
+        String sql = "SELECT matched, song_id, s_img.album_id, resolved_artist_id, song_title, artist_name, debut_week, last_week, peak_week, " +
                  "debut_position, weeks_on_chart, peak_position, weeks_at_peak, gender_name, weeks_at_top1, weeks_at_top5, weeks_at_top10, " +
-                 "weeks_at_top20, weeks_at_top50, weeks_at_top100 " +
-                 "FROM billboard_hot100_debut overview" + searchClause + " ORDER BY " + orderBy + " LIMIT ? OFFSET ?";
+                 "weeks_at_top20, weeks_at_top50, weeks_at_top100, " +
+                 "CASE WHEN s_img.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s_img.id) THEN 1 ELSE 0 END AS has_image, " +
+                 "CASE WHEN album_img.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = album_img.id) THEN 1 ELSE 0 END AS album_has_image, " +
+                 "CASE WHEN a_img.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image " +
+                 "FROM billboard_hot100_debut overview " +
+                 "LEFT JOIN Song s_img ON s_img.id = overview.song_id " +
+                 "LEFT JOIN Album album_img ON album_img.id = s_img.album_id " +
+                 "LEFT JOIN Artist a_img ON a_img.id = overview.resolved_artist_id" +
+                 searchClause + " ORDER BY " + orderBy + " LIMIT ? OFFSET ?";
         params.add(safeSize);
         params.add(offset);
 
@@ -167,10 +174,17 @@ public class BillboardHot100Service {
 
         List<Object> params = new ArrayList<>();
         String searchClause = buildOverviewSearchClause(query, params);
-        String sql = "SELECT matched, song_id, resolved_artist_id, song_title, artist_name, debut_week, last_week, peak_week, " +
+        String sql = "SELECT matched, song_id, s_img.album_id, resolved_artist_id, song_title, artist_name, debut_week, last_week, peak_week, " +
             "debut_position, weeks_on_chart, peak_position, weeks_at_peak, gender_name, weeks_at_top1, weeks_at_top5, weeks_at_top10, " +
-            "weeks_at_top20, weeks_at_top50, weeks_at_top100 " +
-            "FROM billboard_hot100_debut overview" + searchClause +
+            "weeks_at_top20, weeks_at_top50, weeks_at_top100, " +
+            "CASE WHEN s_img.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s_img.id) THEN 1 ELSE 0 END AS has_image, " +
+            "CASE WHEN album_img.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = album_img.id) THEN 1 ELSE 0 END AS album_has_image, " +
+            "CASE WHEN a_img.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image " +
+            "FROM billboard_hot100_debut overview " +
+            "LEFT JOIN Song s_img ON s_img.id = overview.song_id " +
+            "LEFT JOIN Album album_img ON album_img.id = s_img.album_id " +
+            "LEFT JOIN Artist a_img ON a_img.id = overview.resolved_artist_id" +
+            searchClause +
             " ORDER BY debut_week DESC, last_week DESC, artist_name COLLATE NOCASE ASC, song_title COLLATE NOCASE ASC";
         return jdbcTemplate.query(sql, this::mapOverviewRow, params.toArray());
     }
@@ -182,12 +196,19 @@ public class BillboardHot100Service {
         if (!rs.wasNull()) {
             row.setSongId(songId);
         }
+        int albumId = rs.getInt("album_id");
+        if (!rs.wasNull()) {
+            row.setAlbumId(albumId);
+        }
         int resolvedArtistId = rs.getInt("resolved_artist_id");
         if (!rs.wasNull()) {
             row.setResolvedArtistId(resolvedArtistId);
         }
         row.setSongTitle(rs.getString("song_title"));
         row.setArtistName(rs.getString("artist_name"));
+        row.setHasImage(rs.getInt("has_image") == 1);
+        row.setAlbumHasImage(rs.getInt("album_has_image") == 1);
+        row.setArtistHasImage(rs.getInt("artist_has_image") == 1);
         row.setFirstWeek(rs.getString("debut_week"));
         int debutPosition = rs.getInt("debut_position");
         if (!rs.wasNull()) {
@@ -222,8 +243,8 @@ public class BillboardHot100Service {
                 continue;
             }
             AlbumOverviewAccumulator accumulator = grouped.computeIfAbsent(
-                albumSongInfo.albumId,
-                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId, albumSongInfo.albumName, row.getResolvedArtistId(), row.getArtistName(), row.getGenderClass())
+                albumSongInfo.albumId(),
+                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId(), albumSongInfo.albumName(), albumSongInfo.hasImage(), row.getResolvedArtistId(), row.getArtistName(), row.isArtistHasImage(), row.getGenderClass())
             );
             accumulator.accept(row);
         }
@@ -246,7 +267,7 @@ public class BillboardHot100Service {
                 : "raw:" + ChartAggregationUtils.normalizeKeyPart(row.getArtistName());
             ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                 key,
-                ignored -> new ArtistOverviewAccumulator(matched, row.getResolvedArtistId(), row.getArtistName(), row.getGenderClass())
+                ignored -> new ArtistOverviewAccumulator(matched, row.getResolvedArtistId(), row.getArtistName(), row.isArtistHasImage(), row.getGenderClass())
             );
             accumulator.accept(row);
         }
@@ -272,7 +293,7 @@ public class BillboardHot100Service {
                     BillboardHot100OverviewRowDTO featuredRow = copyOverviewRowForFeaturedArtist(row, featuredArtistRef);
                     ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                         "artist:" + featuredArtistRef.artistId(),
-                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.genderClass())
+                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.hasImage(), featuredArtistRef.genderClass())
                     );
                     accumulator.acceptFeatured(featuredRow);
                 }
@@ -295,7 +316,8 @@ public class BillboardHot100Service {
             SELECT sfa.song_id,
                    a.id AS artist_id,
                    a.name AS artist_name,
-                   LOWER(g.name) AS gender_name
+                   LOWER(g.name) AS gender_name,
+                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image
             FROM SongFeaturedArtist sfa
             INNER JOIN Artist a ON a.id = sfa.artist_id
             LEFT JOIN Gender g ON g.id = a.gender_id
@@ -308,7 +330,8 @@ public class BillboardHot100Service {
             FeaturedArtistRef ref = new FeaturedArtistRef(
                 rs.getInt("artist_id"),
                 rs.getString("artist_name"),
-                mapGenderClass(rs.getString("gender_name"))
+                mapGenderClass(rs.getString("gender_name")),
+                rs.getInt("artist_has_image") == 1
             );
             refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
         }, songIds.toArray());
@@ -319,9 +342,13 @@ public class BillboardHot100Service {
         BillboardHot100OverviewRowDTO target = new BillboardHot100OverviewRowDTO();
         target.setMatched(true);
         target.setSongId(source.getSongId());
+        target.setAlbumId(source.getAlbumId());
         target.setResolvedArtistId(featuredArtistRef.artistId());
         target.setSongTitle(source.getSongTitle());
         target.setArtistName(featuredArtistRef.artistName());
+        target.setHasImage(source.isHasImage());
+        target.setAlbumHasImage(source.isAlbumHasImage());
+        target.setArtistHasImage(featuredArtistRef.hasImage());
         target.setFirstWeek(source.getFirstWeek());
         target.setDebutPosition(source.getDebutPosition());
         target.setLastWeek(source.getLastWeek());
@@ -416,7 +443,8 @@ public class BillboardHot100Service {
         List<Integer> orderedSongIds = new ArrayList<>(songIds);
         String placeholders = String.join(",", Collections.nCopies(orderedSongIds.size(), "?"));
         String sql =
-            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name " +
+            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name, " +
+            "       CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END AS has_image " +
             "FROM Song s " +
             "JOIN Album al ON al.id = s.album_id " +
             "WHERE s.id IN (" + placeholders + ")";
@@ -426,12 +454,13 @@ public class BillboardHot100Service {
             (rs, rowNum) -> new AlbumSongInfoRow(
                 rs.getInt("song_id"),
                 rs.getInt("album_id"),
-                rs.getString("album_name")
+                rs.getString("album_name"),
+                rs.getInt("has_image") == 1
             ),
             orderedSongIds.toArray()
         );
         for (AlbumSongInfoRow row : albumRows) {
-            result.put(row.songId(), new AlbumSongInfo(row.albumId(), row.albumName()));
+            result.put(row.songId(), new AlbumSongInfo(row.albumId(), row.albumName(), row.hasImage()));
         }
         return result;
     }
@@ -943,12 +972,14 @@ public class BillboardHot100Service {
         private final Set<Integer> numberOneSongIds = new HashSet<>();
         private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
-        private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
+        private AlbumOverviewAccumulator(Integer albumId, String albumName, boolean hasImage, Integer resolvedArtistId, String artistName, boolean artistHasImage, String genderClass) {
             row = new ChartAlbumOverviewRowDTO();
             row.setAlbumId(albumId);
             row.setAlbumName(albumName);
+            row.setHasImage(hasImage);
             row.setResolvedArtistId(resolvedArtistId);
             row.setArtistName(artistName);
+            row.setArtistHasImage(artistHasImage);
             row.setGenderClass(genderClass);
         }
 
@@ -981,11 +1012,12 @@ public class BillboardHot100Service {
         private final Set<String> numberOneSongKeys = new HashSet<>();
         private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
-        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
+        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, boolean hasImage, String genderClass) {
             row = new ChartArtistOverviewRowDTO();
             row.setMatched(matched);
             row.setResolvedArtistId(resolvedArtistId);
             row.setArtistName(artistName);
+            row.setHasImage(hasImage);
             row.setGenderClass(genderClass);
         }
 
@@ -1073,12 +1105,12 @@ public class BillboardHot100Service {
         return jdbcTemplate.queryForList(sql, artistId);
     }
 
-    private record AlbumSongInfo(Integer albumId, String albumName) {
+    private record AlbumSongInfo(Integer albumId, String albumName, boolean hasImage) {
     }
 
-    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
+    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {
     }
 
-    private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName) {
+    private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName, boolean hasImage) {
     }
 }

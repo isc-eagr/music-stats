@@ -386,7 +386,7 @@
                  </li>
                  <li class="app-nav-dropdown">
                      <a href="#" class="app-nav-link app-nav-dropdown-toggle" 
-                        th:classappend="${currentSection == 'weekly-overview-charts' or currentSection == 'weekly-charts' or currentSection == 'seasonal-overview-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-overview-charts' or currentSection == 'yearly-charts' or currentSection == 'number-ones-charts'} ? 'active' : ''"
+                        th:classappend="${currentSection == 'weekly-overview-charts' or currentSection == 'weekly-charts' or currentSection == 'seasonal-overview-charts' or currentSection == 'seasonal-charts' or currentSection == 'yearly-overview-charts' or currentSection == 'yearly-charts' or currentSection == 'number-ones-charts' or currentSection == 'trl' or currentSection == 'trl-recaps' or currentSection == 'pc' or currentSection == 'pc-recaps' or currentSection == 'billboard-hot100' or currentSection == 'billboard-hot100-recaps'} ? 'active' : ''"
                         onclick="toggleDropdown(event, this)">📈 Charts</a>
                      <ul class="app-nav-dropdown-menu">
                          <li><a href="/charts/weekly/overview" class="app-nav-dropdown-link" th:classappend="${currentSection == 'weekly-overview-charts'} ? 'active' : ''">Weekly Overview</a></li>
@@ -396,6 +396,12 @@
                          <li><a href="/charts/yearly/overview" class="app-nav-dropdown-link" th:classappend="${currentSection == 'yearly-overview-charts'} ? 'active' : ''">Yearly Overview</a></li>
                          <li><a href="/charts/yearly" class="app-nav-dropdown-link" th:classappend="${currentSection == 'yearly-charts'} ? 'active' : ''">Yearly Chart</a></li>
                          <li><a href="/charts/number-ones" class="app-nav-dropdown-link" th:classappend="${currentSection == 'number-ones-charts'} ? 'active' : ''">Weekly Number Ones</a></li>
+                         <li><a href="/misc/trl" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl'} ? 'active' : ''">TRL Overview</a></li>
+                         <li><a href="/misc/trl/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl-recaps'} ? 'active' : ''">TRL Recaps</a></li>
+                         <li><a href="/misc/vatos-cuntdown" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc'} ? 'active' : ''">Vato's Cuntdown Overview</a></li>
+                         <li><a href="/misc/vatos-cuntdown/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc-recaps'} ? 'active' : ''">Vato's Cuntdown Recaps</a></li>
+                         <li><a href="/misc/billboard-hot-100" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100'} ? 'active' : ''">Billboard Hot 100 Overview</a></li>
+                         <li><a href="/misc/billboard-hot-100/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100-recaps'} ? 'active' : ''">Billboard Hot 100 Recaps</a></li>
                      </ul>
                  </li>
                  <li class="app-nav-dropdown">
@@ -406,19 +412,6 @@
                          <li><a href="/reign/artists" class="app-nav-dropdown-link">Artist</a></li>
                          <li><a href="/reign/songs" class="app-nav-dropdown-link">Song</a></li>
                          <li><a href="/reign/genres" class="app-nav-dropdown-link">Genre</a></li>
-                     </ul>
-                 </li>
-                 <li class="app-nav-dropdown">
-                     <a href="#" class="app-nav-link app-nav-dropdown-toggle"
-                        th:classappend="${currentSection == 'trl' or currentSection == 'trl-recaps' or currentSection == 'pc' or currentSection == 'pc-recaps' or currentSection == 'billboard-hot100' or currentSection == 'billboard-hot100-recaps'} ? 'active' : ''"
-                        onclick="toggleDropdown(event, this)">Misc</a>
-                     <ul class="app-nav-dropdown-menu">
-                         <li><a href="/misc/trl" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl'} ? 'active' : ''">TRL Overview</a></li>
-                         <li><a href="/misc/trl/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'trl-recaps'} ? 'active' : ''">TRL Recaps</a></li>
-                         <li><a href="/misc/vatos-cuntdown" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc'} ? 'active' : ''">Vato's Cuntdown Overview</a></li>
-                         <li><a href="/misc/vatos-cuntdown/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'pc-recaps'} ? 'active' : ''">Vato's Cuntdown Recaps</a></li>
-                         <li><a href="/misc/billboard-hot-100" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100'} ? 'active' : ''">Billboard Hot 100 Overview</a></li>
-                         <li><a href="/misc/billboard-hot-100/recaps" class="app-nav-dropdown-link" th:classappend="${currentSection == 'billboard-hot100-recaps'} ? 'active' : ''">Billboard Hot 100 Recaps</a></li>
                      </ul>
                  </li>
                  <!-- Mobile-only: utilities links -->
@@ -543,9 +536,9 @@
                 const searchInstances = [];
                 let activeMobileRestoreOverflow = '';
 
-                function createPlaceholder() {
+                function createPlaceholder(type) {
                     const placeholder = document.createElement('span');
-                    placeholder.className = 'global-search-thumb-placeholder';
+                    placeholder.className = 'global-search-thumb-placeholder' + (type ? ' global-search-thumb--' + type : '');
                     placeholder.setAttribute('aria-hidden', 'true');
                     return placeholder;
                 }
@@ -600,16 +593,16 @@
 
                             if (result.hasImage && result.imageUrl) {
                                 const image = document.createElement('img');
-                                image.className = 'global-search-thumb';
+                                image.className = 'global-search-thumb global-search-thumb--' + result.type;
                                 image.src = result.imageUrl;
                                 image.alt = '';
                                 image.loading = 'lazy';
                                 image.onerror = function() {
-                                    image.replaceWith(createPlaceholder());
+                                    image.replaceWith(createPlaceholder(result.type));
                                 };
                                 link.appendChild(image);
                             } else {
-                                link.appendChild(createPlaceholder());
+                                link.appendChild(createPlaceholder(result.type));
                             }
 
                             const textBlock = document.createElement('span');

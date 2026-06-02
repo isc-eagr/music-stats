@@ -2719,6 +2719,9 @@ public class ChartService {
     public List<Map<String, Object>> getPastChartAppearancesForItem(Integer itemId, String chartType, String periodType, String excludePeriodKey) {
         String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
         String itemTable = "song".equals(chartType) ? "Song" : "Album";
+        int maxPosition = "seasonal".equals(periodType) && "song".equals(chartType)
+            ? SEASONAL_YEARLY_SONGS_COUNT + SEASONAL_EXTRA_SONGS_COUNT
+            : SEASONAL_YEARLY_SONGS_COUNT;
         String genderJoin = "song".equals(chartType) 
             ? "LEFT JOIN Artist a ON s.artist_id = a.id"
             : "LEFT JOIN Artist a ON al.artist_id = a.id";
@@ -2734,7 +2737,7 @@ public class ChartService {
               AND ce.position <= %d
               AND c.period_key != ?
             ORDER BY c.period_start_date DESC
-            """, itemTable, itemAlias, idColumn, itemAlias, genderJoin, idColumn, SEASONAL_YEARLY_SONGS_COUNT);
+            """, itemTable, itemAlias, idColumn, itemAlias, genderJoin, idColumn, maxPosition);
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> entry = new HashMap<>();

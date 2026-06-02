@@ -2,6 +2,7 @@ package library.service;
 
 import library.dto.ArtistAlbumDTO;
 import library.dto.ArtistCardDTO;
+import library.dto.ArtistFirstListenedSongDTO;
 import library.dto.ArtistSongDTO;
 import library.dto.ArtistStatsQuery;
 import library.dto.ArtistStatsRow;
@@ -710,6 +711,24 @@ public class ArtistService {
             return formatDate(date);
         } catch (Exception e) {
             return "-";
+        }
+    }
+
+    public ArtistFirstListenedSongDTO getFirstListenedSongForArtist(int artistId) {
+        String sql = """
+            SELECT s.id, s.name
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ?
+            ORDER BY p.play_date ASC, p.id ASC
+            LIMIT 1
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
+                    new ArtistFirstListenedSongDTO(rs.getInt("id"), rs.getString("name")), artistId);
+        } catch (Exception e) {
+            return null;
         }
     }
 

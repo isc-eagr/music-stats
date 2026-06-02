@@ -141,6 +141,44 @@
         .bb-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
         .bb-table td, .bb-issue-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
         .bb-table td.right, .bb-table th.right { text-align: right; }
+        .bb-image-col { width: 58px; }
+        .bb-overview-image-cell { width: 58px; min-width: 58px; }
+        .bb-overview-thumb {
+            display: inline-block;
+            width: 42px;
+            aspect-ratio: 1 / 1;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #242424;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+        .bb-overview-thumb.artist { width: 36px; aspect-ratio: 2 / 3; }
+        .bb-overview-thumb.placeholder { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
+        .bb-overview-song-image-stack {
+            position: relative;
+            width: 42px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #242424;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .bb-overview-song-image-stack .bb-overview-thumb {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            transition: opacity 0.18s ease;
+        }
+        .bb-overview-song-image-stack .song-image-hover { opacity: 0; }
+        .bb-overview-song-image-stack:hover .album-image-default { opacity: 0; }
+        .bb-overview-song-image-stack:hover .song-image-hover { opacity: 1; }
         .bb-song-link { color: #e0e0e0; text-decoration: none; font-weight: 600; }
         .bb-song-link:hover { color: #7ed0ff; text-decoration: underline; }
         .bb-artist-link { color: #aaa; text-decoration: none; font-size: 0.85rem; }
@@ -326,6 +364,7 @@
             <table class="bb-table" id="billboardTable">
                 <thead>
                     <tr>
+                        <th class="center bb-image-col" data-no-sort></th>
                         <th></th>
                         <th class="center" th:classappend="${sort == 'weeks'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'weeks'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(page=1,size=${size},sort='weeks',dir=${sort == 'weeks' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Weeks</a>
@@ -363,6 +402,33 @@
                         th:data-song-id="${entry.songId}"
                         th:data-bb-idx="${iterStat.index}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center bb-overview-image-cell">
+                            <div th:if="${entry.songId != null and entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="bb-overview-song-image-stack">
+                                <img th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                     alt=""
+                                     loading="lazy"
+                                     th:onclick="|openBillboardOverviewImageModal(event, 'song', ${entry.songId})|"
+                                     class="bb-overview-thumb album-image-default clickable-image">
+                                <img th:src="@{/songs/{id}/image(id=${entry.songId}, thumbnail=true)}"
+                                     alt=""
+                                     loading="lazy"
+                                     th:onclick="|openBillboardOverviewImageModal(event, 'song', ${entry.songId})|"
+                                     class="bb-overview-thumb song-image-hover clickable-image">
+                            </div>
+                            <img th:if="${entry.songId != null and entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}"
+                                 th:src="@{/songs/{id}/image(id=${entry.songId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openBillboardOverviewImageModal(event, 'song', ${entry.songId})|"
+                                 class="bb-overview-thumb song clickable-image">
+                            <img th:if="${(entry.songId == null or !entry.hasImage) and entry.albumHasImage and entry.albumId != null}"
+                                 th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openBillboardOverviewImageModal(event, 'album', ${entry.albumId})|"
+                                 class="bb-overview-thumb album clickable-image">
+                            <span th:if="${(entry.songId == null or !entry.hasImage) and (!entry.albumHasImage or entry.albumId == null)}" class="bb-overview-thumb placeholder song"></span>
+                        </td>
                         <td class="center"><button class="bb-expand-btn" onclick="toggleBbExpand(this)" title="Show chart tier stats">+</button></td>
                         <td class="center" th:attr="data-value=${entry.weeksOnChart}" th:text="${entry.weeksOnChart}">0</td>
                         <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
@@ -396,7 +462,7 @@
                         </td>
                     </tr>
                     <tr class="detail-row bb-detail-row">
-                        <td colspan="11" class="bb-detail-cell">
+                        <td colspan="12" class="bb-detail-cell">
                             <div class="bb-run-stats">
                                 <div class="bb-run-stat"><div class="bb-run-stat-label">#1</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop1}">0</div></div>
                                 <div class="bb-run-stat"><div class="bb-run-stat-label">Top 5</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop5}">0</div></div>
@@ -410,7 +476,7 @@
                     </tr>
                     </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="11" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
+                        <td colspan="12" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
                     </tr>
                 </tbody>
             </table>
@@ -423,6 +489,7 @@
             <table class="bb-table" id="billboardAlbumTable">
                 <thead>
                     <tr>
+                        <th class="center bb-image-col" data-no-sort></th>
                         <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
                         </th>
@@ -454,6 +521,15 @@
                 </thead>
                 <tbody id="billboardAlbumTableBody">
                     <tr th:each="entry : ${albumEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center bb-overview-image-cell">
+                            <img th:if="${entry.albumId != null and entry.hasImage}"
+                                 th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openBillboardOverviewImageModal(event, 'album', ${entry.albumId})|"
+                                 class="bb-overview-thumb album clickable-image">
+                            <span th:unless="${entry.albumId != null and entry.hasImage}" class="bb-overview-thumb placeholder album"></span>
+                        </td>
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
                             <span th:if="${entry.resolvedArtistId == null}" class="bb-no-link-artist" th:text="${entry.artistName}">Artist</span>
@@ -487,7 +563,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumEntries)}">
-                        <td colspan="9" class="bb-empty">No linked albums have charted on the Billboard Hot 100 yet.</td>
+                        <td colspan="10" class="bb-empty">No linked albums have charted on the Billboard Hot 100 yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -500,6 +576,7 @@
             <table class="bb-table" id="billboardArtistTable">
                 <thead>
                     <tr>
+                        <th class="center bb-image-col" data-no-sort></th>
                         <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
                         </th>
@@ -528,6 +605,15 @@
                 </thead>
                 <tbody id="billboardArtistTableBody">
                     <tr th:each="entry : ${artistEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center bb-overview-image-cell">
+                            <img th:if="${entry.resolvedArtistId != null and entry.hasImage}"
+                                 th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openBillboardOverviewImageModal(event, 'artist', ${entry.resolvedArtistId})|"
+                                 class="bb-overview-thumb artist clickable-image">
+                            <span th:unless="${entry.resolvedArtistId != null and entry.hasImage}" class="bb-overview-thumb placeholder artist"></span>
+                        </td>
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="bb-artist-link" th:text="${entry.artistName}">Artist</a>
                             <span th:if="${entry.resolvedArtistId == null}" class="bb-no-link-artist" th:text="${entry.artistName}">Artist</span>
@@ -557,7 +643,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistEntries)}">
-                        <td colspan="8" class="bb-empty">No artist overview rows found yet.</td>
+                        <td colspan="9" class="bb-empty">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -584,6 +670,8 @@
             </div>
         </div>
     </div>
+
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
 
     <script>
         let billboardModalRow = null;
@@ -724,6 +812,42 @@
             return '<a href="/misc/billboard-hot-100/recaps?date=' + encodeURIComponent(dateValue) + '" class="bb-date-link">' + escapeBillboardHtml(dateValue) + '</a>';
         }
 
+        function openBillboardOverviewImageModal(event, type, id) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (id == null || id === '' || typeof openImageModal !== 'function') {
+                return;
+            }
+            openImageModal('/' + type + 's/' + id + '/image');
+        }
+
+        function renderBillboardImageCell(type, id, hasImage) {
+            const safeType = escapeBillboardHtml(type || '');
+            if (id != null && hasImage) {
+                return '<td class="center bb-overview-image-cell"><img src="/' + safeType + 's/' + id + '/image?thumbnail=true" alt="" loading="lazy" onclick="openBillboardOverviewImageModal(event, \'' + safeType + '\', ' + id + ')" class="bb-overview-thumb ' + safeType + ' clickable-image"></td>';
+            }
+            return '<td class="center bb-overview-image-cell"><span class="bb-overview-thumb placeholder ' + safeType + '"></span></td>';
+        }
+
+        function renderBillboardSongImageCell(entry) {
+            if (entry.songId != null && entry.hasImage && entry.albumHasImage && entry.albumId != null) {
+                return '<td class="center bb-overview-image-cell">'
+                    + '<div class="bb-overview-song-image-stack">'
+                    + '<img src="/albums/' + entry.albumId + '/image?thumbnail=true" alt="" loading="lazy" onclick="openBillboardOverviewImageModal(event, \'song\', ' + entry.songId + ')" class="bb-overview-thumb album-image-default clickable-image">'
+                    + '<img src="/songs/' + entry.songId + '/image?thumbnail=true" alt="" loading="lazy" onclick="openBillboardOverviewImageModal(event, \'song\', ' + entry.songId + ')" class="bb-overview-thumb song-image-hover clickable-image">'
+                    + '</div>'
+                    + '</td>';
+            }
+            if (entry.songId != null && entry.hasImage && (!entry.albumHasImage || entry.albumId == null)) {
+                return renderBillboardImageCell('song', entry.songId, true);
+            }
+            if ((entry.songId == null || !entry.hasImage) && entry.albumHasImage && entry.albumId != null) {
+                return renderBillboardImageCell('album', entry.albumId, true);
+            }
+            return '<td class="center bb-overview-image-cell"><span class="bb-overview-thumb placeholder song"></span></td>';
+        }
+
         function renderBillboardSongRows(entries) {
             return entries.map(entry => {
                 const idx = billboardRowIndexCounter++;
@@ -743,6 +867,7 @@
                     + ' data-song-id="' + (entry.songId != null ? entry.songId : '') + '"'
                     + ' data-bb-idx="' + idx + '"'
                     + ' class="' + genderClass.trim() + '">'
+                    + renderBillboardSongImageCell(entry)
                     + '<td class="center"><button class="bb-expand-btn" onclick="toggleBbExpand(this)" title="Show chart tier stats">+</button></td>'
                     + '<td class="center" data-value="' + entry.weeksOnChart + '">' + entry.weeksOnChart + '</td>'
                     + '<td class="center" data-value="' + entry.peakPosition + '">' + entry.peakPosition + '</td>'
@@ -756,7 +881,7 @@
                     + '<td>' + libraryButton + '</td>'
                     + '</tr>'
                     + '<tr class="detail-row bb-detail-row">'
-                    + '<td colspan="11" class="bb-detail-cell">'
+                    + '<td colspan="12" class="bb-detail-cell">'
                     + '<div class="bb-run-stats">'
                     + '<div class="bb-run-stat"><div class="bb-run-stat-label">#1</div><div class="bb-run-stat-value">' + entry.weeksAtTop1 + '</div></div>'
                     + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 5</div><div class="bb-run-stat-value">' + entry.weeksAtTop5 + '</div></div>'
@@ -783,6 +908,7 @@
                 const numberOnesCell = buildBillboardNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
+                    + renderBillboardImageCell('album', entry.albumId, entry.hasImage)
                     + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td data-value="' + escapeBillboardHtml(entry.albumName) + '">' + albumCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
@@ -805,6 +931,7 @@
                 const numberOneSpanCell = buildBillboardNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
+                    + renderBillboardImageCell('artist', entry.resolvedArtistId, entry.hasImage)
                     + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'

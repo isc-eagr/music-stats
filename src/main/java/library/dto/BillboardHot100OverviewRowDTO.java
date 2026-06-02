@@ -4,9 +4,13 @@ public class BillboardHot100OverviewRowDTO {
 
     private boolean matched;
     private Integer songId;
+    private Integer albumId;
     private Integer resolvedArtistId;
     private String songTitle;
     private String artistName;
+    private boolean hasImage;
+    private boolean albumHasImage;
+    private boolean artistHasImage;
     private String firstWeek;
     private Integer debutPosition;
     private String lastWeek;
@@ -38,6 +42,14 @@ public class BillboardHot100OverviewRowDTO {
         this.songId = songId;
     }
 
+    public Integer getAlbumId() {
+        return albumId;
+    }
+
+    public void setAlbumId(Integer albumId) {
+        this.albumId = albumId;
+    }
+
     public Integer getResolvedArtistId() {
         return resolvedArtistId;
     }
@@ -60,6 +72,30 @@ public class BillboardHot100OverviewRowDTO {
 
     public void setArtistName(String artistName) {
         this.artistName = artistName;
+    }
+
+    public boolean isHasImage() {
+        return hasImage;
+    }
+
+    public void setHasImage(boolean hasImage) {
+        this.hasImage = hasImage;
+    }
+
+    public boolean isAlbumHasImage() {
+        return albumHasImage;
+    }
+
+    public void setAlbumHasImage(boolean albumHasImage) {
+        this.albumHasImage = albumHasImage;
+    }
+
+    public boolean isArtistHasImage() {
+        return artistHasImage;
+    }
+
+    public void setArtistHasImage(boolean artistHasImage) {
+        this.artistHasImage = artistHasImage;
     }
 
     public String getFirstWeek() {

@@ -67,8 +67,11 @@ public class TrlService {
             "SELECT t.id, t.days_on_countdown, t.song_title, t.artist_name, t.song_id, t.retired, " +
             "       cs.debut_date, dp.debut_position, " +
             "       cs.peak_position, pd.days_at_peak, pd.peak_date, cs.last_appearance_date, cs.actual_days, " +
-            "       a.id AS resolved_artist_id, " +
+            "       s.album_id, a.id AS resolved_artist_id, " +
             "       LOWER(g.name) AS gender_name, " +
+            "       CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END AS has_image, " +
+            "       CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END AS album_has_image, " +
+            "       CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image, " +
             "       COALESCE(ts.days_at_top1, 0)  AS days_at_top1, " +
             "       COALESCE(ts.days_at_top5, 0)  AS days_at_top5, " +
             "       COALESCE(ts.days_at_top10, 0) AS days_at_top10 " +
@@ -78,6 +81,7 @@ public class TrlService {
             "LEFT JOIN debut_pos dp    ON dp.debut_id  = t.id " +
             "LEFT JOIN tier_stats ts   ON ts.debut_id  = t.id " +
             "LEFT JOIN Song s ON s.id = t.song_id " +
+            "LEFT JOIN Album al ON al.id = s.album_id " +
             "LEFT JOIN Artist a ON a.id = s.artist_id " +
             "LEFT JOIN Gender g ON g.id = a.gender_id " +
             "ORDER BY cs.debut_date ASC, dp.debut_position ASC";
@@ -93,6 +97,8 @@ public class TrlService {
             d.setArtistName(rs.getString("artist_name"));
             int songId = rs.getInt("song_id");
             if (!rs.wasNull()) d.setSongId(songId);
+            int albumId = rs.getInt("album_id");
+            if (!rs.wasNull()) d.setAlbumId(albumId);
             d.setRetired(rs.getInt("retired") == 1);
             int peak = rs.getInt("peak_position");
             if (!rs.wasNull()) d.setPeakPosition(peak);
@@ -104,6 +110,9 @@ public class TrlService {
             if (!rs.wasNull()) d.setActualDays(actualDays);
             int artistId = rs.getInt("resolved_artist_id");
             if (!rs.wasNull()) d.setResolvedArtistId(artistId);
+            d.setHasImage(rs.getInt("has_image") == 1);
+            d.setAlbumHasImage(rs.getInt("album_has_image") == 1);
+            d.setArtistHasImage(rs.getInt("artist_has_image") == 1);
             // Map gender name to CSS class: female->pink (genderId 1), male->blue (genderId 2)
             // IMPORTANT: genderId 1 = female, genderId 2 = male (not intuitive but matches original schema)
             String genderName = rs.getString("gender_name");
@@ -139,8 +148,8 @@ public class TrlService {
             }
 
             AlbumOverviewAccumulator accumulator = grouped.computeIfAbsent(
-                albumSongInfo.albumId,
-                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId, albumSongInfo.albumName, debut.getResolvedArtistId(), debut.getArtistName(), debut.getGenderClass())
+                albumSongInfo.albumId(),
+                ignored -> new AlbumOverviewAccumulator(albumSongInfo.albumId(), albumSongInfo.albumName(), albumSongInfo.hasImage(), debut.getResolvedArtistId(), debut.getArtistName(), debut.isArtistHasImage(), debut.getGenderClass())
             );
             accumulator.accept(debut);
         }
@@ -183,7 +192,7 @@ public class TrlService {
 
             ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                 key,
-                ignored -> new ArtistOverviewAccumulator(matched, debut.getResolvedArtistId(), debut.getArtistName(), debut.getGenderClass())
+                ignored -> new ArtistOverviewAccumulator(matched, debut.getResolvedArtistId(), debut.getArtistName(), debut.isArtistHasImage(), debut.getGenderClass())
             );
             accumulator.accept(debut);
         }
@@ -209,7 +218,7 @@ public class TrlService {
                     TrlDebut featuredDebut = copyDebutForFeaturedArtist(debut, featuredArtistRef);
                     ArtistOverviewAccumulator accumulator = grouped.computeIfAbsent(
                         "artist:" + featuredArtistRef.artistId(),
-                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.genderClass())
+                        ignored -> new ArtistOverviewAccumulator(true, featuredArtistRef.artistId(), featuredArtistRef.artistName(), featuredArtistRef.hasImage(), featuredArtistRef.genderClass())
                     );
                     accumulator.acceptFeatured(featuredDebut);
                 }
@@ -683,7 +692,8 @@ public class TrlService {
         List<Integer> orderedSongIds = new ArrayList<>(songIds);
         String placeholders = String.join(",", java.util.Collections.nCopies(orderedSongIds.size(), "?"));
         String sql =
-            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name " +
+            "SELECT s.id AS song_id, al.id AS album_id, al.name AS album_name, " +
+            "       CASE WHEN al.image IS NOT NULL OR EXISTS (SELECT 1 FROM AlbumImage ai WHERE ai.album_id = al.id) THEN 1 ELSE 0 END AS has_image " +
             "FROM Song s " +
             "JOIN Album al ON al.id = s.album_id " +
             "WHERE s.id IN (" + placeholders + ")";
@@ -694,7 +704,8 @@ public class TrlService {
                 rs.getInt("song_id"),
                 new AlbumSongInfo(
                     rs.getInt("album_id"),
-                    rs.getString("album_name")
+                    rs.getString("album_name"),
+                    rs.getInt("has_image") == 1
                 )
             );
         }, orderedSongIds.toArray());
@@ -740,7 +751,8 @@ public class TrlService {
             SELECT sfa.song_id,
                    a.id AS artist_id,
                    a.name AS artist_name,
-                   LOWER(g.name) AS gender_name
+                   LOWER(g.name) AS gender_name,
+                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image
             FROM SongFeaturedArtist sfa
             INNER JOIN Artist a ON a.id = sfa.artist_id
             LEFT JOIN Gender g ON g.id = a.gender_id
@@ -753,7 +765,8 @@ public class TrlService {
             FeaturedArtistRef ref = new FeaturedArtistRef(
                 rs.getInt("artist_id"),
                 rs.getString("artist_name"),
-                mapGenderClass(rs.getString("gender_name"))
+                mapGenderClass(rs.getString("gender_name")),
+                rs.getInt("artist_has_image") == 1
             );
             refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
         }, songIds.toArray());
@@ -769,6 +782,7 @@ public class TrlService {
         target.setSongTitle(source.getSongTitle());
         target.setArtistName(featuredArtistRef.artistName());
         target.setSongId(source.getSongId());
+        target.setAlbumId(source.getAlbumId());
         target.setRetired(source.isRetired());
         target.setPeakPosition(source.getPeakPosition());
         target.setDaysAtPeak(source.getDaysAtPeak());
@@ -779,6 +793,9 @@ public class TrlService {
         target.setArtistPath(source.getArtistPath());
         target.setGenderClass(featuredArtistRef.genderClass());
         target.setResolvedArtistId(featuredArtistRef.artistId());
+        target.setHasImage(source.isHasImage());
+        target.setAlbumHasImage(source.isAlbumHasImage());
+        target.setArtistHasImage(featuredArtistRef.hasImage());
         target.setDaysAtTop1(source.getDaysAtTop1());
         target.setDaysAtTop5(source.getDaysAtTop5());
         target.setDaysAtTop10(source.getDaysAtTop10());
@@ -808,7 +825,7 @@ public class TrlService {
         return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
     }
 
-    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass) {
+    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {
     }
 
     private final class AlbumOverviewAccumulator {
@@ -817,12 +834,14 @@ public class TrlService {
         private final Set<Integer> numberOneSongIds = new HashSet<>();
         private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
-        private AlbumOverviewAccumulator(Integer albumId, String albumName, Integer resolvedArtistId, String artistName, String genderClass) {
+        private AlbumOverviewAccumulator(Integer albumId, String albumName, boolean hasImage, Integer resolvedArtistId, String artistName, boolean artistHasImage, String genderClass) {
             row = new ChartAlbumOverviewRowDTO();
             row.setAlbumId(albumId);
             row.setAlbumName(albumName);
+            row.setHasImage(hasImage);
             row.setResolvedArtistId(resolvedArtistId);
             row.setArtistName(artistName);
+            row.setArtistHasImage(artistHasImage);
             row.setGenderClass(genderClass);
         }
 
@@ -858,11 +877,12 @@ public class TrlService {
         private final Set<String> numberOneSongKeys = new HashSet<>();
         private final Map<String, String> numberOneSongTitles = new LinkedHashMap<>();
 
-        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, String genderClass) {
+        private ArtistOverviewAccumulator(boolean matched, Integer resolvedArtistId, String artistName, boolean hasImage, String genderClass) {
             row = new ChartArtistOverviewRowDTO();
             row.setMatched(matched);
             row.setResolvedArtistId(resolvedArtistId);
             row.setArtistName(artistName);
+            row.setHasImage(hasImage);
             row.setGenderClass(genderClass);
         }
 
@@ -969,6 +989,6 @@ public class TrlService {
         return jdbcTemplate.queryForList(sql, artistId);
     }
 
-    private record AlbumSongInfo(Integer albumId, String albumName) {
+    private record AlbumSongInfo(Integer albumId, String albumName, boolean hasImage) {
     }
 }

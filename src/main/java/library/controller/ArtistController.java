@@ -371,8 +371,10 @@ public class ArtistController {
         model.addAttribute("sortDir", sortdir);
         model.addAttribute("sortBy2", sortby2);
         model.addAttribute("sortDir2", sortdir2 != null ? sortdir2 : "asc");
+        model.addAttribute("sortDir2Param", sortby2 != null && !sortby2.isBlank() ? (sortdir2 != null ? sortdir2 : "asc") : null);
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
+        model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
         model.addAttribute("defaultSortBy", "plays");
         
         // Add filter options
@@ -655,6 +657,8 @@ public class ArtistController {
         // Add per-account breakdown string for tooltip
         model.addAttribute("artistPlaysByAccount", artistService.getPlaysByAccountForArtist(id));
         
+        model.addAttribute("firstListenedSong", null);
+
         // Add statistics for the artist
         if (includeMain && effectiveGroupIds != null) {
             // Main + Groups
@@ -665,6 +669,7 @@ public class ArtistController {
             // Main only
             model.addAttribute("totalListeningTime", artistService.getTotalListeningTimeForArtist(id));
             model.addAttribute("firstListenedDate", artistService.getFirstListenedDateForArtist(id));
+            model.addAttribute("firstListenedSong", artistService.getFirstListenedSongForArtist(id));
             model.addAttribute("lastListenedDate", artistService.getLastListenedDateForArtist(id));
         } else if (!includeMain && effectiveGroupIds != null) {
             // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation

@@ -946,7 +946,7 @@
 
         <div class="chart-header">
             <div class="chart-actions">
-                <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
+                <a href="#" onclick="openListPage(event)" class="btn btn-primary" style="text-decoration: none;">List</a>
                 <button th:if="${songChartFinalized and albumChartFinalized}" class="btn btn-warning" onclick="unfinalizeAll()">Edit Charts</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-success" 
@@ -1064,7 +1064,7 @@
                     </div>
                     
                     <!-- Finalized: table -->
-                    <div th:if="${songChartFinalized}" class="seasonal-table-container">
+                    <div th:if="${songChartFinalized}" id="extraListFinalized" class="seasonal-table-container">
                         <table class="seasonal-table extras-table">
                             <thead><tr>
                                 <th class="st-thumb"></th>
@@ -1077,7 +1077,7 @@
                                     <td colspan="4" style="text-align:center;color:#666;padding:20px;">No extras.</td>
                                 </tr>
                                 <tr th:each="entry : ${extraSongEntries}"
-                                    th:attr="data-gender=${entry.genderId}"
+                                    th:attr="data-id=${entry.songId},data-album=${entry.albumName},data-gender=${entry.genderId}"
                                     th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
                                     <td class="st-thumb">
                                         <img th:if="${entry.albumHasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="">
@@ -1213,8 +1213,8 @@
         const albumAlreadyFinalized = [[${albumChartFinalized}]];
         const displayName = [[${displayName}]];
         
-        // Open songs graphs view with season date range
-        function openGraphsPage(event) {
+        // Open the songs list table with the season date range
+        function openListPage(event) {
             event.preventDefault();
             const parts = periodKey.split('-');
             if (parts.length !== 2) return;
@@ -1249,7 +1249,7 @@
                 listenedDateFrom: dateFrom,
                 listenedDateTo: dateTo,
                 periodLabel: displayName,
-                view: 'list'
+                view: 'table'
             });
             window.open('/songs?' + params.toString(), '_blank');
         }
@@ -1967,13 +1967,16 @@
             }
             
             // Add extra songs at the end
-            const extraEntries = document.querySelectorAll('#extraList .chart-entry');
+            let extraEntries = document.querySelectorAll('#extraList .chart-entry');
+            if (extraEntries.length === 0) {
+                extraEntries = document.querySelectorAll('#extraListFinalized tbody tr[data-id]');
+            }
             extraEntries.forEach(entry => {
                 const songId = entry.getAttribute('data-id');
                 if (!songId) return;
                 
-                const nameEl = entry.querySelector('.entry-name');
-                const artistEl = entry.querySelector('.entry-artist');
+                const nameEl = entry.querySelector('.entry-name') || entry.querySelector('td:nth-child(2)');
+                const artistEl = entry.querySelector('.entry-artist') || entry.querySelector('td:nth-child(3)');
                 const albumName = entry.getAttribute('data-album') || '';
                 
                 if (nameEl && artistEl) {

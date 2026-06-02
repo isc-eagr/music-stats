@@ -380,6 +380,11 @@
             font-weight: 800;
             letter-spacing: 0.08em;
         }
+        .overview-artist-image {
+            width: 40px;
+            height: 60px;
+            border-radius: 10px;
+        }
         .overview-table th.center,
         .overview-table td.center {
             text-align: center;
@@ -853,11 +858,11 @@
                             th:attr="data-song-id=${entry.songId},data-top1=${entry.spanAtTop1},data-top5=${entry.spanAtTop5},data-top10=${entry.spanAtTop10},data-song-title=${entry.songTitle},data-artist-name=${entry.artistName},data-album-name=${entry.albumName}">
                                 <td class="overview-image-cell">
                                     <div th:if="${entry.hasImage and entry.albumHasImage}" class="hover-image-container">
-                                        <img th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="album-image-default overview-item-image">
-                                        <img th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" class="song-image-hover overview-item-image">
+                                        <img th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'song', ${entry.songId})|" class="album-image-default overview-item-image clickable-image">
+                                        <img th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'song', ${entry.songId})|" class="song-image-hover overview-item-image clickable-image">
                                     </div>
-                                    <img th:if="${entry.hasImage and !entry.albumHasImage}" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" class="overview-item-image">
-                                    <img th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="overview-item-image">
+                                    <img th:if="${entry.hasImage and !entry.albumHasImage}" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'song', ${entry.songId})|" class="overview-item-image clickable-image">
+                                    <img th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'album', ${entry.albumId})|" class="overview-item-image clickable-image">
                                     <div th:if="${!entry.hasImage and !entry.albumHasImage}" class="overview-item-placeholder">SONG</div>
                                 </td>
                                 <td class="center" th:if="${periodType == 'weekly'}">
@@ -955,7 +960,7 @@
                     <tbody id="albumOverviewBody">
                         <tr class="overview-filter-row" th:each="entry : ${albumRows}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
                             <td class="overview-image-cell">
-                                <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="overview-item-image">
+                                <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'album', ${entry.albumId})|" class="overview-item-image clickable-image">
                                 <div th:unless="${entry.hasImage}" class="overview-item-placeholder">ALB</div>
                             </td>
                             <td>
@@ -1048,14 +1053,14 @@
                             th:with="songPeakFilterName=${periodType == 'weekly' ? 'weeklyChartPeak' : (periodType == 'seasonal' ? 'seasonalChartPeak' : 'yearlyChartPeak')}, albumPeakFilterName=${songPeakFilterName}, songChartedPeakValue=${periodType == 'weekly' ? 20 : (periodType == 'seasonal' ? 35 : 30)}, albumChartedPeakValue=${periodType == 'weekly' ? 10 : (periodType == 'seasonal' ? 5 : 10)}"
                             th:attr="data-artist-id=${entry.resolvedArtistId}">
                             <td class="overview-image-cell">
-                                <img th:if="${entry.hasImage}" th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId})}" alt="" class="overview-item-image">
-                                <div th:unless="${entry.hasImage}" class="overview-item-placeholder">ART</div>
+                                <img th:if="${entry.hasImage}" th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'artist', ${entry.resolvedArtistId})|" class="overview-item-image overview-artist-image clickable-image">
+                                <div th:unless="${entry.hasImage}" class="overview-item-placeholder overview-artist-image">ART</div>
                             </td>
                             <td>
                                 <a class="overview-link-primary" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" th:text="${entry.artistName}">Artist</a>
                             </td>
                             <td class="center" th:attr="data-value=${entry.chartedSongsCount}">
-                                <a class="overview-metric-link" th:if="${entry.chartedSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.songsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=' + songChartedPeakValue}" th:text="${entry.chartedSongsCount}">0</a>
+                                <a class="overview-metric-link" th:if="${entry.chartedSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&perpage=' + pageSizeConfig.songsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=' + songChartedPeakValue}" th:text="${entry.chartedSongsCount}">0</a>
                                 <span th:unless="${entry.chartedSongsCount > 0}" th:text="${entry.chartedSongsCount}">0</span>
                             </td>
                             <td class="center" th:attr="data-value=${entry.totalChartSpan}" th:text="${entry.totalChartSpan}">0</td>
@@ -1064,14 +1069,14 @@
                                       th:classappend="${entry.numberOneSongsCount > 0 and entry.numberOneSongTitles != null and !entry.numberOneSongTitles.isEmpty()} ? ' tooltip-enabled' : ''"
                                       data-tooltip-title="Songs that reached #1:"
                                       data-tooltip-icon="🏆">
-                                    <a class="overview-metric-link" th:if="${entry.numberOneSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.songsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=1'}" th:text="${entry.numberOneSongsCount}">0</a>
+                                    <a class="overview-metric-link" th:if="${entry.numberOneSongsCount > 0}" th:href="${'/songs?sortby=plays&sortdir=desc&perpage=' + pageSizeConfig.songsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + songPeakFilterName + '=1'}" th:text="${entry.numberOneSongsCount}">0</a>
                                     <span th:unless="${entry.numberOneSongsCount > 0}" th:text="${entry.numberOneSongsCount}">0</span>
                                     <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneSongTitles}" th:text="${title}"></span>
                                 </span>
                             </td>
                             <td class="center artist-song-number-one-span-col" th:attr="data-value=${entry.totalSpanAtNumberOne}" th:text="${entry.totalSpanAtNumberOne}">0</td>
                             <td class="center" th:attr="data-value=${entry.chartedAlbumsCount}">
-                                <a class="overview-metric-link" th:if="${entry.chartedAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.albumsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=' + albumChartedPeakValue}" th:text="${entry.chartedAlbumsCount}">0</a>
+                                <a class="overview-metric-link" th:if="${entry.chartedAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&perpage=' + pageSizeConfig.albumsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=' + albumChartedPeakValue}" th:text="${entry.chartedAlbumsCount}">0</a>
                                 <span th:unless="${entry.chartedAlbumsCount > 0}" th:text="${entry.chartedAlbumsCount}">0</span>
                             </td>
                             <td class="center" th:attr="data-value=${entry.albumTotalChartSpan}" th:text="${entry.albumTotalChartSpan}">0</td>
@@ -1080,7 +1085,7 @@
                                       th:classappend="${entry.numberOneAlbumsCount > 0 and entry.numberOneAlbumTitles != null and !entry.numberOneAlbumTitles.isEmpty()} ? ' tooltip-enabled' : ''"
                                       data-tooltip-title="Albums that reached #1:"
                                       data-tooltip-icon="🏆">
-                                    <a class="overview-metric-link" th:if="${entry.numberOneAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&sortdir2=asc&sortdir3=asc&perpage=' + pageSizeConfig.albumsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=1'}" th:text="${entry.numberOneAlbumsCount}">0</a>
+                                    <a class="overview-metric-link" th:if="${entry.numberOneAlbumsCount > 0}" th:href="${'/albums?sortby=plays&sortdir=desc&perpage=' + pageSizeConfig.albumsListPageSize + '&artist=' + entry.resolvedArtistId + '&' + albumPeakFilterName + '=1'}" th:text="${entry.numberOneAlbumsCount}">0</a>
                                     <span th:unless="${entry.numberOneAlbumsCount > 0}" th:text="${entry.numberOneAlbumsCount}">0</span>
                                     <span class="number-one-tooltip-item-source" hidden th:each="title : ${entry.numberOneAlbumTitles}" th:text="${title}"></span>
                                 </span>
@@ -1097,6 +1102,7 @@
     </div>
 
     <th:block th:if="${overviewTab == 'song'}" th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
 
     <script th:inline="javascript">
         const overviewTab = /*[[${overviewTab}]]*/ 'song';
@@ -1160,8 +1166,6 @@
             const params = new URLSearchParams({
                 sortby: 'plays',
                 sortdir: 'desc',
-                sortdir2: 'asc',
-                sortdir3: 'asc',
                 perpage: '100',
                 artist: String(artistId),
                 [getSongOverviewPeakParamName()]: String(peakValue)
@@ -1367,32 +1371,42 @@
             return dayMatch ? dayMatch[1] : afterDash;
         }
 
+        function openChartOverviewImageModal(event, type, id) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (id == null || id === '' || typeof openImageModal !== 'function') {
+                return;
+            }
+            openImageModal('/' + type + 's/' + id + '/image');
+        }
+
         function buildSongOverviewImageHtml(entry) {
             if (entry.hasImage && entry.albumHasImage && entry.albumId != null) {
                 return `<div class="hover-image-container">`
-                    + `<img src="/albums/${entry.albumId}/image" alt="" class="album-image-default overview-item-image">`
-                    + `<img src="/songs/${entry.songId}/image" alt="" class="song-image-hover overview-item-image">`
+                    + `<img src="/albums/${entry.albumId}/image" alt="" onclick="openChartOverviewImageModal(event, 'song', ${entry.songId})" class="album-image-default overview-item-image clickable-image">`
+                    + `<img src="/songs/${entry.songId}/image" alt="" onclick="openChartOverviewImageModal(event, 'song', ${entry.songId})" class="song-image-hover overview-item-image clickable-image">`
                     + `</div>`;
             }
             if (entry.hasImage) {
-                return `<img src="/songs/${entry.songId}/image" alt="" class="overview-item-image">`;
+                return `<img src="/songs/${entry.songId}/image" alt="" onclick="openChartOverviewImageModal(event, 'song', ${entry.songId})" class="overview-item-image clickable-image">`;
             }
             if (entry.albumHasImage && entry.albumId != null) {
-                return `<img src="/albums/${entry.albumId}/image" alt="" class="overview-item-image">`;
+                return `<img src="/albums/${entry.albumId}/image" alt="" onclick="openChartOverviewImageModal(event, 'album', ${entry.albumId})" class="overview-item-image clickable-image">`;
             }
             return `<div class="overview-item-placeholder">SONG</div>`;
         }
 
         function buildAlbumOverviewImageHtml(entry) {
             return entry.hasImage
-                ? `<img src="/albums/${entry.albumId}/image" alt="" class="overview-item-image">`
+                ? `<img src="/albums/${entry.albumId}/image" alt="" onclick="openChartOverviewImageModal(event, 'album', ${entry.albumId})" class="overview-item-image clickable-image">`
                 : `<div class="overview-item-placeholder">ALB</div>`;
         }
 
         function buildArtistOverviewImageHtml(entry) {
             return entry.hasImage
-                ? `<img src="/artists/${entry.resolvedArtistId}/image" alt="" class="overview-item-image">`
-                : `<div class="overview-item-placeholder">ART</div>`;
+                ? `<img src="/artists/${entry.resolvedArtistId}/image" alt="" onclick="openChartOverviewImageModal(event, 'artist', ${entry.resolvedArtistId})" class="overview-item-image overview-artist-image clickable-image">`
+                : `<div class="overview-item-placeholder overview-artist-image">ART</div>`;
         }
 
         function renderWeeklySongRows(entries) {

@@ -143,6 +143,44 @@
         .pc-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
         .pc-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
         .pc-table td.right, .pc-table th.right { text-align: right; }
+        .pc-image-col { width: 58px; }
+        .pc-overview-image-cell { width: 58px; min-width: 58px; }
+        .pc-overview-thumb {
+            display: inline-block;
+            width: 42px;
+            aspect-ratio: 1 / 1;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #242424;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+        .pc-overview-thumb.artist { width: 36px; aspect-ratio: 2 / 3; }
+        .pc-overview-thumb.placeholder { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
+        .pc-overview-song-image-stack {
+            position: relative;
+            width: 42px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #242424;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .pc-overview-song-image-stack .pc-overview-thumb {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            transition: opacity 0.18s ease;
+        }
+        .pc-overview-song-image-stack .song-image-hover { opacity: 0; }
+        .pc-overview-song-image-stack:hover .album-image-default { opacity: 0; }
+        .pc-overview-song-image-stack:hover .song-image-hover { opacity: 1; }
         .pc-song-link { color: #e0e0e0; text-decoration: none; font-weight: 600; }
         .pc-song-link:hover { color: var(--accent); text-decoration: underline; }
         .pc-artist-link { color: #aaa; text-decoration: none; font-size: 0.85rem; }
@@ -369,6 +407,7 @@
             <table class="pc-table" id="pcTable">
                 <thead>
                     <tr>
+                        <th class="center pc-image-col" data-no-sort></th>
                         <th data-no-sort></th>
                         <th class="center" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days</a></th>
                         <th class="center" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Peak</a></th>
@@ -394,6 +433,33 @@
                         th:data-pc-idx="${iterStat.index}"
                         onclick="togglePcRow(this)"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center pc-overview-image-cell">
+                            <div th:if="${entry.songId != null and entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="pc-overview-song-image-stack">
+                                <img th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                     alt=""
+                                     loading="lazy"
+                                     th:onclick="|openPcOverviewImageModal(event, 'song', ${entry.songId})|"
+                                     class="pc-overview-thumb album-image-default clickable-image">
+                                <img th:src="@{/songs/{id}/image(id=${entry.songId}, thumbnail=true)}"
+                                     alt=""
+                                     loading="lazy"
+                                     th:onclick="|openPcOverviewImageModal(event, 'song', ${entry.songId})|"
+                                     class="pc-overview-thumb song-image-hover clickable-image">
+                            </div>
+                            <img th:if="${entry.songId != null and entry.hasImage and (!entry.albumHasImage or entry.albumId == null)}"
+                                 th:src="@{/songs/{id}/image(id=${entry.songId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openPcOverviewImageModal(event, 'song', ${entry.songId})|"
+                                 class="pc-overview-thumb song clickable-image">
+                            <img th:if="${(entry.songId == null or !entry.hasImage) and entry.albumHasImage and entry.albumId != null}"
+                                 th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openPcOverviewImageModal(event, 'album', ${entry.albumId})|"
+                                 class="pc-overview-thumb album clickable-image">
+                            <span th:if="${(entry.songId == null or !entry.hasImage) and (!entry.albumHasImage or entry.albumId == null)}" class="pc-overview-thumb placeholder song"></span>
+                        </td>
                         <td class="center"><button class="pc-expand-btn" onclick="event.stopPropagation(); togglePcExpand(this)" title="Show chart tier stats">+</button></td>
                         <td class="center" th:attr="data-value=${entry.daysOnCountdown}" th:text="${entry.daysOnCountdown}">0</td>
                         <td class="center" th:attr="data-value=${entry.peakPosition}" th:text="${entry.peakPosition}">0</td>
@@ -424,7 +490,7 @@
                             <button th:if="${entry.songId == null}" class="pc-match-btn" onclick="openPcMatchModal(event, this)">Library</button>
                         </td>
                     </tr>                      <tr class="detail-row pc-detail-row">
-                          <td colspan="11" class="pc-detail-cell">
+                          <td colspan="12" class="pc-detail-cell">
                               <div class="pc-run-stats">
                                   <div class="pc-run-stat"><div class="pc-run-stat-label">#1</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop1 != null ? entry.daysAtTop1 : 0}">0</div></div>
                                   <div class="pc-run-stat"><div class="pc-run-stat-label">Top 5</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop5 != null ? entry.daysAtTop5 : 0}">0</div></div>
@@ -434,7 +500,7 @@
                           </td>
                       </tr>                    </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="11" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
+                        <td colspan="12" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -447,6 +513,7 @@
             <table class="pc-table" id="pcAlbumOverviewTable">
                 <thead>
                     <tr>
+                        <th class="center pc-image-col" data-no-sort></th>
                         <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th th:classappend="${selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Album Name</a></th>
                         <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
@@ -463,6 +530,15 @@
                         th:data-artist-name="${entry.artistName}"
                         th:data-album-name="${entry.albumName}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center pc-overview-image-cell">
+                            <img th:if="${entry.albumId != null and entry.hasImage}"
+                                 th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openPcOverviewImageModal(event, 'album', ${entry.albumId})|"
+                                 class="pc-overview-thumb album clickable-image">
+                            <span th:unless="${entry.albumId != null and entry.hasImage}" class="pc-overview-thumb placeholder album"></span>
+                        </td>
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="pc-artist-link" th:text="${entry.artistName}">Artist</a>
                             <span th:if="${entry.resolvedArtistId == null}" class="pc-no-link-artist" th:text="${entry.artistName}">Artist</span>
@@ -496,7 +572,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumOverviewRows)}">
-                        <td colspan="9" class="pc-empty">No linked albums have charted on Vato's Cuntdown yet.</td>
+                        <td colspan="10" class="pc-empty">No linked albums have charted on Vato's Cuntdown yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -509,6 +585,7 @@
             <table class="pc-table" id="pcArtistOverviewTable">
                 <thead>
                     <tr>
+                        <th class="center pc-image-col" data-no-sort></th>
                         <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
                         <th class="right" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Total Days</a></th>
@@ -523,6 +600,15 @@
                     <tr th:each="entry : ${artistOverviewRows}"
                         th:data-artist-name="${entry.artistName}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center pc-overview-image-cell">
+                            <img th:if="${entry.resolvedArtistId != null and entry.hasImage}"
+                                 th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openPcOverviewImageModal(event, 'artist', ${entry.resolvedArtistId})|"
+                                 class="pc-overview-thumb artist clickable-image">
+                            <span th:unless="${entry.resolvedArtistId != null and entry.hasImage}" class="pc-overview-thumb placeholder artist"></span>
+                        </td>
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}" th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}" class="pc-artist-link" th:text="${entry.artistName}">Artist</a>
                             <span th:if="${entry.resolvedArtistId == null}" class="pc-no-link-artist" th:text="${entry.artistName}">Artist</span>
@@ -552,7 +638,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistOverviewRows)}">
-                        <td colspan="8" class="pc-empty">No artist overview rows found yet.</td>
+                        <td colspan="9" class="pc-empty">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -582,6 +668,8 @@
             </div>
         </div>
     </div>
+
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
 
     <script>
         let pcModalRow = null;
@@ -1076,6 +1164,42 @@
             }
         });
 
+        function openPcOverviewImageModal(event, type, id) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (id == null || id === '' || typeof openImageModal !== 'function') {
+                return;
+            }
+            openImageModal('/' + type + 's/' + id + '/image');
+        }
+
+        function renderPcImageCell(type, id, hasImage) {
+            const safeType = escapePcHtml(type || '');
+            if (id != null && hasImage) {
+                return '<td class="center pc-overview-image-cell"><img src="/' + safeType + 's/' + id + '/image?thumbnail=true" alt="" loading="lazy" onclick="openPcOverviewImageModal(event, \'' + safeType + '\', ' + id + ')" class="pc-overview-thumb ' + safeType + ' clickable-image"></td>';
+            }
+            return '<td class="center pc-overview-image-cell"><span class="pc-overview-thumb placeholder ' + safeType + '"></span></td>';
+        }
+
+        function renderPcSongImageCell(entry) {
+            if (entry.songId != null && entry.hasImage && entry.albumHasImage && entry.albumId != null) {
+                return '<td class="center pc-overview-image-cell">'
+                    + '<div class="pc-overview-song-image-stack">'
+                    + '<img src="/albums/' + entry.albumId + '/image?thumbnail=true" alt="" loading="lazy" onclick="openPcOverviewImageModal(event, \'song\', ' + entry.songId + ')" class="pc-overview-thumb album-image-default clickable-image">'
+                    + '<img src="/songs/' + entry.songId + '/image?thumbnail=true" alt="" loading="lazy" onclick="openPcOverviewImageModal(event, \'song\', ' + entry.songId + ')" class="pc-overview-thumb song-image-hover clickable-image">'
+                    + '</div>'
+                    + '</td>';
+            }
+            if (entry.songId != null && entry.hasImage && (!entry.albumHasImage || entry.albumId == null)) {
+                return renderPcImageCell('song', entry.songId, true);
+            }
+            if ((entry.songId == null || !entry.hasImage) && entry.albumHasImage && entry.albumId != null) {
+                return renderPcImageCell('album', entry.albumId, true);
+            }
+            return '<td class="center pc-overview-image-cell"><span class="pc-overview-thumb placeholder song"></span></td>';
+        }
+
         function renderPcDateCell(dateValue) {
             if (!dateValue) {
                 return '<span style="color:#666;">-</span>';
@@ -1106,6 +1230,7 @@
                     + ' data-pc-idx="' + idx + '"'
                     + ' onclick="togglePcRow(this)"'
                     + ' class="' + genderClass.trim() + '">'
+                    + renderPcSongImageCell(entry)
                     + '<td class="center"><button class="pc-expand-btn" onclick="event.stopPropagation(); togglePcExpand(this)" title="Show chart tier stats">+</button></td>'
                     + '<td class="center" data-value="' + entry.daysOnCountdown + '">' + entry.daysOnCountdown + '</td>'
                     + '<td class="center" data-value="' + entry.peakPosition + '">' + entry.peakPosition + '</td>'
@@ -1119,7 +1244,7 @@
                     + '<td>' + libraryButton + '</td>'
                     + '</tr>'
                     + '<tr class="detail-row pc-detail-row">'
-                    + '<td colspan="11" class="pc-detail-cell">'
+                    + '<td colspan="12" class="pc-detail-cell">'
                     + '<div class="pc-run-stats">'
                     + '<div class="pc-run-stat"><div class="pc-run-stat-label">#1</div><div class="pc-run-stat-value">' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '</div></div>'
                     + '<div class="pc-run-stat"><div class="pc-run-stat-label">Top 5</div><div class="pc-run-stat-value">' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '</div></div>'
@@ -1143,6 +1268,7 @@
                 const numberOnesCell = buildPcNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '" data-album-name="' + escapePcHtml(entry.albumName) + '"' + genderClass + '>'
+                    + renderPcImageCell('album', entry.albumId, entry.hasImage)
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td data-value="' + escapePcHtml(entry.albumName) + '">' + albumCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
@@ -1165,6 +1291,7 @@
                 const numberOneSpanCell = buildPcNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '"' + genderClass + '>'
+                    + renderPcImageCell('artist', entry.resolvedArtistId, entry.hasImage)
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'

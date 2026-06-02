@@ -83,10 +83,14 @@ function clearAllFilters() {
     // Restore sort/pagination preferences
     if (sortBy) url.searchParams.set('sortby', sortBy);
     if (sortDir) url.searchParams.set('sortdir', sortDir);
-    if (sortBy2) url.searchParams.set('sortby2', sortBy2);
-    if (sortDir2) url.searchParams.set('sortdir2', sortDir2);
-    if (sortBy3) url.searchParams.set('sortby3', sortBy3);
-    if (sortDir3) url.searchParams.set('sortdir3', sortDir3);
+    if (sortBy2) {
+        url.searchParams.set('sortby2', sortBy2);
+        if (sortDir2) url.searchParams.set('sortdir2', sortDir2);
+    }
+    if (sortBy3) {
+        url.searchParams.set('sortby3', sortBy3);
+        if (sortDir3) url.searchParams.set('sortdir3', sortDir3);
+    }
     if (perPage) url.searchParams.set('perpage', perPage);
     url.searchParams.set('page', '0');
     
@@ -476,9 +480,9 @@ function buildSortOnlyUrl(basePath) {
         const dirValue = currentUrl.searchParams.get(dirParam);
         if (sortValue) {
             url.searchParams.set(sortParam, sortValue);
-        }
-        if (dirValue) {
-            url.searchParams.set(dirParam, dirValue);
+            if (dirValue) {
+                url.searchParams.set(dirParam, dirValue);
+            }
         }
     });
 
@@ -530,6 +534,11 @@ function buildCleanFilterParams(form) {
             return;
         }
 
+        if ((name === 'sortdir2' && !nameToValues.has('sortby2')) ||
+                (name === 'sortdir3' && !nameToValues.has('sortby3'))) {
+            return;
+        }
+
         params.append(name, value);
     });
 
@@ -556,7 +565,7 @@ function preserveListStateOnFilterSubmit(form) {
             const sortSelect = document.getElementById(getSortSelectId(level));
 
             sortInput.value = sortSelect ? sortSelect.value : (url.searchParams.get(sortParam) || sortInput.value || '');
-            dirInput.value = url.searchParams.get(dirParam) || dirInput.value || '';
+            dirInput.value = sortInput.value ? (url.searchParams.get(dirParam) || dirInput.value || 'asc') : '';
         });
         perPageInput.value = pageSizeInput ? pageSizeInput.value : (url.searchParams.get('perpage') || perPageInput.value || '');
         pageInput.value = '0';

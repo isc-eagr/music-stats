@@ -834,7 +834,7 @@
 
         <div class="chart-header">
             <div class="chart-actions">
-                <a href="#" onclick="openGraphsPage(event)" class="btn btn-primary" style="text-decoration: none;">📊 View Graphs</a>
+                <a href="#" onclick="openListPage(event)" class="btn btn-primary" style="text-decoration: none;">List</a>
                 <button th:if="${songChartFinalized and albumChartFinalized}" class="btn btn-warning" onclick="unfinalizeAll()">Edit Charts</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-primary" onclick="saveAll()" id="saveBtn">💾 Save Draft</button>
                 <button th:unless="${songChartFinalized and albumChartFinalized}" class="btn btn-success" 
@@ -1028,7 +1028,7 @@
         const displayName = [[${displayName}]];
         
         // Open the songs list with the year date range
-        function openGraphsPage(event) {
+        function openListPage(event) {
             event.preventDefault();
             const year = periodKey;
             const dateFrom = year + '-01-01';
@@ -1037,7 +1037,7 @@
                 listenedDateFrom: dateFrom,
                 listenedDateTo: dateTo,
                 periodLabel: displayName,
-                view: 'list'
+                view: 'table'
             });
             window.open('/songs?' + params.toString(), '_blank');
         }

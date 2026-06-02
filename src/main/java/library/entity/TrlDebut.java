@@ -58,6 +58,18 @@ public class TrlDebut {
     private String genderClass; // "gender-male" or "gender-female" or null
 
     @Transient
+    private boolean hasImage;
+
+    @Transient
+    private Integer albumId;
+
+    @Transient
+    private boolean albumHasImage;
+
+    @Transient
+    private boolean artistHasImage;
+
+    @Transient
     private Integer resolvedArtistId; // artist_id from Song join
 
     @Transient
@@ -115,6 +127,18 @@ public class TrlDebut {
 
     public String getGenderClass() { return genderClass; }
     public void setGenderClass(String genderClass) { this.genderClass = genderClass; }
+
+    public boolean isHasImage() { return hasImage; }
+    public void setHasImage(boolean hasImage) { this.hasImage = hasImage; }
+
+    public Integer getAlbumId() { return albumId; }
+    public void setAlbumId(Integer albumId) { this.albumId = albumId; }
+
+    public boolean isAlbumHasImage() { return albumHasImage; }
+    public void setAlbumHasImage(boolean albumHasImage) { this.albumHasImage = albumHasImage; }
+
+    public boolean isArtistHasImage() { return artistHasImage; }
+    public void setArtistHasImage(boolean artistHasImage) { this.artistHasImage = artistHasImage; }
 
     public String getLastAppearanceDate() { return lastAppearanceDate; }
     public void setLastAppearanceDate(String lastAppearanceDate) { this.lastAppearanceDate = lastAppearanceDate; }

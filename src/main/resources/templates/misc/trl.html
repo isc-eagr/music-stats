@@ -223,6 +223,44 @@
         }
         .trl-table td.right,
         .trl-table th.right { text-align: right; }
+        .trl-image-col { width: 58px; }
+        .trl-overview-image-cell { width: 58px; min-width: 58px; }
+        .trl-overview-thumb {
+            display: inline-block;
+            width: 42px;
+            aspect-ratio: 1 / 1;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #242424;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+        .trl-overview-thumb.artist { width: 36px; aspect-ratio: 2 / 3; }
+        .trl-overview-thumb.placeholder { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
+        .trl-overview-song-image-stack {
+            position: relative;
+            width: 42px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #242424;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .trl-overview-song-image-stack .trl-overview-thumb {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            transition: opacity 0.18s ease;
+        }
+        .trl-overview-song-image-stack .song-image-hover { opacity: 0; }
+        .trl-overview-song-image-stack:hover .album-image-default { opacity: 0; }
+        .trl-overview-song-image-stack:hover .song-image-hover { opacity: 1; }
 
         /* Position badge — uniform */
         .pos-badge {
@@ -601,6 +639,7 @@
             <table class="trl-table" id="trlTable">
                 <thead>
                     <tr>
+                        <th class="center trl-image-col" data-no-sort></th>
                         <th data-no-sort></th>
                         <th th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days</a></th>
                             <th class="center" title="Distinct days found in chart entry data" th:classappend="${selectedSort == 'actualDays'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='song',page=1,size=${pageSize},sort='actualDays',dir=${selectedSort == 'actualDays' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Actual Days</a></th>
@@ -627,6 +666,33 @@
                         th:data-top5="${d.daysAtTop5 != null ? d.daysAtTop5 : 0}"
                         th:data-top10="${d.daysAtTop10 != null ? d.daysAtTop10 : 0}"
                         th:classappend="${(d.genderClass != null ? d.genderClass : '') + (d.retired ? ' trl-retired' : '')}">
+                        <td class="center trl-overview-image-cell">
+                            <div th:if="${d.songId != null and d.hasImage and d.albumHasImage and d.albumId != null}" class="trl-overview-song-image-stack">
+                                <img th:src="@{/albums/{id}/image(id=${d.albumId}, thumbnail=true)}"
+                                     alt=""
+                                     loading="lazy"
+                                     th:onclick="|openTrlOverviewImageModal(event, 'song', ${d.songId})|"
+                                     class="trl-overview-thumb album-image-default clickable-image">
+                                <img th:src="@{/songs/{id}/image(id=${d.songId}, thumbnail=true)}"
+                                     alt=""
+                                     loading="lazy"
+                                     th:onclick="|openTrlOverviewImageModal(event, 'song', ${d.songId})|"
+                                     class="trl-overview-thumb song-image-hover clickable-image">
+                            </div>
+                            <img th:if="${d.songId != null and d.hasImage and (!d.albumHasImage or d.albumId == null)}"
+                                 th:src="@{/songs/{id}/image(id=${d.songId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openTrlOverviewImageModal(event, 'song', ${d.songId})|"
+                                 class="trl-overview-thumb song clickable-image">
+                            <img th:if="${(d.songId == null or !d.hasImage) and d.albumHasImage and d.albumId != null}"
+                                 th:src="@{/albums/{id}/image(id=${d.albumId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openTrlOverviewImageModal(event, 'album', ${d.albumId})|"
+                                 class="trl-overview-thumb album clickable-image">
+                            <span th:if="${(d.songId == null or !d.hasImage) and (!d.albumHasImage or d.albumId == null)}" class="trl-overview-thumb placeholder song"></span>
+                        </td>
                         <!-- Expand button -->
                         <td class="center" th:if="${d.actualDays != null}">
                             <button class="trl-expand-btn" onclick="toggleTrlExpand(this)" title="Show chart tier stats">+</button>
@@ -720,7 +786,7 @@
                         </td>
                     </tr>
                     <tr class="detail-row trl-detail-row">
-                        <td colspan="12" class="trl-detail-cell">
+                        <td colspan="13" class="trl-detail-cell">
                             <div class="trl-run-stats">
                                 <div class="trl-run-stat"><div class="trl-run-stat-label">#1</div><div class="trl-run-stat-value" th:text="${d.daysAtTop1 != null ? d.daysAtTop1 : 0}">0</div></div>
                                 <div class="trl-run-stat"><div class="trl-run-stat-label">Top 5</div><div class="trl-run-stat-value" th:text="${d.daysAtTop5 != null ? d.daysAtTop5 : 0}">0</div></div>
@@ -731,7 +797,7 @@
                     </tr>
                     </th:block>
                     <tr th:if="${#lists.isEmpty(debuts)}">
-                            <td colspan="12" style="text-align:center; color:#666; padding:40px;">
+                            <td colspan="13" style="text-align:center; color:#666; padding:40px;">
                             No TRL data found. Run the import script first.
                         </td>
                     </tr>
@@ -746,6 +812,7 @@
             <table class="trl-table" id="trlAlbumOverviewTable">
                 <thead>
                     <tr>
+                        <th class="center trl-image-col" data-no-sort></th>
                         <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th th:classappend="${selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Album Name</a></th>
                         <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='album',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
@@ -760,6 +827,15 @@
                 <tbody id="trlAlbumOverviewBody">
                     <tr th:each="entry : ${albumOverviewRows}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center trl-overview-image-cell">
+                            <img th:if="${entry.albumId != null and entry.hasImage}"
+                                 th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openTrlOverviewImageModal(event, 'album', ${entry.albumId})|"
+                                 class="trl-overview-thumb album clickable-image">
+                            <span th:unless="${entry.albumId != null and entry.hasImage}" class="trl-overview-thumb placeholder album"></span>
+                        </td>
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}"
                                th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}"
@@ -809,7 +885,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumOverviewRows)}">
-                        <td colspan="9" style="text-align:center; color:#666; padding:40px;">No linked albums have charted on TRL yet.</td>
+                        <td colspan="10" style="text-align:center; color:#666; padding:40px;">No linked albums have charted on TRL yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -822,6 +898,7 @@
             <table class="trl-table" id="trlArtistOverviewTable">
                 <thead>
                     <tr>
+                        <th class="center trl-image-col" data-no-sort></th>
                         <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
                         <th class="right" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="trl-sort-link" th:href="@{/misc/trl(overviewTab='artist',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Total Days</a></th>
@@ -835,6 +912,15 @@
                 <tbody id="trlArtistOverviewBody">
                     <tr th:each="entry : ${artistOverviewRows}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="center trl-overview-image-cell">
+                            <img th:if="${entry.resolvedArtistId != null and entry.hasImage}"
+                                 th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId}, thumbnail=true)}"
+                                 alt=""
+                                 loading="lazy"
+                                 th:onclick="|openTrlOverviewImageModal(event, 'artist', ${entry.resolvedArtistId})|"
+                                 class="trl-overview-thumb artist clickable-image">
+                            <span th:unless="${entry.resolvedArtistId != null and entry.hasImage}" class="trl-overview-thumb placeholder artist"></span>
+                        </td>
                         <td th:attr="data-value=${entry.artistName}">
                             <a th:if="${entry.resolvedArtistId != null}"
                                th:href="@{/artists/{id}(id=${entry.resolvedArtistId})}"
@@ -875,7 +961,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistOverviewRows)}">
-                        <td colspan="8" style="text-align:center; color:#666; padding:40px;">No artist overview rows found yet.</td>
+                        <td colspan="9" style="text-align:center; color:#666; padding:40px;">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -933,6 +1019,8 @@
             </div>
         </div>
     </div>
+
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
 
     <script>
         function getTrlOverviewBody(overviewTab) {
@@ -1056,6 +1144,42 @@
             }
         });
 
+        function openTrlOverviewImageModal(event, type, id) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (id == null || id === '' || typeof openImageModal !== 'function') {
+                return;
+            }
+            openImageModal('/' + type + 's/' + id + '/image');
+        }
+
+        function renderTrlImageCell(type, id, hasImage) {
+            var safeType = escapeTrlHtml(type || '');
+            if (id != null && hasImage) {
+                return '<td class="center trl-overview-image-cell"><img src="/' + safeType + 's/' + id + '/image?thumbnail=true" alt="" loading="lazy" onclick="openTrlOverviewImageModal(event, \'' + safeType + '\', ' + id + ')" class="trl-overview-thumb ' + safeType + ' clickable-image"></td>';
+            }
+            return '<td class="center trl-overview-image-cell"><span class="trl-overview-thumb placeholder ' + safeType + '"></span></td>';
+        }
+
+        function renderTrlSongImageCell(entry) {
+            if (entry.songId != null && entry.hasImage && entry.albumHasImage && entry.albumId != null) {
+                return '<td class="center trl-overview-image-cell">'
+                    + '<div class="trl-overview-song-image-stack">'
+                    + '<img src="/albums/' + entry.albumId + '/image?thumbnail=true" alt="" loading="lazy" onclick="openTrlOverviewImageModal(event, \'song\', ' + entry.songId + ')" class="trl-overview-thumb album-image-default clickable-image">'
+                    + '<img src="/songs/' + entry.songId + '/image?thumbnail=true" alt="" loading="lazy" onclick="openTrlOverviewImageModal(event, \'song\', ' + entry.songId + ')" class="trl-overview-thumb song-image-hover clickable-image">'
+                    + '</div>'
+                    + '</td>';
+            }
+            if (entry.songId != null && entry.hasImage && (!entry.albumHasImage || entry.albumId == null)) {
+                return renderTrlImageCell('song', entry.songId, true);
+            }
+            if ((entry.songId == null || !entry.hasImage) && entry.albumHasImage && entry.albumId != null) {
+                return renderTrlImageCell('album', entry.albumId, true);
+            }
+            return '<td class="center trl-overview-image-cell"><span class="trl-overview-thumb placeholder song"></span></td>';
+        }
+
         function renderTrlDateCell(dateValue) {
             if (dateValue && dateValue !== '-') {
                 return '<a class="trl-date-link" href="/misc/trl/recaps?date=' + encodeURIComponent(dateValue) + '">' + escapeTrlHtml(dateValue) + '</a>';
@@ -1090,6 +1214,7 @@
                     + ' data-top5="' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '"'
                     + ' data-top10="' + (entry.daysAtTop10 != null ? entry.daysAtTop10 : 0) + '"'
                     + ' class="' + (genderClass + retiredClass).trim() + '">'
+                    + renderTrlSongImageCell(entry)
                     + '<td class="center">' + (canExpand ? '<button class="trl-expand-btn" onclick="toggleTrlExpand(this)" title="Show chart tier stats">+</button>' : '') + '</td>'
                     + '<td data-value="' + (entry.daysOnCountdown != null ? entry.daysOnCountdown : 0) + '">' + (entry.daysOnCountdown != null ? entry.daysOnCountdown : 0) + '</td>'
                     + '<td class="center" data-value="' + (entry.actualDays != null ? entry.actualDays : 0) + '">' + (entry.actualDays != null ? '<span' + ((entry.daysOnCountdown != null && entry.actualDays !== entry.daysOnCountdown) ? ' style="color:#ff9800"' : '') + '>' + entry.actualDays + '</span>' : '<span style="color:#555">-</span>') + '</td>'
@@ -1104,7 +1229,7 @@
                     + '<td>' + matchButton + chartButton + '</td>'
                     + '</tr>'
                     + '<tr class="detail-row trl-detail-row">'
-                    + '<td colspan="12" class="trl-detail-cell">'
+                    + '<td colspan="13" class="trl-detail-cell">'
                     + '<div class="trl-run-stats">'
                     + '<div class="trl-run-stat"><div class="trl-run-stat-label">#1</div><div class="trl-run-stat-value">' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '</div></div>'
                     + '<div class="trl-run-stat"><div class="trl-run-stat-label">Top 5</div><div class="trl-run-stat-value">' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '</div></div>'
@@ -1128,6 +1253,7 @@
                 var numberOnesCell = buildTrlNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
+                    + renderTrlImageCell('album', entry.albumId, entry.hasImage)
                     + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td data-value="' + escapeTrlHtml(entry.albumName) + '">' + albumCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
@@ -1150,6 +1276,7 @@
                 var numberOneSpanCell = buildTrlNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
+                    + renderTrlImageCell('artist', entry.resolvedArtistId, entry.hasImage)
                     + '<td data-value="' + escapeTrlHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
                     + '<td class="right" data-value="' + entry.totalChartSpan + '">' + entry.totalChartSpan + '</td>'
